@@ -1,0 +1,80 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const { chromium } = require('playwright');
+
+(async () => {
+  const browser = await chromium.launch({headless:true});
+  try {
+    const page = await browser.newPage({viewport:{width:1200,height:800}});
+    const html = fs.readFileSync(path.join(__dirname,'..','trade-order-system.html'),'utf8');
+    let stored = {app:'trade-order-system',data:{orders:[],customers:{},demoCleared:true,demoCustomersCleared:true},revision:0};
+    let failSave = false;
+    let writes = 0;
+    const errors = [];
+    page.on('pageerror',error=>errors.push(error.message));
+    await page.route('**/*',async route => {
+      const pathname = new URL(route.request().url()).pathname;
+      if (pathname === '/trade-order-system.html') return route.fulfill({contentType:'text/html',body:html});
+      let response = {ok:true};
+      if (pathname === '/api/data') response = stored;
+      if (pathname === '/api/health') response = {ok:true,storageMode:'sqlite',counts:{orders:0},backups:{sqliteCount:0}};
+      if (pathname === '/api/save') {
+        writes++;
+        if (failSave) return route.fulfill({status:500,json:{ok:false,message:'TEST disk unavailable'}});
+        const body = route.request().postDataJSON();
+        stored = {...body.state,revision:stored.revision+1};
+        response = {ok:true,revision:stored.revision,backup:{ok:true,skipped:true}};
+      }
+      return route.fulfill({json:response});
+    });
+    await page.goto('http://127.0.0.1:47999/trade-order-system.html');
+    await page.waitForFunction(()=>window.pendingSaveStatus?.().loaded);
+    await page.evaluate(()=>window.flushPendingSave());
+    await page.evaluate(()=>openCustomerModal());
+    await page.locator('#customerForm [name="name"]').fill('Save Test Buyer');
+    failSave = true;
+    await page.locator('#customerHeaderSaveBtn').click();
+    await page.waitForFunction(()=>window.pendingSaveStatus().error);
+    assert(await page.locator('#customerModal').evaluate(el=>el.classList.contains('open')),'Save failure closed customer form');
+    assert.equal(await page.locator('#customerForm [name="name"]').inputValue(),'Save Test Buyer');
+    assert.equal(Object.keys(stored.data.customers).length,0);
+    failSave = false;
+    await page.locator('#customerHeaderSaveBtn').click();
+    await page.waitForFunction(()=>!document.getElementById('customerModal').classList.contains('open'));
+    assert(stored.data.customers['Save Test Buyer'],'Success closed form before database acknowledgement');
+    await page.locator('#newOrderBtn').click();
+    await page.locator('#orderForm [name="client"]').fill('Save Test Buyer');
+    await page.locator('#orderForm [name="amount"]').fill('100');
+    await page.locator('#orderForm [name="sendFeishuNotification"]').uncheck();
+    failSave = true;
+    await page.evaluate(()=>document.getElementById('orderForm').requestSubmit());
+    await page.waitForFunction(()=>window.pendingSaveStatus().error);
+    assert(await page.locator('#orderModal').evaluate(el=>el.classList.contains('open')));
+    failSave = false;
+    await page.evaluate(()=>document.getElementById('orderForm').requestSubmit());
+    await page.waitForFunction(()=>!document.getElementById('orderModal').classList.contains('open'));
+    assert.equal(stored.data.orders.length,1,'Retry duplicated order');
+    assert.equal(stored.data.orders[0].amount,100);
+    await page.evaluate(()=>openCombinedCustomerOrderModal({customerFields:{name:'Combined Test Buyer'},orderFields:{amount:200}}));
+    await page.locator('#combinedOrderForm [name="sendFeishuNotification"]').uncheck();
+    failSave = true;
+    await page.locator('#combinedSaveBtn').click();
+    await page.waitForFunction(()=>window.pendingSaveStatus().error);
+    assert(await page.locator('#combinedCustomerOrderModal').evaluate(el=>el.classList.contains('open')));
+    failSave = false;
+    await page.locator('#combinedSaveBtn').click();
+    await page.waitForFunction(()=>!document.getElementById('combinedCustomerOrderModal').classList.contains('open'));
+    assert.equal(stored.data.orders.length,2,'Combined retry duplicated order');
+    assert(stored.data.customers['Combined Test Buyer']);
+    await page.evaluate(()=>{macStorageReadOnly=true;openCustomerModal();});
+    await page.locator('#customerForm [name="name"]').fill('Must Not Save');
+    const before = writes;
+    await page.locator('#customerHeaderSaveBtn').click();
+    assert(await page.locator('#customerModal').evaluate(el=>el.classList.contains('open')));
+    assert.equal(writes,before,'Read-only submission issued a write');
+    assert.equal(errors.length,0,errors.join('\n'));
+    if (process.env.UI_SCREENSHOT) await page.screenshot({path:process.env.UI_SCREENSHOT});
+    console.log('Save UI passed: customer/order/combined forms, failure keeps input, successful retry, read-only prevents submission.');
+  } finally { await browser.close(); }
+})().catch(error=>{console.error(error);process.exitCode=1;});

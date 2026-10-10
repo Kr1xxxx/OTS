@@ -1,0 +1,127 @@
+{
+  "app": "trade-order-system",
+  "version": "demo-1",
+  "description": "Small fake dataset for local testing and UI demos. No real customers or API keys.",
+  "data": {
+    "orders": [
+      {
+        "id": "demo-o1",
+        "productType": "假发",
+        "paymentChannel": "阿里巴巴",
+        "orderType": "定金订单",
+        "depositAmount": 1800,
+        "depositPercent": 30,
+        "num": "K26050101",
+        "client": "Demo Beauty Supply",
+        "country": "🇺🇸 美国 United States",
+        "amount": 6000,
+        "paidAmount": 1800,
+        "currency": "USD",
+        "createdAt": "2026-05-01",
+        "orderMonth": "2026-05",
+        "stage": "deposit",
+        "next": "跟进定金付款",
+        "note": "假数据：用于测试定金订单和待收款提醒",
+        "updated": "2026-05-02 10:00",
+        "logs": [
+          "创建假订单",
+          "发送付款信息"
+        ]
+      },
+      {
+        "id": "demo-o2",
+        "productType": "睫毛",
+        "paymentChannel": "Paypal",
+        "orderType": "全款订单",
+        "depositAmount": 4200,
+        "depositPercent": 100,
+        "num": "K26050201",
+        "client": "Demo Lash Studio",
+        "country": "🇬🇧 英国 United Kingdom",
+        "amount": 4200,
+        "paidAmount": 4200,
+        "currency": "USD",
+        "createdAt": "2026-05-02",
+        "orderMonth": "2026-05",
+        "stage": "shipment",
+        "next": "等待物流更新",
+        "note": "假数据：用于测试物流状态",
+        "updated": "2026-05-03 09:30",
+        "logs": [
+          "已收全款",
+          "创建物流单"
+        ]
+      },
+      {
+        "id": "demo-o3",
+        "productType": "假发",
+        "paymentChannel": "TT",
+        "orderType": "定金订单",
+        "depositAmount": 2500,
+        "depositPercent": 25,
+        "num": "K26050301",
+        "client": "Demo Salon Group",
+        "country": "🇨🇦 加拿大 Canada",
+        "amount": 10000,
+        "paidAmount": 2500,
+        "currency": "USD",
+        "createdAt": "2026-05-03",
+        "orderMonth": "2026-05",
+        "stage": "production",
+        "next": "同步生产照片",
+        "urgentOrder": true,
+        "customerRequiredDate": "2026-05-20",
+        "latestShipDate": "2026-05-14",
+        "note": "假数据：用于测试加急和交期任务",
+        "updated": "2026-05-04 14:20",
+        "logs": [
+          "已收定金",
+          "安排生产"
+        ]
+      }
+    ],
+    "customers": {
+      "Demo Beauty Supply": {
+        "country": "🇺🇸 美国 United States",
+        "contact": "Mia Demo",
+        "email": "mia.demo@example.com",
+        "paymentMethod": "阿里巴巴",
+        "level": "C级白金客户",
+        "tags": [
+          "样品客户"
+        ],
+        "repurchaseCycle": 60,
+        "createdAt": "2026-05-01"
+      },
+      "Demo Lash Studio": {
+        "country": "🇬🇧 英国 United Kingdom",
+        "contact": "Lily Demo",
+        "email": "lily.demo@example.com",
+        "paymentMethod": "Paypal",
+        "level": "B级翡翠客户",
+        "tags": [
+          "复购客户"
+        ],
+        "repurchaseCycle": 30,
+        "createdAt": "2026-05-02"
+      },
+      "Demo Salon Group": {
+        "country": "🇨🇦 加拿大 Canada",
+        "contact": "Noah Demo",
+        "email": "noah.demo@example.com",
+        "paymentMethod": "TT",
+        "level": "D级黄金客户",
+        "tags": [
+          "加急客户"
+        ],
+        "repurchaseCycle": 90,
+        "createdAt": "2026-05-03"
+      }
+    },
+    "performanceTargets": {
+      "2026-05": 30000
+    },
+    "trackingLookups": [],
+    "doneTasks": {}
+  }
+}

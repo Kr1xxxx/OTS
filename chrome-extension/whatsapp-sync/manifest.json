@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "KME WhatsApp 客户同步",
+  "version": "0.2.0",
+  "minimum_chrome_version": "111",
+  "description": "将已关联客户的 WhatsApp Web 聊天记录同步到本机外贸订单跟进系统。",
+  "permissions": ["storage", "nativeMessaging"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "打开 KME WhatsApp 客户同步" },
+  "content_scripts": [
+    { "matches": ["https://web.whatsapp.com/*"], "js": ["vendor/wppconnect-wa.js", "wa-page.js"], "world": "MAIN", "run_at": "document_idle" },
+    { "matches": ["https://web.whatsapp.com/*"], "js": ["collector.js", "content.js"], "run_at": "document_idle" }
+  ],
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAiXJ3iVz+VxDUxAIkR2uBaONcdTbIGA0ZE43CbVCCOhhS5dqF5wHUDzILSzoygya2evkxKm9G1nbHHhVpE7cuw69voQtl0w2RP5uoIBUc6VemsDYPxBrfeNo7UCUN4KiK7IZAJGWQUZtQOUsQ1DLmt3zXAP9weyXrIkQJaEPLI4kCASb4rjVxYbyLo7FTkLwZpOu5jYg/09Cp6OTAgfQ590PP/s3muuG2NY8hN5DUxIjzh/nkPITwzDO7DkuKIFX7ivIgNUWyne0yRicl50rYRIu1MtvHJmwVHfQ/LFwkHIGSV6trRWnp1tN7weoH2Bz8LbMFA/v00efl6NNKRCO2iQIDAQAB"
+}

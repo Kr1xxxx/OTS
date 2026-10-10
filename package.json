@@ -1,0 +1,44 @@
+{
+  "name": "trade-order-system",
+  "version": "3.85.0",
+  "private": true,
+  "description": "Local trade order tracking system with a native Mac host, SQLite storage, and logistics API helpers.",
+  "scripts": {
+    "start": "node mac-app/server.js",
+    "check": "node scripts/check-project.js",
+    "check:release": "node scripts/check-release.js",
+    "test": "npm run check && npm run test:recognition && npm run test:order-number && npm run test:dashboard-month && npm run test:deposit && npm run test:full-payment-status && npm run test:new-order-stage && npm run test:order-modal-history && npm run test:modal-accessibility && npm run test:custom-select && npm run test:list && npm run test:search && npm run test:calendar-analysis && npm run test:business && npm run test:images && npm run test:icon && npm run test:feishu && npm run test:sqlite && npm run test:server && npm run test:native && npm run test:save-confirmation && npm run test:board-layout",
+    "test:save-confirmation": "node scripts/test-save-confirmation.js && node scripts/test-save-ui.js && node scripts/test-customer-contact-preferences-ui.js",
+    "test:board-layout": "node scripts/test-board-layout.js",
+    "test:install-browser": "playwright install chromium",
+    "test:recognition": "node scripts/test-order-recognition.js && node scripts/test-customer-ai-first-ui.js && node scripts/test-customer-ai-requirements.js && node scripts/test-customer-ai-preview-editor.js && node scripts/test-customer-multi-fields.js && node scripts/test-customer-contact-preferences.js && node scripts/test-multi-shipments.js && npm run test:whatsapp",
+    "test:whatsapp": "node scripts/test-whatsapp-sync.js && node scripts/test-whatsapp-wajs.js && node scripts/test-whatsapp-extension.js && node scripts/test-whatsapp-integration.js && node scripts/test-whatsapp-chrome.js",
+    "test:order-number": "node scripts/test-order-number.js",
+    "test:dashboard-month": "node scripts/test-dashboard-month.js",
+    "test:deposit": "node scripts/test-deposit-picker.js",
+    "test:full-payment-status": "node scripts/test-full-payment-status.js",
+    "test:new-order-stage": "node scripts/test-new-order-stage.js && node scripts/test-ups-auto-completion.js",
+    "test:order-modal-history": "node scripts/test-order-modal-history.js",
+    "test:modal-accessibility": "node scripts/test-modal-accessibility.js",
+    "test:custom-select": "node scripts/test-custom-select.js && node scripts/test-menu-popovers-ui.js",
+    "test:list": "node scripts/test-order-list-page.js",
+    "test:search": "node scripts/test-global-search.js && node scripts/test-refresh-backup-pagination.js && node scripts/test-client-picker-search.js",
+    "test:calendar-analysis": "node scripts/test-calendar-analysis-ui.js",
+    "test:business": "node scripts/test-business-analysis.js && node scripts/test-ecb-exchange.js",
+    "test:images": "node scripts/test-image-attachment-preparation.js && node scripts/test-image-upload-progress-ui.js && node scripts/test-tinypng-compression.js",
+    "test:icon": "node scripts/test-app-icon.js",
+    "test:feishu": "node scripts/test-feishu-order-notification.js && node scripts/test-feishu-order-ui.js",
+    "test:sqlite": "node scripts/test-sqlite-storage.js",
+    "test:server": "node scripts/test-server-security.js && node scripts/test-version-update-tooltip.js && node scripts/test-deepseek-openrouter.js && node scripts/test-ai-usage.js",
+    "test:native": "cd mac-app/native && swift run TradeOrderSystemCoreTests",
+    "test:api": "node scripts/test-tracking-api.js",
+    "test:api:dhl": "node scripts/test-tracking-api.js DHL",
+    "test:api:fedex": "node scripts/test-tracking-api.js FedEx"
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "package": "@wppconnect/wa-js",
+  "version": "4.5.0",
+  "source": "https://registry.npmjs.org/@wppconnect/wa-js/-/wa-js-4.5.0.tgz",
+  "integrity": "sha512-59eFzrFA/VtrHztHCXGDGvqNqBQYqcG/x0wxeB0IqnNqIBrKI3UmbqDwSrf8qw62CBRtcML37KPPmtYoWnvY7A==",
+  "javascriptSha256": "e11d8992e0d68a3283930785aa61e65e5ff6dd96be512a99ae0e68072c365dd9",
+  "license": "Apache-2.0",
+  "upstream": "https://github.com/wppconnect-team/wa-js",
+  "modifications": "None. Official bundled JavaScript and LICENSE copied byte-for-byte. No OKKI code included."
+}

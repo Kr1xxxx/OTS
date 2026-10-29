@@ -19,6 +19,7 @@ chrome-extension/whatsapp-sync/wa-page.js
 data/demo-data.json
 docs/export-verification.md
 docs/project-notes.md
+eslint.config.js
 mac-app/AppIcon-1024.png
 mac-app/AppIcon-Source.png
 mac-app/README.md
@@ -37,6 +38,7 @@ scripts/bench-render-save.js
 scripts/check-project.js
 scripts/check-release.js
 scripts/helpers/whatsapp-fixture.js
+scripts/lint.js
 scripts/make-rounded-app-icon.swift
 scripts/run-tests.js
 scripts/test-ai-usage.js

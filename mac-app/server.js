@@ -7,7 +7,7 @@ const zlib = require('zlib');
 const crypto = require('crypto');
 const { spawn } = require('child_process');
 const { DatabaseSync } = require('node:sqlite');
-const { createWhatsAppStore } = require('./whatsapp-store');
+const { createWhatsAppStore, renameWhatsAppCustomer } = require('./whatsapp-store');
 const { createAiUsageStore } = require('./ai-usage-store');
 
 const appName = 'TradeOrderSystem';
@@ -325,7 +325,8 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision } = 
       }
     }
     const nextRevision = currentRevision + 1;
-    const existingOrders = new Map(database.prepare('SELECT id, bucket, position, data_json FROM orders').all().map(row => [row.id, row]));
+    const existingOrders = new Map(database.prepare('SELECT id, bucket, position, num, client, data_json FROM orders').all().map(row => [row.id, row]));
+    const desiredOrders = [];
     const desiredOrderIds = new Set();
     orderBuckets.forEach(bucket => {
       data[bucket].forEach((order, position) => {
@@ -333,43 +334,53 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision } = 
         if (!id) throw new Error(`${bucket} contains an order without id`);
         if (desiredOrderIds.has(id)) throw new Error(`duplicate order id: ${id}`);
         desiredOrderIds.add(id);
-        const orderJson = JSON.stringify(order);
-        const previous = existingOrders.get(id);
-        const changed = !previous || previous.data_json !== orderJson || previous.bucket !== bucket || Number(previous.position) !== position;
-        if (changed) {
-          orderInsert.run(
-            id,
-            bucket,
-            position,
-            String(order.num || ''),
-            String(order.client || ''),
-            String(order.country || ''),
-            String(order.orderMonth || ''),
-            String(order.stage || ''),
-            Number(order.amount || 0),
-            Number(order.paidAmount || 0),
-            String(order.currency || 'USD'),
-            String(order.trackingNumber || ''),
-            String(order.carrier || ''),
-            String(order.updated || ''),
-            orderJson
-          );
-        }
-        if (!previous || previous.data_json !== orderJson) {
-          attachmentDelete.run(id);
-          logDelete.run(id);
-          (Array.isArray(order.attachments) ? order.attachments : []).forEach((item, index) => {
-            attachmentInsert.run(id, index, String(item?.fileUrl || item?.link || ''), JSON.stringify(item));
-          });
-          (Array.isArray(order.logs) ? order.logs : []).forEach((item, index) => {
-            const eventTime = typeof item === 'object' && item ? item.time : '';
-            logInsert.run(id, index, String(eventTime || ''), JSON.stringify(item));
-          });
-        }
+        desiredOrders.push({ bucket, order, position, id });
       });
     });
+    // The unique num index is checked row by row, so free numbers that are being
+    // removed or reassigned before upserting; duplicates in the final state still fail.
     existingOrders.forEach((_, id) => {
       if (!desiredOrderIds.has(id)) orderDelete.run(id);
+    });
+    const orderNumClear = database.prepare("UPDATE orders SET num = '' WHERE id = ?");
+    desiredOrders.forEach(({ order, id }) => {
+      const previous = existingOrders.get(id);
+      if (previous && previous.num && previous.num !== String(order.num || '')) orderNumClear.run(id);
+    });
+    desiredOrders.forEach(({ bucket, order, position, id }) => {
+      const orderJson = JSON.stringify(order);
+      const previous = existingOrders.get(id);
+      const changed = !previous || previous.data_json !== orderJson || previous.bucket !== bucket || Number(previous.position) !== position;
+      if (changed) {
+        orderInsert.run(
+          id,
+          bucket,
+          position,
+          String(order.num || ''),
+          String(order.client || ''),
+          String(order.country || ''),
+          String(order.orderMonth || ''),
+          String(order.stage || ''),
+          Number(order.amount || 0),
+          Number(order.paidAmount || 0),
+          String(order.currency || 'USD'),
+          String(order.trackingNumber || ''),
+          String(order.carrier || ''),
+          String(order.updated || ''),
+          orderJson
+        );
+      }
+      if (!previous || previous.data_json !== orderJson) {
+        attachmentDelete.run(id);
+        logDelete.run(id);
+        (Array.isArray(order.attachments) ? order.attachments : []).forEach((item, index) => {
+          attachmentInsert.run(id, index, String(item?.fileUrl || item?.link || ''), JSON.stringify(item));
+        });
+        (Array.isArray(order.logs) ? order.logs : []).forEach((item, index) => {
+          const eventTime = typeof item === 'object' && item ? item.time : '';
+          logInsert.run(id, index, String(eventTime || ''), JSON.stringify(item));
+        });
+      }
     });
 
     const existingCustomers = new Map(database.prepare('SELECT name, data_json FROM customers').all().map(row => [row.name, row.data_json]));
@@ -392,6 +403,19 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision } = 
     });
     existingCustomers.forEach((_, name) => {
       if (!desiredCustomerNames.has(name)) customerDelete.run(name);
+    });
+    // Renames and merges arrive as "old profile removed + its orders moved to a new
+    // name". Follow those moves so WhatsApp chats stay attached to the customer.
+    const customerMoves = new Map();
+    desiredOrders.forEach(({ order, id }) => {
+      const from = existingOrders.get(id)?.client || '';
+      const to = String(order.client || '');
+      if (!from || from === to || desiredCustomerNames.has(from) || !existingCustomers.has(from) || !desiredCustomerNames.has(to)) return;
+      if (!customerMoves.has(from)) customerMoves.set(from, new Set());
+      customerMoves.get(from).add(to);
+    });
+    customerMoves.forEach((targets, from) => {
+      if (targets.size === 1) renameWhatsAppCustomer(database, from, [...targets][0]);
     });
 
     const existingLookups = new Map(database.prepare('SELECT id, position, data_json FROM tracking_lookups').all().map(row => [row.id, row]));

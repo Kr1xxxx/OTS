@@ -14241,7 +14241,8 @@ function nextOrderNum() {
   const digits = Math.max(2, Math.min(4, Number(settings.serialDigits || 2)));
   const date = `${String(d.getFullYear()).slice(2)}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
   const pattern = new RegExp(`^${prefix}${date}(\\d{${digits}})$`);
-  const dailyNums = state.orders
+  // Trashed and deleted orders still own their numbers in SQLite, so skip them too.
+  const dailyNums = [...(state.orders || []), ...(state.trashOrders || []), ...(state.deletedOrders || [])]
     .map(o => String(o.num || '').match(pattern)?.[1])
     .filter(Boolean)
     .map(Number);

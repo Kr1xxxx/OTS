@@ -85,5 +85,6 @@ scripts/test-whatsapp-extension.js
 scripts/test-whatsapp-integration.js
 scripts/test-whatsapp-sync.js
 scripts/test-whatsapp-wajs.js
+scripts/update-export-checksums.js
 trade-order-data.json
 trade-order-system.html

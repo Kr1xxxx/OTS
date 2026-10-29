@@ -33,6 +33,8 @@ const aiUsageStore = createAiUsageStore({ file:path.join(supportDir, 'ai-usage.j
 const secretsDir = path.join(supportDir, 'secrets');
 const aiApiKeyFile = path.join(secretsDir, 'ai-api-key');
 const tinifyApiKeyFile = path.join(secretsDir, 'tinypng-api-key');
+const trackingSecretsFile = path.join(secretsDir, 'tracking-credentials.json');
+const trackingSecretKeys = ['dhlApiKey', 'fedexApiKey', 'fedexApiSecret'];
 const storageMarkerFile = path.join(supportDir, 'sqlite-storage.json');
 const larkProfile = 'OTS_BOT_CONFIGURE';
 const larkChatName = '订单通知群（待配置）';
@@ -1351,21 +1353,53 @@ function maskSecret(value = '') {
   return `${text.slice(0, 3)}******${text.slice(-3)}`;
 }
 
+function readTrackingSecrets() {
+  if (!fs.existsSync(trackingSecretsFile)) return {};
+  try {
+    fs.chmodSync(trackingSecretsFile, 0o600);
+    const raw = readJson(trackingSecretsFile);
+    return Object.fromEntries(trackingSecretKeys.map(key => [key, String(raw?.[key] || '').trim()]));
+  } catch (_) {
+    return {};
+  }
+}
+
+function withoutTrackingSecrets(settings) {
+  const copy = { ...settings };
+  trackingSecretKeys.forEach(key => { delete copy[key]; });
+  return copy;
+}
+
+// Carrier credentials live in secrets/ beside the AI key, not in the plain settings file.
+function migrateLegacyTrackingSecrets() {
+  ensureStorage();
+  if (!fs.existsSync(trackingSettingsFile)) return;
+  let raw;
+  try { raw = readJson(trackingSettingsFile); } catch (_) { return; }
+  if (!raw || typeof raw !== 'object' || !trackingSecretKeys.some(key => Object.hasOwn(raw, key))) return;
+  const stored = readTrackingSecrets();
+  const merged = Object.fromEntries(trackingSecretKeys.map(key => [key, stored[key] || String(raw[key] || '').trim()]));
+  atomicWrite(trackingSecretsFile, JSON.stringify(merged, null, 2));
+  const verified = readTrackingSecrets();
+  if (trackingSecretKeys.some(key => verified[key] !== merged[key])) throw new Error('tracking credential migration verification failed');
+  atomicWrite(trackingSettingsFile, JSON.stringify(withoutTrackingSecrets(raw), null, 2));
+}
+
 function readTrackingSettings() {
   ensureStorage();
-  if (!fs.existsSync(trackingSettingsFile)) return { ...defaultTrackingSettings };
-  try {
-    return normalizeTrackingSettings(readJson(trackingSettingsFile));
-  } catch (_) {
-    return { ...defaultTrackingSettings };
+  let raw = {};
+  if (fs.existsSync(trackingSettingsFile)) {
+    try { raw = readJson(trackingSettingsFile); } catch (_) { raw = {}; }
   }
+  return normalizeTrackingSettings({ ...raw, ...readTrackingSecrets() });
 }
 
 function writeTrackingSettings(settings) {
   ensureStorage();
   const current = readTrackingSettings();
   const next = normalizeTrackingSettings({ ...current, ...(settings || {}) });
-  atomicWrite(trackingSettingsFile, JSON.stringify(next, null, 2));
+  atomicWrite(trackingSecretsFile, JSON.stringify(Object.fromEntries(trackingSecretKeys.map(key => [key, next[key]])), null, 2));
+  atomicWrite(trackingSettingsFile, JSON.stringify(withoutTrackingSecrets(next), null, 2));
   return {
     ...next,
     dhlApiKeySaved: Boolean(next.dhlApiKey),
@@ -2031,6 +2065,9 @@ async function queryBocRate(dateText) {
 
 ensureStorage();
 migrateLegacyAiApiKey();
+try { migrateLegacyTrackingSecrets(); } catch (error) {
+  console.error(`Tracking credential migration skipped: ${error.message}`);
+}
 initializeStorage();
 cleanupOrphanAttachments();
 

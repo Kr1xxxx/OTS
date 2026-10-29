@@ -1,6 +1,6 @@
 {
   "name": "trade-order-system",
-  "version": "3.85.0",
+  "version": "3.88.0",
   "private": true,
   "description": "Local trade order tracking system with a native Mac host, SQLite storage, and logistics API helpers.",
   "scripts": {
@@ -11,10 +11,10 @@
     "test:save-confirmation": "node scripts/test-save-confirmation.js && node scripts/test-save-ui.js && node scripts/test-customer-contact-preferences-ui.js",
     "test:board-layout": "node scripts/test-board-layout.js",
     "test:install-browser": "playwright install chromium",
-    "test:recognition": "node scripts/test-order-recognition.js && node scripts/test-customer-ai-first-ui.js && node scripts/test-customer-ai-requirements.js && node scripts/test-customer-ai-preview-editor.js && node scripts/test-customer-multi-fields.js && node scripts/test-customer-contact-preferences.js && node scripts/test-multi-shipments.js && npm run test:whatsapp",
+    "test:recognition": "node scripts/test-order-recognition.js && node scripts/test-customer-ai-first-ui.js && node scripts/test-customer-ai-requirements.js && node scripts/test-customer-email-fallback.js && node scripts/test-customer-ai-preview-editor.js && node scripts/test-customer-multi-fields.js && node scripts/test-customer-contact-preferences.js && node scripts/test-multi-shipments.js && npm run test:whatsapp",
     "test:whatsapp": "node scripts/test-whatsapp-sync.js && node scripts/test-whatsapp-wajs.js && node scripts/test-whatsapp-extension.js && node scripts/test-whatsapp-integration.js && node scripts/test-whatsapp-chrome.js",
     "test:order-number": "node scripts/test-order-number.js",
-    "test:dashboard-month": "node scripts/test-dashboard-month.js",
+    "test:dashboard-month": "node scripts/test-dashboard-month.js && node scripts/test-summary-amounts-ui.js",
     "test:deposit": "node scripts/test-deposit-picker.js",
     "test:full-payment-status": "node scripts/test-full-payment-status.js",
     "test:new-order-stage": "node scripts/test-new-order-stage.js && node scripts/test-ups-auto-completion.js",

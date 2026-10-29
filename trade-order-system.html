@@ -378,9 +378,10 @@ button { cursor: pointer; }
 .stat:nth-child(4) .stat-value { color: var(--orange-600); }
 .amount-stat { padding-bottom: 6px; }
 .amount-stat .stat-value, #statPayment {
-  white-space: nowrap;
-  font-size: clamp(21px, 1.7vw, 27px);
+  white-space: normal; overflow-wrap: anywhere;
+  font-size: clamp(14px, 13cqw, 27px);
 }
+#statTargetSub { grid-column: 1 / -1; white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
 .amount-stat .stat-value { margin-top: 0; }
 .amount-stat .stat-sub { grid-column: 1; grid-row: 3; align-self: center; }
 .amount-stat-actions {
@@ -2515,6 +2516,31 @@ html:not([data-theme="dark"]) .api-status-state {
 .business-kpi strong { display: block; margin-top: 8px; color: var(--gray-900); font-size: clamp(18px, 2vw, 26px); line-height: 1.1; font-weight: 950; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .business-kpi.paid strong { color: var(--semantic-paid); }
 .business-kpi.due strong { color: var(--semantic-alert); }
+/* Monetary summaries must show the entire value, never an ellipsis. Adapt to
+   each card's available width; exceptionally large values may wrap instead. */
+.report-stat, .target-metric, .business-kpi, .customer-summary-item, .customer-metric-card {
+  min-width: 0; container-type: inline-size;
+}
+#reportUsd, #reportPaid, #reportDue, #reportOverdue,
+#targetGoal, #targetActual, #targetGap,
+.analysis-page .business-kpi strong:is(#businessRevenue, #businessPaid, #businessDue, #businessAverage) {
+  font-size: clamp(13px, 10cqw, 24px); line-height: 1.25;
+  white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.customer-summary-item strong.summary-money, .customer-metric-card strong.summary-money {
+  font-size: clamp(12px, 10cqw, 15px); line-height: 1.3;
+  white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.customer-summary-item strong.summary-money { grid-column: 1 / -1; }
+.customer-summary-item small.summary-money {
+  white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere;
+}
+.analysis-trend-row { grid-template-columns: 60px minmax(30px, 1fr) max-content 48px; }
+@media (max-width: 1280px) {
+  .business-kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 .business-trend-chart { min-height: 260px; overflow-x: auto; }
 .business-trend-chart svg { display: block; width: 100%; min-width: 520px; height: 250px; overflow: visible; }
 .business-payment-structure, .business-product-contribution { display: grid; gap: 12px; }
@@ -2850,7 +2876,7 @@ html[data-theme="dark"] .app-refresh-btn:focus-visible {
   .stat { min-height: 90px; padding: 10px 12px 7px; border-radius: 18px; }
   .stat-label { padding-right: 0; }
   .stat-value { font-size: clamp(19px, 9cqw, 28px); }
-  .amount-stat .stat-value, #statPayment { font-size: clamp(18px, 2.15vw, 23px); }
+  .amount-stat .stat-value, #statPayment { font-size: clamp(14px, 13cqw, 23px); }
   .amount-stat .stat-value { margin-top: 0; }
   .stat-sub { font-size: 11px; }
   .amount-stat { padding-bottom: 6px; }
@@ -3643,7 +3669,7 @@ html[data-theme="dark"] .app-select-option-check { color: var(--cyan-600); }
 <body>
 <aside class="sidebar">
   <div class="logo">
-    <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.85，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.85</div>
+    <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.88，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.88</div>
   </div>
   <nav class="nav">
     <button class="nav-item active" data-page="dashboard" data-mobile-label="工作台"><span class="nav-icon">□</span><span class="nav-text">工作台</span></button>
@@ -6003,9 +6029,14 @@ function normalizeCountry(value) {
   return countryDefs.find(c => c.toLowerCase().includes(plain)) || '🌐 其他 Other';
 }
 function currencyDef(code) { return currencyDefs.find(c => c.code === code) || currencyDefs[0]; }
-function money(n, code = 'USD') {
+function money(n, code = 'USD', maximumFractionDigits = 3) {
   const c = currencyDef(code);
-  return `${c.symbol}${Number(n || 0).toLocaleString('en-US')} ${c.code}`;
+  return `${c.symbol}${Number(n || 0).toLocaleString('en-US', { maximumFractionDigits })} ${c.code}`;
+}
+// Summary display only: never round stored values, individual orders, rates or API costs.
+function summaryMoney(n, code = 'USD') {
+  const c = currencyDef(code);
+  return `${c.symbol}${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits:1, maximumFractionDigits:1 })} ${c.code}`;
 }
 function formatBytes(value = 0) {
   const bytes = Number(value || 0);
@@ -6632,17 +6663,17 @@ function renderBusinessTrend(orders) {
   const months = monthsBetween(monthOffset(activeBusinessMonth, -5), activeBusinessMonth);
   const rows = months.map(month => businessAnalysisForMonth(orders, month));
   const maxAmount = Math.max(1, ...rows.map(row => row.total));
-  el.innerHTML = rows.map(row => '<div class="analysis-trend-row"><span>' + row.month + '</span><div class="analysis-trend-track"><span style="width:' + Math.round(row.total/maxAmount*100) + '%"></span></div><strong>' + money(row.total,'USD') + '</strong><span>' + row.orderCount + ' 单</span></div>' + (row.missingRateCount ? '<div class="section-meta">该月有 ' + row.missingRateCount + ' 单缺少汇率，金额未计入</div>' : '')).join('');
+  el.innerHTML = rows.map(row => '<div class="analysis-trend-row"><span>' + row.month + '</span><div class="analysis-trend-track"><span style="width:' + Math.round(row.total/maxAmount*100) + '%"></span></div><strong>' + summaryMoney(row.total,'USD') + '</strong><span>' + row.orderCount + ' 单</span></div>' + (row.missingRateCount ? '<div class="section-meta">该月有 ' + row.missingRateCount + ' 单缺少汇率，金额未计入</div>' : '')).join('');
 }
 function renderBusinessAnalysis(orders = state.orders || []) {
   const analysis = businessAnalysisForMonth(orders, activeBusinessMonth);
   const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
   setText('businessMonthTitle', monthLabel(activeBusinessMonth));
   setText('businessOrderCount', analysis.orderCount);
-  setText('businessRevenue', money(analysis.total, 'USD'));
-  setText('businessPaid', money(analysis.paid, 'USD'));
-  setText('businessDue', money(analysis.due, 'USD'));
-  setText('businessAverage', money(analysis.average, 'USD'));
+  setText('businessRevenue', summaryMoney(analysis.total, 'USD'));
+  setText('businessPaid', summaryMoney(analysis.paid, 'USD'));
+  setText('businessDue', summaryMoney(analysis.due, 'USD'));
+  setText('businessAverage', summaryMoney(analysis.average, 'USD'));
   setText('businessCollectionRate', `${analysis.collectionRate}%`);
   setText('businessRateStatus', analysis.missingRateCount
     ? `有 ${analysis.missingRateCount} 笔非美元订单暂缺 ECB 历史汇率，未计入金额；其余按订单日期折算`
@@ -6653,14 +6684,14 @@ function renderBusinessAnalysis(orders = state.orders || []) {
     payment.innerHTML = analysis.total ? `
       <div class="business-payment-summary"><span class="muted">已完成收款</span><strong>${analysis.collectionRate}%</strong></div>
       <div class="business-payment-bar" aria-label="已收 ${analysis.collectionRate}%，待收 ${100 - analysis.collectionRate}%"><div class="business-payment-paid" style="width:${analysis.collectionRate}%"></div><div class="business-payment-due" style="width:${100 - analysis.collectionRate}%"></div></div>
-      <div class="business-payment-legend"><div class="business-payment-item"><span>已收金额</span><strong>${money(analysis.paid, 'USD')}</strong></div><div class="business-payment-item"><span>待收金额</span><strong>${money(analysis.due, 'USD')}</strong></div></div>
+      <div class="business-payment-legend"><div class="business-payment-item"><span>已收金额</span><strong>${summaryMoney(analysis.paid, 'USD')}</strong></div><div class="business-payment-item"><span>待收金额</span><strong>${summaryMoney(analysis.due, 'USD')}</strong></div></div>
     ` : '<div class="empty">这个月份暂无可统计的正式订单。</div>';
   }
   const products = document.getElementById('businessProductContribution');
   if (products) {
     const maxAmount = Math.max(1, ...analysis.products.map(item => item.amount));
     products.innerHTML = analysis.products.slice(0, 8).map(item => `
-      <div class="business-product-row"><span class="business-product-name">${escapeAttr(item.name)}</span><div class="business-product-track"><div class="business-product-fill" style="width:${Math.max(4, Math.round(item.amount / maxAmount * 100))}%"></div></div><span class="business-product-value">${item.count} 单 · ${money(item.amount, 'USD')}</span></div>
+      <div class="business-product-row"><span class="business-product-name">${escapeAttr(item.name)}</span><div class="business-product-track"><div class="business-product-fill" style="width:${Math.max(4, Math.round(item.amount / maxAmount * 100))}%"></div></div><span class="business-product-value">${item.count} 单 · ${summaryMoney(item.amount, 'USD')}</span></div>
     `).join('') || '<div class="empty">这个月份暂无产品贡献数据。</div>';
   }
 }
@@ -6698,7 +6729,7 @@ function renderAnalysisPage() {
     ? '有订单缺少汇率，金额对比暂不展示。订单数：本期 ' + data.current.orderCount + ' 单 / 上月 ' + data.previous.orderCount + ' 单'
     : '较上月整月：订单额 ' + compare(data.current.total,data.previous.total) + ' · 订单数 ' + data.current.orderCount + ' / ' + data.previous.orderCount + ' 单 · 平均订单额 ' + compare(data.current.average,data.previous.average) + '。当月尚未结束时，不代表最终增减。';
   document.getElementById('analysisMonthInput').value = activeBusinessMonth;
-  document.getElementById('analysisClients').innerHTML = data.clients.slice(0,8).map((row,index) => '<div class="analysis-rank"><span class="muted">' + (index+1) + '</span><span>' + escapeAttr(row.name) + '</span><span class="muted">' + row.count + ' 单</span><strong>' + money(row.amount,'USD') + '</strong></div>').join('') || '<div class="empty">该月份暂无客户订单。</div>';
+  document.getElementById('analysisClients').innerHTML = data.clients.slice(0,8).map((row,index) => '<div class="analysis-rank"><span class="muted">' + (index+1) + '</span><span>' + escapeAttr(row.name) + '</span><span class="muted">' + row.count + ' 单</span><strong>' + summaryMoney(row.amount,'USD') + '</strong></div>').join('') || '<div class="empty">该月份暂无客户订单。</div>';
   const total = data.monthly.length;
   document.getElementById('analysisCustomerMix').innerHTML = [['新客户订单',data.newOrders],['老客户订单',data.repeatOrders],['客户信息不全',data.unknownOrders]].map(([label,count]) => '<div class="analysis-rank"><span></span><span>' + label + '</span><strong>' + count + ' 单</strong><span>' + (total ? Math.round(count/total*100) : 0) + '%</span></div>').join('') + '<p class="section-meta">按现有订单历史判断，不等于新建客户档案数。</p>';
   const groups = [['未收清订单',data.receivables],['超过最晚发出日期',data.overdue]];
@@ -6718,7 +6749,7 @@ function usdDueTotal(orders) {
 }
 let usdToRmbRate = defaultExchangeSettings.fallbackRate;
 function rmbMoney(value) {
-  return `¥${Math.round(Number(value || 0)).toLocaleString('zh-CN')} RMB`;
+  return `¥${Number(value || 0).toLocaleString('zh-CN', { minimumFractionDigits:1, maximumFractionDigits:1 })} RMB`;
 }
 function getExchangeSettings() {
   state.exchangeSettings = normalizeExchangeSettings(state.exchangeSettings);
@@ -9357,7 +9388,8 @@ function normalizeAiCustomerFields(raw = {}, sourceText = '') {
   multi.contacts = multi.contacts.filter(value => !isOrderInfoLine(value) && cleanContactValue(value, address));
   const source = decodePasteEntities(String(sourceText || ''));
   const folded = value => String(value).normalize('NFKC').toLocaleLowerCase().replace(/\s+/g,' ').trim();
-  const sourceEmails = new Set(findEmailsInText(source).map(folded));
+  const sourceEmailValues = findEmailsInText(source);
+  const sourceEmails = new Set(sourceEmailValues.map(folded));
   const sourcePhones = new Set((source.match(/\+?\d(?:[ \t().-]*\d){6,14}/g) || []).map(normalizeCustomerPhoneDigits));
   const addressNumberGroups = value => String(value).replace(/\bone\b/gi,'1').match(/\d+(?:[- \t]\d+)*/g) || [];
   const sourceNumbers = new Set(addressNumberGroups(source).flatMap(group => [group.replace(/\D/g,''), ...group.match(/\d+/g)]));
@@ -9365,7 +9397,11 @@ function normalizeAiCustomerFields(raw = {}, sourceText = '') {
     if (fields.name && !folded(source).includes(folded(fields.name))) delete fields.name;
     multi.contacts = multi.contacts.filter(value => folded(source).includes(folded(value)));
     multi.phones = multi.phones.filter(value => sourcePhones.has(normalizeCustomerPhoneDigits(value)));
-    multi.emails = multi.emails.filter(value => sourceEmails.has(folded(value)));
+    // Keep validated AI choices first, then recover literal source emails the model omitted.
+    multi.emails = normalizeCustomerValueList([
+      ...multi.emails.filter(value => sourceEmails.has(folded(value))),
+      ...sourceEmailValues.filter(value => folded(value) !== folded(fields.paymentEmail || ''))
+    ], '', normalizeCustomerEmail);
     if (fields.paymentEmail && !sourceEmails.has(folded(fields.paymentEmail))) delete fields.paymentEmail;
   }
   // Compare full digits; only US/Canada evidence permits equivalence with a local ten-digit number.
@@ -11348,29 +11384,29 @@ function renderStats() {
   if (amountStatMode === 'paidRmb') {
     amountLabel.textContent = '已收款';
     amountValue.textContent = rmbMoney(usdPaidTotalRmb(totalOrders));
-    amountSub.textContent = `${rangeText} · ${usdOrders.length} 个成交订单`;
+    amountSub.textContent = `${rangeText} · ${usdOrders.length} 个订单`;
   } else {
     amountLabel.textContent = '订单总额';
-    amountValue.textContent = money(usdTotal(totalOrders), 'USD');
-    amountSub.textContent = `${rangeText} · ${usdOrders.length} 个成交订单`;
+    amountValue.textContent = summaryMoney(usdTotal(totalOrders), 'USD');
+    amountSub.textContent = `${rangeText} · ${usdOrders.length} 个订单`;
   }
   amountValue.classList.toggle('is-paid-mode', amountStatMode === 'paidRmb');
   const paymentTotal = usdDueTotal(state.orders.filter(o => !o.isDraft && orderAmountValue(o) > 0));
   const paymentValue = document.getElementById('statPayment');
-  paymentValue.textContent = money(paymentTotal, 'USD');
+  paymentValue.textContent = summaryMoney(paymentTotal, 'USD');
   paymentValue.classList.toggle('has-due', paymentTotal > 0);
   const targetValue = document.getElementById('statTargetRate');
   const currentTargetRate = targetGoal ? targetRate(targetActual, targetGoal) : 0;
   targetValue.textContent = targetGoal ? `${currentTargetRate}%` : '未设';
   targetValue.classList.toggle('has-target', Boolean(targetGoal));
   targetValue.classList.toggle('is-achieved', Boolean(targetGoal) && currentTargetRate >= 100);
-  document.getElementById('statTargetSub').textContent = `${shortMonthLabel(targetMonth)} · ${money(targetActual, 'USD')} / ${targetGoal ? money(targetGoal, 'USD') : '未设置目标'}`;
+  document.getElementById('statTargetSub').textContent = `${shortMonthLabel(targetMonth)} · ${summaryMoney(targetActual, 'USD')} / ${targetGoal ? summaryMoney(targetGoal, 'USD') : '未设置目标'}`;
   const dashboardProgress = document.getElementById('dashboardTargetProgress');
   const dashboardTargetText = document.getElementById('dashboardTargetText');
   if (dashboardProgress) dashboardProgress.style.width = targetGoal ? `${Math.min(100, targetRate(targetActual, targetGoal))}%` : '0%';
   if (dashboardTargetText) {
     dashboardTargetText.textContent = targetGoal
-      ? `${monthLabel(targetMonth)} ${targetRate(targetActual, targetGoal)}% · ${money(targetActual, 'USD')} / ${money(targetGoal, 'USD')}`
+      ? `${monthLabel(targetMonth)} ${targetRate(targetActual, targetGoal)}% · ${summaryMoney(targetActual, 'USD')} / ${summaryMoney(targetGoal, 'USD')}`
       : `${monthLabel(targetMonth)} 暂未设置目标`;
   }
 }
@@ -11407,10 +11443,10 @@ function renderAmountReport() {
   const paidTotal = usdPaidTotal(list);
   const dueTotal = usdDueTotal(list);
   const overdueTotal = usdDueTotal(overdueOrders);
-  document.getElementById('reportUsd').textContent = money(usdTotal(list), 'USD');
-  document.getElementById('reportPaid').textContent = money(paidTotal, 'USD');
-  document.getElementById('reportDue').textContent = money(dueTotal, 'USD');
-  document.getElementById('reportOverdue').textContent = money(overdueTotal, 'USD');
+  document.getElementById('reportUsd').textContent = summaryMoney(usdTotal(list), 'USD');
+  document.getElementById('reportPaid').textContent = summaryMoney(paidTotal, 'USD');
+  document.getElementById('reportDue').textContent = summaryMoney(dueTotal, 'USD');
+  document.getElementById('reportOverdue').textContent = summaryMoney(overdueTotal, 'USD');
   document.getElementById('reportCount').textContent = list.length;
   renderAmountChart();
   renderAmountBreakdowns(list);
@@ -11506,7 +11542,7 @@ function renderBreakdownCard(title, rows) {
       <div class="breakdown-title">${title}</div>
       ${rows.map(r => `
         <div class="breakdown-row">
-          <span>${escapeAttr(r.name)}</span><strong>${money(r.amount, 'USD')}</strong><span>${r.count}单</span>
+          <span>${escapeAttr(r.name)}</span><strong>${summaryMoney(r.amount, 'USD')}</strong><span>${r.count}单</span>
           <div class="breakdown-track"><div class="breakdown-fill" style="width:${Math.max(4, Math.round((r.amount / max) * 100))}%"></div></div>
         </div>
       `).join('') || '<div class="muted">暂无数据。</div>'}
@@ -11538,15 +11574,15 @@ function renderPerformanceTargets() {
   const rate = targetRate(actual, goal);
   const gap = Math.max(0, goal - actual);
   document.getElementById('targetAmountInput').value = goal || '';
-  document.getElementById('targetGoal').textContent = goal ? money(goal, 'USD') : '未设置';
-  document.getElementById('targetActual').textContent = money(actual, 'USD');
+  document.getElementById('targetGoal').textContent = goal ? summaryMoney(goal, 'USD') : '未设置';
+  document.getElementById('targetActual').textContent = summaryMoney(actual, 'USD');
   document.getElementById('targetRate').textContent = goal ? `${rate}%` : '未设';
-  document.getElementById('targetGap').textContent = goal ? money(gap, 'USD') : '-';
+  document.getElementById('targetGap').textContent = goal ? summaryMoney(gap, 'USD') : '-';
   document.getElementById('targetOrderCount').textContent = orders.length;
   document.getElementById('targetMonthBadge').textContent = monthLabel(month);
   document.getElementById('targetProgress').style.width = goal ? `${Math.min(100, rate)}%` : '0%';
   document.getElementById('targetProgressText').textContent = goal
-    ? `${monthLabel(month)} 已完成 ${money(actual, 'USD')}，目标 ${money(goal, 'USD')}，${rate >= 100 ? '已达成' : `还差 ${money(gap, 'USD')}`}`
+    ? `${monthLabel(month)} 已完成 ${summaryMoney(actual, 'USD')}，目标 ${summaryMoney(goal, 'USD')}，${rate >= 100 ? '已达成' : `还差 ${summaryMoney(gap, 'USD')}`}`
     : `${monthLabel(month)} 暂未设置业绩目标`;
 
   document.getElementById('targetHistoryList').innerHTML = targetMonths.slice(0, 8).map(m => {
@@ -11560,11 +11596,11 @@ function renderPerformanceTargets() {
       <div class="target-history-row">
         <div class="target-history-top">
           <span class="target-history-month">${monthLabel(m)}</span>
-          <span class="target-history-amount">${monthOrders.length} 个成交订单</span>
+          <span class="target-history-amount">${monthOrders.length} 个订单</span>
         </div>
-        <div class="target-history-amount">${monthGoal ? `目标 ${money(monthGoal, 'USD')}` : '未设置目标'}</div>
+        <div class="target-history-amount">${monthGoal ? `目标 ${summaryMoney(monthGoal, 'USD')}` : '未设置目标'}</div>
         <div class="target-history-progress">
-          <div class="target-history-values"><span>完成 ${money(monthActual, 'USD')}</span><span>${monthGoal ? `差额 ${money(monthGap, 'USD')}` : '无目标'}</span></div>
+          <div class="target-history-values"><span>完成 ${summaryMoney(monthActual, 'USD')}</span><span>${monthGoal ? `差额 ${summaryMoney(monthGap, 'USD')}` : '无目标'}</span></div>
         <div class="target-history-track">
           <div class="target-history-fill ${monthGoal ? '' : 'empty'}" style="width:${progress}%"></div>
         </div>
@@ -11678,7 +11714,7 @@ function renderAmountSideChart(orders) {
         <div class="side-bars">
           ${groups.map(g => `
             <div class="side-bar-row">
-              <div class="side-bar-head"><span>${escapeAttr(g.name)} · ${g.count}单</span><strong>${money(g.amount, 'USD')}</strong></div>
+              <div class="side-bar-head"><span>${escapeAttr(g.name)} · ${g.count}单</span><strong>${summaryMoney(g.amount, 'USD')}</strong></div>
               <div class="side-bar-track"><div class="side-bar-fill" style="width:${Math.max(4, Math.round((g.amount / max) * 100))}%"></div></div>
             </div>
           `).join('') || '<div class="muted">暂无数据。</div>'}
@@ -11720,7 +11756,7 @@ function renderPipeline() {
       <div class="board-column-head">
         <div>
           <div class="board-column-title">${s.name}</div>
-          <div class="board-column-meta">${money(amount, 'USD')}</div>
+          <div class="board-column-meta">${summaryMoney(amount, 'USD')}</div>
         </div>
         <div class="board-count">${orders.length}</div>
       </div>
@@ -13153,8 +13189,8 @@ function renderCustomerWorkspaceSummary(customers = []) {
   el.innerHTML = `
     <div class="customer-summary-item"><span>客户</span><strong>${customers.length}</strong><small>当前筛选结果</small></div>
     <div class="customer-summary-item"><span>订单</span><strong>${orderCount}</strong><small>人均 ${customers.length ? (orderCount / customers.length).toFixed(1) : '0'} 单</small></div>
-    <div class="customer-summary-item"><span>成交</span><strong>${money(total, 'USD')}</strong><small>全部币种折算 USD</small></div>
-    <div class="customer-summary-item"><span>待收</span><strong class="${due > 0 ? 'customer-due-amount' : ''}">${money(due, 'USD')}</strong><small>已收 ${money(paid, 'USD')}</small></div>
+    <div class="customer-summary-item"><span>成交</span><strong class="summary-money">${summaryMoney(total, 'USD')}</strong><small>全部币种折算 USD</small></div>
+    <div class="customer-summary-item"><span>待收</span><strong class="summary-money ${due > 0 ? 'customer-due-amount' : ''}">${summaryMoney(due, 'USD')}</strong><small class="summary-money">已收 ${summaryMoney(paid, 'USD')}</small></div>
     <div class="customer-summary-item"><span>待跟进</span><strong>${followups}</strong><small>${followups ? '复购日期已到' : '暂无到期提醒'}</small></div>
   `;
 }
@@ -13243,9 +13279,9 @@ function renderCustomerProfileMetrics(name = '') {
   const repurchase = record.repurchaseCycle ? `${record.repurchaseCycle} 天` : '未设置';
   el.innerHTML = `
     <div class="customer-metric-card"><span>订单数</span><strong>${record.orderCount}</strong><small>${record.orderCount > 1 ? '复购客户' : record.orderCount ? '首单客户' : '暂无订单'}</small></div>
-    <div class="customer-metric-card"><span>总成交</span><strong>${money(record.total, 'USD')}</strong><small>全部币种折算 USD</small></div>
-    <div class="customer-metric-card"><span>已收款</span><strong>${money(record.paid, 'USD')}</strong><small>${record.total ? `${Math.round(record.paid / record.total * 100)}% 已收` : '暂无收款'}</small></div>
-    <div class="customer-metric-card"><span>待收款</span><strong class="${record.due > 0 ? 'customer-due-amount' : ''}">${money(record.due, 'USD')}</strong><small>${record.due > 0 ? '需要跟进' : '暂无待收'}</small></div>
+    <div class="customer-metric-card"><span>总成交</span><strong class="summary-money">${summaryMoney(record.total, 'USD')}</strong><small>全部币种折算 USD</small></div>
+    <div class="customer-metric-card"><span>已收款</span><strong class="summary-money">${summaryMoney(record.paid, 'USD')}</strong><small>${record.total ? `${Math.round(record.paid / record.total * 100)}% 已收` : '暂无收款'}</small></div>
+    <div class="customer-metric-card"><span>待收款</span><strong class="summary-money ${record.due > 0 ? 'customer-due-amount' : ''}">${summaryMoney(record.due, 'USD')}</strong><small>${record.due > 0 ? '需要跟进' : '暂无待收'}</small></div>
     <div class="customer-metric-card"><span>最近订单</span><strong>${escapeAttr(record.latestOrder?.num || '暂无')}</strong><small>${escapeAttr(record.latestOrder ? `${stageDef(record.latestOrder.stage).name} · ${record.latestOrderDate}` : '还没有订单')}</small></div>
     <div class="customer-metric-card"><span>复购提醒</span><strong>${escapeAttr(record.repurchaseDate || repurchase)}</strong><small>${escapeAttr(record.nextFollow || (record.repurchaseCycle ? '按周期计算' : '未设置提醒'))}</small></div>
   `;
@@ -13354,7 +13390,7 @@ function renderCustomerDetailView(name = '', data = {}) {
       <div class="customer-info-title">客户永久备注 · 每笔订单显示</div>
       <div class="customer-note-text">${escapeAttr(record.permanentNote || '未设置永久备注')}</div>
     </section>`;
-  if (ordersMeta) ordersMeta.textContent = `${record.orderCount} 个订单 · ${money(record.total, 'USD')}`;
+  if (ordersMeta) ordersMeta.textContent = `${record.orderCount} 个订单 · ${summaryMoney(record.total, 'USD')}`;
   if (ordersEl) ordersEl.innerHTML = record.sortedOrders.length ? record.sortedOrders.map(order => {
     const currency = order.currency || 'USD';
     const due = orderDueValue(order);

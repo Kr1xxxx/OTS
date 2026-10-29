@@ -32,4 +32,5 @@ order-track-system/
 *.demo-backup-*.html
 demo-orders-backup-*.json
 .github-upload/
+.export-audit.cjs
 # trade-order-data.json is an intentionally synthetic seed in this export only.

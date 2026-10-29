@@ -83,13 +83,36 @@ console.log('Dashboard month test passed: current-month default and manual selec
     await page.waitForFunction(()=>window.pendingSaveStatus?.().loaded);
     for(const [month,total] of [['2026-08',780],['2026-07',300],['all',1080]]) {
       await page.locator('#totalRange').selectOption(month,{force:true});
-      assert.equal(await page.locator('#statPayment').innerText(),'$410 USD','historical receivables must remain unchanged when switching amount months');
-      assert.equal(await page.locator('#statAmount').innerText(),`$${total.toLocaleString('en-US')} USD`,'order total must still follow the selected month');
+      assert.equal(await page.locator('#statPayment').innerText(),'$410.0 USD','historical receivables must remain unchanged when switching amount months');
+      assert.equal(await page.locator('#statAmount').innerText(),`$${total.toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})} USD`,'order total must still follow the selected month');
       assert.match(await page.locator('#statPayment').locator('..').innerText(),/历史累计/);
     }
+    const rawAmounts = await page.evaluate(()=>{
+      state.orders = Array.from({length:13},(_,index)=>({id:`display-${index}`,num:`DISPLAY-${index}`,client:'Display Buyer',orderMonth:'2026-08',stage:'production',amount:index ? 1 : 12333.678,paidAmount:index ? 0 : 100,currency:'USD'}));
+      document.getElementById('totalRange').value='2026-08';
+      const before=JSON.stringify(state.orders);
+      renderStats();
+      return {before,after:JSON.stringify(state.orders),ordinaryMoney:money(123.456,'USD')};
+    });
+    assert.equal(await page.locator('#statAmount').innerText(),'$12,345.7 USD','Homepage USD total must show at most one fractional digit');
+    assert.equal(await page.locator('#statPayment').innerText(),'$12,245.7 USD','Homepage historical receivables must use the same display precision');
+    assert.equal(await page.locator('#statAmountSub').innerText(),'26/8 · 13 个订单','The homepage caption must say orders without the transaction qualifier');
+    assert.equal(rawAmounts.before,rawAmounts.after,'Display rounding must not modify underlying order amounts');
+    assert.equal(rawAmounts.ordinaryMoney,'$123.456 USD','Amounts outside the homepage retain their existing display precision');
+    await page.evaluate(()=>{amountStatMode='paidRmb';renderStats();});
+    assert.equal(await page.locator('#statAmountSub').innerText(),'26/8 · 13 个订单','The alternate paid view must use the same shortened caption');
+    await page.evaluate(()=>{amountStatMode='totalUsd';renderStats();});
     for(const theme of ['light','dark']) {
       await page.evaluate(t=>applyTheme(t),theme);
       if(process.env.UI_SCREENSHOT) await page.locator('#statPayment').locator('..').screenshot({path:`${process.env.UI_SCREENSHOT}.${theme}.png`});
+      if(process.env.UI_SCREENSHOT) await page.locator('#statAmount').locator('..').screenshot({path:`${process.env.UI_SCREENSHOT}.amount.${theme}.png`});
+      for(const width of [1360,1100,390]) {
+        await page.setViewportSize({width,height:900});
+        if(process.env.UI_SCREENSHOT) await page.locator('#statAmount').locator('..').screenshot({path:`${process.env.UI_SCREENSHOT}.amount.${theme}.${width}.png`});
+        for(const id of ['statAmount','statPayment']) assert.equal(await page.locator(`#${id}`).evaluate(el=>el.scrollWidth<=el.clientWidth+1),true,`${id} must fit at ${width}px in ${theme} theme`);
+        assert.equal(await page.locator('#statAmountSub').evaluate(el=>{const card=el.parentElement.getBoundingClientRect(),caption=el.getBoundingClientRect();return caption.bottom<=card.bottom+1&&caption.right<=card.right+1;}),true,`Order caption must stay inside its card at ${width}px`);
+      }
+      await page.setViewportSize({width:1360,height:900});
     }
     assert.equal(saves,0,'changing a dashboard month must not save business data');
     assert.deepEqual(errors,[]);

@@ -1,4 +1,4 @@
-# Order Track System (OTS) V3.85
+# Order Track System (OTS) V3.88
 
 Local macOS trade-order and customer management, SQLite storage, logistics/AI helpers, and the KME WhatsApp customer-sync Chrome extension. This is a privacy-sanitized **source export**, not a production database or installed application.
 
@@ -55,7 +55,14 @@ Tests use stubs or isolated data directories. npm run test:api is an **opt-in li
 
 ## Public source repository
 
-Repository: https://github.com/Kr1xxxx/OTS . This public export starts with fresh history; it does not import any commits from the previous private repository. Only files in SOURCE_MANIFEST.txt are published. Never upload generated apps, local databases, attachments, credentials, caches, or the ZIP itself. Before future updates, review the staged diff and repeat privacy checks; .gitignore does not protect values embedded in source or tests.
+Repository: https://github.com/Kr1xxxx/OTS . This V3.88 export continues the clean public history; it does not import any commits from the previous private repository. Only files in SOURCE_MANIFEST.txt are published. Never upload generated apps, local databases, attachments, credentials, caches, or the ZIP itself. Before future updates, review the staged diff and repeat privacy checks; .gitignore does not protect values embedded in source or tests.
+
+## Changes since V3.85
+
+- Recover contact email literals when AI extraction omits them, without mixing identified payment emails into contact fields or saving automatically.
+- Show complete summary monetary values with one fractional digit across the dashboard, reports, targets, analysis and customer summaries; support narrow layouts without clipping.
+- Use the shorter order-count caption. Individual order amounts, stored values, exchange rates and AI-cost precision are unchanged.
+- This is the HTML/JavaScript application with a Swift native host, not the separate unfinished SwiftUI rewrite.
 
 ## Licensing
 

@@ -73,6 +73,7 @@ scripts/test-order-number.js
 scripts/test-order-recognition.js
 scripts/test-refresh-backup-pagination.js
 scripts/test-save-confirmation.js
+scripts/test-save-conflict-ui.js
 scripts/test-save-ui.js
 scripts/test-server-security.js
 scripts/test-sqlite-storage.js

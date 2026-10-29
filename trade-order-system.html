@@ -2776,6 +2776,7 @@ html:not([data-theme="dark"]) .api-status-state {
 }
 .mac-only { display: none !important; }
 .mac-app-mode .mac-only { display: flex !important; }
+.mac-app-mode .mac-only[hidden] { display: none !important; }
 .toast {
   position: fixed; right: 20px; bottom: 20px; z-index: 80; background: var(--gray-900); color: white;
   border-radius: var(--radius); padding: 10px 14px; box-shadow: 0 12px 32px rgba(15,23,42,.28); display: none;
@@ -4230,6 +4231,13 @@ html[data-theme="dark"] .app-select-option-check { color: var(--cyan-600); }
                 <div><strong>SQLite 本地数据库</strong><div class="muted" id="macStorageStatusText">正在检查数据库状态…</div></div>
                 <span class="tag tag-gray" id="macStorageStatusBadge">检查中</span>
               </div>
+              <div class="data-action mac-only" id="macStorageConflictActions" hidden>
+                <div><strong>数据版本冲突</strong><div class="muted">数据库已被另一个窗口更新，本窗口已停止保存。可先导出本窗口未保存的修改，再重新加载最新数据。</div></div>
+                <div class="order-action-group">
+                  <button class="btn" type="button" id="macConflictExportBtn">导出未保存的修改</button>
+                  <button class="btn btn-primary" type="button" id="macConflictReloadBtn">重新加载最新数据</button>
+                </div>
+              </div>
               <div class="data-action mac-only">
                 <div><strong>Mac 本地数据</strong><div class="muted">备份包含 SQLite 和同名 .attachments 附件文件夹，请一起保留。恢复时两者需配套恢复。</div></div>
                 <div class="order-action-group">
@@ -5555,6 +5563,14 @@ function setMacStorageStatus(mode = 'sqlite', stateText = 'saved', detail = '') 
         : `数据库已连接 · ${new Date().toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}`);
   }
 }
+function showMacStorageConflictActions() {
+  const panel = document.getElementById('macStorageConflictActions');
+  if (panel) panel.hidden = false;
+}
+document.getElementById('macConflictExportBtn')?.addEventListener('click', () => {
+  download(`trade-order-unsaved-${Date.now()}.json`, JSON.stringify(dataFilePayload(state), null, 2));
+});
+document.getElementById('macConflictReloadBtn')?.addEventListener('click', () => window.location.reload());
 function pendingSaveStatus() {
   return {
     mode: isMacAppMode() ? 'mac' : 'browser',
@@ -5606,7 +5622,8 @@ async function runMacSaveQueue() {
           const latestRevision = Number(result.revision ?? result.currentRevision);
           if (Number.isFinite(latestRevision)) macStorageRevision = latestRevision;
           macStorageReadOnly = true;
-          throw new Error(result.message || '数据版本冲突，已切换为只读，请重新打开软件');
+          showMacStorageConflictActions();
+          throw new Error(result.message || '数据版本冲突，已切换为只读，可在设置中导出未保存的修改并重新加载');
         }
         if (!res.ok || result.ok === false) throw new Error(result.message || `保存失败 HTTP ${res.status}`);
         const savedRevision = Number(result.revision);

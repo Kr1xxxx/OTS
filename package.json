@@ -8,7 +8,7 @@
     "check": "node scripts/check-project.js",
     "check:release": "node scripts/check-release.js",
     "test": "node scripts/run-tests.js",
-    "test:save-confirmation": "node scripts/test-save-confirmation.js && node scripts/test-save-ui.js && node scripts/test-customer-contact-preferences-ui.js",
+    "test:save-confirmation": "node scripts/test-save-confirmation.js && node scripts/test-save-ui.js && node scripts/test-save-conflict-ui.js && node scripts/test-customer-contact-preferences-ui.js",
     "test:board-layout": "node scripts/test-board-layout.js",
     "test:install-browser": "playwright install chromium",
     "test:recognition": "node scripts/test-order-recognition.js && node scripts/test-customer-ai-first-ui.js && node scripts/test-customer-ai-requirements.js && node scripts/test-customer-email-fallback.js && node scripts/test-customer-ai-preview-editor.js && node scripts/test-customer-multi-fields.js && node scripts/test-customer-contact-preferences.js && node scripts/test-multi-shipments.js && npm run test:whatsapp",

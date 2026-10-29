@@ -41,7 +41,8 @@ async function main() {
   const publicHealth = await waitForHealth({ authenticated: false });
   assert.equal(publicHealth.instanceNonce, instanceNonce);
   assert.equal(Object.hasOwn(publicHealth, 'dataFile'), false, 'public health leaked local paths');
-  const resourceHtml = path.join(root, 'mac-app', 'TradeOrderSystem.app', 'Contents', 'Resources', 'trade-order-system.html');
+  const builtHtml = path.join(root, 'mac-app', 'TradeOrderSystem.app', 'Contents', 'Resources', 'trade-order-system.html');
+  const resourceHtml = fs.existsSync(builtHtml) ? builtHtml : path.join(root, 'trade-order-system.html');
   const expectedUpdatedAt = fs.statSync(resourceHtml).mtime.toISOString();
   assert.equal(publicHealth.appUpdatedAt, expectedUpdatedAt, 'update time must come from the built frontend, not server startup');
 
@@ -49,6 +50,10 @@ async function main() {
   assert.equal(authenticatedHealth.ok, true);
   assert.equal(authenticatedHealth.storageMode, 'sqlite');
   assert.equal(authenticatedHealth.appUpdatedAt, expectedUpdatedAt);
+  const seed = JSON.parse(fs.readFileSync(seedFile, 'utf8'));
+  const seedData = seed.data || seed;
+  assert.equal(authenticatedHealth.counts.orders, seedData.orders.length, 'health counts must come from SQLite');
+  assert.equal(authenticatedHealth.counts.customers, Object.keys(seedData.customers || {}).length);
   const headerAuthenticatedData = await rawRequest('/api/data', {
     authenticated: false,
     headers: { 'X-Trade-Token': apiToken }

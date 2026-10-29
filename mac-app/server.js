@@ -13,7 +13,9 @@ const { createAiUsageStore } = require('./ai-usage-store');
 const appName = 'TradeOrderSystem';
 const port = Number(process.env.TRADE_APP_PORT || 47828);
 const bundledResourcesDir = path.join(__dirname, 'TradeOrderSystem.app', 'Contents', 'Resources');
-const resourcesDir = fs.existsSync(path.join(__dirname, 'trade-order-system.html')) ? __dirname : bundledResourcesDir;
+// Bundled app first, then a local build, then the repository root so tests run on a clean checkout.
+const resourcesDir = [__dirname, bundledResourcesDir, path.resolve(__dirname, '..')]
+  .find(dir => fs.existsSync(path.join(dir, 'trade-order-system.html'))) || bundledResourcesDir;
 const htmlFile = path.join(resourcesDir, 'trade-order-system.html');
 const appUpdatedAt = fs.existsSync(htmlFile) ? fs.statSync(htmlFile).mtime.toISOString() : null;
 const seedDataFile = path.join(resourcesDir, 'trade-order-data.json');
@@ -47,6 +49,8 @@ let database = null;
 let storageMode = 'initializing';
 let storageError = '';
 let storageRevision = 0;
+let integrityCache = null;
+const integrityCacheMs = 5 * 60 * 1000;
 
 function ensureStorage() {
   fs.mkdirSync(backupDir, { recursive: true });
@@ -508,7 +512,29 @@ function databaseIntegrity() {
   if (!database) return { ok: false, message: storageError || 'SQLite unavailable' };
   const result = database.prepare('PRAGMA integrity_check').get();
   const message = String(result?.integrity_check || 'unknown');
-  return { ok: message === 'ok', message };
+  integrityCache = { ok: message === 'ok', message, checkedAt: Date.now() };
+  return { ok: integrityCache.ok, message };
+}
+
+// A full integrity_check scans every page; health probes reuse a recent result.
+function recentDatabaseIntegrity(maxAgeMs = integrityCacheMs) {
+  if (!database) return { ok: false, message: storageError || 'SQLite unavailable' };
+  if (integrityCache && Date.now() - integrityCache.checkedAt < maxAgeMs) {
+    return { ok: integrityCache.ok, message: integrityCache.message };
+  }
+  return databaseIntegrity();
+}
+
+function databaseCounts() {
+  const counts = { orders: 0, trashOrders: 0, deletedOrders: 0 };
+  database.prepare('SELECT bucket, COUNT(*) AS count FROM orders GROUP BY bucket').all().forEach(row => {
+    counts[row.bucket] = Number(row.count);
+  });
+  return {
+    ...counts,
+    customers: Number(database.prepare('SELECT COUNT(*) AS count FROM customers').get().count),
+    trackingLookups: Number(database.prepare('SELECT COUNT(*) AS count FROM tracking_lookups').get().count)
+  };
 }
 
 function archiveMigrationSource(sourceFile) {
@@ -2026,7 +2052,7 @@ const server = http.createServer(async (req, res) => {
       });
     }
     if (req.method === 'GET' && url.pathname === '/api/health') {
-      const integrity = storageMode === 'sqlite' ? databaseIntegrity() : { ok: false, message: storageError || storageMode };
+      const integrity = storageMode === 'sqlite' ? recentDatabaseIntegrity() : { ok: false, message: storageError || storageMode };
       const authorized = requestIsAuthorized(req);
       const health = {
         ok: integrity.ok,
@@ -2043,7 +2069,7 @@ const server = http.createServer(async (req, res) => {
           legacyJsonFile: fs.existsSync(dataFile) ? dataFile : '',
           backupDir,
           backups: backupSummary(),
-          counts: integrity.ok ? stateCounts(readCurrentPayload()) : null,
+          counts: integrity.ok ? databaseCounts() : null,
           migration: storageMode === 'sqlite' ? {
             migratedAt: metadataValue('migrated_at', ''),
             source: metadataValue('migration_source', ''),

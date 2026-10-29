@@ -1,4 +1,5 @@
 .env.example
+.github/workflows/ci.yml
 .gitignore
 EXPORT_CHECKSUMS.sha256
 README.md
@@ -36,6 +37,7 @@ scripts/check-project.js
 scripts/check-release.js
 scripts/helpers/whatsapp-fixture.js
 scripts/make-rounded-app-icon.swift
+scripts/run-tests.js
 scripts/test-ai-usage.js
 scripts/test-app-icon.js
 scripts/test-board-layout.js

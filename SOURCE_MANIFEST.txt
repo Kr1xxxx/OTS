@@ -61,6 +61,7 @@ scripts/test-feishu-order-notification.js
 scripts/test-feishu-order-ui.js
 scripts/test-full-payment-status.js
 scripts/test-global-search.js
+scripts/test-html-injection-ui.js
 scripts/test-image-attachment-preparation.js
 scripts/test-image-upload-progress-ui.js
 scripts/test-menu-popovers-ui.js

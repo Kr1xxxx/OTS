@@ -31,6 +31,7 @@
     "test:sqlite": "node scripts/test-sqlite-storage.js",
     "test:server": "node scripts/test-server-security.js && node scripts/test-version-update-tooltip.js && node scripts/test-deepseek-openrouter.js && node scripts/test-ai-usage.js",
     "test:native": "cd mac-app/native && swift run TradeOrderSystemCoreTests",
+    "bench": "node scripts/bench-render-save.js",
     "test:api": "node scripts/test-tracking-api.js",
     "test:api:dhl": "node scripts/test-tracking-api.js DHL",
     "test:api:fedex": "node scripts/test-tracking-api.js FedEx"

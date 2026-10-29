@@ -33,6 +33,7 @@ mac-app/whatsapp-native-host.js
 mac-app/whatsapp-store.js
 package-lock.json
 package.json
+scripts/bench-render-save.js
 scripts/check-project.js
 scripts/check-release.js
 scripts/helpers/whatsapp-fixture.js

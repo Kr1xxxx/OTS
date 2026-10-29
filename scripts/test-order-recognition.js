@@ -701,4 +701,13 @@ assert.equal(context.findAmountInText('Suite 207\n阿里408'),408);
 assert.equal(context.findCustomerAddressInText('Eliza M 123 Sample Turnpike Suite 207 Poughkeepsie New York 12603'),
   '123 Sample Turnpike Suite 207 Poughkeepsie New York 12603');
 
+// Names that merely contain address words (rd, ave, lane, unit) are still names
+for (const name of ['Jordan Example', 'Dave Sample', 'Elaine Sample', 'Richard Ford', 'Trinity Sample']) {
+  assert.equal(context.looksLikeAddressText(name), false, `Name read as address: ${name}`);
+  assert.equal(context.cleanContactValue(name), name);
+}
+for (const address of ['27 Sample Crescent Floor 2', 'Sample Rd.', 'Unit 1208', '18 Example Avenue']) {
+  assert.equal(context.looksLikeAddressText(address), true, `Address missed: ${address}`);
+}
+
 console.log('Order recognition tests passed.');

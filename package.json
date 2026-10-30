@@ -6,10 +6,12 @@
   "scripts": {
     "start": "node mac-app/server.js",
     "check": "node scripts/check-project.js",
+    "lint": "node scripts/lint.js",
     "check:release": "node scripts/check-release.js",
-    "test": "npm run check && npm run test:recognition && npm run test:order-number && npm run test:dashboard-month && npm run test:deposit && npm run test:full-payment-status && npm run test:new-order-stage && npm run test:order-modal-history && npm run test:modal-accessibility && npm run test:custom-select && npm run test:list && npm run test:search && npm run test:calendar-analysis && npm run test:business && npm run test:images && npm run test:icon && npm run test:feishu && npm run test:sqlite && npm run test:server && npm run test:native && npm run test:save-confirmation && npm run test:board-layout",
-    "test:save-confirmation": "node scripts/test-save-confirmation.js && node scripts/test-save-ui.js && node scripts/test-customer-contact-preferences-ui.js",
+    "test": "node scripts/run-tests.js",
+    "test:save-confirmation": "node scripts/test-save-confirmation.js && node scripts/test-save-ui.js && node scripts/test-save-conflict-ui.js && node scripts/test-customer-contact-preferences-ui.js",
     "test:board-layout": "node scripts/test-board-layout.js",
+    "test:injection": "node scripts/test-html-injection-ui.js && node scripts/test-mac-only-ui.js",
     "test:install-browser": "playwright install chromium",
     "test:recognition": "node scripts/test-order-recognition.js && node scripts/test-customer-ai-first-ui.js && node scripts/test-customer-ai-requirements.js && node scripts/test-customer-email-fallback.js && node scripts/test-customer-ai-preview-editor.js && node scripts/test-customer-multi-fields.js && node scripts/test-customer-contact-preferences.js && node scripts/test-multi-shipments.js && npm run test:whatsapp",
     "test:whatsapp": "node scripts/test-whatsapp-sync.js && node scripts/test-whatsapp-wajs.js && node scripts/test-whatsapp-extension.js && node scripts/test-whatsapp-integration.js && node scripts/test-whatsapp-chrome.js",
@@ -31,6 +33,7 @@
     "test:sqlite": "node scripts/test-sqlite-storage.js",
     "test:server": "node scripts/test-server-security.js && node scripts/test-version-update-tooltip.js && node scripts/test-deepseek-openrouter.js && node scripts/test-ai-usage.js",
     "test:native": "cd mac-app/native && swift run TradeOrderSystemCoreTests",
+    "bench": "node scripts/bench-render-save.js",
     "test:api": "node scripts/test-tracking-api.js",
     "test:api:dhl": "node scripts/test-tracking-api.js DHL",
     "test:api:fedex": "node scripts/test-tracking-api.js FedEx"
@@ -39,6 +42,9 @@
     "node": ">=22.5"
   },
   "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.12.0",
+    "globals": "17.12.0",
     "playwright": "1.62.1"
   }
 }

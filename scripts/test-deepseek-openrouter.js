@@ -88,8 +88,5 @@ async function testSurface(surface) {
   assert.equal(payload.response_format,undefined,'JSON mode is only requested from the official DeepSeek endpoint');
   console.log(`${surface}: DeepSeek non-reasoning contract and unrelated-model isolation passed.`);
 }
-(async()=>{
-  const mode=process.argv[2] || 'all';
-  if(mode!=='client') await testSurface('server');
-  if(mode!=='server') await testSurface('client');
-})().catch(error=>{console.error(error);process.exitCode=1;});
+// The page always goes through /api/ai-chat, so the server is the only surface that builds provider payloads.
+testSurface('server').catch(error=>{console.error(error);process.exitCode=1;});

@@ -3965,9 +3965,6 @@ html[data-theme] .app-refresh-btn { width:28px; height:28px; min-height:0; borde
 html[data-theme] .app-refresh-btn .ui-icon { width:15px; height:15px; transition:transform var(--motion-spring) var(--ease-spring); }
 html[data-theme] .app-refresh-btn:hover { background:var(--surface-bg); color:var(--gray-900); }
 html[data-theme] .app-refresh-btn:hover .ui-icon { transform:rotate(-90deg); }
-html[data-theme] .app-update-btn { height:22px; padding:0 9px; border:1px solid var(--surface-border-strong, var(--gray-300)); border-radius:999px; background:transparent; color:var(--gray-700); font-size:11px; font-weight:600; line-height:1; cursor:pointer; transition:background var(--motion-fast) ease, color var(--motion-fast) ease, border-color var(--motion-fast) ease; }
-html[data-theme] .app-update-btn:hover { background:var(--accent); border-color:transparent; color:#fff; }
-html[data-theme] .app-update-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 
 /* 顶栏 */
 html[data-theme] .page-title.swap { animation:uiTitleIn .45s var(--ease-out) both; }
@@ -7459,10 +7456,13 @@ function normalizeOrderShipments(order = {}) {
 function primaryOrderShipment(order = {}) {
   return normalizeOrderShipments(order)[0] || null;
 }
-// 定金阶段已取消：旧的定金 / PI 订单付过款进生产中，没付款回报价。
+// 定金阶段已取消：旧的定金 / PI 订单没付款回报价，收了定金进尾款，付清了进生产中。
 function migrateDepositStage(o = {}) {
   if (o.stage !== 'deposit' && o.stage !== 'pi') return o.stage;
-  return Number(o.paidAmount || 0) > 0 ? 'production' : 'quote';
+  const paid = Number(o.paidAmount || 0);
+  const amount = Number(o.amount || 0);
+  if (paid <= 0) return 'quote';
+  return (amount > 0 && paid >= amount) || o.orderType === '全款订单' ? 'production' : 'balance';
 }
 function normalizeActiveOrder(o = {}) {
   const stage = normalizeStage(migrateDepositStage(o));
@@ -15958,7 +15958,7 @@ function inferNewOrderStage({ selectedStage, orderType, amount, paidAmount, trac
   const total = Math.max(0, Number(amount || 0));
   const paid = Math.max(0, Number(paidAmount || 0));
   if (total > 0 && paid >= total) return 'production';
-  if (orderType === '定金订单' && paid > 0) return 'production';
+  if (orderType === '定金订单' && paid > 0) return 'balance';
   return 'quote';
 }
 function buildOrderFromFormData(data = {}, { existing = null, isDraft = false } = {}) {

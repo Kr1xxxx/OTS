@@ -66,7 +66,8 @@ const base = {
 };
 
 assert.equal(build({ ...base, orderType:'定金订单' }).stage, 'quote', '未付定金的新定金订单应保留报价阶段');
-assert.equal(build({ ...base, orderType:'定金订单', paidAmount:300 }).stage, 'production', '已付定金的新订单应进入生产中工作区');
+assert.equal(build({ ...base, orderType:'定金订单', paidAmount:300 }).stage, 'balance', '已付定金的新订单应进入尾款');
+assert.equal(build({ ...base, orderType:'定金订单', paidAmount:1000 }).stage, 'production', '定金订单一次付清应进入生产中');
 assert.equal(build({ ...base, orderType:'全款订单', paidAmount:1000 }).stage, 'production', '新订单付清后应进入生产中工作区');
 assert.equal(build({ ...base, orderType:'全款订单' }).stage, 'quote', '未付款的全款新订单应保留报价阶段');
 assert.equal(build({ ...base, orderType:'定金订单', trackingNumber:'1Z999AA10123456784' }).stage, 'shipment', '有物流单号的新订单应优先进入已发货');
@@ -83,7 +84,9 @@ console.log('New order stage tests passed: payment, order type, tracking, manual
 
 vm.runInContext(extractFunction('migrateDepositStage'), context);
 const migrate = order => { context.testOrder = order; return vm.runInContext('migrateDepositStage(testOrder)', context); };
-assert.equal(migrate({ stage:'deposit', paidAmount:300 }), 'production', '已付定金的旧定金阶段订单应迁到生产中');
+assert.equal(migrate({ stage:'deposit', paidAmount:300, amount:1000 }), 'balance', '已付定金的旧定金阶段订单应迁到尾款');
+assert.equal(migrate({ stage:'deposit', paidAmount:1000, amount:1000 }), 'production', '已付清的旧定金阶段订单应迁到生产中');
+assert.equal(migrate({ stage:'deposit', paidAmount:300, amount:1000, orderType:'全款订单' }), 'production', '全款订单没有尾款阶段，付过款进生产中');
 assert.equal(migrate({ stage:'deposit', paidAmount:0 }), 'quote', '未付款的旧定金阶段订单应迁回报价');
 assert.equal(migrate({ stage:'pi' }), 'quote', '旧 PI 阶段按未付款处理');
 assert.equal(migrate({ stage:'balance', paidAmount:300 }), 'balance', '其他阶段保持不变');

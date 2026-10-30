@@ -3539,6 +3539,118 @@ html[data-theme="dark"] .app-select-option-check { color: var(--cyan-600); }
 }
 </style>
 <style id="ots-ui-v2">
+/* ===== 新版 UI：逐页换装 ===== */
+/* 标签：阶段色固定（报价蓝、定金/尾款琥珀橙、生产青、发货绿、完成灰）；产品和收款方式用中性灰，不抢阶段色 */
+html[data-theme] .tag-blue { background:color-mix(in oklab, var(--s-blue) var(--s-tint), transparent); color:var(--s-blue); }
+html[data-theme] .tag-orange { background:color-mix(in oklab, var(--s-amber) var(--s-tint), transparent); color:var(--s-amber); }
+html[data-theme] :is(.tag-wig, .tag-lash, .tag-pay-alibaba, .tag-pay-paypal, .tag-pay-western, .tag-pay-zelle, .tag-pay-card, .tag-pay-tt, .tag-neutral) { background:var(--gray-100); color:var(--gray-600); border:0; }
+html[data-theme] .tag-purple { background:var(--accent-tint); color:var(--accent); }
+
+/* 去掉旧版的装饰渐变和光斑，卡片一律纯色 + 细边 */
+html[data-theme] :is(.logistics-card, .price-history-row, .price-history-row.pinned, .detail-hero, .report-stat, .target-hero, .chart-panel, .customer-groups, .customer-toolbar, .customer-detail-hero, .rate-status-card, .combined-column, .order-detail-customer-hero) { background:var(--surface-bg); }
+html[data-theme] :is(.order-detail-body, .order-form, .combined-modal-body) { background:var(--surface-soft); }
+html[data-theme] :is(.order-modal .modal-head, .combined-modal .modal-head, .modal-head) { background:var(--surface-bg); border-bottom:1px solid var(--hairline); }
+html[data-theme] :is(.order-section, .order-section.primary) { background:var(--surface-bg); border:1px solid var(--surface-border); border-radius:var(--radius); box-shadow:none; }
+html[data-theme] .order-detail-customer-hero, html[data-theme] .detail-hero { border:1px solid var(--surface-border); box-shadow:none; }
+
+/* 选中态：分段/标签/分页统一成灰底上的白色浮起块；数据条和圆点用强调色 */
+html[data-theme] :is(.binary-option.active, .side-chart-tab.active, .chip.active, .client-letter-btn.active) { background:var(--surface-bg); color:var(--gray-900); border-color:transparent; box-shadow:0 1px 2px oklch(0% 0 0 / .08), 0 0 0 .5px oklch(0% 0 0 / .04); }
+html[data-theme="dark"] :is(.binary-option.active, .side-chart-tab.active, .chip.active, .client-letter-btn.active, .segment-option.active) { background:var(--surface-raised); }
+html[data-theme] :is(.binary-segment, .side-chart-tabs) { background:var(--gray-100); border:0; box-shadow:none; }
+html[data-theme] .order-list-page-buttons button.active { background:var(--semantic-primary); border-color:transparent; color:var(--primary-ink); }
+html[data-theme] :is(.side-bar-fill, .analysis-trend-track span, .analysis-event-fill, .business-product-fill, .legend-dot, .tracking-event-dot, .roadmap-event:first-of-type .roadmap-dot, .history-item:first-child .history-dot) { background:var(--accent); }
+html[data-theme] .target-history-fill { background:var(--accent); }
+html[data-theme] .contact-method-check input:checked { background:var(--accent); border-color:var(--accent); }
+html[data-theme] .task-action-btn.done { background:var(--s-green); border-color:transparent; color:var(--surface-bg); }
+html[data-theme] :is(.side-bar-fill, .analysis-trend-track span, .analysis-event-fill, .business-product-fill, .target-history-fill, .target-progress-fill) { transform-origin:left; animation:uiGrowX var(--motion-slow) var(--ease-out) backwards; }
+@keyframes uiGrowX { from { transform:scaleX(0); } }
+
+/* 工作台看板：列是浅灰底无边框，卡片白底 18 圆角，悬停浮起，拖动时放大倾斜 */
+html[data-theme] .board-panel { padding:20px; }
+html[data-theme] .board-column { background:var(--surface-soft); border:0; border-radius:var(--radius); padding:12px 10px 10px; gap:10px; box-shadow:none; }
+html[data-theme] .board-column-head { padding:0 4px 4px; border-bottom:0; align-items:center; }
+html[data-theme] .board-column-head > div:first-child { display:flex; align-items:baseline; gap:8px; min-width:0; }
+html[data-theme] .board-column-title { font-size:14px; font-weight:600; display:inline-flex; align-items:center; gap:7px; }
+html[data-theme] .board-column-title::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--stage-color, var(--gray-400)); }
+html[data-theme] .board-column[data-stage="quote"] { --stage-color:var(--s-blue); }
+html[data-theme] .board-column[data-stage="deposit"] { --stage-color:var(--s-amber); }
+html[data-theme] .board-column[data-stage="production"] { --stage-color:var(--s-teal); }
+html[data-theme] .board-column[data-stage="balance"] { --stage-color:var(--s-orange); }
+html[data-theme] .board-column[data-stage="shipment"] { --stage-color:var(--s-green); }
+html[data-theme] .board-column[data-stage="done"] { --stage-color:var(--s-gray); }
+html[data-theme] .board-column-meta { font-size:12px; color:var(--gray-500); }
+html[data-theme] .board-count { min-width:0; height:auto; background:none; border:0; font-size:12px; font-weight:400; color:var(--gray-500); }
+html[data-theme] .board-card-list { gap:8px; padding:2px; margin:-2px; }
+html[data-theme] .board-card, html[data-theme] :is(.board-card.product-wig, .board-card.product-lash) { background:var(--surface-bg); border:1px solid var(--surface-border); border-left-width:1px; border-radius:var(--radius); box-shadow:var(--shadow);
+  transition:box-shadow var(--motion-fast) var(--ease), transform var(--motion-spring) var(--ease-spring), border-color var(--motion-fast) var(--ease); }
+html[data-theme] :is(.board-card.product-wig, .board-card.product-lash) { box-shadow:inset 3px 0 0 var(--product-color), var(--shadow); }
+html[data-theme] .board-card.product-wig { --product-color:color-mix(in oklab, var(--accent) 55%, transparent); }
+html[data-theme] .board-card.product-lash { --product-color:color-mix(in oklab, var(--s-green) 55%, transparent); }
+html[data-theme] .board-card:hover { box-shadow:var(--shadow-hover); border-color:var(--surface-border); transform:translateY(-1px); }
+html[data-theme] .board-card.dragging { opacity:.4; transform:scale(.98); box-shadow:none; }
+html[data-theme] .board-card-head { padding:12px 14px 4px; border-bottom:0; }
+html[data-theme] .board-card-title { font-size:14px; font-weight:600; }
+html[data-theme] .board-info-grid { padding:2px 14px 6px; border-bottom:0; }
+html[data-theme] .board-info-label { font-size:11px; line-height:1.35; color:var(--gray-500); font-weight:400; }
+html[data-theme] .board-info-value { font-size:12px; line-height:1.4; font-weight:500; color:var(--gray-700); font-family:var(--mono); }
+html[data-theme] .board-card-footer { padding:4px 14px 12px; border-top:0; background:none; }
+html[data-theme] .board-card-amount, html[data-theme] .board-card-amount.due { background:none; border:0; padding:0; min-width:0; max-width:none; font-size:14px; line-height:1.3; font-weight:600; color:var(--gray-900); }
+html[data-theme] .board-card-amount.due { color:var(--s-amber); }
+html[data-theme] .board-card-meta .tag { font-size:11px; padding:2px 7px; }
+html[data-theme] .board-empty { color:var(--gray-400); font-size:13px; border:1px dashed var(--surface-border-strong); border-radius:var(--radius); padding:18px 8px; text-align:center; background:transparent; }
+html[data-theme] .board-column.drag-over, html[data-theme] .board-column.is-drop-target { background:var(--accent-tint); }
+html[data-theme] .board-card.just-landed { animation:uiLand var(--motion-spring) var(--ease-spring); }
+@keyframes uiLand { 0% { transform:scale(1.06) rotate(-1.5deg); box-shadow:var(--floating-shadow); } 100% { transform:none; } }
+html[data-theme] .page-enter .board-card { animation:uiRise .45s var(--ease-out) backwards; animation-delay:calc(min(var(--i, 0), 12) * 35ms); }
+
+/* 看板卡片右键菜单 */
+.board-menu { position:fixed; z-index:95; min-width:200px; padding:6px; border:1px solid var(--surface-border); border-radius:var(--radius); background:var(--surface-bg); box-shadow:var(--floating-shadow); display:flex; flex-direction:column; gap:2px; animation:uiPop var(--motion-med) var(--ease-out); transform-origin:top left; }
+.board-menu-title { padding:6px 10px 4px; font-size:12px; color:var(--gray-500); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:240px; }
+.board-menu button:not(.hold-btn) { display:flex; align-items:center; gap:8px; height:34px; padding:0 10px; border:0; border-radius:10px; background:transparent; color:var(--gray-800); text-align:left; font-size:13px; }
+.board-menu button:not(.hold-btn):hover { background:var(--surface-soft); }
+.board-menu .ui-icon { width:16px; height:16px; color:var(--gray-500); }
+.board-menu .hold-btn { margin-top:4px; height:34px; min-height:34px; justify-content:center; }
+
+/* 任务收件箱 / 最近订单 */
+html[data-theme] .task { border-radius:var(--radius); border-color:var(--surface-border); background:var(--surface-bg); box-shadow:none; transition:background var(--motion-fast) var(--ease); }
+html[data-theme] .task:hover { background:var(--surface-soft); box-shadow:none; }
+html[data-theme] :is(.activity-card, .recent-order-row) { border-radius:var(--radius); }
+
+/* 表格：表头小号灰字、无竖线、行悬停变底色 */
+html[data-theme] :is(.order-table-panel, .customer-table, .deleted-panel) { border-radius:var(--radius-panel); }
+html[data-theme] :is(.order-table th, .order-table td) { border-right:0; border-bottom:1px solid var(--hairline); }
+html[data-theme] .order-table thead th { background:var(--surface-bg); color:var(--gray-500); font-size:12px; font-weight:500; height:40px; }
+html[data-theme] .order-table tbody tr { transition:background var(--motion-fast) var(--ease); }
+html[data-theme] .order-table tbody tr:hover > td { background:var(--surface-soft); }
+html[data-theme] .order-table td { font-family:var(--sans); }
+html[data-theme] .page-enter .order-table tbody tr { animation:uiRise .4s var(--ease-out) backwards; }
+html[data-theme] .order-table tbody tr:nth-child(2) { animation-delay:35ms; } html[data-theme] .order-table tbody tr:nth-child(3) { animation-delay:70ms; }
+html[data-theme] .order-table tbody tr:nth-child(4) { animation-delay:105ms; } html[data-theme] .order-table tbody tr:nth-child(5) { animation-delay:140ms; }
+html[data-theme] .order-table tbody tr:nth-child(n+6) { animation-delay:175ms; }
+
+/* 设置页左侧导航 */
+html[data-theme] .settings-menu-item { border-radius:12px; font-weight:500; color:var(--gray-600); }
+html[data-theme] .settings-menu-item.active { background:var(--surface-soft); color:var(--gray-900); box-shadow:none; }
+html[data-theme] .settings-menu-item:hover:not(.active) { background:var(--surface-soft); color:var(--gray-900); }
+
+/* 日历 */
+html[data-theme] .calendar-day { border-radius:14px; border-color:var(--hairline); background:var(--surface-bg); }
+html[data-theme] .calendar-day.today { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-tint); }
+html[data-theme] .calendar-event { border-radius:8px; font-weight:500; }
+html[data-theme] .board-card-footer { flex-wrap:wrap; row-gap:6px; }
+html[data-theme] .board-card-meta { flex:1 1 auto; min-width:0; flex-wrap:wrap; overflow:visible; }
+html[data-theme] .board-card-meta .tag { flex:none; max-width:none; overflow:visible; }
+html[data-theme] .board-card-amount { margin-left:auto; }
+html[data-theme] :is(.order-detail-order-hero, .order-detail-customer-hero) { background:var(--surface-bg); border:1px solid var(--surface-border); box-shadow:none; }
+html[data-theme] .order-detail-order-amount { color:var(--gray-900); font-family:var(--display); letter-spacing:-.03em; }
+html[data-theme] .client-autofill-summary { background:var(--surface-soft); border-color:var(--surface-border); }
+html[data-theme] .customer-multi-add { background:var(--accent-tint); color:var(--accent); border-color:transparent; border-radius:999px; font-weight:500; }
+html[data-theme] .customer-multi-add:hover { background:color-mix(in oklab, var(--accent) 20%, transparent); }
+html[data-theme] .paste-assist { background:var(--surface-soft); border-color:var(--surface-border); }
+html[data-theme] .level-tag { background:var(--gray-100); color:var(--gray-700); border-radius:999px; padding:1px 8px; font-weight:500; }
+html[data-theme] .customer-group-item.active, html[data-theme] .customer-group-item[aria-pressed="true"] { background:var(--surface-soft); color:var(--gray-900); box-shadow:none; }
+html[data-theme] .customer-summary-item { background:var(--surface-bg); }
+html[data-theme] .customer-workspace-summary { background:var(--hairline); border-color:var(--hairline); }
 /* ===== 新版 UI：外壳与基础组件（OTS UI 规范）。选择器统一加 html[data-theme] 前缀，盖过旧的深色专用规则。 ===== */
 .ui-icon, .nav-icon.ui-icon { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; flex:none; }
 html[data-theme] :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
@@ -4064,7 +4176,7 @@ html[data-theme] .num-tick { animation:uiTick .58s var(--ease-spring); }
           </div>
           <div class="price-history-tools">
             <div class="search">
-              <span>⌕</span>
+              <svg class="ui-icon search-icon" aria-hidden="true"><use href="#i-search"/></svg>
               <input id="priceHistorySearch" placeholder="搜索客户、订单号、物流单号">
             </div>
             <select class="inline-select" id="priceHistoryProduct">
@@ -4251,9 +4363,9 @@ html[data-theme] .num-tick { animation:uiTick .58s var(--ease-spring); }
         <div class="customer-main">
           <div class="customer-toolbar">
             <div class="search">
-              <span>⌕</span>
+              <svg class="ui-icon search-icon" aria-hidden="true"><use href="#i-search"/></svg>
               <input id="customerSearch" type="search" placeholder="搜索姓名、邮箱、电话、地址、订单号">
-              <button class="search-action" id="customerSearchBtn" type="button" title="搜索" aria-label="搜索">⌕</button>
+              <button class="search-action" id="customerSearchBtn" type="button" title="搜索" aria-label="搜索"><svg class="ui-icon" aria-hidden="true"><use href="#i-arrow"/></svg></button>
             </div>
             <select class="inline-select" id="customerLevelFilter">
               <option value="all">全部等级</option>
@@ -12208,7 +12320,7 @@ function renderPipeline() {
         <div class="board-count">${orders.length}</div>
       </div>
       <div class="board-card-list">
-      ${orders.map(o => {
+      ${orders.map((o, index) => {
         const product = productTypeDef(o.productType);
         const payment = paymentChannelDef(o.paymentChannel);
         const level = customerLevelForName(o.client);
@@ -12232,7 +12344,7 @@ function renderPipeline() {
           cardSettings.showUrgentTag && o.urgentOrder ? '<span class="tag tag-orange">加急</span>' : ''
         ].filter(Boolean).join('');
         return `
-          <article class="board-card ${productClass}" data-id="${escapeAttr(o.id)}" data-stage-card="${s.key}" draggable="true">
+          <article class="board-card ${productClass}" data-id="${escapeAttr(o.id)}" data-stage-card="${s.key}" draggable="true" style="--i:${index}">
             <div class="board-card-head">
               <div class="board-title-wrap">
                 ${cardSettings.showLevelIcon ? renderLevelIcon(level) : ''}
@@ -12250,7 +12362,7 @@ function renderPipeline() {
       </div>
     </div>
   `; }).join('');
-  el.innerHTML = `
+  el.innerHTML = !(state.trashOrders || []).length ? columns : `
     ${columns}
     <aside class="activity-column trash-column" id="trashColumn">
       <div class="activity-head">
@@ -16087,7 +16199,9 @@ document.getElementById('pipeline').addEventListener('drop', e => {
   if (!column) return;
   e.preventDefault();
   column.classList.remove('drag-over');
-  moveOrderToStage(e.dataTransfer.getData('text/plain'), column.dataset.stage);
+  const droppedId = e.dataTransfer.getData('text/plain');
+  moveOrderToStage(droppedId, column.dataset.stage);
+  document.querySelector(`#pipeline .board-card[data-id="${CSS.escape(droppedId)}"]`)?.classList.add('just-landed');
 });
 const workspaceBoard = document.querySelector('.workspace-board');
 let workspaceBoardDrag = null;
@@ -16552,6 +16666,50 @@ function uiTickChanged(before) {
     el.classList.add('num-tick');
   });
 }
+// 看板卡片右键菜单：打开、编辑、复制订单号、按住 1.5 秒删除（可撤销）。取代原来的垃圾箱列。
+function uiCloseBoardMenu() {
+  document.querySelector('.board-menu')?.remove();
+}
+document.getElementById('pipeline')?.addEventListener('contextmenu', e => {
+  const card = e.target.closest('.board-card[data-id]');
+  if (!card) return;
+  e.preventDefault();
+  uiCloseBoardMenu();
+  const order = state.orders.find(o => o.id === card.dataset.id);
+  if (!order) return;
+  const menu = document.createElement('div');
+  menu.className = 'board-menu';
+  menu.setAttribute('role', 'menu');
+  menu.innerHTML = `
+    <div class="board-menu-title">${escapeAttr(clientDisplayName(order.client))} · ${escapeAttr(order.num)}</div>
+    <button type="button" role="menuitem" data-board-menu="open">${uiIcon('arrow')}打开订单</button>
+    <button type="button" role="menuitem" data-board-menu="edit">${uiIcon('list')}编辑订单</button>
+    <button type="button" role="menuitem" data-board-menu="copy">${uiIcon('copy')}复制订单号</button>
+    <button type="button" role="menuitem" class="btn btn-danger hold-btn" data-hold="1500" data-board-menu="delete"><span class="hold-fill" aria-hidden="true"></span><span class="hold-label">按住删除</span></button>`;
+  document.body.appendChild(menu);
+  const box = menu.getBoundingClientRect();
+  menu.style.left = `${Math.min(e.clientX, window.innerWidth - box.width - 8)}px`;
+  menu.style.top = `${Math.min(e.clientY, window.innerHeight - box.height - 8)}px`;
+  menu.addEventListener('click', ev => {
+    const action = ev.target.closest('[data-board-menu]')?.dataset.boardMenu;
+    if (!action || action === 'delete') return;
+    uiCloseBoardMenu();
+    if (action === 'open') openOrderDetail(order.id);
+    if (action === 'edit') openOrder(order.id);
+    if (action === 'copy') copyText(order.num, '已复制订单号');
+  });
+  menu.addEventListener('hold-confirm', () => {
+    uiCloseBoardMenu();
+    softDeleteOrder(order.id);
+  });
+  if (!e.clientX && !e.clientY) menu.querySelector('button')?.focus();
+});
+document.addEventListener('pointerdown', e => {
+  if (!e.target.closest?.('.board-menu')) uiCloseBoardMenu();
+}, true);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') uiCloseBoardMenu(); });
+window.addEventListener('blur', uiCloseBoardMenu);
+document.querySelector('.content')?.addEventListener('scroll', uiCloseBoardMenu, { passive:true });
 // ===== 新版 UI 交互 结束 =====
 </script>
 </body>

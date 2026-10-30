@@ -4089,6 +4089,77 @@ html[data-theme] .accent-swatch[data-accent-choice="rose"] { --c:#e0336f; }
 html[data-theme] .accent-swatch[data-accent-choice="ink"] { --c:oklch(26% 0 0); }
 html[data-theme="dark"] .accent-swatch[data-accent-choice="ink"] { --c:oklch(90% 0 0); }
 @media (max-width: 820px) { html[data-theme] :is(.accent-swatches, .sidebar-api-card) { display:none; } }
+/* 分析：月份切换和产品筛选在卡片外，五张数字卡，对比说明横幅，两两并排的分析卡 */
+html[data-theme] .analysis-page { display:flex; flex-direction:column; gap:16px; }
+html[data-theme] .analysis-page .business-toolbar { flex-direction:row; align-items:center; flex-wrap:wrap; }
+html[data-theme] .analysis-page .business-month-nav { gap:8px; }
+html[data-theme] .analysis-page .business-month-nav .btn { height:32px; min-height:32px; padding:0 14px; border-radius:999px; }
+html[data-theme] .analysis-page #analysisMonthInput { height:36px; padding:0 14px; border:1px solid var(--surface-border); border-radius:999px; background:var(--surface-bg); color:var(--gray-900); font:inherit; font-size:13px; }
+html[data-theme] .analysis-page .business-toolbar .segment-control { display:inline-flex; width:auto; flex:none; grid-template-columns:none !important; }
+html[data-theme] .analysis-page .business-toolbar .segment-control .segment-option { flex:none; height:30px; min-height:30px; padding:0 14px; font-size:13px; }
+html[data-theme] .analysis-page .business-kpi-grid { grid-template-columns:repeat(5, minmax(0,1fr)); gap:16px; }
+html[data-theme] .analysis-page .business-kpi { container-type:inline-size; min-height:0; display:flex; flex-direction:column; align-items:flex-start; gap:4px; padding:18px 20px 16px; border-radius:var(--radius-panel); }
+html[data-theme] .analysis-page .business-kpi > span { color:var(--gray-600); font-size:13px; font-weight:400; }
+html[data-theme] .analysis-page .business-kpi > strong, html[data-theme] .analysis-page .business-kpi strong:is(#businessRevenue, #businessPaid, #businessDue) { font-size:clamp(15px, 12cqw, 28px); font-weight:600; letter-spacing:-.03em; line-height:1.15; color:var(--gray-900); overflow-wrap:normal; }
+html[data-theme] .analysis-page .business-kpi.paid > strong, html[data-theme] .analysis-page .business-kpi.due > strong { color:var(--gray-900); }
+html[data-theme] .analysis-page .business-kpi > small { color:var(--gray-500); font-size:12px; }
+html[data-theme] .analysis-page .business-kpi > small b { font-weight:500; color:var(--gray-700); }
+html[data-theme] .analysis-page .business-kpi > small .up { color:var(--s-green); }
+html[data-theme] .analysis-page .business-kpi > small .down { color:var(--s-red); }
+html[data-theme] .business-kpi-bar { display:block; align-self:stretch; height:6px; margin-top:6px; border-radius:999px; background:var(--surface-soft); overflow:hidden; }
+html[data-theme] .business-kpi-bar b { display:block; height:100%; width:0; border-radius:inherit; background:var(--s-green); transition:width .8s var(--ease-spring); }
+html[data-theme] .analysis-page .business-kpi .link-btn { margin:0; padding:0; color:var(--accent); font-size:13px; text-decoration:underline; text-underline-offset:3px; }
+/* 对比横幅 */
+html[data-theme] .analysis-context { display:flex; gap:12px; align-items:flex-start; padding:16px 22px; border:1px solid var(--surface-border); border-left:1px solid var(--surface-border); border-radius:var(--radius-panel); background:var(--surface-bg); color:var(--gray-600); font-size:12.5px; line-height:1.8; }
+html[data-theme] .analysis-context > .ui-icon { flex:none; width:18px; height:18px; margin-top:3px; color:var(--accent); }
+html[data-theme] .analysis-context #analysisComparison { color:var(--gray-900); font-size:13.5px; }
+/* 卡片 */
+html[data-theme] .analysis-page .analysis-grid { gap:16px; align-items:stretch; }
+html[data-theme] .analysis-page .panel { margin:0; padding:20px 22px; border-radius:var(--radius-panel); }
+html[data-theme] .analysis-head { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+html[data-theme] .analysis-page .section-head .link-btn { margin-left:auto; color:var(--accent); text-decoration:underline; text-underline-offset:3px; }
+html[data-theme] .business-payment-summary strong { font-size:22px; font-weight:600; }
+html[data-theme] .business-payment-bar { height:12px; gap:2px; background:transparent; }
+html[data-theme] .business-payment-bar > div { border-radius:3px; }
+html[data-theme] .business-payment-paid { background:var(--s-green); }
+html[data-theme] .business-payment-due { background:var(--s-amber); }
+html[data-theme] .business-payment-legend { gap:16px; }
+html[data-theme] .business-payment-item { display:flex; flex-direction:column; gap:2px; padding:0; border:0; background:transparent; }
+html[data-theme] .business-payment-item span { color:var(--gray-600); font-size:12px; }
+html[data-theme] .business-payment-item span::before { content:''; display:inline-block; width:8px; height:8px; margin-right:6px; border-radius:2px; background:var(--s-green); }
+html[data-theme] .business-payment-item:nth-child(2) span::before { background:var(--s-amber); }
+html[data-theme] .business-payment-item strong { font-size:20px; font-weight:600; letter-spacing:-.02em; color:var(--gray-900); }
+html[data-theme] .business-product-row { grid-template-columns:minmax(0,1fr) auto; gap:6px 10px; }
+html[data-theme] .business-product-name { font-size:13px; font-weight:400; color:var(--gray-800); }
+html[data-theme] .business-product-track { grid-column:1 / -1; grid-row:2; height:5px; }
+html[data-theme] .business-product-fill { background:var(--accent); }
+html[data-theme] .business-product-value { grid-row:1; grid-column:2; font-size:13px; font-weight:500; }
+html[data-theme] .analysis-mix { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; margin-top:16px; }
+html[data-theme] .analysis-mix .analysis-rank { display:flex; flex-direction:column; align-items:flex-start; gap:2px; padding:12px 14px; border:0; border-radius:16px; background:var(--surface-soft); font-size:12px; color:var(--gray-600); }
+html[data-theme] .analysis-mix .analysis-rank > span:first-child { display:none; }
+html[data-theme] .analysis-mix .analysis-rank strong { font-size:14px; color:var(--gray-900); }
+html[data-theme] .analysis-mix .section-meta { grid-column:1 / -1; margin:0; }
+html[data-theme] #analysisClients .analysis-rank { grid-template-columns:18px minmax(0,1fr) auto auto; gap:6px 10px; padding:10px 0 12px; border-bottom:0; }
+html[data-theme] #analysisClients .analysis-rank strong { font-weight:500; font-variant-numeric:tabular-nums; }
+html[data-theme] .analysis-rank-bar { grid-column:1 / -1; display:block; height:5px; border-radius:999px; background:var(--surface-soft); overflow:hidden; }
+html[data-theme] .analysis-rank-bar b { display:block; height:100%; border-radius:inherit; background:var(--gray-900); }
+html[data-theme] .analysis-action-group { border-top:0; padding:4px 0; }
+html[data-theme] .analysis-action-group summary { color:var(--gray-600); font-size:12.5px; cursor:pointer; padding:4px 0; }
+html[data-theme] .analysis-action-row { padding:12px 6px; border-bottom:1px solid var(--hairline); border-radius:0; }
+html[data-theme] .analysis-action-row:hover { background:var(--surface-soft); border-radius:12px; }
+html[data-theme] .analysis-action-row > span:first-child { display:flex; flex-direction:column; gap:2px; font-weight:600; color:var(--gray-900); }
+html[data-theme] .analysis-action-row small { font-weight:400; color:var(--gray-500); font-family:var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size:11.5px; }
+html[data-theme] .analysis-action-row > span:nth-child(2) { color:var(--s-amber); font-size:12.5px; }
+html[data-theme] .analysis-action-row > span:last-child { color:var(--gray-500); font-size:12px; }
+html[data-theme] .analysis-trend-track { height:6px; }
+@media (max-width: 1100px) { html[data-theme] .analysis-page .business-kpi-grid { grid-template-columns:repeat(3, minmax(0,1fr)); } }
+@media (max-width: 820px) {
+  html[data-theme] .analysis-page .business-kpi-grid { grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
+  html[data-theme] .analysis-page .analysis-grid { grid-template-columns:1fr; }
+  html[data-theme] .analysis-mix { grid-template-columns:1fr; }
+}
+html[data-theme] .analysis-page .business-toolbar .binary-segment { display:inline-flex; width:auto; flex:none; margin-left:auto; padding:3px; gap:2px; border-radius:999px; grid-template-columns:none !important; }
+html[data-theme] .analysis-page .business-toolbar .binary-option { flex:none; width:auto; height:30px; min-height:30px; padding:0 14px; font-size:13px; font-weight:500; border-radius:999px; }
 /* 日历：月份导航和颜色说明在卡片外，月历是一张连在一起的格子卡，右侧按日期分组的当月日程 */
 html[data-theme] .calendar-page { display:flex; flex-direction:column; gap:16px; }
 html[data-theme] .calendar-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
@@ -4685,6 +4756,69 @@ html[data-theme="dark"] .order-table-paybar { background:var(--gray-200); }
   html[data-theme] .order-list-primary-filters { flex-wrap:wrap; }
   html[data-theme] .order-list-more .order-list-filter-grid { position:static; width:100%; margin-top:8px; }
 }
+/* 业绩目标：左边设置卡 + 四个浅底数字块，右边完成度圆环，下面近月记录表 */
+html[data-theme] .target-page { display:flex; flex-direction:column; gap:16px; }
+html[data-theme] .target-layout { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(0,1fr); gap:16px; align-items:stretch; }
+html[data-theme] .target-layout > .panel { margin:0; padding:20px 22px; border:1px solid var(--surface-border); border-radius:var(--radius-panel); background:var(--surface-bg); box-shadow:none; display:flex; flex-direction:column; gap:16px; }
+html[data-theme] .target-setup-head { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+html[data-theme] .target-form { grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto; gap:12px; margin:0; }
+html[data-theme] .target-form .field > label { color:var(--gray-600); font-size:12px; font-weight:400; }
+html[data-theme] .target-form :is(select.inline-select, .app-select, input) { height:42px; min-height:42px; border-radius:14px; }
+html[data-theme] .target-amount-input { position:relative; display:block; }
+html[data-theme] .target-amount-input > span { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--gray-500); font-size:13px; pointer-events:none; }
+html[data-theme] .target-amount-input input { padding-left:30px; }
+html[data-theme] .target-form .btn { height:38px; min-height:38px; padding:0 18px; border-radius:999px; background:var(--gray-900); color:var(--surface-bg); border-color:transparent; }
+html[data-theme] .target-metrics { grid-template-columns:repeat(4, minmax(0,1fr)); gap:12px; border:0; background:transparent; overflow:visible; }
+html[data-theme] .target-metric { container-type:inline-size; min-width:0; min-height:0; padding:16px 18px; border:0; border-radius:20px; background:var(--surface-soft); display:flex; flex-direction:column; gap:6px; }
+html[data-theme] .target-metric .report-label { color:var(--gray-600); font-size:12.5px; font-weight:400; }
+html[data-theme] .target-metric .report-value { margin:0; font-size:clamp(15px, 17cqw, 26px); font-weight:600; letter-spacing:-.03em; line-height:1.15; color:var(--gray-900); white-space:normal; }
+html[data-theme] .target-metric .report-value.over { color:var(--s-green); }
+/* 完成度圆环 */
+html[data-theme] .target-summary { justify-content:flex-start; }
+html[data-theme] .target-ring-wrap { display:flex; align-items:center; gap:24px; flex:1; }
+html[data-theme] .target-ring { position:relative; flex:none; width:148px; height:148px; }
+html[data-theme] .target-ring svg { width:100%; height:100%; transform:rotate(-90deg); }
+html[data-theme] .target-ring-track { fill:none; stroke:var(--surface-soft); stroke-width:10; }
+html[data-theme] .target-ring-fill { fill:none; stroke:var(--accent); stroke-width:10; stroke-linecap:round; transition:stroke-dasharray .8s var(--ease-spring); }
+html[data-theme] .target-ring-text { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; }
+html[data-theme] .target-ring-text strong { font-size:30px; font-weight:600; letter-spacing:-.03em; color:var(--gray-900); line-height:1; }
+html[data-theme] .target-ring-text span { color:var(--gray-500); font-size:12.5px; }
+html[data-theme] #targetProgressText { font-size:12.5px; color:var(--gray-600); }
+/* 近月记录表 */
+html[data-theme] .target-history-card { margin:0; padding:20px 22px; border:1px solid var(--surface-border); border-radius:var(--radius-panel); display:flex; flex-direction:column; gap:14px; }
+html[data-theme] .target-history-table { border:1px solid var(--surface-border); border-radius:18px; overflow:hidden; }
+html[data-theme] .target-history-list { display:block; }
+html[data-theme] .target-history-row { grid-template-columns:minmax(110px,1fr) minmax(110px,1fr) minmax(0,2.2fr) minmax(150px,1.6fr) 64px; gap:16px; min-height:50px; padding:0 16px; border:0; border-bottom:1px solid var(--hairline); border-radius:0; background:transparent; }
+html[data-theme] .target-history-row:last-child { border-bottom:0; padding-bottom:0; }
+html[data-theme] .target-history-row.head { min-height:38px; color:var(--gray-500); font-size:12px; border-bottom:1px solid var(--surface-border); }
+html[data-theme] .target-history-row.selected { background:color-mix(in srgb, var(--accent) 4%, transparent); }
+html[data-theme] .target-history-row > :nth-child(2), html[data-theme] .target-history-row .target-history-values > span, html[data-theme] .target-history-row > :last-child { text-align:right; }
+html[data-theme] .target-history-month { display:flex; align-items:center; gap:8px; font-size:14px; font-weight:400; font-variant-numeric:tabular-nums; }
+html[data-theme] .target-history-now { padding:1px 8px; border-radius:999px; background:var(--accent-tint); color:var(--accent); font-size:11px; font-style:normal; }
+html[data-theme] .target-history-amount { color:var(--gray-900); font-size:14px; font-weight:400; overflow:visible; }
+html[data-theme] .target-history-values { display:grid; grid-template-columns:1fr 1fr; gap:16px; color:var(--gray-900); font-size:14px; font-weight:400; font-variant-numeric:tabular-nums; }
+html[data-theme] .target-history-row.head .target-history-values { color:var(--gray-500); font-size:12px; }
+html[data-theme] .target-history-values .over { color:var(--s-green); }
+html[data-theme] .target-history-values .under { color:var(--s-amber); }
+html[data-theme] .target-history-progress { gap:3px; }
+html[data-theme] .target-history-track { height:5px; background:var(--surface-soft); box-shadow:none; }
+html[data-theme] .target-history-fill { background:var(--accent); box-shadow:none; }
+html[data-theme] .target-history-fill.done { background:var(--s-green); }
+html[data-theme] .target-history-fill::after { display:none; }
+html[data-theme] .target-history-rate { justify-self:start; min-width:0; padding:0; background:none; color:var(--gray-500); font-size:11px; font-weight:400; text-align:left; }
+html[data-theme] .target-history-rate.empty { background:none; }
+html[data-theme] .target-history-count { font-size:14px; color:var(--gray-900); font-variant-numeric:tabular-nums; }
+@media (max-width: 1100px) { html[data-theme] .target-layout { grid-template-columns:1fr; } }
+@media (max-width: 820px) {
+  html[data-theme] .target-form { grid-template-columns:1fr; }
+  html[data-theme] .target-metrics { grid-template-columns:repeat(2, minmax(0,1fr)); }
+  html[data-theme] .target-history-table { overflow-x:auto; }
+  html[data-theme] .target-history-row { min-width:820px; }
+}
+html[data-theme] .target-history-fill.empty { display:none; }
+html[data-theme] .target-metrics .report-value:is(#targetGoal, #targetActual, #targetGap, #targetOrderCount) { font-size:clamp(15px, 15cqw, 26px); overflow-wrap:normal; }
+html[data-theme] .amount-kpi-board .report-value:is(#reportUsd, #reportPaid, #reportDue, #reportOverdue, #reportCount) { font-size:clamp(15px, 12cqw, 28px); overflow-wrap:normal; }
+html[data-theme] .target-history-rate, html[data-theme] .target-history-rate.empty { border:0; box-shadow:none; }
 </style>
 </head>
 <body>
@@ -5094,45 +5228,43 @@ html[data-theme="dark"] .order-table-paybar { background:var(--gray-200); }
         <button class="segment-option" type="button" role="tab" data-page="targets"><span class="nav-text">业绩目标</span></button>
         <button class="segment-option" type="button" role="tab" data-page="analysis"><span class="nav-text">分析</span></button>
       </div>
-      <section class="panel">
-        <div class="target-page">
-          <div class="target-hero">
-            <div class="target-setup">
-              <div>
-                <div class="side-chart-title">目标设置</div>
-                <div class="side-chart-sub">选择月份后设置目标，首页顶部会同步完成率</div>
-              </div>
-              <div class="target-form">
-                <div class="field"><label>目标月份</label><select class="inline-select" id="targetMonth"></select></div>
-                <div class="field"><label>月度目标 USD</label><input id="targetAmountInput" type="number" min="0" step="100" placeholder="例如 50000"></div>
-                <button class="btn btn-primary" id="saveTargetBtn" type="button">保存目标</button>
-              </div>
+      <section class="target-page">
+        <div class="target-layout">
+          <section class="panel target-setup">
+            <div class="target-setup-head">
+              <div class="section-title">设置月度目标</div>
+              <div class="section-meta">按订单归属月份统计，草稿不计入；首页顶部同步完成率</div>
             </div>
-            <div class="target-summary">
-              <div class="target-summary-main">
-                <div>
-                  <div class="target-summary-label">完成比例</div>
-                  <div class="target-summary-value" id="targetRate">0%</div>
-                </div>
-                <div class="tag tag-green" id="targetMonthBadge">本月</div>
+            <div class="target-form">
+              <div class="field"><label for="targetMonth">月份</label><select class="inline-select" id="targetMonth"></select></div>
+              <div class="field target-amount-field"><label for="targetAmountInput">月度目标 USD</label><span class="target-amount-input"><span aria-hidden="true">$</span><input id="targetAmountInput" type="number" min="0" step="100" placeholder="例如 50000"></span></div>
+              <button class="btn btn-primary" id="saveTargetBtn" type="button">保存目标</button>
+            </div>
+            <div class="target-metrics">
+              <div class="target-metric"><div class="report-label">目标金额</div><div class="report-value" id="targetGoal">$0 USD</div></div>
+              <div class="target-metric"><div class="report-label">实际完成</div><div class="report-value" id="targetActual">$0 USD</div></div>
+              <div class="target-metric"><div class="report-label" id="targetGapLabel">差额</div><div class="report-value" id="targetGap">$0 USD</div></div>
+              <div class="target-metric"><div class="report-label">订单数量</div><div class="report-value" id="targetOrderCount">0</div></div>
+            </div>
+          </section>
+          <section class="panel target-summary">
+            <div class="section-title"><span id="targetMonthBadge">本月</span> 完成度</div>
+            <div class="target-ring-wrap">
+              <div class="target-ring">
+                <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="target-ring-track" cx="60" cy="60" r="52"></circle><circle class="target-ring-fill" id="targetProgress" cx="60" cy="60" r="52" pathLength="100" stroke-dasharray="0 100"></circle></svg>
+                <div class="target-ring-text"><strong id="targetRate">0%</strong><span>已完成</span></div>
               </div>
-              <div class="target-progress"><div class="target-progress-fill" id="targetProgress"></div></div>
               <div class="muted" id="targetProgressText">暂无目标</div>
             </div>
-          </div>
-          <div class="target-metrics">
-            <div class="target-metric"><div class="report-label">目标金额</div><div class="report-value" id="targetGoal">$0 USD</div></div>
-            <div class="target-metric"><div class="report-label">实际完成</div><div class="report-value" id="targetActual">$0 USD</div></div>
-            <div class="target-metric"><div class="report-label">差额</div><div class="report-value" id="targetGap">$0 USD</div></div>
-            <div class="target-metric"><div class="report-label">订单数量</div><div class="report-value" id="targetOrderCount">0</div></div>
-          </div>
-          <div class="target-detail-grid single">
-            <div class="breakdown-card">
-              <div class="breakdown-title">近月目标记录</div>
-              <div class="target-history-list" id="targetHistoryList"></div>
-            </div>
-          </div>
+          </section>
         </div>
+        <section class="panel target-history-card">
+          <div class="section-title">近月目标记录</div>
+          <div class="target-history-table">
+            <div class="target-history-row head"><span>月份</span><span>目标</span><div class="target-history-values"><span>实际完成</span><span>差额</span></div><span>完成率</span><span>订单数</span></div>
+            <div class="target-history-list" id="targetHistoryList"></div>
+          </div>
+        </section>
       </section>
     </section>
 
@@ -5168,49 +5300,45 @@ html[data-theme="dark"] .order-table-paybar { background:var(--gray-200); }
         <button class="segment-option" type="button" role="tab" data-page="analysis"><span class="nav-text">分析</span></button>
       </div>
       <section class="analysis-page">
-        <section class="panel">
-          <div class="business-toolbar">
-            <div><div class="section-title">业绩分析</div><div class="section-meta">按订单归属月份统计 · 草稿不计入 · 金额统一折算 USD</div></div>
-            <div class="business-month-nav" aria-label="切换经营分析月份">
-              <button class="btn btn-small" type="button" id="businessPrevBtn">上月</button>
-              <div class="business-month-title" id="businessMonthTitle">-</div>
-              <input type="month" id="analysisMonthInput" aria-label="分析月份">
-              <select id="analysisProduct" aria-label="分析产品"><option value="all">全部产品</option><option value="假发">假发</option><option value="睫毛">睫毛</option></select>
-              <button class="btn btn-small" type="button" id="businessCurrentBtn">本月</button>
-              <button class="btn btn-small" type="button" id="businessNextBtn">下月</button>
-            </div>
+        <div class="business-toolbar">
+          <div class="business-month-nav" aria-label="切换经营分析月份">
+            <button class="btn btn-small" type="button" id="businessPrevBtn">‹ 上月</button>
+            <button class="btn btn-small" type="button" id="businessCurrentBtn">本月</button>
+            <button class="btn btn-small" type="button" id="businessNextBtn">下月 ›</button>
+            <input type="month" id="analysisMonthInput" aria-label="分析月份">
+            <div class="business-month-title visually-hidden" id="businessMonthTitle">-</div>
           </div>
-        </section>
+          <select id="analysisProduct" aria-label="分析产品"><option value="all">全部产品</option><option value="假发">假发</option><option value="睫毛">睫毛</option></select>
+        </div>
         <section class="business-kpi-grid">
-          <div class="business-kpi"><span>正式订单数</span><strong id="businessOrderCount">0</strong></div>
-          <div class="business-kpi"><span>订单总额</span><strong id="businessRevenue">$0</strong></div>
-          <div class="business-kpi paid"><span>该月订单累计已收</span><strong id="businessPaid">$0</strong></div>
-          <div class="business-kpi due"><span>该月订单当前待收</span><strong id="businessDue">$0</strong><button class="btn btn-small" type="button" data-analysis-list="month">查看订单 →</button></div>
-          <div class="business-kpi"><span>平均订单额</span><strong id="businessAverage">$0</strong></div>
-          <div class="business-kpi"><span>收款率</span><strong id="businessCollectionRate">0%</strong></div>
+          <div class="business-kpi"><span>订单额</span><strong id="businessRevenue">$0</strong><small id="businessRevenueSub">按订单归属月份 · 草稿不计入</small></div>
+          <div class="business-kpi"><span>正式订单数</span><strong id="businessOrderCount">0</strong><small>平均 <b id="businessAverage">$0</b></small></div>
+          <div class="business-kpi paid"><span>已收</span><strong id="businessPaid">$0</strong><small>本月订单的累计收款</small></div>
+          <div class="business-kpi"><span>收款率</span><strong id="businessCollectionRate">0%</strong><i class="business-kpi-bar"><b id="businessRateBar"></b></i></div>
+          <div class="business-kpi due"><span>当前待收</span><strong id="businessDue">$0</strong><button class="link-btn" type="button" data-analysis-list="month">查看订单 <span>→</span></button></div>
         </section>
-        <div class="analysis-context"><div id="analysisComparison"></div><div id="businessRateStatus"></div><div>已收为这些订单截至目前的累计收款，不是当月现金到账。未记录成本，不统计利润。</div></div>
+        <div class="analysis-context"><svg class="ui-icon" aria-hidden="true"><use href="#i-chart"/></svg><div><div id="analysisComparison"></div><div id="businessRateStatus"></div><div>已收为这些订单截至目前的累计收款，不是当月现金到账。未记录成本，不统计利润。</div></div></div>
         <section class="analysis-grid">
           <section class="panel">
-            <div class="section-head"><div><div class="section-title">近六个月订单额</div><div class="section-meta">每月金额与订单数分别标注 · 当前产品范围</div></div></div>
-            <div class="business-trend-chart" id="businessTrendChart"></div>
-          </section>
-          <section class="panel">
-            <div class="section-head"><div><div class="section-title">所选月份订单收款进度</div><div class="section-meta">累计已收 / 订单额，不按付款日期统计</div></div></div>
+            <div class="section-head"><div class="analysis-head"><div class="section-title">收款进度结构</div><div class="section-meta">累计已收 / 订单额</div></div></div>
             <div class="business-payment-structure" id="businessPaymentStructure"></div>
           </section>
-        </section>
-        <section class="panel">
-          <div class="section-head"><div><div class="section-title">产品贡献排行</div><div class="section-meta">所选月份和产品范围 · 按 USD 订单额排列</div></div></div>
-          <div class="business-product-contribution" id="businessProductContribution"></div>
+          <section class="panel">
+            <div class="section-head"><div class="analysis-head"><div class="section-title">产品贡献排行</div><div class="section-meta">按 USD 订单额</div></div></div>
+            <div class="business-product-contribution" id="businessProductContribution"></div>
+            <div class="analysis-mix" id="analysisCustomerMix"></div>
+          </section>
         </section>
         <section class="analysis-grid">
-          <section class="panel"><div class="section-head"><div><div class="section-title">客户贡献</div><div class="section-meta">所选月份 · 按订单额排列，显示前 8 名</div></div></div><div id="analysisClients"></div></section>
-          <section class="panel"><div class="section-head"><div><div class="section-title">新老客户订单</div><div class="section-meta">首次正式订单在所选月份的客户为新客户</div></div></div><div id="analysisCustomerMix"></div></section>
+          <section class="panel"><div class="section-head"><div class="analysis-head"><div class="section-title">客户贡献</div><div class="section-meta">前 8 名</div></div></div><div id="analysisClients"></div></section>
+          <section class="panel analysis-attention">
+            <div class="section-head"><div class="analysis-head"><div class="section-title">现在需要关注</div><div class="section-meta">截至今天 · 所有月份</div></div><button class="link-btn" type="button" data-analysis-list="outstanding">查看全部待收订单 <span>→</span></button></div>
+            <div id="analysisAttention"></div>
+          </section>
         </section>
-        <section class="panel analysis-attention">
-          <div class="section-head"><div><div class="section-title">现在需要关注</div><div class="section-meta">截至今天 · 所有月份，不随月份切换；遵循产品筛选</div></div><button class="btn btn-small" type="button" data-analysis-list="outstanding">查看全部待收订单</button></div>
-          <div id="analysisAttention"></div>
+        <section class="panel">
+          <div class="section-head"><div class="analysis-head"><div class="section-title">近六个月订单额</div><div class="section-meta">每月金额与订单数 · 当前产品范围</div></div></div>
+          <div class="business-trend-chart" id="businessTrendChart"></div>
         </section>
       </section>
     </section>
@@ -7935,7 +8063,16 @@ function renderAnalysisPage() {
     ? '有订单缺少汇率，金额对比暂不展示。订单数：本期 ' + data.current.orderCount + ' 单 / 上月 ' + data.previous.orderCount + ' 单'
     : '较上月整月：订单额 ' + compare(data.current.total,data.previous.total) + ' · 订单数 ' + data.current.orderCount + ' / ' + data.previous.orderCount + ' 单 · 平均订单额 ' + compare(data.current.average,data.previous.average) + '。当月尚未结束时，不代表最终增减。';
   document.getElementById('analysisMonthInput').value = activeBusinessMonth;
-  document.getElementById('analysisClients').innerHTML = data.clients.slice(0,8).map((row,index) => '<div class="analysis-rank"><span class="muted">' + (index+1) + '</span><span>' + escapeAttr(row.name) + '</span><span class="muted">' + row.count + ' 单</span><strong>' + summaryMoney(row.amount,'USD') + '</strong></div>').join('') || '<div class="empty">该月份暂无客户订单。</div>';
+  const revenueSub = document.getElementById('businessRevenueSub');
+  if (revenueSub) {
+    const prevLabel = `${Number(monthOffset(activeBusinessMonth, -1).slice(5))} 月`;
+    const pct = data.previous.total > 0 ? Math.round((data.current.total - data.previous.total) / data.previous.total * 100) : null;
+    revenueSub.innerHTML = pct === null ? '按订单归属月份 · 草稿不计入' : `<span class="${pct >= 0 ? 'up' : 'down'}">${pct >= 0 ? '+' : ''}${pct}%</span> 比 ${prevLabel}`;
+  }
+  const rateBar = document.getElementById('businessRateBar');
+  if (rateBar) rateBar.style.width = `${Math.min(100, Number(data.current.collectionRate) || 0)}%`;
+  const clientMax = Math.max(1, ...data.clients.map(row => row.amount));
+  document.getElementById('analysisClients').innerHTML = data.clients.slice(0,8).map((row,index) => '<div class="analysis-rank"><span class="muted">' + (index+1) + '</span><span>' + escapeAttr(clientDisplayName(row.name)) + '</span><span class="muted">' + row.count + ' 单</span><strong>' + summaryMoney(row.amount,'USD') + '</strong><i class="analysis-rank-bar"><b style="width:' + Math.max(3, Math.round(row.amount / clientMax * 100)) + '%"></b></i></div>').join('') || '<div class="empty">该月份暂无客户订单。</div>';
   const total = data.monthly.length;
   document.getElementById('analysisCustomerMix').innerHTML = [['新客户订单',data.newOrders],['老客户订单',data.repeatOrders],['客户信息不全',data.unknownOrders]].map(([label,count]) => '<div class="analysis-rank"><span></span><span>' + label + '</span><strong>' + count + ' 单</strong><span>' + (total ? Math.round(count/total*100) : 0) + '%</span></div>').join('') + '<p class="section-meta">按现有订单历史判断，不等于新建客户档案数。</p>';
   const groups = [['未收清订单',data.receivables],['超过最晚发出日期',data.overdue]];
@@ -13060,35 +13197,39 @@ function renderPerformanceTargets() {
   document.getElementById('targetGoal').textContent = goal ? summaryMoney(goal, 'USD') : '未设置';
   document.getElementById('targetActual').textContent = summaryMoney(actual, 'USD');
   document.getElementById('targetRate').textContent = goal ? `${rate}%` : '未设';
-  document.getElementById('targetGap').textContent = goal ? summaryMoney(gap, 'USD') : '-';
+  const over = goal && actual >= goal;
+  document.getElementById('targetGap').textContent = goal ? summaryMoney(over ? actual - goal : gap, 'USD') : '-';
+  document.getElementById('targetGap').classList.toggle('over', Boolean(over));
+  const gapLabel = document.getElementById('targetGapLabel');
+  if (gapLabel) gapLabel.textContent = over ? '超出' : '差额';
   document.getElementById('targetOrderCount').textContent = orders.length;
-  document.getElementById('targetMonthBadge').textContent = monthLabel(month);
-  document.getElementById('targetProgress').style.width = goal ? `${Math.min(100, rate)}%` : '0%';
+  document.getElementById('targetMonthBadge').textContent = `${Number(month.slice(5))} 月`;
+  const ring = document.getElementById('targetProgress');
+  ring.setAttribute('stroke-dasharray', `${goal ? Math.min(100, rate) : 0} 100`);
+  ring.classList.toggle('done', Boolean(over));
   document.getElementById('targetProgressText').textContent = goal
-    ? `${monthLabel(month)} 已完成 ${summaryMoney(actual, 'USD')}，目标 ${summaryMoney(goal, 'USD')}，${rate >= 100 ? '已达成' : `还差 ${summaryMoney(gap, 'USD')}`}`
+    ? (rate >= 100 ? `已经超出目标 ${summaryMoney(actual - goal, 'USD')}。` : `完成 ${summaryMoney(actual, 'USD')}，还差 ${summaryMoney(gap, 'USD')}。`)
     : `${monthLabel(month)} 暂未设置业绩目标`;
 
+  const currentMonth = normalizeMonth(new Date().toISOString());
   document.getElementById('targetHistoryList').innerHTML = targetMonths.slice(0, 8).map(m => {
     const monthOrders = ordersByMonth(m).filter(isRevenueOrder);
     const monthActual = usdTotal(monthOrders);
     const monthGoal = targetForMonth(m);
     const monthRate = targetRate(monthActual, monthGoal);
     const progress = monthGoal ? Math.min(100, monthRate) : 0;
-    const monthGap = Math.max(0, monthGoal - monthActual);
+    const monthOver = monthGoal && monthActual >= monthGoal;
+    const diff = Math.abs(monthActual - monthGoal);
     return `
-      <div class="target-history-row">
-        <div class="target-history-top">
-          <span class="target-history-month">${monthLabel(m)}</span>
-          <span class="target-history-amount">${monthOrders.length} 个订单</span>
-        </div>
-        <div class="target-history-amount">${monthGoal ? `目标 ${summaryMoney(monthGoal, 'USD')}` : '未设置目标'}</div>
+      <div class="target-history-row ${m === month ? 'selected' : ''}">
+        <span class="target-history-month">${escapeAttr(m)}${m === currentMonth ? '<i class="target-history-now">当前</i>' : ''}</span>
+        <span class="target-history-amount">${monthGoal ? summaryMoney(monthGoal, 'USD') : '未设置'}</span>
+        <div class="target-history-values"><span>${summaryMoney(monthActual, 'USD')}</span><span class="${monthGoal ? (monthOver ? 'over' : 'under') : 'muted'}">${monthGoal ? `${monthOver ? '+' : '−'}${summaryMoney(diff, 'USD')}` : '-'}</span></div>
         <div class="target-history-progress">
-          <div class="target-history-values"><span>完成 ${summaryMoney(monthActual, 'USD')}</span><span>${monthGoal ? `差额 ${summaryMoney(monthGap, 'USD')}` : '无目标'}</span></div>
-        <div class="target-history-track">
-          <div class="target-history-fill ${monthGoal ? '' : 'empty'}" style="width:${progress}%"></div>
+          <div class="target-history-track"><div class="target-history-fill ${monthGoal ? (monthOver ? 'done' : '') : 'empty'}" style="width:${progress}%"></div></div>
+          <small class="target-history-rate ${monthGoal ? '' : 'empty'}">${monthGoal ? monthRate + '%' : '未设'}</small>
         </div>
-        </div>
-        <strong class="target-history-rate ${monthGoal ? '' : 'empty'}">${monthGoal ? monthRate + '%' : '未设'}</strong>
+        <span class="target-history-count">${monthOrders.length}</span>
       </div>
     `;
   }).join('');

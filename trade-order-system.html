@@ -4130,6 +4130,116 @@ html[data-theme] .hold-btn.shake { animation:uiShake .4s var(--ease); }
 /* 数值变化：轻轻上滚一下（不改文字，读数始终是最终值） */
 html[data-theme] .num-tick { animation:uiTick .58s var(--ease-spring); }
 @keyframes uiTick { from { opacity:.2; transform:translateY(.35em); filter:blur(2px); } }
+/* 工作台：按原型重排的数字卡、看板卡片、列头、待办与最近订单 */
+html[data-theme] .stats > .stat { position:relative; overflow:hidden; display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start; gap:4px; min-height:0; text-align:left; }
+html[data-theme] .stats > .stat > * { text-align:left; justify-self:start; align-self:stretch; margin-left:0; }
+html[data-theme] .stats > .stat > .stat-value { align-self:flex-start; }
+html[data-theme] .stat .stat-head { display:block; }
+html[data-theme] .kpi-spark { position:absolute; right:16px; bottom:16px; width:64px; height:24px; pointer-events:none; }
+html[data-theme] .kpi-spark .spark { width:64px; height:24px; overflow:visible; }
+html[data-theme] .kpi-spark path { fill:none; stroke:var(--accent); stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:1; animation:uiDrawLine 1.2s .2s var(--ease-out) backwards; }
+html[data-theme] .kpi-spark circle { fill:var(--accent); animation:uiPop .4s 1.2s var(--ease-spring) both; transform-box:fill-box; transform-origin:center; }
+@keyframes uiDrawLine { from { stroke-dashoffset:1; } }
+html[data-theme] .stat-sub .up { color:var(--s-green); }
+html[data-theme] .stat-sub .down { color:var(--s-red); }
+html[data-theme] .kpi-bar { height:6px; margin-top:6px; background:var(--surface-soft); border-radius:999px; overflow:hidden; }
+html[data-theme] .kpi-bar i { display:block; height:100%; width:0; background:var(--accent); border-radius:inherit; transition:width .8s var(--ease-spring); }
+html[data-theme] #targetStat .stat-sub { order:4; }
+html[data-theme] .stats > .amount-stat .amount-stat-actions { position:absolute; right:14px; top:14px; margin:0; }
+html[data-theme] .stats > .amount-stat .stat-sub { padding-right:72px; }
+
+/* 看板标题栏 */
+html[data-theme] .board-panel > .section-head { flex-wrap:wrap; gap:12px; }
+html[data-theme] .board-head-actions { flex:none; }
+html[data-theme] .board-card-list { scrollbar-gutter:auto; scrollbar-width:thin; padding:2px; }
+html[data-theme] .board-panel > .section-head > div:first-child { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+html[data-theme] .board-panel .section-title { font-size:16px; }
+html[data-theme] .board-panel .section-meta { margin:0; font-size:13px; }
+html[data-theme] .drag-hint { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--gray-500); }
+html[data-theme] .drag-hint .ui-icon { width:14px; height:14px; }
+html[data-theme] .board-settings-btn { flex:none; width:auto; min-width:0; max-width:none; height:32px; min-height:32px; border-radius:999px; padding:0 12px; gap:6px; border-color:transparent; background:transparent; box-shadow:none; color:var(--gray-700); font-size:13px; }
+html[data-theme] .board-settings-btn:hover { background:var(--surface-soft); }
+html[data-theme] .board-settings-btn .ui-icon { width:16px; height:16px; }
+
+/* 列 */
+html[data-theme] .board-column { border-radius:22px; padding:10px; gap:8px; }
+html[data-theme] .board-column-head { display:flex; align-items:center; gap:8px; padding:2px 4px 4px; }
+html[data-theme] .board-column-title { font-size:13px; }
+html[data-theme] .board-column-title::before { width:8px; height:8px; }
+html[data-theme] .board-column-meta { margin-left:auto; display:inline-flex; gap:4px; font-size:12px; color:var(--gray-500); white-space:nowrap; }
+html[data-theme] .board-column-meta .board-count { font-size:inherit; color:inherit; }
+
+/* 卡片 */
+html[data-theme] .board-card.oc-card, html[data-theme] .board-card.oc-card:is(.product-wig, .product-lash) { display:flex; flex-direction:column; gap:6px; padding:12px 14px; border:1px solid var(--surface-border); border-radius:var(--radius); background:var(--surface-bg); box-shadow:var(--shadow); text-align:left; user-select:none; -webkit-user-select:none; transition:box-shadow .2s var(--ease), transform var(--motion-spring) var(--ease-spring), opacity .2s; }
+html[data-theme] .board-card.oc-card:hover { box-shadow:var(--shadow-hover); transform:translateY(-2px); }
+html[data-theme] .board-card.oc-card:active { transform:scale(.98); transition-duration:.12s; }
+html[data-theme] .oc-r1 { display:flex; align-items:center; gap:6px; min-height:22px; font-size:12px; color:var(--gray-500); }
+html[data-theme] .oc-r1 .customer-level-icon, html[data-theme] .oc-r1 [class*="level-icon"] { width:16px; height:16px; font-size:10px; }
+html[data-theme] .oc-flag { font-size:13px; line-height:1; }
+html[data-theme] .oc-num { font-family:var(--mono); }
+html[data-theme] .oc-r1 .tracking-submitted-check { color:var(--s-green); font-weight:600; }
+html[data-theme] .oc-r1 .oc-pill { margin-left:auto; }
+html[data-theme] .oc-client.board-card-title { font-size:14px; font-weight:600; line-height:1.35; color:var(--gray-900); overflow-wrap:anywhere; white-space:normal; }
+html[data-theme] .oc-tags { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+html[data-theme] .oc-pill { display:inline-flex; align-items:center; height:22px; padding:0 9px; border-radius:999px; font-size:12px; font-weight:500; white-space:nowrap; background:color-mix(in srgb, var(--gray-500) 12%, transparent); color:var(--gray-600); }
+html[data-theme] .oc-pill.line { background:transparent; border:1px solid var(--surface-border); color:var(--gray-600); }
+html[data-theme] .oc-pill.red { background:color-mix(in srgb, var(--s-red) 12%, transparent); color:var(--s-red); }
+html[data-theme] .oc-sub { font-size:12px; color:var(--gray-500); font-weight:400; }
+html[data-theme] .oc-sub.due { color:var(--s-amber); }
+html[data-theme] .oc-r3 { display:flex; align-items:center; justify-content:space-between; gap:6px; flex-wrap:wrap; font-size:13px; font-variant-numeric:tabular-nums; }
+html[data-theme] .oc-r3 .board-card-amount { margin:0; font-size:13px; font-weight:500; color:var(--gray-900); white-space:nowrap; }
+html[data-theme] .oc-next { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--gray-600); min-width:0; }
+html[data-theme] .oc-next .ui-icon { width:14px; height:14px; flex:none; color:var(--gray-400); }
+html[data-theme] .oc-next span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* 待办与最近订单 */
+html[data-theme] #page-dashboard > .grid { grid-template-columns:minmax(0,3fr) minmax(0,2fr); gap:16px; }
+html[data-theme] #page-dashboard > .grid .section-title { font-size:16px; }
+html[data-theme] #page-dashboard > .grid .section-head { align-items:center; }
+html[data-theme] .link-btn { margin-left:auto; border:0; background:none; padding:4px 2px; color:var(--gray-600); font:inherit; font-size:13px; cursor:pointer; display:inline-flex; gap:4px; align-items:center; }
+html[data-theme] .link-btn:hover { color:var(--gray-900); }
+html[data-theme] .link-btn span { transition:transform var(--motion-spring) var(--ease-spring); }
+html[data-theme] .link-btn:hover span { transform:translateX(3px); }
+@media (max-width: 1100px) { html[data-theme] #page-dashboard > .grid { grid-template-columns:minmax(0,1fr); } }
+html[data-theme] .reminder-summary:empty { display:none; }
+html[data-theme] .task-inbox-head { margin-bottom:8px; }
+html[data-theme] .task-filter-bar .segment-option .c { margin-left:4px; color:var(--gray-500); font-variant-numeric:tabular-nums; }
+html[data-theme] #taskList.tasks { display:flex; flex-direction:column; gap:0; }
+html[data-theme] #taskList .task { display:grid; grid-template-columns:36px minmax(0,1fr) auto; gap:12px; align-items:center; padding:12px 4px; margin:0; border:0; border-top:1px solid var(--surface-border); border-radius:0; background:transparent; box-shadow:none; }
+html[data-theme] #taskList .task::before { display:none; }
+html[data-theme] #taskList .task:first-child { border-top:0; }
+html[data-theme] .task-icon { width:36px; height:36px; border-radius:12px; display:grid; place-items:center; transition:transform var(--motion-spring) var(--ease-spring); }
+html[data-theme] .task:hover .task-icon { transform:rotate(-6deg) scale(1.06); }
+html[data-theme] .task-icon .ui-icon { width:18px; height:18px; }
+html[data-theme] .task-icon.tone-amber { background:color-mix(in srgb, var(--s-amber) 14%, transparent); color:var(--s-amber); }
+html[data-theme] .task-icon.tone-red { background:color-mix(in srgb, var(--s-red) 12%, transparent); color:var(--s-red); }
+html[data-theme] .task-icon.tone-blue { background:color-mix(in srgb, var(--s-blue) 12%, transparent); color:var(--s-blue); }
+html[data-theme] .task-icon.tone-teal { background:color-mix(in srgb, var(--s-teal) 14%, transparent); color:var(--s-teal); }
+html[data-theme] .task-icon.tone-gray { background:var(--surface-soft); color:var(--gray-500); }
+html[data-theme] #taskList .task-main { min-width:0; display:block; }
+html[data-theme] #taskList .task-title { font-size:14px; font-weight:500; color:var(--gray-900); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+html[data-theme] #taskList .task-reason { margin-left:8px; font-weight:400; color:var(--gray-600); }
+html[data-theme] #taskList .task-sub { margin-top:2px; font-size:13px; color:var(--gray-500); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+html[data-theme] #taskList .task-actions { display:flex; gap:6px; align-items:center; }
+html[data-theme] #taskList .task-action-btn { height:30px; padding:0 12px; border-radius:999px; border:1px solid var(--surface-border); background:var(--surface-bg); color:var(--gray-800); font-size:13px; }
+html[data-theme] #taskList .task-action-btn[data-task-action="snooze"] { border-color:transparent; background:transparent; color:var(--gray-600); }
+html[data-theme] .task-tick { width:30px; height:30px; padding:0; border-radius:50%; border:1.5px solid var(--surface-border-strong); background:transparent; display:grid; place-items:center; color:transparent; cursor:pointer; transition:all var(--motion-spring) var(--ease-spring); }
+html[data-theme] .task-tick:hover { border-color:var(--s-green); color:var(--s-green); }
+html[data-theme] .task-tick:active { background:var(--s-green); border-color:var(--s-green); color:var(--surface-bg); transform:scale(1.12); }
+html[data-theme] .task-tick .ui-icon { width:14px; height:14px; }
+html[data-theme] .page-enter #taskList .task, html[data-theme] .page-enter .feed-item { animation:uiRise .4s var(--ease-out) backwards; animation-delay:calc(min(var(--i, 0), 10) * 40ms); }
+html[data-theme] #recentOrderList.activity-list { display:flex; flex-direction:column; gap:0; }
+html[data-theme] .feed-item { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:4px 8px; padding:10px 6px; border:0; border-top:1px solid var(--surface-border); background:none; border-radius:0; text-align:left; font:inherit; color:inherit; cursor:pointer; transition:background var(--motion-fast) var(--ease), padding var(--motion-spring) var(--ease-spring); }
+html[data-theme] .feed-item:first-child { border-top:0; }
+html[data-theme] .feed-item:hover { background:var(--surface-soft); padding-left:10px; }
+html[data-theme] .feed-item b { font-weight:600; color:var(--gray-900); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+html[data-theme] .feed-when { color:var(--gray-500); font-size:12px; white-space:nowrap; }
+html[data-theme] .feed-desc { grid-column:1 / -1; color:var(--gray-600); font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+html[data-theme] .feed-desc .mono { font-family:var(--mono); font-size:12px; }
+html[data-theme] .segment-control.task-filter-bar { display:inline-flex; width:auto; max-width:100%; flex-wrap:wrap; }
+html[data-theme] .segment-control.task-filter-bar .segment-option { height:30px; min-height:30px; padding:0 12px; font-size:13px; flex:none; }
+html[data-theme] #page-dashboard > .grid .section-head > div:first-child { display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
+html[data-theme] #page-dashboard > .grid .section-meta { margin:0; font-size:13px; }
 /* 订单弹窗样式：侧栏切换 卡片（默认）/ A 单栏 / B 左侧粘贴 / C 紧凑行 */
 html[data-theme] .modal-style-picker { display:flex; align-items:center; gap:6px; padding:0 8px; }
 html[data-theme] .modal-style-picker > span { font-size:12px; color:var(--gray-500); margin-right:auto; }
@@ -4259,6 +4369,8 @@ html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); 
 <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
 <symbol id="i-repeat" viewBox="0 0 24 24"><path d="M17 2l3 3-3 3M4 11V9a4 4 0 0 1 4-4h12M7 22l-3-3 3-3M20 13v2a4 4 0 0 1-4 4H4"/></symbol>
 <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 20h20zM12 10v4M12 17h.01"/></symbol>
+<symbol id="i-grip" viewBox="0 0 24 24"><path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01" stroke-width="3"/></symbol>
+<symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
 <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
 <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
 <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/></symbol>
@@ -4345,6 +4457,7 @@ html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); 
           <div class="stat-head">
             <div class="stat-label" id="statAmountLabel">订单总额</div>
           </div>
+          <span class="kpi-spark" id="statSpark" aria-hidden="true"></span>
           <div class="stat-value" id="statAmount">$0</div>
           <div class="stat-sub" id="statAmountSub">按订单月份汇总 USD 订单</div>
           <div class="amount-stat-actions">
@@ -4353,11 +4466,12 @@ html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); 
             </select>
           </div>
         </div>
-        <div class="stat clickable" id="todayTasksStat" role="button" tabindex="0"><div class="stat-label">今日待办</div><div class="stat-value" id="statTasks">0</div><div class="stat-sub">按产品周期提醒</div></div>
-        <div class="stat"><div class="stat-label">待收款</div><div class="stat-value" id="statPayment">$0</div><div class="stat-sub">USD · 历史累计待收款</div></div>
+        <div class="stat"><div class="stat-label">待收款</div><div class="stat-value" id="statPayment">$0</div><div class="stat-sub" id="statPaymentSub">USD · 历史累计待收款</div></div>
+        <div class="stat clickable" id="todayTasksStat" role="button" tabindex="0"><div class="stat-label">今日待办</div><div class="stat-value" id="statTasks">0</div><div class="stat-sub" id="statTasksSub">按产品周期提醒</div></div>
         <div class="stat clickable" id="targetStat" role="button" tabindex="0">
-          <div class="stat-label">业绩目标</div>
+          <div class="stat-label" id="statTargetLabel">业绩目标</div>
           <div class="stat-value" id="statTargetRate">0%</div>
+          <div class="kpi-bar" aria-hidden="true"><i id="statTargetBar"></i></div>
           <div class="stat-sub" id="statTargetSub">设置月度目标后显示完成率</div>
         </div>
       </section>
@@ -4365,8 +4479,9 @@ html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); 
       <section class="panel board-panel">
         <div class="section-head">
           <div>
-            <div class="section-title">订单工作台</div>
-            <div class="section-meta">按流程分栏查看订单，并跟踪最近动态</div>
+            <div class="section-title">订单进度</div>
+            <div class="section-meta">按阶段排列</div>
+            <div class="drag-hint"><svg class="ui-icon" aria-hidden="true"><use href="#i-grip"/></svg>拖动卡片可以改阶段，右键卡片可以删除</div>
           </div>
           <div class="board-head-actions">
             <div class="segment-control compact board-product-filter" id="boardProductFilter">
@@ -4374,7 +4489,7 @@ html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); 
               <button class="segment-option" type="button" data-board-product="假发">假发</button>
               <button class="segment-option" type="button" data-board-product="睫毛">睫毛</button>
             </div>
-            <button class="btn board-settings-btn" id="boardCardSettingsBtn" type="button" title="卡片设置" aria-label="卡片设置">⚙</button>
+            <button class="btn board-settings-btn" id="boardCardSettingsBtn" type="button" title="卡片设置" aria-label="卡片设置"><svg class="ui-icon" aria-hidden="true"><use href="#i-gear"/></svg><span>卡片设置</span></button>
           </div>
         </div>
         <div class="workspace-board">
@@ -4386,8 +4501,8 @@ html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); 
         <section class="panel" id="tasks">
           <div class="section-head">
             <div>
-              <div class="section-title">任务收件箱</div>
-              <div class="section-meta">收款、跟进、加急、复购和物流统一处理</div>
+              <div class="section-title">待办</div>
+              <div class="section-meta">收款、跟进、加急、复购、物流放在一起处理</div>
             </div>
           </div>
           <div class="task-inbox-head">
@@ -4408,8 +4523,9 @@ html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); 
             <div class="section-head">
               <div>
                 <div class="section-title">最近订单</div>
-                <div class="section-meta">最近更新的 5 个订单</div>
+                <div class="section-meta">最近更新的 5 单</div>
               </div>
+              <button class="link-btn" type="button" data-page-link="order-list">全部订单 <span aria-hidden="true">→</span></button>
             </div>
             <div class="activity-list" id="recentOrderList"></div>
           </section>
@@ -12447,6 +12563,7 @@ function renderStats() {
       ? `${monthLabel(targetMonth)} ${targetRate(targetActual, targetGoal)}% · ${summaryMoney(targetActual, 'USD')} / ${summaryMoney(targetGoal, 'USD')}`
       : `${monthLabel(targetMonth)} 暂未设置目标`;
   }
+  uiDashboardKpis();
 }
 function renderMonthSelects() {
   const options = Array.from(new Set(['all', normalizeMonth(new Date().toISOString()), ...orderMonths()]));
@@ -12782,7 +12899,7 @@ function renderPipeline() {
   document.querySelectorAll('#boardProductFilter .segment-option').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.boardProduct === boardProductFilter);
   });
-  const columns = stageDefs.map(s => {
+  const columns = stageDefs.filter(s => s.key !== 'done').map(s => {
     const orders = state.orders
       .filter(o => o.stage === s.key)
       .filter(o => boardProductFilter === 'all' || o.productType === boardProductFilter)
@@ -12792,11 +12909,8 @@ function renderPipeline() {
     return `
     <div class="board-column" data-stage="${s.key}">
       <div class="board-column-head">
-        <div>
-          <div class="board-column-title">${s.name}</div>
-          <div class="board-column-meta">${summaryMoney(amount, 'USD')}</div>
-        </div>
-        <div class="board-count">${orders.length}</div>
+        <div class="board-column-title">${s.name}</div>
+        <div class="board-column-meta"><span class="board-count">${orders.length}</span> · ${summaryMoney(amount, 'USD')}</div>
       </div>
       <div class="board-card-list">
       ${orders.map((o, index) => {
@@ -12805,36 +12919,22 @@ function renderPipeline() {
         const level = customerLevelForName(o.client);
         const balanceDue = orderDueValue(o);
         const productClass = cardSettings.productTint ? (product.value === '睫毛' ? 'product-lash' : 'product-wig') : '';
-        const infoItems = [
-          cardSettings.showOrderNumber ? `
-              <div class="board-info-item">
-                <div class="board-info-label">订单号</div>
-                <div class="board-info-value">${escapeAttr(o.num)}${cleanTracking(o.trackingNumber) ? '<span class="tracking-submitted-check" title="已提交运单" aria-label="已提交运单">✓</span>' : ''}</div>
-              </div>` : '',
-          cardSettings.showOrderDate ? `
-              <div class="board-info-item">
-                <div class="board-info-label">下单时间</div>
-                <div class="board-info-value">${escapeAttr(monthDayLabel(o.createdAt || o.updated))}</div>
-              </div>` : ''
-        ].filter(Boolean).join('');
+        const flag = String(o.country || '').match(/^\p{Regional_Indicator}{2}/u)?.[0] || '';
+        const status = cardSettings.showUrgentTag && o.urgentOrder ? '<span class="oc-pill red">加急</span>'
+          : o.isDraft ? '<span class="oc-pill line">草稿</span>'
+          : /异常/.test(o.logisticsStatus || '') ? '<span class="oc-pill red">物流异常</span>' : '';
         const tags = [
-          cardSettings.showProductTag ? `<span class="tag ${product.tag}">${product.value}</span>` : '',
-          cardSettings.showPaymentTag ? `<span class="tag ${payment.tag}">${boardPaymentLabel(payment.value)}</span>` : '',
-          cardSettings.showUrgentTag && o.urgentOrder ? '<span class="tag tag-orange">加急</span>' : ''
+          cardSettings.showProductTag ? `<span class="oc-pill line">${escapeAttr(product.value)}</span>` : '',
+          cardSettings.showPaymentTag ? `<span class="oc-pill line">${escapeAttr(boardPaymentLabel(payment.value))}</span>` : '',
+          cardSettings.showOrderDate ? `<span class="oc-sub">${escapeAttr(monthDayLabel(o.createdAt || o.updated))}</span>` : ''
         ].filter(Boolean).join('');
         return `
-          <article class="board-card ${productClass}" data-id="${escapeAttr(o.id)}" data-stage-card="${s.key}" draggable="true" style="--i:${index}">
-            <div class="board-card-head">
-              <div class="board-title-wrap">
-                ${cardSettings.showLevelIcon ? renderLevelIcon(level) : ''}
-                <div class="board-card-title">${escapeAttr(clientDisplayName(o.client))}</div>
-              </div>
-            </div>
-            <div class="board-info-grid">${infoItems || '<span></span><span></span>'}</div>
-            <div class="board-card-footer">
-              ${tags ? `<div class="board-card-meta">${tags}</div>` : '<div></div>'}
-              ${cardSettings.showAmount ? `<div class="board-card-amount ${cardSettings.redDueAmount && balanceDue > 0 ? 'due' : ''}">${money(o.amount, o.currency)}</div>` : ''}
-            </div>
+          <article class="board-card oc-card ${productClass}" data-id="${escapeAttr(o.id)}" data-stage-card="${s.key}" draggable="true" style="--i:${index}">
+            <div class="oc-r1">${flag ? `<span class="oc-flag">${flag}</span>` : ''}${cardSettings.showLevelIcon ? renderLevelIcon(level) : ''}${cardSettings.showOrderNumber ? `<span class="oc-num">${escapeAttr(o.num)}</span>${cleanTracking(o.trackingNumber) ? '<span class="tracking-submitted-check" title="已提交运单" aria-label="已提交运单">✓</span>' : ''}` : ''}${status}</div>
+            <div class="board-card-title oc-client">${escapeAttr(clientDisplayName(o.client))}</div>
+            ${tags ? `<div class="oc-tags">${tags}</div>` : ''}
+            ${cardSettings.showAmount ? `<div class="oc-r3"><span class="board-card-amount">${money(o.amount, o.currency)}</span><span class="oc-sub ${cardSettings.redDueAmount && balanceDue > 0 ? 'due' : ''}">${balanceDue > 0 ? `待收 ${money(balanceDue, o.currency)}` : '已收清'}</span></div>` : ''}
+            ${o.next ? `<div class="oc-next">${uiIcon('arrow')}<span>${escapeAttr(o.next)}</span></div>` : ''}
           </article>
         `;
       }).join('') || '<div class="board-empty">暂无订单</div>'}
@@ -13031,18 +13131,11 @@ function renderRecentOrders() {
   el.innerHTML = list.map(o => {
     const s = stageDef(o.stage);
     return `
-      <article class="activity-card" data-id="${escapeAttr(o.id)}">
-        <div class="activity-title">${escapeAttr(clientDisplayName(o.client))}</div>
-        <div class="activity-meta">
-          <span class="order-num">${escapeAttr(o.num)}</span>
-          <span class="tag ${s.tag}">${s.name}</span>
-          ${o.isDraft ? '<span class="tag tag-gray">草稿</span>' : ''}
-        </div>
-        <div class="activity-meta">
-          <span>${money(o.amount, o.currency)}</span>
-          <span>${escapeAttr(o.updated || '-')}</span>
-        </div>
-      </article>
+      <button class="feed-item" type="button" data-id="${escapeAttr(o.id)}" style="--i:${list.indexOf(o)}">
+        <b>${escapeAttr(clientDisplayName(o.client))}</b>
+        <span class="feed-when">${escapeAttr(o.updated || '-')}</span>
+        <span class="feed-desc"><span class="mono">${escapeAttr(o.num)}</span> · ${o.isDraft ? '草稿' : s.name} · ${escapeAttr(o.next || money(o.amount, o.currency))}</span>
+      </button>
     `;
   }).join('');
 }
@@ -13809,51 +13902,37 @@ function renderTasks() {
   const riskReminders = reminders.filter(item => item.tag === '物流风险' || String(item.id || '').startsWith('logistics-risk-'));
   const regularReminders = reminders.filter(item => !riskReminders.includes(item));
   const filterBar = document.getElementById('taskInboxFilters');
-  if (filterBar) filterBar.querySelectorAll('[data-task-filter]').forEach(btn => btn.classList.toggle('active', btn.dataset.taskFilter === taskInboxFilter));
-  if (summaryEl) {
-    summaryEl.innerHTML = `
-      <div class="reminder-pill"><strong>${activeReminders.filter(item => item.type === 'urgent').length}</strong><span>加急订单</span></div>
-      <div class="reminder-pill"><strong>${activeReminders.filter(item => item.type === 'logistics').length}</strong><span>物流风险</span></div>
-      <div class="reminder-pill"><strong>${activeReminders.filter(item => item.type === 'payment').length}</strong><span>待收款</span></div>
-      <div class="reminder-pill"><strong>${activeReminders.filter(item => item.type === 'repurchase').length}</strong><span>复购回访</span></div>
-    `;
-  }
+  if (filterBar) filterBar.querySelectorAll('[data-task-filter]').forEach(btn => {
+    const type = btn.dataset.taskFilter;
+    btn.classList.toggle('active', type === taskInboxFilter);
+    const n = type === 'all' ? activeReminders.length : activeReminders.filter(item => item.type === type).length;
+    btn.innerHTML = `${{ all:'全部', payment:'收款', follow:'跟进', urgent:'加急', repurchase:'复购', logistics:'物流' }[type] || btn.textContent}<span class="c">${n}</span>`;
+  });
+  if (summaryEl) summaryEl.innerHTML = '';
   document.getElementById('statTasks').textContent = dueToday.length;
   if (!reminders.length) {
     el.innerHTML = '<div class="empty">当前筛选下没有待办。</div>';
     return;
   }
-  const taskHtml = item => {
+  const taskLook = { payment:['cash', 'amber'], urgent:['bolt', 'red'], logistics:['alert', 'red'], follow:['chat', 'blue'], repurchase:['repeat', 'teal'] };
+  const taskHtml = (item, index) => {
+    const [icon, tone] = taskLook[item.type] || ['info', 'gray'];
     return `
-      <div class="task ${item.type}" data-task-id="${escapeAttr(item.id)}" data-order-id="${escapeAttr(item.orderId || '')}" data-task-client="${escapeAttr(item.client || item.title || '')}">
+      <div class="task ${item.type}" data-task-id="${escapeAttr(item.id)}" data-order-id="${escapeAttr(item.orderId || '')}" data-task-client="${escapeAttr(item.client || item.title || '')}" style="--i:${index}">
+        <div class="task-icon tone-${tone}">${uiIcon(icon)}</div>
         <div class="task-main">
-          <div class="task-title">${escapeAttr(item.title)}</div>
-          <div class="task-sub">${escapeAttr(item.reason)} · ${escapeAttr(item.detail || '')}</div>
-          <div class="task-meta">
-            <span class="tag ${item.tagClass}">${escapeAttr(item.tag)}</span>
-            <span class="muted">${escapeAttr(item.value || '')}</span>
-          </div>
+          <div class="task-title">${escapeAttr(item.title)}<span class="task-reason">${escapeAttr(item.reason)}</span></div>
+          <div class="task-sub">${escapeAttr(item.detail || '')}${item.value ? ` · ${escapeAttr(item.value)}` : ''}</div>
         </div>
         <div class="task-actions">
           <button class="task-action-btn" type="button" data-task-action="open">打开</button>
-          <button class="task-action-btn" type="button" data-task-action="snooze">稍后</button>
-          <button class="task-action-btn done" type="button" data-task-action="done">完成</button>
+          <button class="task-action-btn" type="button" data-task-action="snooze" title="暂缓到明天">稍后</button>
+          <button class="task-tick" type="button" data-task-action="done" aria-label="标记完成" title="完成">${uiIcon('check')}</button>
         </div>
       </div>
     `;
   };
-  el.innerHTML = `
-    ${riskReminders.length ? `
-      <div class="task-risk-group">
-        <div class="task-risk-head">
-          <strong>物流风险</strong>
-          <span>API 更新后超过 3 天无新进度</span>
-        </div>
-        <div class="task-risk-list">${riskReminders.map(taskHtml).join('')}</div>
-      </div>
-    ` : ''}
-    ${regularReminders.map(taskHtml).join('')}
-  `;
+  el.innerHTML = [...riskReminders, ...regularReminders].map(taskHtml).join('');
 }
 function renderCalendarTaskRows(tasks) {
   if (!tasks.length) return '<div class="empty">当天暂无任务。</div>';
@@ -18223,6 +18302,50 @@ if (document.getElementById('orderModal')) {
   }).observe(document.getElementById('orderModal'), { attributes:true, attributeFilter:['class'] });
 }
 try { uiApplyModalStyle(localStorage.getItem('ots-modal-style-v1')); } catch (_) { uiApplyModalStyle(''); }
+// 新版 UI：工作台数字卡的趋势线、环比、待办分类和目标进度条（数据仍由 renderStats 计算）。
+function uiMonthShift(month, delta) {
+  const [y, m] = String(month).split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+function uiSpark(values) {
+  const max = Math.max(...values), min = Math.min(...values);
+  const pts = values.map((v, i) => [i / Math.max(1, values.length - 1) * 60 + 2, 22 - (v - min) / (max - min || 1) * 18]);
+  const last = pts[pts.length - 1];
+  return `<svg class="spark" viewBox="0 0 64 24"><path pathLength="1" d="M${pts.map(p => p.map(n => n.toFixed(1)).join(' ')).join(' L')}"/><circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="2.5"/></svg>`;
+}
+function uiDashboardKpis() {
+  if (!document.getElementById('statActive')) return;
+  const range = document.getElementById('totalRange')?.value || 'all';
+  const month = range === 'all' ? normalizeMonth(new Date().toISOString()) : range;
+  const monthTotal = m => usdTotal(ordersByMonth(m).filter(o => !o.isDraft));
+  const months = [-5, -4, -3, -2, -1, 0].map(d => uiMonthShift(month, d));
+  const spark = document.getElementById('statSpark');
+  if (spark) spark.innerHTML = months.some(m => monthTotal(m) > 0) ? uiSpark(months.map(monthTotal)) : '';
+  const amountSub = document.getElementById('statAmountSub');
+  if (amountSub && range !== 'all' && amountStatMode !== 'paidRmb') {
+    const now = monthTotal(month), before = monthTotal(uiMonthShift(month, -1));
+    if (before > 0) {
+      const pct = Math.round((now - before) / before * 100);
+      amountSub.insertAdjacentHTML('afterbegin', `<span class="${pct >= 0 ? 'up' : 'down'}">比上月 ${pct >= 0 ? '+' : ''}${pct}%</span> · `);
+    }
+  }
+  const dueOrders = state.orders.filter(o => !o.isDraft && orderDueValue(o) > 0);
+  const paymentSub = document.getElementById('statPaymentSub');
+  if (paymentSub) paymentSub.textContent = `历史累计 · ${dueOrders.length ? `共 ${dueOrders.length} 单待收` : '没有待收款'}`;
+  const tasksSub = document.getElementById('statTasksSub');
+  if (tasksSub && typeof buildTaskItems === 'function') {
+    const items = buildTaskItems();
+    const count = type => items.filter(item => item.type === type).length;
+    tasksSub.textContent = `收款 ${count('payment')} · 加急 ${count('urgent')} · 物流 ${count('logistics')}`;
+  }
+  const goal = targetForMonth(month);
+  const label = document.getElementById('statTargetLabel');
+  if (label) label.textContent = goal ? `${Number(month.slice(5))} 月目标 ${summaryMoney(goal, 'USD')}` : '业绩目标';
+  const bar = document.getElementById('statTargetBar');
+  if (bar) bar.style.width = goal ? `${Math.min(100, targetRate(usdTotal(ordersByMonth(month).filter(isRevenueOrder)), goal))}%` : '0%';
+}
+document.querySelector('[data-page-link="order-list"]')?.addEventListener('click', () => setPage('order-list'));
 // ===== 新版 UI 交互 结束 =====
 </script>
 </body>

@@ -3752,6 +3752,24 @@ button.subs-act:active { transform:scale(.98); transition-duration:.12s; }
 .subs-cur .subs-input { padding-left:30px; }
 .subs-field .subs-seg { align-self:flex-start; }
 .subs-modal .subs-seg button { height:34px; padding:0 14px; }
+.subs-opts { display:flex; flex-wrap:wrap; gap:8px; }
+.subs-opt { display:inline-flex; align-items:center; height:32px; border:1px solid var(--a-border); border-radius:9999px; background:var(--a-card); color:var(--a-ink-2); font-size:13px; transition:transform .58s var(--a-spring), background .16s var(--a-ease), border-color .16s, color .16s; }
+.subs-opt:active { transform:scale(.96); transition-duration:.12s; }
+.subs-opt > button { height:100%; padding:0 13px; border:0; border-radius:9999px; background:transparent; color:inherit; font:500 13px/1 var(--a-sans); white-space:nowrap; cursor:pointer; }
+.subs-opt:hover { border-color:color-mix(in srgb, var(--a-accent) 40%, var(--a-border)); color:var(--a-ink); }
+.subs-opt.on { border-color:transparent; background:var(--a-accent-tint); color:var(--a-accent); }
+.subs-opt > .subs-opt-x { display:grid; place-items:center; width:24px; height:24px; margin-left:-8px; margin-right:4px; padding:0; color:var(--a-muted); }
+.subs-opt > .subs-opt-x:hover { background:var(--a-panel); color:var(--a-red); }
+.subs-opt > .subs-opt-x .subs-i { width:12px; height:12px; stroke-width:2; }
+.subs-opt.add { border-style:dashed; color:var(--a-muted); }
+.subs-opt.add .subs-i { width:14px; height:14px; margin-right:-2px; vertical-align:-2px; }
+.subs-opt-add { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:2px; animation:subsRise .32s var(--a-ease-enter) both; }
+.subs-opt-add[hidden] { display:none; }
+.subs-opt-add > span { color:var(--a-ink-2); font-size:13px; }
+.subs-opt-add .subs-input { width:auto; height:36px; border-radius:9999px; }
+.subs-opt-add .subs-input.num { width:72px; text-align:center; }
+.subs-opt-add .subs-input.text { flex:1; min-width:160px; }
+.subs-opt-add.err .subs-input { border-color:var(--a-red); animation:subsShake .42s var(--a-ease); }
 .subs-hint { min-height:18px; padding-left:2px; color:var(--a-muted); font-size:12.5px; }
 .subs-colors { display:flex; flex-wrap:wrap; gap:8px; }
 .subs-colors button { width:28px; height:28px; border:2px solid transparent; border-radius:9px; background:padding-box var(--c); box-shadow:inset 0 0 0 1px rgba(0,0,0,.08); cursor:pointer; transition:transform .45s var(--a-spring), border-color .16s, box-shadow .16s; }
@@ -5186,7 +5204,7 @@ html[data-theme] :is(.logistics-kpis > .logistics-kpi:not(:first-child), .amount
   </div>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.92，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.92</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.93，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.93</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -6527,7 +6545,7 @@ html[data-theme] :is(.logistics-kpis > .logistics-kpi:not(:first-child), .amount
   <div class="subs-modal" role="dialog" aria-modal="true" aria-labelledby="subscriptionEditTitle">
     <header class="subs-mh">
       <div class="subs-mh-badge"><svg class="subs-i" aria-hidden="true"><use href="#i-repeat"/></svg></div>
-      <div class="subs-mh-t"><h3 id="subscriptionEditTitle">新增订阅</h3><p id="subscriptionEditSub">价格、周期、分类和样式</p></div>
+      <div class="subs-mh-t"><h3 id="subscriptionEditTitle">新增订阅</h3><p id="subscriptionEditSub">价格、周期、付款方式和样式</p></div>
       <button class="subs-btn icon ghost" id="subscriptionEditCloseBtn" type="button" aria-label="关闭"><svg class="subs-i" aria-hidden="true"><use href="#i-x"/></svg></button>
     </header>
     <form class="subs-form" id="subscriptionEditForm" novalidate>
@@ -6549,8 +6567,24 @@ html[data-theme] :is(.logistics-kpis > .logistics-kpi:not(:first-child), .amount
           </div>
           <div class="subs-hint" id="subscriptionAmountHint"></div>
         </div>
-        <div class="subs-field"><span class="subs-label" id="subscriptionCycleLabel">扣费周期</span><div class="subs-seg" role="group" aria-labelledby="subscriptionCycleLabel" data-sub-segment="cycleMonths"><span class="subs-glide" aria-hidden="true"></span><button type="button" data-value="1" aria-pressed="false">月付</button><button type="button" data-value="12" aria-pressed="false">年付</button></div></div>
         <div class="subs-field"><label for="subscriptionStart">开始日期</label><input class="subs-input" id="subscriptionStart" name="subStart" type="date"></div>
+        <div class="subs-field full">
+          <span class="subs-label" id="subscriptionCycleLabel">扣费周期</span>
+          <div class="subs-opts" role="group" aria-labelledby="subscriptionCycleLabel" data-sub-opts="cycle"></div>
+          <div class="subs-opt-add" data-sub-opt-add="cycle" hidden>
+            <span>每</span><input class="subs-input num" name="subCycleCount" inputmode="numeric" maxlength="4" placeholder="2" aria-label="几个周期单位" autocomplete="off">
+            <div class="subs-seg" role="group" aria-label="周期单位" data-sub-unit><span class="subs-glide" aria-hidden="true"></span><button type="button" data-value="day" aria-pressed="false">天</button><button type="button" data-value="week" aria-pressed="true">周</button><button type="button" data-value="month" aria-pressed="false">月</button><button type="button" data-value="year" aria-pressed="false">年</button></div>
+            <button class="subs-btn sm" type="button" data-sub-opt-save="cycle">添加</button><button class="subs-btn sm ghost" type="button" data-sub-opt-cancel="cycle">取消</button>
+          </div>
+        </div>
+        <div class="subs-field full">
+          <span class="subs-label" id="subscriptionPaymentLabel">付款方式</span>
+          <div class="subs-opts" role="group" aria-labelledby="subscriptionPaymentLabel" data-sub-opts="payment"></div>
+          <div class="subs-opt-add" data-sub-opt-add="payment" hidden>
+            <input class="subs-input text" name="subPaymentCustom" maxlength="40" placeholder="例如 招行信用卡 尾号 1234" aria-label="自定义付款方式" autocomplete="off">
+            <button class="subs-btn sm" type="button" data-sub-opt-save="payment">添加</button><button class="subs-btn sm ghost" type="button" data-sub-opt-cancel="payment">取消</button>
+          </div>
+        </div>
         <div class="subs-field"><span class="subs-label" id="subscriptionCategoryLabel">分类</span><div class="subs-seg" role="group" aria-labelledby="subscriptionCategoryLabel" data-sub-segment="category"><span class="subs-glide" aria-hidden="true"></span><button type="button" data-value="工具效率" aria-pressed="false">工具效率</button><button type="button" data-value="AI" aria-pressed="false">AI</button><button type="button" data-value="其他" aria-pressed="false">其他</button></div></div>
         <div class="subs-field full"><span class="subs-label" id="subscriptionColorLabel">样式</span><div class="subs-colors" id="subscriptionColors" role="group" aria-labelledby="subscriptionColorLabel"></div></div>
       </div>
@@ -16570,7 +16604,12 @@ const subscriptionColors = [
   ['#e8590c', '橙色'], ['#c98a12', '金色'], ['#e0336f', '玫红'], ['#1f1f23', '墨黑']
 ];
 const subscriptionHoldMs = 1500;
-const subscriptionState = { loaded:false, loading:false, error:'', items:[], usdCnyRate:7.1 };
+const subscriptionState = {
+  loaded:false, loading:false, error:'', items:[], usdCnyRate:7.1,
+  defaultPaymentMethods:['支付宝', '微信支付', '银行卡', '信用卡', 'PayPal', 'Apple Pay'], customCycles:[], customPaymentMethods:[]
+};
+// Weeks are kept as 7 days and years as 12 months, the two units the server stores.
+const subscriptionBuiltInCycles = [{ unit:'day', count:7 }, { unit:'month', count:1 }, { unit:'month', count:3 }, { unit:'month', count:6 }, { unit:'month', count:12 }];
 const subscriptionGlideRects = {};
 let subscriptionFilter = 'all';
 let subscriptionQuery = '';
@@ -16600,28 +16639,41 @@ function subscriptionAddMonths(dateText, months) {
   const lastDay = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
   return `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(Math.min(day, lastDay)).padStart(2, '0')}`;
 }
+function subscriptionCycle(item) {
+  // Records saved before custom cycles only carry cycleMonths (1 or 12).
+  const unit = item.cycleUnit === 'day' ? 'day' : 'month';
+  const count = Math.floor(Number(item.cycleCount ?? item.cycleMonths));
+  return { unit, count:count >= 1 ? count : 1 };
+}
+function subscriptionChargeDate(item, index) {
+  const { unit, count } = subscriptionCycle(item);
+  return unit === 'day'
+    ? subscriptionDateFromDay(subscriptionDayNumber(item.startDate) + index * count)
+    : subscriptionAddMonths(item.startDate, index * count);
+}
 function subscriptionChargeIndex(item, dateText) {
   // Index of the last charge on or before dateText; -1 before the first charge.
   if (dateText < item.startDate) return -1;
+  const { unit, count } = subscriptionCycle(item);
+  if (unit === 'day') return Math.floor((subscriptionDayNumber(dateText) - subscriptionDayNumber(item.startDate)) / count);
   const [startYear, startMonth] = item.startDate.split('-').map(Number);
   const [year, month] = dateText.split('-').map(Number);
-  let index = Math.floor(((year - startYear) * 12 + month - startMonth) / item.cycleMonths);
-  while (index > 0 && subscriptionAddMonths(item.startDate, index * item.cycleMonths) > dateText) index -= 1;
+  let index = Math.floor(((year - startYear) * 12 + month - startMonth) / count);
+  while (index > 0 && subscriptionAddMonths(item.startDate, index * count) > dateText) index -= 1;
   return index;
 }
 function subscriptionSchedule(item, today, rate) {
-  const cycle = Number(item.cycleMonths) === 12 ? 12 : 1;
-  const plan = { ...item, cycleMonths:cycle };
-  const chargeOn = index => subscriptionAddMonths(item.startDate, index * cycle);
+  const chargeOn = index => subscriptionChargeDate(item, index);
+  const { unit, count } = subscriptionCycle(item);
   const cycleCny = item.currency === 'USD' ? Number(item.amount) * rate : Number(item.amount);
-  const monthlyCny = cycleCny / cycle;
-  const lastIndex = subscriptionChargeIndex(plan, today);
+  const monthlyCny = unit === 'day' ? cycleCny * 365 / 12 / count : cycleCny / count;
+  const lastIndex = subscriptionChargeIndex(item, today);
   const renewsOn = chargeOn(lastIndex + 1);
   const base = { cycleCny, monthlyCny, yearlyCny:monthlyCny * 12 };
   if (item.status === 'cancelled') {
     // A cancelled subscription stays usable until its end date and is never charged on or after it.
     const endsOn = item.endsOn || renewsOn;
-    let endIndex = subscriptionChargeIndex(plan, endsOn);
+    let endIndex = subscriptionChargeIndex(item, endsOn);
     if (endIndex >= 0 && chargeOn(endIndex) === endsOn) endIndex -= 1;
     const charges = Math.min(lastIndex, endIndex) + 1;
     return {
@@ -16647,9 +16699,8 @@ function subscriptionSummary(items, today, rate, windowDays = 30) {
     summary.active += 1;
     summary.monthlyCny += schedule.monthlyCny;
     if (schedule.daysLeft <= 7) summary.dueSoon += 1;
-    const cycle = Number(item.cycleMonths) === 12 ? 12 : 1;
-    let index = subscriptionChargeIndex({ ...item, cycleMonths:cycle }, schedule.nextCharge);
-    for (let date = schedule.nextCharge; date <= windowEnd; date = subscriptionAddMonths(item.startDate, ++index * cycle)) {
+    let index = subscriptionChargeIndex(item, schedule.nextCharge);
+    for (let date = schedule.nextCharge; date <= windowEnd; date = subscriptionChargeDate(item, ++index)) {
       summary.upcoming.push({ item, date, cny:schedule.cycleCny });
       summary.upcomingCny += schedule.cycleCny;
     }
@@ -16673,8 +16724,18 @@ function subscriptionNumber(value) {
 function subscriptionMoney(value, currency = 'CNY') {
   return `${currency === 'USD' ? '$' : '¥'}${subscriptionNumber(value)}`;
 }
-function subscriptionCycleLabel(cycleMonths) {
-  return Number(cycleMonths) === 12 ? '年付' : '月付';
+function subscriptionCycleEvery(item) {
+  const { unit, count } = subscriptionCycle(item);
+  if (unit === 'day') {
+    if (count % 7 === 0) return count === 7 ? '每周' : `每${count / 7}周`;
+    return count === 1 ? '每天' : `每${count}天`;
+  }
+  if (count % 12 === 0) return count === 12 ? '每年' : `每${count / 12}年`;
+  return { 1:'每月', 3:'每季度', 6:'每半年' }[count] || `每${count}个月`;
+}
+function subscriptionCycleLabel(item) {
+  const every = subscriptionCycleEvery(item);
+  return { 每天:'日付', 每周:'周付', 每月:'月付', 每季度:'季付', 每半年:'半年付', 每年:'年付' }[every] || every;
 }
 function subscriptionInitial(name) {
   // Latin names show two characters (Ch, 1P), Chinese names one (阿).
@@ -16714,8 +16775,11 @@ async function loadSubscriptions() {
   try {
     const data = await subscriptionRequest('/api/subscriptions');
     Object.assign(subscriptionState, {
-      loaded:true, items:Array.isArray(data.items) ? data.items : [], usdCnyRate:Number(data.usdCnyRate) || 7.1
+      loaded:true, items:Array.isArray(data.items) ? data.items : [], usdCnyRate:Number(data.usdCnyRate) || 7.1,
+      customCycles:Array.isArray(data.customCycles) ? data.customCycles : [],
+      customPaymentMethods:Array.isArray(data.customPaymentMethods) ? data.customPaymentMethods : []
     });
+    if (Array.isArray(data.defaultPaymentMethods)) subscriptionState.defaultPaymentMethods = data.defaultPaymentMethods;
   } catch (error) {
     subscriptionState.error = error.message || '读取订阅失败';
   } finally {
@@ -16796,8 +16860,8 @@ function subscriptionRowHtml({ item, schedule }, enterIndex) {
   return `<button class="${classes}" type="button" data-sub-id="${escapeAttr(item.id)}" style="--c:${escapeAttr(item.color)};--i:${Math.max(enterIndex, 0)}">
     ${subscriptionIconHtml(item)}
     <span class="subs-n"><b class="subs-name">${escapeAttr(item.name)}</b>${item.note ? `<span class="subs-note">${escapeAttr(item.note)}</span>` : ''}</span>
-    <span class="subs-cat">${escapeAttr(item.category)}</span>
-    <span class="subs-amt"><b>${subscriptionMoney(item.amount, item.currency)}</b><small>${subscriptionCycleLabel(item.cycleMonths)}${converted}</small></span>
+    <span class="subs-cat">${escapeAttr([item.category, item.paymentMethod].filter(Boolean).join(' · '))}</span>
+    <span class="subs-amt"><b>${subscriptionMoney(item.amount, item.currency)}</b><small>${subscriptionCycleLabel(item)}${converted}</small></span>
     <span class="subs-pill ${when.cls}" title="${schedule.nextCharge || schedule.paidThrough}">${when.text}</span>
   </button>`;
 }
@@ -16887,7 +16951,7 @@ function renderSubscriptionsPage({ entering = false } = {}) {
   const query = normalizeSearchText(subscriptionQuery);
   const rows = items
     .filter(item => (subscriptionFilter === 'all' || item.category === subscriptionFilter)
-      && (!query || normalizeSearchText(`${item.name} ${item.note}`).includes(query)))
+      && (!query || normalizeSearchText(`${item.name} ${item.note} ${item.paymentMethod || ''}`).includes(query)))
     .map(item => ({ item, schedule:subscriptionSchedule(item, today, rate) }))
     .sort(subscriptionCompare);
   meta.textContent = query ? `找到 ${rows.length} 项` : '';
@@ -16984,7 +17048,8 @@ function renderSubscriptionDetail({ entering = false } = {}) {
     ['分类', item.category],
     ['状态', { active:'自动续费中', ending:'已取消，等待到期', expired:'已到期，不再扣费' }[schedule.state]],
     [active ? '下次扣费' : '有效期至', active ? schedule.nextCharge : schedule.paidThrough],
-    ['扣费周期', subscriptionCycleLabel(item.cycleMonths)],
+    ['扣费周期', subscriptionCycleEvery(item)],
+    ['付款方式', item.paymentMethod || '未设置'],
     ['币种', item.currency === 'USD' ? `美元 · 1 USD = ${rate} CNY` : '人民币']
   ];
   const toggle = {
@@ -16996,7 +17061,7 @@ function renderSubscriptionDetail({ entering = false } = {}) {
   document.getElementById('subscriptionDrawerPanel').innerHTML = `
     <header class="subs-dh">
       <div class="subs-dh-r1"><span class="subs-pill line">${escapeAttr(item.category)}</span><span class="subs-pill ${status[0]}">${status[1]}</span><button class="subs-btn icon ghost" type="button" data-sub-action="close" aria-label="关闭">${subscriptionIcon('x')}</button></div>
-      <div class="subs-dh-main">${subscriptionIconHtml(item, true)}<div><h3 id="subscriptionDrawerTitle">${name}</h3><div class="subs-price"><b>${subscriptionMoney(item.amount, item.currency)}</b><small>${Number(item.cycleMonths) === 12 ? '每年' : '每月'}</small></div>${item.note ? `<p class="subs-dh-note">${escapeAttr(item.note)}</p>` : ''}</div></div>
+      <div class="subs-dh-main">${subscriptionIconHtml(item, true)}<div><h3 id="subscriptionDrawerTitle">${name}</h3><div class="subs-price"><b>${subscriptionMoney(item.amount, item.currency)}</b><small>${subscriptionCycleEvery(item)}</small></div>${item.note ? `<p class="subs-dh-note">${escapeAttr(item.note)}</p>` : ''}</div></div>
     </header>
     <div class="subs-db${entering ? ' subs-stagger' : ''}" id="subscriptionDrawerBody">
       <div class="subs-cards">
@@ -17124,8 +17189,8 @@ async function toggleSubscriptionStatus() {
 }
 function openSubscriptionEditor(id = '', { resubscribe = false } = {}) {
   const existing = findSubscription(id);
-  subscriptionDraft = existing ? { ...existing, amount:String(existing.amount) } : {
-    id:'', name:'', note:'', amount:'', currency:'CNY', cycleMonths:1, startDate:subscriptionLocalDate(),
+  subscriptionDraft = existing ? { ...existing, ...subscriptionCycleFields(existing), paymentMethod:existing.paymentMethod || '', amount:String(existing.amount) } : {
+    id:'', name:'', note:'', amount:'', currency:'CNY', cycleUnit:'month', cycleCount:1, paymentMethod:'', startDate:subscriptionLocalDate(),
     category:subscriptionCategories[0], color:subscriptionColors[0][0], status:'active', endsOn:''
   };
   // Re-subscribing starts a fresh billing cycle from today; the user can still change the date.
@@ -17137,10 +17202,11 @@ function openSubscriptionEditor(id = '', { resubscribe = false } = {}) {
   form.elements.subAmount.value = subscriptionDraft.amount;
   form.elements.subStart.value = subscriptionDraft.startDate;
   form.querySelectorAll('.subs-field.err').forEach(field => field.classList.remove('err'));
+  form.querySelectorAll('[data-sub-opt-add]').forEach(row => closeSubscriptionOptionAdd(row.dataset.subOptAdd));
   form.scrollTop = 0;
   const saveLabel = existing ? (resubscribe ? '重新订阅' : '保存') : '添加订阅';
   document.getElementById('subscriptionEditTitle').textContent = existing ? (resubscribe ? '重新订阅' : '编辑订阅') : '新增订阅';
-  document.getElementById('subscriptionEditSub').textContent = existing ? `${existing.name} · 价格、周期、分类和样式` : '价格、周期、分类和样式';
+  document.getElementById('subscriptionEditSub').textContent = existing ? `${existing.name} · 价格、周期、付款方式和样式` : '价格、周期、付款方式和样式';
   document.getElementById('subscriptionSaveBtn').dataset.label = saveLabel;
   setSubscriptionSaveState('idle');
   showSubscriptionEditError('');
@@ -17169,6 +17235,120 @@ function syncSubscriptionEditorControls() {
     button.setAttribute('aria-pressed', String(button.dataset.subColor === subscriptionDraft.color));
   });
   document.getElementById('subscriptionCurrencySymbol').textContent = subscriptionDraft.currency === 'USD' ? '$' : '¥';
+  renderSubscriptionOptions();
+}
+function subscriptionCycleFields(item) {
+  const { unit, count } = subscriptionCycle(item);
+  return { cycleUnit:unit, cycleCount:count };
+}
+function subscriptionCycleKey(cycle) {
+  return `${cycle.unit}:${cycle.count}`;
+}
+function subscriptionOptionHtml(value, label, pressed, removable) {
+  return `<span class="subs-opt${pressed ? ' on' : ''}"><button type="button" data-opt-value="${escapeAttr(value)}" aria-pressed="${pressed}">${escapeAttr(label)}</button>${removable ? `<button class="subs-opt-x" type="button" data-opt-remove="${escapeAttr(value)}" aria-label="删除自定义选项 ${escapeAttr(label)}">${subscriptionIcon('x')}</button>` : ''}</span>`;
+}
+function renderSubscriptionOptions() {
+  // Built-in choices first, then the user's own; a value no longer in either list still shows so it stays selected.
+  const draft = subscriptionDraft;
+  const form = document.getElementById('subscriptionEditForm');
+  const current = subscriptionCycleKey(subscriptionCycle(draft));
+  const custom = subscriptionState.customCycles.filter(cycle => !subscriptionBuiltInCycles.some(other => subscriptionCycleKey(other) === subscriptionCycleKey(cycle)));
+  const cycles = [...subscriptionBuiltInCycles.map(cycle => [cycle, false]), ...custom.map(cycle => [cycle, true])];
+  if (!cycles.some(([cycle]) => subscriptionCycleKey(cycle) === current)) cycles.push([subscriptionCycle(draft), false]);
+  const addButton = kind => `<span class="subs-opt add"><button type="button" data-opt-add="${kind}">${subscriptionIcon('plus')} 自定义</button></span>`;
+  form.querySelector('[data-sub-opts="cycle"]').innerHTML = cycles
+    .map(([cycle, removable]) => subscriptionOptionHtml(subscriptionCycleKey(cycle), subscriptionCycleLabel({ cycleUnit:cycle.unit, cycleCount:cycle.count }), subscriptionCycleKey(cycle) === current, removable))
+    .join('') + addButton('cycle');
+  const methods = [...subscriptionState.defaultPaymentMethods.map(method => [method, false]), ...subscriptionState.customPaymentMethods.map(method => [method, true])];
+  if (draft.paymentMethod && !methods.some(([method]) => method === draft.paymentMethod)) methods.push([draft.paymentMethod, false]);
+  form.querySelector('[data-sub-opts="payment"]').innerHTML = methods
+    .map(([method, removable]) => subscriptionOptionHtml(method, method, method === draft.paymentMethod, removable))
+    .join('') + addButton('payment');
+}
+function openSubscriptionOptionAdd(kind) {
+  const row = document.querySelector(`#subscriptionEditForm [data-sub-opt-add="${kind}"]`);
+  row.hidden = false;
+  row.classList.remove('err');
+  if (kind === 'cycle') placeSubscriptionGlide(row.querySelector('[data-sub-unit]'), 'editor-unit', { jump:true });
+  row.querySelector('input').focus();
+}
+function closeSubscriptionOptionAdd(kind) {
+  const row = document.querySelector(`#subscriptionEditForm [data-sub-opt-add="${kind}"]`);
+  row.hidden = true;
+  row.classList.remove('err');
+  row.querySelector('input').value = '';
+}
+async function saveSubscriptionOptions(next) {
+  const data = await subscriptionRequest('/api/subscriptions/options', {
+    customCycles:next.customCycles ?? subscriptionState.customCycles,
+    customPaymentMethods:next.customPaymentMethods ?? subscriptionState.customPaymentMethods
+  });
+  subscriptionState.customCycles = data.customCycles;
+  subscriptionState.customPaymentMethods = data.customPaymentMethods;
+}
+async function addSubscriptionOption(kind) {
+  const row = document.querySelector(`#subscriptionEditForm [data-sub-opt-add="${kind}"]`);
+  const input = row.querySelector('input');
+  const fail = message => {
+    row.classList.remove('err');
+    void row.offsetWidth;
+    row.classList.add('err');
+    showSubscriptionEditError(message);
+    input.focus();
+  };
+  let picked;
+  let next;
+  if (kind === 'cycle') {
+    const unit = row.querySelector('[data-sub-unit] [aria-pressed="true"]')?.dataset.value || 'month';
+    const amount = Number(input.value.trim());
+    const factor = { day:1, week:7, month:1, year:12 }[unit];
+    picked = { unit:unit === 'day' || unit === 'week' ? 'day' : 'month', count:amount * factor };
+    if (!Number.isInteger(amount) || amount < 1 || picked.count > (picked.unit === 'day' ? 3650 : 120)) return fail('周期请填 1 以上的整数，最长 10 年');
+    const known = [...subscriptionBuiltInCycles, ...subscriptionState.customCycles].some(cycle => subscriptionCycleKey(cycle) === subscriptionCycleKey(picked));
+    if (!known) next = { customCycles:[...subscriptionState.customCycles, picked] };
+  } else {
+    picked = input.value.trim();
+    if (!picked) return fail('请填写付款方式');
+    const known = [...subscriptionState.defaultPaymentMethods, ...subscriptionState.customPaymentMethods].includes(picked);
+    if (!known) next = { customPaymentMethods:[...subscriptionState.customPaymentMethods, picked] };
+  }
+  if (next) {
+    try {
+      await saveSubscriptionOptions(next);
+    } catch (error) {
+      return fail(error.message || '自定义选项没有保存');
+    }
+  }
+  if (!subscriptionDraft) return;
+  if (kind === 'cycle') Object.assign(subscriptionDraft, { cycleUnit:picked.unit, cycleCount:picked.count });
+  else subscriptionDraft.paymentMethod = picked;
+  closeSubscriptionOptionAdd(kind);
+  showSubscriptionEditError('');
+  syncSubscriptionEditorControls();
+  renderSubscriptionPreview();
+}
+async function removeSubscriptionOption(kind, value) {
+  const before = { customCycles:subscriptionState.customCycles, customPaymentMethods:subscriptionState.customPaymentMethods };
+  const next = kind === 'cycle'
+    ? { customCycles:before.customCycles.filter(cycle => subscriptionCycleKey(cycle) !== value) }
+    : { customPaymentMethods:before.customPaymentMethods.filter(method => method !== value) };
+  try {
+    await saveSubscriptionOptions(next);
+  } catch (error) {
+    subscriptionToast(`删除失败：${error.message}`);
+    return;
+  }
+  // Subscriptions that already use the option keep it; it just stops being offered.
+  if (subscriptionDraft) renderSubscriptionOptions();
+  const label = kind === 'cycle' ? subscriptionCycleLabel({ cycleUnit:value.split(':')[0], cycleCount:Number(value.split(':')[1]) }) : value;
+  subscriptionToast(`已删除自定义${kind === 'cycle' ? '扣费周期' : '付款方式'}「${label}」`, async () => {
+    try {
+      await saveSubscriptionOptions(before);
+      if (subscriptionDraft) renderSubscriptionOptions();
+    } catch (error) {
+      subscriptionToast(`撤销失败：${error.message}`);
+    }
+  });
 }
 function renderSubscriptionPreview() {
   const draft = subscriptionDraft;
@@ -17176,7 +17356,6 @@ function renderSubscriptionPreview() {
   const rate = subscriptionState.usdCnyRate;
   const amount = Number(draft.amount);
   const hasAmount = Number.isFinite(amount) && amount > 0;
-  const cycle = Number(draft.cycleMonths) === 12 ? 12 : 1;
   const cny = draft.currency === 'USD' ? amount * rate : amount;
   const logo = document.getElementById('subscriptionPreviewLogo');
   const initial = subscriptionInitial(draft.name);
@@ -17189,16 +17368,18 @@ function renderSubscriptionPreview() {
   document.getElementById('subscriptionPreview').style.setProperty('--c', draft.color);
   document.getElementById('subscriptionPreviewName').textContent = draft.name.trim() || '订阅名称';
   document.getElementById('subscriptionPreviewMeta').textContent = draft.note.trim() || '备注会显示在这里';
-  document.getElementById('subscriptionPreviewCat').textContent = draft.category;
+  document.getElementById('subscriptionPreviewCat').textContent = [draft.category, draft.paymentMethod].filter(Boolean).join(' · ');
   document.getElementById('subscriptionPreviewPrice').textContent = hasAmount ? subscriptionMoney(amount, draft.currency) : '—';
-  document.getElementById('subscriptionPreviewCycle').textContent = subscriptionCycleLabel(cycle) + (hasAmount && draft.currency === 'USD' ? ` · ≈${subscriptionMoney(cny)}` : '');
+  document.getElementById('subscriptionPreviewCycle').textContent = subscriptionCycleLabel(draft) + (hasAmount && draft.currency === 'USD' ? ` · ≈${subscriptionMoney(cny)}` : '');
   const when = document.getElementById('subscriptionPreviewWhen');
   const validStart = /^\d{4}-\d{2}-\d{2}$/.test(draft.startDate || '');
-  const pill = validStart ? subscriptionWhen(subscriptionSchedule({ ...draft, amount:hasAmount ? amount : 0, cycleMonths:cycle }, subscriptionLocalDate(), rate)) : { cls:'line', text:'选择开始日期' };
+  const pill = validStart ? subscriptionWhen(subscriptionSchedule({ ...draft, amount:hasAmount ? amount : 0 }, subscriptionLocalDate(), rate)) : { cls:'line', text:'选择开始日期' };
   when.className = `subs-pill ${pill.cls}`;
   when.textContent = pill.text;
+  const monthly = validStart && hasAmount ? subscriptionSchedule({ ...draft, amount }, subscriptionLocalDate(), rate).monthlyCny : cny;
+  const isMonthly = subscriptionCycleKey(subscriptionCycle(draft)) === 'month:1';
   document.getElementById('subscriptionAmountHint').textContent = !hasAmount ? ''
-    : [draft.currency === 'USD' ? `≈${subscriptionMoney(cny)}（1 USD = ${rate} CNY）` : '', cycle === 12 ? `月均 ${subscriptionMoney(cny / 12)}` : ''].filter(Boolean).join(' · ');
+    : [draft.currency === 'USD' ? `≈${subscriptionMoney(cny)}（1 USD = ${rate} CNY）` : '', isMonthly ? '' : `月均 ${subscriptionMoney(monthly)}`].filter(Boolean).join(' · ');
 }
 function subscriptionDraftError(draft) {
   if (!String(draft.name || '').trim()) return { field:'subName', message:'请填写订阅名称' };
@@ -17245,7 +17426,7 @@ async function saveSubscriptionDraft(event) {
   let item;
   try {
     ({ item } = await subscriptionRequest('/api/subscriptions/save', {
-      item:{ ...draft, name:draft.name.trim(), note:draft.note.trim(), amount:Number(draft.amount), cycleMonths:Number(draft.cycleMonths) }
+      item:{ ...draft, name:draft.name.trim(), note:draft.note.trim(), amount:Number(draft.amount), ...subscriptionCycleFields(draft), paymentMethod:draft.paymentMethod || '' }
     }));
   } catch (error) {
     subscriptionBusy = false;
@@ -17339,7 +17520,24 @@ document.getElementById('subscriptionEditModal').addEventListener('click', event
   if (event.target.id === 'subscriptionEditModal' || event.target.closest('#subscriptionEditCloseBtn, #subscriptionEditCancelBtn')) closeSubscriptionEditor();
 });
 document.getElementById('subscriptionEditForm').addEventListener('submit', saveSubscriptionDraft);
+document.getElementById('subscriptionEditForm').addEventListener('keydown', event => {
+  const row = event.target.closest('[data-sub-opt-add]');
+  if (!row || event.target.tagName !== 'INPUT') return;
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    addSubscriptionOption(row.dataset.subOptAdd);
+  } else if (event.key === 'Escape') {
+    event.preventDefault();
+    event.stopPropagation();
+    closeSubscriptionOptionAdd(row.dataset.subOptAdd);
+  }
+});
 document.getElementById('subscriptionEditForm').addEventListener('input', event => {
+  if (event.target.closest('[data-sub-opt-add]')) {
+    event.target.closest('[data-sub-opt-add]').classList.remove('err');
+    showSubscriptionEditError('');
+    return;
+  }
   const field = { subName:'name', subNote:'note', subAmount:'amount', subStart:'startDate' }[event.target.name];
   if (!field || !subscriptionDraft) return;
   subscriptionDraft[field] = event.target.value;
@@ -17351,9 +17549,28 @@ document.getElementById('subscriptionEditForm').addEventListener('click', event 
   if (!subscriptionDraft) return;
   const option = event.target.closest('[data-sub-segment] [data-value]');
   const swatch = event.target.closest('[data-sub-color]');
-  if (option) {
+  const unit = event.target.closest('[data-sub-unit] [data-value]');
+  const choice = event.target.closest('[data-opt-value]');
+  const kind = event.target.closest('[data-sub-opts], [data-sub-opt-add]');
+  const kindName = kind?.dataset.subOpts || kind?.dataset.subOptAdd;
+  if (unit) {
+    unit.parentElement.querySelectorAll('[data-value]').forEach(button => button.setAttribute('aria-pressed', String(button === unit)));
+    placeSubscriptionGlide(unit.parentElement, 'editor-unit');
+    return;
+  }
+  if (event.target.closest('[data-opt-add]')) return openSubscriptionOptionAdd(event.target.closest('[data-opt-add]').dataset.optAdd);
+  if (event.target.closest('[data-sub-opt-save]')) return addSubscriptionOption(kindName);
+  if (event.target.closest('[data-sub-opt-cancel]')) return closeSubscriptionOptionAdd(kindName);
+  if (event.target.closest('[data-opt-remove]')) return removeSubscriptionOption(kindName, event.target.closest('[data-opt-remove]').dataset.optRemove);
+  if (choice && kindName === 'cycle') {
+    const [cycleUnit, count] = choice.dataset.optValue.split(':');
+    Object.assign(subscriptionDraft, { cycleUnit, cycleCount:Number(count) });
+  } else if (choice && kindName === 'payment') {
+    // Payment method is optional: pressing the selected one again clears it.
+    subscriptionDraft.paymentMethod = subscriptionDraft.paymentMethod === choice.dataset.optValue ? '' : choice.dataset.optValue;
+  } else if (option) {
     const key = option.closest('[data-sub-segment]').dataset.subSegment;
-    subscriptionDraft[key] = key === 'cycleMonths' ? Number(option.dataset.value) : option.dataset.value;
+    subscriptionDraft[key] = option.dataset.value;
   } else if (swatch) {
     subscriptionDraft.color = swatch.dataset.subColor;
   } else return;

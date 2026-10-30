@@ -1579,7 +1579,8 @@ function requireJsonContentType(req, pathname) {
     '/api/save', '/api/open-attachment-folder', '/api/delete-attachments', '/api/attachments',
     '/api/open-url', '/api/ai-settings', '/api/ai-chat', '/api/api-status',
     '/api/tracking-settings', '/api/order-notification',
-    '/api/subscriptions/save', '/api/subscriptions/delete', '/api/subscriptions/rate'
+    '/api/subscriptions/save', '/api/subscriptions/delete', '/api/subscriptions/rate',
+    '/api/subscriptions/options'
   ]);
   if (req.method !== 'POST' || !jsonRoutes.has(pathname)) return;
   const type = String(req.headers['content-type'] || '').split(';', 1)[0].trim().toLowerCase();
@@ -2239,6 +2240,11 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && url.pathname === '/api/subscriptions/rate') {
       const body = JSON.parse(await readBody(req));
       const result = subscriptionStore().setRate(body);
+      return send(res, 200, JSON.stringify({ ...result, backup: automaticBackup() }));
+    }
+    if (req.method === 'POST' && url.pathname === '/api/subscriptions/options') {
+      const body = JSON.parse(await readBody(req));
+      const result = subscriptionStore().setOptions(body);
       return send(res, 200, JSON.stringify({ ...result, backup: automaticBackup() }));
     }
     if (req.method === 'POST' && url.pathname === '/api/order-notification') {

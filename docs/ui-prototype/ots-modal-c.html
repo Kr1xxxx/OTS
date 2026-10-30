@@ -610,6 +610,43 @@ tbody tr:hover .rowgo { opacity:1; transform:none; }
   .notes-btn .nb-t { display:none; }
   .prow { grid-template-columns:minmax(0,1fr); }
 }
+
+/* 通知面板 */
+.bell { position:relative; overflow:visible; }
+.bell .bdg { position:absolute; top:2px; right:1px; min-width:17px; height:17px; padding:0 4px; border-radius:var(--r-pill); background:var(--s-red); color:#fff; font-size:10.5px; font-weight:600; line-height:17px; text-align:center; box-shadow:0 0 0 2px var(--page); transform:scale(0); transition:transform .58s var(--ease-spring); pointer-events:none; font-variant-numeric:tabular-nums; }
+.bell .bdg.on { transform:scale(1); }
+.bell .bdg .wheel-num { font-size:inherit; }
+.bell.ring > .i { animation:wiggle .7s var(--ease) 1; transform-origin:50% 10%; }
+.drawer:has(.nt) { width:min(440px, calc(100% - 20px)); }
+.nt { display:flex; flex-direction:column; height:100%; min-height:0; }
+.nt .dh { gap:14px; padding:18px 18px 14px 22px; }
+.nt-h { display:flex; align-items:center; gap:10px; }
+.nt-h h3 { margin:0; font-size:18px; font-weight:600; }
+.nt-h .sp { flex:1; }
+.nt-h .link { font-size:13px; color:var(--ink-2); text-decoration:underline; text-underline-offset:3px; text-decoration-color:var(--border); background:none; border:0; padding:4px 6px; border-radius:8px; transition:color .16s, text-decoration-color .16s; }
+.nt-h .link:hover:not(:disabled) { color:var(--ink); text-decoration-color:currentColor; }
+.nt-h .link:disabled { opacity:.4; cursor:default; }
+.nt .seg { display:flex; width:100%; position:relative; }
+.nt .seg button { flex:1; position:relative; z-index:1; }
+.nt-l { flex:1; overflow:auto; padding:14px 14px 20px; display:flex; flex-direction:column; gap:10px; background:var(--page); }
+.nt-i { display:grid; grid-template-columns:32px minmax(0,1fr); gap:12px; align-items:start; width:100%; text-align:left; padding:13px 14px; border:1px solid var(--border); border-radius:18px; background:var(--card); color:var(--ink); position:relative; transition:opacity .4s var(--ease), box-shadow .24s var(--ease), transform .58s var(--ease-spring), border-color .24s; }
+.nt-i:hover { box-shadow:var(--shadow-raised, 0 6px 18px oklch(0% 0 0 / .065)); transform:translateY(-1px); }
+.nt-i:active { transform:scale(.985); transition-duration:.12s; }
+.nt-i.read { opacity:.5; }
+.nt-i.read:hover { opacity:.8; }
+.nt-i .ico { width:32px; height:32px; border-radius:11px; display:grid; place-items:center; border:1px solid var(--border); background:var(--card); box-shadow:0 1px 2px oklch(0% 0 0 / .05); position:relative; }
+.nt-i .ico .i { width:16px; height:16px; }
+.nt-i .ico.error { color:var(--s-red); } .nt-i .ico.warn { color:var(--s-amber); } .nt-i .ico.success { color:var(--s-green); } .nt-i .ico.info { color:var(--s-blue); }
+.nt-i .ico::after { content:''; position:absolute; top:-3px; right:-3px; width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 2px var(--card); transform:scale(1); transition:transform .4s var(--ease-spring); }
+.nt-i.read .ico::after { transform:scale(0); }
+.nt-i b { display:block; font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.nt-i .ds { display:block; margin-top:3px; font-size:13px; color:var(--ink-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.nt-i .mt { display:flex; align-items:center; gap:8px; margin-top:8px; font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
+.nt-i.new { animation:ntIn .58s var(--ease-spring) both; }
+@keyframes ntIn { from { opacity:0; transform:translateY(-14px) scale(.97); } }
+.nt-e { margin:auto; text-align:center; color:var(--muted); font-size:13px; display:flex; flex-direction:column; align-items:center; gap:10px; padding:40px 0; }
+.nt-e .ico { width:44px; height:44px; border-radius:50%; display:grid; place-items:center; background:var(--s-green-bg); color:var(--s-green); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration:.01ms !important; animation-delay:0s !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; transition-delay:0s !important; }
 }
@@ -1100,6 +1137,7 @@ tr:hover .rowview { background:var(--accent-tint); color:var(--accent); }
       <button class="search" id="openSearch" type="button" aria-label="搜索"><svg class="i"><use href="#i-search"/></svg><span class="t">搜索客户、订单号、物流单号…</span><span class="kbd">⌘K</span></button>
       <div class="clocks" id="clocks"></div>
       <div class="top-actions">
+        <button class="btn icon ghost bell" id="bellBtn" type="button" data-notif aria-label="通知"><svg class="i"><use href="#i-bell"/></svg><span class="bdg" id="bellN"></span></button>
         <button class="btn icon ghost" id="themeBtn" type="button" aria-label="切换深浅色"><svg class="i"><use href="#i-moon"/></svg></button>
         <button class="btn" type="button" data-act="newCustomer"><svg class="i"><use href="#i-user-plus"/></svg><span>新建客户</span></button>
         <button class="btn primary" type="button" data-act="newOrder"><svg class="i"><use href="#i-plus"/></svg><span>新建订单</span></button>
@@ -1152,6 +1190,7 @@ tr:hover .rowview { background:var(--accent-tint); color:var(--accent); }
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
   <symbol id="i-grip" viewBox="0 0 24 24"><path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01"/></symbol>
   <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
   <symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></symbol>
 </svg>
 
@@ -1911,6 +1950,67 @@ function pagePrefs() {
     <section class="card pbody ${state.flash === 'prefs' ? 'enter-kids' : ''}" style="display:block"><div class="card-head"><h2>${secs.find(x => x[0] === k)[1]}</h2></div>${body}</section></div></div>`;
 }
 
+/* ---------- 通知 ---------- */
+const NT_TYPE = { error:['错误', 'red', 'alert'], warn:['提醒', 'amber', 'alert'], success:['成功', 'green', 'check'], info:['提示', 'blue', 'info'] };
+const NT_TABS = [['all', '全部', () => true], ['error', '错误', n => n.type === 'error'], ['success', '成功', n => n.type === 'success'], ['info', '提示', n => n.type === 'info' || n.type === 'warn']];
+const notifs = [
+  { id:'n1', type:'error', title:'物流异常 · K26101501', desc:'Sunset Salon Group 的 DHL 包裹清关受阻，海关要求补充商业发票。', time:'15 分钟前', go:{ open:'o6', tab:'ship' } },
+  { id:'n2', type:'warn', title:'尾款今天到期 · Glow Lab London', desc:'K26102201 还有 $3,640 尾款，约定今天付清，可以发一条催款消息。', time:'30 分钟前', go:{ open:'o4', tab:'money' } },
+  { id:'n3', type:'success', title:'已收清 · Benelux Trade BV', desc:'K26101803 全款 $11,950 已到账，订单可以安排发货。', time:'1 小时前', go:{ open:'o5', tab:'money' } },
+  { id:'n4', type:'error', title:'AI 识别失败', desc:'粘贴的聊天记录里没找到客户名和金额，原文已保留，可以手动填写。', time:'2 小时前', go:{ act:'newOrder' } },
+  { id:'n5', type:'info', title:'', desc:'', time:'3 小时前', go:{ page:'subs' }, sub:true },
+  { id:'n6', type:'success', title:'飞书群已通知 · K26102801', desc:'Harbor Hair Co. 的新订单已推送到飞书群。', time:'4 小时前', go:{ open:'o1', tab:'log' } },
+  { id:'n7', type:'warn', title:'该回购了 · Miami Lash Bar', desc:'距上次下单已超过平时的 21 天回购周期，可以发一条跟进。', time:'6 小时前', go:{ cust:'Miami Lash Bar' } },
+  { id:'n8', type:'info', title:'已签收 · K26100801', desc:'Harbor Hair Co. 的包裹已在纽约签收，订单可以改成已完成。', time:'昨天', go:{ open:'o11', tab:'ship' }, read:true },
+  { id:'n9', type:'success', title:'数据已自动备份', desc:'本地备份 ots-2026-10-28.db，含附件 42 个。', time:'昨天', go:{ page:'settings' }, read:true },
+  { id:'n10', type:'error', title:'飞书推送失败 · K26101501', desc:'飞书接口超时，可以在订单详情里重新发送。', time:'昨天', go:{ open:'o6' }, read:true }
+];
+const NT_LATE = { id:'n0', type:'info', title:'客户回复了 · Seoul Lash Pro', desc:'K26102701 报价：确认 0.07 C 卷 20 盒，问能否 11 月 15 日前到。', time:'刚刚', go:{ open:'o9' } };
+const ntUnread = () => notifs.filter(n => !n.read).length;
+// 订阅提醒取最近一笔要扣费的订阅，只读订阅页自己的数据
+const ntSub = () => subs.filter(x => x.on).sort((a, b) => subInfo(a).days - subInfo(b).days)[0];
+const ntTitle = n => n.sub ? `${subInfo(ntSub()).days === 0 ? '订阅今天扣费' : '订阅即将扣费'} · ${ntSub().name}` : n.title;
+function ntDesc(n) {
+  if (!n.sub) return n.desc;
+  const x = ntSub(), f = subInfo(x);
+  return `${f.days === 0 ? '今天' : f.days + ' 天后（' + f.next + '）'}扣 ${subMoney(x.amt, x.cur)}${x.cur === 'USD' ? `，约 ¥${toCny(x.amt, x.cur).toFixed(2)}` : ''}${x.note ? ` · ${x.note}` : ''}。`;
+}
+function ntItem(n, i, isNew) {
+  const [lab, col, icn] = NT_TYPE[n.type];
+  return `<button class="nt-i ${n.read ? 'read' : ''} ${isNew ? 'new' : 'stag'}" style="--i:${Math.min(i, 12)}" type="button" data-nt-go="${n.id}"><span class="ico ${n.type}">${ic(icn)}</span><span class="c"><b>${esc(ntTitle(n))}</b><span class="ds">${esc(ntDesc(n))}</span><span class="mt">${n.time}<span class="pill ${col}">${lab}</span></span></span></button>`;
+}
+function ntList(newId) {
+  const f = NT_TABS.find(x => x[0] === state.ntTab)[2], list = notifs.filter(f);
+  return list.length ? list.map((n, i) => ntItem(n, i, n.id === newId)).join('') : `<div class="nt-e"><span class="ico">${ic('check')}</span>这里没有通知</div>`;
+}
+function notifHTML() {
+  state.ntTab = state.ntTab || 'all';
+  const u = ntUnread();
+  return `<div class="nt"><div class="dh"><div class="nt-h"><h3>通知</h3><span class="pill accent" id="ntU" ${u ? '' : 'hidden'}>${u} 条未读</span><span class="sp"></span><button class="link" type="button" data-nt-all ${u ? '' : 'disabled'}>全部已读</button><button class="btn icon ghost" type="button" data-close aria-label="关闭">${ic('x')}</button></div>
+    <div class="seg" role="tablist" data-glide="nt">${NT_TABS.map(([k, n, f]) => `<button class="${state.ntTab === k ? 'on' : ''}" role="tab" type="button" data-nt="${k}">${n}<span class="c">${notifs.filter(f).length}</span></button>`).join('')}</div></div>
+    <div class="nt-l" id="ntL">${ntList()}</div></div>`;
+}
+function updateBell(ring) {
+  const b = document.getElementById('bellN'), u = ntUnread();
+  b.classList.toggle('on', u > 0);
+  if (u > 0) { b.innerHTML = wheel('bell', u, 'int'); syncWheels(b); }
+  document.getElementById('bellBtn').setAttribute('aria-label', u ? `通知，${u} 条未读` : '通知');
+  if (ring && !RM.matches) { const bb = document.getElementById('bellBtn'); bb.classList.remove('ring'); bb.offsetWidth; bb.classList.add('ring'); }
+  if (state.open === 'notif') {
+    const p = document.getElementById('ntU'); if (p) { p.hidden = !u; p.textContent = `${u} 条未读`; }
+    const a = document.querySelector('[data-nt-all]'); if (a) a.disabled = !u;
+    document.querySelectorAll('#drawer [data-nt]').forEach(x => { x.querySelector('.c').textContent = notifs.filter(NT_TABS.find(y => y[0] === x.dataset.nt)[2]).length; });
+  }
+}
+function ntGo(n) {
+  const g = n.go;
+  if (g.open) return openDrawer(g.open, g.tab);
+  if (g.act === 'newOrder') return openDrawer('new');
+  closeDrawer();
+  if (g.cust) { state.cust = g.cust; state.custView = 'detail'; return go('customers'); }
+  if (g.page) go(g.page);
+}
+
 /* ---------- 抽屉 ---------- */
 function openDrawer(id, tab) {
   state.open = id; state.drawerTab = tab || 'info';
@@ -1942,10 +2042,12 @@ function renderDrawer(fresh) {
   else if (state.open === 'logi') d.innerHTML = logiHTML();
   else if (state.open === 'sub') d.innerHTML = subHTML();
   else if (state.open === 'subEdit') d.innerHTML = subEditHTML();
+  else if (state.open === 'notif') d.innerHTML = notifHTML();
   else d.innerHTML = orderHTML(orders.find(x => x.id === state.open));
   mProgress(); if (state.open === 'new') applyType();
   const db = d.querySelector('.db');
   if (db) db.classList.add('enter-kids');
+  if (state.open === 'notif') delete glidePrev.nt;
   sync(d);
 }
 function drawerBody(o) {
@@ -3072,6 +3174,16 @@ document.addEventListener('click', e => {
   if (ds.jump) { const db = document.getElementById('mdb'), el = document.getElementById(ds.jump); spyLock = Date.now(); setNav(ds.jump); return db.scrollTo({ top:el.offsetTop - db.offsetTop - 8, behavior:RM.matches ? 'auto' : 'smooth' }); }
   if ('attAdd' in ds) { const n = document.getElementById('att-n'), l = document.getElementById('att-l'); if (!n.value.trim() && !l.value.trim()) { [n, l].forEach(x => { x.classList.remove('shake', 'bad'); x.offsetWidth; x.classList.add('shake', 'bad'); }); n.focus(); return toast('请填写文件名称或链接', 'warn'); } document.getElementById('attList').insertAdjacentHTML('beforeend', attItem(n.value.trim(), document.getElementById('att-t').value, l.value.trim())); n.value = ''; l.value = ''; n.classList.remove('bad'); l.classList.remove('bad'); n.focus(); return mProgress(); }
   if ('attDel' in ds) { const r = t.closest('.att-i'); return collapseRow(r, () => { r.remove(); mProgress(); }); }
+  if ('notif' in ds) { if (state.open === 'notif') return closeDrawer(); updateBell(true); return openDrawer('notif'); }
+  if (ds.nt) { if (state.ntTab === ds.nt) return; state.ntTab = ds.nt; const d = document.getElementById('drawer'); d.querySelectorAll('[data-nt]').forEach(b => b.classList.toggle('on', b === t)); const l = document.getElementById('ntL'); l.innerHTML = ntList(); l.scrollTop = 0; return syncGlides(d); }
+  if ('ntAll' in ds) {
+    const was = notifs.filter(n => !n.read);
+    was.forEach(n => n.read = true);
+    document.querySelectorAll('#ntL .nt-i:not(.read)').forEach((el, i) => setTimeout(() => el.classList.add('read'), RM.matches ? 0 : i * 45));
+    updateBell();
+    return toast(`${was.length} 条已标为已读`, 'success', '', () => { was.forEach(n => n.read = false); const l = document.getElementById('ntL'); if (l && state.open === 'notif') was.forEach(n => l.querySelector(`[data-nt-go="${n.id}"]`)?.classList.remove('read')); updateBell(); });
+  }
+  if (ds.ntGo) { const n = notifs.find(x => x.id === ds.ntGo); const first = !n.read; n.read = true; t.classList.add('read'); updateBell(); return setTimeout(() => ntGo(n), first && !RM.matches ? 220 : 0); }
   if (ds.open) return openDrawer(ds.open, ds.tab);
   if ('close' in ds) return closeDrawer();
   if (ds.dtab) { state.drawerTab = ds.dtab; const o = orders.find(x => x.id === state.open); const d = document.getElementById('drawer'); d.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.dtab === ds.dtab)); const db = d.querySelector('.db'); db.innerHTML = drawerBody(o); db.classList.remove('enter-kids'); db.offsetWidth; db.classList.add('enter-kids'); db.scrollTop = 0; sync(d); return; }
@@ -3197,6 +3309,8 @@ if (matchMedia('(prefers-color-scheme: dark)').matches) document.querySelector('
 window.addEventListener('resize', () => { fitWin(); sync(document.querySelector('.side')); sync(document.getElementById('content')); });
 document.getElementById('countryList').innerHTML = COUNTRIES.map(c => `<option value="${c[0]} ${c[1]} ${c[2]}"></option>`).join('');
 fromHash();
+updateBell();
+setTimeout(() => { notifs.unshift(NT_LATE); updateBell(true); if (state.open === 'notif') { const l = document.getElementById('ntL'); if (state.ntTab === 'all' || state.ntTab === 'info') l.innerHTML = ntList('n0'); } }, 14000);
 setTimeout(() => toast('早上好，今天有 7 件待办', 'info', '2 笔收款、1 个加急单、1 个物流异常'), 900);
 
 const _rd = renderDrawer;

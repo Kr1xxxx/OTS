@@ -39,6 +39,7 @@ async function routeApp(page, store, counters) {
         const result = pathname === '/api/subscriptions' ? store.list()
           : pathname === '/api/subscriptions/save' ? store.save(body.item)
           : pathname === '/api/subscriptions/delete' ? store.remove(body)
+          : pathname === '/api/subscriptions/options' ? store.setOptions(body)
           : store.setRate(body);
         return route.fulfill({ json:result });
       } catch (error) {
@@ -172,7 +173,25 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     assert.equal(await page.locator('#subscriptionEditError').innerText(), '请填写大于 0 的金额');
     await modal.locator('#subscriptionAmount').fill('200');
     await modal.locator('[data-sub-segment="currency"] [data-value="USD"]').click();
-    await modal.locator('[data-sub-segment="cycleMonths"] [data-value="12"]').click();
+    // Custom cycle: 每 2 周 is saved as a reusable option and selected.
+    const cycleOpts = modal.locator('[data-sub-opts="cycle"]');
+    assert.deepEqual(await cycleOpts.locator('[data-opt-value]').allInnerTexts(), ['周付', '月付', '季付', '半年付', '年付']);
+    await cycleOpts.locator('[data-opt-add="cycle"]').click();
+    await modal.locator('[name="subCycleCount"]').fill('2');
+    await capture(page, 'cycle-add');
+    await modal.locator('[data-sub-opt-save="cycle"]').click();
+    await cycleOpts.locator('[data-opt-value="day:14"][aria-pressed="true"]').waitFor();
+    assert.equal(await page.locator('#subscriptionPreviewCycle').innerText(), '每2周 · ≈¥1,420.00');
+    assert.deepEqual(store.list().customCycles, [{ unit:'day', count:14 }], 'the custom cycle is saved for next time');
+    await cycleOpts.locator('[data-opt-value="month:12"]').click();
+    // Custom payment method, added with Enter.
+    const paymentOpts = modal.locator('[data-sub-opts="payment"]');
+    await paymentOpts.locator('[data-opt-add="payment"]').click();
+    await modal.locator('[name="subPaymentCustom"]').fill('招行信用卡');
+    await modal.locator('[name="subPaymentCustom"]').press('Enter');
+    await paymentOpts.locator('[data-opt-value="招行信用卡"][aria-pressed="true"]').waitFor();
+    assert.equal(await modal.locator('[data-sub-opt-add="payment"]').isHidden(), true);
+    assert.deepEqual(store.list().customPaymentMethods, ['招行信用卡']);
     await modal.locator('[data-sub-segment="category"] [data-value="AI"]').click();
     await modal.locator('[data-sub-color="#e0336f"]').click();
     assert.equal(await page.locator('#subscriptionCurrencySymbol').innerText(), '$');
@@ -186,12 +205,14 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     await modal.locator('#subscriptionAmount').press('Enter');
     await page.waitForFunction(() => !document.getElementById('subscriptionEditModal').classList.contains('open'));
     const added = store.list().items.find(item => item.name === 'Claude Pro');
-    assert.deepEqual({ amount:added.amount, currency:added.currency, cycleMonths:added.cycleMonths, category:added.category, color:added.color },
-      { amount:200, currency:'USD', cycleMonths:12, category:'AI', color:'#e0336f' });
+    assert.deepEqual({ amount:added.amount, currency:added.currency, cycleUnit:added.cycleUnit, cycleCount:added.cycleCount, paymentMethod:added.paymentMethod, category:added.category, color:added.color },
+      { amount:200, currency:'USD', cycleUnit:'month', cycleCount:12, paymentMethod:'招行信用卡', category:'AI', color:'#e0336f' });
     assert.equal(await rows.count(), 4);
     assert.equal(await drawer.getAttribute('aria-hidden'), 'false', 'saving opens the detail');
     assert.equal(await page.locator('#subscriptionDrawerTitle').innerText(), 'Claude Pro');
     await toasts.filter({ hasText:'Claude Pro 已添加' }).waitFor();
+    assert.match(await page.locator('#subscriptionDrawerBody').innerText(), /付款方式\s+招行信用卡/);
+    assert.match(await rows.filter({ hasText:'Claude Pro' }).locator('.subs-cat').innerText(), /AI · 招行信用卡/);
     await page.keyboard.press('Escape');
     assert.equal(await drawer.getAttribute('aria-hidden'), 'true');
 

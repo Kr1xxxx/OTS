@@ -37,6 +37,11 @@ function storeTests() {
   assert.equal(item.color, '#5b3cc4');
   assert.equal(item.endsOn, '', 'an active subscription has no end date');
   assert.deepEqual(item.extra, {});
+  assert.deepEqual([item.cycleUnit, item.cycleCount, item.paymentMethod], ['month', 1, ''], 'old cycleMonths records map to a monthly cycle');
+  const fortnightly = store.save({ ...sample, cycleUnit:'day', cycleCount:14, paymentMethod:' 招行信用卡 ' }).item;
+  assert.deepEqual([fortnightly.cycleUnit, fortnightly.cycleCount, fortnightly.paymentMethod], ['day', 14, '招行信用卡']);
+  assert.equal(store.save({ ...fortnightly, cycleUnit:'month', cycleCount:3 }).item.cycleCount, 3, 'any month count is allowed');
+  store.remove({ id:fortnightly.id });
 
   const renamed = store.save({ ...item, name:'ChatGPT Team', endsOn:'2026-01-01' }).item;
   assert.equal(renamed.createdAt, item.createdAt, 'editing keeps the creation time');
@@ -50,7 +55,11 @@ function storeTests() {
   expectInvalid(() => store.save({ ...sample, amount:0 }), '金额无效');
   expectInvalid(() => store.save({ ...sample, amount:'abc' }), '金额无效');
   expectInvalid(() => store.save({ ...sample, currency:'EUR' }), '币种无效');
-  expectInvalid(() => store.save({ ...sample, cycleMonths:3 }), '扣费周期无效');
+  expectInvalid(() => store.save({ ...sample, cycleMonths:0 }), '扣费周期无效');
+  expectInvalid(() => store.save({ ...sample, cycleUnit:'week', cycleCount:1 }), '扣费周期无效');
+  expectInvalid(() => store.save({ ...sample, cycleUnit:'month', cycleCount:121 }), '扣费周期无效');
+  expectInvalid(() => store.save({ ...sample, cycleUnit:'day', cycleCount:1.5 }), '扣费周期无效');
+  expectInvalid(() => store.save({ ...sample, paymentMethod:'x'.repeat(41) }), '付款方式无效');
   expectInvalid(() => store.save({ ...sample, startDate:'2026-02-30' }), '开始日期无效');
   expectInvalid(() => store.save({ ...sample, category:'影音' }), '分类无效');
   expectInvalid(() => store.save({ ...sample, color:'red' }), '颜色无效');
@@ -69,7 +78,30 @@ function storeTests() {
   assert.equal(store.list().usdCnyRate, 6.8966);
   expectInvalid(() => store.setRate({ usdCnyRate:0 }), '汇率无效');
   expectInvalid(() => store.setRate({ usdCnyRate:101 }), '汇率无效');
+
+  assert.deepEqual([store.list().customCycles, store.list().customPaymentMethods], [[], []]);
+  assert.ok(store.list().defaultPaymentMethods.includes('支付宝'));
+  const options = store.setOptions({
+    customCycles:[{ unit:'day', count:14 }, { unit:'day', count:14 }, { unit:'month', count:2 }],
+    customPaymentMethods:['招行信用卡', '招行信用卡', '支付宝', ' Wise ']
+  });
+  assert.deepEqual(options.customCycles, [{ unit:'day', count:14 }, { unit:'month', count:2 }], 'duplicate cycles are dropped');
+  assert.deepEqual(options.customPaymentMethods, ['招行信用卡', 'Wise'], 'duplicates and built-in methods are dropped');
+  assert.deepEqual(store.list().customPaymentMethods, ['招行信用卡', 'Wise'], 'custom options persist');
+  expectInvalid(() => store.setOptions({ customCycles:[{ unit:'hour', count:1 }] }), '扣费周期无效');
+  expectInvalid(() => store.setOptions({ customPaymentMethods:['  '] }), '付款方式无效');
+  expectInvalid(() => store.setOptions({ customPaymentMethods:Array.from({ length:31 }, (_, i) => `卡${i}`) }), '自定义付款方式无效');
   db.close();
+
+  // A database created before custom cycles gets the new columns, and old rows stay monthly or yearly.
+  const legacy = new DatabaseSync(':memory:');
+  legacy.exec(`CREATE TABLE subscriptions (id TEXT PRIMARY KEY, name TEXT NOT NULL, note TEXT NOT NULL DEFAULT '', amount REAL NOT NULL,
+    currency TEXT NOT NULL, cycle_months INTEGER NOT NULL, start_date TEXT NOT NULL, category TEXT NOT NULL, color TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL, ends_on TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL, extra_json TEXT NOT NULL DEFAULT '{}');
+    INSERT INTO subscriptions VALUES('legacy-0001', '1Password', '', 35.88, 'USD', 12, '2022-05-18', '工具效率', '#2f6fde', 'active', '', 'x', 'x', '{}');`);
+  const migrated = createSubscriptionStore(legacy).list().items[0];
+  assert.deepEqual([migrated.cycleUnit, migrated.cycleCount, migrated.paymentMethod], ['month', 12, '']);
+  legacy.close();
 }
 
 async function serverTests() {
@@ -95,6 +127,8 @@ async function serverTests() {
   assert.equal(invalid.status, 400);
   assert.equal(invalid.data.message, '金额无效');
   assert.equal((await request('/api/subscriptions/rate', { method:'POST', body:{ usdCnyRate:6.9 } })).usdCnyRate, 6.9);
+  const options = await request('/api/subscriptions/options', { method:'POST', body:{ customCycles:[{ unit:'day', count:14 }], customPaymentMethods:['Wise'] } });
+  assert.deepEqual([options.customCycles, options.customPaymentMethods, options.backup.ok], [[{ unit:'day', count:14 }], ['Wise'], true]);
 
   const business = JSON.stringify(await request('/api/data'));
   assert.doesNotMatch(business, /ChatGPT Plus|subscriptions|usd_cny_rate/, 'order data must not include subscriptions');
@@ -111,6 +145,7 @@ async function serverTests() {
   const reloaded = await request('/api/subscriptions');
   assert.equal(reloaded.items.length, 1, 'subscriptions survive a restart');
   assert.equal(reloaded.usdCnyRate, 6.9);
+  assert.deepEqual(reloaded.customPaymentMethods, ['Wise'], 'custom options survive a restart');
   assert.equal((await request('/api/subscriptions/delete', { method:'POST', body:{ id:saved.item.id } })).deleted, 1);
   const missing = await request('/api/subscriptions/delete', { method:'POST', body:{ id:saved.item.id }, allowError:true });
   assert.equal(missing.status, 404);
@@ -162,7 +197,7 @@ async function request(route, { method = 'GET', body, allowError = false } = {})
 (async () => {
   storeTests();
   await serverTests();
-  console.log('Subscription store test passed: validation, undo restore, page rate, token/JSON guards, backup copy, restart and isolation from order data.');
+  console.log('Subscription store test passed: validation, custom cycles and payment methods, legacy migration, undo restore, page rate, token/JSON guards, backup copy, restart and isolation from order data.');
 })().catch(error => {
   console.error(`Subscription store test failed: ${error.stack || error.message}`);
   process.exitCode = 1;

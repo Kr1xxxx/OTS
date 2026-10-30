@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const { DatabaseSync } = require('node:sqlite');
-const { createWhatsAppStore } = require('../mac-app/whatsapp-store');
+const { createWhatsAppStore, renameWhatsAppCustomer } = require('../mac-app/whatsapp-store');
 const db = new DatabaseSync(':memory:');
 db.exec('CREATE TABLE customers(name TEXT PRIMARY KEY, data_json TEXT NOT NULL)');
 const add = (name, phones) => db.prepare('INSERT INTO customers VALUES(?, ?)').run(name, JSON.stringify({ phones }));
@@ -41,5 +41,18 @@ const enriched = store.sync({ ...conversation, messages:[{ id:'hydration', direc
 assert.equal(enriched.inserted, 0);
 assert.equal(enriched.updated, 1, 'late-loading message content must fill empty capture');
 assert.equal(store.messages({ customer:'Bob' }).messages[0].text, 'Now loaded');
+assert.equal(renameWhatsAppCustomer(db, 'Bob', 'Robert'), 1, 'rename must move the conversation');
+add('Robert', ['+1 2025550128']);
+db.prepare('DELETE FROM customers WHERE name = ?').run('Bob');
+assert.equal(store.messages({ customer:'Robert' }).total, 56, 'renamed customer keeps chat history');
+assert.equal(store.sync({ ...conversation, messages:[{ ...message, id:'after-rename' }] }).customer, 'Robert');
+db.prepare('UPDATE whatsapp_conversations SET customer = ? WHERE customer = ?').run('Gone', 'Robert');
+assert.throws(() => store.sync({ ...conversation, messages:[message] }), /关联/, 'stale binding cannot sync');
+assert.equal(store.bind({ ...conversation, customer:'Robert' }).customer, 'Robert', 'stale binding to a missing customer can be re-pointed');
+assert.equal(store.messages({ customer:'Robert' }).total, 57, 're-pointed binding brings its history');
+assert.throws(() => store.bind({ ...conversation, customer:'Alice' }), /关联/, 'live binding still cannot be overwritten');
+const fresh = new DatabaseSync(':memory:');
+assert.equal(renameWhatsAppCustomer(fresh, 'A', 'B'), 0, 'rename is a no-op before WhatsApp tables exist');
+fresh.close();
 db.close();
-console.log('WhatsApp store: exact phone, ambiguity, explicit binding, deduplication, isolation and pagination passed.');
+console.log('WhatsApp store: exact phone, ambiguity, explicit binding, deduplication, isolation, pagination and customer rename passed.');

@@ -3965,9 +3965,6 @@ html[data-theme] .app-refresh-btn { width:28px; height:28px; min-height:0; borde
 html[data-theme] .app-refresh-btn .ui-icon { width:15px; height:15px; transition:transform var(--motion-spring) var(--ease-spring); }
 html[data-theme] .app-refresh-btn:hover { background:var(--surface-bg); color:var(--gray-900); }
 html[data-theme] .app-refresh-btn:hover .ui-icon { transform:rotate(-90deg); }
-html[data-theme] .app-update-btn { height:22px; padding:0 9px; border:1px solid var(--surface-border-strong, var(--gray-300)); border-radius:999px; background:transparent; color:var(--gray-700); font-size:11px; font-weight:600; line-height:1; cursor:pointer; transition:background var(--motion-fast) ease, color var(--motion-fast) ease, border-color var(--motion-fast) ease; }
-html[data-theme] .app-update-btn:hover { background:var(--accent); border-color:transparent; color:#fff; }
-html[data-theme] .app-update-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 
 /* 顶栏 */
 html[data-theme] .page-title.swap { animation:uiTitleIn .45s var(--ease-out) both; }
@@ -4727,6 +4724,57 @@ html[data-theme][data-modal-style="c"] .order-form .field:has(> textarea) { alig
 html[data-theme][data-modal-style="c"] .order-form .field:has(> textarea) > label { padding-top:10px; }
 html[data-theme][data-modal-style="c"] .order-form .field :is(input:not([type="checkbox"]), select) { min-height:36px; }
 html[data-theme][data-modal-style="c"] .order-form .paste-assist textarea { min-height:72px; }
+/* 原型里剩下的动效：列表依次进场、圆环/时间线绘制、今天脉冲、AI 读取扫光、填入闪烁、校验抖动、完成彩纸 */
+@keyframes uiGrowY { from { transform:scaleY(0); } }
+@keyframes uiRingDraw { from { stroke-dasharray:0 400; } }
+@keyframes uiFlash { 0% { background-color:var(--accent-tint); border-color:var(--accent); } }
+@keyframes uiSweep { from { background-position:200% 0; } to { background-position:-200% 0; } }
+html[data-theme] .page-enter :is(.ui-stag) { animation:uiRise .42s var(--ease-out) backwards; animation-delay:calc(min(var(--i, 0), 12) * 35ms + 80ms); }
+html[data-theme] .page-enter .ui-stag-pop { animation:uiPop .45s var(--ease-spring) backwards; animation-delay:calc(min(var(--i, 0), 12) * 30ms + 80ms); }
+/* 进度环、环形图：进页面时从 0 画到当前值 */
+html[data-theme] .page-enter :is(.target-ring-fill, .donut-seg) { animation:uiRingDraw 1.4s .2s var(--ease-out) backwards; }
+/* 柱状图数值标签在柱子长出来之后浮现 */
+html[data-theme] .page-enter .chart-value { animation:uiRise .4s var(--ease-out) backwards; animation-delay:.5s; }
+/* 日历：今天的日期圆点轻轻脉冲 */
+html[data-theme] .calendar-day.today .calendar-day-num > span:first-child { animation:uiPing 2s var(--ease) infinite; }
+/* 时间线：竖线从上往下长，最新一条的圆点脉冲 */
+html[data-theme] :is(.detail-timeline, .tracking-detail-list) { position:relative; }
+html[data-theme] :is(.detail-log, .tracking-event) { position:relative; animation:uiRise .4s var(--ease-out) backwards; }
+html[data-theme] :is(.detail-log, .tracking-event):nth-child(2), html[data-theme] .detail-log:nth-child(2)::before { animation-delay:60ms; }
+html[data-theme] :is(.detail-log, .tracking-event):nth-child(3), html[data-theme] .detail-log:nth-child(3)::before { animation-delay:120ms; }
+html[data-theme] :is(.detail-log, .tracking-event):nth-child(4), html[data-theme] .detail-log:nth-child(4)::before { animation-delay:180ms; }
+html[data-theme] :is(.detail-log, .tracking-event):nth-child(5), html[data-theme] .detail-log:nth-child(5)::before { animation-delay:240ms; }
+html[data-theme] :is(.detail-log, .tracking-event):nth-child(6), html[data-theme] .detail-log:nth-child(6)::before { animation-delay:300ms; }
+html[data-theme] :is(.detail-log, .tracking-event):nth-child(7), html[data-theme] .detail-log:nth-child(7)::before { animation-delay:360ms; }
+html[data-theme] :is(.detail-log, .tracking-event):nth-child(8), html[data-theme] .detail-log:nth-child(8)::before { animation-delay:420ms; }
+html[data-theme] .detail-log:not(:last-child)::before { content:''; position:absolute; left:3px; top:18px; bottom:-10px; width:1px; background:var(--surface-border); transform-origin:top; animation:uiGrowY .5s var(--ease-out) backwards; }
+html[data-theme] .detail-log:first-child .detail-log-dot,
+html[data-theme] .tracking-event:first-child .tracking-event-dot { animation:uiPing 1.6s var(--ease) infinite; }
+/* AI 识别中：输入框描边变成主色，上面扫过一道光，标题文字流光 */
+html[data-theme] .paste-assist.ai-reading { position:relative; overflow:hidden; }
+html[data-theme] .paste-assist.ai-reading textarea { border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); }
+html[data-theme] .paste-assist.ai-reading::after { content:''; position:absolute; inset:0; pointer-events:none; border-radius:inherit; background:linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--accent) 14%, transparent) 50%, transparent 70%); background-size:200% 100%; animation:uiSweep 1.2s linear infinite; }
+html[data-theme] .paste-assist.ai-reading .paste-assist-title { background:linear-gradient(90deg, var(--gray-500) 30%, var(--gray-900) 50%, var(--gray-500) 70%); background-size:200% 100%; -webkit-background-clip:text; background-clip:text; color:transparent; animation:uiSweep 1.8s linear infinite; }
+html[data-theme] .paste-results > * { animation:uiPop .4s var(--ease-spring) backwards; }
+/* 识别结果填进表单的字段闪一下 */
+html[data-theme] .ui-flash { animation:uiFlash 1.2s var(--ease) both; }
+/* 必填项没填：整个字段左右抖一下 */
+html[data-theme] .field.ui-err { animation:uiShake .4s var(--ease); }
+/* 状态胶囊变化时弹一下；筛选标签出现时弹出 */
+html[data-theme] .ui-pop-in { animation:uiPop .45s var(--ease-spring) both; }
+html[data-theme] .order-list-filter-chip { animation:uiPop .4s var(--ease-spring) both; }
+/* 有新通知时铃铛摇一下 */
+html[data-theme] .bell-btn.ring .ui-icon { animation:uiWiggle .7s var(--ease) 1; transform-origin:50% 10%; }
+#uiConfetti { position:fixed; inset:0; z-index:200; width:100%; height:100%; pointer-events:none; }
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme] :is(.ui-stag, .ui-stag-pop, .detail-log, .tracking-event, .ui-flash, .ui-pop-in, .order-list-filter-chip, .paste-results > *),
+  html[data-theme] .detail-log::before,
+  html[data-theme] .paste-assist.ai-reading::after,
+  html[data-theme] .paste-assist.ai-reading .paste-assist-title,
+  html[data-theme] .calendar-day.today .calendar-day-num > span:first-child,
+  html[data-theme] :is(.detail-log-dot, .tracking-event-dot, .target-ring-fill, .donut-seg, .chart-value) { animation:none !important; }
+  html[data-theme] .paste-assist.ai-reading .paste-assist-title { color:var(--gray-900); background:none; }
+}
 /* ===== 通知面板（顶栏铃铛 → 右侧 440px 面板） ===== */
 html[data-theme] .bell-btn { position:relative; }
 html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); }
@@ -5024,7 +5072,7 @@ html[data-theme] .target-history-rate, html[data-theme] .target-history-rate.emp
   </div>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.90，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.90</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.91，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.91</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()">更新</button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -16159,6 +16207,7 @@ function moveOrderToStage(id, stage) {
   render();
   if (detailOrderId === id && document.getElementById('orderDetailDrawer')?.classList.contains('open')) openOrderDetail(id);
   toast(`已移动到${stageDef(normalized).name}`, fromTrash ? undefined : { undo:() => moveOrderToStage(id, previousStage) });
+  if (normalized === 'done' && normalizeStage(previousStage) !== 'done' && typeof uiConfetti === 'function') uiConfetti(...uiLastPointer());
 }
 function deleteOrder() {
   if (!editingId) return;
@@ -18577,6 +18626,7 @@ function uiAfterPageChange(changed) {
   title?.classList.remove('swap'); page?.classList.remove('page-enter');
   void page?.offsetWidth;
   title?.classList.add('swap'); page?.classList.add('page-enter');
+  if (typeof uiStaggerPage === 'function') uiStaggerPage(page);
   setTimeout(() => page?.classList.remove('page-enter'), 900);
 }
 document.addEventListener('keydown', e => {
@@ -18811,6 +18861,7 @@ function uiRenderNotifs() {
   const unread = items.filter(item => !read.has(item.id)).length;
   const badge = document.getElementById('notifBadge');
   if (badge) { badge.hidden = !unread; badge.textContent = unread > 9 ? '9+' : String(unread); }
+  if (typeof uiBellRing === 'function') uiBellRing(unread);
   const panel = document.getElementById('notifPanel');
   if (!panel || panel.hidden) return;
   document.getElementById('notifUnread').textContent = unread ? `${unread} 条未读` : '全部已读';
@@ -19055,7 +19106,9 @@ document.getElementById('detailTabs')?.addEventListener('click', e => {
 });
 document.getElementById('detailStageBar')?.addEventListener('click', e => {
   const btn = e.target.closest('[data-detail-stage]');
-  if (btn && !btn.disabled && detailOrderId) moveOrderToStage(detailOrderId, btn.dataset.detailStage);
+  if (!btn || btn.disabled || !detailOrderId) return;
+  moveOrderToStage(detailOrderId, btn.dataset.detailStage);
+  document.querySelector('#detailPills .tag')?.classList.add('ui-pop-in');
 });
 document.getElementById('detailCopyNumBtn')?.addEventListener('click', () => {
   const num = document.getElementById('detailNum')?.textContent.trim();
@@ -19065,6 +19118,87 @@ document.getElementById('detailCopyNumBtn')?.addEventListener('click', () => {
 document.getElementById('orderDetailBody')?.addEventListener('click', e => {
   if (e.target.closest('[data-detail-open-customer]')) document.getElementById('detailCustomerBtn')?.click();
 });
+// 新版 UI：原型里的其余动效（列表依次进场、完成彩纸、AI 读取、填入闪烁、校验抖动、铃铛提醒）。
+function uiStaggerPage(page) {
+  if (!page) return;
+  const seen = new Map();
+  page.querySelectorAll('.order-table tbody > tr, .customer-row, .ship-row, .recent-tracking-row, .agenda-row, .deleted-row, .analysis-rank, .target-history-row, .breakdown-row, .data-action').forEach(row => {
+    const i = seen.get(row.parentNode) || 0;
+    seen.set(row.parentNode, i + 1);
+    row.style.setProperty('--i', String(i));
+    row.classList.add('ui-stag');
+  });
+}
+// 订单移到「已完成」时在鼠标位置撒彩纸。
+function uiConfetti(x, y) {
+  if (uiReduceMotion()) return;
+  let cv = document.getElementById('uiConfetti');
+  if (!cv) { cv = document.createElement('canvas'); cv.id = 'uiConfetti'; cv.setAttribute('aria-hidden', 'true'); document.body.appendChild(cv); }
+  const ctx = cv.getContext('2d'), dpr = window.devicePixelRatio || 1;
+  cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const cs = getComputedStyle(document.documentElement);
+  const cols = ['--accent', '--s-green', '--s-amber', '--s-blue', '--s-teal', '--s-red'].map(v => cs.getPropertyValue(v).trim() || '#7c5cff');
+  const px = x ?? innerWidth / 2, py = y ?? innerHeight / 3;
+  const ps = Array.from({ length:90 }, () => ({ x:px, y:py, vx:(Math.random() - .5) * 12, vy:-Math.random() * 11 - 4, r:Math.random() * Math.PI, vr:(Math.random() - .5) * .4, w:5 + Math.random() * 5, h:3 + Math.random() * 4, c:cols[Math.floor(Math.random() * cols.length)], life:1 }));
+  let t0 = performance.now();
+  (function frame(now) {
+    const dt = Math.min(32, now - t0) / 16; t0 = now;
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    let alive = 0;
+    ps.forEach(p => {
+      p.vy += .35 * dt; p.vx *= .985; p.x += p.vx * dt; p.y += p.vy * dt; p.r += p.vr * dt; p.life -= .009 * dt;
+      if (p.life <= 0 || p.y > innerHeight + 20) return;
+      alive++;
+      ctx.save(); ctx.globalAlpha = Math.max(0, p.life); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.restore();
+    });
+    if (alive) requestAnimationFrame(frame); else ctx.clearRect(0, 0, innerWidth, innerHeight);
+  })(t0);
+}
+function uiLastPointer() { return uiLastPointer.at || [undefined, undefined]; }
+document.addEventListener('pointerup', e => { uiLastPointer.at = [e.clientX, e.clientY]; }, true);
+// AI 识别中：给粘贴框加读取扫光（按钮的禁用状态由原有逻辑控制，这里只跟着它走）。
+['pasteAssistAiBtn', 'customerPasteAnalyzeBtn'].forEach(id => {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  new MutationObserver(() => {
+    btn.closest('.paste-assist')?.classList.toggle('ai-reading', btn.disabled && /识别中/.test(btn.textContent));
+  }).observe(btn, { attributes:true, attributeFilter:['disabled'], childList:true, characterData:true, subtree:true });
+});
+// 识别结果填入表单后，被改动的字段闪一下。
+function uiFlashChanged(scope, before) {
+  if (!scope) return;
+  scope.querySelectorAll('input, select, textarea').forEach((el, i) => {
+    const now = el.type === 'checkbox' ? String(el.checked) : el.value;
+    if (before[i] === undefined || before[i] === now) return;
+    const target = el.type === 'checkbox' ? (el.closest('.field') || el) : el;
+    target.classList.remove('ui-flash'); void target.offsetWidth; target.classList.add('ui-flash');
+    setTimeout(() => target.classList.remove('ui-flash'), 1300);
+  });
+}
+document.addEventListener('click', e => {
+  const btn = e.target.closest('[data-paste-fill-extracted], [data-customer-paste-fill]');
+  if (!btn) return;
+  const scope = btn.closest('.modal');
+  const before = scope ? [...scope.querySelectorAll('input, select, textarea')].map(el => el.type === 'checkbox' ? String(el.checked) : el.value) : [];
+  setTimeout(() => uiFlashChanged(scope, before), 30);
+}, true);
+// 必填项没填：浏览器校验失败时字段抖一下。
+document.addEventListener('invalid', e => {
+  const field = e.target.closest?.('.field');
+  if (!field) return;
+  field.classList.remove('ui-err'); void field.offsetWidth; field.classList.add('ui-err');
+  setTimeout(() => field.classList.remove('ui-err'), 450);
+}, true);
+// 有新的未读通知时铃铛摇一下（打开软件时不算）。
+function uiBellRing(unread) {
+  const prev = uiBellRing.last;
+  uiBellRing.last = unread;
+  if (prev === undefined || unread <= prev || uiReduceMotion()) return;
+  const bell = document.getElementById('notifBtn');
+  if (!bell) return;
+  bell.classList.remove('ring'); void bell.offsetWidth; bell.classList.add('ring');
+  setTimeout(() => bell.classList.remove('ring'), 800);
+}
 // ===== 新版 UI 交互 结束 =====
 // Mac App 的原生更新器负责检查、下载、校验、替换并重启；网页里只发起请求。
 function requestAppUpdate() {

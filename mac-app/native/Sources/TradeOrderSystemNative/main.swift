@@ -53,8 +53,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         quit: { [unowned self] in
             self.allowTermination = true
             NSApp.terminate(nil)
-        }
+        },
+        report: { [unowned self] status in self.showUpdateStatus(status) }
     )
+
+    /// Hands updater progress to the page, which draws it on the 更新 button.
+    private func showUpdateStatus(_ status: UpdateStatus) {
+        guard appHasLoaded, let webView,
+              let data = try? JSONSerialization.data(withJSONObject: status.payload),
+              let json = String(data: data, encoding: .utf8) else { return }
+        webView.evaluateJavaScript("window.otsAppUpdateStatus && window.otsAppUpdateStatus(\(json))", completionHandler: nil)
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         createMainMenu()

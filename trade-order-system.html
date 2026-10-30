@@ -3956,7 +3956,7 @@ html[data-theme] .api-status-dot.checking .api-status-state { color:var(--s-ambe
 html[data-theme] .sidebar-foot { padding:0; border:0; }
 html[data-theme] .team { min-height:0; padding:0 4px 0 8px; border:0; background:transparent; font-size:12px; color:var(--gray-500); gap:8px; justify-content:flex-start; }
 html[data-theme] .team .app-version { min-width:0; height:auto; padding:0; border:0; background:none; font-size:12px; font-weight:400; color:var(--gray-500); }
-html[data-theme] .save-pulse { margin-left:auto; display:inline-flex; align-items:center; gap:5px; }
+html[data-theme] .save-pulse { margin-left:auto; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; }
 html[data-theme] .save-pulse i { width:6px; height:6px; border-radius:50%; background:var(--s-green); }
 html[data-theme] .save-pulse.is-busy i { background:var(--accent); animation:uiPing 1s var(--ease) infinite; }
 html[data-theme] .save-pulse.is-error { color:var(--s-red); }
@@ -3965,6 +3965,14 @@ html[data-theme] .app-refresh-btn { width:28px; height:28px; min-height:0; borde
 html[data-theme] .app-refresh-btn .ui-icon { width:15px; height:15px; transition:transform var(--motion-spring) var(--ease-spring); }
 html[data-theme] .app-refresh-btn:hover { background:var(--surface-bg); color:var(--gray-900); }
 html[data-theme] .app-refresh-btn:hover .ui-icon { transform:rotate(-90deg); }
+html[data-theme] .app-update-btn { --p:0%; position:relative; overflow:hidden; min-width:44px; height:22px; padding:0 9px; border:1px solid var(--surface-border-strong, var(--gray-300)); border-radius:999px; background:transparent; color:var(--gray-700); font-size:11px; font-weight:600; line-height:1; white-space:nowrap; font-variant-numeric:tabular-nums; cursor:pointer; transition:background var(--motion-fast) ease, color var(--motion-fast) ease, border-color var(--motion-fast) ease; }
+html[data-theme] .app-update-btn::before { content:""; position:absolute; inset:0; width:var(--p); background:color-mix(in srgb, var(--accent) 28%, transparent); transition:width .2s linear; pointer-events:none; }
+html[data-theme] .app-update-btn > span { position:relative; }
+html[data-theme] .app-update-btn:hover:not(:disabled) { background:var(--accent); border-color:transparent; color:#fff; }
+html[data-theme] .app-update-btn.is-available { border-color:var(--accent); color:var(--accent); }
+html[data-theme] .app-update-btn.is-busy { cursor:progress; border-color:var(--accent); color:var(--gray-900); }
+html[data-theme] .app-update-btn.is-error { border-color:var(--s-red); color:var(--s-red); }
+html[data-theme] .app-update-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 
 /* 顶栏 */
 html[data-theme] .page-title.swap { animation:uiTitleIn .45s var(--ease-out) both; }
@@ -5073,7 +5081,7 @@ html[data-theme] .target-history-rate, html[data-theme] .target-history-rate.emp
   <div class="sidebar-foot">
     <div class="team">
       <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.91，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.91</div>
-      <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()">更新</button>
+      <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
     </div>
@@ -19200,12 +19208,50 @@ function uiBellRing(unread) {
   setTimeout(() => bell.classList.remove('ring'), 800);
 }
 // ===== 新版 UI 交互 结束 =====
-// Mac App 的原生更新器负责检查、下载、校验、替换并重启；网页里只发起请求。
+// Mac App 的原生更新器负责检查、下载、校验、替换并重启；网页里只发起请求，
+// 并把它回传的进度画在「更新」按钮上（不弹窗、不确认）。
+let appUpdateResetTimer = 0;
 function requestAppUpdate() {
+  const btn = document.getElementById('appUpdateBtn');
+  if (btn?.classList.contains('is-busy')) return;
   const handler = window.webkit?.messageHandlers?.appUpdate;
   if (!handler) { toast('请在 Mac App 里使用更新'); return; }
+  otsAppUpdateStatus({state:'checking'});
   handler.postMessage({action:'check'});
 }
+function otsAppUpdateStatus(status) {
+  const btn = document.getElementById('appUpdateBtn');
+  if (!btn || !status) return;
+  const label = btn.querySelector('span') || btn;
+  const busy = ['checking','downloading','verifying','saving','restarting'].includes(status.state);
+  const progress = status.state === 'downloading' ? Math.max(0, Math.min(1, Number(status.progress) || 0)) : (busy && status.state !== 'checking' ? 1 : 0);
+  const text = {
+    checking: '检查中…',
+    downloading: `下载 ${Math.round(progress * 100)}%`,
+    verifying: '校验中…',
+    saving: '保存中…',
+    restarting: '重启中…',
+    latest: '已是最新',
+    available: `更新 ${status.version || ''}`,
+    error: '更新失败'
+  }[status.state] || '更新';
+  clearTimeout(appUpdateResetTimer);
+  label.textContent = text;
+  btn.style.setProperty('--p', `${Math.round(progress * 100)}%`);
+  btn.classList.toggle('is-busy', busy);
+  btn.classList.toggle('is-available', status.state === 'available');
+  btn.classList.toggle('is-error', status.state === 'error');
+  btn.setAttribute('aria-busy', busy ? 'true' : 'false');
+  btn.title = status.state === 'error' ? `更新失败：${status.message || '未知原因'}`
+    : status.state === 'available' ? `发现新版本 V${status.version || ''}，点一下直接下载并重启`
+    : status.state === 'latest' ? `当前 V${status.version || ''} 已是最新版本`
+    : '检查更新：有新版本会下载并自动重装重启';
+  if (status.state === 'error' && status.message) toast(`更新失败：${status.message}`);
+  if (status.state === 'latest' || status.state === 'error') {
+    appUpdateResetTimer = setTimeout(() => otsAppUpdateStatus({state:'idle'}), status.state === 'error' ? 6000 : 3000);
+  }
+}
+window.otsAppUpdateStatus = otsAppUpdateStatus;
 </script>
 </body>
 </html>

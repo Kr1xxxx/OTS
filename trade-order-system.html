@@ -2777,6 +2777,8 @@ html:not([data-theme="dark"]) .api-status-state {
 .mac-only { display: none !important; }
 .mac-app-mode .mac-only { display: flex !important; }
 .mac-app-mode .mac-only[hidden] { display: none !important; }
+.mac-only-notice { max-width: 560px; margin: 18vh auto 0; padding: 0 16px; text-align: center; }
+.mac-only-notice p { color: var(--muted, #667085); }
 .toast {
   position: fixed; right: 20px; bottom: 20px; z-index: 80; background: var(--gray-900); color: white;
   border-radius: var(--radius); padding: 10px 14px; box-shadow: 0 12px 32px rgba(15,23,42,.28); display: none;
@@ -5160,7 +5162,6 @@ const defaultAiSettings = {
   lastTestStatus: '尚未测试连接'
 };
 const trackingApiSettingsKey = 'trade-order-system-tracking-api-settings-v1';
-const dhlTrackingEndpoint = 'https://api-eu.dhl.com/track/shipments';
 const defaultTrackingApiSettings = {
   dhlApiEnabled: '是',
   dhlApiKey: '',
@@ -5491,11 +5492,8 @@ function saveDashboardAmountMonth(value) {
   localStorage.setItem(dashboardAmountMonthKey, value || 'all');
 }
 
+// Placeholder until loadMacAppState() reads the database.
 function loadState() {
-  const saved = localStorage.getItem(storeKey);
-  if (saved) {
-    try { return normalizeState(JSON.parse(saved)); } catch (e) {}
-  }
   return normalizeState({ orders: demoOrders, doneTasks: {} });
 }
 function canSubmitStoredData() {
@@ -5519,17 +5517,8 @@ async function persistFormState(...forms) {
   } finally { forms.forEach((form,index) => { form.inert = previous[index]; }); }
 }
 function saveState() {
-  if (isMacAppMode()) {
-    if (!macDataLoaded || macStorageReadOnly) return Promise.resolve(false);
-    return syncStateToMacApp();
-  }
-  try {
-    localStorage.setItem(storeKey, JSON.stringify(state));
-    return Promise.resolve(true);
-  } catch (error) {
-    toast('本地保存失败，请及时导出数据');
-    return Promise.resolve(false);
-  }
+  if (!isMacAppMode() || !macDataLoaded || macStorageReadOnly) return Promise.resolve(false);
+  return syncStateToMacApp();
 }
 let macSaveTimer = 0;
 let macSaveErrorToastAt = 0;
@@ -5794,7 +5783,8 @@ function savedSecretPlaceholder(saved, mask, fallback) {
 function getAiSettings() {
   try {
     const settings = normalizeAiSettings(JSON.parse(localStorage.getItem(aiSettingsKey) || '{}'));
-    if (isMacAppMode() && settings.apiKey) {
+    // Keys live in the Mac app's secrets folder; drop any key left in browser storage by older versions.
+    if (settings.apiKey) {
       const safe = localAiSettings(settings);
       localStorage.setItem(aiSettingsKey, JSON.stringify(safe));
       return safe;
@@ -5806,7 +5796,6 @@ function getAiSettings() {
 }
 function localAiSettings(settings = {}) {
   const normalized = normalizeAiSettings(settings);
-  if (!isMacAppMode()) return normalized;
   return {
     ...normalized,
     apiKey: '',
@@ -8360,11 +8349,6 @@ function clientFieldsForPaste(name) {
     ...(product ? { productType: product } : {})
   };
 }
-function aiChatEndpoint(baseUrl) {
-  const clean = String(baseUrl || '').trim().replace(/\/+$/, '');
-  if (!clean) return '';
-  return /\/chat\/completions$/.test(clean) ? clean : `${clean}/chat/completions`;
-}
 function friendlyAiErrorMessage(error) {
   const message = String(error?.message || error || '').trim();
   if (/abort|timeout|timed out|request timeout/i.test(message)) {
@@ -8376,39 +8360,16 @@ async function requestAiChat(settings, messages, { temperature = 0, testOnly = f
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    if (isMacAppMode()) {
-      const res = await apiFetch('/api/ai-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages, temperature, testOnly, purpose }),
-        signal: controller.signal
-      });
-      const data = await res.json().catch(() => ({}));
-      if (data.accountingWarning) toast(data.accountingWarning);
-      if (!res.ok || data.ok === false) throw new Error(data.message || `连接失败 ${res.status}`);
-      return data;
-    }
-    const res = await fetch(aiChatEndpoint(settings.baseUrl), {
+    const res = await apiFetch('/api/ai-chat', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${settings.apiKey}`
-      },
-      body: JSON.stringify({
-        model: settings.model,
-        messages,
-        // 智谱和 DeepSeek 官方接口都关掉深度思考：识别只要字段，思考会拖慢速度并占用输出额度
-        thinking: settings.provider === 'zhipu' || new URL(settings.baseUrl).hostname === 'api.deepseek.com' ? { type: 'disabled' } : undefined,
-        reasoning: new URL(settings.baseUrl).hostname === 'openrouter.ai' && settings.model === 'deepseek/deepseek-v4.1-flash' ? { enabled: false } : undefined,
-        // DeepSeek 官方接口支持 JSON 模式：识别请求强制返回 JSON 对象，测试连接不用
-        response_format: !testOnly && new URL(settings.baseUrl).hostname === 'api.deepseek.com' ? { type: 'json_object' } : undefined,
-        max_tokens: testOnly ? 256 : 1024,
-        temperature
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages, temperature, testOnly, purpose }),
       signal: controller.signal
     });
-    if (!res.ok) throw new Error(`连接失败 ${res.status}`);
-    return res.json();
+    const data = await res.json().catch(() => ({}));
+    if (data.accountingWarning) toast(data.accountingWarning);
+    if (!res.ok || data.ok === false) throw new Error(data.message || `连接失败 ${res.status}`);
+    return data;
   } catch (error) {
     throw new Error(friendlyAiErrorMessage(error));
   } finally {
@@ -8531,7 +8492,7 @@ ${text}`;
 async function requestAiPasteAnalysis(text, localAnalysis, { testOnly = false, settingsOverride = null } = {}) {
   const settings = normalizeAiSettings(settingsOverride || getAiSettings());
   if (settings.enabled !== '是') throw new Error('AI 识别未启用');
-  if ((!isMacAppMode() && !settings.apiKey) || !settings.baseUrl || !settings.model) throw new Error('请先在设置里填写 API Key、Base URL 和模型名称');
+  if (!settings.baseUrl || !settings.model) throw new Error('请先在设置里填写 API Key、Base URL 和模型名称');
   const prompt = testOnly ? '只输出 {"ok": true}' : aiOrderPrompt(text, localAnalysis?.extracted || {});
   const data = await requestAiChat(settings, [
     { role: 'system', content: '你是外贸订单信息提取助手，熟悉假发和睫毛外贸订单的聊天习惯（中英文混杂、缩写、口语）。你只做字段提取：严格按用户给出的字段和取值范围输出一个 JSON 对象，原文没有的信息一律省略，绝不编造，不输出 Markdown、解释或代码块。' },
@@ -9800,7 +9761,7 @@ function aiCustomerCountryMetadata(raw = {}, fields = {}, text = '') {
 async function requestAiCustomerAnalysis(text) {
   const settings = normalizeAiSettings(getAiSettings());
   if (settings.enabled !== '是') throw new Error('AI 识别未启用');
-  if ((!isMacAppMode() && !settings.apiKey) || !settings.baseUrl || !settings.model) throw new Error('请先在设置里填写 API Key、Base URL 和模型名称');
+  if (!settings.baseUrl || !settings.model) throw new Error('请先在设置里填写 API Key、Base URL 和模型名称');
   const data = await requestAiChat(settings, [
     { role: 'system', content: '你是外贸客户档案信息提取助手，熟悉海外收货地址、电话和付款信息的各种写法。你只做字段提取：严格按用户给出的字段和取值范围输出一个 JSON 对象，原文没有的信息一律省略，绝不凭常识补全或编造，不输出 Markdown、解释或代码块。' },
     { role: 'user', content: aiCustomerPrompt(text) }
@@ -12604,9 +12565,7 @@ async function queryTrackingStatus(clean, carrier) {
     };
   }
   if (carrierName(carrier) === 'DHL' && settings.dhlApiEnabled === '是') {
-    const dhlResult = isMacAppMode()
-      ? await queryMacTrackingStatus(clean, 'DHL', settings)
-      : await queryDhlTrackingApiClient(clean, settings);
+    const dhlResult = await queryMacTrackingStatus(clean, 'DHL', settings);
     if (dhlResult.ok) return dhlResult;
     return {
       ...dhlResult,
@@ -12615,9 +12574,7 @@ async function queryTrackingStatus(clean, carrier) {
     };
   }
   if (carrierName(carrier) === 'FedEx' && settings.fedexApiEnabled === '是') {
-    const fedexResult = isMacAppMode()
-      ? await queryMacTrackingStatus(clean, 'FedEx', settings)
-      : await queryFedExTrackingApiClient(clean, settings);
+    const fedexResult = await queryMacTrackingStatus(clean, 'FedEx', settings);
     if (fedexResult.ok) return fedexResult;
     return {
       ...fedexResult,
@@ -12656,43 +12613,6 @@ async function queryMacTrackingStatus(clean, carrier, settings) {
     return { ok: false, status: '待 API 查询', message };
   }
 }
-async function queryDhlTrackingApiClient(clean, settings) {
-  if (!settings.dhlApiKey) {
-    const message = 'DHL API Key 未设置。请在 Mac App 设置里保存 Key，浏览器分享版不会保存密钥。';
-    const checkedAt = nowText();
-    saveTrackingApiSettings({ ...settings, lastCheckedAt: checkedAt, lastStatus: message, ...trackingCarrierStatusPatch('DHL', message, checkedAt) });
-    return { ok: false, status: '待 API 查询', message };
-  }
-  try {
-    const res = await fetch(`${dhlTrackingEndpoint}?trackingNumber=${encodeURIComponent(clean)}`, {
-      cache: 'no-store',
-      credentials: 'omit',
-      headers: { Accept: 'application/json', 'DHL-API-Key': settings.dhlApiKey }
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const authMessage = res.status === 401
-        ? 'DHL API 未授权当前资源，请在 DHL Developer 后台确认已开通 Shipment Tracking - Unified。'
-        : `DHL API HTTP ${res.status}`;
-      throw new Error(data.detail || data.message || authMessage);
-    }
-    const shipment = data.shipments?.[0];
-    if (!shipment) throw new Error('DHL 未返回物流记录');
-    const status = normalizeTrackingStatus([shipment.status?.statusCode, shipment.status?.description, shipment.status?.status].filter(Boolean).join(' ')) || '已发货';
-    const message = `DHL API 已同步 · ${status}`;
-    const checkedAt = nowText();
-    saveTrackingApiSettings({ ...settings, lastCheckedAt: checkedAt, lastStatus: message, ...trackingCarrierStatusPatch('DHL', message, checkedAt) });
-    return { ok: true, status, message, updatedAt: shipment.status?.timestamp || nowText(), events: dhlTrackingEvents(shipment) };
-  } catch (e) {
-    const message = `DHL API 查询失败：${e.message || '未知错误'}`;
-    const checkedAt = nowText();
-    saveTrackingApiSettings({ ...settings, lastCheckedAt: checkedAt, lastStatus: message, ...trackingCarrierStatusPatch('DHL', message, checkedAt) });
-    return { ok: false, status: '待 API 查询', message };
-  }
-}
-function fedexClientBaseUrl(settings) {
-  return settings.fedexEnv === 'prod' ? 'https://apis.fedex.com' : 'https://apis-sandbox.fedex.com';
-}
 function normalizeTrackingEvents(events = []) {
   return (Array.isArray(events) ? events : [])
     .map(event => {
@@ -12705,19 +12625,6 @@ function normalizeTrackingEvents(events = []) {
       };
     })
     .filter(event => event.title || event.time || event.location);
-}
-function fedexLocation(place = {}) {
-  return [place.city, place.stateOrProvinceCode, place.countryName || place.countryCode].filter(Boolean).join(', ');
-}
-function fedexDateTypeLabel(type = '') {
-  const labels = {
-    ACTUAL_DELIVERY: '实际签收时间',
-    ACTUAL_PICKUP: '实际揽收时间',
-    SHIP: '发货时间',
-    ESTIMATED_DELIVERY: '预计签收时间',
-    COMMITMENT: '承诺送达时间'
-  };
-  return labels[type] || String(type || '').replaceAll('_', ' ').toLowerCase().replace(/(^|\s)\w/g, s => s.toUpperCase()) || 'FedEx 时间节点';
 }
 function uniqueTrackingEvents(events = []) {
   const seen = new Set();
@@ -12735,82 +12642,6 @@ function sortTrackingEvents(events = [], direction = 'desc') {
     const timeB = trackingTimeMs(b.time || b.date || b.datetime);
     return (timeA - timeB) * factor;
   });
-}
-function fedexTrackingEvents(track = {}) {
-  const latest = track.latestStatusDetail ? [{
-    time: track.dateAndTimes?.[0]?.dateTime || '',
-    title: track.latestStatusDetail.statusByLocale || track.latestStatusDetail.description || track.derivedStatus || 'FedEx 最新状态',
-    location: fedexLocation(track.latestStatusDetail.scanLocation || {}),
-    description: track.latestStatusDetail.code || ''
-  }] : [];
-  const scans = (track.scanEvents || []).map(event => ({
-    time: event.date,
-    title: event.eventDescription || event.derivedStatus || event.eventType,
-    location: fedexLocation(event.scanLocation || {}),
-    description: event.exceptionDescription || ''
-  }));
-  const times = (track.dateAndTimes || []).map(item => ({
-    time: item.dateTime,
-    title: fedexDateTypeLabel(item.type),
-    location: '',
-    description: item.description || ''
-  }));
-  return sortTrackingEvents(uniqueTrackingEvents(normalizeTrackingEvents([...latest, ...scans, ...times])));
-}
-function dhlTrackingEvents(shipment = {}) {
-  return normalizeTrackingEvents((shipment.events || []).map(event => ({
-    time: event.timestamp,
-    title: event.description || event.status,
-    location: event.location?.address?.addressLocality || event.location?.address?.countryCode || '',
-    description: event.statusCode || ''
-  })));
-}
-async function queryFedExTrackingApiClient(clean, settings) {
-  if (!settings.fedexApiKey || !settings.fedexApiSecret) {
-    const message = 'FedEx API Key 或 Secret 未设置。请在 Mac App 设置里保存，分享版不会保存密钥。';
-    const checkedAt = nowText();
-    saveTrackingApiSettings({ ...settings, lastCheckedAt: checkedAt, lastStatus: message, ...trackingCarrierStatusPatch('FedEx', message, checkedAt) });
-    return { ok: false, status: '待 API 查询', message };
-  }
-  try {
-    const tokenRes = await fetch(`${fedexClientBaseUrl(settings)}/oauth/token`, {
-      method: 'POST',
-      cache: 'no-store',
-      credentials: 'omit',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'client_credentials',
-        client_id: settings.fedexApiKey,
-        client_secret: settings.fedexApiSecret
-      }).toString()
-    });
-    const tokenData = await tokenRes.json().catch(() => ({}));
-    if (!tokenRes.ok || !tokenData.access_token) throw new Error(tokenData.errors?.[0]?.message || tokenData.message || `FedEx 授权 HTTP ${tokenRes.status}`);
-    const trackRes = await fetch(`${fedexClientBaseUrl(settings)}/track/v1/trackingnumbers`, {
-      method: 'POST',
-      cache: 'no-store',
-      credentials: 'omit',
-      headers: { Authorization: `Bearer ${tokenData.access_token}`, 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({
-        trackingInfo: [{ trackingNumberInfo: { trackingNumber: clean } }],
-        includeDetailedScans: true
-      })
-    });
-    const data = await trackRes.json().catch(() => ({}));
-    if (!trackRes.ok) throw new Error(data.errors?.[0]?.message || data.message || `FedEx API HTTP ${trackRes.status}`);
-    const track = data.output?.completeTrackResults?.[0]?.trackResults?.[0];
-    const detail = [track?.latestStatusDetail?.code, track?.latestStatusDetail?.statusByLocale].filter(Boolean).join(' ');
-    const status = normalizeTrackingStatus(detail) || '已发货';
-    const message = `FedEx API 已同步 · ${status}`;
-    const checkedAt = nowText();
-    saveTrackingApiSettings({ ...settings, lastCheckedAt: checkedAt, lastStatus: message, ...trackingCarrierStatusPatch('FedEx', message, checkedAt) });
-    return { ok: true, status, message, updatedAt: track?.dateAndTimes?.[0]?.dateTime || nowText(), events: fedexTrackingEvents(track) };
-  } catch (e) {
-    const message = `FedEx API 查询失败：${e.message || '未知错误'}`;
-    const checkedAt = nowText();
-    saveTrackingApiSettings({ ...settings, lastCheckedAt: checkedAt, lastStatus: message, ...trackingCarrierStatusPatch('FedEx', message, checkedAt) });
-    return { ok: false, status: '待 API 查询', message };
-  }
 }
 function completeDueUpsOrders(today = nowText().slice(0, 10)) {
   if (isMacAppMode() && (!macDataLoaded || macStorageReadOnly)) return 0;
@@ -16403,6 +16234,11 @@ document.addEventListener('mouseout', e => {
   if (e.target.closest('.level-icon[data-level-tooltip]')) levelTooltip.classList.remove('show');
 });
 
+// The page only works when served by the Mac app: data, keys and network calls all go through its local server.
+if (!isMacAppMode()) {
+  document.body.innerHTML = '<main class="mac-only-notice"><h1>请在 Mac App 里打开 OTS</h1><p>这个页面需要由 Mac App 的本机服务打开，直接打开 HTML 文件无法读取或保存数据。</p></main>';
+  throw new Error('OTS must be opened from the Mac app');
+}
 const shouldScrollTopAfterRefresh = sessionStorage.getItem(refreshTopKey) === '1';
 if (shouldScrollTopAfterRefresh) sessionStorage.removeItem(refreshTopKey);
 render();

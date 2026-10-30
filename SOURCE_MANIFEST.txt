@@ -67,6 +67,7 @@ scripts/test-global-search.js
 scripts/test-html-injection-ui.js
 scripts/test-image-attachment-preparation.js
 scripts/test-image-upload-progress-ui.js
+scripts/test-mac-only-ui.js
 scripts/test-menu-popovers-ui.js
 scripts/test-modal-accessibility.js
 scripts/test-multi-shipments.js

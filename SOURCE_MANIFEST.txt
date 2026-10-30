@@ -37,6 +37,7 @@ package.json
 scripts/bench-render-save.js
 scripts/check-project.js
 scripts/check-release.js
+scripts/fixtures/customer-recognition-cases.json
 scripts/helpers/whatsapp-fixture.js
 scripts/lint.js
 scripts/make-rounded-app-icon.swift

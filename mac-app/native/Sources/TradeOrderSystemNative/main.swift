@@ -54,9 +54,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             self.allowTermination = true
             NSApp.terminate(nil)
         },
-        dialog: { [unowned self] request in await self.presentDialog(request) },
-        progress: { [unowned self] text in self.showDialogProgress(text) }
+        report: { [unowned self] status in self.showUpdateStatus(status) }
     )
+
+    /// Hands updater progress to the page, which draws it on the 更新 button.
+    private func showUpdateStatus(_ status: UpdateStatus) {
+        guard appHasLoaded, let webView,
+              let data = try? JSONSerialization.data(withJSONObject: status.payload),
+              let json = String(data: data, encoding: .utf8) else { return }
+        webView.evaluateJavaScript("window.otsAppUpdateStatus && window.otsAppUpdateStatus(\(json))", completionHandler: nil)
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         createMainMenu()
@@ -609,18 +616,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         return request.runNativeAlert()
     }
 
-    @MainActor
-    private func showDialogProgress(_ text: String?) {
-        guard appHasLoaded, let webView else { return }
-        webView.callAsyncJavaScript(
-            "if (typeof window.nativeProgress === 'function') window.nativeProgress(text);",
-            arguments: ["text": text ?? ""],
-            in: nil,
-            in: .page,
-            completionHandler: nil
-        )
-    }
-
     private func completeTermination(shouldTerminate: Bool) {
         terminationInProgress = false
         let replyPending = terminationReplyPending
@@ -704,6 +699,32 @@ private final class HealthProbeBox: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return result
+    }
+}
+
+/// One prompt: the page's confirm dialog draws it; NSAlert is only the fallback.
+struct AppDialog: Sendable {
+    var title: String
+    var message: String
+    var sub = "软件更新"
+    var confirmText = "好"
+    var cancelText = ""
+    var danger = false
+
+    var options: [String: Any] {
+        ["title": title, "message": message, "sub": sub,
+         "confirmText": confirmText, "cancelText": cancelText, "danger": danger]
+    }
+
+    @MainActor
+    func runNativeAlert() -> Bool {
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = message
+        alert.alertStyle = danger ? .critical : .informational
+        alert.addButton(withTitle: confirmText)
+        if !cancelText.isEmpty { alert.addButton(withTitle: cancelText) }
+        return alert.runModal() == .alertFirstButtonReturn
     }
 }
 

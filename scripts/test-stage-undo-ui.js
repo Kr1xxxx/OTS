@@ -17,7 +17,7 @@ const { chromium } = require('playwright');
     const order = {id:'o-undo',num:'SO-UNDO-1',client:'Undo Buyer',amount:1000,paidAmount:300,currency:'USD',orderType:'定金订单',stage:'production',logisticsStatus:'未发货',createdAt:day(1),orderMonth:month,updated:`${day(1)} 09:00`,logs:[]};
     // Enough orders this month that the agenda has more than 20 entries.
     const filler = Array.from({length:24},(_,i)=>({id:`o-f${i}`,num:`SO-F${i}`,client:`Filler ${i}`,amount:100,currency:'USD',stage:'quote',createdAt:day(1+(i%27)),orderMonth:month,updated:`${day(1)} 09:00`,logs:[]}));
-    let stored = {app:'trade-order-system',data:{orders:[order,...filler],customers:{},demoCleared:true,demoCustomersCleared:true},revision:0};
+    let stored = {app:'trade-order-system',data:{orders:[order,...filler],customers:{},demoCleared:true,demoCustomersCleared:true,depositBalanceMigrated:true},revision:0};
     const errors = [];
     page.on('pageerror',error=>errors.push(error.message));
     await page.route('**/*',async route => {
@@ -53,6 +53,7 @@ const { chromium } = require('playwright');
     const saved = stored.data.orders.find(item=>item.id==='o-undo');
     assert.equal(saved.paidAmount,300,'undone payment was not saved');
     assert.equal(saved.stage,'production');
+    assert.equal(stored.data.depositBalanceMigrated,true,'the one-time 尾款 migration flag was not saved');
 
     // A manual edit made before undo is kept: only the move's own changes are reverted.
     await page.evaluate(()=>moveOrderToStage('o-undo','done'));
@@ -62,6 +63,17 @@ const { chromium } = require('playwright');
     assert.equal(partial.stage,'production');
     assert.equal(partial.paidAmount,300);
     assert.equal(partial.logisticsStatus,'已签收','undo overwrote a field edited after the move');
+
+    // Old data: a deposit order parked in 生产中 with only the deposit paid moves to 尾款 once.
+    const migrated = await page.evaluate(()=>{
+      const legacy = {id:'o-legacy',num:'SO-L',client:'Legacy',amount:1000,paidAmount:400,currency:'USD',orderType:'定金订单',stage:'production',logs:[]};
+      const fresh = normalizeState({orders:[legacy,{...legacy,id:'o-paid',num:'SO-P',paidAmount:1000},{...legacy,id:'o-full',num:'SO-Q',orderType:'全款订单'}],demoCleared:true});
+      const movedBack = normalizeState({...fresh,orders:fresh.orders.map(o=>({...o,stage:'production'}))});
+      return {stages:fresh.orders.map(o=>o.stage),log:fresh.orders[0].logs[0]?.text || '',again:movedBack.orders[0].stage};
+    });
+    assert.deepEqual(migrated.stages,['balance','production','production'],'only deposit orders with the balance still due move to 尾款');
+    assert.match(migrated.log,/归入尾款/);
+    assert.equal(migrated.again,'production','a manual move back to 生产中 was undone on the next load');
 
     await page.evaluate(()=>{ closeOrderDetail(); setPage('calendar'); });
     const agenda = await page.evaluate(()=>({events:calendarEventsForMonth(activeCalendarMonth).length,rows:document.querySelectorAll('#calendarAgenda .agenda-row').length}));

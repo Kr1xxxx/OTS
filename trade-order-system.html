@@ -7500,6 +7500,13 @@ function normalizeActiveOrder(o = {}) {
     stage
   };
 }
+// 收到定金就归「尾款」：老数据里停在生产中、只收了定金的定金订单挪一次；之后手动拖回生产中不再改。
+function migrateDepositOrderToBalance(o = {}) {
+  const amount = Number(o.amount || 0);
+  const paid = Number(o.paidAmount || 0);
+  if (o.stage !== 'production' || o.orderType !== '定金订单' || o.isDraft || !(paid > 0 && paid < amount)) return o;
+  return { ...o, stage:'balance', logs:[{ time:nowText(), text:'已收定金、尾款未收，阶段从生产中归入尾款' }, ...(o.logs || [])] };
+}
 function normalizeArchivedOrder(o = {}, timeKey = 'trashedAt') {
   const normalized = normalizeActiveOrder(o);
   return { ...normalized, [timeKey]: o[timeKey] || o.updated || nowText() };
@@ -7508,8 +7515,9 @@ function normalizeState(raw) {
   const hasAnySavedOrder = (raw.orders || []).length || (raw.trashOrders || []).length || (raw.deletedOrders || []).length;
   const rawOrders = hasAnySavedOrder || raw.demoCleared ? (raw.orders || []) : demoOrders;
   const baseCustomerProfiles = raw.demoCustomersCleared ? {} : demoCustomerProfiles;
+  const orders = rawOrders.map(normalizeActiveOrder);
   return {
-    orders: rawOrders.map(normalizeActiveOrder),
+    orders: raw.depositBalanceMigrated === true ? orders : orders.map(migrateDepositOrderToBalance),
     trashOrders: (raw.trashOrders || []).map(o => normalizeArchivedOrder(o, 'trashedAt')),
     deletedOrders: (raw.deletedOrders || []).map(o => normalizeArchivedOrder(o, 'deletedAt')),
     performanceTargets: raw.performanceTargets || {},
@@ -7531,7 +7539,8 @@ function normalizeState(raw) {
       : [],
     doneTasks: raw.doneTasks || {},
     demoCleared: raw.demoCleared === true,
-    demoCustomersCleared: raw.demoCustomersCleared === true
+    demoCustomersCleared: raw.demoCustomersCleared === true,
+    depositBalanceMigrated: true
   };
 }
 function normalizeCountry(value) {

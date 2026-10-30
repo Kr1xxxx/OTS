@@ -3835,7 +3835,7 @@ html[data-theme] .accent-swatch[data-accent-choice="orange"] { --c:#e8590c; }
 html[data-theme] .accent-swatch[data-accent-choice="rose"] { --c:#e0336f; }
 html[data-theme] .accent-swatch[data-accent-choice="ink"] { --c:oklch(26% 0 0); }
 html[data-theme="dark"] .accent-swatch[data-accent-choice="ink"] { --c:oklch(90% 0 0); }
-@media (max-width: 820px) { html[data-theme] .accent-swatches { display:none; } }
+@media (max-width: 820px) { html[data-theme] :is(.accent-swatches, .sidebar-api-card) { display:none; } }
 /* ===== 新版 UI：公共组件 ===== */
 /* Toast 堆叠：从底部弹入，旧的往后叠（每层上移 10px、缩小 5%），最多露 3 层；悬停展开 */
 html[data-theme] .toast { position:fixed; right:24px; bottom:24px; left:auto; z-index:90; width:min(380px, calc(100vw - 32px)); height:0; padding:0; border:0; background:none; box-shadow:none; display:block; color:inherit; text-align:left; }

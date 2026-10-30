@@ -676,7 +676,6 @@ html[data-theme="dark"] .segment-option.active {
 .order-card:active { transform: translateY(0); }
 .stage-quote { border-left-color: var(--blue-500); }
 .stage-sample { border-left-color: var(--cyan-600); }
-.stage-deposit { border-left-color: var(--orange-500); }
 .stage-production { border-left-color: var(--cyan-600); }
 .stage-balance { border-left-color: var(--orange-600); }
 .stage-shipment { border-left-color: var(--green-500); }
@@ -3827,7 +3826,6 @@ html[data-theme] .board-column-head > div:first-child { display:flex; align-item
 html[data-theme] .board-column-title { font-size:14px; font-weight:600; display:inline-flex; align-items:center; gap:7px; }
 html[data-theme] .board-column-title::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--stage-color, var(--gray-400)); }
 html[data-theme] .board-column[data-stage="quote"] { --stage-color:var(--s-blue); }
-html[data-theme] .board-column[data-stage="deposit"] { --stage-color:var(--s-amber); }
 html[data-theme] .board-column[data-stage="production"] { --stage-color:var(--s-teal); }
 html[data-theme] .board-column[data-stage="balance"] { --stage-color:var(--s-orange); }
 html[data-theme] .board-column[data-stage="shipment"] { --stage-color:var(--s-green); }
@@ -3912,6 +3910,7 @@ html[data-theme] .target-history-fill::after { display:none; }
 html[data-theme] .target-history-fill.empty { background:transparent; }
 html[data-theme] .target-history-track { background:var(--gray-100); box-shadow:none; }
 html[data-theme] :is(.target-hero, .target-setup, .rate-status-card, .customer-detail-hero) { border-color:var(--surface-border); box-shadow:none; }
+@media (min-width: 821px) { html[data-theme] .board-columns { grid-template-columns:none; grid-auto-flow:column; grid-auto-columns:minmax(196px, 1fr); width:100%; min-width:0; } }
 /* ===== 新版 UI：外壳与基础组件（OTS UI 规范）。选择器统一加 html[data-theme] 前缀，盖过旧的深色专用规则。 ===== */
 .ui-icon, .nav-icon.ui-icon { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; flex:none; }
 html[data-theme] :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
@@ -5678,7 +5677,6 @@ html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); 
 <script>
 const stageDefs = [
   { key:'quote', name:'报价', tag:'tag-blue', cls:'stage-quote' },
-  { key:'deposit', name:'定金', tag:'tag-orange', cls:'stage-deposit' },
   { key:'production', name:'生产中', tag:'tag-cyan', cls:'stage-production' },
   { key:'balance', name:'尾款', tag:'tag-orange', cls:'stage-balance' },
   { key:'shipment', name:'已发货', tag:'tag-green', cls:'stage-shipment' },
@@ -6661,8 +6659,13 @@ function normalizeOrderShipments(order = {}) {
 function primaryOrderShipment(order = {}) {
   return normalizeOrderShipments(order)[0] || null;
 }
+// 定金阶段已取消：旧的定金 / PI 订单付过款进生产中，没付款回报价。
+function migrateDepositStage(o = {}) {
+  if (o.stage !== 'deposit' && o.stage !== 'pi') return o.stage;
+  return Number(o.paidAmount || 0) > 0 ? 'production' : 'quote';
+}
 function normalizeActiveOrder(o = {}) {
-  const stage = normalizeStage(o.stage === 'pi' ? 'deposit' : o.stage);
+  const stage = normalizeStage(migrateDepositStage(o));
   const amount = Math.max(0, Number(o.amount || 0));
   const orderType = orderTypeDefs.some(item => item.value === o.orderType)
     ? o.orderType
@@ -7129,7 +7132,7 @@ function buildTaskItems({ includeDone = false, includeSnoozed = false } = {}) {
     if (logisticsRisk) reminders.push(logisticsRisk);
     if (o.urgentOrder) reminders.push({ id:`urgent-${o.id}`, orderId:o.id, client:o.client, date:o.customerRequiredDate || o.latestShipDate || fallbackDate, type:'urgent', title:o.client, reason:`加急订单：${o.note || '等待处理'}`, detail:`${o.num} · ${stageDef(o.stage).name}`, value:o.customerRequiredDate ? `要求 ${o.customerRequiredDate}` : '加急', tag:'加急', tagClass:'tag-orange', priority:1 });
     if (o.latestShipDate && latestDays <= 3 && o.stage !== 'shipment') reminders.push({ id:`ship-${o.id}`, orderId:o.id, client:o.client, date:o.latestShipDate, type:'logistics', title:o.client, reason:`最晚发出日期 ${o.latestShipDate}`, detail:`${latestDays < 0 ? '已逾期' + Math.abs(latestDays) + '天' : latestDays + '天内'} · ${o.num}`, value:'发货', tag:'物流', tagClass:'tag-orange', priority:0 });
-    if (due > 0 && ['deposit','balance'].includes(o.stage)) reminders.push({ id:`payment-${o.id}`, orderId:o.id, client:o.client, date:fallbackDate, type:'payment', title:o.client, reason:`待收款 ${money(due, o.currency)}`, detail:`${o.num} · ${stageDef(o.stage).name}`, value:money(due, o.currency), tag:'收款', tagClass:'tag-green', priority:2 });
+    if (due > 0 && o.stage === 'balance') reminders.push({ id:`payment-${o.id}`, orderId:o.id, client:o.client, date:fallbackDate, type:'payment', title:o.client, reason:`待收款 ${money(due, o.currency)}`, detail:`${o.num} · ${stageDef(o.stage).name}`, value:money(due, o.currency), tag:'收款', tagClass:'tag-green', priority:2 });
     if (followReminder) reminders.push(followReminder);
     return reminders;
   });
@@ -7562,7 +7565,7 @@ function inTotalRange(order) {
   return normalizeMonth(order.orderMonth || order.updated) === range;
 }
 function isRevenueOrder(order = {}) {
-  return ['deposit', 'production', 'balance', 'shipment', 'done'].includes(normalizeStage(order.stage));
+  return ['production', 'balance', 'shipment', 'done'].includes(normalizeStage(order.stage));
 }
 function isSettledStage(stage = '') {
   return ['shipment', 'done'].includes(String(stage || '').trim().toLowerCase());
@@ -9091,7 +9094,6 @@ function normalizeAiStage(value) {
   const text = String(value || '').toLowerCase();
   if (!text) return '';
   if (text.includes('报价') || text === 'quote') return 'quote';
-  if (text.includes('定金') || text === 'deposit') return 'deposit';
   if (text.includes('生产') || text === 'production') return 'production';
   if (text.includes('尾款') || text === 'balance') return 'balance';
   if (text.includes('发货') || text.includes('物流') || text === 'shipment') return 'shipment';
@@ -9152,7 +9154,7 @@ function aiOrderPrompt(text, localFields, today = new Date()) {
 - 只使用下面列出的字段名；没有把握的字段直接省略，不要输出 null、空字符串、"unknown" 或占位文本。
 - 金额字段输出数字（不带货币符号和千分位逗号），日期字段输出 YYYY-MM-DD。
 - 输出示例（仅示意格式，字段按实际内容取舍）：
-{"client":"Sample Beauty LLC","country":"United States","amount":1280,"currency":"USD","productType":"假发","paymentChannel":"Paypal","orderType":"定金订单","depositPercent":30,"stage":"deposit","urgentOrder":"是","customerRequiredDate":"2026-11-20"}
+{"client":"Sample Beauty LLC","country":"United States","amount":1280,"currency":"USD","productType":"假发","paymentChannel":"Paypal","orderType":"定金订单","depositPercent":30,"stage":"quote","urgentOrder":"是","customerRequiredDate":"2026-11-20"}
 
 二、可用字段
 client, country, createdAt, amount, currency, productType, paymentChannel, orderType, depositPercent, paidAmount, fullPaymentStatus, stage, urgentOrder, customerRequiredDate, latestShipDate, trackingNumber, carrier, shipmentStatus, note。
@@ -9171,7 +9173,7 @@ client, country, createdAt, amount, currency, productType, paymentChannel, order
 - 只有聊天明确表示“已付、付款、收到、到账、paid、sent、transferred”时才输出 paidAmount；未确认付款就省略，不能把定金比例当成已付金额。明确已付全款（已付全款、已经付完、paid in full、付款金额等于总额）时，orderType 为 "全款订单"，fullPaymentStatus 为 "已付"，paidAmount 等于 amount。
 - 如果出现“付款一半、付一半、半款、50%预付、paid half”等明确付款表达，orderType 为“定金订单”，depositPercent 为 50，paidAmount 为总金额的 50%。
 - fullPaymentStatus 只用于全款订单，只能是 "已付" 或 "未付"：明确说已付全款时为 "已付"，明确说还没付时为 "未付"，否则省略。
-- stage 只能是 "quote", "deposit", "production", "balance", "shipment"：还在询价、报价为 quote；确认下单、等付或刚付定金为 deposit；明确在生产，或已付全款但还没发货为 production；生产完成、等付尾款为 balance；已经发货或给出物流单号为 shipment。判断不了就省略。
+- stage 只能是 "quote", "production", "balance", "shipment"：还在询价、报价，或确认下单但还没付定金为 quote；已付定金、明确在生产，或已付全款但还没发货为 production；生产完成、等付尾款为 balance；已经发货或给出物流单号为 shipment。判断不了就省略。
 - urgentOrder 只能是 "是"：只有出现 urgent、rush、ASAP、as soon as possible、加急、急单、尽快 等明确表达时输出，否则省略。
 - customerRequiredDate 是客户要求收到货的日期，例如 “need it before Nov 20”“20号前要到”；latestShipDate 是我方最晚发货日期，只有原文明确写了发货截止才输出，不能用 customerRequiredDate 倒推。未写年份时使用今天所在年份，如果这样会早于今天，就用下一年。“周五前发货”“下周一前要到”“明天发”这类相对日期，按今天的日期和星期推算成具体日期：“周五前”指今天之后最近的那个星期五。
 - trackingNumber 只输出物流单号本身，去掉空格。carrier 只能是 "DHL"、"FedEx" 或 "UPS"。UPS 常见格式为 1Z + 16位字母数字、T + 10位数字、9位数字；UPS 也使用12位纯数字，但与 FedEx 有重叠，只有文本明确写 UPS 时才判为 UPS。DHL 常见为 10 位纯数字。
@@ -11349,7 +11351,7 @@ function orderRoadmapEvents(order = {}) {
     const def = stageDef(key);
     const stageLog = logs.find(log => new RegExp(def.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '|' + key).test(log.text));
     events.push({
-      type: key === 'shipment' ? 'shipment' : key === 'deposit' || key === 'balance' ? 'payment' : 'order',
+      type: key === 'shipment' ? 'shipment' : key === 'balance' ? 'payment' : 'order',
       time: stageLog?.time || (index === 0 ? created : order.updated || created),
       title: key === 'quote' ? '报价' : def.name,
       meta: key === currentStage ? `当前阶段 · ${order.note || '暂无备注'}` : `${order.num || '-'} 已经过该节点`
@@ -15162,7 +15164,7 @@ function inferNewOrderStage({ selectedStage, orderType, amount, paidAmount, trac
   const total = Math.max(0, Number(amount || 0));
   const paid = Math.max(0, Number(paidAmount || 0));
   if (total > 0 && paid >= total) return 'production';
-  if (orderType === '定金订单') return 'deposit';
+  if (orderType === '定金订单' && paid > 0) return 'production';
   return 'quote';
 }
 function buildOrderFromFormData(data = {}, { existing = null, isDraft = false } = {}) {

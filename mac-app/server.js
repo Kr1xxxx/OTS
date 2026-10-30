@@ -1605,8 +1605,11 @@ async function queryAiChat(body = {}) {
       body: JSON.stringify({
         model: settings.model,
         messages: boundedAiMessages(body.messages),
-        thinking: settings.provider === 'zhipu' ? { type: 'disabled' } : undefined,
+        // 智谱和 DeepSeek 官方接口都关掉深度思考：识别只要字段，思考会拖慢速度并占用输出额度
+        thinking: settings.provider === 'zhipu' || new URL(settings.baseUrl).hostname === 'api.deepseek.com' ? { type: 'disabled' } : undefined,
         reasoning: new URL(settings.baseUrl).hostname === 'openrouter.ai' && settings.model === 'deepseek/deepseek-v4.1-flash' ? { enabled: false } : undefined,
+        // DeepSeek 官方接口支持 JSON 模式：识别请求强制返回 JSON 对象，测试连接不用
+        response_format: !body.testOnly && new URL(settings.baseUrl).hostname === 'api.deepseek.com' ? { type: 'json_object' } : undefined,
         max_tokens: body.testOnly ? 256 : 1024,
         temperature: Number.isFinite(Number(body.temperature)) ? Number(body.temperature) : 0
       })

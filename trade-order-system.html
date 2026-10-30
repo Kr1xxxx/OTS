@@ -3667,282 +3667,295 @@ html[data-theme="dark"] .app-select-option-check { color: var(--cyan-600); }
 @media (max-width: 760px) {
   .app-select-popover { max-height: min(280px, calc(100vh - 20px)); }
 }
-/* Subscriptions page: personal subscriptions kept apart from order data. */
-.subs-hero {
-  position: relative; overflow: hidden; border-radius: 26px; padding: 22px 24px 18px; color: #fff8ef;
-  background:
-    radial-gradient(circle at 88% 8%, rgba(15,143,129,.46), transparent 38%),
-    radial-gradient(circle at 6% 118%, rgba(217,119,48,.32), transparent 42%),
-    linear-gradient(135deg, #2f2923, #463d34 62%, #3a322a);
-  box-shadow: 0 22px 60px rgba(47,41,35,.24), inset 0 1px 0 rgba(255,255,255,.08);
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px 24px; align-items: end;
-  animation: subsRise .5s var(--ease-out) backwards;
+/* Subscriptions page: personal subscriptions kept apart from order data.
+   Styled after the new desktop prototype (docs/ui-prototype/ots-ui.html): Arc neutral greys, violet accent,
+   spring motion and the Evil Buttons hold-to-delete. Tokens are scoped so the rest of the app keeps its look. */
+.subs-scope {
+  --a-page:#fafafa; --a-panel:#f4f4f4; --a-card:#fff;
+  --a-ink:#0b0b0b; --a-ink-2:#585858; --a-muted:#7d7d7d; --a-placeholder:#696969;
+  --a-hairline:#f0f0f0; --a-border:#e8e8e8;
+  --a-accent:#7747ff; --a-accent-tint:color-mix(in oklab, #7747ff 13%, transparent);
+  --a-primary:#1d1d1d; --a-primary-ink:#fff; --a-primary-hover:#333;
+  --a-amber:#b66400; --a-green:#007b12; --a-red:#cd1526; --a-gray:#696969; --a-tint:13%;
+  --a-amber-bg:color-mix(in oklab, var(--a-amber) var(--a-tint), transparent);
+  --a-green-bg:color-mix(in oklab, var(--a-green) var(--a-tint), transparent);
+  --a-red-bg:color-mix(in oklab, var(--a-red) var(--a-tint), transparent);
+  --a-gray-bg:color-mix(in oklab, var(--a-gray) var(--a-tint), transparent);
+  --a-overlay:rgba(0,0,0,.28);
+  --a-pill-shadow:inset 0 1px 0 rgba(255,255,255,.14), 0 1px 2px rgba(0,0,0,.14);
+  --a-shadow-card:0 1px 2px rgba(0,0,0,.035);
+  --a-shadow-raised:0 6px 18px rgba(0,0,0,.065), 0 1px 3px rgba(0,0,0,.035);
+  --a-shadow-float:0 20px 48px rgba(0,0,0,.105), 0 3px 10px rgba(0,0,0,.045);
+  --a-display:"Geist", "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --a-sans:"Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --a-ease:cubic-bezier(.22,1,.36,1);
+  --a-ease-enter:cubic-bezier(.16,1,.3,1);
+  --a-ease-exit:cubic-bezier(.7,0,.84,0);
+  --a-ease-drawer:cubic-bezier(.32,.72,0,1);
+  --a-spring:cubic-bezier(.34,1.3,.64,1);
+  color:var(--a-ink); font-family:var(--a-sans); letter-spacing:-.006em; -webkit-font-smoothing:antialiased;
 }
-html[data-theme="dark"] .subs-hero {
-  background:
-    radial-gradient(circle at 88% 8%, rgba(47,143,117,.32), transparent 40%),
-    radial-gradient(circle at 6% 118%, rgba(210,165,110,.18), transparent 44%),
-    linear-gradient(135deg, #231f1a, #2c2620);
-  border: 1px solid var(--surface-border);
-  box-shadow: 0 22px 60px rgba(0,0,0,.40), inset 0 1px 0 rgba(255,255,255,.05);
+@supports (transition-timing-function:linear(0, 1)) {
+  .subs-scope { --a-spring:linear(0, 0.0213, 0.0739, 0.1443, 0.2235, 0.305, 0.3849, 0.4606, 0.5305, 0.594, 0.6508, 0.7011, 0.7452, 0.7836, 0.8168, 0.8454, 0.8699, 0.8907, 0.9084, 0.9234, 0.9361, 0.9467, 0.9557, 0.9632, 0.9694, 0.9747, 0.979, 0.9826, 0.9857, 0.9882, 0.9902, 0.992, 0.9934, 0.9946, 0.9955, 0.9963, 1); }
 }
-.subs-hero-label { font-size: 12px; font-weight: 850; color: rgba(255,248,239,.68); letter-spacing: .04em; }
-.subs-hero-value {
-  margin-top: 6px; font-size: clamp(34px, 4.4vw, 52px); line-height: 1; font-weight: 950;
-  font-variant-numeric: tabular-nums; white-space: nowrap;
+html[data-theme="dark"] .subs-scope {
+  --a-page:#0f0f0f; --a-panel:#151515; --a-card:#191919;
+  --a-ink:#f2f2f2; --a-ink-2:#b4b4b4; --a-muted:#8c8c8c; --a-placeholder:#929292;
+  --a-hairline:#222; --a-border:#2b2b2b;
+  --a-accent:#a78bff; --a-accent-tint:color-mix(in oklab, #7747ff 24%, transparent);
+  --a-primary:#e8e8e8; --a-primary-ink:#141414; --a-primary-hover:#cecece;
+  --a-amber:#ffb90e; --a-green:#4cd676; --a-red:#ff736d; --a-gray:#9e9e9e; --a-tint:18%;
+  --a-overlay:rgba(0,0,0,.5);
+  --a-shadow-card:0 1px 2px rgba(0,0,0,.18);
+  --a-shadow-raised:0 8px 22px rgba(0,0,0,.22);
+  --a-shadow-float:0 22px 55px rgba(0,0,0,.34);
+  color-scheme:dark;
 }
-.subs-hero-value small { font-size: .46em; font-weight: 850; margin-right: 4px; opacity: .78; }
-.subs-hero-sub { margin-top: 8px; color: rgba(255,248,239,.72); font-size: 13px; font-variant-numeric: tabular-nums; }
-.subs-hero-chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-.subs-chip {
-  min-height: 30px; padding: 0 12px; border-radius: 999px; display: inline-flex; align-items: center; gap: 5px;
-  font-size: 12px; font-weight: 850; white-space: nowrap; color: rgba(255,248,239,.84);
-  background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.12);
-}
-.subs-chip b { font-size: 14px; color: #fff; font-variant-numeric: tabular-nums; }
-.subs-upcoming { grid-column: 1 / -1; display: grid; gap: 8px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.10); }
-.subs-upcoming-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 12px; font-weight: 750; color: rgba(255,248,239,.72); }
-.subs-upcoming-head b { font-size: 15px; color: #fff; font-variant-numeric: tabular-nums; }
-.subs-strip {
-  position: relative; height: 28px; border-radius: 999px;
-  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08);
-}
-.subs-strip::before { content: ''; position: absolute; left: 12px; right: 12px; top: 50%; height: 1px; background: rgba(255,255,255,.16); }
-.subs-strip-empty { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; color: rgba(255,248,239,.5); }
-.subs-strip-dot {
-  position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 999px;
-  background: var(--sub-color); border: 2px solid rgba(255,248,239,.92);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sub-color) 34%, transparent);
-}
-.subs-strip-dot.is-today { animation: subsBreath 1.8s ease-in-out infinite; }
-.subs-strip-dot.subs-pop { animation: subsPop .46s var(--ease-out) backwards; animation-delay: calc(var(--i, 0) * 55ms + 160ms); }
-.subs-strip-dot.subs-pop.is-today { animation: subsPop .46s var(--ease-out) backwards, subsBreath 1.8s ease-in-out .7s infinite; }
-.subs-strip-dot b {
-  position: absolute; left: 50%; bottom: 13px; transform: translateX(-50%);
-  font-size: 10px; font-weight: 950; color: #fff; font-style: normal;
-}
-.subs-strip-scale { display: flex; justify-content: space-between; font-size: 11px; color: rgba(255,248,239,.5); font-variant-numeric: tabular-nums; }
-.subs-panel { display: grid; gap: 14px; }
-.subs-panel .section-head { margin-bottom: 0; flex-wrap: wrap; }
-.subs-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-.subs-search {
-  height: 36px; width: 230px; max-width: 100%; display: flex; align-items: center; gap: 8px; padding: 0 12px;
-  border: 1px solid var(--gray-200); border-radius: 999px; background: var(--gray-50); color: var(--gray-500);
-  transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease, width var(--motion-slow) var(--ease-out);
-}
-.subs-search:focus-within {
-  width: 300px; border-color: var(--semantic-primary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--semantic-primary) 16%, transparent);
-}
-.subs-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--gray-800); }
-.subs-rate-btn { font-variant-numeric: tabular-nums; }
-.subs-rate-btn b { font-weight: 900; color: var(--gray-900); }
-.subs-filter { position: relative; width: auto; justify-self: start; min-width: min(420px, 100%); }
-.subs-filter-thumb {
-  position: absolute; top: 3px; bottom: 3px; left: 0; width: 0; border-radius: 999px;
-  background: #0f8f81; box-shadow: 0 2px 10px rgba(15,143,129,.24);
-  transition: transform var(--motion-slow) var(--ease-out), width var(--motion-slow) var(--ease-out);
-}
-.subs-filter.no-anim .subs-filter-thumb { transition: none; }
-html[data-theme="dark"] .subs-filter-thumb { background: #2f8f75; box-shadow: 0 6px 18px rgba(47,143,117,.24); }
-.subs-filter .segment-option { position: relative; z-index: 1; gap: 5px; padding: 0 12px; }
-.subs-filter .segment-option small { font-size: 11px; opacity: .7; font-variant-numeric: tabular-nums; }
-.subs-filter .segment-option.active,
-.subs-filter .segment-option.active:hover,
-html[data-theme="dark"] .subs-filter .segment-option.active { background: transparent; box-shadow: none; color: #fff; }
-.subs-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.subs-item {
-  --sub-color: #0f8f81;
-  display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; grid-template-areas: "logo main price" "logo when price";
-  gap: 3px 12px; align-items: center; width: 100%; min-height: 76px; padding: 12px 14px 12px 12px;
-  text-align: left; color: inherit; font: inherit;
-  border: 1px solid var(--surface-border); border-radius: 18px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--sub-color) 8%, var(--surface-bg)), var(--surface-bg) 58%);
-  box-shadow: 0 6px 18px rgba(76,61,43,.05);
-  transition: transform var(--motion-med) var(--ease-out), box-shadow var(--motion-med) var(--ease-out), border-color var(--motion-fast) ease, opacity var(--motion-med) ease;
-}
-.subs-item:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--sub-color) 38%, var(--surface-border)); box-shadow: 0 14px 30px rgba(76,61,43,.10); }
-.subs-item:active { transform: translateY(0) scale(.99); }
-.subs-item:focus-visible { outline: 2px solid var(--sub-color); outline-offset: 2px; }
-.subs-item.subs-enter { animation: subsRise .42s var(--ease-out) backwards; animation-delay: calc(var(--i, 0) * 35ms); }
-.subs-item.subs-flash { animation: subsFlash 1.2s var(--ease-out); }
-.subs-item.is-ended { opacity: .6; }
-.subs-item.is-ended .subs-logo { filter: grayscale(.75); }
-.subs-logo {
-  grid-area: logo; width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center;
-  background: var(--sub-color); color: #fff; font-size: 18px; font-weight: 950; line-height: 1;
-  box-shadow: 0 8px 18px color-mix(in srgb, var(--sub-color) 30%, transparent), inset 0 1px 0 rgba(255,255,255,.22);
-  transition: transform var(--motion-med) var(--ease-out), background var(--motion-slow) ease, box-shadow var(--motion-slow) ease;
-}
-.subs-item:hover .subs-logo { transform: rotate(-6deg) scale(1.06); }
-.subs-logo.bump { animation: subsBump .34s var(--ease-out); }
-.subs-main { grid-area: main; min-width: 0; display: flex; align-items: baseline; gap: 8px; }
-.subs-name { flex: 0 1 auto; min-width: 0; font-size: 14px; font-weight: 900; color: var(--gray-900); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.subs-note { flex: 1 1 0; min-width: 0; color: var(--gray-500); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.subs-when { grid-area: when; min-width: 0; display: flex; align-items: center; gap: 8px; color: var(--gray-500); font-size: 12px; white-space: nowrap; }
-.subs-price { grid-area: price; display: grid; gap: 2px; justify-items: end; text-align: right; }
-.subs-price strong { font-size: 16px; font-weight: 950; color: var(--gray-900); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.subs-price small { font-size: 11.5px; color: var(--gray-500); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.subs-pill {
-  display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px; white-space: nowrap;
-  font-size: 11px; font-weight: 900; background: var(--green-50); color: var(--green-600);
-}
-.subs-pill.soon { background: var(--orange-50); color: var(--orange-600); }
-.subs-pill.today { background: #bf4a3c; color: #fff; animation: subsBreath 1.8s ease-in-out infinite; }
-.subs-pill.ending { background: var(--purple-50); color: var(--purple-500); }
-.subs-pill.expired { background: var(--gray-100); color: var(--gray-500); }
-.subs-empty {
-  grid-column: 1 / -1; display: grid; justify-items: center; gap: 8px; padding: 40px 20px; text-align: center;
-  border: 1px dashed var(--gray-300); border-radius: 20px; background: var(--surface-soft); color: var(--gray-500);
-  animation: subsRise .42s var(--ease-out) backwards;
-}
-.subs-empty strong { color: var(--gray-800); font-size: 15px; }
-.subs-empty .btn { margin-top: 6px; }
-.subs-empty-mark {
-  width: 56px; height: 56px; border-radius: 18px; display: grid; place-items: center; font-size: 26px; color: var(--semantic-primary);
-  background: var(--surface-bg); border: 1px solid var(--surface-border); box-shadow: var(--shadow);
-  animation: subsFloat 3.2s ease-in-out infinite;
-}
-.subs-skeleton {
-  height: 76px; border-radius: 18px; background: linear-gradient(90deg, var(--gray-100), var(--surface-soft), var(--gray-100));
-  background-size: 200% 100%; animation: subsShimmer 1.2s ease-in-out infinite;
-}
-.subs-drawer .modal-body { gap: 14px; }
-.subs-detail-head {
-  --sub-color: #0f8f81;
-  display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 20px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--sub-color) 16%, var(--surface-bg)), var(--surface-bg) 72%);
-  border: 1px solid color-mix(in srgb, var(--sub-color) 24%, var(--surface-border));
-}
-.subs-detail-head .subs-logo { flex: 0 0 auto; width: 56px; height: 56px; border-radius: 18px; font-size: 24px; animation: subsPop .5s var(--ease-out) backwards; }
-.subs-detail-head .subs-pill { margin-left: auto; animation: subsPop .4s var(--ease-out) .12s backwards; }
-.subs-detail-name { font-size: 20px; font-weight: 950; color: var(--gray-900); line-height: 1.2; overflow-wrap: anywhere; }
-.subs-detail-note { margin-top: 3px; color: var(--gray-500); font-size: 13px; overflow-wrap: anywhere; }
-.subs-detail-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.subs-card {
-  display: grid; gap: 4px; align-content: start; padding: 12px; border-radius: 16px;
-  border: 1px solid var(--surface-border); background: var(--surface-raised);
-  animation: subsRise .42s var(--ease-out) backwards; animation-delay: calc(var(--i, 0) * 60ms + 80ms);
-}
-.subs-card span { font-size: 11.5px; font-weight: 800; color: var(--gray-500); }
-.subs-card strong { font-size: 16px; font-weight: 950; color: var(--gray-900); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.subs-card small { font-size: 11.5px; color: var(--gray-500); }
-.subs-kv { display: grid; border: 1px solid var(--surface-border); border-radius: 16px; overflow: hidden; animation: subsRise .42s var(--ease-out) .26s backwards; }
-.subs-kv div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; font-size: 13px; }
-.subs-kv div + div { border-top: 1px solid var(--surface-border); }
-.subs-kv dt { color: var(--gray-500); white-space: nowrap; }
-.subs-kv dd { color: var(--gray-800); font-weight: 750; text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
-.subs-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; animation: subsRise .42s var(--ease-out) .32s backwards; }
-.subs-actions .btn { min-height: 40px; }
-.subs-hold {
-  position: relative; overflow: hidden; grid-column: 1 / -1; color: var(--red-600);
-  border-color: color-mix(in srgb, var(--red-600) 28%, var(--gray-200));
-  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none;
-}
-.subs-hold:hover { color: var(--red-600); border-color: var(--red-600); background: var(--red-50); }
-.subs-hold-fill {
-  position: absolute; inset: 0; pointer-events: none; transform: scaleX(0); transform-origin: left;
-  background: color-mix(in srgb, var(--red-600) 22%, transparent); transition: transform 220ms ease;
-}
-.subs-hold.holding .subs-hold-fill { transform: scaleX(1); transition: transform 1500ms linear; }
-.subs-hold-label { position: relative; }
-.subs-hold-hint { grid-column: 1 / -1; min-height: 18px; text-align: center; font-size: 12px; color: var(--gray-500); }
-.subs-hold-hint.warn { color: var(--red-600); animation: subsShake .36s ease; }
-.subs-edit-modal { width: min(620px, 100%); }
-.subs-form { gap: 14px; }
-.subs-preview {
-  --sub-color: #0f8f81;
-  display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 18px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--sub-color) 15%, var(--surface-bg)), var(--surface-bg) 72%);
-  border: 1px solid color-mix(in srgb, var(--sub-color) 26%, var(--surface-border));
-  transition: background var(--motion-slow) ease, border-color var(--motion-slow) ease;
-}
-.subs-preview-main { flex: 1; min-width: 0; }
-.subs-preview-name { font-size: 16px; font-weight: 950; color: var(--gray-900); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.subs-preview-meta { margin-top: 2px; font-size: 12px; color: var(--gray-500); }
-.subs-preview .subs-price strong { font-size: 18px; }
-.subs-amount { display: grid; grid-template-columns: minmax(0, 1fr) 132px; gap: 8px; }
-.subs-hint { min-height: 18px; color: var(--gray-500); font-size: 12px; font-variant-numeric: tabular-nums; }
-.subs-form .segment-option { font-size: 13px; }
-.subs-swatches { display: flex; flex-wrap: wrap; gap: 10px; padding: 4px 2px; }
-.subs-swatch {
-  width: 30px; height: 30px; border-radius: 999px; padding: 0; display: grid; place-items: center;
-  border: 2px solid var(--surface-bg); background: var(--swatch); color: #fff; font-size: 13px; font-weight: 950;
-  box-shadow: 0 0 0 1px var(--surface-border);
-  transition: transform var(--motion-fast) var(--ease-out), box-shadow var(--motion-fast) ease;
-}
-.subs-swatch:hover { transform: scale(1.12); }
-.subs-swatch.active { transform: scale(1.1); box-shadow: 0 0 0 2px var(--swatch), 0 6px 14px color-mix(in srgb, var(--swatch) 36%, transparent); }
-.subs-swatch.active::after { content: '✓'; }
-.subs-form .confirm-error.shake { animation: subsShake .36s ease; }
-.toast.show.has-action { display: flex; align-items: center; gap: 14px; padding-right: 8px; overflow: hidden; }
-.toast.has-action::after {
-  content: ''; position: absolute; left: 12px; right: 12px; bottom: 4px; height: 2px; border-radius: 2px;
-  background: currentColor; opacity: .28; transform-origin: left; animation: subsCountdown 6s linear forwards;
-}
-.toast-action {
-  border: 0; border-radius: 10px; padding: 4px 10px; background: rgba(255,255,255,.12);
-  color: #7fe0cf; font-weight: 900; white-space: nowrap;
-}
-.toast-action:hover { background: rgba(255,255,255,.2); }
-@keyframes subsRise {
-  from { opacity: 0; transform: translateY(10px) scale(.985); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes subsPop {
-  0% { opacity: 0; transform: scale(.4); }
-  70% { opacity: 1; transform: scale(1.12); }
-  100% { opacity: 1; transform: scale(1); }
-}
-@keyframes subsBump {
-  0% { transform: scale(1); }
-  45% { transform: scale(1.16) rotate(-5deg); }
-  100% { transform: scale(1); }
-}
-@keyframes subsBreath {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(191,74,60,.42); }
-  50% { box-shadow: 0 0 0 6px rgba(191,74,60,0); }
-}
-@keyframes subsFlash {
-  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--sub-color) 55%, transparent); }
-  100% { box-shadow: 0 0 0 14px color-mix(in srgb, var(--sub-color) 0%, transparent); }
-}
-@keyframes subsShimmer {
-  from { background-position: 100% 0; }
-  to { background-position: -100% 0; }
-}
-@keyframes subsFloat {
-  0%, 100% { transform: translateY(0) rotate(0); }
-  50% { transform: translateY(-4px) rotate(-8deg); }
-}
-@keyframes subsShake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-4px); }
-  75% { transform: translateX(4px); }
-}
-@keyframes subsCountdown {
-  from { transform: scaleX(1); }
-  to { transform: scaleX(0); }
-}
-@media (max-width: 900px) {
-  .subs-list { grid-template-columns: 1fr; }
+.main:has(#page-subscriptions.active) { background:#fafafa; }
+html[data-theme="dark"] .main:has(#page-subscriptions.active) { background:#0f0f0f; }
+#page-subscriptions { gap:16px; max-width:1360px; }
+#page-subscriptions.active { animation:none; }
+.subs-scope :focus-visible { outline:2px solid var(--a-accent); outline-offset:2px; }
+.subs-scope input:focus-visible { outline:none; }
+.subs-i { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+.subs-sprite { position:absolute; width:0; height:0; overflow:hidden; }
+@keyframes subsRise { from { opacity:0; transform:translateY(10px); } }
+@keyframes subsPop { from { opacity:0; transform:scale(.94); } }
+@keyframes subsTitleIn { from { opacity:0; transform:translateY(8px); filter:blur(3px); } }
+@keyframes subsShake { 10%, 90% { transform:translateX(-1px); } 20%, 80% { transform:translateX(3px); } 30%, 50%, 70% { transform:translateX(-5px); } 40%, 60% { transform:translateX(5px); } }
+@keyframes subsFlash { 0% { background:var(--a-accent-tint); border-color:var(--a-accent); } }
+@keyframes subsShimmer { from { background-position:200% 0; } to { background-position:-200% 0; } }
+@keyframes subsSpin { to { transform:rotate(360deg); } }
+@keyframes subsDraw { to { stroke-dashoffset:0; } }
+.subs-entering > :not(.subs-list) { animation:subsRise .5s var(--a-ease-enter) backwards; }
+.subs-entering > :nth-child(2) { animation-delay:.05s; }
+
+/* Hero: monthly spend on the dark gradient card */
+.subs-hero { display:flex; justify-content:space-between; align-items:flex-end; gap:16px; min-height:138px; padding:22px 26px; border-radius:26px; background:radial-gradient(120% 140% at 85% 30%, #173f81 0%, #0e111b 55%, #060606 100%); color:#fff; box-shadow:var(--a-shadow-raised); }
+html[data-theme="dark"] .subs-hero { box-shadow:inset 0 0 0 1px rgba(255,255,255,.06), var(--a-shadow-raised); }
+.subs-hero-l { display:flex; flex-direction:column; min-width:0; }
+.subs-hl { color:rgba(255,255,255,.62); font-size:13px; }
+.subs-big { display:flex; align-items:baseline; gap:4px; margin:6px 0 4px; font:600 22px/1.25 var(--a-display); }
+.subs-big b { font-size:44px; font-weight:700; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+.subs-big small { margin-left:4px; color:rgba(255,255,255,.62); font:400 13px var(--a-sans); }
+.subs-hr { display:flex; flex-direction:column; align-items:flex-end; gap:6px; text-align:right; }
+.subs-hr .subs-pill { background:rgba(255,255,255,.12); color:#fff; }
+.subs-hr .subs-pill .subs-i { width:12px; height:12px; color:#4cd676; stroke-width:2.4; }
+.subs-rate { display:inline-flex; align-items:center; height:22px; margin:0 2px; padding:0 8px; border:1px dashed rgba(255,255,255,.38); border-radius:9999px; background:transparent; color:#fff; font:600 13px var(--a-sans); font-variant-numeric:tabular-nums; vertical-align:baseline; transition:transform .58s var(--a-spring), background .16s var(--a-ease), border-color .16s; }
+.subs-rate:hover { background:rgba(255,255,255,.12); border-color:rgba(255,255,255,.62); }
+.subs-rate:active { transform:scale(.94); transition-duration:.12s; }
+.subs-rate-input { width:64px; height:24px; margin:0 2px; padding:0 8px; border:1px solid rgba(255,255,255,.7); border-radius:9999px; background:rgba(255,255,255,.14); color:#fff; font:600 13px var(--a-sans); text-align:center; outline:none; animation:subsPop .32s var(--a-spring); }
+.subs-rate-input.err { border-color:#ff736d; animation:subsShake .42s var(--a-ease); }
+.subs-hero .subs-sk { display:inline-block; width:150px; height:44px; border-radius:12px; background:linear-gradient(90deg, rgba(255,255,255,.06) 25%, rgba(255,255,255,.16) 50%, rgba(255,255,255,.06) 75%); background-size:200% 100%; }
+
+/* Digit wheel: every digit rolls from its old value, right-most digit first */
+.subs-wheel { display:inline-flex; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.subs-wh { display:inline-block; height:1.25em; overflow:hidden; -webkit-mask-image:linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent); mask-image:linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent); }
+.subs-wh > span { display:flex; flex-direction:column; transition:transform 1.05s var(--a-ease-enter); }
+.subs-wh > span > span { height:1.25em; line-height:1.25em; text-align:center; }
+.subs-wsym { display:inline-block; line-height:1.25em; }
+
+/* Buttons, pills and segmented controls */
+.subs-btn { position:relative; display:inline-flex; align-items:center; justify-content:center; gap:6px; height:36px; padding:0 16px; border:1px solid var(--a-border); border-radius:9999px; background:var(--a-card); color:var(--a-ink); font:500 14px/1 var(--a-sans); letter-spacing:inherit; white-space:nowrap; overflow:hidden; cursor:pointer; transition:transform .58s var(--a-spring), background .16s var(--a-ease), box-shadow .16s var(--a-ease), color .16s, border-color .16s; }
+.subs-btn:hover { box-shadow:var(--a-shadow-raised); }
+.subs-btn:active { transform:scale(.96); transition-duration:.12s; }
+.subs-btn:disabled { opacity:.5; cursor:default; box-shadow:none; transform:none; }
+.subs-btn.primary { border-color:transparent; background:var(--a-primary); color:var(--a-primary-ink); box-shadow:var(--a-pill-shadow); }
+.subs-btn.primary:hover { background:var(--a-primary-hover); }
+.subs-btn.sm { height:30px; padding:0 12px; font-size:13px; }
+.subs-btn.ghost { border-color:transparent; background:transparent; }
+.subs-btn.ghost:hover { background:var(--a-panel); box-shadow:none; }
+.subs-btn.icon { width:36px; padding:0; }
+.subs-btn.ok { border-color:transparent; background:var(--a-green-bg); color:var(--a-green); }
+.subs-btn.primary.ok { background:var(--a-green); color:var(--a-card); }
+.subs-btn .lbl { display:inline-flex; align-items:center; gap:6px; }
+.subs-btn .lbl.in { animation:subsTitleIn .32s var(--a-ease-enter) both; }
+.subs-spin { width:14px; height:14px; flex:none; border:1.75px solid currentColor; border-right-color:transparent; border-radius:50%; animation:subsSpin .7s linear infinite; }
+.subs-check path { stroke-dasharray:1; stroke-dashoffset:1; animation:subsDraw .4s .05s var(--a-ease-enter) forwards; }
+.subs-pill { display:inline-flex; align-items:center; gap:5px; height:22px; padding:0 9px; border:1px solid transparent; border-radius:9999px; background:var(--a-gray-bg); color:var(--a-gray); font-size:12px; font-weight:500; line-height:1; white-space:nowrap; transition:background .3s, color .3s; }
+.subs-pill.line { border-color:var(--a-border); background:transparent; color:var(--a-ink-2); }
+.subs-pill.amber { background:var(--a-amber-bg); color:var(--a-amber); }
+.subs-pill.green { background:var(--a-green-bg); color:var(--a-green); }
+.subs-pill.red { background:var(--a-red-bg); color:var(--a-red); }
+.subs-pill.red.solid { background:var(--a-red); color:var(--a-primary-ink); }
+.subs-pill.accent { background:var(--a-accent-tint); color:var(--a-accent); }
+.subs-seg { position:relative; isolation:isolate; display:inline-flex; gap:2px; max-width:100%; padding:3px; border-radius:9999px; background:var(--a-panel); overflow-x:auto; scrollbar-width:none; }
+.subs-seg::-webkit-scrollbar { display:none; }
+.subs-glide { position:absolute; left:0; top:0; z-index:-1; border-radius:9999px; background:var(--a-card); box-shadow:var(--a-shadow-card); opacity:0; pointer-events:none; transition:transform .52s var(--a-spring), width .52s var(--a-spring), height .52s var(--a-spring), opacity .2s; }
+.subs-glide.no-t { transition:none; }
+.subs-seg button { flex:none; height:30px; padding:0 12px; border:0; border-radius:9999px; background:transparent; color:var(--a-ink-2); font:500 13px/1 var(--a-sans); white-space:nowrap; cursor:pointer; transition:color .16s; }
+.subs-seg button:hover, .subs-seg button[aria-pressed="true"] { color:var(--a-ink); }
+.subs-seg button .c { margin-left:4px; color:var(--a-muted); font-variant-numeric:tabular-nums; }
+
+/* Toolbar and list */
+.subs-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+.subs-toolbar-r { display:flex; align-items:center; gap:10px; min-width:0; margin-left:auto; }
+.subs-meta { color:var(--a-muted); font-size:13px; white-space:nowrap; animation:subsTitleIn .32s var(--a-ease-enter); }
+.subs-meta:empty { display:none; }
+.subs-search { position:relative; display:flex; align-items:center; min-width:0; }
+.subs-search .subs-i { position:absolute; left:13px; width:16px; height:16px; color:var(--a-muted); pointer-events:none; }
+.subs-search input { -webkit-appearance:none; appearance:none; width:220px; max-width:100%; height:36px; padding:0 14px 0 35px; border:1px solid var(--a-border); border-radius:9999px; background:var(--a-card); color:var(--a-ink); font:14px var(--a-sans); outline:none; transition:border-color .16s, box-shadow .2s var(--a-ease), width .4s var(--a-spring); }
+.subs-search input::placeholder { color:var(--a-placeholder); }
+.subs-search input:focus { width:280px; border-color:var(--a-accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--a-accent) 20%, transparent); }
+.subs-list { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap:12px; }
+.subs-row { display:grid; grid-template-columns:auto minmax(0,1fr) auto auto; grid-template-rows:auto auto; column-gap:14px; row-gap:6px; align-items:center; width:100%; min-width:0; padding:16px 18px; border:1px solid var(--a-border); border-radius:18px; background:color-mix(in oklab, var(--c) 7%, var(--a-card)); color:var(--a-ink); font:inherit; text-align:left; cursor:pointer; transition:transform .2s var(--a-spring), box-shadow .2s, background .3s; }
+.subs-row:hover { transform:translateY(-2px); box-shadow:var(--a-shadow-raised); }
+.subs-row:active { transform:scale(.985); transition-duration:.12s; }
+.subs-row.off { background:var(--a-card); }
+.subs-row.is-ended .subs-ic { filter:grayscale(1); opacity:.5; }
+.subs-row.is-ended .subs-amt b { color:var(--a-muted); }
+.subs-row > .subs-ic { grid-column:1; grid-row:1 / 3; }
+.subs-n { grid-column:2; grid-row:1 / 3; display:flex; flex-direction:column; gap:2px; min-width:0; }
+.subs-name { overflow:hidden; font-size:16px; font-weight:600; text-overflow:ellipsis; white-space:nowrap; }
+.subs-note { overflow:hidden; color:var(--a-muted); font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
+.subs-cat { grid-column:3; grid-row:1 / 3; color:var(--a-muted); font-size:12px; white-space:nowrap; }
+.subs-amt { grid-column:4; grid-row:1; justify-self:end; display:flex; align-items:baseline; gap:6px; white-space:nowrap; }
+.subs-amt b { font:700 20px/1.2 var(--a-display); letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+.subs-amt small { color:var(--a-muted); font-size:12px; }
+.subs-row > .subs-pill { grid-column:4; grid-row:2; justify-self:end; }
+.subs-ic { display:grid; place-items:center; flex:none; width:44px; height:44px; border-radius:13px; background:var(--c); color:#fff; font:700 15px/1 var(--a-display); letter-spacing:-.02em; }
+html[data-theme="dark"] .subs-ic { box-shadow:inset 0 0 0 1px rgba(255,255,255,.08); }
+.subs-ic.big { width:64px; height:64px; border-radius:18px; font-size:22px; }
+.subs-ic.bump { animation:subsPop .4s var(--a-spring); }
+.subs-enter { animation:subsRise .45s var(--a-ease-enter) backwards; animation-delay:calc(var(--i, 0) * 35ms); }
+.subs-entering .subs-enter { animation-delay:calc(var(--i, 0) * 35ms + .1s); }
+.subs-flash { animation:subsFlash 1.2s var(--a-ease) both; }
+.subs-enter.subs-flash { animation:subsRise .45s var(--a-ease-enter) backwards, subsFlash 1.2s var(--a-ease) both; }
+.subs-empty { grid-column:1 / -1; display:flex; flex-direction:column; align-items:center; gap:10px; padding:44px 20px; border:1px dashed var(--a-border); border-radius:26px; background:var(--a-card); color:var(--a-muted); font-size:13px; text-align:center; animation:subsRise .5s var(--a-ease-enter) both; }
+.subs-empty b { color:var(--a-ink); font:600 16px var(--a-display); }
+.subs-empty-ic { display:grid; place-items:center; width:48px; height:48px; border-radius:16px; background:var(--a-accent-tint); color:var(--a-accent); }
+.subs-empty-ic .subs-i { width:24px; height:24px; }
+.subs-list .subs-sk { height:80px; border-radius:18px; background:linear-gradient(90deg, var(--a-panel) 25%, var(--a-hairline) 50%, var(--a-panel) 75%); background-size:200% 100%; }
+.subs-sk { animation:subsShimmer 1.4s linear infinite; }
+
+/* Detail drawer and editor modal: the backdrop fades, the panels slide or spring in and out */
+.modal-backdrop.subs-backdrop, .modal-backdrop.subs-backdrop.open { display:block; padding:0; background:transparent; visibility:hidden; pointer-events:none; animation:none; transition:background-color .35s var(--a-ease), visibility 0s linear .5s; }
+.modal-backdrop.subs-backdrop.open { visibility:visible; pointer-events:auto; background:var(--a-overlay); transition-delay:0s; }
+.modal-backdrop.subs-backdrop.open ~ .modal-backdrop.subs-backdrop.open { background:rgba(0,0,0,.12); }
+.subs-drawer { position:fixed; top:10px; right:10px; bottom:10px; display:flex; flex-direction:column; width:min(640px, calc(100% - 20px)); overflow:hidden; border:1px solid var(--a-border); border-radius:34px; background:var(--a-page); box-shadow:var(--a-shadow-float); transform:translateX(calc(100% + 24px)); transition:transform .48s var(--a-ease-drawer); }
+.subs-backdrop.open .subs-drawer { transform:none; }
+.subs-dh { display:flex; flex-direction:column; gap:10px; padding:18px 24px 18px; border-bottom:1px solid var(--a-hairline); background:var(--a-card); }
+.subs-dh-r1 { display:flex; align-items:center; gap:8px; }
+.subs-dh-r1 .subs-btn { margin-left:auto; }
+.subs-dh-main { display:flex; align-items:center; gap:16px; min-width:0; margin-top:4px; }
+.subs-dh-main > div { min-width:0; }
+.subs-dh h3, .subs-mh-t h3 { margin:0; font:600 20px/1.3 var(--a-display); letter-spacing:-.02em; overflow-wrap:anywhere; }
+.subs-price { display:flex; align-items:baseline; gap:6px; }
+.subs-price b { font:700 30px/1.2 var(--a-display); letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+.subs-price small, .subs-dh-note { color:var(--a-muted); font-size:13px; }
+.subs-dh-note { margin:2px 0 0; overflow-wrap:anywhere; }
+.subs-db { flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; padding:20px 24px 24px; overflow:auto; overscroll-behavior:contain; }
+.subs-stagger > * { animation:subsRise .5s var(--a-ease-enter) backwards; }
+.subs-stagger > :nth-child(2) { animation-delay:.05s; }
+.subs-stagger > :nth-child(3) { animation-delay:.1s; }
+.subs-stagger > :nth-child(4) { animation-delay:.15s; }
+.subs-stagger > :nth-child(n+5) { animation-delay:.2s; }
+.subs-cards { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:10px; }
+.subs-card { display:flex; flex-direction:column; gap:3px; min-width:0; padding:14px 16px; border-radius:14px; background:var(--a-panel); }
+.subs-card.wide { grid-column:1 / -1; }
+.subs-card span, .subs-card small { color:var(--a-muted); font-size:12px; }
+.subs-card b { font:700 20px/1.3 var(--a-display); letter-spacing:-.02em; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.subs-kv { display:grid; grid-template-columns:96px minmax(0,1fr); gap:8px 12px; margin:0; padding:2px; font-size:13px; }
+.subs-kv dt { color:var(--a-muted); }
+.subs-kv dd { margin:0; overflow-wrap:anywhere; }
+.subs-act { display:flex; flex-direction:column; align-items:flex-start; gap:3px; width:100%; min-width:0; padding:14px 16px; border:1px solid var(--a-border); border-radius:14px; background:var(--a-card); color:var(--a-ink); font:inherit; text-align:left; cursor:pointer; transition:transform .58s var(--a-spring), box-shadow .16s var(--a-ease); }
+button.subs-act:hover { box-shadow:var(--a-shadow-raised); }
+button.subs-act:active { transform:scale(.98); transition-duration:.12s; }
+.subs-act b { font-size:15px; font-weight:600; }
+.subs-act small { color:var(--a-muted); font-size:12px; }
+.subs-act.dark { flex-direction:row; justify-content:space-between; align-items:center; border-color:transparent; background:var(--a-ink); color:var(--a-card); }
+.subs-act.dark > span:first-child { display:flex; flex-direction:column; gap:3px; }
+.subs-act.dark small { color:color-mix(in oklab, var(--a-card) 65%, transparent); }
+.subs-act.dark .subs-pill { background:var(--a-card); color:var(--a-ink); transition:transform .4s var(--a-spring); }
+.subs-act.dark:hover .subs-pill { transform:translateX(3px); }
+.subs-acts { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:10px; }
+.subs-act.danger { cursor:default; }
+.subs-act.danger b { color:var(--a-red); }
+.subs-act.danger .subs-hold { margin-top:6px; }
+.subs-hold { isolation:isolate; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; touch-action:none; }
+.subs-hold-fill { position:absolute; inset:0; z-index:-1; background:var(--a-red-bg); transform:scaleX(0); transform-origin:left; }
+.subs-hold.holding, .subs-hold.ok { border-color:color-mix(in srgb, var(--a-red) 40%, transparent); color:var(--a-red); }
+.subs-hold.shake { animation:subsShake .42s var(--a-ease); }
+.subs-hold .subs-i { width:15px; height:15px; }
+.subs-modal { position:fixed; top:50%; left:50%; display:flex; flex-direction:column; width:min(760px, calc(100% - 48px)); max-height:min(820px, calc(100% - 48px)); overflow:hidden; border:1px solid var(--a-border); border-radius:34px; background:var(--a-page); box-shadow:var(--a-shadow-float); opacity:0; transform:translate(-50%, -47%) scale(.94); transition:transform .58s var(--a-spring), opacity .2s var(--a-ease); }
+.subs-backdrop.open .subs-modal { opacity:1; transform:translate(-50%, -50%); }
+.subs-mh { display:flex; align-items:center; gap:14px; padding:22px 22px 18px 24px; }
+.subs-mh-badge { display:grid; place-items:center; flex:none; width:46px; height:46px; border-radius:15px; background:var(--a-accent-tint); color:var(--a-accent); }
+.subs-mh-badge .subs-i { width:22px; height:22px; }
+.subs-mh-t { flex:1; min-width:0; }
+.subs-mh-t h3 { font-size:22px; }
+.subs-mh-t p { margin:3px 0 0; color:var(--a-muted); font-size:13px; }
+.subs-form { flex:1; display:flex; flex-direction:column; gap:18px; min-height:0; padding:2px 28px 22px; overflow:auto; overscroll-behavior:contain; }
+.subs-preview { flex:none; cursor:default; pointer-events:none; }
+.subs-fields { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:14px 16px; }
+.subs-field { display:flex; flex-direction:column; gap:6px; min-width:0; }
+.subs-field.full { grid-column:1 / -1; }
+.subs-field > label, .subs-label { padding-left:2px; color:var(--a-ink-2); font-size:12px; font-weight:500; }
+.subs-req { margin-left:2px; color:var(--a-red); font-style:normal; }
+.subs-input { width:100%; height:44px; padding:0 14px; border:1px solid var(--a-border); border-radius:18px; background:var(--a-card); color:var(--a-ink); font:14px var(--a-sans); outline:none; transition:border-color .16s, box-shadow .2s var(--a-ease); }
+.subs-input::placeholder { color:var(--a-placeholder); }
+.subs-input:focus { border-color:var(--a-accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--a-accent) 20%, transparent); }
+.subs-field.err .subs-input { border-color:var(--a-red); box-shadow:0 0 0 3px color-mix(in srgb, var(--a-red) 16%, transparent); }
+.subs-field.err { animation:subsShake .4s var(--a-ease); }
+.subs-dep { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:8px; }
+.subs-cur { position:relative; min-width:0; }
+.subs-cur-sym { position:absolute; left:14px; top:50%; color:var(--a-muted); font-size:13px; pointer-events:none; transform:translateY(-50%); }
+.subs-cur .subs-input { padding-left:30px; }
+.subs-field .subs-seg { align-self:flex-start; }
+.subs-modal .subs-seg button { height:34px; padding:0 14px; }
+.subs-hint { min-height:18px; padding-left:2px; color:var(--a-muted); font-size:12.5px; }
+.subs-colors { display:flex; flex-wrap:wrap; gap:8px; }
+.subs-colors button { width:28px; height:28px; border:2px solid transparent; border-radius:9px; background:padding-box var(--c); box-shadow:inset 0 0 0 1px rgba(0,0,0,.08); cursor:pointer; transition:transform .45s var(--a-spring), border-color .16s, box-shadow .16s; }
+html[data-theme="dark"] .subs-colors button { box-shadow:inset 0 0 0 1px rgba(255,255,255,.16); }
+.subs-colors button:hover { transform:scale(1.12); }
+.subs-colors button:active { transform:scale(.9); transition-duration:.12s; }
+.subs-colors button[aria-pressed="true"], html[data-theme="dark"] .subs-colors button[aria-pressed="true"] { border-color:var(--c); box-shadow:inset 0 0 0 2px var(--a-card); }
+.subs-df { display:flex; align-items:center; gap:10px; padding:14px 22px 14px 24px; border-top:1px solid var(--a-hairline); background:var(--a-card); }
+.subs-df-sp { flex:1; }
+.subs-ferr { min-width:0; color:var(--a-red); font-size:13px; }
+.subs-ferr.in { animation:subsTitleIn .32s var(--a-ease-enter); }
+
+/* Toast stack: newest in front, older ones tuck behind; hover fans them out and pauses the 4 s timer */
+.subs-toasts { position:fixed; z-index:60; right:calc(20px + env(safe-area-inset-right, 0px)); bottom:calc(20px + env(safe-area-inset-bottom, 0px)); width:min(340px, calc(100% - 32px)); height:0; }
+.subs-toast { position:absolute; right:0; bottom:0; left:0; display:flex; align-items:flex-start; gap:10px; padding:12px 14px; border:1px solid var(--a-border); border-radius:18px; background:var(--a-card); color:var(--a-ink); box-shadow:var(--a-shadow-float); font-size:14px; line-height:1.45; transform-origin:50% 0; transition:transform .58s var(--a-spring), opacity .3s var(--a-ease); }
+.subs-ti { display:grid; place-items:center; flex:none; width:20px; height:20px; }
+.subs-tx { flex:1; min-width:0; }
+.subs-tx b { display:block; font-weight:500; }
+.subs-tx span { display:block; color:var(--a-muted); font-size:13px; }
+.subs-undo { flex:none; height:26px; padding:0 10px; border:1px solid var(--a-border); border-radius:9999px; background:var(--a-card); color:var(--a-ink); font:500 12px var(--a-sans); cursor:pointer; transition:transform .58s var(--a-spring), box-shadow .16s; }
+.subs-undo:hover { box-shadow:var(--a-shadow-raised); }
+.subs-undo:active { transform:scale(.94); transition-duration:.12s; }
+.subs-toast.t-success .subs-ti { color:var(--a-green); }
+.subs-toast.t-info .subs-ti { color:var(--a-accent); }
+.subs-toast.t-warn .subs-ti { color:var(--a-amber); }
+.subs-toast.t-error .subs-ti { color:var(--a-red); }
+
+@media (max-width: 820px) {
+  .subs-toasts { bottom:calc(84px + env(safe-area-inset-bottom, 0px)); }
 }
 @media (max-width: 760px) {
-  .subs-hero { grid-template-columns: 1fr; padding: 18px; border-radius: 22px; }
-  .subs-hero-chips { justify-content: flex-start; }
-  .subs-tools { width: 100%; }
-  .subs-search, .subs-search:focus-within { flex: 1 1 100%; width: 100%; }
-  .subs-tools .btn { flex: 1 1 0; }
-  .subs-filter { min-width: 0; width: 100%; }
-  .subs-filter .segment-option { padding: 0 6px; }
-  .subs-detail-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .subs-card:first-child { grid-column: 1 / -1; }
+  .subs-hero { flex-direction:column; align-items:flex-start; padding:20px 22px; }
+  .subs-hr { align-items:flex-start; text-align:left; }
+  .subs-big b { font-size:40px; }
+  .subs-toolbar-r { width:100%; margin-left:0; }
+  .subs-search { flex:1; }
+  .subs-search input, .subs-search input:focus { width:100%; }
+  .subs-row { grid-template-columns:auto minmax(0,1fr) auto; column-gap:12px; padding:14px; }
+  .subs-cat { display:none; }
+  .subs-amt { grid-column:3; flex-direction:column; align-items:flex-end; gap:0; }
+  .subs-row > .subs-pill { grid-column:3; }
+  .subs-drawer { top:auto; left:8px; right:8px; bottom:8px; width:auto; max-height:calc(100% - 40px); border-radius:28px; transform:translateY(calc(100% + 24px)); }
+  .subs-dh, .subs-db { padding-left:18px; padding-right:18px; }
+  .subs-acts { grid-template-columns:minmax(0,1fr); }
+  .subs-modal { width:calc(100% - 16px); max-height:calc(100% - 16px); border-radius:28px; }
+  .subs-mh { padding:18px 14px 14px 18px; }
+  .subs-form { padding:2px 18px 18px; }
+  .subs-fields { grid-template-columns:minmax(0,1fr); }
+  .subs-df { padding:12px 14px 12px 18px; }
 }
-@media (max-width: 430px) {
-  .subs-item { grid-template-columns: 40px minmax(0, 1fr) auto; padding: 11px 12px 11px 10px; gap: 3px 10px; }
-  .subs-logo { width: 40px; height: 40px; border-radius: 13px; font-size: 16px; }
-  .subs-note { display: none; }
-  .subs-amount { grid-template-columns: minmax(0, 1fr) 116px; }
+@media (prefers-reduced-motion: reduce) {
+  .subs-scope, .subs-scope * { animation-delay:0s !important; transition-delay:0s !important; }
+  .subs-sk, .subs-spin { animation:none !important; }
 }
 </style>
 </head>
@@ -4457,23 +4470,17 @@ html[data-theme="dark"] .subs-filter .segment-option.active { background: transp
       </section>
     </section>
 
-    <section class="page" id="page-subscriptions">
+    <section class="page subs-scope" id="page-subscriptions">
       <section class="subs-hero" id="subsHero"></section>
-      <section class="panel subs-panel">
-        <div class="section-head">
-          <div>
-            <div class="section-title">我的订阅</div>
-            <div class="section-meta" id="subsMeta">按下次扣费排序</div>
-          </div>
-          <div class="subs-tools">
-            <label class="subs-search"><span aria-hidden="true">⌕</span><input id="subsSearch" type="search" placeholder="搜索名称或备注" autocomplete="off" aria-label="搜索订阅"></label>
-            <button class="btn btn-small subs-rate-btn" id="subsRateBtn" type="button" title="修改订阅页的美元汇率">USD <b>7.1</b></button>
-            <button class="btn btn-primary btn-small" id="subsAddBtn" type="button">＋ 新增订阅</button>
-          </div>
+      <div class="subs-toolbar">
+        <div class="subs-seg" id="subsFilter" role="group" aria-label="按分类筛选"><span class="subs-glide" aria-hidden="true"></span></div>
+        <span class="subs-meta" id="subsMeta" aria-live="polite"></span>
+        <div class="subs-toolbar-r">
+          <label class="subs-search"><svg class="subs-i" aria-hidden="true"><use href="#subs-i-search"/></svg><input id="subsSearch" type="search" placeholder="搜索名称或备注" autocomplete="off" aria-label="搜索订阅"></label>
+          <button class="subs-btn primary" id="subsAddBtn" type="button"><svg class="subs-i" aria-hidden="true"><use href="#subs-i-plus"/></svg>新增订阅</button>
         </div>
-        <div class="segment-control compact subs-filter no-anim" id="subsFilter" role="group" aria-label="按分类筛选"><span class="subs-filter-thumb" aria-hidden="true"></span></div>
-        <div class="subs-list" id="subsList"></div>
-      </section>
+      </div>
+      <div class="subs-list" id="subsList"></div>
     </section>
 
     <section class="page" id="page-settings">
@@ -5267,60 +5274,62 @@ html[data-theme="dark"] .subs-filter .segment-option.active { background: transp
   </div>
 </div>
 
-<div class="modal-backdrop drawer-backdrop" id="subscriptionDrawer" aria-hidden="true">
-  <aside class="modal drawer subs-drawer" role="dialog" aria-modal="true" aria-labelledby="subscriptionDrawerTitle">
-    <div class="modal-head">
-      <div>
-        <div class="order-num" id="subscriptionDrawerSub">订阅详情</div>
-        <div class="modal-title" id="subscriptionDrawerTitle">订阅</div>
-      </div>
-      <button class="btn btn-small" id="subscriptionDrawerCloseBtn" type="button">关闭</button>
-    </div>
-    <div class="modal-body detail-body" id="subscriptionDrawerBody"></div>
-  </aside>
+<div class="modal-backdrop subs-backdrop subs-scope" id="subscriptionDrawer" aria-hidden="true">
+  <aside class="subs-drawer" id="subscriptionDrawerPanel" role="dialog" aria-modal="true" aria-labelledby="subscriptionDrawerTitle"></aside>
 </div>
 
-<div class="modal-backdrop" id="subscriptionEditModal" aria-hidden="true">
-  <div class="modal subs-edit-modal" role="dialog" aria-modal="true" aria-labelledby="subscriptionEditTitle">
-    <div class="modal-head">
-      <div>
-        <div class="order-num" id="subscriptionEditSub">订阅</div>
-        <div class="modal-title" id="subscriptionEditTitle">新增订阅</div>
+<div class="modal-backdrop subs-backdrop subs-scope" id="subscriptionEditModal" aria-hidden="true">
+  <div class="subs-modal" role="dialog" aria-modal="true" aria-labelledby="subscriptionEditTitle">
+    <header class="subs-mh">
+      <div class="subs-mh-badge"><svg class="subs-i" aria-hidden="true"><use href="#subs-i-repeat"/></svg></div>
+      <div class="subs-mh-t"><h3 id="subscriptionEditTitle">新增订阅</h3><p id="subscriptionEditSub">价格、周期、分类和样式</p></div>
+      <button class="subs-btn icon ghost" id="subscriptionEditCloseBtn" type="button" aria-label="关闭"><svg class="subs-i" aria-hidden="true"><use href="#subs-i-x"/></svg></button>
+    </header>
+    <form class="subs-form" id="subscriptionEditForm" novalidate>
+      <div class="subs-row subs-preview" id="subscriptionPreview" aria-hidden="true">
+        <span class="subs-ic" id="subscriptionPreviewLogo">·</span>
+        <span class="subs-n"><b class="subs-name" id="subscriptionPreviewName">订阅名称</b><span class="subs-note" id="subscriptionPreviewMeta"></span></span>
+        <span class="subs-cat" id="subscriptionPreviewCat"></span>
+        <span class="subs-amt"><b id="subscriptionPreviewPrice">—</b><small id="subscriptionPreviewCycle"></small></span>
+        <span class="subs-pill line" id="subscriptionPreviewWhen"></span>
       </div>
-      <div class="modal-head-actions">
-        <button class="btn btn-primary btn-small" id="subscriptionSaveBtn" type="submit" form="subscriptionEditForm">保存</button>
-        <button class="btn btn-small" id="subscriptionEditCloseBtn" type="button">关闭</button>
-      </div>
-    </div>
-    <form class="modal-body subs-form" id="subscriptionEditForm" novalidate>
-      <div class="subs-preview" id="subscriptionPreview" aria-hidden="true">
-        <span class="subs-logo" id="subscriptionPreviewLogo">订</span>
-        <div class="subs-preview-main">
-          <div class="subs-preview-name" id="subscriptionPreviewName">订阅名称</div>
-          <div class="subs-preview-meta" id="subscriptionPreviewMeta"></div>
-        </div>
-        <div class="subs-price"><strong id="subscriptionPreviewPrice">—</strong><small id="subscriptionPreviewCycle"></small></div>
-      </div>
-      <div class="form-grid">
-        <div class="field"><label for="subscriptionName">名称</label><input id="subscriptionName" name="subName" maxlength="80" placeholder="例如 ChatGPT Plus" autocomplete="off"></div>
-        <div class="field"><label for="subscriptionNote">备注</label><input id="subscriptionNote" name="subNote" maxlength="200" placeholder="账号或用途，可不填" autocomplete="off"></div>
-        <div class="field span-2">
-          <label for="subscriptionAmount">金额</label>
-          <div class="subs-amount">
-            <input id="subscriptionAmount" name="subAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00" autocomplete="off">
-            <div class="segment-control compact" role="group" aria-label="币种" data-sub-segment="currency"><button class="segment-option" type="button" data-value="CNY">CNY</button><button class="segment-option" type="button" data-value="USD">USD</button></div>
+      <div class="subs-fields">
+        <div class="subs-field"><label for="subscriptionName">名称<em class="subs-req">*</em></label><input class="subs-input" id="subscriptionName" name="subName" maxlength="80" placeholder="例如 ChatGPT Plus" autocomplete="off"></div>
+        <div class="subs-field"><label for="subscriptionNote">备注</label><input class="subs-input" id="subscriptionNote" name="subNote" maxlength="200" placeholder="例如 50GB、域名、续费价" autocomplete="off"></div>
+        <div class="subs-field">
+          <label for="subscriptionAmount">金额<em class="subs-req">*</em></label>
+          <div class="subs-dep">
+            <div class="subs-cur"><span class="subs-cur-sym" id="subscriptionCurrencySymbol">¥</span><input class="subs-input" id="subscriptionAmount" name="subAmount" inputmode="decimal" placeholder="0.00" autocomplete="off"></div>
+            <div class="subs-seg" role="group" aria-label="币种" data-sub-segment="currency"><span class="subs-glide" aria-hidden="true"></span><button type="button" data-value="CNY" aria-pressed="false">CNY</button><button type="button" data-value="USD" aria-pressed="false">USD</button></div>
           </div>
           <div class="subs-hint" id="subscriptionAmountHint"></div>
         </div>
-        <div class="field"><label id="subscriptionCycleLabel">扣费周期</label><div class="segment-control compact" role="group" aria-labelledby="subscriptionCycleLabel" data-sub-segment="cycleMonths"><button class="segment-option" type="button" data-value="1">月付</button><button class="segment-option" type="button" data-value="12">年付</button></div></div>
-        <div class="field"><label for="subscriptionStart">开始日期</label><input id="subscriptionStart" name="subStart" type="date"></div>
-        <div class="field span-2"><label id="subscriptionCategoryLabel">分类</label><div class="segment-control compact" role="group" aria-labelledby="subscriptionCategoryLabel" data-sub-segment="category"><button class="segment-option" type="button" data-value="工具效率">工具效率</button><button class="segment-option" type="button" data-value="AI">AI</button><button class="segment-option" type="button" data-value="其他">其他</button></div></div>
-        <div class="field span-2"><label id="subscriptionColorLabel">颜色</label><div class="subs-swatches" role="group" aria-labelledby="subscriptionColorLabel"><button class="subs-swatch" type="button" data-sub-color="#0f8f81" style="--swatch:#0f8f81" aria-label="茶绿" aria-pressed="false"></button><button class="subs-swatch" type="button" data-sub-color="#3f7a50" style="--swatch:#3f7a50" aria-label="森绿" aria-pressed="false"></button><button class="subs-swatch" type="button" data-sub-color="#4c7d70" style="--swatch:#4c7d70" aria-label="青灰" aria-pressed="false"></button><button class="subs-swatch" type="button" data-sub-color="#c7a06c" style="--swatch:#c7a06c" aria-label="沙金" aria-pressed="false"></button><button class="subs-swatch" type="button" data-sub-color="#d97730" style="--swatch:#d97730" aria-label="橘色" aria-pressed="false"></button><button class="subs-swatch" type="button" data-sub-color="#b8612a" style="--swatch:#b8612a" aria-label="赭石" aria-pressed="false"></button><button class="subs-swatch" type="button" data-sub-color="#bf4a3c" style="--swatch:#bf4a3c" aria-label="砖红" aria-pressed="false"></button><button class="subs-swatch" type="button" data-sub-color="#8f654c" style="--swatch:#8f654c" aria-label="栗色" aria-pressed="false"></button><button class="subs-swatch" type="button" data-sub-color="#463d34" style="--swatch:#463d34" aria-label="墨色" aria-pressed="false"></button></div></div>
+        <div class="subs-field"><span class="subs-label" id="subscriptionCycleLabel">扣费周期</span><div class="subs-seg" role="group" aria-labelledby="subscriptionCycleLabel" data-sub-segment="cycleMonths"><span class="subs-glide" aria-hidden="true"></span><button type="button" data-value="1" aria-pressed="false">月付</button><button type="button" data-value="12" aria-pressed="false">年付</button></div></div>
+        <div class="subs-field"><label for="subscriptionStart">开始日期</label><input class="subs-input" id="subscriptionStart" name="subStart" type="date"></div>
+        <div class="subs-field"><span class="subs-label" id="subscriptionCategoryLabel">分类</span><div class="subs-seg" role="group" aria-labelledby="subscriptionCategoryLabel" data-sub-segment="category"><span class="subs-glide" aria-hidden="true"></span><button type="button" data-value="工具效率" aria-pressed="false">工具效率</button><button type="button" data-value="AI" aria-pressed="false">AI</button><button type="button" data-value="其他" aria-pressed="false">其他</button></div></div>
+        <div class="subs-field full"><span class="subs-label" id="subscriptionColorLabel">样式</span><div class="subs-colors" id="subscriptionColors" role="group" aria-labelledby="subscriptionColorLabel"></div></div>
       </div>
-      <div class="confirm-error" id="subscriptionEditError" role="alert"></div>
     </form>
+    <footer class="subs-df">
+      <span class="subs-ferr" id="subscriptionEditError" role="alert"></span>
+      <span class="subs-df-sp"></span>
+      <button class="subs-btn" id="subscriptionEditCancelBtn" type="button">取消</button>
+      <button class="subs-btn primary" id="subscriptionSaveBtn" type="submit" form="subscriptionEditForm"><span class="lbl">添加订阅</span></button>
+    </footer>
   </div>
 </div>
+
+<div class="subs-toasts subs-scope" id="subscriptionToasts" aria-live="polite"></div>
+<svg class="subs-sprite" aria-hidden="true" focusable="false">
+  <symbol id="subs-i-repeat" viewBox="0 0 24 24"><path d="M17 2l3 3-3 3M4 11V9a4 4 0 0 1 4-4h12M7 22l-3-3 3-3M20 13v2a4 4 0 0 1-4 4H4"/></symbol>
+  <symbol id="subs-i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="subs-i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="subs-i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="subs-i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13h12l1-13M9 7V4h6v3"/></symbol>
+  <symbol id="subs-i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="subs-i-alert" viewBox="0 0 24 24"><path d="M12 3 2 20h20zM12 10v4M12 17h.01"/></symbol>
+  <symbol id="subs-i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></symbol>
+</svg>
 
 <div class="toast" id="toast"></div>
 <input type="file" id="importFile" accept="application/json,.json" hidden>
@@ -7649,26 +7658,12 @@ function depositPresetOptions(amountValue, currencyValue = 'USD') {
     return { percent, amount:selection.depositAmount, label };
   });
 }
-function toast(text, { actionText = '', onAction = null } = {}) {
+function toast(text) {
   const el = document.getElementById('toast');
   el.textContent = text;
-  const hasAction = Boolean(actionText && typeof onAction === 'function');
-  el.classList.toggle('has-action', hasAction);
-  if (hasAction) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'toast-action';
-    button.textContent = actionText;
-    button.addEventListener('click', () => {
-      clearTimeout(window.toastTimer);
-      el.classList.remove('show');
-      onAction();
-    }, { once:true });
-    el.append(button);
-  }
   el.classList.add('show');
   clearTimeout(window.toastTimer);
-  window.toastTimer = setTimeout(() => el.classList.remove('show'), hasAction ? 6000 : 1800);
+  window.toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
 }
 async function copyText(text, message = '已复制') {
   const value = String(text || '').trim();
@@ -10510,7 +10505,7 @@ function renderPageContent(page, { entering = false } = {}) {
     analysis: renderAnalysisPage,
     customers: renderCustomers,
     deleted: renderDeletedOrders,
-    subscriptions: () => renderSubscriptionsPage({ animate:entering, rollHero:entering }),
+    subscriptions: () => renderSubscriptionsPage({ entering }),
     settings: () => { renderSettings(); renderExchangeSettings(); }
   };
   pages[page]?.();
@@ -15298,18 +15293,26 @@ function download(name, text) {
 // Personal subscriptions use their own SQLite table and API. They never enter `state`,
 // so the dashboard, reports, global search and exports cannot see them.
 const subscriptionCategories = ['工具效率', 'AI', '其他'];
-const subscriptionColors = ['#0f8f81', '#3f7a50', '#4c7d70', '#c7a06c', '#d97730', '#b8612a', '#bf4a3c', '#8f654c', '#463d34'];
+const subscriptionColors = [
+  ['#7747ff', '紫色'], ['#3b8ef0', '天蓝'], ['#2f6fde', '蓝色'], ['#5b3cc4', '靛紫'], ['#0f9d8a', '青绿'],
+  ['#e8590c', '橙色'], ['#c98a12', '金色'], ['#e0336f', '玫红'], ['#1f1f23', '墨黑']
+];
 const subscriptionHoldMs = 1500;
-const subscriptionState = { loaded:false, loading:false, unavailable:false, error:'', items:[], usdCnyRate:7.1 };
+const subscriptionToastMs = 4000;
+const subscriptionState = { loaded:false, loading:false, error:'', items:[], usdCnyRate:7.1 };
+const subscriptionGlideRects = {};
+const subscriptionToasts = [];
 let subscriptionFilter = 'all';
 let subscriptionQuery = '';
 let subscriptionDetailId = '';
 let subscriptionDraft = null;
 let subscriptionReturnFocus = null;
+let subscriptionRateEditing = false;
 let subscriptionHeroValue = 0;
-let subscriptionHeroFrame = 0;
-let subscriptionHoldTimer = 0;
+let subscriptionHold = null;
 let subscriptionBusy = false;
+let subscriptionToastHover = false;
+let subscriptionToastTimer = 0;
 function subscriptionLocalDate(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
@@ -15366,7 +15369,7 @@ function subscriptionSchedule(item, today, rate) {
 }
 function subscriptionSummary(items, today, rate, windowDays = 30) {
   const windowEnd = subscriptionDateFromDay(subscriptionDayNumber(today) + windowDays - 1);
-  const summary = { total:items.length, active:0, cancelled:0, monthlyCny:0, yearlyCny:0, upcoming:[], upcomingCny:0 };
+  const summary = { total:items.length, active:0, cancelled:0, dueSoon:0, monthlyCny:0, yearlyCny:0, upcoming:[], upcomingCny:0 };
   items.forEach(item => {
     const schedule = subscriptionSchedule(item, today, rate);
     if (schedule.state !== 'active') {
@@ -15375,6 +15378,7 @@ function subscriptionSummary(items, today, rate, windowDays = 30) {
     }
     summary.active += 1;
     summary.monthlyCny += schedule.monthlyCny;
+    if (schedule.daysLeft <= 7) summary.dueSoon += 1;
     const cycle = Number(item.cycleMonths) === 12 ? 12 : 1;
     let index = subscriptionChargeIndex({ ...item, cycleMonths:cycle }, schedule.nextCharge);
     for (let date = schedule.nextCharge; date <= windowEnd; date = subscriptionAddMonths(item.startDate, ++index * cycle)) {
@@ -15395,31 +15399,39 @@ function subscriptionCompare(a, b) {
   const byDate = a.schedule.state === 'expired' ? dateB.localeCompare(dateA) : dateA.localeCompare(dateB);
   return byDate || a.item.name.localeCompare(b.item.name, 'zh-CN');
 }
+function subscriptionNumber(value) {
+  return Number(value || 0).toLocaleString('zh-CN', { minimumFractionDigits:2, maximumFractionDigits:2 });
+}
 function subscriptionMoney(value, currency = 'CNY') {
-  const number = Number(value || 0).toLocaleString('zh-CN', { minimumFractionDigits:2, maximumFractionDigits:2 });
-  return `${currency === 'USD' ? '$' : '¥'}${number}`;
+  return `${currency === 'USD' ? '$' : '¥'}${subscriptionNumber(value)}`;
 }
 function subscriptionCycleLabel(cycleMonths) {
-  return Number(cycleMonths) === 12 ? '年' : '月';
-}
-function subscriptionDateLabel(dateText, today) {
-  if (!dateText) return '';
-  const [year, month, day] = dateText.split('-').map(Number);
-  return String(year) === today.slice(0, 4) ? `${month}月${day}日` : `${year}年${month}月${day}日`;
+  return Number(cycleMonths) === 12 ? '年付' : '月付';
 }
 function subscriptionInitial(name) {
-  return (Array.from(String(name || '').trim())[0] || '订').toUpperCase();
+  // Latin names show two characters (Ch, 1P), Chinese names one (阿).
+  const text = String(name || '').trim();
+  return text.replace(/[^A-Za-z0-9一-龥]/g, '').slice(0, /^[一-龥]/.test(text) ? 1 : 2) || '·';
 }
 function subscriptionWhen(schedule) {
-  if (schedule.state === 'expired') return { cls:'expired', text:'已到期' };
-  if (schedule.state === 'ending') return { cls:'ending', text:schedule.daysLeft === 1 ? '明天到期' : `${schedule.daysLeft} 天后到期` };
-  if (schedule.daysLeft === 0) return { cls:'today', text:'今天扣费' };
-  if (schedule.daysLeft === 1) return { cls:'soon', text:'明天扣费' };
-  return { cls:schedule.daysLeft <= 7 ? 'soon' : '', text:`${schedule.daysLeft} 天后扣费` };
+  if (schedule.state === 'expired') return { cls:'', text:'已到期' };
+  if (schedule.state === 'ending') return { cls:'amber', text:schedule.daysLeft === 1 ? '明天到期' : `${schedule.daysLeft}天后到期` };
+  if (schedule.daysLeft === 0) return { cls:'red solid', text:'今天扣费' };
+  if (schedule.daysLeft === 1) return { cls:'accent', text:'明天扣费' };
+  return { cls:schedule.daysLeft <= 7 ? 'accent' : 'line', text:`${schedule.daysLeft}天后扣费` };
 }
 function subscriptionReducedMotion() {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
 }
+function subscriptionIcon(name) {
+  return `<svg class="subs-i" aria-hidden="true"><use href="#subs-i-${name}"/></svg>`;
+}
+function subscriptionIconHtml(item, big = false) {
+  return `<span class="subs-ic${big ? ' big' : ''}" style="--c:${escapeAttr(item.color)}" aria-hidden="true">${escapeAttr(subscriptionInitial(item.name))}</span>`;
+}
+const subscriptionSpring = window.CSS?.supports?.('transition-timing-function', 'linear(0, 1)')
+  ? 'linear(0, 0.0739, 0.2235, 0.3849, 0.5305, 0.6508, 0.7452, 0.8168, 0.8699, 0.9084, 0.9361, 0.9557, 0.9694, 0.979, 0.9857, 0.9902, 0.9934, 0.9955, 1)'
+  : 'cubic-bezier(.22,1,.36,1)';
 async function subscriptionRequest(resource, body) {
   const response = await apiFetch(resource, body === undefined ? {} : {
     method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify(body)
@@ -15429,11 +15441,6 @@ async function subscriptionRequest(resource, body) {
   return data;
 }
 async function loadSubscriptions() {
-  if (!isMacAppMode()) {
-    Object.assign(subscriptionState, { loaded:true, unavailable:true });
-    renderSubscriptionsPage();
-    return;
-  }
   Object.assign(subscriptionState, { loading:true, error:'' });
   renderSubscriptionsPage();
   try {
@@ -15446,7 +15453,7 @@ async function loadSubscriptions() {
   } finally {
     subscriptionState.loading = false;
   }
-  renderSubscriptionsPage({ animate:true, rollHero:true });
+  renderSubscriptionsPage({ entering:true });
 }
 function findSubscription(id) {
   return subscriptionState.items.find(item => item.id === id) || null;
@@ -15456,123 +15463,210 @@ function upsertSubscription(item) {
   if (index >= 0) subscriptionState.items.splice(index, 1, item);
   else subscriptionState.items.push(item);
 }
-function subscriptionEmptyHtml(title, text, action = '', actionText = '') {
-  return `<div class="subs-empty"><div class="subs-empty-mark" aria-hidden="true">↻</div><strong>${escapeAttr(title)}</strong><div>${escapeAttr(text)}</div>${action ? `<button class="btn btn-primary btn-small" type="button" data-subs-empty-action="${action}">${escapeAttr(actionText)}</button>` : ''}</div>`;
+function subscriptionToast(title, type = 'success', desc = '', undo = null) {
+  // Page-scoped toast stack (newest in front). Hovering fans the stack out and pauses the timers.
+  const box = document.getElementById('subscriptionToasts');
+  const icon = { success:'check', info:'info', warn:'alert', error:'alert' }[type] || 'check';
+  const el = document.createElement('div');
+  el.className = `subs-toast t-${type}`;
+  el.innerHTML = `<span class="subs-ti">${subscriptionIcon(icon)}</span><span class="subs-tx"><b>${escapeAttr(title)}</b>${desc ? `<span>${escapeAttr(desc)}</span>` : ''}</span>${undo ? '<button class="subs-undo" type="button">撤销</button>' : ''}`;
+  el.style.transform = 'translateY(120%) scale(.96)';
+  el.style.opacity = '0';
+  box.appendChild(el);
+  const entry = { el, left:subscriptionToastMs };
+  if (undo) el.querySelector('.subs-undo').addEventListener('click', () => {
+    dismissSubscriptionToast(entry);
+    undo();
+  });
+  subscriptionToasts.unshift(entry);
+  void el.offsetWidth;
+  layoutSubscriptionToasts();
+  if (subscriptionToasts.length > 4) dismissSubscriptionToast(subscriptionToasts[subscriptionToasts.length - 1]);
+  if (!subscriptionToastTimer) subscriptionToastTimer = setInterval(tickSubscriptionToasts, 250);
 }
-function subscriptionRowHtml({ item, schedule }, index, animate, today) {
+function tickSubscriptionToasts() {
+  if (subscriptionToastHover || document.hidden) return;
+  subscriptionToasts.slice().forEach(entry => {
+    entry.left -= 250;
+    if (entry.left <= 0) dismissSubscriptionToast(entry);
+  });
+}
+function dismissSubscriptionToast(entry) {
+  const index = subscriptionToasts.indexOf(entry);
+  if (index < 0) return;
+  subscriptionToasts.splice(index, 1);
+  entry.el.style.opacity = '0';
+  entry.el.style.pointerEvents = 'none';
+  entry.el.style.transform += ' translateY(16px)';
+  setTimeout(() => entry.el.remove(), 320);
+  layoutSubscriptionToasts();
+  if (!subscriptionToasts.length) {
+    clearInterval(subscriptionToastTimer);
+    subscriptionToastTimer = 0;
+    subscriptionToastHover = false;
+  }
+}
+function layoutSubscriptionToasts() {
+  let offset = 0;
+  subscriptionToasts.forEach((entry, index) => {
+    if (subscriptionToastHover) {
+      entry.el.style.transform = `translateY(${-offset}px)`;
+      entry.el.style.opacity = '1';
+      offset += entry.el.offsetHeight + 8;
+    } else {
+      entry.el.style.transform = `translateY(${-index * 10}px) scale(${1 - index * 0.05})`;
+      entry.el.style.opacity = index > 2 ? '0' : '1';
+    }
+    entry.el.style.zIndex = String(10 - index);
+  });
+}
+function rollSubscriptionWheel(el, value, from) {
+  // Each digit is a 0–9 strip that rolls from its old digit to the new one, right-most digit first.
+  const text = subscriptionNumber(value);
+  const old = subscriptionNumber(from).replace(/\D/g, '');
+  const digits = text.replace(/\D/g, '').length;
+  let index = 0;
+  el.setAttribute('aria-label', text);
+  el.innerHTML = Array.from(text, char => {
+    if (!/\d/.test(char)) return `<span class="subs-wsym" aria-hidden="true">${char}</span>`;
+    const fromRight = digits - 1 - index++;
+    const previous = old[old.length - 1 - fromRight] || '0';
+    return `<span class="subs-wh" aria-hidden="true"><span data-from="${previous}" data-to="${char}" data-delay="${fromRight * 45}ms">${'0123456789'.replace(/\d/g, n => `<span>${n}</span>`)}</span></span>`;
+  }).join('');
+  const strips = [...el.querySelectorAll('.subs-wh > span')];
+  const still = value === from || subscriptionReducedMotion();
+  strips.forEach(strip => {
+    strip.style.transition = 'none';
+    strip.style.transform = `translateY(-${(still ? strip.dataset.to : strip.dataset.from) * 1.25}em)`;
+  });
+  if (still) return;
+  void el.offsetWidth;
+  strips.forEach(strip => {
+    strip.style.transition = '';
+    strip.style.transitionDelay = strip.dataset.delay;
+    strip.style.transform = `translateY(-${strip.dataset.to * 1.25}em)`;
+  });
+}
+function placeSubscriptionGlide(group, key, { jump = false } = {}) {
+  // The highlight starts where it was last time and springs to the pressed option.
+  const glide = group?.querySelector(':scope > .subs-glide');
+  const active = group?.querySelector('[aria-pressed="true"]');
+  if (!glide) return;
+  if (!active || !active.offsetWidth) {
+    glide.style.opacity = '0';
+    return;
+  }
+  const rect = { x:active.offsetLeft, y:active.offsetTop, w:active.offsetWidth, h:active.offsetHeight };
+  const apply = r => {
+    glide.style.transform = `translate(${r.x}px, ${r.y}px)`;
+    glide.style.width = `${r.w}px`;
+    glide.style.height = `${r.h}px`;
+  };
+  const previous = !jump && !subscriptionReducedMotion() && subscriptionGlideRects[key];
+  glide.classList.add('no-t');
+  apply(previous || rect);
+  glide.style.opacity = '1';
+  void glide.offsetWidth;
+  glide.classList.remove('no-t');
+  apply(rect);
+  subscriptionGlideRects[key] = rect;
+}
+function subscriptionEmptyHtml(title, text, action = '', actionText = '') {
+  return `<div class="subs-empty"><span class="subs-empty-ic">${subscriptionIcon('repeat')}</span><b>${escapeAttr(title)}</b><div>${escapeAttr(text)}</div>${action ? `<button class="subs-btn primary sm" type="button" data-subs-empty-action="${action}">${action === 'add' ? subscriptionIcon('plus') : ''}${escapeAttr(actionText)}</button>` : ''}</div>`;
+}
+function subscriptionRowHtml({ item, schedule }, enterIndex) {
   const when = subscriptionWhen(schedule);
-  const converted = item.currency === 'USD' ? ` ≈${subscriptionMoney(schedule.cycleCny)}` : '';
-  const classes = ['subs-item', animate ? 'subs-enter' : '', schedule.state === 'expired' ? 'is-ended' : ''].filter(Boolean).join(' ');
-  return `<button class="${classes}" type="button" data-sub-id="${escapeAttr(item.id)}" style="--sub-color:${escapeAttr(item.color)};--i:${Math.min(index, 16)}">
-    <span class="subs-logo" aria-hidden="true">${escapeAttr(subscriptionInitial(item.name))}</span>
-    <span class="subs-main"><span class="subs-name">${escapeAttr(item.name)}</span><span class="subs-note">${escapeAttr(item.note || item.category)}</span></span>
-    <span class="subs-when"><span class="subs-pill ${when.cls}">${when.text}</span><span>${escapeAttr(subscriptionDateLabel(schedule.nextCharge || schedule.paidThrough, today))}</span></span>
-    <span class="subs-price"><strong>${subscriptionMoney(item.amount, item.currency)}</strong><small>/${subscriptionCycleLabel(item.cycleMonths)}${converted}</small></span>
+  const converted = item.currency === 'USD' ? ` · ≈${subscriptionMoney(schedule.cycleCny)}` : '';
+  const classes = ['subs-row', schedule.state === 'active' ? '' : 'off', schedule.state === 'expired' ? 'is-ended' : '', enterIndex >= 0 ? 'subs-enter' : ''].filter(Boolean).join(' ');
+  return `<button class="${classes}" type="button" data-sub-id="${escapeAttr(item.id)}" style="--c:${escapeAttr(item.color)};--i:${Math.max(enterIndex, 0)}">
+    ${subscriptionIconHtml(item)}
+    <span class="subs-n"><b class="subs-name">${escapeAttr(item.name)}</b>${item.note ? `<span class="subs-note">${escapeAttr(item.note)}</span>` : ''}</span>
+    <span class="subs-cat">${escapeAttr(item.category)}</span>
+    <span class="subs-amt"><b>${subscriptionMoney(item.amount, item.currency)}</b><small>${subscriptionCycleLabel(item.cycleMonths)}${converted}</small></span>
+    <span class="subs-pill ${when.cls}" title="${schedule.nextCharge || schedule.paidThrough}">${when.text}</span>
   </button>`;
 }
-function animateSubscriptionNumber(el, from, to) {
-  const format = value => Number(value).toLocaleString('zh-CN', { minimumFractionDigits:2, maximumFractionDigits:2 });
-  subscriptionHeroValue = to;
-  cancelAnimationFrame(subscriptionHeroFrame);
-  if (!el) return;
-  if (from === to || subscriptionReducedMotion()) {
-    el.textContent = format(to);
-    return;
-  }
-  const started = performance.now();
-  const step = now => {
-    const progress = Math.min(1, (now - started) / 700);
-    el.textContent = format(from + (to - from) * (1 - Math.pow(1 - progress, 3)));
-    if (progress < 1) subscriptionHeroFrame = requestAnimationFrame(step);
-  };
-  el.textContent = format(from);
-  subscriptionHeroFrame = requestAnimationFrame(step);
-}
-function renderSubscriptionHero(summary, today, rate, roll) {
-  const hero = document.getElementById('subsHero');
-  if (!subscriptionState.loaded || subscriptionState.unavailable) {
-    hero.innerHTML = `<div><div class="subs-hero-label">每月订阅支出</div><div class="subs-hero-value"><small>¥</small>—</div><div class="subs-hero-sub">${subscriptionState.unavailable ? '订阅只在 Mac App 里可用' : '正在读取订阅…'}</div></div>`;
-    return;
-  }
-  const todayNumber = subscriptionDayNumber(today);
-  const byDay = new Map();
-  summary.upcoming.forEach(entry => {
-    const offset = subscriptionDayNumber(entry.date) - todayNumber;
-    if (!byDay.has(offset)) byDay.set(offset, []);
-    byDay.get(offset).push(entry);
+function renderSubscriptionList(rows, entering) {
+  // New rows rise in with a 35 ms stagger; rows that stay glide to their new place instead of re-entering.
+  const list = document.getElementById('subsList');
+  const before = new Map([...list.querySelectorAll('[data-sub-id]')].map(el => [el.dataset.subId, el.getBoundingClientRect()]));
+  let fresh = 0;
+  list.innerHTML = rows.map(row => subscriptionRowHtml(row, entering || !before.has(row.item.id) ? Math.min(fresh++, 12) : -1)).join('');
+  if (entering || subscriptionReducedMotion() || !list.offsetParent) return;
+  list.querySelectorAll('[data-sub-id]').forEach(el => {
+    const old = before.get(el.dataset.subId);
+    if (!old || !old.width) return;
+    const now = el.getBoundingClientRect();
+    const dx = old.left - now.left;
+    const dy = old.top - now.top;
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+    el.animate?.([{ transform:`translate(${dx}px, ${dy}px)` }, { transform:'none' }], { duration:580, easing:subscriptionSpring });
   });
-  const dots = [...byDay].map(([offset, entries], index) => {
-    const title = `${subscriptionDateLabel(entries[0].date, today)}：${entries.map(entry => `${entry.item.name} ${subscriptionMoney(entry.cny)}`).join('，')}`;
-    const classes = ['subs-strip-dot', roll ? 'subs-pop' : '', offset === 0 ? 'is-today' : ''].filter(Boolean).join(' ');
-    return `<i class="${classes}" style="--sub-color:${escapeAttr(entries[0].item.color)};--i:${index};left:calc(12px + (100% - 24px) * ${(offset / 29).toFixed(4)})" title="${escapeAttr(title)}">${entries.length > 1 ? `<b>${entries.length}</b>` : ''}</i>`;
-  }).join('');
+}
+function renderSubscriptionHero(summary, rate, roll) {
+  const hero = document.getElementById('subsHero');
+  if (!subscriptionState.loaded) {
+    hero.innerHTML = `<div class="subs-hero-l"><span class="subs-hl">支出概览</span><div class="subs-big">¥<span class="subs-sk"></span><small>每月</small></div><span class="subs-hl">${subscriptionState.error ? '订阅没有读出来' : '正在读取订阅…'}</span></div>`;
+    return;
+  }
+  const rateHtml = subscriptionRateEditing
+    ? `<input class="subs-rate-input" id="subsRateInput" inputmode="decimal" value="${escapeAttr(rate)}" aria-label="1 美元折合多少人民币">`
+    : `<button class="subs-rate" id="subsRateBtn" type="button" title="修改订阅页的美元汇率">${escapeAttr(rate)}</button>`;
   hero.innerHTML = `
-    <div>
-      <div class="subs-hero-label">每月订阅支出</div>
-      <div class="subs-hero-value"><small>¥</small><span id="subsHeroMonthly"></span></div>
-      <div class="subs-hero-sub">一年约 ${subscriptionMoney(summary.yearlyCny)} · USD 按 ${escapeAttr(rate)} 折算</div>
+    <div class="subs-hero-l">
+      <span class="subs-hl">支出概览</span>
+      <div class="subs-big">¥<b class="subs-wheel" id="subsHeroMonthly" role="img"></b><small>每月</small></div>
+      <span class="subs-hl" id="subsHeroYear">一年约 ¥${Math.round(summary.yearlyCny).toLocaleString('zh-CN')} · 美元按 ${rateHtml} 折算</span>
     </div>
-    <div class="subs-hero-chips">
-      <span class="subs-chip"><b>${summary.total}</b>项</span>
-      <span class="subs-chip"><b>${summary.active}</b>自动续费</span>
-      <span class="subs-chip"><b>${summary.cancelled}</b>已取消</span>
-    </div>
-    <div class="subs-upcoming">
-      <div class="subs-upcoming-head"><span>未来 30 天要付 · ${summary.upcoming.length} 笔</span><b id="subsUpcomingTotal">${subscriptionMoney(summary.upcomingCny)}</b></div>
-      <div class="subs-strip" aria-hidden="true">${dots || '<span class="subs-strip-empty">未来 30 天没有扣费</span>'}</div>
-      <div class="subs-strip-scale" aria-hidden="true"><span>今天</span><span>${subscriptionDateLabel(subscriptionDateFromDay(todayNumber + 14), today)}</span><span>${subscriptionDateLabel(subscriptionDateFromDay(todayNumber + 29), today)}</span></div>
+    <div class="subs-hr" id="subsHeroSide">
+      <span class="subs-pill">${subscriptionIcon('check')}${summary.total} 项订阅</span>
+      <span class="subs-hl">${summary.active} 项自动续费 · ${summary.cancelled} 项已取消</span>
+      <span class="subs-hl">未来 30 天要付 ${subscriptionMoney(summary.upcomingCny)} · ${summary.upcoming.length} 笔</span>
+      ${summary.dueSoon ? `<span class="subs-hl">7 天内扣费 ${summary.dueSoon} 项</span>` : ''}
     </div>`;
-  animateSubscriptionNumber(document.getElementById('subsHeroMonthly'), roll ? 0 : subscriptionHeroValue, summary.monthlyCny);
+  rollSubscriptionWheel(document.getElementById('subsHeroMonthly'), summary.monthlyCny, roll ? 0 : subscriptionHeroValue);
+  subscriptionHeroValue = summary.monthlyCny;
 }
 function renderSubscriptionFilter(items) {
   const wrap = document.getElementById('subsFilter');
-  const options = [['all', '全部'], ...subscriptionCategories.map(category => [category, category])];
   if (!wrap.querySelector('[data-sub-filter]')) {
-    wrap.insertAdjacentHTML('beforeend', options.map(([value, label]) => `<button class="segment-option" type="button" data-sub-filter="${escapeAttr(value)}">${escapeAttr(label)}<small></small></button>`).join(''));
+    const options = [['all', '全部'], ...subscriptionCategories.map(category => [category, category])];
+    wrap.insertAdjacentHTML('beforeend', options.map(([value, label]) => `<button type="button" data-sub-filter="${escapeAttr(value)}">${escapeAttr(label)}<span class="c"></span></button>`).join(''));
   }
   wrap.querySelectorAll('[data-sub-filter]').forEach(button => {
     const value = button.dataset.subFilter;
-    const active = value === subscriptionFilter;
-    button.classList.toggle('active', active);
-    button.setAttribute('aria-pressed', String(active));
-    button.querySelector('small').textContent = value === 'all' ? items.length : items.filter(item => item.category === value).length;
+    button.setAttribute('aria-pressed', String(value === subscriptionFilter));
+    button.querySelector('.c').textContent = value === 'all' ? items.length : items.filter(item => item.category === value).length;
   });
-  placeSubscriptionFilterThumb();
+  placeSubscriptionGlide(wrap, 'filter');
 }
-function placeSubscriptionFilterThumb() {
-  const wrap = document.getElementById('subsFilter');
-  const active = wrap?.querySelector('.segment-option.active');
-  const thumb = wrap?.querySelector('.subs-filter-thumb');
-  if (!active || !thumb || !active.offsetWidth) return;
-  thumb.style.width = `${active.offsetWidth}px`;
-  thumb.style.transform = `translateX(${active.offsetLeft}px)`;
-  // The first placement after the page appears jumps into place; later filter changes slide.
-  if (wrap.classList.contains('no-anim')) requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.remove('no-anim')));
-}
-function renderSubscriptionsPage({ animate = false, rollHero = false } = {}) {
-  const list = document.getElementById('subsList');
-  if (!list) return;
+function renderSubscriptionsPage({ entering = false } = {}) {
+  const pageEl = document.getElementById('page-subscriptions');
+  if (!pageEl) return;
   if (!subscriptionState.loaded && !subscriptionState.loading && !subscriptionState.error) {
     loadSubscriptions();
     return;
   }
+  if (entering) {
+    // Only a page change replays the entrance; filtering, search and edits animate just what changed.
+    pageEl.classList.remove('subs-entering');
+    void pageEl.offsetWidth;
+    pageEl.classList.add('subs-entering');
+    delete subscriptionGlideRects.filter;
+    subscriptionRateEditing = false;
+  }
   const { items, usdCnyRate:rate } = subscriptionState;
   const today = subscriptionLocalDate();
-  const ready = subscriptionState.loaded && !subscriptionState.unavailable;
-  renderSubscriptionHero(subscriptionSummary(items, today, rate), today, rate, rollHero);
+  const list = document.getElementById('subsList');
+  const meta = document.getElementById('subsMeta');
+  renderSubscriptionHero(subscriptionSummary(items, today, rate), rate, entering);
   renderSubscriptionFilter(items);
-  document.getElementById('subsRateBtn').innerHTML = `USD <b>${escapeAttr(rate)}</b>`;
-  ['subsAddBtn', 'subsRateBtn', 'subsSearch'].forEach(id => { document.getElementById(id).disabled = !ready; });
-  if (subscriptionState.unavailable) {
-    document.getElementById('subsMeta').textContent = '仅 Mac App';
-    list.innerHTML = subscriptionEmptyHtml('请在 Mac App 里使用订阅', '订阅存放在 Mac App 的本地数据库里，直接用浏览器打开的页面读不到。');
-    return;
-  }
+  ['subsAddBtn', 'subsSearch'].forEach(id => { document.getElementById(id).disabled = !subscriptionState.loaded; });
   if (!subscriptionState.loaded) {
-    document.getElementById('subsMeta').textContent = subscriptionState.error ? '读取失败' : '读取中…';
+    meta.textContent = '';
     list.innerHTML = subscriptionState.error
       ? subscriptionEmptyHtml('订阅没有读出来', subscriptionState.error, 'retry', '重试')
-      : '<div class="subs-skeleton"></div><div class="subs-skeleton"></div><div class="subs-skeleton"></div><div class="subs-skeleton"></div>';
+      : '<div class="subs-sk"></div><div class="subs-sk"></div><div class="subs-sk"></div><div class="subs-sk"></div>';
     return;
   }
   const query = normalizeSearchText(subscriptionQuery);
@@ -15581,123 +15675,171 @@ function renderSubscriptionsPage({ animate = false, rollHero = false } = {}) {
       && (!query || normalizeSearchText(`${item.name} ${item.note}`).includes(query)))
     .map(item => ({ item, schedule:subscriptionSchedule(item, today, rate) }))
     .sort(subscriptionCompare);
-  document.getElementById('subsMeta').textContent = query ? `找到 ${rows.length} 项` : `${rows.length} 项 · 按下次扣费排序`;
+  meta.textContent = query ? `找到 ${rows.length} 项` : '';
   if (!items.length) {
-    list.innerHTML = subscriptionEmptyHtml('还没有订阅', '把 ChatGPT、iCloud、域名这类按月或按年扣费的服务记下来，每月花多少一眼就知道。', 'add', '＋ 新增第一个订阅');
+    list.innerHTML = subscriptionEmptyHtml('还没有订阅', '把 ChatGPT、iCloud、域名这类按月或按年扣费的服务记下来，每月花多少一眼就知道。', 'add', '新增第一个订阅');
     return;
   }
   if (!rows.length) {
     list.innerHTML = subscriptionEmptyHtml('没有符合条件的订阅', query ? '换个关键词试试。' : '这个分类下还没有订阅。');
     return;
   }
-  list.innerHTML = rows.map((row, index) => subscriptionRowHtml(row, index, animate, today)).join('');
+  renderSubscriptionList(rows, entering);
 }
 function flashSubscriptionRow(id) {
-  requestAnimationFrame(() => {
-    const row = document.querySelector(`.subs-item[data-sub-id="${CSS.escape(id)}"]`);
-    if (!row) return;
-    row.classList.add('subs-flash');
-    row.addEventListener('animationend', () => row.classList.remove('subs-flash'), { once:true });
+  const row = document.querySelector(`#subsList [data-sub-id="${CSS.escape(id)}"]`);
+  if (!row) return;
+  row.classList.remove('subs-flash');
+  void row.offsetWidth;
+  row.classList.add('subs-flash');
+  row.addEventListener('animationend', event => {
+    if (event.animationName === 'subsFlash') row.classList.remove('subs-flash');
   });
+}
+function startSubscriptionRateEdit() {
+  subscriptionRateEditing = true;
+  renderSubscriptionsPage();
+  const input = document.getElementById('subsRateInput');
+  input?.focus();
+  input?.select();
+}
+async function commitSubscriptionRate({ cancel = false, fromBlur = false } = {}) {
+  const input = document.getElementById('subsRateInput');
+  if (!subscriptionRateEditing || !input) return;
+  const value = input.value.trim();
+  const rate = Number(value);
+  const valid = value !== '' && Number.isFinite(rate) && rate > 0 && rate <= 100;
+  if (!cancel && !valid && !fromBlur) {
+    input.classList.remove('err');
+    void input.offsetWidth;
+    input.classList.add('err');
+    subscriptionToast('汇率要在 0 到 100 之间', 'warn', '例如 7.1 表示 1 美元折合 7.1 元');
+    return;
+  }
+  subscriptionRateEditing = false;
+  if (cancel || !valid || rate === subscriptionState.usdCnyRate) {
+    renderSubscriptionsPage();
+  } else {
+    try {
+      const data = await subscriptionRequest('/api/subscriptions/rate', { usdCnyRate:rate });
+      subscriptionState.usdCnyRate = data.usdCnyRate;
+      renderSubscriptionsPage();
+      if (subscriptionDetailId) renderSubscriptionDetail();
+      subscriptionToast(`汇率已改为 ${data.usdCnyRate}`, 'success', '只影响订阅页的人民币折算');
+    } catch (error) {
+      renderSubscriptionsPage();
+      subscriptionToast('汇率没有保存', 'error', error.message);
+    }
+  }
+  if (!fromBlur) document.getElementById('subsRateBtn')?.focus({ preventScroll:true });
 }
 function openSubscriptionDetail(id) {
   if (!findSubscription(id)) return;
+  const wasOpen = document.getElementById('subscriptionDrawer').classList.contains('open');
+  if (!wasOpen) subscriptionReturnFocus = document.activeElement;
   subscriptionDetailId = id;
-  subscriptionReturnFocus = document.activeElement;
-  renderSubscriptionDetail();
+  renderSubscriptionDetail({ entering:!wasOpen });
   setModalOpenState('subscriptionDrawer', true);
-  resetModalScroll('#subscriptionDrawer');
+  if (!wasOpen) setTimeout(() => document.querySelector('#subscriptionDrawer.open [data-sub-action="close"]')?.focus({ preventScroll:true }), 60);
 }
-function closeSubscriptionDetail() {
-  cancelSubscriptionHold();
+function closeSubscriptionDetail({ restoreFocus = true } = {}) {
+  endSubscriptionHold({ quiet:true });
   setModalOpenState('subscriptionDrawer', false);
   const id = subscriptionDetailId;
   subscriptionDetailId = '';
-  const row = id && document.querySelector(`.subs-item[data-sub-id="${CSS.escape(id)}"]`);
+  if (!restoreFocus) return;
+  const row = id && document.querySelector(`#subsList [data-sub-id="${CSS.escape(id)}"]`);
   (row || (subscriptionReturnFocus?.isConnected ? subscriptionReturnFocus : null))?.focus({ preventScroll:true });
 }
-function renderSubscriptionDetail() {
+function renderSubscriptionDetail({ entering = false } = {}) {
   const item = findSubscription(subscriptionDetailId);
   if (!item) return;
-  const today = subscriptionLocalDate();
+  endSubscriptionHold({ quiet:true });
   const rate = subscriptionState.usdCnyRate;
-  const schedule = subscriptionSchedule(item, today, rate);
-  const when = subscriptionWhen(schedule);
-  const cycle = subscriptionCycleLabel(item.cycleMonths);
-  const firstCard = {
-    active:['下次扣费', schedule.nextCharge, schedule.daysLeft === 0 ? '就是今天' : `${schedule.daysLeft} 天后`],
-    ending:['有效期至', schedule.paidThrough, `不再扣费 · 还剩 ${schedule.daysLeft} 天`],
+  const schedule = subscriptionSchedule(item, subscriptionLocalDate(), rate);
+  const active = schedule.state === 'active';
+  const status = { active:['green', '自动续费'], ending:['amber', '已取消'], expired:['', '已到期'] }[schedule.state];
+  const first = {
+    active:['下次扣费', schedule.nextCharge, schedule.daysLeft === 0 ? '今天扣费' : `${schedule.daysLeft}天后扣费`],
+    ending:['有效期至', schedule.paidThrough, `${schedule.daysLeft}天后到期，不再扣费`],
     expired:['已到期', schedule.paidThrough, '已停止扣费']
   }[schedule.state];
-  const rows = [
-    ['金额', `${subscriptionMoney(item.amount, item.currency)} / ${cycle}`],
-    ...(item.currency === 'USD' ? [['折合人民币', `≈${subscriptionMoney(schedule.cycleCny)} · 1 USD = ${rate} CNY`]] : []),
-    ['扣费周期', Number(item.cycleMonths) === 12 ? '每年' : '每月'],
+  const kv = [
     ['开始日期', item.startDate],
-    ['有效期至', schedule.paidThrough],
-    ['状态', schedule.state === 'active' ? '自动续费' : `已取消，${schedule.paidThrough} 截止`],
-    ['分类', item.category]
+    ['分类', item.category],
+    ['状态', { active:'自动续费中', ending:'已取消，等待到期', expired:'已到期，不再扣费' }[schedule.state]],
+    [active ? '下次扣费' : '有效期至', active ? schedule.nextCharge : schedule.paidThrough],
+    ['扣费周期', subscriptionCycleLabel(item.cycleMonths)],
+    ['币种', item.currency === 'USD' ? `美元 · 1 USD = ${rate} CNY` : '人民币']
   ];
-  document.getElementById('subscriptionDrawerSub').textContent = item.category;
-  document.getElementById('subscriptionDrawerTitle').textContent = item.name;
-  const body = document.getElementById('subscriptionDrawerBody');
-  body.innerHTML = `
-    <div class="subs-detail-head" style="--sub-color:${escapeAttr(item.color)}">
-      <span class="subs-logo" aria-hidden="true">${escapeAttr(subscriptionInitial(item.name))}</span>
-      <div><div class="subs-detail-name">${escapeAttr(item.name)}</div><div class="subs-detail-note">${escapeAttr(item.note || '没有备注')}</div></div>
-      <span class="subs-pill ${when.cls}">${when.text}</span>
-    </div>
-    <div class="subs-detail-cards">
-      <div class="subs-card" style="--i:0"><span>${firstCard[0]}</span><strong>${escapeAttr(firstCard[1])}</strong><small>${firstCard[2]}</small></div>
-      <div class="subs-card" style="--i:1"><span>月均</span><strong>${subscriptionMoney(schedule.monthlyCny)}</strong><small>一年约 ${subscriptionMoney(schedule.yearlyCny)}</small></div>
-      <div class="subs-card" style="--i:2"><span>累计已花费（估算）</span><strong>${subscriptionMoney(schedule.spentCny)}</strong><small>共 ${schedule.charges} 次扣费</small></div>
-    </div>
-    <dl class="subs-kv">${rows.map(([label, value]) => `<div><dt>${label}</dt><dd>${escapeAttr(value)}</dd></div>`).join('')}</dl>
-    <div class="subs-actions">
-      <button class="btn btn-primary" type="button" data-sub-action="edit">编辑订阅</button>
-      <button class="btn" type="button" data-sub-action="${schedule.state === 'expired' ? 'resubscribe' : 'toggle'}">${{ active:'取消订阅', ending:'恢复订阅', expired:'重新订阅' }[schedule.state]}</button>
-      <button class="btn subs-hold" type="button" data-sub-action="hold"><span class="subs-hold-fill"></span><span class="subs-hold-label">按住删除记录</span></button>
-      <div class="subs-hold-hint" id="subscriptionHoldHint" aria-live="polite">按住 1.5 秒删除，删除后 6 秒内可撤销</div>
+  const toggle = {
+    active:['toggle', '取消订阅', '到期后不再续费'],
+    ending:['toggle', '恢复订阅', '继续自动续费'],
+    expired:['resubscribe', '重新订阅', '从今天开始新的扣费周期']
+  }[schedule.state];
+  const name = escapeAttr(item.name);
+  document.getElementById('subscriptionDrawerPanel').innerHTML = `
+    <header class="subs-dh">
+      <div class="subs-dh-r1"><span class="subs-pill line">${escapeAttr(item.category)}</span><span class="subs-pill ${status[0]}">${status[1]}</span><button class="subs-btn icon ghost" type="button" data-sub-action="close" aria-label="关闭">${subscriptionIcon('x')}</button></div>
+      <div class="subs-dh-main">${subscriptionIconHtml(item, true)}<div><h3 id="subscriptionDrawerTitle">${name}</h3><div class="subs-price"><b>${subscriptionMoney(item.amount, item.currency)}</b><small>${Number(item.cycleMonths) === 12 ? '每年' : '每月'}</small></div>${item.note ? `<p class="subs-dh-note">${escapeAttr(item.note)}</p>` : ''}</div></div>
+    </header>
+    <div class="subs-db${entering ? ' subs-stagger' : ''}" id="subscriptionDrawerBody">
+      <div class="subs-cards">
+        <div class="subs-card"><span>${first[0]}</span><b>${first[1]}</b><small>${first[2]}</small></div>
+        <div class="subs-card"><span>月均花费</span><b>${subscriptionMoney(schedule.monthlyCny)}</b><small>年度约 ${subscriptionMoney(schedule.yearlyCny)}</small></div>
+        <div class="subs-card wide"><span>累计已花费（估算）</span><b>${subscriptionMoney(schedule.charges * Number(item.amount), item.currency)}</b><small>按当前价格估算，已扣费 ${schedule.charges} 次${item.currency === 'USD' ? `，约 ${subscriptionMoney(schedule.spentCny)}` : ''}</small></div>
+      </div>
+      <dl class="subs-kv">${kv.map(([label, value]) => `<dt>${label}</dt><dd>${escapeAttr(value)}</dd>`).join('')}</dl>
+      <button class="subs-act dark" type="button" data-sub-action="edit"><span><b>编辑订阅</b><small>更新价格、周期、备注与样式</small></span><span class="subs-pill">前往</span></button>
+      <div class="subs-acts">
+        <button class="subs-act" type="button" data-sub-action="${toggle[0]}"><b>${toggle[1]}</b><small>${toggle[2]}</small></button>
+        <div class="subs-act danger"><b>删除记录</b><small>按住 1.5 秒删除，4 秒内可撤销</small><button class="subs-btn sm subs-hold" type="button" data-sub-action="hold" aria-label="按住删除 ${name}"><span class="subs-hold-fill"></span><span class="lbl">${subscriptionIcon('trash')}<span class="subs-hold-text">按住删除</span></span></button></div>
+      </div>
     </div>`;
-  const hold = body.querySelector('.subs-hold');
-  hold.addEventListener('pointerdown', event => {
-    if (event.button === 0) startSubscriptionHold();
-  });
-  ['pointerup', 'pointerleave', 'pointercancel'].forEach(type => hold.addEventListener(type, () => cancelSubscriptionHold({ early:true })));
-  hold.addEventListener('keydown', event => {
-    if (event.key !== ' ' && event.key !== 'Enter') return;
-    event.preventDefault();
-    if (!event.repeat) startSubscriptionHold();
-  });
-  hold.addEventListener('keyup', event => {
-    if (event.key === ' ' || event.key === 'Enter') cancelSubscriptionHold({ early:true });
-  });
-  hold.addEventListener('contextmenu', event => event.preventDefault());
 }
-function startSubscriptionHold() {
-  const hold = document.querySelector('#subscriptionDrawerBody .subs-hold');
-  const hint = document.getElementById('subscriptionHoldHint');
-  if (!hold || subscriptionHoldTimer || subscriptionBusy) return;
-  hold.classList.add('holding');
-  hint.classList.remove('warn');
-  hint.textContent = '继续按住…';
-  subscriptionHoldTimer = setTimeout(() => {
-    subscriptionHoldTimer = 0;
-    hold.classList.remove('holding');
-    deleteSubscription(subscriptionDetailId);
-  }, subscriptionHoldMs);
+function startSubscriptionHold(button) {
+  if (subscriptionHold || subscriptionBusy || button.classList.contains('ok')) return;
+  const fill = button.querySelector('.subs-hold-fill');
+  const label = button.querySelector('.subs-hold-text');
+  const id = subscriptionDetailId;
+  const hold = { button, frame:0 };
+  const started = performance.now();
+  button.classList.remove('shake');
+  button.classList.add('holding');
+  label.textContent = '继续按住…';
+  fill.style.transition = 'none';
+  subscriptionHold = hold;
+  const tick = now => {
+    if (subscriptionHold !== hold) return;
+    const progress = Math.min(1, (now - started) / subscriptionHoldMs);
+    fill.style.transform = `scaleX(${progress})`;
+    if (progress < 1) {
+      hold.frame = requestAnimationFrame(tick);
+      return;
+    }
+    subscriptionHold = null;
+    button.classList.remove('holding');
+    button.classList.add('ok');
+    label.textContent = '已删除';
+    setTimeout(() => deleteSubscription(id), 400);
+  };
+  hold.frame = requestAnimationFrame(tick);
 }
-function cancelSubscriptionHold({ early = false } = {}) {
-  if (!subscriptionHoldTimer) return;
-  clearTimeout(subscriptionHoldTimer);
-  subscriptionHoldTimer = 0;
-  document.querySelector('#subscriptionDrawerBody .subs-hold')?.classList.remove('holding');
-  const hint = document.getElementById('subscriptionHoldHint');
-  if (!early || !hint) return;
-  hint.textContent = '松手太早了，按住 1.5 秒才会删除';
-  hint.classList.remove('warn');
-  void hint.offsetWidth;
-  hint.classList.add('warn');
+function endSubscriptionHold({ quiet = false } = {}) {
+  // Letting go early springs the fill back and shakes the button; nothing is deleted.
+  const hold = subscriptionHold;
+  if (!hold) return;
+  subscriptionHold = null;
+  cancelAnimationFrame(hold.frame);
+  const { button } = hold;
+  const fill = button.querySelector('.subs-hold-fill');
+  button.classList.remove('holding');
+  button.querySelector('.subs-hold-text').textContent = '按住删除';
+  fill.style.transition = 'transform .35s cubic-bezier(.16,1,.3,1)';
+  fill.style.transform = 'scaleX(0)';
+  if (quiet) return;
+  void button.offsetWidth;
+  button.classList.add('shake');
 }
 async function deleteSubscription(id) {
   const item = findSubscription(id);
@@ -15706,33 +15848,38 @@ async function deleteSubscription(id) {
   try {
     await subscriptionRequest('/api/subscriptions/delete', { id });
   } catch (error) {
-    const hint = document.getElementById('subscriptionHoldHint');
-    if (hint) hint.textContent = `删除失败：${error.message}`;
+    subscriptionToast('删除失败', 'error', error.message);
+    if (subscriptionDetailId === id) renderSubscriptionDetail();
     return;
   } finally {
     subscriptionBusy = false;
   }
-  closeSubscriptionDetail();
-  const row = document.querySelector(`.subs-item[data-sub-id="${CSS.escape(id)}"]`);
+  const row = document.querySelector(`#subsList [data-sub-id="${CSS.escape(id)}"]`);
+  const next = row && (row.nextElementSibling || row.previousElementSibling);
+  closeSubscriptionDetail({ restoreFocus:false });
   if (row?.animate && !subscriptionReducedMotion()) {
     await row.animate([
       { opacity:1, transform:'scale(1)' },
-      { opacity:0, transform:'translateX(-14px) scale(.94)' }
-    ], { duration:260, easing:'cubic-bezier(.2,.8,.2,1)', fill:'forwards' }).finished.catch(() => {});
+      { opacity:0, transform:'scale(.94)' }
+    ], { duration:220, easing:'cubic-bezier(.7,0,.84,0)', fill:'forwards' }).finished.catch(() => {});
   }
   subscriptionState.items = subscriptionState.items.filter(other => other.id !== id);
   renderSubscriptionsPage();
-  toast(`已删除 ${item.name}`, { actionText:'撤销', onAction:() => restoreSubscription(item) });
+  const focusId = next?.dataset.subId;
+  (focusId && document.querySelector(`#subsList [data-sub-id="${CSS.escape(focusId)}"]`) || document.getElementById('subsAddBtn')).focus({ preventScroll:true });
+  subscriptionToast(`已删除 ${item.name}`, 'warn', '这条订阅记录已移除', () => restoreSubscription(item, `已恢复 ${item.name}`));
 }
-async function restoreSubscription(item) {
+async function restoreSubscription(item, message) {
+  // Undo writes the previous record back with the same id and creation time.
   try {
     const { item:saved } = await subscriptionRequest('/api/subscriptions/save', { item });
     upsertSubscription(saved);
     renderSubscriptionsPage();
     flashSubscriptionRow(saved.id);
-    toast(`已恢复 ${saved.name}`);
+    if (subscriptionDetailId === saved.id) renderSubscriptionDetail();
+    subscriptionToast(message, 'info');
   } catch (error) {
-    toast(`撤销失败：${error.message}`);
+    subscriptionToast('撤销失败', 'error', error.message);
   }
 }
 async function toggleSubscriptionStatus() {
@@ -15749,10 +15896,13 @@ async function toggleSubscriptionStatus() {
     const { item:saved } = await subscriptionRequest('/api/subscriptions/save', { item:next });
     upsertSubscription(saved);
     renderSubscriptionsPage();
-    renderSubscriptionDetail();
-    toast(saved.status === 'cancelled' ? `已取消，${saved.endsOn} 前仍可用` : '已恢复自动续费');
+    flashSubscriptionRow(saved.id);
+    if (subscriptionDetailId === saved.id) renderSubscriptionDetail();
+    const undo = () => restoreSubscription(item, '已撤销');
+    if (saved.status === 'cancelled') subscriptionToast(`${saved.name} 已取消订阅`, 'info', `${saved.endsOn} 到期后不再续费`, undo);
+    else subscriptionToast(`${saved.name} 已恢复自动续费`, 'success', `下次扣费 ${subscriptionSchedule(saved, subscriptionLocalDate(), subscriptionState.usdCnyRate).nextCharge}`, undo);
   } catch (error) {
-    toast(`操作失败：${error.message}`);
+    subscriptionToast('操作失败', 'error', error.message);
   } finally {
     subscriptionBusy = false;
   }
@@ -15761,7 +15911,7 @@ function openSubscriptionEditor(id = '', { resubscribe = false } = {}) {
   const existing = findSubscription(id);
   subscriptionDraft = existing ? { ...existing, amount:String(existing.amount) } : {
     id:'', name:'', note:'', amount:'', currency:'CNY', cycleMonths:1, startDate:subscriptionLocalDate(),
-    category:subscriptionCategories[0], color:subscriptionColors[0], status:'active', endsOn:''
+    category:subscriptionCategories[0], color:subscriptionColors[0][0], status:'active', endsOn:''
   };
   // Re-subscribing starts a fresh billing cycle from today; the user can still change the date.
   if (existing && resubscribe) Object.assign(subscriptionDraft, { status:'active', endsOn:'', startDate:subscriptionLocalDate() });
@@ -15771,34 +15921,39 @@ function openSubscriptionEditor(id = '', { resubscribe = false } = {}) {
   form.elements.subNote.value = subscriptionDraft.note;
   form.elements.subAmount.value = subscriptionDraft.amount;
   form.elements.subStart.value = subscriptionDraft.startDate;
+  form.querySelectorAll('.subs-field.err').forEach(field => field.classList.remove('err'));
+  form.scrollTop = 0;
+  const saveLabel = existing ? (resubscribe ? '重新订阅' : '保存') : '添加订阅';
   document.getElementById('subscriptionEditTitle').textContent = existing ? (resubscribe ? '重新订阅' : '编辑订阅') : '新增订阅';
-  document.getElementById('subscriptionEditSub').textContent = existing ? existing.name : '订阅';
-  document.getElementById('subscriptionEditError').textContent = '';
+  document.getElementById('subscriptionEditSub').textContent = existing ? `${existing.name} · 价格、周期、分类和样式` : '价格、周期、分类和样式';
+  document.getElementById('subscriptionSaveBtn').dataset.label = saveLabel;
+  setSubscriptionSaveState('idle');
+  showSubscriptionEditError('');
+  Object.keys(subscriptionGlideRects).filter(key => key.startsWith('editor-')).forEach(key => delete subscriptionGlideRects[key]);
   syncSubscriptionEditorControls();
   renderSubscriptionPreview();
   setModalOpenState('subscriptionEditModal', true);
-  resetModalScroll('#subscriptionEditModal');
-  setTimeout(() => form.elements.subName.focus(), 60);
+  setTimeout(() => form.elements.subName.focus({ preventScroll:true }), 60);
 }
-function closeSubscriptionEditor() {
+function closeSubscriptionEditor({ restoreFocus = true } = {}) {
   setModalOpenState('subscriptionEditModal', false);
   subscriptionDraft = null;
+  if (!restoreFocus) return;
   const drawerButton = document.querySelector('#subscriptionDrawer.open [data-sub-action="edit"]');
   (drawerButton || (subscriptionReturnFocus?.isConnected ? subscriptionReturnFocus : null))?.focus({ preventScroll:true });
 }
 function syncSubscriptionEditorControls() {
-  document.querySelectorAll('#subscriptionEditForm [data-sub-segment]').forEach(group => {
+  const form = document.getElementById('subscriptionEditForm');
+  form.querySelectorAll('[data-sub-segment]').forEach(group => {
     group.querySelectorAll('[data-value]').forEach(button => {
-      const active = String(subscriptionDraft[group.dataset.subSegment]) === button.dataset.value;
-      button.classList.toggle('active', active);
-      button.setAttribute('aria-pressed', String(active));
+      button.setAttribute('aria-pressed', String(String(subscriptionDraft[group.dataset.subSegment]) === button.dataset.value));
     });
+    placeSubscriptionGlide(group, `editor-${group.dataset.subSegment}`);
   });
-  document.querySelectorAll('#subscriptionEditForm [data-sub-color]').forEach(button => {
-    const active = button.dataset.subColor === subscriptionDraft.color;
-    button.classList.toggle('active', active);
-    button.setAttribute('aria-pressed', String(active));
+  form.querySelectorAll('[data-sub-color]').forEach(button => {
+    button.setAttribute('aria-pressed', String(button.dataset.subColor === subscriptionDraft.color));
   });
+  document.getElementById('subscriptionCurrencySymbol').textContent = subscriptionDraft.currency === 'USD' ? '$' : '¥';
 }
 function renderSubscriptionPreview() {
   const draft = subscriptionDraft;
@@ -15807,6 +15962,7 @@ function renderSubscriptionPreview() {
   const amount = Number(draft.amount);
   const hasAmount = Number.isFinite(amount) && amount > 0;
   const cycle = Number(draft.cycleMonths) === 12 ? 12 : 1;
+  const cny = draft.currency === 'USD' ? amount * rate : amount;
   const logo = document.getElementById('subscriptionPreviewLogo');
   const initial = subscriptionInitial(draft.name);
   if (logo.textContent !== initial) {
@@ -15815,12 +15971,17 @@ function renderSubscriptionPreview() {
     void logo.offsetWidth;
     logo.classList.add('bump');
   }
-  document.getElementById('subscriptionPreview').style.setProperty('--sub-color', draft.color);
+  document.getElementById('subscriptionPreview').style.setProperty('--c', draft.color);
   document.getElementById('subscriptionPreviewName').textContent = draft.name.trim() || '订阅名称';
-  document.getElementById('subscriptionPreviewMeta').textContent = [draft.category, cycle === 12 ? '年付' : '月付', draft.startDate ? `${draft.startDate} 开始` : '还没选开始日期'].join(' · ');
+  document.getElementById('subscriptionPreviewMeta').textContent = draft.note.trim() || '备注会显示在这里';
+  document.getElementById('subscriptionPreviewCat').textContent = draft.category;
   document.getElementById('subscriptionPreviewPrice').textContent = hasAmount ? subscriptionMoney(amount, draft.currency) : '—';
-  document.getElementById('subscriptionPreviewCycle').textContent = `/${subscriptionCycleLabel(cycle)}`;
-  const cny = draft.currency === 'USD' ? amount * rate : amount;
+  document.getElementById('subscriptionPreviewCycle').textContent = subscriptionCycleLabel(cycle) + (hasAmount && draft.currency === 'USD' ? ` · ≈${subscriptionMoney(cny)}` : '');
+  const when = document.getElementById('subscriptionPreviewWhen');
+  const validStart = /^\d{4}-\d{2}-\d{2}$/.test(draft.startDate || '');
+  const pill = validStart ? subscriptionWhen(subscriptionSchedule({ ...draft, amount:hasAmount ? amount : 0, cycleMonths:cycle }, subscriptionLocalDate(), rate)) : { cls:'line', text:'选择开始日期' };
+  when.className = `subs-pill ${pill.cls}`;
+  when.textContent = pill.text;
   document.getElementById('subscriptionAmountHint').textContent = !hasAmount ? ''
     : [draft.currency === 'USD' ? `≈${subscriptionMoney(cny)}（1 USD = ${rate} CNY）` : '', cycle === 12 ? `月均 ${subscriptionMoney(cny / 12)}` : ''].filter(Boolean).join(' · ');
 }
@@ -15831,77 +15992,68 @@ function subscriptionDraftError(draft) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(draft.startDate || '')) return { field:'subStart', message:'请选择开始日期' };
   return null;
 }
+function showSubscriptionEditError(message) {
+  const el = document.getElementById('subscriptionEditError');
+  el.textContent = message;
+  el.classList.remove('in');
+  if (!message) return;
+  void el.offsetWidth;
+  el.classList.add('in');
+}
+function setSubscriptionSaveState(stateName) {
+  // MorphStatus: the save button turns into a spinner, then a drawn check.
+  const button = document.getElementById('subscriptionSaveBtn');
+  const label = { idle:button.dataset.label || '保存', saving:'保存中…', saved:'已保存' }[stateName];
+  const icon = stateName === 'saving' ? '<span class="subs-spin" aria-hidden="true"></span>'
+    : stateName === 'saved' ? '<svg class="subs-i subs-check" viewBox="0 0 24 24" aria-hidden="true"><path pathLength="1" d="M20 6 9 17l-5-5"/></svg>' : '';
+  button.classList.toggle('ok', stateName === 'saved');
+  button.setAttribute('aria-busy', String(stateName === 'saving'));
+  button.innerHTML = `<span class="lbl${stateName === 'idle' ? '' : ' in'}">${icon}${label}</span>`;
+}
 async function saveSubscriptionDraft(event) {
   event.preventDefault();
   const draft = subscriptionDraft;
   if (!draft || subscriptionBusy) return;
   const form = document.getElementById('subscriptionEditForm');
-  const errorEl = document.getElementById('subscriptionEditError');
-  const showError = message => {
-    errorEl.textContent = message;
-    errorEl.classList.remove('shake');
-    void errorEl.offsetWidth;
-    errorEl.classList.add('shake');
-  };
   const invalid = subscriptionDraftError(draft);
   if (invalid) {
-    showError(invalid.message);
+    const field = form.elements[invalid.field]?.closest('.subs-field');
+    field?.classList.remove('err');
+    void field?.offsetWidth;
+    field?.classList.add('err');
+    showSubscriptionEditError(invalid.message);
     form.elements[invalid.field]?.focus();
     return;
   }
-  const saveBtn = document.getElementById('subscriptionSaveBtn');
   subscriptionBusy = true;
-  saveBtn.disabled = true;
-  saveBtn.textContent = '保存中…';
+  setSubscriptionSaveState('saving');
+  let item;
   try {
-    const { item } = await subscriptionRequest('/api/subscriptions/save', {
+    ({ item } = await subscriptionRequest('/api/subscriptions/save', {
       item:{ ...draft, name:draft.name.trim(), note:draft.note.trim(), amount:Number(draft.amount), cycleMonths:Number(draft.cycleMonths) }
-    });
-    const isNew = !draft.id;
-    upsertSubscription(item);
-    closeSubscriptionEditor();
-    renderSubscriptionsPage();
-    if (subscriptionDetailId === item.id) renderSubscriptionDetail();
-    flashSubscriptionRow(item.id);
-    toast(isNew ? `已添加 ${item.name}` : '已保存');
+    }));
   } catch (error) {
-    showError(error.message || '保存失败，请重试');
-  } finally {
     subscriptionBusy = false;
-    saveBtn.disabled = false;
-    saveBtn.textContent = '保存';
+    setSubscriptionSaveState('idle');
+    showSubscriptionEditError(error.message || '保存失败，请重试');
+    return;
   }
+  const isNew = !draft.id;
+  upsertSubscription(item);
+  setSubscriptionSaveState('saved');
+  await new Promise(resolve => setTimeout(resolve, subscriptionReducedMotion() ? 0 : 450));
+  subscriptionBusy = false;
+  closeSubscriptionEditor({ restoreFocus:false });
+  renderSubscriptionsPage();
+  flashSubscriptionRow(item.id);
+  openSubscriptionDetail(item.id);
+  const schedule = subscriptionSchedule(item, subscriptionLocalDate(), subscriptionState.usdCnyRate);
+  subscriptionToast(isNew ? `${item.name} 已添加` : `${item.name} 已保存`, 'success',
+    `${subscriptionMoney(item.amount, item.currency)} ${subscriptionCycleLabel(item.cycleMonths)} · ${schedule.state === 'active' ? `下次扣费 ${schedule.nextCharge}` : `有效期至 ${schedule.paidThrough}`}`);
 }
-async function editSubscriptionRate() {
-  const rate = subscriptionState.usdCnyRate;
-  const pending = appConfirm({
-    title:'订阅页汇率',
-    sub:'只影响订阅页',
-    message:'美元订阅按这个汇率折成人民币。设置里的订单汇率不受影响。',
-    inputLabel:'1 USD = ? CNY',
-    inputPlaceholder:String(rate),
-    confirmText:'保存',
-    validate:value => {
-      const number = Number(value);
-      return (value !== '' && Number.isFinite(number) && number > 0 && number <= 100) || '请输入 0 到 100 之间的数字';
-    }
-  });
-  const input = document.getElementById('confirmInput');
-  input.value = String(rate);
-  setTimeout(() => input.select(), 60);
-  const result = await pending;
-  if (!result.confirmed) return;
-  try {
-    const data = await subscriptionRequest('/api/subscriptions/rate', { usdCnyRate:Number(result.value) });
-    subscriptionState.usdCnyRate = data.usdCnyRate;
-    renderSubscriptionsPage();
-    toast(`汇率已改为 ${data.usdCnyRate}`);
-  } catch (error) {
-    toast(`汇率没有保存：${error.message}`);
-  }
-}
+document.getElementById('subscriptionColors').innerHTML = subscriptionColors
+  .map(([color, name]) => `<button type="button" data-sub-color="${color}" style="--c:${color}" aria-label="${name}" aria-pressed="false"></button>`).join('');
 document.getElementById('subsAddBtn').addEventListener('click', () => openSubscriptionEditor());
-document.getElementById('subsRateBtn').addEventListener('click', editSubscriptionRate);
 document.getElementById('subsSearch').addEventListener('input', event => {
   subscriptionQuery = event.target.value;
   renderSubscriptionsPage();
@@ -15910,7 +16062,24 @@ document.getElementById('subsFilter').addEventListener('click', event => {
   const button = event.target.closest('[data-sub-filter]');
   if (!button || button.dataset.subFilter === subscriptionFilter) return;
   subscriptionFilter = button.dataset.subFilter;
-  renderSubscriptionsPage({ animate:true });
+  renderSubscriptionsPage();
+});
+document.getElementById('subsHero').addEventListener('click', event => {
+  if (event.target.closest('#subsRateBtn')) startSubscriptionRateEdit();
+});
+document.getElementById('subsHero').addEventListener('keydown', event => {
+  if (event.target.id !== 'subsRateInput') return;
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    commitSubscriptionRate();
+  } else if (event.key === 'Escape') {
+    event.preventDefault();
+    event.stopPropagation();
+    commitSubscriptionRate({ cancel:true });
+  }
+});
+document.getElementById('subsHero').addEventListener('focusout', event => {
+  if (event.target.id === 'subsRateInput') commitSubscriptionRate({ fromBlur:true });
 });
 document.getElementById('subsList').addEventListener('click', event => {
   const row = event.target.closest('[data-sub-id]');
@@ -15922,27 +16091,47 @@ document.getElementById('subsList').addEventListener('click', event => {
   if (action === 'add') openSubscriptionEditor();
   if (action === 'retry') loadSubscriptions();
 });
-document.getElementById('subscriptionDrawerCloseBtn').addEventListener('click', closeSubscriptionDetail);
 document.getElementById('subscriptionDrawer').addEventListener('click', event => {
   if (event.target.id === 'subscriptionDrawer') {
     closeSubscriptionDetail();
     return;
   }
   const action = event.target.closest('[data-sub-action]')?.dataset.subAction;
+  if (action === 'close') closeSubscriptionDetail();
   if (action === 'edit') openSubscriptionEditor(subscriptionDetailId);
   if (action === 'resubscribe') openSubscriptionEditor(subscriptionDetailId, { resubscribe:true });
   if (action === 'toggle') toggleSubscriptionStatus();
 });
-document.getElementById('subscriptionEditCloseBtn').addEventListener('click', closeSubscriptionEditor);
+document.getElementById('subscriptionDrawer').addEventListener('pointerdown', event => {
+  const hold = event.target.closest('.subs-hold');
+  if (!hold || event.button !== 0) return;
+  event.preventDefault();
+  startSubscriptionHold(hold);
+});
+document.getElementById('subscriptionDrawer').addEventListener('keydown', event => {
+  const hold = event.target.closest?.('.subs-hold');
+  if (!hold || (event.key !== ' ' && event.key !== 'Enter')) return;
+  event.preventDefault();
+  if (!event.repeat) startSubscriptionHold(hold);
+});
+document.getElementById('subscriptionDrawer').addEventListener('contextmenu', event => {
+  if (event.target.closest('.subs-hold')) event.preventDefault();
+});
+document.addEventListener('pointerup', () => endSubscriptionHold());
+document.addEventListener('pointercancel', () => endSubscriptionHold());
+document.addEventListener('keyup', event => {
+  if (event.key === ' ' || event.key === 'Enter') endSubscriptionHold();
+});
 document.getElementById('subscriptionEditModal').addEventListener('click', event => {
-  if (event.target.id === 'subscriptionEditModal') closeSubscriptionEditor();
+  if (event.target.id === 'subscriptionEditModal' || event.target.closest('#subscriptionEditCloseBtn, #subscriptionEditCancelBtn')) closeSubscriptionEditor();
 });
 document.getElementById('subscriptionEditForm').addEventListener('submit', saveSubscriptionDraft);
 document.getElementById('subscriptionEditForm').addEventListener('input', event => {
   const field = { subName:'name', subNote:'note', subAmount:'amount', subStart:'startDate' }[event.target.name];
   if (!field || !subscriptionDraft) return;
   subscriptionDraft[field] = event.target.value;
-  document.getElementById('subscriptionEditError').textContent = '';
+  event.target.closest('.subs-field')?.classList.remove('err');
+  showSubscriptionEditError('');
   renderSubscriptionPreview();
 });
 document.getElementById('subscriptionEditForm').addEventListener('click', event => {
@@ -15958,6 +16147,14 @@ document.getElementById('subscriptionEditForm').addEventListener('click', event 
   syncSubscriptionEditorControls();
   renderSubscriptionPreview();
 });
+document.getElementById('subscriptionToasts').addEventListener('mouseenter', () => {
+  subscriptionToastHover = true;
+  layoutSubscriptionToasts();
+});
+document.getElementById('subscriptionToasts').addEventListener('mouseleave', () => {
+  subscriptionToastHover = false;
+  layoutSubscriptionToasts();
+});
 document.addEventListener('keydown', event => {
   if (event.key !== 'Escape' || document.getElementById('confirmModal').classList.contains('open')) return;
   if (document.getElementById('subscriptionEditModal').classList.contains('open')) {
@@ -15968,7 +16165,10 @@ document.addEventListener('keydown', event => {
     closeSubscriptionDetail();
   }
 });
-window.addEventListener('resize', debounce(placeSubscriptionFilterThumb, 80));
+window.addEventListener('resize', debounce(() => {
+  placeSubscriptionGlide(document.getElementById('subsFilter'), 'filter', { jump:true });
+  document.querySelectorAll('#subscriptionEditForm [data-sub-segment]').forEach(group => placeSubscriptionGlide(group, `editor-${group.dataset.subSegment}`, { jump:true }));
+}, 80));
 function setPage(page) {
   const normalized = page === 'data' ? 'settings' : page;
   const target = document.getElementById(`page-${normalized}`) ? normalized : 'dashboard';

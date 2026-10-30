@@ -61,7 +61,8 @@ Repository: https://github.com/Kr1xxxx/OTS . This V3.89 export continues the cle
 
 ## Changes since V3.88
 
-- New 订阅 page (sidebar, between 已删除订单 and 设置) for personal subscriptions: monthly total, 30-day charge strip, category filter, in-page search, detail drawer, cancel/resume, hold-to-delete with undo, and a USD→CNY rate that only this page uses (default 7.1).
+- New 订阅 page (sidebar, between 已删除订单 and 设置) for personal subscriptions: monthly total with a rolling-digit hero, what is due in the next 30 days, category filter, in-page search, detail drawer, cancel/resume and hold-to-delete with a 4-second undo, and a USD→CNY rate that only this page uses (default 7.1, edited inline in the hero).
+- The 订阅 page already uses the new desktop design from docs/ui-prototype/ots-ui.html (Arc neutral greys, violet accent, spring motion, toast stack). Its tokens are scoped to that page, its drawer and its editor; the rest of the app keeps the V3.88 look. Geist and Inter are not bundled, so the page falls back to the system font (PingFang SC) until the fonts are added.
 - Subscriptions live in their own SQLite tables (mac-app/subscription-store.js) behind /api/subscriptions routes. They are never part of the order state, dashboard, reports, global search records, JSON export or import; SQLite backups include them.
 - Charge dates clamp month-end starts (Jan 31 → Feb 28 → Mar 31), use the local calendar day, and stop at a cancelled subscription's end date.
 

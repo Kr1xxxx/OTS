@@ -35,7 +35,7 @@ function cleanItem(input) {
   if (!extra || typeof extra !== 'object' || Array.isArray(extra) || JSON.stringify(extra).length > 4000) fail('附加信息无效');
   const id = input.id === undefined || input.id === '' ? crypto.randomUUID() : bounded(input.id, '订阅标识', 64);
   if (!/^[A-Za-z0-9-]{8,64}$/.test(id)) fail('订阅标识无效');
-  const color = bounded(input.color ?? '#0f8f81', '颜色', 7);
+  const color = bounded(input.color ?? '#7747ff', '颜色', 7);
   if (!/^#[0-9a-fA-F]{6}$/.test(color)) fail('颜色无效');
   return {
     id,

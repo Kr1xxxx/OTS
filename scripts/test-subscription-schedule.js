@@ -24,12 +24,13 @@ function extractFunction(name) {
 const context = vm.createContext({});
 [
   'subscriptionLocalDate', 'subscriptionDayNumber', 'subscriptionDateFromDay', 'subscriptionAddMonths',
-  'subscriptionChargeIndex', 'subscriptionSchedule', 'subscriptionSummary', 'subscriptionCompare', 'subscriptionWhen'
+  'subscriptionChargeIndex', 'subscriptionSchedule', 'subscriptionSummary', 'subscriptionCompare', 'subscriptionWhen',
+  'subscriptionInitial'
 ].forEach(name => vm.runInContext(extractFunction(name), context));
 const call = (name, ...args) => context[name](...args);
 const item = overrides => ({
   id:'sub-test-1', name:'Test', note:'', amount:10, currency:'CNY', cycleMonths:1, startDate:'2026-01-31',
-  category:'其他', color:'#0f8f81', status:'active', endsOn:'', ...overrides
+  category:'其他', color:'#7747ff', status:'active', endsOn:'', ...overrides
 });
 
 // Month-end starts clamp to the end of shorter months and return to the original day afterwards.
@@ -54,7 +55,10 @@ assert.equal(today.nextCharge, '2026-03-18', 'a charge due today is the next cha
 assert.equal(today.daysLeft, 0);
 assert.equal(today.paidThrough, '2026-04-18', 'paying today covers the subscription until the following charge');
 assert.equal(today.charges, 3, 'today’s charge counts as spent');
-assert.deepEqual({ ...call('subscriptionWhen', today) }, { cls:'today', text:'今天扣费' });
+assert.deepEqual({ ...call('subscriptionWhen', today) }, { cls:'red solid', text:'今天扣费' });
+
+assert.deepEqual({ ...call('subscriptionWhen', call('subscriptionSchedule', item({ startDate:'2026-01-25' }), '2026-03-18', 7.1)) }, { cls:'accent', text:'7天后扣费' });
+assert.deepEqual({ ...call('subscriptionWhen', call('subscriptionSchedule', item({ startDate:'2026-01-26' }), '2026-03-18', 7.1)) }, { cls:'line', text:'8天后扣费' });
 
 const future = call('subscriptionSchedule', item({ startDate:'2026-04-02' }), '2026-03-18', 7.1);
 assert.equal(future.nextCharge, '2026-04-02', 'a future start is the first charge');
@@ -76,7 +80,7 @@ const ending = call('subscriptionSchedule', cancelled, '2026-03-18', 7.1);
 assert.equal(ending.state, 'ending');
 assert.equal(ending.nextCharge, '', 'cancelled subscriptions are never charged again');
 assert.equal(ending.daysLeft, 61);
-assert.deepEqual({ ...call('subscriptionWhen', ending) }, { cls:'ending', text:'61 天后到期' });
+assert.deepEqual({ ...call('subscriptionWhen', ending) }, { cls:'amber', text:'61天后到期' });
 const expired = call('subscriptionSchedule', cancelled, '2026-05-18', 7.1);
 assert.equal(expired.state, 'expired', 'a cancelled subscription expires on its end date');
 assert.equal(expired.charges, 4, 'no charge is counted on or after the end date');
@@ -98,6 +102,7 @@ const summary = call('subscriptionSummary', [
 assert.equal(summary.total, 4);
 assert.equal(summary.active, 3);
 assert.equal(summary.cancelled, 1, 'cancelled subscriptions are counted separately and not in the monthly total');
+assert.equal(summary.dueSoon, 2, 'charges today and in 2 days are within 7 days; April 1 is not');
 assert.equal(summary.monthlyCny, 140 + 10 + 30);
 assert.equal(summary.yearlyCny, 180 * 12);
 assert.deepEqual(Array.from(summary.upcoming, entry => `${entry.item.id}:${entry.date}`), ['d:2026-03-18', 'a:2026-03-20', 'b:2026-04-01'],
@@ -118,4 +123,11 @@ const rows = [
 assert.deepEqual(rows.sort(context.subscriptionCompare).map(row => row.item.id), ['soon', 'late', 'ending', 'expired-new', 'expired-old'],
   'active by next charge, then ending, then most recently expired');
 
-console.log('Subscription schedule test passed: month ends, leap years, today, cancellation, local date, 30-day window and ordering.');
+// Icon initials follow the prototype: two Latin characters, one Chinese character.
+assert.equal(call('subscriptionInitial', 'ChatGPT Plus'), 'Ch');
+assert.equal(call('subscriptionInitial', '1Password'), '1P');
+assert.equal(call('subscriptionInitial', '阿里云域名'), '阿');
+assert.equal(call('subscriptionInitial', 'iCloud+'), 'iC');
+assert.equal(call('subscriptionInitial', ' + '), '·');
+
+console.log('Subscription schedule test passed: month ends, leap years, today, cancellation, local date, 30-day window, status pills, initials and ordering.');

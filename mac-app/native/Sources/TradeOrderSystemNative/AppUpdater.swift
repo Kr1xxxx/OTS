@@ -11,15 +11,21 @@ final class AppUpdater {
     private let policy = UpdatePolicy(owner: "Kr1xxxx", repository: "OTS")
     private let prepareToQuit: @MainActor (@escaping @MainActor (Bool) -> Void) -> Void
     private let quit: @MainActor () -> Void
+    private let dialog: @MainActor (AppDialog) async -> Bool
+    private let progress: @MainActor (String?) -> Void
     private var busy = false
-    private var progressWindow: NSPanel?
-    private var progressLabel: NSTextField?
+    private var installing = false
 
     /// prepareToQuit flushes pending saves and reports whether it is safe to quit.
+    /// dialog and progress draw inside the page so every prompt follows the app's own UI.
     init(prepareToQuit: @escaping @MainActor (@escaping @MainActor (Bool) -> Void) -> Void,
-         quit: @escaping @MainActor () -> Void) {
+         quit: @escaping @MainActor () -> Void,
+         dialog: @escaping @MainActor (AppDialog) async -> Bool,
+         progress: @escaping @MainActor (String?) -> Void) {
         self.prepareToQuit = prepareToQuit
         self.quit = quit
+        self.dialog = dialog
+        self.progress = progress
     }
 
     private var currentVersion: AppVersion? {
@@ -35,14 +41,11 @@ final class AppUpdater {
     }
 
     func checkForUpdates(userInitiated: Bool) {
-        guard !busy else {
-            if userInitiated { progressWindow?.makeKeyAndOrderFront(nil) }
-            return
-        }
+        guard !busy else { return }
         busy = true
         Task { @MainActor in
-            // Stays busy only while a download/install owns the progress window.
-            defer { if self.progressWindow == nil { self.busy = false } }
+            // Stays busy only while a download/install owns the progress dialog.
+            defer { if !self.installing { self.busy = false } }
             do {
                 guard let current = currentVersion else { throw UpdateError.message("无法读取当前版本号。") }
                 var request = URLRequest(url: policy.latestReleaseURL, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
@@ -57,32 +60,32 @@ final class AppUpdater {
                       let latest = AppVersion(tag) else { throw UpdateError.message("无法读取最新版本信息。") }
 
                 guard latest > current else {
-                    if userInitiated { info("已是最新版本", "当前版本 V\(current) 就是最新版。") }
+                    if userInitiated { await info("已是最新版本", "当前版本 V\(current) 就是最新版。") }
                     return
                 }
                 guard let selected = policy.selectAsset(fromRelease: release, architecture: Self.architecture) else {
-                    if userInitiated { info("暂时无法更新", "V\(latest) 没有适用于这台 Mac（\(Self.architecture)）的安装包。") }
+                    if userInitiated { await info("暂时无法更新", "V\(latest) 没有适用于这台 Mac（\(Self.architecture)）的安装包。") }
                     return
                 }
                 let notes = (release["body"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-                guard confirmUpdate(current: current, latest: latest, notes: notes) else { return }
+                guard await confirmUpdate(current: current, latest: latest, notes: notes) else { return }
                 try preflightInstallLocation()
                 await install(selected.asset, version: latest)
             } catch {
-                if userInitiated { info("检查更新失败", error.localizedDescription) }
+                if userInitiated { await info("检查更新失败", error.localizedDescription) }
             }
         }
     }
 
-    private func confirmUpdate(current: AppVersion, latest: AppVersion, notes: String) -> Bool {
-        let alert = NSAlert()
-        alert.messageText = "发现新版本 V\(latest)"
+    private func confirmUpdate(current: AppVersion, latest: AppVersion, notes: String) async -> Bool {
         let trimmed = notes.count > 700 ? String(notes.prefix(700)) + "…" : notes
-        alert.informativeText = "当前版本 V\(current)。更新会先保存数据，下载完成后自动替换并重新打开软件。"
-            + (trimmed.isEmpty ? "" : "\n\n\(trimmed)")
-        alert.addButton(withTitle: "更新并重启")
-        alert.addButton(withTitle: "稍后")
-        return alert.runModal() == .alertFirstButtonReturn
+        return await dialog(AppDialog(
+            title: "发现新版本 V\(latest)",
+            message: "当前版本 V\(current)。更新会先保存数据，下载完成后自动替换并重新打开软件。"
+                + (trimmed.isEmpty ? "" : "\n\n\(trimmed)"),
+            confirmText: "更新并重启",
+            cancelText: "稍后"
+        ))
     }
 
     private func preflightInstallLocation() throws {
@@ -97,7 +100,8 @@ final class AppUpdater {
     }
 
     private func install(_ asset: UpdateAsset, version: AppVersion) async {
-        showProgressWindow(text: "正在下载 V\(version)…")
+        installing = true
+        progress("正在下载 V\(version)…")
         do {
             let bundle = Bundle.main.bundleURL.resolvingSymlinksInPath()
             // Same volume as the installed app, so the final swap is a rename.
@@ -113,14 +117,14 @@ final class AppUpdater {
             }
             try FileManager.default.moveItem(at: downloaded, to: archive)
 
-            progressLabel?.stringValue = "正在校验安装包…"
+            progress("正在校验安装包…")
             let expected = try await expectedChecksum(for: asset)
             let newApp = try await Task.detached(priority: .userInitiated) {
                 try AppUpdater.verifyAndExtract(archive: archive, into: staging, sha256: expected)
             }.value
             try Self.checkBundle(newApp, version: version, bundleIdentifier: Bundle.main.bundleIdentifier)
 
-            progressLabel?.stringValue = "正在保存数据…"
+            progress("正在保存数据…")
             prepareToQuit { [weak self] safe in
                 guard let self else { return }
                 guard safe else {
@@ -235,47 +239,41 @@ final class AppUpdater {
     rm -rf "$STAGING"
     """
 
-    private func showProgressWindow(text: String) {
-        if let progressWindow {
-            progressLabel?.stringValue = text
-            progressWindow.makeKeyAndOrderFront(nil)
-            return
-        }
-        let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 340, height: 96),
-            styleMask: [.titled],
-            backing: .buffered,
-            defer: false
-        )
-        panel.title = "软件更新"
-        let spinner = NSProgressIndicator(frame: NSRect(x: 24, y: 38, width: 20, height: 20))
-        spinner.style = .spinning
-        spinner.controlSize = .small
-        spinner.startAnimation(nil)
-        let label = NSTextField(labelWithString: text)
-        label.frame = NSRect(x: 56, y: 38, width: 260, height: 20)
-        panel.contentView?.addSubview(spinner)
-        panel.contentView?.addSubview(label)
-        panel.isReleasedWhenClosed = false
-        panel.center()
-        panel.makeKeyAndOrderFront(nil)
-        progressWindow = panel
-        progressLabel = label
-    }
-
     private func finishWithError(_ message: String) {
-        progressWindow?.close()
-        progressWindow = nil
-        progressLabel = nil
+        progress(nil)
+        installing = false
         busy = false
-        info("更新没有完成", message)
+        Task { await info("更新没有完成", message) }
     }
 
-    private func info(_ title: String, _ message: String) {
+    private func info(_ title: String, _ message: String) async {
+        _ = await dialog(AppDialog(title: title, message: message))
+    }
+}
+
+/// One prompt: the page's confirm dialog draws it; NSAlert is only the fallback.
+struct AppDialog: Sendable {
+    var title: String
+    var message: String
+    var sub = "软件更新"
+    var confirmText = "好"
+    var cancelText = ""
+    var danger = false
+
+    var options: [String: Any] {
+        ["title": title, "message": message, "sub": sub,
+         "confirmText": confirmText, "cancelText": cancelText, "danger": danger]
+    }
+
+    @MainActor
+    func runNativeAlert() -> Bool {
         let alert = NSAlert()
         alert.messageText = title
         alert.informativeText = message
-        alert.runModal()
+        alert.alertStyle = danger ? .critical : .informational
+        alert.addButton(withTitle: confirmText)
+        if !cancelText.isEmpty { alert.addButton(withTitle: cancelText) }
+        return alert.runModal() == .alertFirstButtonReturn
     }
 }
 

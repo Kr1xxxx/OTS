@@ -53,7 +53,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         quit: { [unowned self] in
             self.allowTermination = true
             NSApp.terminate(nil)
-        }
+        },
+        dialog: { [unowned self] request in await self.presentDialog(request) },
+        progress: { [unowned self] text in self.showDialogProgress(text) }
     )
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -115,17 +117,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
                 const region = document.querySelector('.topbar-left-drag-region');
                 if (!region) return;
                 const topbar = region.closest('.topbar');
-                const actions = topbar?.querySelector('.top-actions');
-                const regionRect = toRect(region);
-                const topbarRect = topbar ? toRect(topbar) : null;
-                const actionsRect = actions ? toRect(actions) : null;
-                if (topbarRect && actionsRect?.width > 0 && actionsRect.x > topbarRect.x) {
-                  regionRect.x = topbarRect.x;
-                  regionRect.width = actionsRect.x - topbarRect.x;
+                // 弹窗、抽屉、通知面板打开时不留拖动区，免得盖住它们顶部的按钮。
+                if (document.querySelector('.modal-backdrop.open, .notif-panel:not([hidden])')) {
+                  handler.postMessage({ region: toRect(region), regions: [], exclusions: [] });
+                  return;
                 }
-                const exclusions = [...(topbar || region).querySelectorAll('input, button, select, textarea, a, [contenteditable="true"], .global-search-panel')]
+                // 整条顶栏（含上下留白）和侧栏顶部的标志区都能拖动窗口；按钮、输入框、搜索框除外。
+                const regionRect = topbar ? toRect(topbar) : toRect(region);
+                const regions = [regionRect];
+                const brand = document.querySelector('.sidebar .logo');
+                if (brand) regions.push(toRect(brand));
+                const exclusions = [...(topbar || region).querySelectorAll('input, button, select, textarea, a, [contenteditable="true"], .search, .global-search-panel, .top-actions')]
                   .map(toRect);
-                handler.postMessage({ region: regionRect, exclusions });
+                handler.postMessage({ region: regionRect, regions, exclusions });
               };
               const scheduleReport = () => {
                 if (scheduled) return;
@@ -136,6 +140,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
                 const region = document.querySelector('.topbar-left-drag-region');
                 if (!region) return;
                 new ResizeObserver(scheduleReport).observe(region);
+                new MutationObserver(scheduleReport).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class', 'hidden'] });
                 window.addEventListener('resize', scheduleReport, { passive: true });
                 scheduleReport();
               };
@@ -198,7 +203,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
               let body = message.body as? [String: Any],
               let region = body["region"] as? [String: Any],
               let dragRegionView else { return }
-        let dragRects = nativeRects(from: [region], in: dragRegionView)
+        let regions = body["regions"] as? [[String: Any]] ?? [region]
+        let dragRects = nativeRects(from: regions, in: dragRegionView)
         let exclusions = nativeRects(from: body["exclusions"] as? [[String: Any]] ?? [], in: dragRegionView)
         dragRegionView.update(dragRects: dragRects, exclusionRects: exclusions)
     }
@@ -566,14 +572,53 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     }
 
     private func presentUnsavedExitWarning(error: Error) {
-        let alert = NSAlert()
-        alert.messageText = "订单数据尚未确认保存"
-        alert.informativeText = "\(error.localizedDescription)\n\n建议返回软件，确认“数据库已保存”后再退出。"
-        alert.alertStyle = .critical
-        alert.addButton(withTitle: "返回软件")
-        alert.addButton(withTitle: "仍然退出")
-        let shouldExit = alert.runModal() == .alertSecondButtonReturn
-        completeTermination(shouldTerminate: shouldExit)
+        let request = AppDialog(
+            title: "订单数据尚未确认保存",
+            message: "\(error.localizedDescription)\n\n建议返回软件，确认“数据库已保存”后再退出。",
+            sub: "退出软件",
+            confirmText: "仍然退出",
+            cancelText: "返回软件",
+            danger: true
+        )
+        // A save that timed out may mean the page is stuck, so that case keeps the system alert.
+        if (error as? TerminationError) == .saveTimedOut {
+            completeTermination(shouldTerminate: request.runNativeAlert())
+            return
+        }
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            self.completeTermination(shouldTerminate: await self.presentDialog(request))
+        }
+    }
+
+    /// Draws the prompt with the page's own confirm dialog; NSAlert only when the page can't.
+    @MainActor
+    private func presentDialog(_ request: AppDialog) async -> Bool {
+        if appHasLoaded, let webView {
+            window?.makeKeyAndOrderFront(nil)
+            do {
+                let value = try await webView.callAsyncJavaScript(
+                    "if (typeof window.nativeDialog !== 'function') throw new Error('no dialog'); return await window.nativeDialog(options);",
+                    arguments: ["options": request.options],
+                    in: nil,
+                    contentWorld: .page
+                )
+                return (value as? Bool) ?? false
+            } catch {}
+        }
+        return request.runNativeAlert()
+    }
+
+    @MainActor
+    private func showDialogProgress(_ text: String?) {
+        guard appHasLoaded, let webView else { return }
+        webView.callAsyncJavaScript(
+            "if (typeof window.nativeProgress === 'function') window.nativeProgress(text);",
+            arguments: ["text": text ?? ""],
+            in: nil,
+            in: .page,
+            completionHandler: nil
+        )
     }
 
     private func completeTermination(shouldTerminate: Bool) {

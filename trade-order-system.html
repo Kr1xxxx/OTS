@@ -3965,6 +3965,9 @@ html[data-theme] .app-refresh-btn { width:28px; height:28px; min-height:0; borde
 html[data-theme] .app-refresh-btn .ui-icon { width:15px; height:15px; transition:transform var(--motion-spring) var(--ease-spring); }
 html[data-theme] .app-refresh-btn:hover { background:var(--surface-bg); color:var(--gray-900); }
 html[data-theme] .app-refresh-btn:hover .ui-icon { transform:rotate(-90deg); }
+html[data-theme] .app-update-btn { height:22px; padding:0 9px; border:1px solid var(--surface-border-strong, var(--gray-300)); border-radius:999px; background:transparent; color:var(--gray-700); font-size:11px; font-weight:600; line-height:1; cursor:pointer; transition:background var(--motion-fast) ease, color var(--motion-fast) ease, border-color var(--motion-fast) ease; }
+html[data-theme] .app-update-btn:hover { background:var(--accent); border-color:transparent; color:#fff; }
+html[data-theme] .app-update-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 
 /* 顶栏 */
 html[data-theme] .page-title.swap { animation:uiTitleIn .45s var(--ease-out) both; }
@@ -4308,6 +4311,7 @@ html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); 
   <div class="sidebar-foot">
     <div class="team">
       <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.89，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.89</div>
+      <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()">更新</button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
     </div>
@@ -18223,6 +18227,12 @@ if (document.getElementById('orderModal')) {
   }).observe(document.getElementById('orderModal'), { attributes:true, attributeFilter:['class'] });
 }
 try { uiApplyModalStyle(localStorage.getItem('ots-modal-style-v1')); } catch (_) { uiApplyModalStyle(''); }
+// Mac App 的原生更新器负责检查、下载、校验、替换并重启；网页里只发起请求。
+function requestAppUpdate() {
+  const handler = window.webkit?.messageHandlers?.appUpdate;
+  if (!handler) { toast('请在 Mac App 里使用更新'); return; }
+  handler.postMessage({action:'check'});
+}
 // ===== 新版 UI 交互 结束 =====
 </script>
 </body>

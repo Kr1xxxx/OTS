@@ -1,0 +1,70 @@
+name: Release
+
+# Publishes the Mac app to GitHub Releases whenever VERSION changes on main
+# (or on demand). The in-app updater reads releases/latest from this repo.
+on:
+  push:
+    branches: [main]
+    paths:
+      - VERSION
+      - .github/workflows/release.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  mac:
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read version
+        id: version
+        run: |
+          VERSION="$(tr -d '[:space:]' < VERSION)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "Release v$VERSION already exists; bump VERSION to publish a new one."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.version.outputs.exists != 'true'
+        with:
+          node-version: 22
+          cache: npm
+      - if: steps.version.outputs.exists != 'true'
+        run: npm ci
+      - if: steps.version.outputs.exists != 'true'
+        run: npx playwright install chromium
+      - name: Build app (ad-hoc signed)
+        if: steps.version.outputs.exists != 'true'
+        run: ./mac-app/build-native-mac-app.sh
+      - name: Package zip (updater) and dmg (first install)
+        if: steps.version.outputs.exists != 'true'
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          ARCH="$(uname -m)"
+          mkdir -p dist dmg-root
+          ZIP="dist/TradeOrderSystem-$VERSION-mac-$ARCH.zip"
+          ditto -c -k --sequesterRsrc --keepParent mac-app/TradeOrderSystem.app "$ZIP"
+          (cd dist && shasum -a 256 "$(basename "$ZIP")" > "$(basename "$ZIP").sha256")
+          ditto mac-app/TradeOrderSystem.app dmg-root/TradeOrderSystem.app
+          ln -s /Applications dmg-root/Applications
+          hdiutil create -volname "外贸订单跟进系统 V$VERSION" -srcfolder dmg-root -ov -format UDZO \
+            "dist/TradeOrderSystem-$VERSION-mac-$ARCH.dmg"
+          ls -lh dist
+      - name: Publish release
+        if: steps.version.outputs.exists != 'true'
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          gh release create "v$VERSION" dist/* \
+            --target "$GITHUB_SHA" \
+            --title "OTS V$VERSION" \
+            --generate-notes

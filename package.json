@@ -8,6 +8,7 @@
     "check": "node scripts/check-project.js",
     "lint": "node scripts/lint.js",
     "check:release": "node scripts/check-release.js",
+    "bump-version": "node scripts/bump-version.js",
     "test": "node scripts/run-tests.js",
     "test:subscriptions": "node scripts/test-subscription-store.js && node scripts/test-subscription-schedule.js && node scripts/test-subscriptions-ui.js",
     "test:save-confirmation": "node scripts/test-save-confirmation.js && node scripts/test-save-ui.js && node scripts/test-save-conflict-ui.js && node scripts/test-customer-contact-preferences-ui.js",

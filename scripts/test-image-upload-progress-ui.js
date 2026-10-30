@@ -55,7 +55,7 @@ const { chromium } = require('playwright');
     await page.locator('#orderForm [name="client"]').fill('Upload Test Buyer');
     await page.locator('#orderForm [name="client"]').press('Escape');
     await page.locator('#orderForm [name="amount"]').fill('100');
-    await page.locator('#orderForm [name="sendFeishuNotification"]').uncheck();
+    await page.locator('#orderModal [name="sendFeishuNotification"]').uncheck();
     await page.evaluate(async () => {
       const canvas = document.createElement('canvas');
       canvas.width = 240; canvas.height = 160;

@@ -1,5 +1,6 @@
 .env.example
 .github/workflows/ci.yml
+.github/workflows/release.yml
 .gitignore
 EXPORT_CHECKSUMS.sha256
 README.md
@@ -27,7 +28,9 @@ mac-app/ai-usage-store.js
 mac-app/build-native-mac-app.sh
 mac-app/native/Package.swift
 mac-app/native/Sources/TradeOrderSystemCore/RuntimePolicy.swift
+mac-app/native/Sources/TradeOrderSystemCore/UpdatePolicy.swift
 mac-app/native/Sources/TradeOrderSystemCoreTests/main.swift
+mac-app/native/Sources/TradeOrderSystemNative/AppUpdater.swift
 mac-app/native/Sources/TradeOrderSystemNative/main.swift
 mac-app/server.js
 mac-app/subscription-store.js
@@ -36,6 +39,7 @@ mac-app/whatsapp-store.js
 package-lock.json
 package.json
 scripts/bench-render-save.js
+scripts/bump-version.js
 scripts/check-project.js
 scripts/check-release.js
 scripts/fixtures/customer-recognition-cases.json

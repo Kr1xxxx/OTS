@@ -4130,6 +4130,71 @@ html[data-theme] .hold-btn.shake { animation:uiShake .4s var(--ease); }
 /* 数值变化：轻轻上滚一下（不改文字，读数始终是最终值） */
 html[data-theme] .num-tick { animation:uiTick .58s var(--ease-spring); }
 @keyframes uiTick { from { opacity:.2; transform:translateY(.35em); filter:blur(2px); } }
+/* 客户管理：顶部五张数字卡，分组和列表分成两张卡，行按原型（头像、国旗国家、等级胶囊、待收琥珀） */
+html[data-theme] #page-customers.active { display:flex; flex-direction:column; gap:20px; }
+html[data-theme] .customer-workspace-summary { display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:16px; border:0; background:transparent; }
+html[data-theme] .customer-summary-item { display:flex; flex-direction:column; gap:4px; padding:18px 20px 16px; border:1px solid var(--surface-border); border-radius:var(--radius-panel); background:var(--surface-bg); box-shadow:var(--shadow); }
+html[data-theme] .customer-summary-item span { color:var(--gray-600); font-size:13px; font-weight:400; }
+html[data-theme] .customer-summary-item strong, html[data-theme] .customer-summary-item strong.summary-money { white-space:nowrap; font-size:28px; font-weight:600; letter-spacing:-.03em; line-height:1.15; color:var(--gray-900); }
+html[data-theme] .customer-summary-item { container-type:inline-size; min-width:0; }
+html[data-theme] .customer-summary-item strong.summary-money { font-size:clamp(15px, 12cqw, 26px); }
+html[data-theme] .customer-summary-item strong.customer-due-amount { color:var(--s-amber); }
+html[data-theme] .customer-summary-item small { color:var(--gray-500); font-size:12px; }
+html[data-theme] .customer-crm { grid-template-columns:220px minmax(0,1fr); gap:16px; min-height:0; border:0; border-radius:0; background:transparent; box-shadow:none; overflow:visible; align-items:start; }
+html[data-theme] .customer-groups { padding:16px 10px; border:1px solid var(--surface-border); border-radius:var(--radius-panel); background:var(--surface-bg); position:sticky; top:16px; }
+html[data-theme] .customer-group-head { padding:2px 10px 12px; }
+html[data-theme] .customer-group-title { font-size:14px; font-weight:600; }
+html[data-theme] .customer-group-item { min-height:38px; padding:0 12px; border-radius:14px; color:var(--gray-700); font-size:13.5px; }
+html[data-theme] .customer-group-item.active { font-weight:600; }
+html[data-theme] .customer-group-item .customer-level-icon, html[data-theme] .customer-group-item [class*="level-icon"] { display:none; }
+html[data-theme] .customer-group-count { color:var(--gray-500); font-weight:400; }
+html[data-theme] .customer-main { display:flex; flex-direction:column; gap:14px; }
+html[data-theme] .customer-toolbar { padding:0; border:0; background:transparent; gap:10px; flex-wrap:wrap; }
+html[data-theme] .customer-toolbar .search { flex:1 1 220px; width:auto; height:40px; min-height:40px; border-radius:999px; }
+html[data-theme] .customer-toolbar .search-action { display:none; }
+html[data-theme] #customerLevelSegments { display:none; }
+html[data-theme] .customer-toolbar select.inline-select, html[data-theme] .customer-toolbar .app-select { flex:none; width:auto; min-width:120px; height:40px; min-height:40px; border-radius:999px; }
+html[data-theme] .customer-toolbar-meta { margin-left:auto; font-size:12.5px; font-weight:400; color:var(--gray-500); }
+html[data-theme] .customer-toolbar .customer-toolbar-new { height:40px; min-height:40px; padding:0 16px; border-radius:999px; background:var(--gray-900); color:var(--surface-bg); border-color:transparent; gap:6px; }
+html[data-theme] .customer-toolbar .customer-toolbar-new:hover { background:color-mix(in srgb, var(--gray-900) 86%, transparent); }
+/* 重复客户提醒：琥珀横幅 */
+html[data-theme] .customer-duplicate-alerts { grid-template-columns:minmax(0,1fr); gap:8px; margin:0; padding:14px 18px; border:1px solid color-mix(in srgb, var(--s-amber) 30%, transparent); border-radius:22px; background:color-mix(in srgb, var(--s-amber) 12%, var(--surface-bg)); }
+html[data-theme] .customer-duplicate-head { justify-content:flex-start; gap:10px; }
+html[data-theme] .customer-duplicate-title { font-size:13.5px; }
+html[data-theme] .customer-duplicate-count { color:var(--s-amber); font-size:12.5px; font-weight:500; }
+html[data-theme] .customer-duplicate-row { padding:0; border:0; background:transparent; }
+html[data-theme] .customer-duplicate-main strong { font-weight:500; font-size:13px; }
+html[data-theme] .customer-duplicate-actions .btn { border-radius:999px; }
+/* 列表 */
+html[data-theme] .customer-table { border:1px solid var(--surface-border); border-radius:22px; background:var(--surface-bg); }
+html[data-theme] .customer-list { min-width:880px; }
+html[data-theme] .customer-row { grid-template-columns:minmax(0,1.55fr) minmax(0,.95fr) minmax(0,1.15fr) minmax(0,1.15fr) minmax(0,.8fr) minmax(0,.9fr); gap:12px; min-height:68px; padding:10px 18px; border-bottom:1px solid var(--hairline); background:transparent; }
+html[data-theme] .customer-row:last-child { border-bottom:0; }
+html[data-theme] .customer-row.head { min-height:38px; padding-block:0; background:var(--surface-bg); color:var(--gray-500); font-size:12px; font-weight:400; border-radius:22px 22px 0 0; }
+html[data-theme] .customer-row.head > :nth-child(5) { text-align:right; }
+html[data-theme] .customer-row:not(.head):hover { background:var(--surface-soft); box-shadow:none; }
+html[data-theme] .customer-cell-main { display:flex; align-items:center; gap:12px; min-width:0; }
+html[data-theme] .customer-cell-text { display:grid; gap:2px; min-width:0; }
+html[data-theme] .customer-avatar { flex:none; width:32px; height:32px; display:grid; place-items:center; border-radius:50%; background:var(--surface-soft); color:var(--gray-700); font-size:12px; font-weight:600; letter-spacing:.02em; }
+html[data-theme] .customer-name-line strong { font-size:15px; font-weight:600; letter-spacing:-.01em; color:var(--gray-900); }
+html[data-theme] .customer-row .muted { font-size:12px; color:var(--gray-500); }
+html[data-theme] .customer-cell-stack { gap:3px; }
+html[data-theme] .customer-cell-stack > strong { font-size:14px; font-weight:500; color:var(--gray-900); }
+html[data-theme] .customer-tag-stack { display:flex; gap:6px; flex-wrap:nowrap; overflow:hidden; }
+html[data-theme] .customer-level-pill { flex:none; padding:1px 8px; border-radius:999px; background:var(--accent-tint); color:var(--accent); font-size:11.5px; font-weight:500; }
+html[data-theme] .customer-tag-stack .level-tag { flex:none; padding:1px 8px; border:1px solid var(--surface-border); border-radius:999px; background:transparent; color:var(--gray-700); font-size:11.5px; white-space:nowrap; }
+html[data-theme] .customer-cell-money { text-align:right; justify-items:end; }
+html[data-theme] .customer-cell-money > strong { font-size:15px; }
+html[data-theme] .customer-row .customer-due-amount { color:var(--s-amber); font-size:12px; font-weight:500; }
+html[data-theme] .customer-row .paid-amount { color:var(--s-green); font-size:12px; font-weight:500; }
+@media (max-width: 1100px) { html[data-theme] .customer-workspace-summary { grid-template-columns:repeat(3, minmax(0,1fr)); } }
+@media (max-width: 820px) {
+  html[data-theme] .customer-workspace-summary { grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
+  html[data-theme] .customer-crm { grid-template-columns:1fr; }
+  html[data-theme] .customer-groups { position:static; }
+  html[data-theme] .customer-toolbar-meta { margin-left:0; flex-basis:100%; }
+}
+html[data-theme] :is(.customer-summary-item strong, .customer-summary-item small) { overflow:visible; text-overflow:clip; white-space:normal; }
 /* 工作台：按原型重排的数字卡、看板卡片、列头、待办与最近订单 */
 html[data-theme] .stats > .stat { position:relative; overflow:hidden; display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start; gap:4px; min-height:0; text-align:left; }
 html[data-theme] .stats > .stat > * { text-align:left; justify-self:start; align-self:stretch; margin-left:0; }
@@ -4939,6 +5004,7 @@ html[data-theme="dark"] .order-table-paybar { background:var(--gray-200); }
     </section>
 
     <section class="page" id="page-customers">
+      <div class="customer-workspace-summary" id="customerWorkspaceSummary"></div>
       <section class="customer-crm">
         <aside class="customer-groups">
           <div class="customer-group-head">
@@ -4948,6 +5014,7 @@ html[data-theme="dark"] .order-table-paybar { background:var(--gray-200); }
           <div class="customer-group-list" id="customerGroups"></div>
         </aside>
         <div class="customer-main">
+          <div id="customerDuplicateAlerts"></div>
           <div class="customer-toolbar">
             <div class="search">
               <svg class="ui-icon search-icon" aria-hidden="true"><use href="#i-search"/></svg>
@@ -4963,7 +5030,6 @@ html[data-theme="dark"] .order-table-paybar { background:var(--gray-200); }
               <option>E级白银客户</option>
               <option>F级青铜客户</option>
             </select>
-            <div class="segment-control compact" id="customerLevelSegments"></div>
             <select class="inline-select" id="customerSort" aria-label="客户排序">
               <option value="recent">最近跟进</option>
               <option value="sales">成交金额</option>
@@ -4972,9 +5038,8 @@ html[data-theme="dark"] .order-table-paybar { background:var(--gray-200); }
               <option value="name">客户名称</option>
             </select>
             <div class="customer-toolbar-meta" id="customerResultMeta">0 个结果</div>
+            <button class="btn btn-primary customer-toolbar-new" type="button" data-new-customer><svg class="ui-icon" aria-hidden="true"><use href="#i-user-plus"/></svg><span>新建客户</span></button>
           </div>
-          <div class="customer-workspace-summary" id="customerWorkspaceSummary"></div>
-          <div id="customerDuplicateAlerts"></div>
           <div class="customer-table">
             <div class="customer-list" id="customerList"></div>
           </div>
@@ -12570,15 +12635,6 @@ function fitSegmentControl(wrap) {
 }
 function renderSegmentControls() {
   renderSelectSegment('chartRange', 'chartRangeSegments');
-  renderSelectSegment('customerLevelFilter', 'customerLevelSegments', {
-    all: '全部',
-    'A级钻石客户': 'A级',
-    'B级翡翠客户': 'B级',
-    'C级白金客户': 'C级',
-    'D级黄金客户': 'D级',
-    'E级白银客户': 'E级',
-    'F级青铜客户': 'F级'
-  });
   fitSegmentControl(document.getElementById('logisticsCarrierFilter'));
   fitSegmentControl(document.getElementById('boardProductFilter'));
   fitSegmentControl(document.getElementById('taskInboxFilters'));
@@ -14262,13 +14318,20 @@ function renderCustomerWorkspaceSummary(customers = []) {
   const due = customers.reduce((sum, customer) => sum + Number(customer.due || 0), 0);
   const today = normalizeDate(new Date().toISOString());
   const followups = customers.filter(c => c.repurchaseDate && c.repurchaseDate <= today).length;
+  const dueCustomers = customers.filter(c => Number(c.due || 0) > 0).length;
   el.innerHTML = `
-    <div class="customer-summary-item"><span>客户</span><strong>${customers.length}</strong><small>当前筛选结果</small></div>
-    <div class="customer-summary-item"><span>订单</span><strong>${orderCount}</strong><small>人均 ${customers.length ? (orderCount / customers.length).toFixed(1) : '0'} 单</small></div>
-    <div class="customer-summary-item"><span>成交</span><strong class="summary-money">${summaryMoney(total, 'USD')}</strong><small>全部币种折算 USD</small></div>
-    <div class="customer-summary-item"><span>待收</span><strong class="summary-money ${due > 0 ? 'customer-due-amount' : ''}">${summaryMoney(due, 'USD')}</strong><small class="summary-money">已收 ${summaryMoney(paid, 'USD')}</small></div>
+    <div class="customer-summary-item"><span>客户数</span><strong>${customers.length}</strong><small>当前筛选结果</small></div>
+    <div class="customer-summary-item"><span>订单数</span><strong>${orderCount}</strong><small>人均 ${customers.length ? (orderCount / customers.length).toFixed(1) : '0'} 单</small></div>
+    <div class="customer-summary-item"><span>成交 USD</span><strong class="summary-money">${summaryMoney(total, 'USD')}</strong><small title="全部币种折算 USD">已收 ${summaryMoney(paid, 'USD')}</small></div>
+    <div class="customer-summary-item"><span>待收</span><strong class="summary-money ${due > 0 ? 'customer-due-amount' : ''}">${summaryMoney(due, 'USD')}</strong><small>${dueCustomers ? `${dueCustomers} 个客户` : '没有待收款'}</small></div>
     <div class="customer-summary-item"><span>待跟进</span><strong>${followups}</strong><small>${followups ? '复购日期已到' : '暂无到期提醒'}</small></div>
   `;
+}
+function customerInitials(name = '') {
+  const words = String(name).replace(/[（(].*$/, '').trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return '?';
+  if (/^[A-Za-z]/.test(words[0])) return (words.length > 1 ? words[0][0] + words[1][0] : words[0].slice(0, 2)).toUpperCase();
+  return Array.from(words[0])[0];
 }
 function renderCustomers() {
   const el = document.getElementById('customerList');
@@ -14316,25 +14379,29 @@ function renderCustomers() {
   });
   renderCustomerWorkspaceSummary(customers);
   const resultMeta = document.getElementById('customerResultMeta');
-  if (resultMeta) resultMeta.textContent = `${customers.length} 个结果`;
+  if (resultMeta) resultMeta.textContent = `${customers.length} 个结果 · 成交 ${summaryMoney(customers.reduce((sum, c) => sum + c.total, 0), 'USD')} · 待收 ${summaryMoney(customers.reduce((sum, c) => sum + Number(c.due || 0), 0), 'USD')}`;
   el.innerHTML = `
-    <div class="customer-row head"><div>客户与联系</div><div>地区与地址</div><div>客户属性</div><div>订单动态</div><div>成交与收款</div><div>跟进计划</div><div>查看</div></div>
+    <div class="customer-row head"><div>客户与联系</div><div>地区与地址</div><div>客户属性</div><div>订单动态</div><div>成交与收款</div><div>跟进计划</div></div>
     ${customers.map(c => {
       const contact = cleanContactValue(c.contact || '', c.address || '');
-      const visibleTags = c.tags.slice(0, 2);
-      const hiddenTagCount = Math.max(0, c.tags.length - visibleTags.length);
+      const otherTags = c.tags.filter(tag => tag !== c.level);
+      const visibleTags = otherTags.slice(0, 2);
+      const hiddenTagCount = Math.max(0, otherTags.length - visibleTags.length);
+      const displayName = clientDisplayName(c.client);
       return `
       <div class="customer-row" data-view-customer="${escapeAttr(c.client)}" tabindex="0" role="button" aria-label="查看客户 ${escapeAttr(clientDisplayName(c.client))}">
         <div class="customer-cell-main">
-          <div class="customer-name-line"><span class="customer-mini-id">${c.customerId}</span><strong class="customer-cell-ellipsis">${escapeAttr(clientDisplayName(c.client))}</strong></div>
-          <div class="muted customer-cell-ellipsis">${escapeAttr(contact || c.phone || '联系人未填写')} · ${escapeAttr(c.email || '邮箱未填写')}</div>
+          <span class="customer-avatar" aria-hidden="true">${escapeAttr(customerInitials(displayName))}</span>
+          <div class="customer-cell-text">
+            <div class="customer-name-line"><strong class="customer-cell-ellipsis" title="${escapeAttr(c.customerId)}">${escapeAttr(displayName)}</strong></div>
+            <div class="muted customer-cell-ellipsis">${escapeAttr(contact || c.phone || '联系人未填写')} · ${escapeAttr(c.email || '邮箱未填写')}</div>
+          </div>
         </div>
-        <div class="customer-cell-stack"><strong class="customer-cell-ellipsis">${escapeAttr(c.country || '国家未填写')}</strong><span class="muted customer-cell-ellipsis" title="${escapeAttr(c.address || '')}">${escapeAttr(c.address || '地址未填写')}</span></div>
-        <div class="customer-cell-stack"><div class="customer-tag-stack">${renderTagChips(visibleTags, c.level)}${hiddenTagCount ? `<span class="level-tag">+${hiddenTagCount}</span>` : ''}</div><span class="muted customer-cell-ellipsis">${escapeAttr(c.productType || '产品未设')} · ${escapeAttr(c.paymentMethod || '收款未设')}</span></div>
+        <div class="customer-cell-stack"><strong class="customer-cell-ellipsis" title="${escapeAttr(c.country || '')}">${escapeAttr(orderListCountryShort(c.country) || '国家未填写')}</strong><span class="muted customer-cell-ellipsis" title="${escapeAttr(c.address || '')}">${escapeAttr(c.address || '地址未填写')}</span></div>
+        <div class="customer-cell-stack"><div class="customer-tag-stack"><span class="customer-level-pill" title="${escapeAttr(c.level)}">${escapeAttr(String(c.level || '').slice(0, 2))}</span>${visibleTags.map(tag => `<span class="level-tag">${escapeAttr(tag)}</span>`).join('')}${hiddenTagCount ? `<span class="level-tag">+${hiddenTagCount}</span>` : ''}</div><span class="muted customer-cell-ellipsis">${escapeAttr(c.productType || '产品未设')} · ${c.primaryContactMethod ? `首选 ${escapeAttr(c.primaryContactMethod)}` : escapeAttr(c.paymentMethod || '收款未设')}</span></div>
         <div class="customer-cell-stack"><strong>${c.orderCount} 单${c.latestOrder ? ` · ${escapeAttr(c.latestOrder.num || '')}` : ''}</strong><span class="muted customer-cell-ellipsis">${c.latestOrder ? `${escapeAttr(stageDef(c.latestOrder.stage).name)} · ${c.latestOrderDate}` : '暂无订单'}</span></div>
-        <div class="customer-cell-stack"><strong>${money(c.total, 'USD')}</strong><span class="${c.due > 0 ? 'customer-due-amount' : 'paid-amount'}">${c.due > 0 ? `待收 ${money(c.due, 'USD')}` : `已收 ${money(c.paid, 'USD')}`}</span></div>
-        <div class="customer-cell-stack"><strong>${escapeAttr(c.repurchaseDate || '未设提醒')}</strong><span class="muted customer-cell-ellipsis">更新 ${escapeAttr(c.updated || '-')}</span></div>
-        <div class="customer-row-action" aria-hidden="true">›</div>
+        <div class="customer-cell-stack customer-cell-money"><strong>${money(c.total, 'USD')}</strong><span class="${c.due > 0 ? 'customer-due-amount' : (c.total > 0 ? 'paid-amount' : 'muted')}">${c.due > 0 ? `待收 ${money(c.due, 'USD')}` : (c.total > 0 ? '已收清' : '暂无成交')}</span></div>
+        <div class="customer-cell-stack"><strong>${escapeAttr(c.repurchaseDate || '未设提醒')}</strong><span class="muted customer-cell-ellipsis">${c.repurchaseCycle ? `每 ${escapeAttr(c.repurchaseCycle)} 天复购` : `更新 ${escapeAttr(c.updated || '-')}`}</span></div>
       </div>
     `;
     }).join('') || '<div class="empty">暂无客户数据。</div>'}
@@ -16775,7 +16842,7 @@ document.getElementById('amountSideChart').addEventListener('click', e => {
   amountStructureView = btn.dataset.amountStructure;
   renderAmountReport();
 });
-document.getElementById('customerLevelSegments').addEventListener('click', e => {
+document.getElementById('customerLevelSegments')?.addEventListener('click', e => {
   const btn = e.target.closest('[data-segment-value]');
   if (!btn) return;
   document.getElementById('customerLevelFilter').value = btn.dataset.segmentValue;
@@ -18435,6 +18502,8 @@ function uiDashboardKpis() {
   if (bar) bar.style.width = goal ? `${Math.min(100, targetRate(usdTotal(ordersByMonth(month).filter(isRevenueOrder)), goal))}%` : '0%';
 }
 document.querySelectorAll('[data-page-link]').forEach(btn => btn.addEventListener('click', () => setPage(btn.dataset.pageLink)));
+// 新版 UI：客户页工具栏里的“新建客户”沿用顶栏按钮的流程。
+document.querySelectorAll('[data-new-customer]').forEach(btn => btn.addEventListener('click', () => document.getElementById('topNewCustomerBtn')?.click()));
 // ===== 新版 UI 交互 结束 =====
 </script>
 </body>

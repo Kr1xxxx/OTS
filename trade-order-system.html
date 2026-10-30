@@ -4756,6 +4756,61 @@ html[data-theme="dark"] .order-table-paybar { background:var(--gray-200); }
   html[data-theme] .order-list-primary-filters { flex-wrap:wrap; }
   html[data-theme] .order-list-more .order-list-filter-grid { position:static; width:100%; margin-top:8px; }
 }
+/* 设置：左侧菜单和右侧内容各一张卡；内容按组排成用细线分隔的行，不再每项一个框 */
+html[data-theme] .settings-shell { grid-template-columns:220px minmax(0,1fr); gap:16px; min-height:0; border:0; border-radius:0; background:transparent; box-shadow:none; overflow:visible; align-items:start; }
+html[data-theme] .settings-menu { position:sticky; top:16px; padding:12px 10px; border:1px solid var(--surface-border); border-radius:var(--radius-panel); background:var(--surface-bg); min-height:calc(100vh - 140px); }
+html[data-theme] .settings-menu-title { display:none; }
+html[data-theme] .settings-menu-item { min-height:40px; margin-bottom:2px; padding:0 12px; border-radius:14px; color:var(--gray-700); font-size:13.5px; font-weight:400; transition:background var(--motion-fast) var(--ease); }
+html[data-theme] .settings-menu-item:hover { background:var(--surface-soft); }
+html[data-theme] .settings-menu-item.active { background:var(--surface-bg); color:var(--gray-900); font-weight:600; box-shadow:0 1px 2px oklch(0% 0 0 / .08), 0 0 0 .5px oklch(0% 0 0 / .05); }
+html[data-theme="dark"] .settings-menu-item.active { background:var(--surface-raised); }
+html[data-theme] .settings-content { padding:22px 24px; border:1px solid var(--surface-border); border-radius:var(--radius-panel); background:var(--surface-bg); }
+html[data-theme] .settings-panel > .section-head { padding-bottom:14px; margin-bottom:4px; border-bottom:1px solid var(--hairline); }
+html[data-theme] .settings-panel > .section-head .section-title { font-size:16px; }
+html[data-theme] .data-actions { gap:0; }
+html[data-theme] .data-group-title { padding:22px 0 4px; color:var(--gray-900); font-size:14px; font-weight:600; }
+html[data-theme] .data-group-title:first-child { padding-top:8px; }
+html[data-theme] .data-group-title.danger { color:var(--s-red); }
+html[data-theme] .data-action { padding:14px 0; border:0; border-bottom:1px solid var(--hairline); border-radius:0; background:transparent; box-shadow:none; }
+html[data-theme] .data-action strong { font-size:13.5px; font-weight:500; color:var(--gray-900); }
+html[data-theme] .data-action .muted { margin-top:2px; font-size:12.5px; }
+html[data-theme] .data-action .btn { height:32px; min-height:32px; padding:0 14px; border-radius:999px; font-size:12.5px; }
+html[data-theme] .data-action .btn-danger { background:transparent; color:var(--s-red); border-color:color-mix(in srgb, var(--s-red) 35%, transparent); }
+html[data-theme] .data-action .btn-danger:hover { background:color-mix(in srgb, var(--s-red) 10%, transparent); }
+html[data-theme] .data-action :is(select.inline-select, .app-select) { width:auto; min-width:150px; height:34px; min-height:34px; border-radius:999px; }
+html[data-theme] .settings-card { gap:12px; padding:16px 0; margin:0; border:0; border-bottom:1px solid var(--hairline); border-radius:0; background:transparent; box-shadow:none; }
+html[data-theme] .settings-card:last-child { border-bottom:0; }
+@media (max-width: 820px) {
+  html[data-theme] .settings-shell { grid-template-columns:1fr; }
+  html[data-theme] .settings-menu { position:static; min-height:0; display:flex; overflow-x:auto; gap:4px; }
+  html[data-theme] .settings-menu-item { width:auto; flex:none; }
+  html[data-theme] .settings-content { padding:16px; }
+}
+
+/* 已删除订单：返回按钮和说明在卡片外，表格一张卡 */
+html[data-theme] #page-deleted.active { display:flex; flex-direction:column; gap:14px; }
+html[data-theme] .deleted-head { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+html[data-theme] .deleted-head .btn { height:30px; min-height:30px; padding:0 14px; border-radius:999px; }
+html[data-theme] .deleted-head .deleted-count { margin-left:auto; }
+html[data-theme] .deleted-panel { margin:0; padding:0; overflow:hidden; border:1px solid var(--surface-border); border-radius:22px; }
+html[data-theme] #deletedOrderList { display:block; }
+html[data-theme] .deleted-row { display:grid; grid-template-columns:130px minmax(0,1.6fr) 90px 150px 110px minmax(220px,auto); gap:14px; align-items:center; min-height:60px; padding:8px 18px; border-bottom:1px solid var(--hairline); }
+html[data-theme] .deleted-row:last-child { border-bottom:0; }
+html[data-theme] .deleted-row.head { min-height:38px; padding-block:0; color:var(--gray-500); font-size:12px; border-bottom:1px solid var(--surface-border); }
+html[data-theme] .deleted-row.head > :nth-child(4) { text-align:right; }
+html[data-theme] .deleted-num { font-family:var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size:12.5px; color:var(--gray-800); }
+html[data-theme] .deleted-client { display:flex; flex-direction:column; gap:2px; min-width:0; }
+html[data-theme] .deleted-client strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:14.5px; font-weight:500; color:var(--gray-900); }
+html[data-theme] .deleted-row small { color:var(--gray-500); font-size:11.5px; font-weight:400; }
+html[data-theme] .deleted-amount { display:flex; flex-direction:column; align-items:flex-end; gap:2px; font-size:14.5px; color:var(--gray-900); font-variant-numeric:tabular-nums; }
+html[data-theme] .deleted-time { color:var(--gray-500); font-size:12px; }
+html[data-theme] .deleted-actions { display:flex; justify-content:flex-end; gap:6px; }
+html[data-theme] .deleted-actions .btn { height:30px; min-height:30px; padding:0 14px; border-radius:999px; }
+html[data-theme] #deletedOrderList > .empty { margin:16px; }
+@media (max-width: 820px) {
+  html[data-theme] .deleted-panel { overflow-x:auto; }
+  html[data-theme] .deleted-row { min-width:820px; }
+}
 /* 业绩目标：左边设置卡 + 四个浅底数字块，右边完成度圆环，下面近月记录表 */
 html[data-theme] .target-page { display:flex; flex-direction:column; gap:16px; }
 html[data-theme] .target-layout { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(0,1fr); gap:16px; align-items:stretch; }
@@ -4875,7 +4930,6 @@ html[data-theme] .target-history-rate, html[data-theme] .target-history-rate.emp
       <button class="nav-item" data-page="calendar" data-mobile-label="日历"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-cal"/></svg><span class="nav-text">日历</span></button>
       <button class="nav-item" data-page="amount" data-nav-group="insights" data-mobile-label="数据"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-chart"/></svg><span class="nav-text">数据与目标</span></button>
       <button class="nav-item" data-page="subscriptions" data-mobile-label="订阅"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg><span class="nav-text">订阅</span></button>
-      <button class="nav-item" data-page="deleted" data-mobile-label="删除"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-trash"/></svg><span class="nav-text">已删除订单</span><span class="nav-count" data-nav-count="deleted"></span></button>
       <button class="nav-item" data-page="settings" data-mobile-label="设置"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-gear"/></svg><span class="nav-text">设置</span></button>
     </div>
   </nav>
@@ -5388,13 +5442,13 @@ html[data-theme] .target-history-rate, html[data-theme] .target-history-rate.emp
     </section>
 
     <section class="page" id="page-deleted">
-      <section class="panel">
-        <div class="section-head">
-          <div>
-            <div class="section-title">已删除订单</div>
-            <div class="section-meta" id="deletedCount">0 个订单</div>
-          </div>
-        </div>
+      <div class="deleted-head">
+        <button class="btn btn-small" type="button" data-page-link="order-list">← 返回订单</button>
+        <span class="section-meta">删除的订单会一直留在这里，可以恢复；永久删除需要按住按钮。</span>
+        <span class="section-meta deleted-count" id="deletedCount">0 个订单</span>
+      </div>
+      <section class="panel deleted-panel">
+        <div class="deleted-row head"><span>订单号</span><span>客户</span><span>阶段</span><span>订单额</span><span>删除时间</span><span></span></div>
         <div class="order-list" id="deletedOrderList"></div>
       </section>
     </section>
@@ -5432,36 +5486,7 @@ html[data-theme] .target-history-rate, html[data-theme] .target-history-rate.emp
               </div>
             </div>
             <div class="data-actions">
-              <div class="data-action">
-                <div><strong>导出范围</strong><div class="muted">选择全部月份或指定月份后，再导出表格 / 备份。</div></div>
-                <select class="inline-select" id="exportMonth">
-                  <option value="all">全部月份</option>
-                </select>
-              </div>
-              <div class="data-action">
-                <div><strong>导出表格</strong><div class="muted">下载 CSV 表格，适合用 Excel 查看。</div></div>
-                <button class="btn" id="dataExportCsvBtn">导出表格</button>
-              </div>
-              <div class="data-action">
-                <div><strong>导出备份</strong><div class="muted">下载 JSON 备份，可稍后导入恢复。</div></div>
-                <button class="btn" id="exportJsonBtn">导出备份</button>
-              </div>
-              <div class="data-action">
-                <div><strong>导入备份</strong><div class="muted">选择之前导出的 JSON 文件。</div></div>
-                <button class="btn" id="importJsonBtn">导入备份</button>
-              </div>
-              <div class="data-action">
-                <div><strong>主数据文件</strong><div class="muted">导出 JSON 记录，不包含附件图片；完整备份请使用 Mac 本地备份。</div></div>
-                <button class="btn btn-primary" id="exportDataFileBtn">导出数据文件</button>
-              </div>
-              <div class="data-action">
-                <div><strong>导入前预览</strong><div class="muted">先查看订单、客户和目标数量，确认后再恢复。</div></div>
-                <button class="btn" id="previewImportDataFileBtn">预览导入</button>
-              </div>
-              <div class="data-action">
-                <div><strong>数据健康检查</strong><div class="muted">检查重复订单号、缺少客户名和异常金额。</div></div>
-                <button class="btn" id="dataHealthCheckBtn">开始检查</button>
-              </div>
+              <div class="data-group-title">数据库</div>
               <div class="data-action mac-only">
                 <div><strong>SQLite 本地数据库</strong><div class="muted" id="macStorageStatusText">正在检查数据库状态…</div></div>
                 <span class="tag tag-gray" id="macStorageStatusBadge">检查中</span>
@@ -5480,6 +5505,44 @@ html[data-theme] .target-history-rate, html[data-theme] .target-history-rate.emp
                   <button class="btn" id="macOpenDataFolderBtn">打开数据文件夹</button>
                 </div>
               </div>
+              <div class="data-group-title">导出</div>
+              <div class="data-action">
+                <div><strong>导出范围</strong><div class="muted">选择全部月份或指定月份后，再导出表格 / 备份。</div></div>
+                <select class="inline-select" id="exportMonth">
+                  <option value="all">全部月份</option>
+                </select>
+              </div>
+              <div class="data-action">
+                <div><strong>导出表格</strong><div class="muted">下载 CSV 表格，适合用 Excel 查看。</div></div>
+                <button class="btn" id="dataExportCsvBtn">导出表格</button>
+              </div>
+              <div class="data-action">
+                <div><strong>导出备份</strong><div class="muted">下载 JSON 备份，可稍后导入恢复。</div></div>
+                <button class="btn" id="exportJsonBtn">导出备份</button>
+              </div>
+              <div class="data-action">
+                <div><strong>主数据文件</strong><div class="muted">导出 JSON 记录，不包含附件图片；完整备份请使用 Mac 本地备份。</div></div>
+                <button class="btn btn-primary" id="exportDataFileBtn">导出数据文件</button>
+              </div>
+              <div class="data-group-title">导入备份</div>
+              <div class="data-action">
+                <div><strong>导入备份</strong><div class="muted">选择之前导出的 JSON 文件。</div></div>
+                <button class="btn" id="importJsonBtn">导入备份</button>
+              </div>
+              <div class="data-action">
+                <div><strong>导入前预览</strong><div class="muted">先查看订单、客户和目标数量，确认后再恢复。</div></div>
+                <button class="btn" id="previewImportDataFileBtn">预览导入</button>
+              </div>
+              <div class="data-group-title">维护</div>
+              <div class="data-action">
+                <div><strong>数据健康检查</strong><div class="muted">检查重复订单号、缺少客户名和异常金额。</div></div>
+                <button class="btn" id="dataHealthCheckBtn">开始检查</button>
+              </div>
+              <div class="data-action">
+                <div><strong>已删除订单</strong><div class="muted">可以恢复或永久删除。</div></div>
+                <button class="btn" type="button" data-page-link="deleted">查看</button>
+              </div>
+              <div class="data-group-title danger">危险操作</div>
               <div class="data-action">
                 <div><strong>恢复示例</strong><div class="muted">清除当前本地数据，恢复多月份示例订单。</div></div>
                 <button class="btn btn-danger" id="resetBtn">恢复示例</button>
@@ -13653,29 +13716,16 @@ function renderDeletedOrders() {
     const product = productTypeDef(o.productType);
     const payment = paymentChannelDef(o.paymentChannel);
     return `
-      <article class="order-card ${s.cls}">
-        <div class="order-top">
-          <div class="order-title-line">
-            <span class="order-num">${escapeAttr(o.num)}</span>
-            <span class="tag ${product.tag}">${product.value}</span>
-            <span class="tag ${payment.tag}">${payment.value}</span>
-            <span class="tag tag-gray">已删除</span>
-            <span class="order-client">${escapeAttr(clientDisplayName(o.client))}</span>
-          </div>
-          <div class="amount-stack">
-            <div class="order-amount">${money(o.amount, o.currency)}</div>
-            <div class="paid-amount">已付 ${money(orderPaidValue(o), o.currency)}</div>
-          </div>
-        </div>
-        <div class="order-meta">
-          <span class="tag ${s.tag}">${s.name}</span>
-          <span>${escapeAttr(o.country || '未填写国家')}</span>
-          <span>删除：${escapeAttr(o.deletedAt || '-')}</span>
-        </div>
-        <div class="order-bottom">
+      <article class="deleted-row">
+        <span class="deleted-num">${escapeAttr(o.num)}</span>
+        <span class="deleted-client"><strong>${escapeAttr(clientDisplayName(o.client))}</strong><small>${escapeAttr(product.value)} · ${escapeAttr(payment.value)} · ${escapeAttr(orderListCountryShort(o.country) || '未填写国家')}</small></span>
+        <span><span class="tag ${s.tag}">${s.name}</span></span>
+        <span class="deleted-amount">${money(o.amount, o.currency)}<small>已付 ${money(orderPaidValue(o), o.currency)}</small></span>
+        <span class="deleted-time" title="${escapeAttr(o.deletedAt || '')}">${escapeAttr(orderListWhen(o.deletedAt) || '-')}</span>
+        <span class="deleted-actions">
           <button class="btn btn-small" type="button" data-restore-order="${escapeAttr(o.id)}">恢复</button>
-          <button class="btn btn-small btn-danger hold-btn" type="button" data-hold="2500" data-purge-order="${escapeAttr(o.id)}" title="按住 2.5 秒彻底删除，不可恢复"><span class="hold-fill" aria-hidden="true"></span><span class="hold-label">按住彻底删除</span></button>
-        </div>
+          <button class="btn btn-small btn-danger hold-btn" type="button" data-hold="2500" data-purge-order="${escapeAttr(o.id)}" title="按住 2.5 秒彻底删除，不可恢复"><span class="hold-fill" aria-hidden="true"></span><span class="hold-label">按住永久删除</span></button>
+        </span>
       </article>
     `;
   }).join('');
@@ -18412,6 +18462,8 @@ function uiAfterPageChange(changed) {
   const page = document.querySelector('.page.active');
   const inInsights = ['page-amount', 'page-targets', 'page-analysis'].includes(page?.id);
   document.querySelector('.nav-item[data-nav-group="insights"]')?.classList.toggle('active', inInsights);
+  // 已删除订单不单独占导航，从订单列表右上角进入，导航仍亮在「订单列表」。
+  if (page?.id === 'page-deleted') document.querySelector('.nav-item[data-page="order-list"]')?.classList.add('active');
   uiNavGlide(!changed);
   if (!changed) return;
   const title = document.querySelector('.page-title');

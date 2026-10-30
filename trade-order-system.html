@@ -3703,6 +3703,47 @@ html[data-theme] .topbar-left-drag-region .search { flex:1 1 auto; width:auto; m
   html[data-theme] .nav-group { display:contents; }
   html[data-theme] .nav-label, html[data-theme] .nav-count, html[data-theme] .nav-glide, html[data-theme] .logo-title small { display:none; }
 }
+/* ===== 新版 UI：公共组件 ===== */
+/* Toast 堆叠：从底部弹入，旧的往后叠（每层上移 10px、缩小 5%），最多露 3 层；悬停展开 */
+html[data-theme] .toast { position:fixed; right:24px; bottom:24px; left:auto; z-index:90; width:min(380px, calc(100vw - 32px)); height:0; padding:0; border:0; background:none; box-shadow:none; display:block; color:inherit; text-align:left; }
+html[data-theme] .toast.show { animation:none; }
+html[data-theme] .toast-item { position:absolute; right:0; bottom:0; width:100%; display:flex; align-items:center; gap:12px; padding:12px 12px 12px 18px; min-height:48px;
+  background:var(--gray-900); color:var(--gray-50); border-radius:var(--radius-panel); box-shadow:var(--floating-shadow); font-size:14px; font-weight:500;
+  transform:translateY(calc(var(--i, 0) * -10px)) scale(calc(1 - var(--i, 0) * .05)); transform-origin:bottom center; opacity:calc(1 - var(--i, 0) * .18);
+  transition:transform var(--motion-spring) var(--ease-spring), opacity var(--motion-med) var(--ease); animation:uiToastIn var(--motion-spring) var(--ease-spring); }
+html[data-theme] .toast:hover .toast-item { transform:translateY(calc(var(--i, 0) * -58px)); opacity:1; }
+html[data-theme] .toast-item.is-hidden { opacity:0; pointer-events:none; }
+html[data-theme] .toast-item.leaving { opacity:0; transform:translateY(12px) scale(.96); transition:transform .18s var(--ease-exit), opacity .18s var(--ease-exit); }
+html[data-theme] .toast-text { flex:1; min-width:0; }
+html[data-theme] .toast-undo { flex:none; height:30px; padding:0 14px; border:0; border-radius:999px; background:color-mix(in srgb, var(--gray-50) 16%, transparent); color:var(--gray-50); font-weight:500; }
+html[data-theme] .toast-undo:hover { background:color-mix(in srgb, var(--gray-50) 26%, transparent); }
+@keyframes uiToastIn { from { opacity:0; transform:translateY(24px) scale(.96); } }
+@media (max-width: 820px) { html[data-theme] .toast { right:12px; left:12px; width:auto; bottom:calc(92px + env(safe-area-inset-bottom)); } }
+
+/* 状态变形按钮 */
+html[data-theme] .btn[data-morph] { overflow:hidden; transition:width var(--motion-spring) var(--ease-spring), background var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease); }
+html[data-theme] .btn[data-morph] .morph-label { animation:uiTitleIn .32s var(--ease-out) both; }
+html[data-theme] .btn[data-morph="ok"] { background:var(--green-50); color:var(--s-green); border-color:transparent; }
+html[data-theme] .btn-primary[data-morph="ok"] { background:var(--s-green); color:var(--surface-bg); }
+html[data-theme] .btn[data-morph="fail"] { background:var(--red-50); color:var(--s-red); border-color:transparent; }
+html[data-theme] .btn[data-morph="ok"] .ui-icon path { stroke-dasharray:30; stroke-dashoffset:30; animation:uiDraw .4s .05s var(--ease-out) forwards; }
+html[data-theme] .btn:disabled[data-morph] { opacity:1; }
+.morph-spin { width:14px; height:14px; border:1.75px solid currentColor; border-right-color:transparent; border-radius:50%; animation:uiSpin .7s linear infinite; flex:none; }
+@keyframes uiSpin { to { transform:rotate(360deg); } }
+@keyframes uiDraw { to { stroke-dashoffset:0; } }
+
+/* 按住确认（HoldButton）：红色从左往右填满；中途松手抖一下 */
+html[data-theme] .hold-btn { position:relative; isolation:isolate; overflow:hidden; user-select:none; -webkit-user-select:none; touch-action:none; }
+html[data-theme] .hold-fill { position:absolute; inset:0; z-index:-1; background:color-mix(in oklab, var(--s-red) 26%, transparent); transform:scaleX(0); transform-origin:left; transition:transform .25s var(--ease-exit); }
+html[data-theme] .hold-btn.holding .hold-fill { transform:scaleX(1); transition:transform var(--hold-ms, 1500ms) linear; }
+html[data-theme] .hold-btn.holding { transform:scale(.98); }
+html[data-theme] .hold-btn.held { background:var(--s-red); color:var(--surface-bg); }
+html[data-theme] .hold-btn.shake { animation:uiShake .4s var(--ease); }
+@keyframes uiShake { 10%, 90% { transform:translateX(-1px); } 20%, 80% { transform:translateX(3px); } 30%, 50%, 70% { transform:translateX(-5px); } 40%, 60% { transform:translateX(5px); } }
+
+/* 数值变化：轻轻上滚一下（不改文字，读数始终是最终值） */
+html[data-theme] .num-tick { animation:uiTick .58s var(--ease-spring); }
+@keyframes uiTick { from { opacity:.2; transform:translateY(.35em); filter:blur(2px); } }
 </style>
 </head>
 <body>
@@ -4704,7 +4745,7 @@ html[data-theme] .topbar-left-drag-region .search { flex:1 1 auto; width:auto; m
 
       <div class="order-actions">
         <div class="order-action-group">
-          <button class="btn btn-danger" type="button" id="deleteOrderBtn">删除订单</button>
+          <button class="btn btn-danger hold-btn" type="button" id="deleteOrderBtn" data-hold="1500" title="按住 1.5 秒删除，可在已删除订单里恢复"><span class="hold-fill" aria-hidden="true"></span><span class="hold-label">按住删除订单</span></button>
           <button class="btn" type="button" id="duplicateBtn">复制订单</button>
         </div>
         <div class="order-action-group">
@@ -6367,23 +6408,22 @@ function setButtonFeedback(btn, text, { restoreAfter = 1200 } = {}) {
 }
 async function withButtonBusy(btn, busyText, doneText, action) {
   if (!btn) return action();
-  const original = btn.textContent;
   btn.disabled = true;
-  btn.textContent = busyText;
+  uiMorph(btn, 'busy', busyText);
   try {
     const result = await action();
-    btn.textContent = doneText;
+    uiMorph(btn, 'ok', doneText);
     setTimeout(() => {
       btn.disabled = false;
-      btn.textContent = original;
-    }, 900);
+      uiMorph(btn, 'idle');
+    }, 1800);
     return result;
   } catch (error) {
-    btn.textContent = '失败';
+    uiMorph(btn, 'fail', '失败');
     setTimeout(() => {
       btn.disabled = false;
-      btn.textContent = original;
-    }, 1200);
+      uiMorph(btn, 'idle');
+    }, 1800);
     throw error;
   }
 }
@@ -7378,12 +7418,8 @@ function depositPresetOptions(amountValue, currencyValue = 'USD') {
     return { percent, amount:selection.depositAmount, label };
   });
 }
-function toast(text) {
-  const el = document.getElementById('toast');
-  el.textContent = text;
-  el.classList.add('show');
-  clearTimeout(window.toastTimer);
-  window.toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
+function toast(text, options) {
+  uiToast(text, options);
 }
 async function copyText(text, message = '已复制') {
   const value = String(text || '').trim();
@@ -10229,6 +10265,7 @@ function renderPageContent(page) {
   pages[page]?.();
 }
 function render() {
+  const numbersBefore = uiSnapshotNumbers();
   completeDueUpsOrders();
   renderPageContent(document.querySelector('.page.active')?.id.replace('page-', '') || 'dashboard');
   fillStageSelects();
@@ -10236,6 +10273,7 @@ function render() {
   enhanceBinarySelects();
   renderClientOptions();
   uiNavCounts();
+  uiTickChanged(numbersBefore);
   saveState();
 }
 function resetScrollNode(el, behavior = 'auto') {
@@ -12452,7 +12490,7 @@ function renderDeletedOrders() {
         </div>
         <div class="order-bottom">
           <button class="btn btn-small" type="button" data-restore-order="${escapeAttr(o.id)}">恢复</button>
-          <button class="btn btn-small btn-danger" type="button" data-purge-order="${escapeAttr(o.id)}">彻底删除</button>
+          <button class="btn btn-small btn-danger hold-btn" type="button" data-hold="2500" data-purge-order="${escapeAttr(o.id)}" title="按住 2.5 秒彻底删除，不可恢复"><span class="hold-fill" aria-hidden="true"></span><span class="hold-label">按住彻底删除</span></button>
         </div>
       </article>
     `;
@@ -14723,23 +14761,9 @@ function duplicateOrder() {
   render();
   toast('已复制为新订单');
 }
-async function softDeleteOrder(id, { confirmFirst = false, closeModal = false } = {}) {
+async function softDeleteOrder(id, { closeModal = false } = {}) {
   if (!id) return false;
   const pendingForm = document.getElementById('orderForm');
-  if (id === editingId && (pendingForm?.dataset.uploading || pendingForm?.dataset.deletingAttachment)) {
-    toast('附件正在处理，完成后才能删除订单');
-    return false;
-  }
-  if (confirmFirst) {
-    const result = await appConfirm({
-      title:'删除订单',
-      sub:'可恢复删除',
-      message:'确定删除这个订单吗？删除后会进入“已删除订单”，可恢复。',
-      confirmText:'删除订单',
-      danger:true
-    });
-    if (!result.confirmed) return false;
-  }
   if (id === editingId && (pendingForm?.dataset.uploading || pendingForm?.dataset.deletingAttachment)) {
     toast('附件正在处理，完成后才能删除订单');
     return false;
@@ -14751,7 +14775,7 @@ async function softDeleteOrder(id, { confirmFirst = false, closeModal = false } 
   delete state.doneTasks[id];
   if (closeModal) closeOrder();
   render();
-  toast('订单已移入已删除订单');
+  toast('订单已移入已删除订单', { undo:() => restoreOrder(id) });
   return true;
 }
 function moveOrderToTrash(id) {
@@ -14782,6 +14806,7 @@ function moveOrderToStage(id, stage) {
   if (fromTrash) order = (state.trashOrders || []).find(o => o.id === id);
   if (!order) return;
   const oldStage = stageDef(order.stage).name;
+  const previousStage = order.stage;
   if (fromTrash) {
     state.trashOrders = (state.trashOrders || []).filter(o => o.id !== id);
     delete order.trashedAt;
@@ -14800,11 +14825,11 @@ function moveOrderToStage(id, stage) {
   order.updated = nowText();
   order.logs = [{ time:nowText(), text: fromTrash ? `订单从垃圾箱恢复到 ${stageDef(normalized).name}` : `订单阶段从 ${oldStage} 调整为 ${stageDef(normalized).name}` }, ...(order.logs || [])];
   render();
-  toast(`已移动到${stageDef(normalized).name}`);
+  toast(`已移动到${stageDef(normalized).name}`, fromTrash ? undefined : { undo:() => moveOrderToStage(id, previousStage) });
 }
 function deleteOrder() {
   if (!editingId) return;
-  softDeleteOrder(editingId, { confirmFirst: true, closeModal: true });
+  softDeleteOrder(editingId, { closeModal: true });
 }
 function restoreOrder(id) {
   const order = (state.deletedOrders || []).find(o => o.id === id);
@@ -14816,15 +14841,7 @@ function restoreOrder(id) {
   render();
   toast('订单已恢复');
 }
-async function purgeOrder(id) {
-  const result = await appConfirm({
-    title:'彻底删除订单',
-    sub:'不可恢复',
-    message:'确定彻底删除这个订单吗？此操作不可恢复。',
-    confirmText:'彻底删除',
-    danger:true
-  });
-  if (!result.confirmed) return;
+function purgeOrder(id) {
   state.deletedOrders = (state.deletedOrders || []).filter(o => o.id !== id);
   render();
   toast('订单已彻底删除');
@@ -15439,7 +15456,14 @@ document.getElementById('trackingDetailCloseBtn')?.addEventListener('click', clo
 document.getElementById('trackingDetailDrawer')?.addEventListener('click', e => {
   if (e.target.id === 'trackingDetailDrawer') closeTrackingDetail();
 });
-document.getElementById('orderForm').addEventListener('submit', e => { e.preventDefault(); upsertOrder(e.currentTarget); });
+document.getElementById('orderForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const form = e.currentTarget;
+  const saveBtn = e.submitter || document.querySelector('button[type="submit"][form="orderForm"]');
+  if (form.dataset.saving || form.dataset.uploading || form.dataset.deletingAttachment) { upsertOrder(form); return; }
+  uiMorph(saveBtn, 'busy', '保存中…');
+  upsertOrder(form).finally(() => uiMorph(saveBtn, 'idle'));
+});
 document.getElementById('draftOrderBtn').addEventListener('click', () => upsertOrder(document.getElementById('orderForm'), { draft:true }));
 document.getElementById('orderForm').addEventListener('change', e => {
   if (['stage','productType','paymentChannel','orderType','urgentOrder'].includes(e.target.name)) updateOrderModalSummary();
@@ -16233,10 +16257,12 @@ document.getElementById('deletedOrderList').addEventListener('click', e => {
     restoreOrder(restoreBtn.dataset.restoreOrder);
     return;
   }
+});
+document.getElementById('deletedOrderList').addEventListener('hold-confirm', e => {
   const purgeBtn = e.target.closest('[data-purge-order]');
   if (purgeBtn) purgeOrder(purgeBtn.dataset.purgeOrder);
 });
-document.getElementById('deleteOrderBtn').addEventListener('click', deleteOrder);
+document.getElementById('deleteOrderBtn').addEventListener('hold-confirm', deleteOrder);
 document.getElementById('duplicateBtn').addEventListener('click', duplicateOrder);
 document.getElementById('topNewCustomerBtn').addEventListener('click', () => openCustomerModal());
 document.getElementById('dataExportCsvBtn').addEventListener('click', e => {
@@ -16401,6 +16427,131 @@ document.addEventListener('keydown', e => {
 window.addEventListener('resize', () => uiNavGlide(true));
 uiNavCounts();
 uiNavGlide(true);
+// 新版 UI：公共组件（Toast 堆叠、状态变形按钮、按住确认）。
+function uiIcon(name) { return `<svg class="ui-icon" aria-hidden="true"><use href="#i-${name}"/></svg>`; }
+function uiToast(text, { undo = null, undoText = '撤销', tone = '' } = {}) {
+  const stack = document.getElementById('toast');
+  if (!stack) return;
+  const item = document.createElement('div');
+  item.className = `toast-item${tone ? ` is-${tone}` : ''}`;
+  item.setAttribute('role', 'status');
+  const label = document.createElement('span');
+  label.className = 'toast-text';
+  label.textContent = text;
+  item.appendChild(label);
+  let timer = 0;
+  const dismiss = () => {
+    clearTimeout(timer);
+    if (item.classList.contains('leaving')) return;
+    item.classList.add('leaving');
+    setTimeout(() => { item.remove(); uiLayoutToasts(); }, uiReduceMotion() ? 0 : 200);
+  };
+  if (typeof undo === 'function') {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'toast-undo';
+    btn.textContent = undoText;
+    btn.addEventListener('click', () => { dismiss(); undo(); });
+    item.appendChild(btn);
+  }
+  const arm = () => { clearTimeout(timer); timer = setTimeout(dismiss, undo ? 6000 : 4000); };
+  stack.addEventListener('mouseenter', () => clearTimeout(timer));
+  stack.addEventListener('mouseleave', arm);
+  stack.appendChild(item);
+  [...stack.querySelectorAll('.toast-item:not(.leaving)')].slice(0, -5).forEach(old => old.remove());
+  stack.classList.add('show');
+  uiLayoutToasts();
+  arm();
+}
+function uiLayoutToasts() {
+  const stack = document.getElementById('toast');
+  if (!stack) return;
+  const items = [...stack.querySelectorAll('.toast-item:not(.leaving)')].reverse();
+  items.forEach((el, i) => { el.style.setProperty('--i', String(i)); el.classList.toggle('is-hidden', i > 2); });
+  stack.classList.toggle('show', items.length > 0);
+}
+// 状态变形按钮：转圈 + 进行中 → 对勾 / 叉 + 结果；宽度跟着文字弹簧变化。
+function uiMorph(btn, mode, text) {
+  if (!btn) return;
+  if (!btn.dataset.morphOriginal) btn.dataset.morphOriginal = btn.innerHTML;
+  const from = btn.getBoundingClientRect().width;
+  const icon = mode === 'busy' ? '<span class="morph-spin" aria-hidden="true"></span>' : mode === 'ok' ? uiIcon('check') : mode === 'fail' ? uiIcon('x') : '';
+  btn.dataset.morph = mode;
+  if (mode === 'idle') {
+    btn.innerHTML = btn.dataset.morphOriginal;
+    delete btn.dataset.morphOriginal;
+    delete btn.dataset.morph;
+  } else {
+    btn.innerHTML = `${icon}<span class="morph-label">${escapeAttr(text)}</span>`;
+  }
+  if (uiReduceMotion() || !from) return;
+  btn.style.width = 'auto';
+  const to = btn.getBoundingClientRect().width;
+  btn.style.width = `${from}px`;
+  void btn.offsetWidth;
+  btn.style.width = `${to}px`;
+  clearTimeout(btn.morphTimer);
+  btn.morphTimer = setTimeout(() => { btn.style.width = ''; }, 600);
+}
+// 按住确认（Evil Buttons · HoldButton）：data-hold="毫秒"，按满才派发 hold-confirm；中途松手抖一下。
+function uiStartHold(btn) {
+  if (btn.disabled || btn.dataset.holding) return;
+  const ms = Number(btn.dataset.hold) || 1500;
+  btn.dataset.holding = '1';
+  btn.classList.add('holding');
+  btn.style.setProperty('--hold-ms', `${ms}ms`);
+  btn.holdTimer = setTimeout(() => {
+    delete btn.dataset.holding;
+    btn.classList.remove('holding');
+    btn.classList.add('held');
+    setTimeout(() => btn.classList.remove('held'), 1400);
+    btn.dispatchEvent(new CustomEvent('hold-confirm', { bubbles:true }));
+  }, uiReduceMotion() ? Math.min(ms, 600) : ms);
+}
+function uiCancelHold(btn) {
+  if (!btn?.dataset.holding) return;
+  clearTimeout(btn.holdTimer);
+  delete btn.dataset.holding;
+  btn.classList.remove('holding');
+  btn.classList.remove('shake');
+  void btn.offsetWidth;
+  btn.classList.add('shake');
+}
+document.addEventListener('pointerdown', e => {
+  const btn = e.target.closest?.('[data-hold]');
+  if (!btn || e.button !== 0) return;
+  btn.setPointerCapture?.(e.pointerId);
+  uiStartHold(btn);
+});
+['pointerup', 'pointercancel', 'pointerleave'].forEach(type => document.addEventListener(type, e => {
+  const btn = e.target.closest?.('[data-hold]');
+  if (btn) uiCancelHold(btn);
+}, true));
+document.addEventListener('keydown', e => {
+  const btn = e.target.closest?.('[data-hold]');
+  if (!btn || (e.key !== ' ' && e.key !== 'Enter')) return;
+  e.preventDefault();
+  if (!e.repeat) uiStartHold(btn);
+});
+document.addEventListener('keyup', e => {
+  const btn = e.target.closest?.('[data-hold]');
+  if (btn && (e.key === ' ' || e.key === 'Enter')) uiCancelHold(btn);
+});
+// 数值变化时轻轻上滚（KPI、看板列金额、导航计数）；只在值真的变了时动。
+function uiTickTargets() { return document.querySelectorAll('.stat-value, .board-column-meta, .nav-count, .board-count'); }
+function uiSnapshotNumbers() {
+  return new Map([...uiTickTargets()].map(el => [el.id || el, el.textContent]));
+}
+function uiTickChanged(before) {
+  if (uiReduceMotion()) return;
+  uiTickTargets().forEach(el => {
+    const old = before.get(el.id || el);
+    if (old === undefined || old === el.textContent) return;
+    el.classList.remove('num-tick');
+    void el.offsetWidth;
+    el.classList.add('num-tick');
+  });
+}
 // ===== 新版 UI 交互 结束 =====
 </script>
 </body>

@@ -3664,6 +3664,283 @@ html[data-theme="dark"] .app-select-option-check { color: var(--cyan-600); }
 @media (max-width: 760px) {
   .app-select-popover { max-height: min(280px, calc(100vh - 20px)); }
 }
+/* Subscriptions page: personal subscriptions kept apart from order data. */
+.subs-hero {
+  position: relative; overflow: hidden; border-radius: 26px; padding: 22px 24px 18px; color: #fff8ef;
+  background:
+    radial-gradient(circle at 88% 8%, rgba(15,143,129,.46), transparent 38%),
+    radial-gradient(circle at 6% 118%, rgba(217,119,48,.32), transparent 42%),
+    linear-gradient(135deg, #2f2923, #463d34 62%, #3a322a);
+  box-shadow: 0 22px 60px rgba(47,41,35,.24), inset 0 1px 0 rgba(255,255,255,.08);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px 24px; align-items: end;
+  animation: subsRise .5s var(--ease-out) backwards;
+}
+html[data-theme="dark"] .subs-hero {
+  background:
+    radial-gradient(circle at 88% 8%, rgba(47,143,117,.32), transparent 40%),
+    radial-gradient(circle at 6% 118%, rgba(210,165,110,.18), transparent 44%),
+    linear-gradient(135deg, #231f1a, #2c2620);
+  border: 1px solid var(--surface-border);
+  box-shadow: 0 22px 60px rgba(0,0,0,.40), inset 0 1px 0 rgba(255,255,255,.05);
+}
+.subs-hero-label { font-size: 12px; font-weight: 850; color: rgba(255,248,239,.68); letter-spacing: .04em; }
+.subs-hero-value {
+  margin-top: 6px; font-size: clamp(34px, 4.4vw, 52px); line-height: 1; font-weight: 950;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.subs-hero-value small { font-size: .46em; font-weight: 850; margin-right: 4px; opacity: .78; }
+.subs-hero-sub { margin-top: 8px; color: rgba(255,248,239,.72); font-size: 13px; font-variant-numeric: tabular-nums; }
+.subs-hero-chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.subs-chip {
+  min-height: 30px; padding: 0 12px; border-radius: 999px; display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 850; white-space: nowrap; color: rgba(255,248,239,.84);
+  background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.12);
+}
+.subs-chip b { font-size: 14px; color: #fff; font-variant-numeric: tabular-nums; }
+.subs-upcoming { grid-column: 1 / -1; display: grid; gap: 8px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.10); }
+.subs-upcoming-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 12px; font-weight: 750; color: rgba(255,248,239,.72); }
+.subs-upcoming-head b { font-size: 15px; color: #fff; font-variant-numeric: tabular-nums; }
+.subs-strip {
+  position: relative; height: 28px; border-radius: 999px;
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08);
+}
+.subs-strip::before { content: ''; position: absolute; left: 12px; right: 12px; top: 50%; height: 1px; background: rgba(255,255,255,.16); }
+.subs-strip-empty { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; color: rgba(255,248,239,.5); }
+.subs-strip-dot {
+  position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 999px;
+  background: var(--sub-color); border: 2px solid rgba(255,248,239,.92);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sub-color) 34%, transparent);
+}
+.subs-strip-dot.is-today { animation: subsBreath 1.8s ease-in-out infinite; }
+.subs-strip-dot.subs-pop { animation: subsPop .46s var(--ease-out) backwards; animation-delay: calc(var(--i, 0) * 55ms + 160ms); }
+.subs-strip-dot.subs-pop.is-today { animation: subsPop .46s var(--ease-out) backwards, subsBreath 1.8s ease-in-out .7s infinite; }
+.subs-strip-dot b {
+  position: absolute; left: 50%; bottom: 13px; transform: translateX(-50%);
+  font-size: 10px; font-weight: 950; color: #fff; font-style: normal;
+}
+.subs-strip-scale { display: flex; justify-content: space-between; font-size: 11px; color: rgba(255,248,239,.5); font-variant-numeric: tabular-nums; }
+.subs-panel { display: grid; gap: 14px; }
+.subs-panel .section-head { margin-bottom: 0; flex-wrap: wrap; }
+.subs-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.subs-search {
+  height: 36px; width: 230px; max-width: 100%; display: flex; align-items: center; gap: 8px; padding: 0 12px;
+  border: 1px solid var(--gray-200); border-radius: 999px; background: var(--gray-50); color: var(--gray-500);
+  transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease, width var(--motion-slow) var(--ease-out);
+}
+.subs-search:focus-within {
+  width: 300px; border-color: var(--semantic-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--semantic-primary) 16%, transparent);
+}
+.subs-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--gray-800); }
+.subs-rate-btn { font-variant-numeric: tabular-nums; }
+.subs-rate-btn b { font-weight: 900; color: var(--gray-900); }
+.subs-filter { position: relative; width: auto; justify-self: start; min-width: min(420px, 100%); }
+.subs-filter-thumb {
+  position: absolute; top: 3px; bottom: 3px; left: 0; width: 0; border-radius: 999px;
+  background: #0f8f81; box-shadow: 0 2px 10px rgba(15,143,129,.24);
+  transition: transform var(--motion-slow) var(--ease-out), width var(--motion-slow) var(--ease-out);
+}
+.subs-filter.no-anim .subs-filter-thumb { transition: none; }
+html[data-theme="dark"] .subs-filter-thumb { background: #2f8f75; box-shadow: 0 6px 18px rgba(47,143,117,.24); }
+.subs-filter .segment-option { position: relative; z-index: 1; gap: 5px; padding: 0 12px; }
+.subs-filter .segment-option small { font-size: 11px; opacity: .7; font-variant-numeric: tabular-nums; }
+.subs-filter .segment-option.active,
+.subs-filter .segment-option.active:hover,
+html[data-theme="dark"] .subs-filter .segment-option.active { background: transparent; box-shadow: none; color: #fff; }
+.subs-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.subs-item {
+  --sub-color: #0f8f81;
+  display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; grid-template-areas: "logo main price" "logo when price";
+  gap: 3px 12px; align-items: center; width: 100%; min-height: 76px; padding: 12px 14px 12px 12px;
+  text-align: left; color: inherit; font: inherit;
+  border: 1px solid var(--surface-border); border-radius: 18px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--sub-color) 8%, var(--surface-bg)), var(--surface-bg) 58%);
+  box-shadow: 0 6px 18px rgba(76,61,43,.05);
+  transition: transform var(--motion-med) var(--ease-out), box-shadow var(--motion-med) var(--ease-out), border-color var(--motion-fast) ease, opacity var(--motion-med) ease;
+}
+.subs-item:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--sub-color) 38%, var(--surface-border)); box-shadow: 0 14px 30px rgba(76,61,43,.10); }
+.subs-item:active { transform: translateY(0) scale(.99); }
+.subs-item:focus-visible { outline: 2px solid var(--sub-color); outline-offset: 2px; }
+.subs-item.subs-enter { animation: subsRise .42s var(--ease-out) backwards; animation-delay: calc(var(--i, 0) * 35ms); }
+.subs-item.subs-flash { animation: subsFlash 1.2s var(--ease-out); }
+.subs-item.is-ended { opacity: .6; }
+.subs-item.is-ended .subs-logo { filter: grayscale(.75); }
+.subs-logo {
+  grid-area: logo; width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center;
+  background: var(--sub-color); color: #fff; font-size: 18px; font-weight: 950; line-height: 1;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--sub-color) 30%, transparent), inset 0 1px 0 rgba(255,255,255,.22);
+  transition: transform var(--motion-med) var(--ease-out), background var(--motion-slow) ease, box-shadow var(--motion-slow) ease;
+}
+.subs-item:hover .subs-logo { transform: rotate(-6deg) scale(1.06); }
+.subs-logo.bump { animation: subsBump .34s var(--ease-out); }
+.subs-main { grid-area: main; min-width: 0; display: flex; align-items: baseline; gap: 8px; }
+.subs-name { flex: 0 1 auto; min-width: 0; font-size: 14px; font-weight: 900; color: var(--gray-900); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.subs-note { flex: 1 1 0; min-width: 0; color: var(--gray-500); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.subs-when { grid-area: when; min-width: 0; display: flex; align-items: center; gap: 8px; color: var(--gray-500); font-size: 12px; white-space: nowrap; }
+.subs-price { grid-area: price; display: grid; gap: 2px; justify-items: end; text-align: right; }
+.subs-price strong { font-size: 16px; font-weight: 950; color: var(--gray-900); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.subs-price small { font-size: 11.5px; color: var(--gray-500); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.subs-pill {
+  display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px; white-space: nowrap;
+  font-size: 11px; font-weight: 900; background: var(--green-50); color: var(--green-600);
+}
+.subs-pill.soon { background: var(--orange-50); color: var(--orange-600); }
+.subs-pill.today { background: #bf4a3c; color: #fff; animation: subsBreath 1.8s ease-in-out infinite; }
+.subs-pill.ending { background: var(--purple-50); color: var(--purple-500); }
+.subs-pill.expired { background: var(--gray-100); color: var(--gray-500); }
+.subs-empty {
+  grid-column: 1 / -1; display: grid; justify-items: center; gap: 8px; padding: 40px 20px; text-align: center;
+  border: 1px dashed var(--gray-300); border-radius: 20px; background: var(--surface-soft); color: var(--gray-500);
+  animation: subsRise .42s var(--ease-out) backwards;
+}
+.subs-empty strong { color: var(--gray-800); font-size: 15px; }
+.subs-empty .btn { margin-top: 6px; }
+.subs-empty-mark {
+  width: 56px; height: 56px; border-radius: 18px; display: grid; place-items: center; font-size: 26px; color: var(--semantic-primary);
+  background: var(--surface-bg); border: 1px solid var(--surface-border); box-shadow: var(--shadow);
+  animation: subsFloat 3.2s ease-in-out infinite;
+}
+.subs-skeleton {
+  height: 76px; border-radius: 18px; background: linear-gradient(90deg, var(--gray-100), var(--surface-soft), var(--gray-100));
+  background-size: 200% 100%; animation: subsShimmer 1.2s ease-in-out infinite;
+}
+.subs-drawer .modal-body { gap: 14px; }
+.subs-detail-head {
+  --sub-color: #0f8f81;
+  display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 20px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--sub-color) 16%, var(--surface-bg)), var(--surface-bg) 72%);
+  border: 1px solid color-mix(in srgb, var(--sub-color) 24%, var(--surface-border));
+}
+.subs-detail-head .subs-logo { flex: 0 0 auto; width: 56px; height: 56px; border-radius: 18px; font-size: 24px; animation: subsPop .5s var(--ease-out) backwards; }
+.subs-detail-head .subs-pill { margin-left: auto; animation: subsPop .4s var(--ease-out) .12s backwards; }
+.subs-detail-name { font-size: 20px; font-weight: 950; color: var(--gray-900); line-height: 1.2; overflow-wrap: anywhere; }
+.subs-detail-note { margin-top: 3px; color: var(--gray-500); font-size: 13px; overflow-wrap: anywhere; }
+.subs-detail-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.subs-card {
+  display: grid; gap: 4px; align-content: start; padding: 12px; border-radius: 16px;
+  border: 1px solid var(--surface-border); background: var(--surface-raised);
+  animation: subsRise .42s var(--ease-out) backwards; animation-delay: calc(var(--i, 0) * 60ms + 80ms);
+}
+.subs-card span { font-size: 11.5px; font-weight: 800; color: var(--gray-500); }
+.subs-card strong { font-size: 16px; font-weight: 950; color: var(--gray-900); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.subs-card small { font-size: 11.5px; color: var(--gray-500); }
+.subs-kv { display: grid; border: 1px solid var(--surface-border); border-radius: 16px; overflow: hidden; animation: subsRise .42s var(--ease-out) .26s backwards; }
+.subs-kv div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; font-size: 13px; }
+.subs-kv div + div { border-top: 1px solid var(--surface-border); }
+.subs-kv dt { color: var(--gray-500); white-space: nowrap; }
+.subs-kv dd { color: var(--gray-800); font-weight: 750; text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.subs-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; animation: subsRise .42s var(--ease-out) .32s backwards; }
+.subs-actions .btn { min-height: 40px; }
+.subs-hold {
+  position: relative; overflow: hidden; grid-column: 1 / -1; color: var(--red-600);
+  border-color: color-mix(in srgb, var(--red-600) 28%, var(--gray-200));
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none;
+}
+.subs-hold:hover { color: var(--red-600); border-color: var(--red-600); background: var(--red-50); }
+.subs-hold-fill {
+  position: absolute; inset: 0; pointer-events: none; transform: scaleX(0); transform-origin: left;
+  background: color-mix(in srgb, var(--red-600) 22%, transparent); transition: transform 220ms ease;
+}
+.subs-hold.holding .subs-hold-fill { transform: scaleX(1); transition: transform 1500ms linear; }
+.subs-hold-label { position: relative; }
+.subs-hold-hint { grid-column: 1 / -1; min-height: 18px; text-align: center; font-size: 12px; color: var(--gray-500); }
+.subs-hold-hint.warn { color: var(--red-600); animation: subsShake .36s ease; }
+.subs-edit-modal { width: min(620px, 100%); }
+.subs-form { gap: 14px; }
+.subs-preview {
+  --sub-color: #0f8f81;
+  display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 18px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--sub-color) 15%, var(--surface-bg)), var(--surface-bg) 72%);
+  border: 1px solid color-mix(in srgb, var(--sub-color) 26%, var(--surface-border));
+  transition: background var(--motion-slow) ease, border-color var(--motion-slow) ease;
+}
+.subs-preview-main { flex: 1; min-width: 0; }
+.subs-preview-name { font-size: 16px; font-weight: 950; color: var(--gray-900); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.subs-preview-meta { margin-top: 2px; font-size: 12px; color: var(--gray-500); }
+.subs-preview .subs-price strong { font-size: 18px; }
+.subs-amount { display: grid; grid-template-columns: minmax(0, 1fr) 132px; gap: 8px; }
+.subs-hint { min-height: 18px; color: var(--gray-500); font-size: 12px; font-variant-numeric: tabular-nums; }
+.subs-form .segment-option { font-size: 13px; }
+.subs-swatches { display: flex; flex-wrap: wrap; gap: 10px; padding: 4px 2px; }
+.subs-swatch {
+  width: 30px; height: 30px; border-radius: 999px; padding: 0; display: grid; place-items: center;
+  border: 2px solid var(--surface-bg); background: var(--swatch); color: #fff; font-size: 13px; font-weight: 950;
+  box-shadow: 0 0 0 1px var(--surface-border);
+  transition: transform var(--motion-fast) var(--ease-out), box-shadow var(--motion-fast) ease;
+}
+.subs-swatch:hover { transform: scale(1.12); }
+.subs-swatch.active { transform: scale(1.1); box-shadow: 0 0 0 2px var(--swatch), 0 6px 14px color-mix(in srgb, var(--swatch) 36%, transparent); }
+.subs-swatch.active::after { content: '✓'; }
+.subs-form .confirm-error.shake { animation: subsShake .36s ease; }
+.toast.show.has-action { display: flex; align-items: center; gap: 14px; padding-right: 8px; overflow: hidden; }
+.toast.has-action::after {
+  content: ''; position: absolute; left: 12px; right: 12px; bottom: 4px; height: 2px; border-radius: 2px;
+  background: currentColor; opacity: .28; transform-origin: left; animation: subsCountdown 6s linear forwards;
+}
+.toast-action {
+  border: 0; border-radius: 10px; padding: 4px 10px; background: rgba(255,255,255,.12);
+  color: #7fe0cf; font-weight: 900; white-space: nowrap;
+}
+.toast-action:hover { background: rgba(255,255,255,.2); }
+@keyframes subsRise {
+  from { opacity: 0; transform: translateY(10px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes subsPop {
+  0% { opacity: 0; transform: scale(.4); }
+  70% { opacity: 1; transform: scale(1.12); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes subsBump {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.16) rotate(-5deg); }
+  100% { transform: scale(1); }
+}
+@keyframes subsBreath {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(191,74,60,.42); }
+  50% { box-shadow: 0 0 0 6px rgba(191,74,60,0); }
+}
+@keyframes subsFlash {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--sub-color) 55%, transparent); }
+  100% { box-shadow: 0 0 0 14px color-mix(in srgb, var(--sub-color) 0%, transparent); }
+}
+@keyframes subsShimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+@keyframes subsFloat {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  50% { transform: translateY(-4px) rotate(-8deg); }
+}
+@keyframes subsShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+@keyframes subsCountdown {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+@media (max-width: 900px) {
+  .subs-list { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .subs-hero { grid-template-columns: 1fr; padding: 18px; border-radius: 22px; }
+  .subs-hero-chips { justify-content: flex-start; }
+  .subs-tools { width: 100%; }
+  .subs-search, .subs-search:focus-within { flex: 1 1 100%; width: 100%; }
+  .subs-tools .btn { flex: 1 1 0; }
+  .subs-filter { min-width: 0; width: 100%; }
+  .subs-filter .segment-option { padding: 0 6px; }
+  .subs-detail-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .subs-card:first-child { grid-column: 1 / -1; }
+}
+@media (max-width: 430px) {
+  .subs-item { grid-template-columns: 40px minmax(0, 1fr) auto; padding: 11px 12px 11px 10px; gap: 3px 10px; }
+  .subs-logo { width: 40px; height: 40px; border-radius: 13px; font-size: 16px; }
+  .subs-note { display: none; }
+  .subs-amount { grid-template-columns: minmax(0, 1fr) 116px; }
+}
 </style>
 </head>
 <body>
@@ -3681,6 +3958,7 @@ html[data-theme="dark"] .app-select-option-check { color: var(--cyan-600); }
     <button class="nav-item" data-page="analysis" data-mobile-label="分析"><span class="nav-icon">⌁</span><span class="nav-text">分析</span></button>
     <button class="nav-item" data-page="customers" data-mobile-label="客户"><span class="nav-icon">◇</span><span class="nav-text">客户管理</span></button>
     <button class="nav-item" data-page="deleted" data-mobile-label="删除"><span class="nav-icon">⌫</span><span class="nav-text">已删除订单</span></button>
+    <button class="nav-item" data-page="subscriptions" data-mobile-label="订阅"><span class="nav-icon">↻</span><span class="nav-text">订阅</span></button>
     <button class="nav-item" data-page="settings" data-mobile-label="设置"><span class="nav-icon">⚙</span><span class="nav-text">设置</span></button>
   </nav>
   <div class="sidebar-api-card">
@@ -4173,6 +4451,25 @@ html[data-theme="dark"] .app-select-option-check { color: var(--cyan-600); }
           </div>
         </div>
         <div class="order-list" id="deletedOrderList"></div>
+      </section>
+    </section>
+
+    <section class="page" id="page-subscriptions">
+      <section class="subs-hero" id="subsHero"></section>
+      <section class="panel subs-panel">
+        <div class="section-head">
+          <div>
+            <div class="section-title">我的订阅</div>
+            <div class="section-meta" id="subsMeta">按下次扣费排序</div>
+          </div>
+          <div class="subs-tools">
+            <label class="subs-search"><span aria-hidden="true">⌕</span><input id="subsSearch" type="search" placeholder="搜索名称或备注" autocomplete="off" aria-label="搜索订阅"></label>
+            <button class="btn btn-small subs-rate-btn" id="subsRateBtn" type="button" title="修改订阅页的美元汇率">USD <b>7.1</b></button>
+            <button class="btn btn-primary btn-small" id="subsAddBtn" type="button">＋ 新增订阅</button>
+          </div>
+        </div>
+        <div class="segment-control compact subs-filter no-anim" id="subsFilter" role="group" aria-label="按分类筛选"><span class="subs-filter-thumb" aria-hidden="true"></span></div>
+        <div class="subs-list" id="subsList"></div>
       </section>
     </section>
 
@@ -4957,6 +5254,61 @@ html[data-theme="dark"] .app-select-option-check { color: var(--cyan-600); }
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<div class="modal-backdrop drawer-backdrop" id="subscriptionDrawer" aria-hidden="true">
+  <aside class="modal drawer subs-drawer" role="dialog" aria-modal="true" aria-labelledby="subscriptionDrawerTitle">
+    <div class="modal-head">
+      <div>
+        <div class="order-num" id="subscriptionDrawerSub">订阅详情</div>
+        <div class="modal-title" id="subscriptionDrawerTitle">订阅</div>
+      </div>
+      <button class="btn btn-small" id="subscriptionDrawerCloseBtn" type="button">关闭</button>
+    </div>
+    <div class="modal-body detail-body" id="subscriptionDrawerBody"></div>
+  </aside>
+</div>
+
+<div class="modal-backdrop" id="subscriptionEditModal" aria-hidden="true">
+  <div class="modal subs-edit-modal" role="dialog" aria-modal="true" aria-labelledby="subscriptionEditTitle">
+    <div class="modal-head">
+      <div>
+        <div class="order-num" id="subscriptionEditSub">订阅</div>
+        <div class="modal-title" id="subscriptionEditTitle">新增订阅</div>
+      </div>
+      <div class="modal-head-actions">
+        <button class="btn btn-primary btn-small" id="subscriptionSaveBtn" type="submit" form="subscriptionEditForm">保存</button>
+        <button class="btn btn-small" id="subscriptionEditCloseBtn" type="button">关闭</button>
+      </div>
+    </div>
+    <form class="modal-body subs-form" id="subscriptionEditForm" novalidate>
+      <div class="subs-preview" id="subscriptionPreview" aria-hidden="true">
+        <span class="subs-logo" id="subscriptionPreviewLogo">订</span>
+        <div class="subs-preview-main">
+          <div class="subs-preview-name" id="subscriptionPreviewName">订阅名称</div>
+          <div class="subs-preview-meta" id="subscriptionPreviewMeta"></div>
+        </div>
+        <div class="subs-price"><strong id="subscriptionPreviewPrice">—</strong><small id="subscriptionPreviewCycle"></small></div>
+      </div>
+      <div class="form-grid">
+        <div class="field"><label for="subscriptionName">名称</label><input id="subscriptionName" name="subName" maxlength="80" placeholder="例如 ChatGPT Plus" autocomplete="off"></div>
+        <div class="field"><label for="subscriptionNote">备注</label><input id="subscriptionNote" name="subNote" maxlength="200" placeholder="账号或用途，可不填" autocomplete="off"></div>
+        <div class="field span-2">
+          <label for="subscriptionAmount">金额</label>
+          <div class="subs-amount">
+            <input id="subscriptionAmount" name="subAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00" autocomplete="off">
+            <div class="segment-control compact" role="group" aria-label="币种" data-sub-segment="currency"><button class="segment-option" type="button" data-value="CNY">CNY</button><button class="segment-option" type="button" data-value="USD">USD</button></div>
+          </div>
+          <div class="subs-hint" id="subscriptionAmountHint"></div>
+        </div>
+        <div class="field"><label id="subscriptionCycleLabel">扣费周期</label><div class="segment-control compact" role="group" aria-labelledby="subscriptionCycleLabel" data-sub-segment="cycleMonths"><button class="segment-option" type="button" data-value="1">月付</button><button class="segment-option" type="button" data-value="12">年付</button></div></div>
+        <div class="field"><label for="subscriptionStart">开始日期</label><input id="subscriptionStart" name="subStart" type="date"></div>
+        <div class="field span-2"><label id="subscriptionCategoryLabel">分类</label><div class="segment-control compact" role="group" aria-labelledby="subscriptionCategoryLabel" data-sub-segment="category"><button class="segment-option" type="button" data-value="工具效率">工具效率</button><button class="segment-option" type="button" data-value="AI">AI</button><button class="segment-option" type="button" data-value="其他">其他</button></div></div>
+        <div class="field span-2"><label id="subscriptionColorLabel">颜色</label><div class="subs-swatches" role="group" aria-labelledby="subscriptionColorLabel"><button class="subs-swatch" type="button" data-sub-color="#0f8f81" style="--swatch:#0f8f81" aria-label="茶绿" aria-pressed="false"></button><button class="subs-swatch" type="button" data-sub-color="#3f7a50" style="--swatch:#3f7a50" aria-label="森绿" aria-pressed="false"></button><button class="subs-swatch" type="button" data-sub-color="#4c7d70" style="--swatch:#4c7d70" aria-label="青灰" aria-pressed="false"></button><button class="subs-swatch" type="button" data-sub-color="#c7a06c" style="--swatch:#c7a06c" aria-label="沙金" aria-pressed="false"></button><button class="subs-swatch" type="button" data-sub-color="#d97730" style="--swatch:#d97730" aria-label="橘色" aria-pressed="false"></button><button class="subs-swatch" type="button" data-sub-color="#b8612a" style="--swatch:#b8612a" aria-label="赭石" aria-pressed="false"></button><button class="subs-swatch" type="button" data-sub-color="#bf4a3c" style="--swatch:#bf4a3c" aria-label="砖红" aria-pressed="false"></button><button class="subs-swatch" type="button" data-sub-color="#8f654c" style="--swatch:#8f654c" aria-label="栗色" aria-pressed="false"></button><button class="subs-swatch" type="button" data-sub-color="#463d34" style="--swatch:#463d34" aria-label="墨色" aria-pressed="false"></button></div></div>
+      </div>
+      <div class="confirm-error" id="subscriptionEditError" role="alert"></div>
+    </form>
   </div>
 </div>
 
@@ -7291,12 +7643,26 @@ function depositPresetOptions(amountValue, currencyValue = 'USD') {
     return { percent, amount:selection.depositAmount, label };
   });
 }
-function toast(text) {
+function toast(text, { actionText = '', onAction = null } = {}) {
   const el = document.getElementById('toast');
   el.textContent = text;
+  const hasAction = Boolean(actionText && typeof onAction === 'function');
+  el.classList.toggle('has-action', hasAction);
+  if (hasAction) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'toast-action';
+    button.textContent = actionText;
+    button.addEventListener('click', () => {
+      clearTimeout(window.toastTimer);
+      el.classList.remove('show');
+      onAction();
+    }, { once:true });
+    el.append(button);
+  }
   el.classList.add('show');
   clearTimeout(window.toastTimer);
-  window.toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
+  window.toastTimer = setTimeout(() => el.classList.remove('show'), hasAction ? 6000 : 1800);
 }
 async function copyText(text, message = '已复制') {
   const value = String(text || '').trim();
@@ -9503,6 +9869,7 @@ const globalSearchPageDefs = [
   { page:'analysis', title:'分析', icon:'⌁', keywords:'分析 客户增长 事件结构 新增客户 日程趋势' },
   { page:'customers', title:'客户管理', icon:'◇', keywords:'客户 联系人 邮箱 电话 地址 国家 标签 复购' },
   { page:'deleted', title:'已删除订单', icon:'⌫', keywords:'删除 回收 恢复 订单' },
+  { page:'subscriptions', title:'订阅', icon:'↻', keywords:'订阅 续费 扣费 会员 软件 服务器 域名' },
   { page:'settings', title:'设置', icon:'⚙', keywords:'设置 数据 导入 导出 API 汇率 默认值 备份' }
 ];
 let allGlobalSearchResults = [];
@@ -9804,7 +10171,7 @@ function paginateOrdersForList(orders = [], page = 1, pageSize = 50) {
 function paginateSearchResults(results, page = 1) {
   return paginateOrdersForList(results, page, 50);
 }
-function renderPageContent(page) {
+function renderPageContent(page, { entering = false } = {}) {
   const pages = {
     dashboard: () => { renderMonthSelects(); renderStats(); renderPipeline(); renderTrash(); renderRecentOrders(); renderTasks(); },
     'order-list': renderOrderListPage,
@@ -9816,6 +10183,7 @@ function renderPageContent(page) {
     analysis: renderAnalysisPage,
     customers: renderCustomers,
     deleted: renderDeletedOrders,
+    subscriptions: () => renderSubscriptionsPage({ animate:entering, rollHero:entering }),
     settings: () => { renderSettings(); renderExchangeSettings(); }
   };
   pages[page]?.();
@@ -14730,6 +15098,680 @@ function download(name, text) {
   URL.revokeObjectURL(url);
   toast('已导出文件');
 }
+// Personal subscriptions use their own SQLite table and API. They never enter `state`,
+// so the dashboard, reports, global search and exports cannot see them.
+const subscriptionCategories = ['工具效率', 'AI', '其他'];
+const subscriptionColors = ['#0f8f81', '#3f7a50', '#4c7d70', '#c7a06c', '#d97730', '#b8612a', '#bf4a3c', '#8f654c', '#463d34'];
+const subscriptionHoldMs = 1500;
+const subscriptionState = { loaded:false, loading:false, unavailable:false, error:'', items:[], usdCnyRate:7.1 };
+let subscriptionFilter = 'all';
+let subscriptionQuery = '';
+let subscriptionDetailId = '';
+let subscriptionDraft = null;
+let subscriptionReturnFocus = null;
+let subscriptionHeroValue = 0;
+let subscriptionHeroFrame = 0;
+let subscriptionHoldTimer = 0;
+let subscriptionBusy = false;
+function subscriptionLocalDate(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+function subscriptionDayNumber(dateText) {
+  const [year, month, day] = String(dateText).split('-').map(Number);
+  return Math.round(Date.UTC(year, month - 1, day) / 86400000);
+}
+function subscriptionDateFromDay(dayNumber) {
+  return new Date(dayNumber * 86400000).toISOString().slice(0, 10);
+}
+function subscriptionAddMonths(dateText, months) {
+  // A charge that starts on the 31st falls on the last day of shorter months, never in the next month.
+  const [year, month, day] = String(dateText).split('-').map(Number);
+  const index = month - 1 + months;
+  const targetYear = year + Math.floor(index / 12);
+  const targetMonth = index - Math.floor(index / 12) * 12;
+  const lastDay = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
+  return `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(Math.min(day, lastDay)).padStart(2, '0')}`;
+}
+function subscriptionChargeIndex(item, dateText) {
+  // Index of the last charge on or before dateText; -1 before the first charge.
+  if (dateText < item.startDate) return -1;
+  const [startYear, startMonth] = item.startDate.split('-').map(Number);
+  const [year, month] = dateText.split('-').map(Number);
+  let index = Math.floor(((year - startYear) * 12 + month - startMonth) / item.cycleMonths);
+  while (index > 0 && subscriptionAddMonths(item.startDate, index * item.cycleMonths) > dateText) index -= 1;
+  return index;
+}
+function subscriptionSchedule(item, today, rate) {
+  const cycle = Number(item.cycleMonths) === 12 ? 12 : 1;
+  const plan = { ...item, cycleMonths:cycle };
+  const chargeOn = index => subscriptionAddMonths(item.startDate, index * cycle);
+  const cycleCny = item.currency === 'USD' ? Number(item.amount) * rate : Number(item.amount);
+  const monthlyCny = cycleCny / cycle;
+  const lastIndex = subscriptionChargeIndex(plan, today);
+  const renewsOn = chargeOn(lastIndex + 1);
+  const base = { cycleCny, monthlyCny, yearlyCny:monthlyCny * 12 };
+  if (item.status === 'cancelled') {
+    // A cancelled subscription stays usable until its end date and is never charged on or after it.
+    const endsOn = item.endsOn || renewsOn;
+    let endIndex = subscriptionChargeIndex(plan, endsOn);
+    if (endIndex >= 0 && chargeOn(endIndex) === endsOn) endIndex -= 1;
+    const charges = Math.min(lastIndex, endIndex) + 1;
+    return {
+      ...base, state:today >= endsOn ? 'expired' : 'ending', nextCharge:'', paidThrough:endsOn,
+      charges, spentCny:charges * cycleCny, daysLeft:subscriptionDayNumber(endsOn) - subscriptionDayNumber(today)
+    };
+  }
+  const nextCharge = lastIndex >= 0 && chargeOn(lastIndex) === today ? today : renewsOn;
+  return {
+    ...base, state:'active', nextCharge, paidThrough:renewsOn,
+    charges:lastIndex + 1, spentCny:(lastIndex + 1) * cycleCny, daysLeft:subscriptionDayNumber(nextCharge) - subscriptionDayNumber(today)
+  };
+}
+function subscriptionSummary(items, today, rate, windowDays = 30) {
+  const windowEnd = subscriptionDateFromDay(subscriptionDayNumber(today) + windowDays - 1);
+  const summary = { total:items.length, active:0, cancelled:0, monthlyCny:0, yearlyCny:0, upcoming:[], upcomingCny:0 };
+  items.forEach(item => {
+    const schedule = subscriptionSchedule(item, today, rate);
+    if (schedule.state !== 'active') {
+      summary.cancelled += 1;
+      return;
+    }
+    summary.active += 1;
+    summary.monthlyCny += schedule.monthlyCny;
+    const cycle = Number(item.cycleMonths) === 12 ? 12 : 1;
+    let index = subscriptionChargeIndex({ ...item, cycleMonths:cycle }, schedule.nextCharge);
+    for (let date = schedule.nextCharge; date <= windowEnd; date = subscriptionAddMonths(item.startDate, ++index * cycle)) {
+      summary.upcoming.push({ item, date, cny:schedule.cycleCny });
+      summary.upcomingCny += schedule.cycleCny;
+    }
+  });
+  summary.yearlyCny = summary.monthlyCny * 12;
+  summary.upcoming.sort((a, b) => a.date.localeCompare(b.date));
+  return summary;
+}
+function subscriptionCompare(a, b) {
+  const rank = { active:0, ending:1, expired:2 };
+  const byRank = rank[a.schedule.state] - rank[b.schedule.state];
+  if (byRank) return byRank;
+  const dateA = a.schedule.nextCharge || a.schedule.paidThrough;
+  const dateB = b.schedule.nextCharge || b.schedule.paidThrough;
+  const byDate = a.schedule.state === 'expired' ? dateB.localeCompare(dateA) : dateA.localeCompare(dateB);
+  return byDate || a.item.name.localeCompare(b.item.name, 'zh-CN');
+}
+function subscriptionMoney(value, currency = 'CNY') {
+  const number = Number(value || 0).toLocaleString('zh-CN', { minimumFractionDigits:2, maximumFractionDigits:2 });
+  return `${currency === 'USD' ? '$' : '¥'}${number}`;
+}
+function subscriptionCycleLabel(cycleMonths) {
+  return Number(cycleMonths) === 12 ? '年' : '月';
+}
+function subscriptionDateLabel(dateText, today) {
+  if (!dateText) return '';
+  const [year, month, day] = dateText.split('-').map(Number);
+  return String(year) === today.slice(0, 4) ? `${month}月${day}日` : `${year}年${month}月${day}日`;
+}
+function subscriptionInitial(name) {
+  return (Array.from(String(name || '').trim())[0] || '订').toUpperCase();
+}
+function subscriptionWhen(schedule) {
+  if (schedule.state === 'expired') return { cls:'expired', text:'已到期' };
+  if (schedule.state === 'ending') return { cls:'ending', text:schedule.daysLeft === 1 ? '明天到期' : `${schedule.daysLeft} 天后到期` };
+  if (schedule.daysLeft === 0) return { cls:'today', text:'今天扣费' };
+  if (schedule.daysLeft === 1) return { cls:'soon', text:'明天扣费' };
+  return { cls:schedule.daysLeft <= 7 ? 'soon' : '', text:`${schedule.daysLeft} 天后扣费` };
+}
+function subscriptionReducedMotion() {
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+}
+async function subscriptionRequest(resource, body) {
+  const response = await apiFetch(resource, body === undefined ? {} : {
+    method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify(body)
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data.ok === false) throw new Error(data.message || `订阅服务暂时不可用（${response.status}）`);
+  return data;
+}
+async function loadSubscriptions() {
+  if (!isMacAppMode()) {
+    Object.assign(subscriptionState, { loaded:true, unavailable:true });
+    renderSubscriptionsPage();
+    return;
+  }
+  Object.assign(subscriptionState, { loading:true, error:'' });
+  renderSubscriptionsPage();
+  try {
+    const data = await subscriptionRequest('/api/subscriptions');
+    Object.assign(subscriptionState, {
+      loaded:true, items:Array.isArray(data.items) ? data.items : [], usdCnyRate:Number(data.usdCnyRate) || 7.1
+    });
+  } catch (error) {
+    subscriptionState.error = error.message || '读取订阅失败';
+  } finally {
+    subscriptionState.loading = false;
+  }
+  renderSubscriptionsPage({ animate:true, rollHero:true });
+}
+function findSubscription(id) {
+  return subscriptionState.items.find(item => item.id === id) || null;
+}
+function upsertSubscription(item) {
+  const index = subscriptionState.items.findIndex(other => other.id === item.id);
+  if (index >= 0) subscriptionState.items.splice(index, 1, item);
+  else subscriptionState.items.push(item);
+}
+function subscriptionEmptyHtml(title, text, action = '', actionText = '') {
+  return `<div class="subs-empty"><div class="subs-empty-mark" aria-hidden="true">↻</div><strong>${escapeAttr(title)}</strong><div>${escapeAttr(text)}</div>${action ? `<button class="btn btn-primary btn-small" type="button" data-subs-empty-action="${action}">${escapeAttr(actionText)}</button>` : ''}</div>`;
+}
+function subscriptionRowHtml({ item, schedule }, index, animate, today) {
+  const when = subscriptionWhen(schedule);
+  const converted = item.currency === 'USD' ? ` ≈${subscriptionMoney(schedule.cycleCny)}` : '';
+  const classes = ['subs-item', animate ? 'subs-enter' : '', schedule.state === 'expired' ? 'is-ended' : ''].filter(Boolean).join(' ');
+  return `<button class="${classes}" type="button" data-sub-id="${escapeAttr(item.id)}" style="--sub-color:${escapeAttr(item.color)};--i:${Math.min(index, 16)}">
+    <span class="subs-logo" aria-hidden="true">${escapeAttr(subscriptionInitial(item.name))}</span>
+    <span class="subs-main"><span class="subs-name">${escapeAttr(item.name)}</span><span class="subs-note">${escapeAttr(item.note || item.category)}</span></span>
+    <span class="subs-when"><span class="subs-pill ${when.cls}">${when.text}</span><span>${escapeAttr(subscriptionDateLabel(schedule.nextCharge || schedule.paidThrough, today))}</span></span>
+    <span class="subs-price"><strong>${subscriptionMoney(item.amount, item.currency)}</strong><small>/${subscriptionCycleLabel(item.cycleMonths)}${converted}</small></span>
+  </button>`;
+}
+function animateSubscriptionNumber(el, from, to) {
+  const format = value => Number(value).toLocaleString('zh-CN', { minimumFractionDigits:2, maximumFractionDigits:2 });
+  subscriptionHeroValue = to;
+  cancelAnimationFrame(subscriptionHeroFrame);
+  if (!el) return;
+  if (from === to || subscriptionReducedMotion()) {
+    el.textContent = format(to);
+    return;
+  }
+  const started = performance.now();
+  const step = now => {
+    const progress = Math.min(1, (now - started) / 700);
+    el.textContent = format(from + (to - from) * (1 - Math.pow(1 - progress, 3)));
+    if (progress < 1) subscriptionHeroFrame = requestAnimationFrame(step);
+  };
+  el.textContent = format(from);
+  subscriptionHeroFrame = requestAnimationFrame(step);
+}
+function renderSubscriptionHero(summary, today, rate, roll) {
+  const hero = document.getElementById('subsHero');
+  if (!subscriptionState.loaded || subscriptionState.unavailable) {
+    hero.innerHTML = `<div><div class="subs-hero-label">每月订阅支出</div><div class="subs-hero-value"><small>¥</small>—</div><div class="subs-hero-sub">${subscriptionState.unavailable ? '订阅只在 Mac App 里可用' : '正在读取订阅…'}</div></div>`;
+    return;
+  }
+  const todayNumber = subscriptionDayNumber(today);
+  const byDay = new Map();
+  summary.upcoming.forEach(entry => {
+    const offset = subscriptionDayNumber(entry.date) - todayNumber;
+    if (!byDay.has(offset)) byDay.set(offset, []);
+    byDay.get(offset).push(entry);
+  });
+  const dots = [...byDay].map(([offset, entries], index) => {
+    const title = `${subscriptionDateLabel(entries[0].date, today)}：${entries.map(entry => `${entry.item.name} ${subscriptionMoney(entry.cny)}`).join('，')}`;
+    const classes = ['subs-strip-dot', roll ? 'subs-pop' : '', offset === 0 ? 'is-today' : ''].filter(Boolean).join(' ');
+    return `<i class="${classes}" style="--sub-color:${escapeAttr(entries[0].item.color)};--i:${index};left:calc(12px + (100% - 24px) * ${(offset / 29).toFixed(4)})" title="${escapeAttr(title)}">${entries.length > 1 ? `<b>${entries.length}</b>` : ''}</i>`;
+  }).join('');
+  hero.innerHTML = `
+    <div>
+      <div class="subs-hero-label">每月订阅支出</div>
+      <div class="subs-hero-value"><small>¥</small><span id="subsHeroMonthly"></span></div>
+      <div class="subs-hero-sub">一年约 ${subscriptionMoney(summary.yearlyCny)} · USD 按 ${escapeAttr(rate)} 折算</div>
+    </div>
+    <div class="subs-hero-chips">
+      <span class="subs-chip"><b>${summary.total}</b>项</span>
+      <span class="subs-chip"><b>${summary.active}</b>自动续费</span>
+      <span class="subs-chip"><b>${summary.cancelled}</b>已取消</span>
+    </div>
+    <div class="subs-upcoming">
+      <div class="subs-upcoming-head"><span>未来 30 天要付 · ${summary.upcoming.length} 笔</span><b id="subsUpcomingTotal">${subscriptionMoney(summary.upcomingCny)}</b></div>
+      <div class="subs-strip" aria-hidden="true">${dots || '<span class="subs-strip-empty">未来 30 天没有扣费</span>'}</div>
+      <div class="subs-strip-scale" aria-hidden="true"><span>今天</span><span>${subscriptionDateLabel(subscriptionDateFromDay(todayNumber + 14), today)}</span><span>${subscriptionDateLabel(subscriptionDateFromDay(todayNumber + 29), today)}</span></div>
+    </div>`;
+  animateSubscriptionNumber(document.getElementById('subsHeroMonthly'), roll ? 0 : subscriptionHeroValue, summary.monthlyCny);
+}
+function renderSubscriptionFilter(items) {
+  const wrap = document.getElementById('subsFilter');
+  const options = [['all', '全部'], ...subscriptionCategories.map(category => [category, category])];
+  if (!wrap.querySelector('[data-sub-filter]')) {
+    wrap.insertAdjacentHTML('beforeend', options.map(([value, label]) => `<button class="segment-option" type="button" data-sub-filter="${escapeAttr(value)}">${escapeAttr(label)}<small></small></button>`).join(''));
+  }
+  wrap.querySelectorAll('[data-sub-filter]').forEach(button => {
+    const value = button.dataset.subFilter;
+    const active = value === subscriptionFilter;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+    button.querySelector('small').textContent = value === 'all' ? items.length : items.filter(item => item.category === value).length;
+  });
+  placeSubscriptionFilterThumb();
+}
+function placeSubscriptionFilterThumb() {
+  const wrap = document.getElementById('subsFilter');
+  const active = wrap?.querySelector('.segment-option.active');
+  const thumb = wrap?.querySelector('.subs-filter-thumb');
+  if (!active || !thumb || !active.offsetWidth) return;
+  thumb.style.width = `${active.offsetWidth}px`;
+  thumb.style.transform = `translateX(${active.offsetLeft}px)`;
+  // The first placement after the page appears jumps into place; later filter changes slide.
+  if (wrap.classList.contains('no-anim')) requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.remove('no-anim')));
+}
+function renderSubscriptionsPage({ animate = false, rollHero = false } = {}) {
+  const list = document.getElementById('subsList');
+  if (!list) return;
+  if (!subscriptionState.loaded && !subscriptionState.loading && !subscriptionState.error) {
+    loadSubscriptions();
+    return;
+  }
+  const { items, usdCnyRate:rate } = subscriptionState;
+  const today = subscriptionLocalDate();
+  const ready = subscriptionState.loaded && !subscriptionState.unavailable;
+  renderSubscriptionHero(subscriptionSummary(items, today, rate), today, rate, rollHero);
+  renderSubscriptionFilter(items);
+  document.getElementById('subsRateBtn').innerHTML = `USD <b>${escapeAttr(rate)}</b>`;
+  ['subsAddBtn', 'subsRateBtn', 'subsSearch'].forEach(id => { document.getElementById(id).disabled = !ready; });
+  if (subscriptionState.unavailable) {
+    document.getElementById('subsMeta').textContent = '仅 Mac App';
+    list.innerHTML = subscriptionEmptyHtml('请在 Mac App 里使用订阅', '订阅存放在 Mac App 的本地数据库里，直接用浏览器打开的页面读不到。');
+    return;
+  }
+  if (!subscriptionState.loaded) {
+    document.getElementById('subsMeta').textContent = subscriptionState.error ? '读取失败' : '读取中…';
+    list.innerHTML = subscriptionState.error
+      ? subscriptionEmptyHtml('订阅没有读出来', subscriptionState.error, 'retry', '重试')
+      : '<div class="subs-skeleton"></div><div class="subs-skeleton"></div><div class="subs-skeleton"></div><div class="subs-skeleton"></div>';
+    return;
+  }
+  const query = normalizeSearchText(subscriptionQuery);
+  const rows = items
+    .filter(item => (subscriptionFilter === 'all' || item.category === subscriptionFilter)
+      && (!query || normalizeSearchText(`${item.name} ${item.note}`).includes(query)))
+    .map(item => ({ item, schedule:subscriptionSchedule(item, today, rate) }))
+    .sort(subscriptionCompare);
+  document.getElementById('subsMeta').textContent = query ? `找到 ${rows.length} 项` : `${rows.length} 项 · 按下次扣费排序`;
+  if (!items.length) {
+    list.innerHTML = subscriptionEmptyHtml('还没有订阅', '把 ChatGPT、iCloud、域名这类按月或按年扣费的服务记下来，每月花多少一眼就知道。', 'add', '＋ 新增第一个订阅');
+    return;
+  }
+  if (!rows.length) {
+    list.innerHTML = subscriptionEmptyHtml('没有符合条件的订阅', query ? '换个关键词试试。' : '这个分类下还没有订阅。');
+    return;
+  }
+  list.innerHTML = rows.map((row, index) => subscriptionRowHtml(row, index, animate, today)).join('');
+}
+function flashSubscriptionRow(id) {
+  requestAnimationFrame(() => {
+    const row = document.querySelector(`.subs-item[data-sub-id="${CSS.escape(id)}"]`);
+    if (!row) return;
+    row.classList.add('subs-flash');
+    row.addEventListener('animationend', () => row.classList.remove('subs-flash'), { once:true });
+  });
+}
+function openSubscriptionDetail(id) {
+  if (!findSubscription(id)) return;
+  subscriptionDetailId = id;
+  subscriptionReturnFocus = document.activeElement;
+  renderSubscriptionDetail();
+  setModalOpenState('subscriptionDrawer', true);
+  resetModalScroll('#subscriptionDrawer');
+}
+function closeSubscriptionDetail() {
+  cancelSubscriptionHold();
+  setModalOpenState('subscriptionDrawer', false);
+  const id = subscriptionDetailId;
+  subscriptionDetailId = '';
+  const row = id && document.querySelector(`.subs-item[data-sub-id="${CSS.escape(id)}"]`);
+  (row || (subscriptionReturnFocus?.isConnected ? subscriptionReturnFocus : null))?.focus({ preventScroll:true });
+}
+function renderSubscriptionDetail() {
+  const item = findSubscription(subscriptionDetailId);
+  if (!item) return;
+  const today = subscriptionLocalDate();
+  const rate = subscriptionState.usdCnyRate;
+  const schedule = subscriptionSchedule(item, today, rate);
+  const when = subscriptionWhen(schedule);
+  const cycle = subscriptionCycleLabel(item.cycleMonths);
+  const firstCard = {
+    active:['下次扣费', schedule.nextCharge, schedule.daysLeft === 0 ? '就是今天' : `${schedule.daysLeft} 天后`],
+    ending:['有效期至', schedule.paidThrough, `不再扣费 · 还剩 ${schedule.daysLeft} 天`],
+    expired:['已到期', schedule.paidThrough, '已停止扣费']
+  }[schedule.state];
+  const rows = [
+    ['金额', `${subscriptionMoney(item.amount, item.currency)} / ${cycle}`],
+    ...(item.currency === 'USD' ? [['折合人民币', `≈${subscriptionMoney(schedule.cycleCny)} · 1 USD = ${rate} CNY`]] : []),
+    ['扣费周期', Number(item.cycleMonths) === 12 ? '每年' : '每月'],
+    ['开始日期', item.startDate],
+    ['有效期至', schedule.paidThrough],
+    ['状态', schedule.state === 'active' ? '自动续费' : `已取消，${schedule.paidThrough} 截止`],
+    ['分类', item.category]
+  ];
+  document.getElementById('subscriptionDrawerSub').textContent = item.category;
+  document.getElementById('subscriptionDrawerTitle').textContent = item.name;
+  const body = document.getElementById('subscriptionDrawerBody');
+  body.innerHTML = `
+    <div class="subs-detail-head" style="--sub-color:${escapeAttr(item.color)}">
+      <span class="subs-logo" aria-hidden="true">${escapeAttr(subscriptionInitial(item.name))}</span>
+      <div><div class="subs-detail-name">${escapeAttr(item.name)}</div><div class="subs-detail-note">${escapeAttr(item.note || '没有备注')}</div></div>
+      <span class="subs-pill ${when.cls}">${when.text}</span>
+    </div>
+    <div class="subs-detail-cards">
+      <div class="subs-card" style="--i:0"><span>${firstCard[0]}</span><strong>${escapeAttr(firstCard[1])}</strong><small>${firstCard[2]}</small></div>
+      <div class="subs-card" style="--i:1"><span>月均</span><strong>${subscriptionMoney(schedule.monthlyCny)}</strong><small>一年约 ${subscriptionMoney(schedule.yearlyCny)}</small></div>
+      <div class="subs-card" style="--i:2"><span>累计已花费（估算）</span><strong>${subscriptionMoney(schedule.spentCny)}</strong><small>共 ${schedule.charges} 次扣费</small></div>
+    </div>
+    <dl class="subs-kv">${rows.map(([label, value]) => `<div><dt>${label}</dt><dd>${escapeAttr(value)}</dd></div>`).join('')}</dl>
+    <div class="subs-actions">
+      <button class="btn btn-primary" type="button" data-sub-action="edit">编辑订阅</button>
+      <button class="btn" type="button" data-sub-action="${schedule.state === 'expired' ? 'resubscribe' : 'toggle'}">${{ active:'取消订阅', ending:'恢复订阅', expired:'重新订阅' }[schedule.state]}</button>
+      <button class="btn subs-hold" type="button" data-sub-action="hold"><span class="subs-hold-fill"></span><span class="subs-hold-label">按住删除记录</span></button>
+      <div class="subs-hold-hint" id="subscriptionHoldHint" aria-live="polite">按住 1.5 秒删除，删除后 6 秒内可撤销</div>
+    </div>`;
+  const hold = body.querySelector('.subs-hold');
+  hold.addEventListener('pointerdown', event => {
+    if (event.button === 0) startSubscriptionHold();
+  });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(type => hold.addEventListener(type, () => cancelSubscriptionHold({ early:true })));
+  hold.addEventListener('keydown', event => {
+    if (event.key !== ' ' && event.key !== 'Enter') return;
+    event.preventDefault();
+    if (!event.repeat) startSubscriptionHold();
+  });
+  hold.addEventListener('keyup', event => {
+    if (event.key === ' ' || event.key === 'Enter') cancelSubscriptionHold({ early:true });
+  });
+  hold.addEventListener('contextmenu', event => event.preventDefault());
+}
+function startSubscriptionHold() {
+  const hold = document.querySelector('#subscriptionDrawerBody .subs-hold');
+  const hint = document.getElementById('subscriptionHoldHint');
+  if (!hold || subscriptionHoldTimer || subscriptionBusy) return;
+  hold.classList.add('holding');
+  hint.classList.remove('warn');
+  hint.textContent = '继续按住…';
+  subscriptionHoldTimer = setTimeout(() => {
+    subscriptionHoldTimer = 0;
+    hold.classList.remove('holding');
+    deleteSubscription(subscriptionDetailId);
+  }, subscriptionHoldMs);
+}
+function cancelSubscriptionHold({ early = false } = {}) {
+  if (!subscriptionHoldTimer) return;
+  clearTimeout(subscriptionHoldTimer);
+  subscriptionHoldTimer = 0;
+  document.querySelector('#subscriptionDrawerBody .subs-hold')?.classList.remove('holding');
+  const hint = document.getElementById('subscriptionHoldHint');
+  if (!early || !hint) return;
+  hint.textContent = '松手太早了，按住 1.5 秒才会删除';
+  hint.classList.remove('warn');
+  void hint.offsetWidth;
+  hint.classList.add('warn');
+}
+async function deleteSubscription(id) {
+  const item = findSubscription(id);
+  if (!item || subscriptionBusy) return;
+  subscriptionBusy = true;
+  try {
+    await subscriptionRequest('/api/subscriptions/delete', { id });
+  } catch (error) {
+    const hint = document.getElementById('subscriptionHoldHint');
+    if (hint) hint.textContent = `删除失败：${error.message}`;
+    return;
+  } finally {
+    subscriptionBusy = false;
+  }
+  closeSubscriptionDetail();
+  const row = document.querySelector(`.subs-item[data-sub-id="${CSS.escape(id)}"]`);
+  if (row?.animate && !subscriptionReducedMotion()) {
+    await row.animate([
+      { opacity:1, transform:'scale(1)' },
+      { opacity:0, transform:'translateX(-14px) scale(.94)' }
+    ], { duration:260, easing:'cubic-bezier(.2,.8,.2,1)', fill:'forwards' }).finished.catch(() => {});
+  }
+  subscriptionState.items = subscriptionState.items.filter(other => other.id !== id);
+  renderSubscriptionsPage();
+  toast(`已删除 ${item.name}`, { actionText:'撤销', onAction:() => restoreSubscription(item) });
+}
+async function restoreSubscription(item) {
+  try {
+    const { item:saved } = await subscriptionRequest('/api/subscriptions/save', { item });
+    upsertSubscription(saved);
+    renderSubscriptionsPage();
+    flashSubscriptionRow(saved.id);
+    toast(`已恢复 ${saved.name}`);
+  } catch (error) {
+    toast(`撤销失败：${error.message}`);
+  }
+}
+async function toggleSubscriptionStatus() {
+  const item = findSubscription(subscriptionDetailId);
+  if (!item || subscriptionBusy) return;
+  const schedule = subscriptionSchedule(item, subscriptionLocalDate(), subscriptionState.usdCnyRate);
+  // Cancelling keeps the subscription until the renewal it has already paid for. Resuming before
+  // that date continues the same billing days; an expired one is re-subscribed in the editor instead.
+  const next = schedule.state === 'active'
+    ? { ...item, status:'cancelled', endsOn:schedule.paidThrough }
+    : { ...item, status:'active', endsOn:'' };
+  subscriptionBusy = true;
+  try {
+    const { item:saved } = await subscriptionRequest('/api/subscriptions/save', { item:next });
+    upsertSubscription(saved);
+    renderSubscriptionsPage();
+    renderSubscriptionDetail();
+    toast(saved.status === 'cancelled' ? `已取消，${saved.endsOn} 前仍可用` : '已恢复自动续费');
+  } catch (error) {
+    toast(`操作失败：${error.message}`);
+  } finally {
+    subscriptionBusy = false;
+  }
+}
+function openSubscriptionEditor(id = '', { resubscribe = false } = {}) {
+  const existing = findSubscription(id);
+  subscriptionDraft = existing ? { ...existing, amount:String(existing.amount) } : {
+    id:'', name:'', note:'', amount:'', currency:'CNY', cycleMonths:1, startDate:subscriptionLocalDate(),
+    category:subscriptionCategories[0], color:subscriptionColors[0], status:'active', endsOn:''
+  };
+  // Re-subscribing starts a fresh billing cycle from today; the user can still change the date.
+  if (existing && resubscribe) Object.assign(subscriptionDraft, { status:'active', endsOn:'', startDate:subscriptionLocalDate() });
+  if (!document.getElementById('subscriptionDrawer').classList.contains('open')) subscriptionReturnFocus = document.activeElement;
+  const form = document.getElementById('subscriptionEditForm');
+  form.elements.subName.value = subscriptionDraft.name;
+  form.elements.subNote.value = subscriptionDraft.note;
+  form.elements.subAmount.value = subscriptionDraft.amount;
+  form.elements.subStart.value = subscriptionDraft.startDate;
+  document.getElementById('subscriptionEditTitle').textContent = existing ? (resubscribe ? '重新订阅' : '编辑订阅') : '新增订阅';
+  document.getElementById('subscriptionEditSub').textContent = existing ? existing.name : '订阅';
+  document.getElementById('subscriptionEditError').textContent = '';
+  syncSubscriptionEditorControls();
+  renderSubscriptionPreview();
+  setModalOpenState('subscriptionEditModal', true);
+  resetModalScroll('#subscriptionEditModal');
+  setTimeout(() => form.elements.subName.focus(), 60);
+}
+function closeSubscriptionEditor() {
+  setModalOpenState('subscriptionEditModal', false);
+  subscriptionDraft = null;
+  const drawerButton = document.querySelector('#subscriptionDrawer.open [data-sub-action="edit"]');
+  (drawerButton || (subscriptionReturnFocus?.isConnected ? subscriptionReturnFocus : null))?.focus({ preventScroll:true });
+}
+function syncSubscriptionEditorControls() {
+  document.querySelectorAll('#subscriptionEditForm [data-sub-segment]').forEach(group => {
+    group.querySelectorAll('[data-value]').forEach(button => {
+      const active = String(subscriptionDraft[group.dataset.subSegment]) === button.dataset.value;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', String(active));
+    });
+  });
+  document.querySelectorAll('#subscriptionEditForm [data-sub-color]').forEach(button => {
+    const active = button.dataset.subColor === subscriptionDraft.color;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+}
+function renderSubscriptionPreview() {
+  const draft = subscriptionDraft;
+  if (!draft) return;
+  const rate = subscriptionState.usdCnyRate;
+  const amount = Number(draft.amount);
+  const hasAmount = Number.isFinite(amount) && amount > 0;
+  const cycle = Number(draft.cycleMonths) === 12 ? 12 : 1;
+  const logo = document.getElementById('subscriptionPreviewLogo');
+  const initial = subscriptionInitial(draft.name);
+  if (logo.textContent !== initial) {
+    logo.textContent = initial;
+    logo.classList.remove('bump');
+    void logo.offsetWidth;
+    logo.classList.add('bump');
+  }
+  document.getElementById('subscriptionPreview').style.setProperty('--sub-color', draft.color);
+  document.getElementById('subscriptionPreviewName').textContent = draft.name.trim() || '订阅名称';
+  document.getElementById('subscriptionPreviewMeta').textContent = [draft.category, cycle === 12 ? '年付' : '月付', draft.startDate ? `${draft.startDate} 开始` : '还没选开始日期'].join(' · ');
+  document.getElementById('subscriptionPreviewPrice').textContent = hasAmount ? subscriptionMoney(amount, draft.currency) : '—';
+  document.getElementById('subscriptionPreviewCycle').textContent = `/${subscriptionCycleLabel(cycle)}`;
+  const cny = draft.currency === 'USD' ? amount * rate : amount;
+  document.getElementById('subscriptionAmountHint').textContent = !hasAmount ? ''
+    : [draft.currency === 'USD' ? `≈${subscriptionMoney(cny)}（1 USD = ${rate} CNY）` : '', cycle === 12 ? `月均 ${subscriptionMoney(cny / 12)}` : ''].filter(Boolean).join(' · ');
+}
+function subscriptionDraftError(draft) {
+  if (!String(draft.name || '').trim()) return { field:'subName', message:'请填写订阅名称' };
+  const amount = Number(draft.amount);
+  if (!(amount > 0 && amount <= 10000000)) return { field:'subAmount', message:'请填写大于 0 的金额' };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(draft.startDate || '')) return { field:'subStart', message:'请选择开始日期' };
+  return null;
+}
+async function saveSubscriptionDraft(event) {
+  event.preventDefault();
+  const draft = subscriptionDraft;
+  if (!draft || subscriptionBusy) return;
+  const form = document.getElementById('subscriptionEditForm');
+  const errorEl = document.getElementById('subscriptionEditError');
+  const showError = message => {
+    errorEl.textContent = message;
+    errorEl.classList.remove('shake');
+    void errorEl.offsetWidth;
+    errorEl.classList.add('shake');
+  };
+  const invalid = subscriptionDraftError(draft);
+  if (invalid) {
+    showError(invalid.message);
+    form.elements[invalid.field]?.focus();
+    return;
+  }
+  const saveBtn = document.getElementById('subscriptionSaveBtn');
+  subscriptionBusy = true;
+  saveBtn.disabled = true;
+  saveBtn.textContent = '保存中…';
+  try {
+    const { item } = await subscriptionRequest('/api/subscriptions/save', {
+      item:{ ...draft, name:draft.name.trim(), note:draft.note.trim(), amount:Number(draft.amount), cycleMonths:Number(draft.cycleMonths) }
+    });
+    const isNew = !draft.id;
+    upsertSubscription(item);
+    closeSubscriptionEditor();
+    renderSubscriptionsPage();
+    if (subscriptionDetailId === item.id) renderSubscriptionDetail();
+    flashSubscriptionRow(item.id);
+    toast(isNew ? `已添加 ${item.name}` : '已保存');
+  } catch (error) {
+    showError(error.message || '保存失败，请重试');
+  } finally {
+    subscriptionBusy = false;
+    saveBtn.disabled = false;
+    saveBtn.textContent = '保存';
+  }
+}
+async function editSubscriptionRate() {
+  const rate = subscriptionState.usdCnyRate;
+  const pending = appConfirm({
+    title:'订阅页汇率',
+    sub:'只影响订阅页',
+    message:'美元订阅按这个汇率折成人民币。设置里的订单汇率不受影响。',
+    inputLabel:'1 USD = ? CNY',
+    inputPlaceholder:String(rate),
+    confirmText:'保存',
+    validate:value => {
+      const number = Number(value);
+      return (value !== '' && Number.isFinite(number) && number > 0 && number <= 100) || '请输入 0 到 100 之间的数字';
+    }
+  });
+  const input = document.getElementById('confirmInput');
+  input.value = String(rate);
+  setTimeout(() => input.select(), 60);
+  const result = await pending;
+  if (!result.confirmed) return;
+  try {
+    const data = await subscriptionRequest('/api/subscriptions/rate', { usdCnyRate:Number(result.value) });
+    subscriptionState.usdCnyRate = data.usdCnyRate;
+    renderSubscriptionsPage();
+    toast(`汇率已改为 ${data.usdCnyRate}`);
+  } catch (error) {
+    toast(`汇率没有保存：${error.message}`);
+  }
+}
+document.getElementById('subsAddBtn').addEventListener('click', () => openSubscriptionEditor());
+document.getElementById('subsRateBtn').addEventListener('click', editSubscriptionRate);
+document.getElementById('subsSearch').addEventListener('input', event => {
+  subscriptionQuery = event.target.value;
+  renderSubscriptionsPage();
+});
+document.getElementById('subsFilter').addEventListener('click', event => {
+  const button = event.target.closest('[data-sub-filter]');
+  if (!button || button.dataset.subFilter === subscriptionFilter) return;
+  subscriptionFilter = button.dataset.subFilter;
+  renderSubscriptionsPage({ animate:true });
+});
+document.getElementById('subsList').addEventListener('click', event => {
+  const row = event.target.closest('[data-sub-id]');
+  if (row) {
+    openSubscriptionDetail(row.dataset.subId);
+    return;
+  }
+  const action = event.target.closest('[data-subs-empty-action]')?.dataset.subsEmptyAction;
+  if (action === 'add') openSubscriptionEditor();
+  if (action === 'retry') loadSubscriptions();
+});
+document.getElementById('subscriptionDrawerCloseBtn').addEventListener('click', closeSubscriptionDetail);
+document.getElementById('subscriptionDrawer').addEventListener('click', event => {
+  if (event.target.id === 'subscriptionDrawer') {
+    closeSubscriptionDetail();
+    return;
+  }
+  const action = event.target.closest('[data-sub-action]')?.dataset.subAction;
+  if (action === 'edit') openSubscriptionEditor(subscriptionDetailId);
+  if (action === 'resubscribe') openSubscriptionEditor(subscriptionDetailId, { resubscribe:true });
+  if (action === 'toggle') toggleSubscriptionStatus();
+});
+document.getElementById('subscriptionEditCloseBtn').addEventListener('click', closeSubscriptionEditor);
+document.getElementById('subscriptionEditModal').addEventListener('click', event => {
+  if (event.target.id === 'subscriptionEditModal') closeSubscriptionEditor();
+});
+document.getElementById('subscriptionEditForm').addEventListener('submit', saveSubscriptionDraft);
+document.getElementById('subscriptionEditForm').addEventListener('input', event => {
+  const field = { subName:'name', subNote:'note', subAmount:'amount', subStart:'startDate' }[event.target.name];
+  if (!field || !subscriptionDraft) return;
+  subscriptionDraft[field] = event.target.value;
+  document.getElementById('subscriptionEditError').textContent = '';
+  renderSubscriptionPreview();
+});
+document.getElementById('subscriptionEditForm').addEventListener('click', event => {
+  if (!subscriptionDraft) return;
+  const option = event.target.closest('[data-sub-segment] [data-value]');
+  const swatch = event.target.closest('[data-sub-color]');
+  if (option) {
+    const key = option.closest('[data-sub-segment]').dataset.subSegment;
+    subscriptionDraft[key] = key === 'cycleMonths' ? Number(option.dataset.value) : option.dataset.value;
+  } else if (swatch) {
+    subscriptionDraft.color = swatch.dataset.subColor;
+  } else return;
+  syncSubscriptionEditorControls();
+  renderSubscriptionPreview();
+});
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape' || document.getElementById('confirmModal').classList.contains('open')) return;
+  if (document.getElementById('subscriptionEditModal').classList.contains('open')) {
+    event.preventDefault();
+    closeSubscriptionEditor();
+  } else if (document.getElementById('subscriptionDrawer').classList.contains('open')) {
+    event.preventDefault();
+    closeSubscriptionDetail();
+  }
+});
+window.addEventListener('resize', debounce(placeSubscriptionFilterThumb, 80));
 function setPage(page) {
   const normalized = page === 'data' ? 'settings' : page;
   const target = document.getElementById(`page-${normalized}`) ? normalized : 'dashboard';
@@ -14737,7 +15779,7 @@ function setPage(page) {
   const changed = current !== target;
   document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === `page-${target}`));
   document.querySelectorAll('[data-page]').forEach(btn => btn.classList.toggle('active', btn.dataset.page === target));
-  const names = { dashboard:'工作台', 'order-list':'订单列表', 'search-results':'搜索结果', logistics:'物流查询', amount:'金额统计', targets:'业绩目标', calendar:'日历', analysis:'分析', customers:'客户管理', deleted:'已删除订单', settings:'设置' };
+  const names = { dashboard:'工作台', 'order-list':'订单列表', 'search-results':'搜索结果', logistics:'物流查询', amount:'金额统计', targets:'业绩目标', calendar:'日历', analysis:'分析', customers:'客户管理', deleted:'已删除订单', subscriptions:'订阅', settings:'设置' };
   document.querySelector('.page-title').textContent = names[target] || '工作台';
   const activeNav = document.querySelector(`.nav-item[data-page="${target}"]`);
   if (activeNav && window.matchMedia('(max-width: 820px)').matches) {
@@ -14746,7 +15788,7 @@ function setPage(page) {
   if ((window.location.hash || '').replace('#', '') !== target) window.location.hash = target;
   closeClientMenus();
   if (changed) {
-    renderPageContent(target);
+    renderPageContent(target, { entering:true });
     renderSegmentControls();
     enhanceBinarySelects();
   }

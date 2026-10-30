@@ -5584,7 +5584,7 @@ html[data-theme] :is(.logistics-kpis > .logistics-kpi:not(:first-child), .amount
         <section class="business-kpi-grid">
           <div class="business-kpi"><span>订单额</span><strong id="businessRevenue">$0</strong><small id="businessRevenueSub">按订单归属月份 · 草稿不计入</small></div>
           <div class="business-kpi"><span>正式订单数</span><strong id="businessOrderCount">0</strong><small>平均 <b id="businessAverage">$0</b></small></div>
-          <div class="business-kpi paid"><span>已收</span><strong id="businessPaid">$0</strong><small>本月订单的累计收款</small></div>
+          <div class="business-kpi paid"><span>已收</span><strong id="businessPaid">$0</strong><small>所选月份订单的累计收款</small></div>
           <div class="business-kpi"><span>收款率</span><strong id="businessCollectionRate">0%</strong><i class="business-kpi-bar"><b id="businessRateBar"></b></i></div>
           <div class="business-kpi due"><span>当前待收</span><strong id="businessDue">$0</strong><button class="link-btn" type="button" data-analysis-list="month">查看订单 <span>→</span></button></div>
         </section>
@@ -7552,10 +7552,13 @@ function normalizeOrderShipments(order = {}) {
 function primaryOrderShipment(order = {}) {
   return normalizeOrderShipments(order)[0] || null;
 }
-// 定金阶段已取消：旧的定金 / PI 订单付过款进生产中，没付款回报价。
+// 定金阶段已取消：旧的定金 / PI 订单没付款回报价，收了定金进尾款，付清了进生产中。
 function migrateDepositStage(o = {}) {
   if (o.stage !== 'deposit' && o.stage !== 'pi') return o.stage;
-  return Number(o.paidAmount || 0) > 0 ? 'production' : 'quote';
+  const paid = Number(o.paidAmount || 0);
+  const amount = Number(o.amount || 0);
+  if (paid <= 0) return 'quote';
+  return (amount > 0 && paid >= amount) || o.orderType === '全款订单' ? 'production' : 'balance';
 }
 function normalizeActiveOrder(o = {}) {
   const stage = normalizeStage(migrateDepositStage(o));
@@ -8150,7 +8153,7 @@ function calendarEventTone(event = {}) {
   if (event.type === 'logistics') return 'logistics';
   return 'repurchase';
 }
-function renderCalendarAgenda(targetId, events, limit = 10) {
+function renderCalendarAgenda(targetId, events, limit = Infinity) {
   const agenda = document.getElementById(targetId);
   if (!agenda) return;
   const count = document.getElementById('calendarAgendaCount');
@@ -8218,7 +8221,7 @@ function renderCalendarPage() {
     `);
   }
   grid.innerHTML = weekdays.map(day => `<div class="calendar-weekday">周${day}</div>`).join('') + cells.join('');
-  renderCalendarAgenda('calendarAgenda', events, 20);
+  renderCalendarAgenda('calendarAgenda', events);
 }
 let ecbHistoricalRates = [];
 let ecbRatesLoadedAt = '';
@@ -8366,7 +8369,8 @@ function renderAnalysisPage() {
   if (revenueSub) {
     const prevLabel = `${Number(monthOffset(activeBusinessMonth, -1).slice(5))} 月`;
     const pct = data.previous.total > 0 ? Math.round((data.current.total - data.previous.total) / data.previous.total * 100) : null;
-    revenueSub.innerHTML = pct === null ? '按订单归属月份 · 草稿不计入' : `<span class="${pct >= 0 ? 'up' : 'down'}">${pct >= 0 ? '+' : ''}${pct}%</span> 比 ${prevLabel}`;
+    revenueSub.innerHTML = data.current.missingRateCount || data.previous.missingRateCount ? '有订单缺少汇率，暂不对比'
+      : pct === null ? '按订单归属月份 · 草稿不计入' : `<span class="${pct >= 0 ? 'up' : 'down'}">${pct >= 0 ? '+' : ''}${pct}%</span> 比 ${prevLabel}`;
   }
   const rateBar = document.getElementById('businessRateBar');
   if (rateBar) rateBar.style.width = `${Math.min(100, Number(data.current.collectionRate) || 0)}%`;
@@ -13347,7 +13351,7 @@ function renderMonthSelects() {
     if (!sel) return;
     const previous = sel.id === 'totalRange' ? dashboardAmountMonthValue(options) : (sel.value || 'all');
     sel.innerHTML = options.map(m => {
-      const label = sel.id === 'totalRange' ? shortMonthLabel(m) : monthLabel(m);
+      const label = sel.id === 'totalRange' ? shortMonthLabel(m) : sel.id === 'amountMonth' && m === 'all' ? '跟随图表范围' : monthLabel(m);
       return `<option value="${m}">${label}</option>`;
     }).join('');
     sel.value = options.includes(previous) ? previous : 'all';
@@ -13596,7 +13600,8 @@ function renderAmountChart() {
   if (!el) return;
   const { mode, data, rangeOrders } = amountChartConfig();
   const rawMax = Math.max(...data.map(d => d.total), 1);
-  const step = Math.pow(10, Math.floor(Math.log10(rawMax / 4))) || 1;
+  // 刻度至少取整数，否则金额很小或没有数据时会出现 0 0 1 1 1 这样的重复刻度。
+  const step = Math.max(1, Math.pow(10, Math.floor(Math.log10(rawMax / 4))));
   const max = Math.ceil(rawMax / 4 / step) * step * 4;
   const width = Math.max(el.clientWidth || 640, data.length * (mode === 'day' ? 16 : 52));
   const height = 260;
@@ -16051,7 +16056,7 @@ function inferNewOrderStage({ selectedStage, orderType, amount, paidAmount, trac
   const total = Math.max(0, Number(amount || 0));
   const paid = Math.max(0, Number(paidAmount || 0));
   if (total > 0 && paid >= total) return 'production';
-  if (orderType === '定金订单' && paid > 0) return 'production';
+  if (orderType === '定金订单' && paid > 0) return 'balance';
   return 'quote';
 }
 function buildOrderFromFormData(data = {}, { existing = null, isDraft = false } = {}) {
@@ -16285,6 +16290,7 @@ function moveOrderToStage(id, stage) {
   if (!order) return;
   const oldStage = stageDef(order.stage).name;
   const previousStage = order.stage;
+  const before = stageMoveSnapshot(order);
   if (fromTrash) {
     state.trashOrders = (state.trashOrders || []).filter(o => o.id !== id);
     delete order.trashedAt;
@@ -16304,8 +16310,25 @@ function moveOrderToStage(id, stage) {
   order.logs = [{ time:nowText(), text: fromTrash ? `订单从垃圾箱恢复到 ${stageDef(normalized).name}` : `订单阶段从 ${oldStage} 调整为 ${stageDef(normalized).name}` }, ...(order.logs || [])];
   render();
   if (detailOrderId === id && document.getElementById('orderDetailDrawer')?.classList.contains('open')) openOrderDetail(id);
-  toast(`已移动到${stageDef(normalized).name}`, fromTrash ? undefined : { undo:() => moveOrderToStage(id, previousStage) });
+  const after = stageMoveSnapshot(order);
+  toast(`已移动到${stageDef(normalized).name}`, fromTrash ? undefined : { undo:() => undoOrderStageMove(id, before, after) });
   if (normalized === 'done' && normalizeStage(previousStage) !== 'done' && typeof uiConfetti === 'function') uiConfetti(...uiLastPointer());
+}
+// 进入已发货 / 已完成会顺带把尾款记为收齐、补发货状态；撤销时这些一起还原，不只改回阶段。
+function stageMoveSnapshot(order = {}) {
+  return { stage:order.stage, paidAmount:order.paidAmount, logisticsStatus:order.logisticsStatus, shippedAt:order.shippedAt, logisticsUpdated:order.logisticsUpdated };
+}
+function undoOrderStageMove(id, before, after) {
+  const order = state.orders.find(o => o.id === id);
+  if (!order) return;
+  // 撤销前又被手动改过的字段保留新值，只还原这次移动带来的变化。
+  Object.keys(before).forEach(key => { if (order[key] === after[key]) order[key] = before[key]; });
+  const paidRestored = order.paidAmount !== after.paidAmount;
+  order.updated = nowText();
+  order.logs = [{ time:nowText(), text:`撤销阶段调整：恢复为 ${stageDef(order.stage).name}${paidRestored ? `，已付款恢复为 ${money(order.paidAmount, order.currency || 'USD')}` : ''}` }, ...(order.logs || [])];
+  render();
+  if (detailOrderId === id && document.getElementById('orderDetailDrawer')?.classList.contains('open')) openOrderDetail(id);
+  toast(`已撤销，恢复为${stageDef(order.stage).name}`);
 }
 function deleteOrder() {
   if (!editingId) return;

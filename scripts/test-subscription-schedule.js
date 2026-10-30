@@ -24,7 +24,7 @@ function extractFunction(name) {
 const context = vm.createContext({});
 [
   'subscriptionLocalDate', 'subscriptionDayNumber', 'subscriptionDateFromDay', 'subscriptionAddMonths',
-  'subscriptionChargeIndex', 'subscriptionSchedule', 'subscriptionSummary', 'subscriptionCompare', 'subscriptionWhen',
+  'subscriptionCycle', 'subscriptionChargeDate', 'subscriptionCycleEvery', 'subscriptionCycleLabel', 'subscriptionChargeIndex', 'subscriptionSchedule', 'subscriptionSummary', 'subscriptionCompare', 'subscriptionWhen',
   'subscriptionInitial'
 ].forEach(name => vm.runInContext(extractFunction(name), context));
 const call = (name, ...args) => context[name](...args);
@@ -73,6 +73,32 @@ assert.equal(shot.charges, 4);
 assert.equal(shot.daysLeft, 61);
 assert.equal(Math.round(shot.cycleCny * 100) / 100, 254.75, 'USD is converted with the page rate');
 assert.equal(Math.round(shot.spentCny * 100) / 100, 1018.99);
+
+// Custom cycles: every N days, weeks (stored as days), quarters and multi-year.
+const weekly = call('subscriptionSchedule', item({ cycleUnit:'day', cycleCount:7, startDate:'2026-03-01', amount:7 }), '2026-03-18', 7.1);
+assert.equal(weekly.nextCharge, '2026-03-22');
+assert.equal(weekly.charges, 3, 'Mar 1, 8 and 15');
+assert.equal(weekly.paidThrough, '2026-03-22');
+assert.equal(Math.round(weekly.monthlyCny * 100) / 100, 30.42, 'a weekly price is averaged over 365/12 days');
+const quarterly = call('subscriptionSchedule', item({ cycleUnit:'month', cycleCount:3, startDate:'2025-11-30', amount:90 }), '2026-03-18', 7.1);
+assert.equal(quarterly.nextCharge, '2026-05-30');
+assert.equal(quarterly.charges, 2, 'Nov 30 and Feb 28');
+assert.equal(quarterly.monthlyCny, 30);
+const legacyYearly = call('subscriptionSchedule', item({ cycleMonths:12, startDate:'2025-04-01', amount:120 }), '2026-03-18', 7.1);
+assert.equal(legacyYearly.nextCharge, '2026-04-01', 'records with only cycleMonths still work');
+const label = (cycleUnit, cycleCount) => [call('subscriptionCycleLabel', { cycleUnit, cycleCount }), call('subscriptionCycleEvery', { cycleUnit, cycleCount })].join('/');
+assert.equal(label('day', 7), '周付/每周');
+assert.equal(label('day', 14), '每2周/每2周');
+assert.equal(label('day', 10), '每10天/每10天');
+assert.equal(label('month', 1), '月付/每月');
+assert.equal(label('month', 3), '季付/每季度');
+assert.equal(label('month', 6), '半年付/每半年');
+assert.equal(label('month', 12), '年付/每年');
+assert.equal(label('month', 24), '每2年/每2年');
+assert.equal(label('month', 2), '每2个月/每2个月');
+assert.equal(call('subscriptionCycleLabel', { cycleMonths:12 }), '年付');
+const weeklyWindow = call('subscriptionSummary', [item({ id:'w', cycleUnit:'day', cycleCount:7, startDate:'2026-03-01' })], '2026-03-18', 7);
+assert.deepEqual(Array.from(weeklyWindow.upcoming, entry => entry.date), ['2026-03-22', '2026-03-29', '2026-04-05', '2026-04-12'], 'weekly charges inside the 30-day window');
 
 // Cancelling keeps the subscription until the end date, then it expires and stops counting charges.
 const cancelled = { ...onePassword, status:'cancelled', endsOn:'2026-05-18' };
@@ -130,4 +156,4 @@ assert.equal(call('subscriptionInitial', '阿里云域名'), '阿');
 assert.equal(call('subscriptionInitial', 'iCloud+'), 'iC');
 assert.equal(call('subscriptionInitial', ' + '), '·');
 
-console.log('Subscription schedule test passed: month ends, leap years, today, cancellation, local date, 30-day window, status pills, initials and ordering.');
+console.log('Subscription schedule test passed: custom day/month cycles, month ends, leap years, today, cancellation, local date, 30-day window, status pills, initials and ordering.');

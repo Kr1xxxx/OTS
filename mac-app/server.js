@@ -9,6 +9,7 @@ const { spawn } = require('child_process');
 const { DatabaseSync } = require('node:sqlite');
 const { createWhatsAppStore } = require('./whatsapp-store');
 const { createAiUsageStore } = require('./ai-usage-store');
+const { createSubscriptionStore } = require('./subscription-store');
 
 const appName = 'TradeOrderSystem';
 const port = Number(process.env.TRADE_APP_PORT || 47828);
@@ -1143,6 +1144,17 @@ function createBackup(force = false) {
   return { ok:true, file:backupFile, attachmentsDir:backupFile + '.attachments', attachmentCount };
 }
 
+function subscriptionStore() {
+  if (!database || storageMode !== 'sqlite') throw httpError(503, '订阅数据库暂不可用');
+  return createSubscriptionStore(database);
+}
+
+function automaticBackup() {
+  try { return createBackup(false); } catch (error) {
+    return { ok: false, message: error.message || 'automatic backup failed' };
+  }
+}
+
 function backupSummary() {
   ensureStorage();
   const backups = fs.readdirSync(backupDir)
@@ -1461,7 +1473,8 @@ function requireJsonContentType(req, pathname) {
   const jsonRoutes = new Set([
     '/api/save', '/api/open-attachment-folder', '/api/delete-attachments', '/api/attachments',
     '/api/open-url', '/api/ai-settings', '/api/ai-chat', '/api/api-status',
-    '/api/tracking-settings', '/api/order-notification'
+    '/api/tracking-settings', '/api/order-notification',
+    '/api/subscriptions/save', '/api/subscriptions/delete', '/api/subscriptions/rate'
   ]);
   if (req.method !== 'POST' || !jsonRoutes.has(pathname)) return;
   const type = String(req.headers['content-type'] || '').split(';', 1)[0].trim().toLowerCase();
@@ -2098,6 +2111,24 @@ const server = http.createServer(async (req, res) => {
         backup = { ok: false, message: error.message || 'automatic backup failed' };
       }
       return send(res, 200, JSON.stringify({ ok: true, storageMode, ...result, backup }));
+    }
+    if (req.method === 'GET' && url.pathname === '/api/subscriptions') {
+      return send(res, 200, JSON.stringify(subscriptionStore().list()));
+    }
+    if (req.method === 'POST' && url.pathname === '/api/subscriptions/save') {
+      const body = JSON.parse(await readBody(req));
+      const result = subscriptionStore().save(body.item);
+      return send(res, 200, JSON.stringify({ ...result, backup: automaticBackup() }));
+    }
+    if (req.method === 'POST' && url.pathname === '/api/subscriptions/delete') {
+      const body = JSON.parse(await readBody(req));
+      const result = subscriptionStore().remove(body);
+      return send(res, 200, JSON.stringify({ ...result, backup: automaticBackup() }));
+    }
+    if (req.method === 'POST' && url.pathname === '/api/subscriptions/rate') {
+      const body = JSON.parse(await readBody(req));
+      const result = subscriptionStore().setRate(body);
+      return send(res, 200, JSON.stringify({ ...result, backup: automaticBackup() }));
     }
     if (req.method === 'POST' && url.pathname === '/api/order-notification') {
       const body = JSON.parse(await readBody(req));

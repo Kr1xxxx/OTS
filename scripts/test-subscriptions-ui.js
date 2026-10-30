@@ -66,7 +66,7 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     const counters = { saves:0, errors:[], subscriptionCalls:[] };
     const { context, page } = await openApp(browser, store, counters);
     const rows = page.locator('#subsList .subs-row');
-    const toasts = page.locator('#subscriptionToasts .subs-toast');
+    const toasts = page.locator('#toast .toast-item');
     await rows.first().waitFor();
 
     // List: sorted by next charge, converted with the page rate, isolated from order data.
@@ -123,7 +123,7 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     assert.equal(await rows.filter({ hasText:'1Password' }).locator('.subs-pill').innerText(), '61天后到期');
     const cancelToast = toasts.filter({ hasText:'1Password 已取消订阅' });
     assert.match(await cancelToast.innerText(), /2026-05-18 到期后不再续费/);
-    await cancelToast.locator('.subs-undo').click();
+    await cancelToast.locator('.toast-undo').click();
     await drawer.locator('.subs-dh .subs-pill.green').waitFor();
     assert.deepEqual((({ status, endsOn }) => ({ status, endsOn }))(store.list().items.find(item => item.name === '1Password')), { status:'active', endsOn:'' });
     await drawer.locator('[data-sub-action="toggle"]').click();
@@ -152,7 +152,7 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     assert.equal(store.list().items.length, 2);
     assert.equal(await drawer.getAttribute('aria-hidden'), 'true');
     await page.waitForFunction(() => document.querySelectorAll('#subsList .subs-row').length === 2);
-    await deletedToast.locator('.subs-undo').click();
+    await deletedToast.locator('.toast-undo').click();
     await rows.filter({ hasText:'1Password' }).waitFor();
     await toasts.filter({ hasText:'已恢复 1Password' }).waitFor();
     const restored = store.list().items.find(item => item.name === '1Password');

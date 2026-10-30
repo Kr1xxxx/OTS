@@ -15758,7 +15758,11 @@ function repositionOpenMenus() {
 window.addEventListener('resize', repositionOpenMenus);
 window.visualViewport?.addEventListener('resize', repositionOpenMenus);
 document.addEventListener('animationend', e => {
-  if (e.target.matches?.('.modal')) repositionOpenMenus();
+  if (!e.target.matches?.('.modal')) return;
+  // The modal entrance moves its triggers; re-anchor so the next scroll check compares against the settled position.
+  if (activeAppSelect) activeAppSelectAnchor = appSelectParts(activeAppSelect).button?.getBoundingClientRect() || activeAppSelectAnchor;
+  if (activeClientPicker) activeClientPicker._clientMenuAnchor = activeClientPicker.querySelector('input[name="client"]')?.getBoundingClientRect() || activeClientPicker._clientMenuAnchor;
+  repositionOpenMenus();
 });
 document.addEventListener('wheel', e => {
   const menu = e.target.closest?.('.app-select-popover, .client-menu.open');
@@ -15780,6 +15784,12 @@ window.addEventListener('scroll', e => {
   const rect = appSelectParts(activeAppSelect).button?.getBoundingClientRect();
   // Ignore delayed scroll events when the trigger is already at its opening position.
   if (rect && activeAppSelectAnchor && Math.abs(rect.top - activeAppSelectAnchor.top) < 1 && Math.abs(rect.left - activeAppSelectAnchor.left) < 1) return;
+  // A modal still sliding in moves the trigger without any user scroll; follow it instead of closing.
+  if (appSelectParts(activeAppSelect).button?.closest('.modal')?.getAnimations().length) {
+    activeAppSelectAnchor = rect;
+    positionAppSelectPopover(activeAppSelect);
+    return;
+  }
   closeAppSelectMenu({ restoreFocus:false });
 }, true);
 document.addEventListener('click', e => {

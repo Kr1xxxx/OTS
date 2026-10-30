@@ -1125,6 +1125,19 @@ function copyBackupAttachments(backupFile) {
   }
   return count;
 }
+function missingAttachmentReport() {
+  // Backups stay all-or-nothing; name the orders whose images are gone so the user can fix them.
+  const orders = new Map();
+  let count = 0;
+  for (const row of database.prepare('SELECT num, data_json FROM orders').all()) {
+    const missing = [...collectAttachmentRefs(JSON.parse(row.data_json))].filter(file => !fs.existsSync(file));
+    if (!missing.length) continue;
+    count += missing.length;
+    const label = String(row.num || '').trim() || '未编号订单';
+    orders.set(label, (orders.get(label) || 0) + missing.length);
+  }
+  return { count, orders:[...orders].map(([orderNum, files]) => ({ orderNum, files })) };
+}
 function createBackup(force = false) {
   ensureStorage();
   if (storageMode !== 'sqlite' || !database) return { ok: false, message: storageError || 'SQLite unavailable' };
@@ -1140,6 +1153,14 @@ function createBackup(force = false) {
   const backupName = availableFileName(backupDir, `trade-order-data-${timestamp()}`, extension);
   const backupFile = path.join(backupDir, backupName);
   const stagingFile = backupFile + '.partial';
+  const missing = missingAttachmentReport();
+  if (missing.count) {
+    const names = missing.orders.slice(0, 10).map(item => item.orderNum).join('、');
+    const more = missing.orders.length > 10 ? ` 等 ${missing.orders.length} 个订单` : '';
+    throw httpError(409, `备份未完成：${missing.count} 个附件文件缺失（订单 ${names}${more}）。请重新上传或删除这些附件后再备份。`, {
+      publicDetails: { missingAttachments: missing.orders }
+    });
+  }
   database.exec('PRAGMA wal_checkpoint(FULL)');
   const quoted = stagingFile.replaceAll("'", "''");
   let attachmentCount;

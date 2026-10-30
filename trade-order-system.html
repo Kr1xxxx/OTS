@@ -5534,7 +5534,8 @@ let macSaveLastError = '';
 let macSaveInFlight = false;
 let macBackupWarning = '';
 function backupSaveFeedback(backup, previousWarning = '') {
-  const message = backup?.ok === false ? '数据已保存，自动备份失败，请在设置中重试备份' : backup?.ok === true && !backup.skipped ? '' : previousWarning;
+  const failure = backup?.missingAttachments || /附件文件缺失/.test(String(backup?.message || '')) ? backup.message : '请在设置中重试备份';
+  const message = backup?.ok === false ? `数据已保存，自动备份失败：${failure}` : backup?.ok === true && !backup.skipped ? '' : previousWarning;
   return { warning: Boolean(message), message };
 }
 function setMacStorageStatus(mode = 'sqlite', stateText = 'saved', detail = '') {
@@ -15028,14 +15029,15 @@ async function macManualBackup(btn) {
     if (!await flushPendingSave()) throw new Error(macSaveLastError || '数据尚未保存');
     const res = await apiFetch('/api/manual-backup', { method: 'POST' });
     const data = await res.json();
-    if (!res.ok || !data.ok) throw new Error('备份失败');
+    if (!res.ok || !data.ok) throw new Error(Array.isArray(data.missingAttachments) ? data.message : '备份失败');
     macBackupWarning = '';
     setMacStorageStatus('sqlite', 'saved', '数据已保存 · 手动备份已完成');
     toast('Mac 本地备份已生成');
   } catch (e) {
-    macBackupWarning = '备份失败，请在设置中重试备份';
+    const missing = /附件文件缺失/.test(String(e?.message || ''));
+    macBackupWarning = missing ? e.message : '备份失败，请在设置中重试备份';
     setMacStorageStatus('sqlite', 'warning', macBackupWarning);
-    toast('备份失败');
+    toast(missing ? e.message : '备份失败');
     throw e;
   }
   });

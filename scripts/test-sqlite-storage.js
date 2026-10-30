@@ -122,6 +122,9 @@ async function main() {
   fs.unlinkSync(imagePath);
   const failedBackup = await request('/api/manual-backup', {method:'POST',body:{},allowError:true});
   assert(failedBackup.status >= 400 && failedBackup.data.ok === false, 'missing attachment must not report a complete backup');
+  const missingOrderNum = (await request('/api/data')).data.orders[0].num;
+  assert(failedBackup.data.missingAttachments?.some(item => item.orderNum === missingOrderNum && item.files === 1), 'failed backup must name the order whose attachment is missing');
+  assert(failedBackup.data.message.includes(missingOrderNum), 'backup error message must name the order');
   assert(JSON.stringify(fs.readdirSync(path.join(testDir,'backups')).filter(name=>name.endsWith('.sqlite')).sort()) === JSON.stringify(backupsBeforeFailure), 'failed backup changed retained snapshots');
   assert(!fs.readdirSync(path.join(testDir,'backups')).some(name=>name.includes('.partial')), 'failed backup left partial files');
   fs.copyFileSync(copiedImage,imagePath);

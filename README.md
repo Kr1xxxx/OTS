@@ -25,6 +25,14 @@ npm test runs every regression script, in parallel where safe, and prints a summ
 
 The build runs the board-layout gate, compiles the native host, bundles Node, and verifies an ad-hoc signature. It does **not** install or restart the application. This is a local build, not a notarized distribution. On a clean Mac install Pillow in an appropriate Python environment before testing.
 
+## Install and update (GitHub Releases)
+
+Every time VERSION changes on main, .github/workflows/release.yml builds the app on a macOS runner and publishes release vX.YY with two files: a .dmg for the first install and a .zip the app uses to update itself (Apple Silicon / arm64 only, because the runner bundles its own arm64 Node).
+
+- First install: open the .dmg from the latest release and drag the app into Applications. The app is ad-hoc signed, not notarized, so macOS blocks the first launch: open System Settings → Privacy & Security and click "Open Anyway" (or run `xattr -dr com.apple.quarantine /Applications/TradeOrderSystem.app`). Updates do not need this again.
+- Updates: the app checks releases/latest a few seconds after launch; you can also click the "更新" button next to the version number in the sidebar, or use the app menu "检查更新…". "更新并重启" downloads the zip, checks its SHA-256 against GitHub's asset digest, verifies the bundle id, version and code signature, flushes pending saves, then quits; a small script swaps the bundle in place and reopens it (log: ~/Library/Logs/TradeOrderSystem-update.log). Data in Application Support is untouched.
+- Publishing a new version: `npm run bump-version -- 3.90`, then `node scripts/update-export-checksums.js`, commit and merge to main. Minor numbers compare as integers, so go 3.89 → 3.90 → 3.91, never 3.9.
+
 ## Safe local development
 
 The local server reads frontend resources from the generated app when one is built, otherwise from the repository root. Use a newly created, isolated data directory so development cannot open your production database:

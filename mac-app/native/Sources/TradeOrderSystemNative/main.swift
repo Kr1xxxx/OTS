@@ -46,6 +46,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     private var terminationInProgress = false
     private var terminationReplyPending = false
     private var flushAttemptID: UUID?
+    private var checkedForUpdatesAtLaunch = false
+
+    private lazy var updater = AppUpdater(
+        prepareToQuit: { [unowned self] completion in self.prepareForUpdateRelaunch(completion) },
+        quit: { [unowned self] in
+            self.allowTermination = true
+            NSApp.terminate(nil)
+        }
+    )
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         createMainMenu()
@@ -88,6 +97,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         let config = WKWebViewConfiguration()
         config.preferences.javaScriptCanOpenWindowsAutomatically = true
         config.userContentController.add(self, name: "windowDragRegions")
+        config.userContentController.add(self, name: "appUpdate")
         let dragBridgeScript = WKUserScript(
             source: """
             (() => {
@@ -177,6 +187,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
 
     func userContentController(_ userContentController: WKUserContentController,
                                didReceive message: WKScriptMessage) {
+        if message.name == "appUpdate" {
+            guard let url = webView?.url, originPolicy?.contains(url) == true else { return }
+            updater.checkForUpdates(userInitiated: true)
+            return
+        }
         guard message.name == "windowDragRegions",
               let url = webView?.url,
               originPolicy?.contains(url) == true,
@@ -213,6 +228,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
 
         let appMenuItem = NSMenuItem()
         let appMenu = NSMenu()
+        let updateItem = NSMenuItem(title: "检查更新…", action: #selector(checkForUpdatesFromMenu(_:)), keyEquivalent: "")
+        updateItem.target = self
+        appMenu.addItem(updateItem)
+        appMenu.addItem(NSMenuItem.separator())
         appMenu.addItem(NSMenuItem(title: "退出外贸订单跟进系统", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         appMenuItem.submenu = appMenu
         mainMenu.addItem(appMenuItem)
@@ -281,6 +300,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
               let url = webView.url,
               originPolicy?.contains(url) == true else { return }
         appHasLoaded = true
+        if !checkedForUpdatesAtLaunch {
+            checkedForUpdatesAtLaunch = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
+                self?.updater.checkForUpdates(userInitiated: false)
+            }
+        }
+    }
+
+    @objc private func checkForUpdatesFromMenu(_ sender: Any?) {
+        updater.checkForUpdates(userInitiated: true)
+    }
+
+    /// Same save flush as quitting, but a failed save cancels the update instead of asking.
+    private func prepareForUpdateRelaunch(_ completion: @escaping @MainActor (Bool) -> Void) {
+        guard !terminationInProgress else {
+            completion(false)
+            return
+        }
+        terminationInProgress = true
+        flushPendingSave { [weak self] result in
+            self?.terminationInProgress = false
+            if case .success = result {
+                completion(true)
+            } else {
+                completion(false)
+            }
+        }
     }
 
     private func startLocalServer() {

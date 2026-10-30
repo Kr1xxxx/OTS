@@ -16,6 +16,7 @@ const baseUrl = `http://127.0.0.1:${port}`;
 const apiToken = `security-token-${process.pid}`;
 const instanceNonce = `security-instance-${process.pid}`;
 const legacyKey = 'LEGACY_TEST_KEY_DO_NOT_USE';
+const legacyTrackingKey = 'LEGACY_TRACKING_KEY_DO_NOT_USE';
 let child = null;
 
 main().catch(error => {
@@ -36,12 +37,19 @@ async function main() {
     baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
     model: 'glm-5.1'
   }));
+  fs.writeFileSync(path.join(testDir, 'tracking-settings.json'), JSON.stringify({
+    dhlApiEnabled: '是',
+    dhlApiKey: legacyTrackingKey,
+    fedexApiKey: '',
+    autoRunTimes: '08:30'
+  }));
 
   startServer();
   const publicHealth = await waitForHealth({ authenticated: false });
   assert.equal(publicHealth.instanceNonce, instanceNonce);
   assert.equal(Object.hasOwn(publicHealth, 'dataFile'), false, 'public health leaked local paths');
-  const resourceHtml = path.join(root, 'mac-app', 'TradeOrderSystem.app', 'Contents', 'Resources', 'trade-order-system.html');
+  const builtHtml = path.join(root, 'mac-app', 'TradeOrderSystem.app', 'Contents', 'Resources', 'trade-order-system.html');
+  const resourceHtml = fs.existsSync(builtHtml) ? builtHtml : path.join(root, 'trade-order-system.html');
   const expectedUpdatedAt = fs.statSync(resourceHtml).mtime.toISOString();
   assert.equal(publicHealth.appUpdatedAt, expectedUpdatedAt, 'update time must come from the built frontend, not server startup');
 
@@ -49,6 +57,10 @@ async function main() {
   assert.equal(authenticatedHealth.ok, true);
   assert.equal(authenticatedHealth.storageMode, 'sqlite');
   assert.equal(authenticatedHealth.appUpdatedAt, expectedUpdatedAt);
+  const seed = JSON.parse(fs.readFileSync(seedFile, 'utf8'));
+  const seedData = seed.data || seed;
+  assert.equal(authenticatedHealth.counts.orders, seedData.orders.length, 'health counts must come from SQLite');
+  assert.equal(authenticatedHealth.counts.customers, Object.keys(seedData.customers || {}).length);
   const headerAuthenticatedData = await rawRequest('/api/data', {
     authenticated: false,
     headers: { 'X-Trade-Token': apiToken }
@@ -107,6 +119,22 @@ async function main() {
   const publicSettings = await request('/api/ai-settings');
   assert.equal(Object.hasOwn(publicSettings, 'apiKey'), false);
   assert.equal(JSON.stringify(publicSettings).includes(legacyKey), false);
+
+  const trackingSettingsFile = path.join(testDir, 'tracking-settings.json');
+  const trackingSecretsFile = path.join(testDir, 'secrets', 'tracking-credentials.json');
+  const migratedTracking = JSON.parse(fs.readFileSync(trackingSettingsFile, 'utf8'));
+  assert.equal(Object.hasOwn(migratedTracking, 'dhlApiKey'), false, 'tracking settings still contained a carrier key');
+  assert.equal(migratedTracking.autoRunTimes, '08:30', 'credential migration changed tracking settings');
+  assert.equal(JSON.parse(fs.readFileSync(trackingSecretsFile, 'utf8')).dhlApiKey, legacyTrackingKey);
+  assert.equal(fs.statSync(trackingSecretsFile).mode & 0o777, 0o600);
+  const publicTracking = await request('/api/tracking-settings');
+  assert.equal(publicTracking.dhlApiKeySaved, true);
+  assert.equal(JSON.stringify(publicTracking).includes(legacyTrackingKey), false);
+  await request('/api/tracking-settings', { method: 'POST', body: { fedexApiKey: 'NEW_FEDEX_KEY_DO_NOT_USE', dhlApiKey: '' } });
+  const storedTracking = JSON.parse(fs.readFileSync(trackingSecretsFile, 'utf8'));
+  assert.equal(storedTracking.fedexApiKey, 'NEW_FEDEX_KEY_DO_NOT_USE');
+  assert.equal(storedTracking.dhlApiKey, legacyTrackingKey, 'blank key field must keep the saved key');
+  assert.equal(fs.readFileSync(trackingSettingsFile, 'utf8').includes('NEW_FEDEX_KEY_DO_NOT_USE'), false);
 
   await expectStatus('/api/ai-settings', 403, {
     method: 'POST',

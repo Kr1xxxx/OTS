@@ -46,7 +46,7 @@ const { chromium } = require('playwright');
     await page.locator('#newOrderBtn').click();
     await page.locator('#orderForm [name="client"]').fill('Save Test Buyer');
     await page.locator('#orderForm [name="amount"]').fill('100');
-    await page.locator('#orderForm [name="sendFeishuNotification"]').uncheck();
+    await page.locator('#orderModal [name="sendFeishuNotification"]').uncheck();
     failSave = true;
     await page.evaluate(()=>document.getElementById('orderForm').requestSubmit());
     await page.waitForFunction(()=>window.pendingSaveStatus().error);

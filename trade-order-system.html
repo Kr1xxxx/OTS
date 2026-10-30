@@ -4089,7 +4089,7 @@ html[data-theme] .accent-swatch[data-accent-choice="orange"] { --c:#e8590c; }
 html[data-theme] .accent-swatch[data-accent-choice="rose"] { --c:#e0336f; }
 html[data-theme] .accent-swatch[data-accent-choice="ink"] { --c:oklch(26% 0 0); }
 html[data-theme="dark"] .accent-swatch[data-accent-choice="ink"] { --c:oklch(90% 0 0); }
-@media (max-width: 820px) { html[data-theme] .accent-swatches { display:none; } }
+@media (max-width: 820px) { html[data-theme] :is(.accent-swatches, .sidebar-api-card) { display:none; } }
 /* ===== 新版 UI：公共组件 ===== */
 /* Toast 堆叠：从底部弹入，旧的往后叠（每层上移 10px、缩小 5%），最多露 3 层；悬停展开 */
 html[data-theme] .toast { position:fixed; right:24px; bottom:24px; left:auto; z-index:90; width:min(380px, calc(100vw - 32px)); height:0; padding:0; border:0; background:none; box-shadow:none; display:block; color:inherit; text-align:left; }
@@ -4131,6 +4131,80 @@ html[data-theme] .hold-btn.shake { animation:uiShake .4s var(--ease); }
 /* 数值变化：轻轻上滚一下（不改文字，读数始终是最终值） */
 html[data-theme] .num-tick { animation:uiTick .58s var(--ease-spring); }
 @keyframes uiTick { from { opacity:.2; transform:translateY(.35em); filter:blur(2px); } }
+/* 订单弹窗样式：侧栏切换 卡片（默认）/ A 单栏 / B 左侧粘贴 / C 紧凑行 */
+html[data-theme] .modal-style-picker { display:flex; align-items:center; gap:6px; padding:0 8px; }
+html[data-theme] .modal-style-picker > span { font-size:12px; color:var(--gray-500); margin-right:auto; }
+html[data-theme] .modal-style-seg { position:relative; display:flex; padding:2px; border-radius:999px; background:color-mix(in srgb, var(--gray-900) 6%, transparent); }
+html[data-theme] .modal-style-seg button { position:relative; z-index:1; min-width:26px; height:22px; padding:0 7px; border:0; border-radius:999px; background:transparent; color:var(--gray-500); font:inherit; font-size:11.5px; font-weight:500; cursor:pointer; transition:color var(--motion-fast) var(--ease); }
+html[data-theme] .modal-style-seg button:hover { color:var(--gray-900); }
+html[data-theme] .modal-style-seg button[aria-pressed="true"] { color:var(--gray-900); font-weight:600; }
+html[data-theme] .modal-style-seg .seg-glide { position:absolute; top:2px; bottom:2px; left:0; border-radius:999px; background:var(--surface-bg); box-shadow:0 1px 2px oklch(0% 0 0 / .1); transition:transform var(--motion-spring) var(--ease-spring), width var(--motion-spring) var(--ease-spring); }
+html[data-theme="dark"] .modal-style-seg { background:color-mix(in srgb, var(--gray-900) 10%, transparent); }
+html[data-theme="dark"] .modal-style-seg .seg-glide { background:var(--surface-raised); }
+@media (max-width: 820px) { html[data-theme] .modal-style-picker { display:none; } }
+
+/* 三种样式共用：去掉分区卡片，靠细线和留白分组 */
+html[data-theme][data-modal-style] .order-modal { background:var(--surface-bg); transition:width var(--motion-slow) var(--ease-drawer); }
+html[data-theme][data-modal-style] .order-modal .modal-head { background:var(--surface-bg); border-bottom-color:transparent; }
+html[data-theme][data-modal-style] .order-form { background:var(--surface-bg); gap:0; }
+html[data-theme][data-modal-style] .order-form > .order-section,
+html[data-theme][data-modal-style] .order-form > .order-section.primary { background:transparent; border:0; border-top:1px solid var(--surface-border); border-radius:0; box-shadow:none; padding:24px 0; }
+html[data-theme][data-modal-style] .order-form > .order-section:first-of-type { border-top:0; padding-top:8px; }
+html[data-theme][data-modal-style] .order-form > .order-actions { padding:16px 0; border:0; border-top:1px solid var(--surface-border); border-radius:0; background:transparent; box-shadow:none; }
+html[data-theme][data-modal-style] .order-form .order-section-title { font-size:15px; }
+html[data-theme][data-modal-style] .order-form .paste-assist { border:0; border-radius:16px; background:var(--surface-soft); }
+html[data-theme][data-modal-style] .order-form > .order-section { animation:uiRise .42s var(--ease-out) backwards; }
+html[data-theme][data-modal-style] .order-form > .order-section:nth-of-type(2) { animation-delay:.03s; }
+html[data-theme][data-modal-style] .order-form > .order-section:nth-of-type(3) { animation-delay:.06s; }
+html[data-theme][data-modal-style] .order-form > .order-section:nth-of-type(n+4) { animation-delay:.09s; }
+
+/* A：单栏安静，所有字段一列排下来 */
+html[data-theme][data-modal-style="a"] .order-modal { width:min(760px, 100%); }
+html[data-theme][data-modal-style="a"] .order-modal .modal-head { padding:24px 32px 8px; }
+html[data-theme][data-modal-style="a"] .order-modal .modal-title { font-size:20px; }
+html[data-theme][data-modal-style="a"] .order-form { padding:0 32px 24px; }
+html[data-theme][data-modal-style="a"] .order-form :is(.order-section-grid, .payment-grid, .deadline-grid) { grid-template-columns:minmax(0,1fr); gap:14px; }
+html[data-theme][data-modal-style="a"] .order-form .payment-grid::before { display:none; }
+html[data-theme][data-modal-style="a"] .order-form .paste-assist textarea { min-height:96px; }
+
+/* B：左栏常驻粘贴识别，右栏是字段 */
+html[data-theme][data-modal-style="b"] .order-modal { width:min(1100px, 100%); display:grid; grid-template-columns:360px minmax(0,1fr); grid-template-rows:auto minmax(0,1fr); }
+html[data-theme][data-modal-style="b"] .order-modal .modal-head { grid-column:1 / -1; padding:20px 28px 16px; border-bottom-color:var(--surface-border); }
+html[data-theme][data-modal-style="b"] .order-form { padding:4px 28px 24px; min-height:0; }
+html[data-theme][data-modal-style="b"] .order-paste-side { min-height:0; display:flex; flex-direction:column; padding:20px 20px 20px 28px; background:var(--surface-soft); border-right:1px solid var(--surface-border); max-height:calc(92vh - 100px); overflow:auto; animation:uiSideIn var(--motion-slow) var(--ease-drawer); }
+html[data-theme][data-modal-style="b"] .order-paste-side .paste-assist { flex:1; display:flex; flex-direction:column; gap:10px; padding:0; background:transparent; border:0; min-height:0; }
+html[data-theme][data-modal-style="b"] .order-paste-side .paste-assist-title { font-size:15px; }
+html[data-theme][data-modal-style="b"] .order-paste-side textarea { flex:1; min-height:240px; border-radius:16px; background:var(--surface-bg); border:1px solid var(--surface-border); padding:14px 16px; resize:none; }
+html[data-theme][data-modal-style="b"] .order-paste-side textarea:focus { border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent); }
+html[data-theme][data-modal-style="b"] .order-paste-side .paste-assist-actions { justify-content:stretch; }
+html[data-theme][data-modal-style="b"] .order-paste-side .paste-assist-actions .btn { flex:1; }
+html[data-theme][data-modal-style="b"] .order-paste-side .paste-results { overflow:auto; }
+@keyframes uiSideIn { from { opacity:0; transform:translateX(-16px); } }
+
+/* C：顶部分区标签 + 标签在左的紧凑行 */
+.order-section-tabs { display:none; }
+html[data-theme][data-modal-style="c"] .order-modal { width:min(880px, 100%); }
+html[data-theme][data-modal-style="c"] .order-modal .modal-head { padding:20px 28px 10px; }
+html[data-theme][data-modal-style="c"] .order-modal .modal-title { font-size:20px; }
+html[data-theme][data-modal-style="c"] .order-section-tabs { position:relative; display:flex; gap:20px; padding:0 28px; border-bottom:1px solid var(--surface-border); overflow-x:auto; scrollbar-width:none; }
+html[data-theme][data-modal-style="c"] .order-section-tabs button { padding:10px 0; border:0; background:transparent; color:var(--gray-500); font:inherit; font-size:13px; white-space:nowrap; cursor:pointer; transition:color var(--motion-fast) var(--ease); }
+html[data-theme][data-modal-style="c"] .order-section-tabs button:hover { color:var(--gray-900); }
+html[data-theme][data-modal-style="c"] .order-section-tabs button[aria-current="true"] { color:var(--gray-900); font-weight:600; }
+html[data-theme][data-modal-style="c"] .order-section-tabs .tab-line { position:absolute; bottom:-1px; left:0; height:2px; border-radius:2px; background:var(--accent); transition:transform var(--motion-spring) var(--ease-spring), width var(--motion-spring) var(--ease-spring); }
+html[data-theme][data-modal-style="c"] .order-form { padding:0 28px 24px; max-height:calc(92vh - 140px); }
+html[data-theme][data-modal-style="c"] .order-form > .order-section { padding:18px 0 16px; scroll-margin-top:8px; }
+html[data-theme][data-modal-style="c"] .order-form .order-section-head { margin-bottom:10px; }
+html[data-theme][data-modal-style="c"] .order-form .order-section-head > div { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+html[data-theme][data-modal-style="c"] .order-form .order-section-title { font-size:14px; }
+html[data-theme][data-modal-style="c"] .order-form .order-section-sub { margin:0; font-size:12px; }
+html[data-theme][data-modal-style="c"] .order-form :is(.order-section-grid, .payment-grid, .deadline-grid, .payment-compact-row) { grid-template-columns:minmax(0,1fr); gap:8px; }
+html[data-theme][data-modal-style="c"] .order-form .payment-grid::before { display:none; }
+html[data-theme][data-modal-style="c"] .order-form :is(.order-section-grid, .payment-grid, .deadline-grid, .payment-compact-row, .order-section) > .field { display:grid; grid-template-columns:132px minmax(0,1fr); align-items:center; gap:16px; }
+html[data-theme][data-modal-style="c"] .order-form .field > label { margin:0; color:var(--gray-600); font-size:13px; }
+html[data-theme][data-modal-style="c"] .order-form .field:has(> textarea) { align-items:start; }
+html[data-theme][data-modal-style="c"] .order-form .field:has(> textarea) > label { padding-top:10px; }
+html[data-theme][data-modal-style="c"] .order-form .field :is(input:not([type="checkbox"]), select) { min-height:36px; }
+html[data-theme][data-modal-style="c"] .order-form .paste-assist textarea { min-height:72px; }
 /* ===== 通知面板（顶栏铃铛 → 右侧 440px 面板） ===== */
 html[data-theme] .bell-btn { position:relative; }
 html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); }
@@ -4223,6 +4297,7 @@ html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); 
     </div>
   </nav>
   <div class="accent-swatches" role="group" aria-label="强调色"><span>配色</span><button class="accent-swatch" type="button" data-accent-choice="violet" title="紫色" aria-label="强调色：紫色"></button><button class="accent-swatch" type="button" data-accent-choice="blue" title="蓝色" aria-label="强调色：蓝色"></button><button class="accent-swatch" type="button" data-accent-choice="teal" title="青色" aria-label="强调色：青色"></button><button class="accent-swatch" type="button" data-accent-choice="orange" title="橙色" aria-label="强调色：橙色"></button><button class="accent-swatch" type="button" data-accent-choice="rose" title="玫红" aria-label="强调色：玫红"></button><button class="accent-swatch" type="button" data-accent-choice="ink" title="墨色" aria-label="强调色：墨色"></button></div>
+  <div class="modal-style-picker" role="group" aria-label="订单弹窗样式"><span>弹窗</span><div class="modal-style-seg"><i class="seg-glide" aria-hidden="true"></i><button type="button" data-modal-style-choice="" title="分区卡片（原样式）" aria-label="弹窗样式：卡片">卡片</button><button type="button" data-modal-style-choice="a" title="A 单栏：所有字段一列排下来" aria-label="弹窗样式：A 单栏">A</button><button type="button" data-modal-style-choice="b" title="B 左侧粘贴：左边贴聊天记录识别，右边填字段" aria-label="弹窗样式：B 左侧粘贴">B</button><button type="button" data-modal-style-choice="c" title="C 紧凑行：标签在左，顶部分区标签跳转" aria-label="弹窗样式：C 紧凑行">C</button></div></div>
   <div class="sidebar-api-card">
     <div class="sidebar-api-title">API 检测</div>
     <div class="api-status-strip" id="apiStatusStrip" aria-label="API 连接状态">
@@ -18043,6 +18118,109 @@ document.getElementById('notifList')?.addEventListener('click', e => {
   }
 });
 uiRenderNotifs();
+// 新版 UI：订单弹窗样式（卡片 / A 单栏 / B 左侧粘贴 / C 紧凑行），选择只记本机。
+function uiModalStyleGlide() {
+  const seg = document.querySelector('.modal-style-seg');
+  const on = seg?.querySelector('[aria-pressed="true"]');
+  const glide = seg?.querySelector('.seg-glide');
+  if (!on || !glide) return;
+  glide.style.width = `${on.offsetWidth}px`;
+  glide.style.transform = `translateX(${on.offsetLeft - 2}px)`;
+  glide.style.left = '2px';
+}
+function uiApplyModalStyle(choice) {
+  const style = ['a', 'b', 'c'].includes(choice) ? choice : '';
+  if (style) document.documentElement.dataset.modalStyle = style;
+  else delete document.documentElement.dataset.modalStyle;
+  document.querySelectorAll('[data-modal-style-choice]').forEach(btn => btn.setAttribute('aria-pressed', String(btn.dataset.modalStyleChoice === style)));
+  uiModalStyleGlide();
+  uiOrderPasteLayout();
+  uiOrderSectionTabs();
+  return style;
+}
+// B 把粘贴识别区挪到弹窗左栏；其它样式放回基础信息分区。元素按 id 绑定事件，挪动不影响识别。
+function uiOrderPasteLayout() {
+  const modal = document.querySelector('#orderModal .order-modal');
+  const paste = document.querySelector('#orderModal .paste-assist');
+  const form = document.getElementById('orderForm');
+  if (!modal || !paste || !form) return;
+  let side = modal.querySelector('.order-paste-side');
+  if (document.documentElement.dataset.modalStyle === 'b') {
+    if (!side) {
+      side = document.createElement('aside');
+      side.className = 'order-paste-side';
+      modal.insertBefore(side, form);
+    }
+    if (paste.parentElement !== side) side.append(paste);
+  } else if (side) {
+    form.querySelector('.order-section.primary .order-section-head')?.after(paste);
+    side.remove();
+  }
+}
+// C 的顶部分区标签：点击跳到分区，滚动时跟随高亮。
+function uiOrderSectionTabs() {
+  const modal = document.querySelector('#orderModal .order-modal');
+  const form = document.getElementById('orderForm');
+  if (!modal || !form) return;
+  let nav = modal.querySelector('.order-section-tabs');
+  if (document.documentElement.dataset.modalStyle !== 'c') { nav?.remove(); return; }
+  if (!nav) {
+    nav = document.createElement('nav');
+    nav.className = 'order-section-tabs';
+    nav.setAttribute('aria-label', '订单分区');
+    modal.insertBefore(nav, form);
+  }
+  const sections = [...form.querySelectorAll(':scope > .order-section')].filter(section => section.offsetParent !== null || !modal.closest('.open'));
+  nav.innerHTML = sections.map((section, index) => `<button type="button" data-section-index="${index}">${escapeAttr(section.querySelector('.order-section-title')?.textContent || '')}</button>`).join('') + '<i class="tab-line" aria-hidden="true"></i>';
+  uiOrderSectionTabs.sections = sections;
+  uiOrderSectionSpy(true);
+}
+function uiOrderSectionMark(index, instant) {
+  const nav = document.querySelector('#orderModal .order-section-tabs');
+  if (!nav) return;
+  const buttons = [...nav.querySelectorAll('button')];
+  buttons.forEach((btn, i) => btn.setAttribute('aria-current', String(i === index)));
+  const on = buttons[index];
+  const line = nav.querySelector('.tab-line');
+  if (!on || !line) return;
+  if (instant) line.style.transition = 'none';
+  line.style.width = `${on.offsetWidth}px`;
+  line.style.transform = `translateX(${on.offsetLeft}px)`;
+  if (instant) requestAnimationFrame(() => { line.style.transition = ''; });
+}
+function uiOrderSectionSpy(instant) {
+  const form = document.getElementById('orderForm');
+  const sections = uiOrderSectionTabs.sections || [];
+  if (!form || !sections.length) return;
+  const top = form.getBoundingClientRect().top + 24;
+  let index = 0;
+  sections.forEach((section, i) => { if (section.getBoundingClientRect().top <= top) index = i; });
+  if (form.scrollTop + form.clientHeight >= form.scrollHeight - 2) index = sections.length - 1;
+  uiOrderSectionMark(index, instant);
+}
+document.querySelector('.modal-style-seg')?.addEventListener('click', e => {
+  const btn = e.target.closest('[data-modal-style-choice]');
+  if (!btn) return;
+  const style = uiApplyModalStyle(btn.dataset.modalStyleChoice);
+  try { localStorage.setItem('ots-modal-style-v1', style); } catch (_) { /* 本机存储不可用时只在本次生效 */ }
+  uiToast(`订单弹窗：${btn.title.split('：')[0]}`, { undoText:'打开看看', undo:() => document.getElementById('newOrderBtn')?.click() });
+});
+document.getElementById('orderModal')?.addEventListener('click', e => {
+  const btn = e.target.closest('.order-section-tabs [data-section-index]');
+  if (!btn) return;
+  const section = (uiOrderSectionTabs.sections || [])[Number(btn.dataset.sectionIndex)];
+  if (!section) return;
+  section.scrollIntoView({ block:'start', behavior:uiReduceMotion() ? 'auto' : 'smooth' });
+  uiOrderSectionMark(Number(btn.dataset.sectionIndex));
+});
+document.getElementById('orderForm')?.addEventListener('scroll', () => uiOrderSectionSpy(), { passive:true });
+// 每次打开订单弹窗重建 C 的分区标签（新建和编辑显示的分区不同）。
+if (document.getElementById('orderModal')) {
+  new MutationObserver(() => {
+    if (document.getElementById('orderModal').classList.contains('open')) requestAnimationFrame(() => uiOrderSectionTabs());
+  }).observe(document.getElementById('orderModal'), { attributes:true, attributeFilter:['class'] });
+}
+try { uiApplyModalStyle(localStorage.getItem('ots-modal-style-v1')); } catch (_) { uiApplyModalStyle(''); }
 // ===== 新版 UI 交互 结束 =====
 </script>
 </body>

@@ -34,7 +34,9 @@ assert.deepEqual(modalIds, [
   'customerModal',
   'combinedCustomerOrderModal',
   'confirmModal',
-  'attachmentPreviewModal'
+  'attachmentPreviewModal',
+  'subscriptionDrawer',
+  'subscriptionEditModal'
 ]);
 
 const helperSource = extractFunction('setModalOpenState', { optional:true });
@@ -65,7 +67,9 @@ assert.equal(fakeModal.attributes['aria-hidden'], 'true', '关闭弹窗时辅助
   'openCalendarTaskDrawer', 'closeCalendarTaskDrawer',
   'openCustomerModal', 'closeCustomerModal',
   'openCombinedCustomerOrderModal', 'closeCombinedCustomerOrderModal',
-  'openOrder', 'closeOrder'
+  'openOrder', 'closeOrder',
+  'openSubscriptionDetail', 'closeSubscriptionDetail',
+  'openSubscriptionEditor', 'closeSubscriptionEditor'
 ].forEach(name => {
   assert.match(extractFunction(name), /setModalOpenState\(/, `${name} 必须同步视觉状态和 aria-hidden`);
 });

@@ -3537,6 +3537,260 @@ html[data-theme="dark"] .app-select-option-check { color: var(--cyan-600); }
 @media (max-width: 760px) {
   .app-select-popover { max-height: min(280px, calc(100vh - 20px)); }
 }
+/* Subscriptions page: personal subscriptions kept apart from order data.
+   Styled after the new desktop prototype (docs/ui-prototype/ots-ui.html). The --a-* names alias the
+   global v2 tokens, so the accent picker and dark theme apply here too. */
+.subs-scope {
+  --a-page:var(--page-bg); --a-panel:var(--surface-soft); --a-card:var(--surface-bg);
+  --a-ink:var(--gray-900); --a-ink-2:var(--gray-600); --a-muted:var(--gray-500); --a-placeholder:var(--gray-500);
+  --a-hairline:var(--hairline); --a-border:var(--surface-border);
+  --a-accent:var(--accent); --a-accent-tint:var(--accent-tint);
+  --a-primary:var(--semantic-primary); --a-primary-ink:var(--primary-ink); --a-primary-hover:var(--semantic-primary-dark);
+  --a-amber:var(--s-amber); --a-green:var(--s-green); --a-red:var(--s-red); --a-gray:var(--s-gray); --a-tint:var(--s-tint);
+  --a-amber-bg:color-mix(in oklab, var(--a-amber) var(--a-tint), transparent);
+  --a-green-bg:color-mix(in oklab, var(--a-green) var(--a-tint), transparent);
+  --a-red-bg:color-mix(in oklab, var(--a-red) var(--a-tint), transparent);
+  --a-gray-bg:color-mix(in oklab, var(--a-gray) var(--a-tint), transparent);
+  --a-overlay:var(--overlay);
+  --a-pill-shadow:var(--pill-shadow);
+  --a-shadow-card:var(--shadow);
+  --a-shadow-raised:var(--shadow-hover);
+  --a-shadow-float:var(--floating-shadow);
+  --a-display:var(--display);
+  --a-sans:var(--sans);
+  --a-ease:var(--ease);
+  --a-ease-enter:var(--ease-out);
+  --a-ease-exit:var(--ease-exit);
+  --a-ease-drawer:var(--ease-drawer);
+  --a-spring:var(--ease-spring);
+  color:var(--a-ink); font-family:var(--a-sans); letter-spacing:-.006em; -webkit-font-smoothing:antialiased;
+}
+#page-subscriptions { gap:16px; max-width:1360px; }
+#page-subscriptions.active { animation:none; }
+.subs-scope :focus-visible { outline:2px solid var(--a-accent); outline-offset:2px; }
+:root .subs-scope input:focus-visible { outline:none; }
+.subs-i { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+@keyframes subsRise { from { opacity:0; transform:translateY(10px); } }
+@keyframes subsPop { from { opacity:0; transform:scale(.94); } }
+@keyframes subsTitleIn { from { opacity:0; transform:translateY(8px); filter:blur(3px); } }
+@keyframes subsShake { 10%, 90% { transform:translateX(-1px); } 20%, 80% { transform:translateX(3px); } 30%, 50%, 70% { transform:translateX(-5px); } 40%, 60% { transform:translateX(5px); } }
+@keyframes subsFlash { 0% { background:var(--a-accent-tint); border-color:var(--a-accent); } }
+@keyframes subsShimmer { from { background-position:200% 0; } to { background-position:-200% 0; } }
+@keyframes subsSpin { to { transform:rotate(360deg); } }
+@keyframes subsDraw { to { stroke-dashoffset:0; } }
+/* The v2 page-enter rise covers the hero and toolbar; the list stays put so its rows can stagger in */
+html[data-theme] #page-subscriptions.page-enter > .subs-list { animation:none; }
+
+/* Hero: monthly spend on the dark gradient card */
+.subs-hero { display:flex; justify-content:space-between; align-items:flex-end; gap:16px; min-height:138px; padding:22px 26px; border-radius:26px; background:radial-gradient(120% 140% at 85% 30%, #173f81 0%, #0e111b 55%, #060606 100%); color:#fff; box-shadow:var(--a-shadow-raised); }
+html[data-theme="dark"] .subs-hero { box-shadow:inset 0 0 0 1px rgba(255,255,255,.06), var(--a-shadow-raised); }
+.subs-hero-l { display:flex; flex-direction:column; min-width:0; }
+.subs-hl { color:rgba(255,255,255,.62); font-size:13px; }
+.subs-big { display:flex; align-items:baseline; gap:4px; margin:6px 0 4px; font:600 22px/1.25 var(--a-display); }
+.subs-big b { font-size:44px; font-weight:700; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+.subs-big small { margin-left:4px; color:rgba(255,255,255,.62); font:400 13px var(--a-sans); }
+.subs-hr { display:flex; flex-direction:column; align-items:flex-end; gap:6px; text-align:right; }
+.subs-hr .subs-pill { background:rgba(255,255,255,.12); color:#fff; }
+.subs-hr .subs-pill .subs-i { width:12px; height:12px; color:#4cd676; stroke-width:2.4; }
+.subs-rate { display:inline-flex; align-items:center; height:22px; margin:0 2px; padding:0 8px; border:1px dashed rgba(255,255,255,.38); border-radius:9999px; background:transparent; color:#fff; font:600 13px var(--a-sans); font-variant-numeric:tabular-nums; vertical-align:baseline; transition:transform .58s var(--a-spring), background .16s var(--a-ease), border-color .16s; }
+.subs-rate:hover { background:rgba(255,255,255,.12); border-color:rgba(255,255,255,.62); }
+.subs-rate:active { transform:scale(.94); transition-duration:.12s; }
+.subs-rate-input { width:64px; height:24px; margin:0 2px; padding:0 8px; border:1px solid rgba(255,255,255,.7); border-radius:9999px; background:rgba(255,255,255,.14); color:#fff; font:600 13px var(--a-sans); text-align:center; outline:none; animation:subsPop .32s var(--a-spring); }
+.subs-rate-input.err { border-color:#ff736d; animation:subsShake .42s var(--a-ease); }
+.subs-hero .subs-sk { display:inline-block; width:150px; height:44px; border-radius:12px; background:linear-gradient(90deg, rgba(255,255,255,.06) 25%, rgba(255,255,255,.16) 50%, rgba(255,255,255,.06) 75%); background-size:200% 100%; }
+
+/* Digit wheel: every digit rolls from its old value, right-most digit first */
+.subs-wheel { display:inline-flex; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.subs-wh { display:inline-block; height:1.25em; overflow:hidden; -webkit-mask-image:linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent); mask-image:linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent); }
+.subs-wh > span { display:flex; flex-direction:column; transition:transform 1.05s var(--a-ease-enter); }
+.subs-wh > span > span { height:1.25em; line-height:1.25em; text-align:center; }
+.subs-wsym { display:inline-block; line-height:1.25em; }
+
+/* Buttons, pills and segmented controls */
+.subs-btn { position:relative; display:inline-flex; align-items:center; justify-content:center; gap:6px; height:36px; padding:0 16px; border:1px solid var(--a-border); border-radius:9999px; background:var(--a-card); color:var(--a-ink); font:500 14px/1 var(--a-sans); letter-spacing:inherit; white-space:nowrap; overflow:hidden; cursor:pointer; transition:transform .58s var(--a-spring), background .16s var(--a-ease), box-shadow .16s var(--a-ease), color .16s, border-color .16s; }
+.subs-btn:hover { box-shadow:var(--a-shadow-raised); }
+.subs-btn:active { transform:scale(.96); transition-duration:.12s; }
+.subs-btn:disabled { opacity:.5; cursor:default; box-shadow:none; transform:none; }
+.subs-btn.primary { border-color:transparent; background:var(--a-primary); color:var(--a-primary-ink); box-shadow:var(--a-pill-shadow); }
+.subs-btn.primary:hover { background:var(--a-primary-hover); }
+.subs-btn.sm { height:30px; padding:0 12px; font-size:13px; }
+.subs-btn.ghost { border-color:transparent; background:transparent; }
+.subs-btn.ghost:hover { background:var(--a-panel); box-shadow:none; }
+.subs-btn.icon { width:36px; padding:0; }
+.subs-btn.ok { border-color:transparent; background:var(--a-green-bg); color:var(--a-green); }
+.subs-btn.primary.ok { background:var(--a-green); color:var(--a-card); }
+.subs-btn .lbl { display:inline-flex; align-items:center; gap:6px; }
+.subs-btn .lbl.in { animation:subsTitleIn .32s var(--a-ease-enter) both; }
+.subs-spin { width:14px; height:14px; flex:none; border:1.75px solid currentColor; border-right-color:transparent; border-radius:50%; animation:subsSpin .7s linear infinite; }
+.subs-check path { stroke-dasharray:1; stroke-dashoffset:1; animation:subsDraw .4s .05s var(--a-ease-enter) forwards; }
+.subs-pill { display:inline-flex; align-items:center; gap:5px; height:22px; padding:0 9px; border:1px solid transparent; border-radius:9999px; background:var(--a-gray-bg); color:var(--a-gray); font-size:12px; font-weight:500; line-height:1; white-space:nowrap; transition:background .3s, color .3s; }
+.subs-pill.line { border-color:var(--a-border); background:transparent; color:var(--a-ink-2); }
+.subs-pill.amber { background:var(--a-amber-bg); color:var(--a-amber); }
+.subs-pill.green { background:var(--a-green-bg); color:var(--a-green); }
+.subs-pill.red { background:var(--a-red-bg); color:var(--a-red); }
+.subs-pill.red.solid { background:var(--a-red); color:var(--a-primary-ink); }
+.subs-pill.accent { background:var(--a-accent-tint); color:var(--a-accent); }
+.subs-seg { position:relative; isolation:isolate; display:inline-flex; gap:2px; max-width:100%; padding:3px; border-radius:9999px; background:var(--a-panel); overflow-x:auto; scrollbar-width:none; }
+.subs-seg::-webkit-scrollbar { display:none; }
+.subs-glide { position:absolute; left:0; top:0; z-index:-1; border-radius:9999px; background:var(--a-card); box-shadow:var(--a-shadow-card); opacity:0; pointer-events:none; transition:transform .52s var(--a-spring), width .52s var(--a-spring), height .52s var(--a-spring), opacity .2s; }
+.subs-glide.no-t { transition:none; }
+.subs-seg button { flex:none; height:30px; padding:0 12px; border:0; border-radius:9999px; background:transparent; color:var(--a-ink-2); font:500 13px/1 var(--a-sans); white-space:nowrap; cursor:pointer; transition:color .16s; }
+.subs-seg button:hover, .subs-seg button[aria-pressed="true"] { color:var(--a-ink); }
+.subs-seg button .c { margin-left:4px; color:var(--a-muted); font-variant-numeric:tabular-nums; }
+
+/* Toolbar and list */
+.subs-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+.subs-toolbar-r { display:flex; align-items:center; gap:10px; min-width:0; margin-left:auto; }
+.subs-meta { color:var(--a-muted); font-size:13px; white-space:nowrap; animation:subsTitleIn .32s var(--a-ease-enter); }
+.subs-meta:empty { display:none; }
+.subs-search { position:relative; display:flex; align-items:center; min-width:0; }
+.subs-search .subs-i { position:absolute; left:13px; width:16px; height:16px; color:var(--a-muted); pointer-events:none; }
+.subs-search input { -webkit-appearance:none; appearance:none; width:220px; max-width:100%; height:36px; padding:0 14px 0 35px; border:1px solid var(--a-border); border-radius:9999px; background:var(--a-card); color:var(--a-ink); font:14px var(--a-sans); outline:none; transition:border-color .16s, box-shadow .2s var(--a-ease), width .4s var(--a-spring); }
+.subs-search input::placeholder { color:var(--a-placeholder); }
+.subs-search input:focus { width:280px; border-color:var(--a-accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--a-accent) 20%, transparent); }
+.subs-list { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap:12px; }
+.subs-row { display:grid; grid-template-columns:auto minmax(0,1fr) auto auto; grid-template-rows:auto auto; column-gap:14px; row-gap:6px; align-items:center; width:100%; min-width:0; padding:16px 18px; border:1px solid var(--a-border); border-radius:18px; background:color-mix(in oklab, var(--c) 7%, var(--a-card)); color:var(--a-ink); font:inherit; text-align:left; cursor:pointer; transition:transform .2s var(--a-spring), box-shadow .2s, background .3s; }
+.subs-row:hover { transform:translateY(-2px); box-shadow:var(--a-shadow-raised); }
+.subs-row:active { transform:scale(.985); transition-duration:.12s; }
+.subs-row.off { background:var(--a-card); }
+.subs-row.is-ended .subs-ic { filter:grayscale(1); opacity:.5; }
+.subs-row.is-ended .subs-amt b { color:var(--a-muted); }
+.subs-row > .subs-ic { grid-column:1; grid-row:1 / 3; }
+.subs-n { grid-column:2; grid-row:1 / 3; display:flex; flex-direction:column; gap:2px; min-width:0; }
+.subs-name { overflow:hidden; font-size:16px; font-weight:600; text-overflow:ellipsis; white-space:nowrap; }
+.subs-note { overflow:hidden; color:var(--a-muted); font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
+.subs-cat { grid-column:3; grid-row:1 / 3; color:var(--a-muted); font-size:12px; white-space:nowrap; }
+.subs-amt { grid-column:4; grid-row:1; justify-self:end; display:flex; align-items:baseline; gap:6px; white-space:nowrap; }
+.subs-amt b { font:700 20px/1.2 var(--a-display); letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+.subs-amt small { color:var(--a-muted); font-size:12px; }
+.subs-row > .subs-pill { grid-column:4; grid-row:2; justify-self:end; }
+.subs-ic { display:grid; place-items:center; flex:none; width:44px; height:44px; border-radius:13px; background:var(--c); color:#fff; font:700 15px/1 var(--a-display); letter-spacing:-.02em; }
+html[data-theme="dark"] .subs-ic { box-shadow:inset 0 0 0 1px rgba(255,255,255,.08); }
+.subs-ic.big { width:64px; height:64px; border-radius:18px; font-size:22px; }
+.subs-ic.bump { animation:subsPop .4s var(--a-spring); }
+.subs-enter { animation:subsRise .45s var(--a-ease-enter) backwards; animation-delay:calc(var(--i, 0) * 35ms); }
+.subs-entering .subs-enter { animation-delay:calc(var(--i, 0) * 35ms + .1s); }
+.subs-flash { animation:subsFlash 1.2s var(--a-ease) both; }
+.subs-enter.subs-flash { animation:subsRise .45s var(--a-ease-enter) backwards, subsFlash 1.2s var(--a-ease) both; }
+.subs-empty { grid-column:1 / -1; display:flex; flex-direction:column; align-items:center; gap:10px; padding:44px 20px; border:1px dashed var(--a-border); border-radius:26px; background:var(--a-card); color:var(--a-muted); font-size:13px; text-align:center; animation:subsRise .5s var(--a-ease-enter) both; }
+.subs-empty b { color:var(--a-ink); font:600 16px var(--a-display); }
+.subs-empty-ic { display:grid; place-items:center; width:48px; height:48px; border-radius:16px; background:var(--a-accent-tint); color:var(--a-accent); }
+.subs-empty-ic .subs-i { width:24px; height:24px; }
+.subs-list .subs-sk { height:80px; border-radius:18px; background:linear-gradient(90deg, var(--a-panel) 25%, var(--a-hairline) 50%, var(--a-panel) 75%); background-size:200% 100%; }
+.subs-sk { animation:subsShimmer 1.4s linear infinite; }
+
+/* Detail drawer and editor modal: the backdrop fades, the panels slide or spring in and out */
+/* :root lifts these over the v2 "html[data-theme] .modal-backdrop" rule so the overlay can fade */
+:root .modal-backdrop.subs-backdrop, :root .modal-backdrop.subs-backdrop.open { display:block; padding:0; background:transparent; backdrop-filter:none; -webkit-backdrop-filter:none; visibility:hidden; pointer-events:none; animation:none; transition:background-color .35s var(--a-ease), visibility 0s linear .5s; }
+:root .modal-backdrop.subs-backdrop.open { visibility:visible; pointer-events:auto; background:var(--a-overlay); transition-delay:0s; }
+:root .modal-backdrop.subs-backdrop.open ~ .modal-backdrop.subs-backdrop.open { background:rgba(0,0,0,.12); }
+.subs-drawer { position:fixed; top:10px; right:10px; bottom:10px; display:flex; flex-direction:column; width:min(640px, calc(100% - 20px)); overflow:hidden; border:1px solid var(--a-border); border-radius:34px; background:var(--a-page); box-shadow:var(--a-shadow-float); transform:translateX(calc(100% + 24px)); transition:transform .48s var(--a-ease-drawer); }
+.subs-backdrop.open .subs-drawer { transform:none; }
+.subs-dh { display:flex; flex-direction:column; gap:10px; padding:18px 24px 18px; border-bottom:1px solid var(--a-hairline); background:var(--a-card); }
+.subs-dh-r1 { display:flex; align-items:center; gap:8px; }
+.subs-dh-r1 .subs-btn { margin-left:auto; }
+.subs-dh-main { display:flex; align-items:center; gap:16px; min-width:0; margin-top:4px; }
+.subs-dh-main > div { min-width:0; }
+.subs-dh h3, .subs-mh-t h3 { margin:0; font:600 20px/1.3 var(--a-display); letter-spacing:-.02em; overflow-wrap:anywhere; }
+.subs-price { display:flex; align-items:baseline; gap:6px; }
+.subs-price b { font:700 30px/1.2 var(--a-display); letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+.subs-price small, .subs-dh-note { color:var(--a-muted); font-size:13px; }
+.subs-dh-note { margin:2px 0 0; overflow-wrap:anywhere; }
+.subs-db { flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; padding:20px 24px 24px; overflow:auto; overscroll-behavior:contain; }
+.subs-stagger > * { animation:subsRise .5s var(--a-ease-enter) backwards; }
+.subs-stagger > :nth-child(2) { animation-delay:.05s; }
+.subs-stagger > :nth-child(3) { animation-delay:.1s; }
+.subs-stagger > :nth-child(4) { animation-delay:.15s; }
+.subs-stagger > :nth-child(n+5) { animation-delay:.2s; }
+.subs-cards { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:10px; }
+.subs-card { display:flex; flex-direction:column; gap:3px; min-width:0; padding:14px 16px; border-radius:14px; background:var(--a-panel); }
+.subs-card.wide { grid-column:1 / -1; }
+.subs-card span, .subs-card small { color:var(--a-muted); font-size:12px; }
+.subs-card b { font:700 20px/1.3 var(--a-display); letter-spacing:-.02em; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.subs-kv { display:grid; grid-template-columns:96px minmax(0,1fr); gap:8px 12px; margin:0; padding:2px; font-size:13px; }
+.subs-kv dt { color:var(--a-muted); }
+.subs-kv dd { margin:0; overflow-wrap:anywhere; }
+.subs-act { display:flex; flex-direction:column; align-items:flex-start; gap:3px; width:100%; min-width:0; padding:14px 16px; border:1px solid var(--a-border); border-radius:14px; background:var(--a-card); color:var(--a-ink); font:inherit; text-align:left; cursor:pointer; transition:transform .58s var(--a-spring), box-shadow .16s var(--a-ease); }
+button.subs-act:hover { box-shadow:var(--a-shadow-raised); }
+button.subs-act:active { transform:scale(.98); transition-duration:.12s; }
+.subs-act b { font-size:15px; font-weight:600; }
+.subs-act small { color:var(--a-muted); font-size:12px; }
+.subs-act.dark { flex-direction:row; justify-content:space-between; align-items:center; border-color:transparent; background:var(--a-ink); color:var(--a-card); }
+.subs-act.dark > span:first-child { display:flex; flex-direction:column; gap:3px; }
+.subs-act.dark small { color:color-mix(in oklab, var(--a-card) 65%, transparent); }
+.subs-act.dark .subs-pill { background:var(--a-card); color:var(--a-ink); transition:transform .4s var(--a-spring); }
+.subs-act.dark:hover .subs-pill { transform:translateX(3px); }
+.subs-acts { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:10px; }
+.subs-act.danger { cursor:default; }
+.subs-act.danger b { color:var(--a-red); }
+.subs-act.danger .subs-hold { margin-top:6px; }
+.subs-hold { isolation:isolate; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; touch-action:none; }
+.subs-hold-fill { position:absolute; inset:0; z-index:-1; background:var(--a-red-bg); transform:scaleX(0); transform-origin:left; }
+.subs-hold.holding, .subs-hold.ok { border-color:color-mix(in srgb, var(--a-red) 40%, transparent); color:var(--a-red); }
+.subs-hold.shake { animation:subsShake .42s var(--a-ease); }
+.subs-hold .subs-i { width:15px; height:15px; }
+.subs-modal { position:fixed; top:50%; left:50%; display:flex; flex-direction:column; width:min(760px, calc(100% - 48px)); max-height:min(820px, calc(100% - 48px)); overflow:hidden; border:1px solid var(--a-border); border-radius:34px; background:var(--a-page); box-shadow:var(--a-shadow-float); opacity:0; transform:translate(-50%, -47%) scale(.94); transition:transform .58s var(--a-spring), opacity .2s var(--a-ease); }
+.subs-backdrop.open .subs-modal { opacity:1; transform:translate(-50%, -50%); }
+.subs-mh { display:flex; align-items:center; gap:14px; padding:22px 22px 18px 24px; }
+.subs-mh-badge { display:grid; place-items:center; flex:none; width:46px; height:46px; border-radius:15px; background:var(--a-accent-tint); color:var(--a-accent); }
+.subs-mh-badge .subs-i { width:22px; height:22px; }
+.subs-mh-t { flex:1; min-width:0; }
+.subs-mh-t h3 { font-size:22px; }
+.subs-mh-t p { margin:3px 0 0; color:var(--a-muted); font-size:13px; }
+.subs-form { flex:1; display:flex; flex-direction:column; gap:18px; min-height:0; padding:2px 28px 22px; overflow:auto; overscroll-behavior:contain; }
+.subs-preview { flex:none; cursor:default; pointer-events:none; }
+.subs-fields { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:14px 16px; }
+.subs-field { display:flex; flex-direction:column; gap:6px; min-width:0; }
+.subs-field.full { grid-column:1 / -1; }
+.subs-field > label, .subs-label { padding-left:2px; color:var(--a-ink-2); font-size:12px; font-weight:500; }
+.subs-req { margin-left:2px; color:var(--a-red); font-style:normal; }
+.subs-input { width:100%; height:44px; padding:0 14px; border:1px solid var(--a-border); border-radius:18px; background:var(--a-card); color:var(--a-ink); font:14px var(--a-sans); outline:none; transition:border-color .16s, box-shadow .2s var(--a-ease); }
+.subs-input::placeholder { color:var(--a-placeholder); }
+.subs-input:focus { border-color:var(--a-accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--a-accent) 20%, transparent); }
+.subs-field.err .subs-input { border-color:var(--a-red); box-shadow:0 0 0 3px color-mix(in srgb, var(--a-red) 16%, transparent); }
+.subs-field.err { animation:subsShake .4s var(--a-ease); }
+.subs-dep { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:8px; }
+.subs-cur { position:relative; min-width:0; }
+.subs-cur-sym { position:absolute; left:14px; top:50%; color:var(--a-muted); font-size:13px; pointer-events:none; transform:translateY(-50%); }
+.subs-cur .subs-input { padding-left:30px; }
+.subs-field .subs-seg { align-self:flex-start; }
+.subs-modal .subs-seg button { height:34px; padding:0 14px; }
+.subs-hint { min-height:18px; padding-left:2px; color:var(--a-muted); font-size:12.5px; }
+.subs-colors { display:flex; flex-wrap:wrap; gap:8px; }
+.subs-colors button { width:28px; height:28px; border:2px solid transparent; border-radius:9px; background:padding-box var(--c); box-shadow:inset 0 0 0 1px rgba(0,0,0,.08); cursor:pointer; transition:transform .45s var(--a-spring), border-color .16s, box-shadow .16s; }
+html[data-theme="dark"] .subs-colors button { box-shadow:inset 0 0 0 1px rgba(255,255,255,.16); }
+.subs-colors button:hover { transform:scale(1.12); }
+.subs-colors button:active { transform:scale(.9); transition-duration:.12s; }
+.subs-colors button[aria-pressed="true"], html[data-theme="dark"] .subs-colors button[aria-pressed="true"] { border-color:var(--c); box-shadow:inset 0 0 0 2px var(--a-card); }
+.subs-df { display:flex; align-items:center; gap:10px; padding:14px 22px 14px 24px; border-top:1px solid var(--a-hairline); background:var(--a-card); }
+.subs-df-sp { flex:1; }
+.subs-ferr { min-width:0; color:var(--a-red); font-size:13px; }
+.subs-ferr.in { animation:subsTitleIn .32s var(--a-ease-enter); }
+
+@media (max-width: 760px) {
+  .subs-hero { flex-direction:column; align-items:flex-start; padding:20px 22px; }
+  .subs-hr { align-items:flex-start; text-align:left; }
+  .subs-big b { font-size:40px; }
+  .subs-toolbar-r { width:100%; margin-left:0; }
+  .subs-search { flex:1; }
+  .subs-search input, .subs-search input:focus { width:100%; }
+  .subs-row { grid-template-columns:auto minmax(0,1fr) auto; column-gap:12px; padding:14px; }
+  .subs-cat { display:none; }
+  .subs-amt { grid-column:3; flex-direction:column; align-items:flex-end; gap:0; }
+  .subs-row > .subs-pill { grid-column:3; }
+  .subs-drawer { top:auto; left:8px; right:8px; bottom:8px; width:auto; max-height:calc(100% - 40px); border-radius:28px; transform:translateY(calc(100% + 24px)); }
+  .subs-dh, .subs-db { padding-left:18px; padding-right:18px; }
+  .subs-acts { grid-template-columns:minmax(0,1fr); }
+  .subs-modal { width:calc(100% - 16px); max-height:calc(100% - 16px); border-radius:28px; }
+  .subs-mh { padding:18px 14px 14px 18px; }
+  .subs-form { padding:2px 18px 18px; }
+  .subs-fields { grid-template-columns:minmax(0,1fr); }
+  .subs-df { padding:12px 14px 12px 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .subs-scope, .subs-scope * { animation-delay:0s !important; transition-delay:0s !important; }
+  .subs-sk, .subs-spin { animation:none !important; }
+}
 </style>
 <style id="ots-ui-v2">
 /* ===== 新版 UI：逐页换装 ===== */
@@ -4037,6 +4291,7 @@ html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); 
       <div class="nav-label">管理</div>
       <button class="nav-item" data-page="calendar" data-mobile-label="日历"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-cal"/></svg><span class="nav-text">日历</span></button>
       <button class="nav-item" data-page="amount" data-nav-group="insights" data-mobile-label="数据"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-chart"/></svg><span class="nav-text">数据与目标</span></button>
+      <button class="nav-item" data-page="subscriptions" data-mobile-label="订阅"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg><span class="nav-text">订阅</span></button>
       <button class="nav-item" data-page="deleted" data-mobile-label="删除"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-trash"/></svg><span class="nav-text">已删除订单</span><span class="nav-count" data-nav-count="deleted"></span></button>
       <button class="nav-item" data-page="settings" data-mobile-label="设置"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-gear"/></svg><span class="nav-text">设置</span></button>
     </div>
@@ -4053,7 +4308,7 @@ html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); 
   </div>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.88，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.88</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.89，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.89</div>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
     </div>
@@ -4549,6 +4804,19 @@ html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); 
         </div>
         <div class="order-list" id="deletedOrderList"></div>
       </section>
+    </section>
+
+    <section class="page subs-scope" id="page-subscriptions">
+      <section class="subs-hero" id="subsHero"></section>
+      <div class="subs-toolbar">
+        <div class="subs-seg" id="subsFilter" role="group" aria-label="按分类筛选"><span class="subs-glide" aria-hidden="true"></span></div>
+        <span class="subs-meta" id="subsMeta" aria-live="polite"></span>
+        <div class="subs-toolbar-r">
+          <label class="subs-search"><svg class="subs-i" aria-hidden="true"><use href="#i-search"/></svg><input id="subsSearch" type="search" placeholder="搜索名称或备注" autocomplete="off" aria-label="搜索订阅"></label>
+          <button class="subs-btn primary" id="subsAddBtn" type="button"><svg class="subs-i" aria-hidden="true"><use href="#i-plus"/></svg>新增订阅</button>
+        </div>
+      </div>
+      <div class="subs-list" id="subsList"></div>
     </section>
 
     <section class="page" id="page-settings">
@@ -5341,6 +5609,52 @@ html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); 
     </div>
   </div>
 </div>
+
+<div class="modal-backdrop subs-backdrop subs-scope" id="subscriptionDrawer" aria-hidden="true">
+  <aside class="subs-drawer" id="subscriptionDrawerPanel" role="dialog" aria-modal="true" aria-labelledby="subscriptionDrawerTitle"></aside>
+</div>
+
+<div class="modal-backdrop subs-backdrop subs-scope" id="subscriptionEditModal" aria-hidden="true">
+  <div class="subs-modal" role="dialog" aria-modal="true" aria-labelledby="subscriptionEditTitle">
+    <header class="subs-mh">
+      <div class="subs-mh-badge"><svg class="subs-i" aria-hidden="true"><use href="#i-repeat"/></svg></div>
+      <div class="subs-mh-t"><h3 id="subscriptionEditTitle">新增订阅</h3><p id="subscriptionEditSub">价格、周期、分类和样式</p></div>
+      <button class="subs-btn icon ghost" id="subscriptionEditCloseBtn" type="button" aria-label="关闭"><svg class="subs-i" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </header>
+    <form class="subs-form" id="subscriptionEditForm" novalidate>
+      <div class="subs-row subs-preview" id="subscriptionPreview" aria-hidden="true">
+        <span class="subs-ic" id="subscriptionPreviewLogo">·</span>
+        <span class="subs-n"><b class="subs-name" id="subscriptionPreviewName">订阅名称</b><span class="subs-note" id="subscriptionPreviewMeta"></span></span>
+        <span class="subs-cat" id="subscriptionPreviewCat"></span>
+        <span class="subs-amt"><b id="subscriptionPreviewPrice">—</b><small id="subscriptionPreviewCycle"></small></span>
+        <span class="subs-pill line" id="subscriptionPreviewWhen"></span>
+      </div>
+      <div class="subs-fields">
+        <div class="subs-field"><label for="subscriptionName">名称<em class="subs-req">*</em></label><input class="subs-input" id="subscriptionName" name="subName" maxlength="80" placeholder="例如 ChatGPT Plus" autocomplete="off"></div>
+        <div class="subs-field"><label for="subscriptionNote">备注</label><input class="subs-input" id="subscriptionNote" name="subNote" maxlength="200" placeholder="例如 50GB、域名、续费价" autocomplete="off"></div>
+        <div class="subs-field">
+          <label for="subscriptionAmount">金额<em class="subs-req">*</em></label>
+          <div class="subs-dep">
+            <div class="subs-cur"><span class="subs-cur-sym" id="subscriptionCurrencySymbol">¥</span><input class="subs-input" id="subscriptionAmount" name="subAmount" inputmode="decimal" placeholder="0.00" autocomplete="off"></div>
+            <div class="subs-seg" role="group" aria-label="币种" data-sub-segment="currency"><span class="subs-glide" aria-hidden="true"></span><button type="button" data-value="CNY" aria-pressed="false">CNY</button><button type="button" data-value="USD" aria-pressed="false">USD</button></div>
+          </div>
+          <div class="subs-hint" id="subscriptionAmountHint"></div>
+        </div>
+        <div class="subs-field"><span class="subs-label" id="subscriptionCycleLabel">扣费周期</span><div class="subs-seg" role="group" aria-labelledby="subscriptionCycleLabel" data-sub-segment="cycleMonths"><span class="subs-glide" aria-hidden="true"></span><button type="button" data-value="1" aria-pressed="false">月付</button><button type="button" data-value="12" aria-pressed="false">年付</button></div></div>
+        <div class="subs-field"><label for="subscriptionStart">开始日期</label><input class="subs-input" id="subscriptionStart" name="subStart" type="date"></div>
+        <div class="subs-field"><span class="subs-label" id="subscriptionCategoryLabel">分类</span><div class="subs-seg" role="group" aria-labelledby="subscriptionCategoryLabel" data-sub-segment="category"><span class="subs-glide" aria-hidden="true"></span><button type="button" data-value="工具效率" aria-pressed="false">工具效率</button><button type="button" data-value="AI" aria-pressed="false">AI</button><button type="button" data-value="其他" aria-pressed="false">其他</button></div></div>
+        <div class="subs-field full"><span class="subs-label" id="subscriptionColorLabel">样式</span><div class="subs-colors" id="subscriptionColors" role="group" aria-labelledby="subscriptionColorLabel"></div></div>
+      </div>
+    </form>
+    <footer class="subs-df">
+      <span class="subs-ferr" id="subscriptionEditError" role="alert"></span>
+      <span class="subs-df-sp"></span>
+      <button class="subs-btn" id="subscriptionEditCancelBtn" type="button">取消</button>
+      <button class="subs-btn primary" id="subscriptionSaveBtn" type="submit" form="subscriptionEditForm"><span class="lbl">添加订阅</span></button>
+    </footer>
+  </div>
+</div>
+
 
 <div class="toast" id="toast"></div>
 <div class="notif-scrim" id="notifScrim" hidden></div>
@@ -10219,6 +10533,7 @@ const globalSearchPageDefs = [
   { page:'analysis', title:'分析', icon:'⌁', keywords:'分析 客户增长 事件结构 新增客户 日程趋势' },
   { page:'customers', title:'客户管理', icon:'◇', keywords:'客户 联系人 邮箱 电话 地址 国家 标签 复购' },
   { page:'deleted', title:'已删除订单', icon:'⌫', keywords:'删除 回收 恢复 订单' },
+  { page:'subscriptions', title:'订阅', icon:'↻', keywords:'订阅 续费 扣费 会员 软件 服务器 域名' },
   { page:'settings', title:'设置', icon:'⚙', keywords:'设置 数据 导入 导出 API 汇率 默认值 备份' }
 ];
 let allGlobalSearchResults = [];
@@ -10520,7 +10835,7 @@ function paginateOrdersForList(orders = [], page = 1, pageSize = 50) {
 function paginateSearchResults(results, page = 1) {
   return paginateOrdersForList(results, page, 50);
 }
-function renderPageContent(page) {
+function renderPageContent(page, { entering = false } = {}) {
   const pages = {
     dashboard: () => { renderMonthSelects(); renderStats(); renderPipeline(); renderTrash(); renderRecentOrders(); renderTasks(); },
     'order-list': renderOrderListPage,
@@ -10532,6 +10847,7 @@ function renderPageContent(page) {
     analysis: renderAnalysisPage,
     customers: renderCustomers,
     deleted: renderDeletedOrders,
+    subscriptions: () => renderSubscriptionsPage({ entering }),
     settings: () => { renderSettings(); renderExchangeSettings(); }
   };
   pages[page]?.();
@@ -15301,6 +15617,818 @@ function download(name, text) {
   URL.revokeObjectURL(url);
   toast('已导出文件');
 }
+// Personal subscriptions use their own SQLite table and API. They never enter `state`,
+// so the dashboard, reports, global search and exports cannot see them.
+const subscriptionCategories = ['工具效率', 'AI', '其他'];
+const subscriptionColors = [
+  ['#7747ff', '紫色'], ['#3b8ef0', '天蓝'], ['#2f6fde', '蓝色'], ['#5b3cc4', '靛紫'], ['#0f9d8a', '青绿'],
+  ['#e8590c', '橙色'], ['#c98a12', '金色'], ['#e0336f', '玫红'], ['#1f1f23', '墨黑']
+];
+const subscriptionHoldMs = 1500;
+const subscriptionState = { loaded:false, loading:false, error:'', items:[], usdCnyRate:7.1 };
+const subscriptionGlideRects = {};
+let subscriptionFilter = 'all';
+let subscriptionQuery = '';
+let subscriptionDetailId = '';
+let subscriptionDraft = null;
+let subscriptionReturnFocus = null;
+let subscriptionRateEditing = false;
+let subscriptionHeroValue = 0;
+let subscriptionHold = null;
+let subscriptionBusy = false;
+function subscriptionLocalDate(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+function subscriptionDayNumber(dateText) {
+  const [year, month, day] = String(dateText).split('-').map(Number);
+  return Math.round(Date.UTC(year, month - 1, day) / 86400000);
+}
+function subscriptionDateFromDay(dayNumber) {
+  return new Date(dayNumber * 86400000).toISOString().slice(0, 10);
+}
+function subscriptionAddMonths(dateText, months) {
+  // A charge that starts on the 31st falls on the last day of shorter months, never in the next month.
+  const [year, month, day] = String(dateText).split('-').map(Number);
+  const index = month - 1 + months;
+  const targetYear = year + Math.floor(index / 12);
+  const targetMonth = index - Math.floor(index / 12) * 12;
+  const lastDay = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
+  return `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(Math.min(day, lastDay)).padStart(2, '0')}`;
+}
+function subscriptionChargeIndex(item, dateText) {
+  // Index of the last charge on or before dateText; -1 before the first charge.
+  if (dateText < item.startDate) return -1;
+  const [startYear, startMonth] = item.startDate.split('-').map(Number);
+  const [year, month] = dateText.split('-').map(Number);
+  let index = Math.floor(((year - startYear) * 12 + month - startMonth) / item.cycleMonths);
+  while (index > 0 && subscriptionAddMonths(item.startDate, index * item.cycleMonths) > dateText) index -= 1;
+  return index;
+}
+function subscriptionSchedule(item, today, rate) {
+  const cycle = Number(item.cycleMonths) === 12 ? 12 : 1;
+  const plan = { ...item, cycleMonths:cycle };
+  const chargeOn = index => subscriptionAddMonths(item.startDate, index * cycle);
+  const cycleCny = item.currency === 'USD' ? Number(item.amount) * rate : Number(item.amount);
+  const monthlyCny = cycleCny / cycle;
+  const lastIndex = subscriptionChargeIndex(plan, today);
+  const renewsOn = chargeOn(lastIndex + 1);
+  const base = { cycleCny, monthlyCny, yearlyCny:monthlyCny * 12 };
+  if (item.status === 'cancelled') {
+    // A cancelled subscription stays usable until its end date and is never charged on or after it.
+    const endsOn = item.endsOn || renewsOn;
+    let endIndex = subscriptionChargeIndex(plan, endsOn);
+    if (endIndex >= 0 && chargeOn(endIndex) === endsOn) endIndex -= 1;
+    const charges = Math.min(lastIndex, endIndex) + 1;
+    return {
+      ...base, state:today >= endsOn ? 'expired' : 'ending', nextCharge:'', paidThrough:endsOn,
+      charges, spentCny:charges * cycleCny, daysLeft:subscriptionDayNumber(endsOn) - subscriptionDayNumber(today)
+    };
+  }
+  const nextCharge = lastIndex >= 0 && chargeOn(lastIndex) === today ? today : renewsOn;
+  return {
+    ...base, state:'active', nextCharge, paidThrough:renewsOn,
+    charges:lastIndex + 1, spentCny:(lastIndex + 1) * cycleCny, daysLeft:subscriptionDayNumber(nextCharge) - subscriptionDayNumber(today)
+  };
+}
+function subscriptionSummary(items, today, rate, windowDays = 30) {
+  const windowEnd = subscriptionDateFromDay(subscriptionDayNumber(today) + windowDays - 1);
+  const summary = { total:items.length, active:0, cancelled:0, dueSoon:0, monthlyCny:0, yearlyCny:0, upcoming:[], upcomingCny:0 };
+  items.forEach(item => {
+    const schedule = subscriptionSchedule(item, today, rate);
+    if (schedule.state !== 'active') {
+      summary.cancelled += 1;
+      return;
+    }
+    summary.active += 1;
+    summary.monthlyCny += schedule.monthlyCny;
+    if (schedule.daysLeft <= 7) summary.dueSoon += 1;
+    const cycle = Number(item.cycleMonths) === 12 ? 12 : 1;
+    let index = subscriptionChargeIndex({ ...item, cycleMonths:cycle }, schedule.nextCharge);
+    for (let date = schedule.nextCharge; date <= windowEnd; date = subscriptionAddMonths(item.startDate, ++index * cycle)) {
+      summary.upcoming.push({ item, date, cny:schedule.cycleCny });
+      summary.upcomingCny += schedule.cycleCny;
+    }
+  });
+  summary.yearlyCny = summary.monthlyCny * 12;
+  summary.upcoming.sort((a, b) => a.date.localeCompare(b.date));
+  return summary;
+}
+function subscriptionCompare(a, b) {
+  const rank = { active:0, ending:1, expired:2 };
+  const byRank = rank[a.schedule.state] - rank[b.schedule.state];
+  if (byRank) return byRank;
+  const dateA = a.schedule.nextCharge || a.schedule.paidThrough;
+  const dateB = b.schedule.nextCharge || b.schedule.paidThrough;
+  const byDate = a.schedule.state === 'expired' ? dateB.localeCompare(dateA) : dateA.localeCompare(dateB);
+  return byDate || a.item.name.localeCompare(b.item.name, 'zh-CN');
+}
+function subscriptionNumber(value) {
+  return Number(value || 0).toLocaleString('zh-CN', { minimumFractionDigits:2, maximumFractionDigits:2 });
+}
+function subscriptionMoney(value, currency = 'CNY') {
+  return `${currency === 'USD' ? '$' : '¥'}${subscriptionNumber(value)}`;
+}
+function subscriptionCycleLabel(cycleMonths) {
+  return Number(cycleMonths) === 12 ? '年付' : '月付';
+}
+function subscriptionInitial(name) {
+  // Latin names show two characters (Ch, 1P), Chinese names one (阿).
+  const text = String(name || '').trim();
+  return text.replace(/[^A-Za-z0-9一-龥]/g, '').slice(0, /^[一-龥]/.test(text) ? 1 : 2) || '·';
+}
+function subscriptionWhen(schedule) {
+  if (schedule.state === 'expired') return { cls:'', text:'已到期' };
+  if (schedule.state === 'ending') return { cls:'amber', text:schedule.daysLeft === 1 ? '明天到期' : `${schedule.daysLeft}天后到期` };
+  if (schedule.daysLeft === 0) return { cls:'red solid', text:'今天扣费' };
+  if (schedule.daysLeft === 1) return { cls:'accent', text:'明天扣费' };
+  return { cls:schedule.daysLeft <= 7 ? 'accent' : 'line', text:`${schedule.daysLeft}天后扣费` };
+}
+function subscriptionReducedMotion() {
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+}
+function subscriptionIcon(name) {
+  return `<svg class="subs-i" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+}
+function subscriptionIconHtml(item, big = false) {
+  return `<span class="subs-ic${big ? ' big' : ''}" style="--c:${escapeAttr(item.color)}" aria-hidden="true">${escapeAttr(subscriptionInitial(item.name))}</span>`;
+}
+const subscriptionSpring = window.CSS?.supports?.('transition-timing-function', 'linear(0, 1)')
+  ? 'linear(0, 0.0739, 0.2235, 0.3849, 0.5305, 0.6508, 0.7452, 0.8168, 0.8699, 0.9084, 0.9361, 0.9557, 0.9694, 0.979, 0.9857, 0.9902, 0.9934, 0.9955, 1)'
+  : 'cubic-bezier(.22,1,.36,1)';
+async function subscriptionRequest(resource, body) {
+  const response = await apiFetch(resource, body === undefined ? {} : {
+    method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify(body)
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data.ok === false) throw new Error(data.message || `订阅服务暂时不可用（${response.status}）`);
+  return data;
+}
+async function loadSubscriptions() {
+  Object.assign(subscriptionState, { loading:true, error:'' });
+  renderSubscriptionsPage();
+  try {
+    const data = await subscriptionRequest('/api/subscriptions');
+    Object.assign(subscriptionState, {
+      loaded:true, items:Array.isArray(data.items) ? data.items : [], usdCnyRate:Number(data.usdCnyRate) || 7.1
+    });
+  } catch (error) {
+    subscriptionState.error = error.message || '读取订阅失败';
+  } finally {
+    subscriptionState.loading = false;
+  }
+  renderSubscriptionsPage({ entering:true });
+}
+function findSubscription(id) {
+  return subscriptionState.items.find(item => item.id === id) || null;
+}
+function upsertSubscription(item) {
+  const index = subscriptionState.items.findIndex(other => other.id === item.id);
+  if (index >= 0) subscriptionState.items.splice(index, 1, item);
+  else subscriptionState.items.push(item);
+}
+function subscriptionToast(text, undo = null) {
+  // The app-wide toast stack: 6 s with an undo button, 4 s without.
+  toast(text, undo ? { undo } : undefined);
+}
+function rollSubscriptionWheel(el, value, from) {
+  // Each digit is a 0–9 strip that rolls from its old digit to the new one, right-most digit first.
+  const text = subscriptionNumber(value);
+  const old = subscriptionNumber(from).replace(/\D/g, '');
+  const digits = text.replace(/\D/g, '').length;
+  let index = 0;
+  el.setAttribute('aria-label', text);
+  el.innerHTML = Array.from(text, char => {
+    if (!/\d/.test(char)) return `<span class="subs-wsym" aria-hidden="true">${char}</span>`;
+    const fromRight = digits - 1 - index++;
+    const previous = old[old.length - 1 - fromRight] || '0';
+    return `<span class="subs-wh" aria-hidden="true"><span data-from="${previous}" data-to="${char}" data-delay="${fromRight * 45}ms">${'0123456789'.replace(/\d/g, n => `<span>${n}</span>`)}</span></span>`;
+  }).join('');
+  const strips = [...el.querySelectorAll('.subs-wh > span')];
+  const still = value === from || subscriptionReducedMotion();
+  strips.forEach(strip => {
+    strip.style.transition = 'none';
+    strip.style.transform = `translateY(-${(still ? strip.dataset.to : strip.dataset.from) * 1.25}em)`;
+  });
+  if (still) return;
+  void el.offsetWidth;
+  strips.forEach(strip => {
+    strip.style.transition = '';
+    strip.style.transitionDelay = strip.dataset.delay;
+    strip.style.transform = `translateY(-${strip.dataset.to * 1.25}em)`;
+  });
+}
+function placeSubscriptionGlide(group, key, { jump = false } = {}) {
+  // The highlight starts where it was last time and springs to the pressed option.
+  const glide = group?.querySelector(':scope > .subs-glide');
+  const active = group?.querySelector('[aria-pressed="true"]');
+  if (!glide) return;
+  if (!active || !active.offsetWidth) {
+    glide.style.opacity = '0';
+    return;
+  }
+  const rect = { x:active.offsetLeft, y:active.offsetTop, w:active.offsetWidth, h:active.offsetHeight };
+  const apply = r => {
+    glide.style.transform = `translate(${r.x}px, ${r.y}px)`;
+    glide.style.width = `${r.w}px`;
+    glide.style.height = `${r.h}px`;
+  };
+  const previous = !jump && !subscriptionReducedMotion() && subscriptionGlideRects[key];
+  glide.classList.add('no-t');
+  apply(previous || rect);
+  glide.style.opacity = '1';
+  void glide.offsetWidth;
+  glide.classList.remove('no-t');
+  apply(rect);
+  subscriptionGlideRects[key] = rect;
+}
+function subscriptionEmptyHtml(title, text, action = '', actionText = '') {
+  return `<div class="subs-empty"><span class="subs-empty-ic">${subscriptionIcon('repeat')}</span><b>${escapeAttr(title)}</b><div>${escapeAttr(text)}</div>${action ? `<button class="subs-btn primary sm" type="button" data-subs-empty-action="${action}">${action === 'add' ? subscriptionIcon('plus') : ''}${escapeAttr(actionText)}</button>` : ''}</div>`;
+}
+function subscriptionRowHtml({ item, schedule }, enterIndex) {
+  const when = subscriptionWhen(schedule);
+  const converted = item.currency === 'USD' ? ` · ≈${subscriptionMoney(schedule.cycleCny)}` : '';
+  const classes = ['subs-row', schedule.state === 'active' ? '' : 'off', schedule.state === 'expired' ? 'is-ended' : '', enterIndex >= 0 ? 'subs-enter' : ''].filter(Boolean).join(' ');
+  return `<button class="${classes}" type="button" data-sub-id="${escapeAttr(item.id)}" style="--c:${escapeAttr(item.color)};--i:${Math.max(enterIndex, 0)}">
+    ${subscriptionIconHtml(item)}
+    <span class="subs-n"><b class="subs-name">${escapeAttr(item.name)}</b>${item.note ? `<span class="subs-note">${escapeAttr(item.note)}</span>` : ''}</span>
+    <span class="subs-cat">${escapeAttr(item.category)}</span>
+    <span class="subs-amt"><b>${subscriptionMoney(item.amount, item.currency)}</b><small>${subscriptionCycleLabel(item.cycleMonths)}${converted}</small></span>
+    <span class="subs-pill ${when.cls}" title="${schedule.nextCharge || schedule.paidThrough}">${when.text}</span>
+  </button>`;
+}
+function renderSubscriptionList(rows, entering) {
+  // New rows rise in with a 35 ms stagger; rows that stay glide to their new place instead of re-entering.
+  const list = document.getElementById('subsList');
+  const before = new Map([...list.querySelectorAll('[data-sub-id]')].map(el => [el.dataset.subId, el.getBoundingClientRect()]));
+  let fresh = 0;
+  list.innerHTML = rows.map(row => subscriptionRowHtml(row, entering || !before.has(row.item.id) ? Math.min(fresh++, 12) : -1)).join('');
+  if (entering || subscriptionReducedMotion() || !list.offsetParent) return;
+  list.querySelectorAll('[data-sub-id]').forEach(el => {
+    const old = before.get(el.dataset.subId);
+    if (!old || !old.width) return;
+    const now = el.getBoundingClientRect();
+    const dx = old.left - now.left;
+    const dy = old.top - now.top;
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+    el.animate?.([{ transform:`translate(${dx}px, ${dy}px)` }, { transform:'none' }], { duration:580, easing:subscriptionSpring });
+  });
+}
+function renderSubscriptionHero(summary, rate, roll) {
+  const hero = document.getElementById('subsHero');
+  if (!subscriptionState.loaded) {
+    hero.innerHTML = `<div class="subs-hero-l"><span class="subs-hl">支出概览</span><div class="subs-big">¥<span class="subs-sk"></span><small>每月</small></div><span class="subs-hl">${subscriptionState.error ? '订阅没有读出来' : '正在读取订阅…'}</span></div>`;
+    return;
+  }
+  const rateHtml = subscriptionRateEditing
+    ? `<input class="subs-rate-input" id="subsRateInput" inputmode="decimal" value="${escapeAttr(rate)}" aria-label="1 美元折合多少人民币">`
+    : `<button class="subs-rate" id="subsRateBtn" type="button" title="修改订阅页的美元汇率">${escapeAttr(rate)}</button>`;
+  hero.innerHTML = `
+    <div class="subs-hero-l">
+      <span class="subs-hl">支出概览</span>
+      <div class="subs-big">¥<b class="subs-wheel" id="subsHeroMonthly" role="img"></b><small>每月</small></div>
+      <span class="subs-hl" id="subsHeroYear">一年约 ¥${Math.round(summary.yearlyCny).toLocaleString('zh-CN')} · 美元按 ${rateHtml} 折算</span>
+    </div>
+    <div class="subs-hr" id="subsHeroSide">
+      <span class="subs-pill">${subscriptionIcon('check')}${summary.total} 项订阅</span>
+      <span class="subs-hl">${summary.active} 项自动续费 · ${summary.cancelled} 项已取消</span>
+      <span class="subs-hl">未来 30 天要付 ${subscriptionMoney(summary.upcomingCny)} · ${summary.upcoming.length} 笔</span>
+      ${summary.dueSoon ? `<span class="subs-hl">7 天内扣费 ${summary.dueSoon} 项</span>` : ''}
+    </div>`;
+  rollSubscriptionWheel(document.getElementById('subsHeroMonthly'), summary.monthlyCny, roll ? 0 : subscriptionHeroValue);
+  subscriptionHeroValue = summary.monthlyCny;
+}
+function renderSubscriptionFilter(items) {
+  const wrap = document.getElementById('subsFilter');
+  if (!wrap.querySelector('[data-sub-filter]')) {
+    const options = [['all', '全部'], ...subscriptionCategories.map(category => [category, category])];
+    wrap.insertAdjacentHTML('beforeend', options.map(([value, label]) => `<button type="button" data-sub-filter="${escapeAttr(value)}">${escapeAttr(label)}<span class="c"></span></button>`).join(''));
+  }
+  wrap.querySelectorAll('[data-sub-filter]').forEach(button => {
+    const value = button.dataset.subFilter;
+    button.setAttribute('aria-pressed', String(value === subscriptionFilter));
+    button.querySelector('.c').textContent = value === 'all' ? items.length : items.filter(item => item.category === value).length;
+  });
+  placeSubscriptionGlide(wrap, 'filter');
+}
+function renderSubscriptionsPage({ entering = false } = {}) {
+  const pageEl = document.getElementById('page-subscriptions');
+  if (!pageEl) return;
+  if (!subscriptionState.loaded && !subscriptionState.loading && !subscriptionState.error) {
+    loadSubscriptions();
+    return;
+  }
+  if (entering) {
+    // Only a page change replays the entrance; filtering, search and edits animate just what changed.
+    pageEl.classList.remove('subs-entering');
+    void pageEl.offsetWidth;
+    pageEl.classList.add('subs-entering');
+    delete subscriptionGlideRects.filter;
+    subscriptionRateEditing = false;
+  }
+  const { items, usdCnyRate:rate } = subscriptionState;
+  const today = subscriptionLocalDate();
+  const list = document.getElementById('subsList');
+  const meta = document.getElementById('subsMeta');
+  renderSubscriptionHero(subscriptionSummary(items, today, rate), rate, entering);
+  renderSubscriptionFilter(items);
+  ['subsAddBtn', 'subsSearch'].forEach(id => { document.getElementById(id).disabled = !subscriptionState.loaded; });
+  if (!subscriptionState.loaded) {
+    meta.textContent = '';
+    list.innerHTML = subscriptionState.error
+      ? subscriptionEmptyHtml('订阅没有读出来', subscriptionState.error, 'retry', '重试')
+      : '<div class="subs-sk"></div><div class="subs-sk"></div><div class="subs-sk"></div><div class="subs-sk"></div>';
+    return;
+  }
+  const query = normalizeSearchText(subscriptionQuery);
+  const rows = items
+    .filter(item => (subscriptionFilter === 'all' || item.category === subscriptionFilter)
+      && (!query || normalizeSearchText(`${item.name} ${item.note}`).includes(query)))
+    .map(item => ({ item, schedule:subscriptionSchedule(item, today, rate) }))
+    .sort(subscriptionCompare);
+  meta.textContent = query ? `找到 ${rows.length} 项` : '';
+  if (!items.length) {
+    list.innerHTML = subscriptionEmptyHtml('还没有订阅', '把 ChatGPT、iCloud、域名这类按月或按年扣费的服务记下来，每月花多少一眼就知道。', 'add', '新增第一个订阅');
+    return;
+  }
+  if (!rows.length) {
+    list.innerHTML = subscriptionEmptyHtml('没有符合条件的订阅', query ? '换个关键词试试。' : '这个分类下还没有订阅。');
+    return;
+  }
+  renderSubscriptionList(rows, entering);
+}
+function flashSubscriptionRow(id) {
+  const row = document.querySelector(`#subsList [data-sub-id="${CSS.escape(id)}"]`);
+  if (!row) return;
+  row.classList.remove('subs-flash');
+  void row.offsetWidth;
+  row.classList.add('subs-flash');
+  row.addEventListener('animationend', event => {
+    if (event.animationName === 'subsFlash') row.classList.remove('subs-flash');
+  });
+}
+function startSubscriptionRateEdit() {
+  subscriptionRateEditing = true;
+  renderSubscriptionsPage();
+  const input = document.getElementById('subsRateInput');
+  input?.focus();
+  input?.select();
+}
+async function commitSubscriptionRate({ cancel = false, fromBlur = false } = {}) {
+  const input = document.getElementById('subsRateInput');
+  if (!subscriptionRateEditing || !input) return;
+  const value = input.value.trim();
+  const rate = Number(value);
+  const valid = value !== '' && Number.isFinite(rate) && rate > 0 && rate <= 100;
+  if (!cancel && !valid && !fromBlur) {
+    input.classList.remove('err');
+    void input.offsetWidth;
+    input.classList.add('err');
+    subscriptionToast('汇率要在 0 到 100 之间，例如 7.1');
+    return;
+  }
+  subscriptionRateEditing = false;
+  if (cancel || !valid || rate === subscriptionState.usdCnyRate) {
+    renderSubscriptionsPage();
+  } else {
+    try {
+      const data = await subscriptionRequest('/api/subscriptions/rate', { usdCnyRate:rate });
+      subscriptionState.usdCnyRate = data.usdCnyRate;
+      renderSubscriptionsPage();
+      if (subscriptionDetailId) renderSubscriptionDetail();
+      subscriptionToast(`汇率已改为 ${data.usdCnyRate}，只影响订阅页的人民币折算`);
+    } catch (error) {
+      renderSubscriptionsPage();
+      subscriptionToast(`汇率没有保存：${error.message}`);
+    }
+  }
+  if (!fromBlur) document.getElementById('subsRateBtn')?.focus({ preventScroll:true });
+}
+function openSubscriptionDetail(id) {
+  if (!findSubscription(id)) return;
+  const wasOpen = document.getElementById('subscriptionDrawer').classList.contains('open');
+  if (!wasOpen) subscriptionReturnFocus = document.activeElement;
+  subscriptionDetailId = id;
+  renderSubscriptionDetail({ entering:!wasOpen });
+  setModalOpenState('subscriptionDrawer', true);
+  if (!wasOpen) setTimeout(() => document.querySelector('#subscriptionDrawer.open [data-sub-action="close"]')?.focus({ preventScroll:true }), 60);
+}
+function closeSubscriptionDetail({ restoreFocus = true } = {}) {
+  endSubscriptionHold({ quiet:true });
+  setModalOpenState('subscriptionDrawer', false);
+  const id = subscriptionDetailId;
+  subscriptionDetailId = '';
+  if (!restoreFocus) return;
+  const row = id && document.querySelector(`#subsList [data-sub-id="${CSS.escape(id)}"]`);
+  (row || (subscriptionReturnFocus?.isConnected ? subscriptionReturnFocus : null))?.focus({ preventScroll:true });
+}
+function renderSubscriptionDetail({ entering = false } = {}) {
+  const item = findSubscription(subscriptionDetailId);
+  if (!item) return;
+  endSubscriptionHold({ quiet:true });
+  const rate = subscriptionState.usdCnyRate;
+  const schedule = subscriptionSchedule(item, subscriptionLocalDate(), rate);
+  const active = schedule.state === 'active';
+  const status = { active:['green', '自动续费'], ending:['amber', '已取消'], expired:['', '已到期'] }[schedule.state];
+  const first = {
+    active:['下次扣费', schedule.nextCharge, schedule.daysLeft === 0 ? '今天扣费' : `${schedule.daysLeft}天后扣费`],
+    ending:['有效期至', schedule.paidThrough, `${schedule.daysLeft}天后到期，不再扣费`],
+    expired:['已到期', schedule.paidThrough, '已停止扣费']
+  }[schedule.state];
+  const kv = [
+    ['开始日期', item.startDate],
+    ['分类', item.category],
+    ['状态', { active:'自动续费中', ending:'已取消，等待到期', expired:'已到期，不再扣费' }[schedule.state]],
+    [active ? '下次扣费' : '有效期至', active ? schedule.nextCharge : schedule.paidThrough],
+    ['扣费周期', subscriptionCycleLabel(item.cycleMonths)],
+    ['币种', item.currency === 'USD' ? `美元 · 1 USD = ${rate} CNY` : '人民币']
+  ];
+  const toggle = {
+    active:['toggle', '取消订阅', '到期后不再续费'],
+    ending:['toggle', '恢复订阅', '继续自动续费'],
+    expired:['resubscribe', '重新订阅', '从今天开始新的扣费周期']
+  }[schedule.state];
+  const name = escapeAttr(item.name);
+  document.getElementById('subscriptionDrawerPanel').innerHTML = `
+    <header class="subs-dh">
+      <div class="subs-dh-r1"><span class="subs-pill line">${escapeAttr(item.category)}</span><span class="subs-pill ${status[0]}">${status[1]}</span><button class="subs-btn icon ghost" type="button" data-sub-action="close" aria-label="关闭">${subscriptionIcon('x')}</button></div>
+      <div class="subs-dh-main">${subscriptionIconHtml(item, true)}<div><h3 id="subscriptionDrawerTitle">${name}</h3><div class="subs-price"><b>${subscriptionMoney(item.amount, item.currency)}</b><small>${Number(item.cycleMonths) === 12 ? '每年' : '每月'}</small></div>${item.note ? `<p class="subs-dh-note">${escapeAttr(item.note)}</p>` : ''}</div></div>
+    </header>
+    <div class="subs-db${entering ? ' subs-stagger' : ''}" id="subscriptionDrawerBody">
+      <div class="subs-cards">
+        <div class="subs-card"><span>${first[0]}</span><b>${first[1]}</b><small>${first[2]}</small></div>
+        <div class="subs-card"><span>月均花费</span><b>${subscriptionMoney(schedule.monthlyCny)}</b><small>年度约 ${subscriptionMoney(schedule.yearlyCny)}</small></div>
+        <div class="subs-card wide"><span>累计已花费（估算）</span><b>${subscriptionMoney(schedule.charges * Number(item.amount), item.currency)}</b><small>按当前价格估算，已扣费 ${schedule.charges} 次${item.currency === 'USD' ? `，约 ${subscriptionMoney(schedule.spentCny)}` : ''}</small></div>
+      </div>
+      <dl class="subs-kv">${kv.map(([label, value]) => `<dt>${label}</dt><dd>${escapeAttr(value)}</dd>`).join('')}</dl>
+      <button class="subs-act dark" type="button" data-sub-action="edit"><span><b>编辑订阅</b><small>更新价格、周期、备注与样式</small></span><span class="subs-pill">前往</span></button>
+      <div class="subs-acts">
+        <button class="subs-act" type="button" data-sub-action="${toggle[0]}"><b>${toggle[1]}</b><small>${toggle[2]}</small></button>
+        <div class="subs-act danger"><b>删除记录</b><small>按住 1.5 秒删除，6 秒内可撤销</small><button class="subs-btn sm subs-hold" type="button" data-sub-action="hold" aria-label="按住删除 ${name}"><span class="subs-hold-fill"></span><span class="lbl">${subscriptionIcon('trash')}<span class="subs-hold-text">按住删除</span></span></button></div>
+      </div>
+    </div>`;
+}
+function startSubscriptionHold(button) {
+  if (subscriptionHold || subscriptionBusy || button.classList.contains('ok')) return;
+  const fill = button.querySelector('.subs-hold-fill');
+  const label = button.querySelector('.subs-hold-text');
+  const id = subscriptionDetailId;
+  const hold = { button, frame:0 };
+  const started = performance.now();
+  button.classList.remove('shake');
+  button.classList.add('holding');
+  label.textContent = '继续按住…';
+  fill.style.transition = 'none';
+  subscriptionHold = hold;
+  const tick = now => {
+    if (subscriptionHold !== hold) return;
+    const progress = Math.min(1, (now - started) / subscriptionHoldMs);
+    fill.style.transform = `scaleX(${progress})`;
+    if (progress < 1) {
+      hold.frame = requestAnimationFrame(tick);
+      return;
+    }
+    subscriptionHold = null;
+    button.classList.remove('holding');
+    button.classList.add('ok');
+    label.textContent = '已删除';
+    setTimeout(() => deleteSubscription(id), 400);
+  };
+  hold.frame = requestAnimationFrame(tick);
+}
+function endSubscriptionHold({ quiet = false } = {}) {
+  // Letting go early springs the fill back and shakes the button; nothing is deleted.
+  const hold = subscriptionHold;
+  if (!hold) return;
+  subscriptionHold = null;
+  cancelAnimationFrame(hold.frame);
+  const { button } = hold;
+  const fill = button.querySelector('.subs-hold-fill');
+  button.classList.remove('holding');
+  button.querySelector('.subs-hold-text').textContent = '按住删除';
+  fill.style.transition = 'transform .35s cubic-bezier(.16,1,.3,1)';
+  fill.style.transform = 'scaleX(0)';
+  if (quiet) return;
+  void button.offsetWidth;
+  button.classList.add('shake');
+}
+async function deleteSubscription(id) {
+  const item = findSubscription(id);
+  if (!item || subscriptionBusy) return;
+  subscriptionBusy = true;
+  try {
+    await subscriptionRequest('/api/subscriptions/delete', { id });
+  } catch (error) {
+    subscriptionToast(`删除失败：${error.message}`);
+    if (subscriptionDetailId === id) renderSubscriptionDetail();
+    return;
+  } finally {
+    subscriptionBusy = false;
+  }
+  const row = document.querySelector(`#subsList [data-sub-id="${CSS.escape(id)}"]`);
+  const next = row && (row.nextElementSibling || row.previousElementSibling);
+  closeSubscriptionDetail({ restoreFocus:false });
+  if (row?.animate && !subscriptionReducedMotion()) {
+    await row.animate([
+      { opacity:1, transform:'scale(1)' },
+      { opacity:0, transform:'scale(.94)' }
+    ], { duration:220, easing:'cubic-bezier(.7,0,.84,0)', fill:'forwards' }).finished.catch(() => {});
+  }
+  subscriptionState.items = subscriptionState.items.filter(other => other.id !== id);
+  renderSubscriptionsPage();
+  const focusId = next?.dataset.subId;
+  (focusId && document.querySelector(`#subsList [data-sub-id="${CSS.escape(focusId)}"]`) || document.getElementById('subsAddBtn')).focus({ preventScroll:true });
+  subscriptionToast(`已删除 ${item.name}`, () => restoreSubscription(item, `已恢复 ${item.name}`));
+}
+async function restoreSubscription(item, message) {
+  // Undo writes the previous record back with the same id and creation time.
+  try {
+    const { item:saved } = await subscriptionRequest('/api/subscriptions/save', { item });
+    upsertSubscription(saved);
+    renderSubscriptionsPage();
+    flashSubscriptionRow(saved.id);
+    if (subscriptionDetailId === saved.id) renderSubscriptionDetail();
+    subscriptionToast(message);
+  } catch (error) {
+    subscriptionToast(`撤销失败：${error.message}`);
+  }
+}
+async function toggleSubscriptionStatus() {
+  const item = findSubscription(subscriptionDetailId);
+  if (!item || subscriptionBusy) return;
+  const schedule = subscriptionSchedule(item, subscriptionLocalDate(), subscriptionState.usdCnyRate);
+  // Cancelling keeps the subscription until the renewal it has already paid for. Resuming before
+  // that date continues the same billing days; an expired one is re-subscribed in the editor instead.
+  const next = schedule.state === 'active'
+    ? { ...item, status:'cancelled', endsOn:schedule.paidThrough }
+    : { ...item, status:'active', endsOn:'' };
+  subscriptionBusy = true;
+  try {
+    const { item:saved } = await subscriptionRequest('/api/subscriptions/save', { item:next });
+    upsertSubscription(saved);
+    renderSubscriptionsPage();
+    flashSubscriptionRow(saved.id);
+    if (subscriptionDetailId === saved.id) renderSubscriptionDetail();
+    const undo = () => restoreSubscription(item, '已撤销');
+    if (saved.status === 'cancelled') subscriptionToast(`${saved.name} 已取消订阅，${saved.endsOn} 到期后不再续费`, undo);
+    else subscriptionToast(`${saved.name} 已恢复自动续费，下次扣费 ${subscriptionSchedule(saved, subscriptionLocalDate(), subscriptionState.usdCnyRate).nextCharge}`, undo);
+  } catch (error) {
+    subscriptionToast(`操作失败：${error.message}`);
+  } finally {
+    subscriptionBusy = false;
+  }
+}
+function openSubscriptionEditor(id = '', { resubscribe = false } = {}) {
+  const existing = findSubscription(id);
+  subscriptionDraft = existing ? { ...existing, amount:String(existing.amount) } : {
+    id:'', name:'', note:'', amount:'', currency:'CNY', cycleMonths:1, startDate:subscriptionLocalDate(),
+    category:subscriptionCategories[0], color:subscriptionColors[0][0], status:'active', endsOn:''
+  };
+  // Re-subscribing starts a fresh billing cycle from today; the user can still change the date.
+  if (existing && resubscribe) Object.assign(subscriptionDraft, { status:'active', endsOn:'', startDate:subscriptionLocalDate() });
+  if (!document.getElementById('subscriptionDrawer').classList.contains('open')) subscriptionReturnFocus = document.activeElement;
+  const form = document.getElementById('subscriptionEditForm');
+  form.elements.subName.value = subscriptionDraft.name;
+  form.elements.subNote.value = subscriptionDraft.note;
+  form.elements.subAmount.value = subscriptionDraft.amount;
+  form.elements.subStart.value = subscriptionDraft.startDate;
+  form.querySelectorAll('.subs-field.err').forEach(field => field.classList.remove('err'));
+  form.scrollTop = 0;
+  const saveLabel = existing ? (resubscribe ? '重新订阅' : '保存') : '添加订阅';
+  document.getElementById('subscriptionEditTitle').textContent = existing ? (resubscribe ? '重新订阅' : '编辑订阅') : '新增订阅';
+  document.getElementById('subscriptionEditSub').textContent = existing ? `${existing.name} · 价格、周期、分类和样式` : '价格、周期、分类和样式';
+  document.getElementById('subscriptionSaveBtn').dataset.label = saveLabel;
+  setSubscriptionSaveState('idle');
+  showSubscriptionEditError('');
+  Object.keys(subscriptionGlideRects).filter(key => key.startsWith('editor-')).forEach(key => delete subscriptionGlideRects[key]);
+  syncSubscriptionEditorControls();
+  renderSubscriptionPreview();
+  setModalOpenState('subscriptionEditModal', true);
+  setTimeout(() => form.elements.subName.focus({ preventScroll:true }), 60);
+}
+function closeSubscriptionEditor({ restoreFocus = true } = {}) {
+  setModalOpenState('subscriptionEditModal', false);
+  subscriptionDraft = null;
+  if (!restoreFocus) return;
+  const drawerButton = document.querySelector('#subscriptionDrawer.open [data-sub-action="edit"]');
+  (drawerButton || (subscriptionReturnFocus?.isConnected ? subscriptionReturnFocus : null))?.focus({ preventScroll:true });
+}
+function syncSubscriptionEditorControls() {
+  const form = document.getElementById('subscriptionEditForm');
+  form.querySelectorAll('[data-sub-segment]').forEach(group => {
+    group.querySelectorAll('[data-value]').forEach(button => {
+      button.setAttribute('aria-pressed', String(String(subscriptionDraft[group.dataset.subSegment]) === button.dataset.value));
+    });
+    placeSubscriptionGlide(group, `editor-${group.dataset.subSegment}`);
+  });
+  form.querySelectorAll('[data-sub-color]').forEach(button => {
+    button.setAttribute('aria-pressed', String(button.dataset.subColor === subscriptionDraft.color));
+  });
+  document.getElementById('subscriptionCurrencySymbol').textContent = subscriptionDraft.currency === 'USD' ? '$' : '¥';
+}
+function renderSubscriptionPreview() {
+  const draft = subscriptionDraft;
+  if (!draft) return;
+  const rate = subscriptionState.usdCnyRate;
+  const amount = Number(draft.amount);
+  const hasAmount = Number.isFinite(amount) && amount > 0;
+  const cycle = Number(draft.cycleMonths) === 12 ? 12 : 1;
+  const cny = draft.currency === 'USD' ? amount * rate : amount;
+  const logo = document.getElementById('subscriptionPreviewLogo');
+  const initial = subscriptionInitial(draft.name);
+  if (logo.textContent !== initial) {
+    logo.textContent = initial;
+    logo.classList.remove('bump');
+    void logo.offsetWidth;
+    logo.classList.add('bump');
+  }
+  document.getElementById('subscriptionPreview').style.setProperty('--c', draft.color);
+  document.getElementById('subscriptionPreviewName').textContent = draft.name.trim() || '订阅名称';
+  document.getElementById('subscriptionPreviewMeta').textContent = draft.note.trim() || '备注会显示在这里';
+  document.getElementById('subscriptionPreviewCat').textContent = draft.category;
+  document.getElementById('subscriptionPreviewPrice').textContent = hasAmount ? subscriptionMoney(amount, draft.currency) : '—';
+  document.getElementById('subscriptionPreviewCycle').textContent = subscriptionCycleLabel(cycle) + (hasAmount && draft.currency === 'USD' ? ` · ≈${subscriptionMoney(cny)}` : '');
+  const when = document.getElementById('subscriptionPreviewWhen');
+  const validStart = /^\d{4}-\d{2}-\d{2}$/.test(draft.startDate || '');
+  const pill = validStart ? subscriptionWhen(subscriptionSchedule({ ...draft, amount:hasAmount ? amount : 0, cycleMonths:cycle }, subscriptionLocalDate(), rate)) : { cls:'line', text:'选择开始日期' };
+  when.className = `subs-pill ${pill.cls}`;
+  when.textContent = pill.text;
+  document.getElementById('subscriptionAmountHint').textContent = !hasAmount ? ''
+    : [draft.currency === 'USD' ? `≈${subscriptionMoney(cny)}（1 USD = ${rate} CNY）` : '', cycle === 12 ? `月均 ${subscriptionMoney(cny / 12)}` : ''].filter(Boolean).join(' · ');
+}
+function subscriptionDraftError(draft) {
+  if (!String(draft.name || '').trim()) return { field:'subName', message:'请填写订阅名称' };
+  const amount = Number(draft.amount);
+  if (!(amount > 0 && amount <= 10000000)) return { field:'subAmount', message:'请填写大于 0 的金额' };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(draft.startDate || '')) return { field:'subStart', message:'请选择开始日期' };
+  return null;
+}
+function showSubscriptionEditError(message) {
+  const el = document.getElementById('subscriptionEditError');
+  el.textContent = message;
+  el.classList.remove('in');
+  if (!message) return;
+  void el.offsetWidth;
+  el.classList.add('in');
+}
+function setSubscriptionSaveState(stateName) {
+  // MorphStatus: the save button turns into a spinner, then a drawn check.
+  const button = document.getElementById('subscriptionSaveBtn');
+  const label = { idle:button.dataset.label || '保存', saving:'保存中…', saved:'已保存' }[stateName];
+  const icon = stateName === 'saving' ? '<span class="subs-spin" aria-hidden="true"></span>'
+    : stateName === 'saved' ? '<svg class="subs-i subs-check" viewBox="0 0 24 24" aria-hidden="true"><path pathLength="1" d="M20 6 9 17l-5-5"/></svg>' : '';
+  button.classList.toggle('ok', stateName === 'saved');
+  button.setAttribute('aria-busy', String(stateName === 'saving'));
+  button.innerHTML = `<span class="lbl${stateName === 'idle' ? '' : ' in'}">${icon}${label}</span>`;
+}
+async function saveSubscriptionDraft(event) {
+  event.preventDefault();
+  const draft = subscriptionDraft;
+  if (!draft || subscriptionBusy) return;
+  const form = document.getElementById('subscriptionEditForm');
+  const invalid = subscriptionDraftError(draft);
+  if (invalid) {
+    const field = form.elements[invalid.field]?.closest('.subs-field');
+    field?.classList.remove('err');
+    void field?.offsetWidth;
+    field?.classList.add('err');
+    showSubscriptionEditError(invalid.message);
+    form.elements[invalid.field]?.focus();
+    return;
+  }
+  subscriptionBusy = true;
+  setSubscriptionSaveState('saving');
+  let item;
+  try {
+    ({ item } = await subscriptionRequest('/api/subscriptions/save', {
+      item:{ ...draft, name:draft.name.trim(), note:draft.note.trim(), amount:Number(draft.amount), cycleMonths:Number(draft.cycleMonths) }
+    }));
+  } catch (error) {
+    subscriptionBusy = false;
+    setSubscriptionSaveState('idle');
+    showSubscriptionEditError(error.message || '保存失败，请重试');
+    return;
+  }
+  const isNew = !draft.id;
+  upsertSubscription(item);
+  setSubscriptionSaveState('saved');
+  await new Promise(resolve => setTimeout(resolve, subscriptionReducedMotion() ? 0 : 450));
+  subscriptionBusy = false;
+  closeSubscriptionEditor({ restoreFocus:false });
+  renderSubscriptionsPage();
+  flashSubscriptionRow(item.id);
+  openSubscriptionDetail(item.id);
+  subscriptionToast(isNew ? `${item.name} 已添加` : `${item.name} 已保存`);
+}
+document.getElementById('subscriptionColors').innerHTML = subscriptionColors
+  .map(([color, name]) => `<button type="button" data-sub-color="${color}" style="--c:${color}" aria-label="${name}" aria-pressed="false"></button>`).join('');
+document.getElementById('subsAddBtn').addEventListener('click', () => openSubscriptionEditor());
+document.getElementById('subsSearch').addEventListener('input', event => {
+  subscriptionQuery = event.target.value;
+  renderSubscriptionsPage();
+});
+document.getElementById('subsFilter').addEventListener('click', event => {
+  const button = event.target.closest('[data-sub-filter]');
+  if (!button || button.dataset.subFilter === subscriptionFilter) return;
+  subscriptionFilter = button.dataset.subFilter;
+  renderSubscriptionsPage();
+});
+document.getElementById('subsHero').addEventListener('click', event => {
+  if (event.target.closest('#subsRateBtn')) startSubscriptionRateEdit();
+});
+document.getElementById('subsHero').addEventListener('keydown', event => {
+  if (event.target.id !== 'subsRateInput') return;
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    commitSubscriptionRate();
+  } else if (event.key === 'Escape') {
+    event.preventDefault();
+    event.stopPropagation();
+    commitSubscriptionRate({ cancel:true });
+  }
+});
+document.getElementById('subsHero').addEventListener('focusout', event => {
+  if (event.target.id === 'subsRateInput') commitSubscriptionRate({ fromBlur:true });
+});
+document.getElementById('subsList').addEventListener('click', event => {
+  const row = event.target.closest('[data-sub-id]');
+  if (row) {
+    openSubscriptionDetail(row.dataset.subId);
+    return;
+  }
+  const action = event.target.closest('[data-subs-empty-action]')?.dataset.subsEmptyAction;
+  if (action === 'add') openSubscriptionEditor();
+  if (action === 'retry') loadSubscriptions();
+});
+document.getElementById('subscriptionDrawer').addEventListener('click', event => {
+  if (event.target.id === 'subscriptionDrawer') {
+    closeSubscriptionDetail();
+    return;
+  }
+  const action = event.target.closest('[data-sub-action]')?.dataset.subAction;
+  if (action === 'close') closeSubscriptionDetail();
+  if (action === 'edit') openSubscriptionEditor(subscriptionDetailId);
+  if (action === 'resubscribe') openSubscriptionEditor(subscriptionDetailId, { resubscribe:true });
+  if (action === 'toggle') toggleSubscriptionStatus();
+});
+document.getElementById('subscriptionDrawer').addEventListener('pointerdown', event => {
+  const hold = event.target.closest('.subs-hold');
+  if (!hold || event.button !== 0) return;
+  event.preventDefault();
+  startSubscriptionHold(hold);
+});
+document.getElementById('subscriptionDrawer').addEventListener('keydown', event => {
+  const hold = event.target.closest?.('.subs-hold');
+  if (!hold || (event.key !== ' ' && event.key !== 'Enter')) return;
+  event.preventDefault();
+  if (!event.repeat) startSubscriptionHold(hold);
+});
+document.getElementById('subscriptionDrawer').addEventListener('contextmenu', event => {
+  if (event.target.closest('.subs-hold')) event.preventDefault();
+});
+document.addEventListener('pointerup', () => endSubscriptionHold());
+document.addEventListener('pointercancel', () => endSubscriptionHold());
+document.addEventListener('keyup', event => {
+  if (event.key === ' ' || event.key === 'Enter') endSubscriptionHold();
+});
+document.getElementById('subscriptionEditModal').addEventListener('click', event => {
+  if (event.target.id === 'subscriptionEditModal' || event.target.closest('#subscriptionEditCloseBtn, #subscriptionEditCancelBtn')) closeSubscriptionEditor();
+});
+document.getElementById('subscriptionEditForm').addEventListener('submit', saveSubscriptionDraft);
+document.getElementById('subscriptionEditForm').addEventListener('input', event => {
+  const field = { subName:'name', subNote:'note', subAmount:'amount', subStart:'startDate' }[event.target.name];
+  if (!field || !subscriptionDraft) return;
+  subscriptionDraft[field] = event.target.value;
+  event.target.closest('.subs-field')?.classList.remove('err');
+  showSubscriptionEditError('');
+  renderSubscriptionPreview();
+});
+document.getElementById('subscriptionEditForm').addEventListener('click', event => {
+  if (!subscriptionDraft) return;
+  const option = event.target.closest('[data-sub-segment] [data-value]');
+  const swatch = event.target.closest('[data-sub-color]');
+  if (option) {
+    const key = option.closest('[data-sub-segment]').dataset.subSegment;
+    subscriptionDraft[key] = key === 'cycleMonths' ? Number(option.dataset.value) : option.dataset.value;
+  } else if (swatch) {
+    subscriptionDraft.color = swatch.dataset.subColor;
+  } else return;
+  syncSubscriptionEditorControls();
+  renderSubscriptionPreview();
+});
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape' || document.getElementById('confirmModal').classList.contains('open')) return;
+  if (document.getElementById('subscriptionEditModal').classList.contains('open')) {
+    event.preventDefault();
+    closeSubscriptionEditor();
+  } else if (document.getElementById('subscriptionDrawer').classList.contains('open')) {
+    event.preventDefault();
+    closeSubscriptionDetail();
+  }
+});
+window.addEventListener('resize', debounce(() => {
+  placeSubscriptionGlide(document.getElementById('subsFilter'), 'filter', { jump:true });
+  document.querySelectorAll('#subscriptionEditForm [data-sub-segment]').forEach(group => placeSubscriptionGlide(group, `editor-${group.dataset.subSegment}`, { jump:true }));
+}, 80));
 function setPage(page) {
   const normalized = page === 'data' ? 'settings' : page;
   const target = document.getElementById(`page-${normalized}`) ? normalized : 'dashboard';
@@ -15308,7 +16436,7 @@ function setPage(page) {
   const changed = current !== target;
   document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === `page-${target}`));
   document.querySelectorAll('[data-page]').forEach(btn => btn.classList.toggle('active', btn.dataset.page === target));
-  const names = { dashboard:'工作台', 'order-list':'订单列表', 'search-results':'搜索结果', logistics:'物流查询', amount:'数据与目标', targets:'数据与目标', calendar:'日历', analysis:'数据与目标', customers:'客户管理', deleted:'已删除订单', settings:'设置' };
+  const names = { dashboard:'工作台', 'order-list':'订单列表', 'search-results':'搜索结果', logistics:'物流查询', amount:'数据与目标', targets:'数据与目标', calendar:'日历', analysis:'数据与目标', customers:'客户管理', deleted:'已删除订单', subscriptions:'订阅', settings:'设置' };
   document.querySelector('.page-title').textContent = names[target] || '工作台';
   const activeNav = document.querySelector(`.nav-item[data-page="${target}"]`);
   if (activeNav && window.matchMedia('(max-width: 820px)').matches) {
@@ -15317,7 +16445,7 @@ function setPage(page) {
   if ((window.location.hash || '').replace('#', '') !== target) window.location.hash = target;
   closeClientMenus();
   if (changed) {
-    renderPageContent(target);
+    renderPageContent(target, { entering:true });
     renderSegmentControls();
     enhanceBinarySelects();
   }

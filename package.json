@@ -1,6 +1,6 @@
 {
   "name": "trade-order-system",
-  "version": "3.88.0",
+  "version": "3.89.0",
   "private": true,
   "description": "Local trade order tracking system with a native Mac host, SQLite storage, and logistics API helpers.",
   "scripts": {
@@ -9,6 +9,7 @@
     "lint": "node scripts/lint.js",
     "check:release": "node scripts/check-release.js",
     "test": "node scripts/run-tests.js",
+    "test:subscriptions": "node scripts/test-subscription-store.js && node scripts/test-subscription-schedule.js && node scripts/test-subscriptions-ui.js",
     "test:save-confirmation": "node scripts/test-save-confirmation.js && node scripts/test-save-ui.js && node scripts/test-save-conflict-ui.js && node scripts/test-customer-contact-preferences-ui.js",
     "test:board-layout": "node scripts/test-board-layout.js",
     "test:injection": "node scripts/test-html-injection-ui.js && node scripts/test-mac-only-ui.js",

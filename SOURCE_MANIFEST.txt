@@ -30,6 +30,7 @@ mac-app/native/Sources/TradeOrderSystemCore/RuntimePolicy.swift
 mac-app/native/Sources/TradeOrderSystemCoreTests/main.swift
 mac-app/native/Sources/TradeOrderSystemNative/main.swift
 mac-app/server.js
+mac-app/subscription-store.js
 mac-app/whatsapp-native-host.js
 mac-app/whatsapp-store.js
 package-lock.json
@@ -82,6 +83,9 @@ scripts/test-save-conflict-ui.js
 scripts/test-save-ui.js
 scripts/test-server-security.js
 scripts/test-sqlite-storage.js
+scripts/test-subscription-schedule.js
+scripts/test-subscription-store.js
+scripts/test-subscriptions-ui.js
 scripts/test-summary-amounts-ui.js
 scripts/test-tinypng-compression.js
 scripts/test-tracking-api.js

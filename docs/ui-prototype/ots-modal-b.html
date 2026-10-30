@@ -1068,6 +1068,74 @@ tr:hover .rowview { background:var(--accent-tint); color:var(--accent); }
 .drawer.modal:has(.sub-form) { height:auto; width:min(760px, calc(100% - 48px)); }
 .drawer.modal:has(.sub-form) .sub-form { flex:none; }
 
+/* ===== 质感（2026-10-30 定稿）：有色调的底、更明显的卡片层次、更有存在感的强调色 ===== */
+:root {
+  --page:oklch(96.2% .008 285); --panel:oklch(93.6% .012 285); --card:oklch(100% 0 0);
+  --hairline:oklch(91.5% .01 285); --border:oklch(90% .012 285);
+  --ink-2:oklch(42% .02 285); --muted:oklch(56% .02 285);
+  --desk-bg:oklch(86% .02 285);
+  --accent-tint:color-mix(in oklab, var(--acc-l) 15%, transparent);
+  --acc-2:color-mix(in oklab, var(--acc-l) 70%, #ff5fa2);
+  --shadow-card:0 1px 0 oklch(100% 0 0) inset, 0 1px 2px oklch(30% .05 285 / .06), 0 4px 14px oklch(30% .05 285 / .05);
+  --shadow-raised:0 1px 0 oklch(100% 0 0) inset, 0 10px 28px oklch(30% .06 285 / .12), 0 2px 6px oklch(30% .05 285 / .06);
+  --primary:var(--acc-l); --primary-hover:color-mix(in oklab, var(--acc-l) 85%, black);
+  --pill-shadow:inset 0 1px 0 oklch(100% 0 0 / .25), 0 1px 2px oklch(30% .1 285 / .25), 0 6px 16px color-mix(in oklab, var(--acc-l) 30%, transparent);
+}
+:root[data-theme="dark"] {
+  --page:oklch(16.5% .012 285); --panel:oklch(13.5% .012 285); --card:oklch(22% .014 285);
+  --hairline:oklch(26% .014 285); --border:oklch(30% .016 285);
+  --desk-bg:oklch(10% .01 285);
+  --primary:var(--acc-d); --primary-ink:oklch(16% .02 285); --primary-hover:color-mix(in oklab, var(--acc-d) 85%, white);
+  --shadow-card:0 1px 0 oklch(100% 0 0 / .05) inset, 0 2px 8px oklch(0% 0 0 / .3);
+  --shadow-raised:0 1px 0 oklch(100% 0 0 / .06) inset, 0 12px 30px oklch(0% 0 0 / .4);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --page:oklch(16.5% .012 285); --panel:oklch(13.5% .012 285); --card:oklch(22% .014 285);
+  --hairline:oklch(26% .014 285); --border:oklch(30% .016 285);
+  --desk-bg:oklch(10% .01 285);
+  --primary:var(--acc-d); --primary-ink:oklch(16% .02 285); --primary-hover:color-mix(in oklab, var(--acc-d) 85%, white);
+  --shadow-card:0 1px 0 oklch(100% 0 0 / .05) inset, 0 2px 8px oklch(0% 0 0 / .3);
+  --shadow-raised:0 1px 0 oklch(100% 0 0 / .06) inset, 0 12px 30px oklch(0% 0 0 / .4);
+}}
+/* 主区：顶部一层很淡的强调色光晕 + 细颗粒 */
+.main { position:relative; isolation:isolate;
+  background:
+    radial-gradient(900px 380px at 18% -8%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 70%),
+    radial-gradient(700px 320px at 92% -12%, color-mix(in oklab, var(--acc-2) 11%, transparent), transparent 70%),
+    var(--page); }
+.main::before { content:''; position:absolute; inset:0; z-index:-1; pointer-events:none; opacity:.35; mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.3 0 0 0 0 0.5 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.top { background:color-mix(in oklab, var(--page) 55%, transparent); backdrop-filter:blur(14px) saturate(1.3); -webkit-backdrop-filter:blur(14px) saturate(1.3); border-bottom-color:color-mix(in oklab, var(--border) 70%, transparent); }
+.content { background:transparent; }
+/* 侧栏：更深一档，选中项带强调色底和左侧色条 */
+.side { background:linear-gradient(180deg, var(--panel), color-mix(in oklab, var(--panel) 92%, var(--accent))); border-right:1px solid var(--hairline); }
+.navwrap > .glide { background:var(--card); box-shadow:var(--shadow-raised); }
+.navwrap > .glide::before { content:''; position:absolute; left:6px; top:50%; width:3px; height:16px; margin-top:-8px; border-radius:3px; background:linear-gradient(var(--accent), var(--acc-2)); }
+.nav-item.on svg { color:var(--accent); filter:drop-shadow(0 2px 6px color-mix(in oklab, var(--accent) 45%, transparent)); }
+/* 卡片：白卡浮在有色底上 */
+.card, .kpi, .ocard { border-color:color-mix(in oklab, var(--border) 80%, transparent); }
+.col { background:color-mix(in oklab, var(--panel) 80%, transparent); box-shadow:inset 0 1px 2px oklch(30% .05 285 / .05); }
+.ocard:hover { box-shadow:var(--shadow-raised); }
+/* 第一张 KPI 做成强调色主卡 */
+.kpis:not(.four):not(.csum-k) > .kpi:first-child { color:#fff; border-color:transparent;
+  background:radial-gradient(120% 140% at 100% 0%, var(--acc-2), transparent 55%), linear-gradient(135deg, var(--acc-l), color-mix(in oklab, var(--acc-l) 70%, black));
+  box-shadow:0 1px 0 oklch(100% 0 0 / .25) inset, 0 14px 32px color-mix(in oklab, var(--acc-l) 35%, transparent); }
+.kpis:not(.four):not(.csum-k) > .kpi:first-child :is(.kpi-label, .kpi-sub, .kpi-sub *) { color:oklch(100% 0 0 / .78); }
+.kpis:not(.four):not(.csum-k) > .kpi:first-child .spark path { stroke:#fff; }
+.kpis:not(.four):not(.csum-k) > .kpi:first-child .spark circle { fill:#fff; }
+.kpis:not(.four):not(.csum-k) > .kpi:first-child::after { content:''; position:absolute; right:-30px; bottom:-40px; width:140px; height:140px; border-radius:50%; border:22px solid oklch(100% 0 0 / .08); }
+/* 其他 KPI 右上角一抹强调色 */
+.kpi { background:radial-gradient(140px 90px at 100% 0%, color-mix(in oklab, var(--accent) 9%, transparent), transparent 70%), var(--card); }
+/* 主按钮改成强调色，带光泽 */
+.btn.primary { background:linear-gradient(180deg, color-mix(in oklab, var(--primary) 88%, white), var(--primary)); }
+.btn.primary:hover { background:var(--primary-hover); }
+/* 分段控件选中块和标签更清楚 */
+.seg { background:color-mix(in oklab, var(--panel) 85%, transparent); box-shadow:inset 0 1px 2px oklch(30% .05 285 / .06); }
+.seg > .glide { box-shadow:var(--shadow-raised); }
+/* 抽屉和弹窗背景跟底色走 */
+.drawer { background:var(--page); }
+.dh, .df { background:color-mix(in oklab, var(--card) 92%, transparent); }
+
 .mv-tag { font-weight:600; color:var(--ink); margin-right:6px; }
 .drawer.modal .mh-badge { display:none; }
 .drawer.modal .fsec .input::placeholder, .drawer.modal .ai-box textarea::placeholder { color:var(--ph, oklch(52% 0 0)); }

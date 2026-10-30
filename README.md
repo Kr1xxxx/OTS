@@ -1,4 +1,4 @@
-# Order Track System (OTS) V3.88
+# Order Track System (OTS) V3.89
 
 Local macOS trade-order and customer management, SQLite storage, logistics/AI helpers, and the KME WhatsApp customer-sync Chrome extension. This is a privacy-sanitized **source export**, not a production database or installed application.
 
@@ -55,7 +55,13 @@ Tests use stubs or isolated data directories. npm run test:api is an **opt-in li
 
 ## Public source repository
 
-Repository: https://github.com/Kr1xxxx/OTS . This V3.88 export continues the clean public history; it does not import any commits from the previous private repository. Only files in SOURCE_MANIFEST.txt are published. Never upload generated apps, local databases, attachments, credentials, caches, or the ZIP itself. Before future updates, review the staged diff and repeat privacy checks; .gitignore does not protect values embedded in source or tests.
+Repository: https://github.com/Kr1xxxx/OTS . This V3.89 export continues the clean public history; it does not import any commits from the previous private repository. Only files in SOURCE_MANIFEST.txt are published. Never upload generated apps, local databases, attachments, credentials, caches, or the ZIP itself. Before future updates, review the staged diff and repeat privacy checks; .gitignore does not protect values embedded in source or tests.
+
+## Changes since V3.88
+
+- New 订阅 page (sidebar, between 已删除订单 and 设置) for personal subscriptions: monthly total, 30-day charge strip, category filter, in-page search, detail drawer, cancel/resume, hold-to-delete with undo, and a USD→CNY rate that only this page uses (default 7.1).
+- Subscriptions live in their own SQLite tables (mac-app/subscription-store.js) behind /api/subscriptions routes. They are never part of the order state, dashboard, reports, global search records, JSON export or import; SQLite backups include them.
+- Charge dates clamp month-end starts (Jan 31 → Feb 28 → Mar 31), use the local calendar day, and stop at a cancelled subscription's end date.
 
 ## Changes since V3.85
 

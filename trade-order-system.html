@@ -4347,6 +4347,81 @@ html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); 
 .notif-pill { padding:1px 8px; border-radius:999px; background:var(--gray-100); color:var(--gray-600); font-size:11px; }
 .notif-empty { padding:48px 0; text-align:center; color:var(--gray-500); font-size:13px; }
 .notif-panel:focus { outline:none; }
+/* 订单列表：按原型重排，筛选在卡片外，表格单独一张圆角卡片 */
+.visually-hidden { position:absolute !important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+html[data-theme] .order-table-panel { overflow:visible; border:0; border-radius:0; background:transparent; box-shadow:none; display:flex; flex-direction:column; gap:14px; }
+html[data-theme] .order-list-page-head { min-height:0; padding:0; border:0; gap:16px; flex-wrap:wrap; }
+html[data-theme] .order-list-quick.segment-control { display:inline-flex; width:auto; margin:0; flex:none; }
+html[data-theme] .order-list-quick .segment-option { flex:none; height:30px; min-height:30px; padding:0 14px; font-size:13px; }
+html[data-theme] .order-list-title-wrap { align-items:center; gap:18px; margin-left:auto; }
+html[data-theme] .order-list-count { color:var(--gray-500); font-size:13px; }
+html[data-theme] .order-list-deleted-link { margin:0; color:var(--gray-900); font-size:13px; gap:6px; }
+html[data-theme] .order-list-deleted-link .ui-icon { width:16px; height:16px; }
+html[data-theme] .order-list-controls { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:0; border:0; background:transparent; }
+html[data-theme] .order-list-search { flex:1 1 320px; width:auto; height:38px; padding:0 16px; border-radius:999px; border:1px solid var(--surface-border); background:var(--surface-bg); font-size:13px; }
+html[data-theme] .order-list-primary-filters { flex-wrap:nowrap; gap:10px; }
+html[data-theme] .order-list-primary-filters > .inline-select { width:auto; min-width:104px; height:38px; padding:0 34px 0 16px; border-radius:999px; font-size:13px; color:var(--gray-900); text-align:left; }
+html[data-theme] .order-list-more { position:relative; margin:0; }
+html[data-theme] .order-list-more summary { display:flex; align-items:center; gap:6px; height:38px; padding:0 16px; border:1px solid var(--surface-border); border-radius:999px; background:var(--surface-bg); color:var(--gray-900); font-size:13px; list-style:none; }
+html[data-theme] .order-list-more summary::-webkit-details-marker { display:none; }
+html[data-theme] .order-list-more summary::before { content:''; width:6px; height:6px; border:solid currentColor; border-width:0 1.5px 1.5px 0; transform:rotate(-45deg); transition:transform var(--motion-fast) var(--ease); }
+html[data-theme] .order-list-more[open] summary { margin:0; }
+html[data-theme] .order-list-more[open] summary::before { transform:rotate(45deg); }
+html[data-theme] .order-list-more .order-list-filter-grid { position:absolute; right:0; top:calc(100% + 8px); z-index:30; width:min(520px, 80vw); grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; padding:12px; border:1px solid var(--surface-border); border-radius:18px; background:var(--surface-bg); box-shadow:0 18px 40px -12px oklch(0% 0 0 / .22); animation:uiRise .24s var(--ease-out); }
+html[data-theme] #orderListResetBtn { height:38px; padding:0 14px; border-radius:999px; }
+html[data-theme] .order-list-active-filters:not(:empty) { flex-basis:100%; margin:0; }
+html[data-theme] .order-list-filter-chip { border-radius:999px; padding:4px 10px; }
+
+/* 表格卡片 */
+html[data-theme] .order-table-scroll { border:1px solid var(--surface-border); border-radius:22px 22px 0 0; border-bottom:0; background:var(--surface-bg); max-height:calc(100vh - 300px); scrollbar-gutter:auto; }
+html[data-theme] .order-list-pagination { border:1px solid var(--surface-border); border-top:0; border-radius:0 0 22px 22px; background:var(--surface-bg); margin-top:-14px; }
+html[data-theme] .order-table { min-width:1140px; font-size:13px; }
+html[data-theme] .order-table thead th { height:38px; padding:0 10px; box-shadow:0 1px 0 var(--hairline); }
+html[data-theme] .order-table td { height:68px; padding:10px; }
+html[data-theme] .order-table :is(th, td):first-child { padding-left:16px; }
+html[data-theme] .order-table .tag, html[data-theme] .order-table-view { white-space:nowrap; }
+html[data-theme] .order-table tbody tr, html[data-theme] .order-table tbody tr:nth-child(even) { background:var(--surface-bg); }
+html[data-theme] :is(.order-table .col-customer, .order-table .col-action) { box-shadow:none; }
+html[data-theme] .order-table .col-order { width:120px; }
+html[data-theme] .order-table th.col-customer, html[data-theme] .order-table td.col-customer { width:176px; left:120px; }
+html[data-theme] .order-table .col-country { width:88px; }
+html[data-theme] .order-table .col-product { width:110px; }
+html[data-theme] .order-table .col-stage { width:84px; }
+html[data-theme] .order-table .col-money { width:104px; }
+html[data-theme] .order-table .col-logistics { width:108px; }
+html[data-theme] .order-table .col-date { width:96px; }
+html[data-theme] .order-table .col-action { width:52px; }
+html[data-theme] .order-table-primary .order-num { font-family:var(--sans); font-size:13px; font-weight:500; font-variant-numeric:tabular-nums; }
+html[data-theme] .order-table-sub { margin-top:3px; font-size:11.5px; }
+html[data-theme] .order-table-customer { font-size:14.5px; font-weight:600; letter-spacing:-.01em; }
+html[data-theme] .order-table-customer:hover { color:var(--gray-900); }
+html[data-theme] .order-table td.col-country { font-size:13px; color:var(--gray-900); }
+html[data-theme] .order-table-product { display:flex; align-items:baseline; min-width:0; white-space:nowrap; overflow:hidden; }
+html[data-theme] .order-table-product strong { font-size:14px; font-weight:500; color:var(--gray-900); }
+html[data-theme] .order-table-product span { color:var(--gray-500); font-size:11.5px; overflow:hidden; text-overflow:ellipsis; }
+html[data-theme] .order-table-stage { display:flex; flex-direction:column; align-items:flex-start; gap:4px; }
+html[data-theme] .order-table .tag { padding:2px 8px; font-size:11px; border-radius:999px; }
+html[data-theme] .order-table-mini-flag { padding:1px 8px; border:1px solid var(--surface-border); border-radius:999px; color:var(--gray-600); font-size:11px; font-weight:500; }
+html[data-theme] .order-table-mini-flag.urgent { border-color:transparent; background:color-mix(in srgb, var(--semantic-danger) 12%, transparent); color:var(--semantic-danger); }
+html[data-theme] .order-table td.col-money { text-align:right; }
+html[data-theme] .order-table td.col-money .order-table-money,
+html[data-theme] .order-table-money { font-family:var(--sans); font-size:14px; font-weight:500; color:var(--gray-900); letter-spacing:-.01em; }
+html[data-theme] .order-table td.col-money .order-table-due { color:var(--s-amber); font-weight:500; }
+html[data-theme] .order-table td.col-money .order-table-settled { color:var(--gray-500); font-weight:400; }
+html[data-theme] .order-table-paybar { display:block; height:4px; margin:7px 0 0 auto; width:64px; border-radius:4px; background:var(--gray-100); overflow:hidden; }
+html[data-theme] .order-table-paybar i { display:block; height:100%; border-radius:inherit; background:var(--gray-900); }
+html[data-theme] .order-table-paybar i[style="width:100%"] { background:var(--semantic-paid); }
+html[data-theme] .order-table-logistics strong { color:var(--gray-600); font-size:12px; font-weight:500; }
+html[data-theme] .order-table-logistics.exception strong { display:inline-block; padding:1px 8px; border-radius:999px; background:color-mix(in srgb, var(--semantic-danger) 12%, transparent); color:var(--semantic-danger); }
+html[data-theme] .order-table-date { color:var(--gray-500); font-size:12px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+html[data-theme] .order-table-view { min-width:0; height:auto; padding:4px 2px; border:0; background:none; color:var(--gray-900); font-size:13px; font-weight:500; }
+html[data-theme] .order-table-view:hover { color:var(--accent); }
+html[data-theme="dark"] .order-table-paybar { background:var(--gray-200); }
+@media (max-width: 820px) {
+  html[data-theme] .order-list-title-wrap { margin-left:0; }
+  html[data-theme] .order-list-primary-filters { flex-wrap:wrap; }
+  html[data-theme] .order-list-more .order-list-filter-grid { position:static; width:100%; margin-top:8px; }
+}
 </style>
 </head>
 <body>
@@ -4536,17 +4611,7 @@ html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); 
     <section class="page" id="page-order-list">
       <section class="order-table-panel" aria-labelledby="orderListPageTitle">
         <div class="order-list-page-head">
-          <div class="order-list-title-wrap">
-            <div class="order-list-title" id="orderListPageTitle">全部订单</div>
-            <div class="order-list-count" id="orderListResultCount">0 个订单</div>
-          </div>
-          <div class="order-list-head-actions">
-            <input class="order-list-search" id="orderListSearch" type="search" placeholder="搜索订单号、客户、电话、邮箱、物流、备注" autocomplete="off" aria-label="搜索订单列表">
-            <button class="btn btn-small" id="orderListResetBtn" type="button">重置筛选</button>
-          </div>
-        </div>
-        <div class="order-list-controls">
-          <div class="segment-control compact order-list-quick" id="orderListQuickFilters" aria-label="订单快捷筛选">
+            <div class="segment-control compact order-list-quick" id="orderListQuickFilters" aria-label="订单快捷筛选">
             <button class="segment-option active" type="button" data-order-list-quick="all">全部</button>
             <button class="segment-option" type="button" data-order-list-quick="active">进行中</button>
             <button class="segment-option" type="button" data-order-list-quick="unpaid">待收款</button>
@@ -4554,6 +4619,14 @@ html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); 
             <button class="segment-option" type="button" data-order-list-quick="done">已完成</button>
             <button class="segment-option" type="button" data-order-list-quick="draft">草稿</button>
           </div>
+            <div class="order-list-title-wrap">
+              <div class="order-list-title visually-hidden" id="orderListPageTitle">全部订单</div>
+              <div class="order-list-count" id="orderListResultCount">0 个订单</div>
+              <button class="link-btn order-list-deleted-link" type="button" data-page-link="deleted"><svg class="ui-icon" aria-hidden="true"><use href="#i-trash"/></svg>已删除 <span id="orderListDeletedCount">0</span></button>
+            </div>
+        </div>
+        <div class="order-list-controls">
+          <input class="order-list-search" id="orderListSearch" type="search" placeholder="搜订单号、客户、电话、邮箱、物流单号、备注" autocomplete="off" aria-label="搜索订单列表">
           <div class="order-list-primary-filters">
             <select class="inline-select" id="orderListStageFilter" aria-label="筛选订单阶段"><option value="all">全部阶段</option></select>
             <select class="inline-select" id="orderListPaymentStateFilter" aria-label="筛选收款状态"><option value="all">全部收款状态</option><option value="unpaid">待收款</option><option value="paid">已收清</option></select>
@@ -4581,6 +4654,7 @@ html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); 
             </select>
             </div>
           </details>
+          <button class="btn btn-small" id="orderListResetBtn" type="button">重置筛选</button>
           <div class="order-list-active-filters" id="orderListActiveFilters" aria-label="已选筛选条件"></div>
         </div>
         <div class="order-table-scroll">
@@ -4590,14 +4664,13 @@ html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); 
                 <th class="col-order" scope="col">订单号</th>
                 <th class="col-customer" scope="col">客户</th>
                 <th class="col-country" scope="col">国家地区</th>
-                <th class="col-date" scope="col">创建日期</th>
-                <th class="col-product" scope="col">产品/收款</th>
+                <th class="col-product" scope="col">产品 · 收款</th>
                 <th class="col-stage" scope="col">阶段</th>
-                <th class="col-money" scope="col">订单总额</th>
-                <th class="col-money" scope="col">已收金额</th>
-                <th class="col-money" scope="col">待收金额</th>
+                <th class="col-money" scope="col">订单额</th>
+                <th class="col-money" scope="col">已收</th>
+                <th class="col-money" scope="col">待收</th>
                 <th class="col-logistics" scope="col">物流</th>
-                <th class="col-updated" scope="col">最近更新</th>
+                <th class="col-date" scope="col">创建日期</th>
                 <th class="col-action" scope="col">操作</th>
               </tr>
             </thead>
@@ -13052,6 +13125,21 @@ function orderListPaginationButtons(currentPage, totalPages) {
 function orderListActiveFilters(controls) {
   return controls.filter(control => control.value && control.value !== 'all').map(control => ({ id:control.id, label:control.label }));
 }
+// 国家地区只显示国旗和中文名，例如「🇩🇪 德国 Germany」显示为「🇩🇪 德国」。
+function orderListWhen(value) {
+  const text = String(value || '').trim();
+  const m = text.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2})/);
+  if (!m) return text || '-';
+  const day = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const now = new Date();
+  if (m[1] === day(now)) return `今天 ${m[2]}`;
+  if (m[1] === day(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1))) return `昨天 ${m[2]}`;
+  return `${m[1].slice(5)} ${m[2]}`;
+}
+function orderListCountryShort(country = '') {
+  const parts = String(country || '').trim().split(/\s+/);
+  return /\p{Regional_Indicator}/u.test(parts[0] || '') && parts[1] ? `${parts[0]} ${parts[1]}` : String(country || '');
+}
 function renderOrderListPage() {
   const body = document.getElementById('orderTableBody');
   const pagination = document.getElementById('orderListPagination');
@@ -13069,11 +13157,13 @@ function renderOrderListPage() {
   const page = paginateOrdersForList(sorted, orderListCurrentPage, orderListPageSize);
   orderListCurrentPage = page.currentPage;
   const count = document.getElementById('orderListResultCount');
-  if (count) count.textContent = filtered.length === (state.orders || []).length ? `${filtered.length} 个订单` : `${filtered.length} / ${(state.orders || []).length} 个订单`;
+  if (count) count.textContent = `${filtered.length === (state.orders || []).length ? filtered.length : `${filtered.length} / ${(state.orders || []).length}`} 单 · 合计 ${summaryMoney(usdTotal(filtered), 'USD')} · 待收 ${summaryMoney(usdDueTotal(filtered), 'USD')}`;
+  const deletedCount = document.getElementById('orderListDeletedCount');
+  if (deletedCount) deletedCount.textContent = (state.deletedOrders || []).length;
   document.querySelectorAll('[data-order-list-quick]').forEach(button => button.classList.toggle('active', button.dataset.orderListQuick === orderListQuickFilter));
   fitSegmentControl(document.getElementById('orderListQuickFilters'));
   if (!page.items.length) {
-    body.innerHTML = '<tr><td class="order-table-empty" colspan="12">没有符合条件的订单。<button class="btn btn-small" type="button" data-order-list-reset>重置筛选</button></td></tr>';
+    body.innerHTML = '<tr><td class="order-table-empty" colspan="11">没有符合条件的订单。<button class="btn btn-small" type="button" data-order-list-reset>重置筛选</button></td></tr>';
   } else {
     body.innerHTML = page.items.map(order => {
       const stage = stageDef(order.stage);
@@ -13086,22 +13176,21 @@ function renderOrderListPage() {
       return `
         <tr data-order-list-id="${escapeAttr(order.id)}" tabindex="0" aria-label="查看订单 ${escapeAttr(order.num || '')}">
           <td class="col-order">
-            <div class="order-table-primary"><span class="order-num">${escapeAttr(order.num || '未编号')}</span>${logistics.tracking ? '<span class="order-table-check" title="已填写物流单号">✓</span>' : ''}</div>
-            <div class="order-table-flags">${order.isDraft ? '<span class="order-table-mini-flag">草稿</span>' : ''}${order.urgentOrder ? '<span class="order-table-mini-flag urgent">加急</span>' : ''}${renderFeishuNotificationBadge(order)}</div>
+            <div class="order-table-primary"><span class="order-num">${escapeAttr(order.num || '未编号')}</span>${logistics.tracking ? '<span class="order-table-check" title="已填写物流单号">✓</span>' : ''}${renderFeishuNotificationBadge(order)}</div>
+            <span class="order-table-sub" title="${escapeAttr(order.updated || '')}">${escapeAttr(orderListWhen(order.updated))}</span>
           </td>
           <td class="col-customer">
             <button class="order-table-customer" type="button" data-order-list-customer="${escapeAttr(order.client || '')}" title="${escapeAttr(clientDisplayName(order.client || '未命名客户'))} · 查看客户资料">${renderLevelIcon(level)}<span class="order-table-ellipsis">${escapeAttr(clientDisplayName(order.client || '未命名客户'))}</span></button>
-            <span class="order-table-sub">${escapeAttr(order.orderType || '未填写订单类型')}</span>
+            <span class="order-table-sub order-table-ellipsis">${escapeAttr(order.next || order.note || order.orderType || '')}</span>
           </td>
-          <td class="col-country"><span class="order-table-ellipsis" title="${escapeAttr(order.country || '未填写')}">${escapeAttr(order.country || '未填写')}</span></td>
-          <td class="col-date"><span class="order-table-money">${escapeAttr(normalizeDate(order.createdAt || order.updated))}</span></td>
-          <td class="col-product"><span class="tag ${product.tag}">${escapeAttr(product.value)}</span><span class="order-table-sub">${escapeAttr(payment.value)}</span></td>
-          <td class="col-stage"><span class="tag ${stage.tag}">${escapeAttr(stage.name)}</span></td>
-          <td class="col-money"><span class="order-table-money">${money(order.amount, order.currency)}</span></td>
-          <td class="col-money"><span class="order-table-money order-table-paid">${money(paid, order.currency)}</span></td>
+          <td class="col-country"><span class="order-table-ellipsis" title="${escapeAttr(order.country || '未填写')}">${escapeAttr(orderListCountryShort(order.country) || '未填写')}</span></td>
+          <td class="col-product"><div class="order-table-product"><strong>${escapeAttr(product.value)}</strong><span> · ${escapeAttr(boardPaymentLabel(payment.value))}</span></div><span class="order-table-sub">${escapeAttr(order.orderType || '')}</span></td>
+          <td class="col-stage"><div class="order-table-stage"><span class="tag ${stage.tag}">${escapeAttr(stage.name)}</span>${order.isDraft ? '<span class="order-table-mini-flag">草稿</span>' : ''}${order.urgentOrder ? '<span class="order-table-mini-flag urgent">加急</span>' : ''}</div></td>
+          <td class="col-money"><span class="order-table-money order-table-total">${money(order.amount, order.currency)}</span></td>
+          <td class="col-money"><span class="order-table-money order-table-paid">${money(paid, order.currency)}</span><span class="order-table-paybar" aria-hidden="true"><i style="width:${Math.min(100, orderAmountValue(order) ? Math.round(paid / orderAmountValue(order) * 100) : 0)}%"></i></span></td>
           <td class="col-money"><span class="order-table-money ${due > 0 ? 'order-table-due' : 'order-table-settled'}">${due > 0 ? money(due, order.currency) : '已收清'}</span></td>
           <td class="col-logistics"><div class="order-table-logistics ${logistics.exception ? 'exception' : ''}"><strong>${escapeAttr(logistics.status)}</strong><span class="order-table-sub">${escapeAttr(logistics.carrier || '')}${logistics.carrier && logistics.tracking ? '  ' : ''}${escapeAttr(logistics.tracking || '')}</span></div></td>
-          <td class="col-updated"><span class="order-table-money">${escapeAttr(order.updated || '-')}</span></td>
+          <td class="col-date"><span class="order-table-date">${escapeAttr(normalizeDate(order.createdAt || order.updated))}</span></td>
           <td class="col-action"><button class="order-table-view" type="button" data-order-list-open="${escapeAttr(order.id)}">查看</button></td>
         </tr>`;
     }).join('');
@@ -18345,7 +18434,7 @@ function uiDashboardKpis() {
   const bar = document.getElementById('statTargetBar');
   if (bar) bar.style.width = goal ? `${Math.min(100, targetRate(usdTotal(ordersByMonth(month).filter(isRevenueOrder)), goal))}%` : '0%';
 }
-document.querySelector('[data-page-link="order-list"]')?.addEventListener('click', () => setPage('order-list'));
+document.querySelectorAll('[data-page-link]').forEach(btn => btn.addEventListener('click', () => setPage(btn.dataset.pageLink)));
 // ===== 新版 UI 交互 结束 =====
 </script>
 </body>

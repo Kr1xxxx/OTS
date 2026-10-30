@@ -30,6 +30,7 @@ assert.equal(page.items[0].id, 100);
 assert.equal(page.total, 123);
 extract('backupSaveFeedback').runInContext(context);
 assert.equal(vm.runInContext("backupSaveFeedback({ok:false}, '').warning", context), true);
+assert.match(vm.runInContext("backupSaveFeedback({ok:false,message:'备份未完成：1 个附件文件缺失（订单 K1）。'}, '').message", context), /订单 K1/, 'missing attachment backups must name the order');
 assert.equal(vm.runInContext("backupSaveFeedback({ok:true,skipped:true}, 'previous failure').warning", context), true);
 assert.equal(vm.runInContext("backupSaveFeedback({ok:true}, 'previous failure').warning", context), false);
 console.log('Refresh, backup feedback and pagination tests passed.');

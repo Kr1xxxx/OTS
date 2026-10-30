@@ -65,10 +65,11 @@ function createWhatsAppStore(db) {
       const customer = bounded(input.customer, '客户', 300);
       if (!exists(customer)) fail('客户不存在，请先在订单系统建档');
       const previous = findConversation(input);
-      if (previous && previous.customer !== customer) fail(`此聊天已关联 ${previous.customer}，不能覆盖已有聊天归属`);
+      // A binding to a customer that no longer exists is stale and may be re-pointed.
+      if (previous && previous.customer !== customer && exists(previous.customer)) fail(`此聊天已关联 ${previous.customer}，不能覆盖已有聊天归属`);
       const title = bounded(input.title || '', '聊天标题', 300, false);
       db.prepare(`INSERT INTO whatsapp_conversations VALUES(?, ?, ?, ?, ?)
-        ON CONFLICT(account, chat_id) DO UPDATE SET title = excluded.title`).run(account, chatId, customer, title, new Date().toISOString());
+        ON CONFLICT(account, chat_id) DO UPDATE SET title = excluded.title, customer = excluded.customer`).run(account, chatId, customer, title, new Date().toISOString());
       return { ok:true, customer };
     },
     sync(input) {
@@ -120,4 +121,9 @@ function createWhatsAppStore(db) {
     }
   };
 }
-module.exports = { createWhatsAppStore, phoneKey };
+function renameWhatsAppCustomer(db, from, to) {
+  // The table is created lazily by the first WhatsApp request.
+  if (!db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'whatsapp_conversations'").get()) return 0;
+  return Number(db.prepare('UPDATE whatsapp_conversations SET customer = ? WHERE customer = ?').run(to, from).changes);
+}
+module.exports = { createWhatsAppStore, phoneKey, renameWhatsAppCustomer };

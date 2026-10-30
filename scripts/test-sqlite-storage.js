@@ -4,6 +4,7 @@ const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
 const { DatabaseSync } = require('node:sqlite');
+const { createWhatsAppStore } = require('../mac-app/whatsapp-store');
 
 const root = path.resolve(__dirname, '..');
 const serverFile = path.join(root, 'mac-app', 'server.js');
@@ -64,6 +65,48 @@ async function main() {
     assert(duplicateResult.status === 500, 'duplicate order number was not rejected');
     const afterRejectedSave = await request('/api/data');
     assert(afterRejectedSave.data.orders[1].num === originalSecondNumber, 'failed transaction changed stored data');
+
+    const swapPayload = structuredClone(afterRejectedSave);
+    const [firstNumber, secondNumber] = [swapPayload.data.orders[0].num, swapPayload.data.orders[1].num];
+    swapPayload.data.orders[0].num = secondNumber;
+    swapPayload.data.orders[1].num = firstNumber;
+    await request('/api/save', { method: 'POST', body: { state: swapPayload, baseRevision: swapPayload.revision } });
+    const afterSwap = await request('/api/data');
+    assert(afterSwap.data.orders[0].num === secondNumber && afterSwap.data.orders[1].num === firstNumber, 'swapping order numbers must save');
+
+    const reusePayload = structuredClone(afterSwap);
+    const removed = reusePayload.data.orders.pop();
+    reusePayload.data.orders.push({ ...removed, id: `${removed.id}-reissued`, note: 'REISSUED_NUMBER' });
+    await request('/api/save', { method: 'POST', body: { state: reusePayload, baseRevision: reusePayload.revision } });
+    const afterReuse = await request('/api/data');
+    assert(afterReuse.data.orders.at(-1).num === removed.num && !afterReuse.data.orders.some(order => order.id === removed.id), 'a permanently removed order number must be reusable in the same save');
+
+    const trashPayload = structuredClone(afterReuse);
+    const trashed = trashPayload.data.orders.pop();
+    trashPayload.data.trashOrders.push(trashed);
+    trashPayload.data.orders.push({ ...trashed, id: `${trashed.id}-duplicate` });
+    const trashDuplicate = await request('/api/save', { method: 'POST', body: { state: trashPayload, baseRevision: trashPayload.revision }, allowError: true });
+    assert(trashDuplicate.status === 500, 'an order number still held by the trash must stay unique');
+  }
+
+  const renameSource = (await request('/api/data'));
+  const renameOrder = renameSource.data.orders.find(order => renameSource.data.customers[order.client]);
+  if (renameOrder) {
+    await request(`/api/whatsapp/messages?customer=${encodeURIComponent(renameOrder.client)}`);
+    const chatDb = new DatabaseSync(path.join(testDir, 'trade-order-system.sqlite'));
+    const chatStore = createWhatsAppStore(chatDb);
+    const chat = { account: '15550001111@c.us', chatId: '15551234567@c.us', title: 'Rename test' };
+    chatStore.bind({ ...chat, customer: renameOrder.client });
+    chatStore.sync({ ...chat, messages: [{ id: 'rename-1', direction: 'in', kind: 'text', text: 'hello', timestamp: '' }] });
+    chatDb.close();
+    const oldName = renameOrder.client;
+    const newName = `${oldName} Renamed`;
+    renameSource.data.customers[newName] = renameSource.data.customers[oldName];
+    delete renameSource.data.customers[oldName];
+    renameSource.data.orders.forEach(order => { if (order.client === oldName) order.client = newName; });
+    await request('/api/save', { method: 'POST', body: { state: renameSource, baseRevision: renameSource.revision } });
+    const renamedChat = await request(`/api/whatsapp/messages?customer=${encodeURIComponent(newName)}`);
+    assert(renamedChat.total === 1, 'WhatsApp chat must follow a renamed customer');
   }
 
   const backupResult = await request('/api/manual-backup', { method: 'POST', body: {} });
@@ -79,6 +122,9 @@ async function main() {
   fs.unlinkSync(imagePath);
   const failedBackup = await request('/api/manual-backup', {method:'POST',body:{},allowError:true});
   assert(failedBackup.status >= 400 && failedBackup.data.ok === false, 'missing attachment must not report a complete backup');
+  const missingOrderNum = (await request('/api/data')).data.orders[0].num;
+  assert(failedBackup.data.missingAttachments?.some(item => item.orderNum === missingOrderNum && item.files === 1), 'failed backup must name the order whose attachment is missing');
+  assert(failedBackup.data.message.includes(missingOrderNum), 'backup error message must name the order');
   assert(JSON.stringify(fs.readdirSync(path.join(testDir,'backups')).filter(name=>name.endsWith('.sqlite')).sort()) === JSON.stringify(backupsBeforeFailure), 'failed backup changed retained snapshots');
   assert(!fs.readdirSync(path.join(testDir,'backups')).some(name=>name.includes('.partial')), 'failed backup left partial files');
   fs.copyFileSync(copiedImage,imagePath);

@@ -87,6 +87,7 @@ scripts/test-save-conflict-ui.js
 scripts/test-save-ui.js
 scripts/test-server-security.js
 scripts/test-sqlite-storage.js
+scripts/test-stage-undo-ui.js
 scripts/test-subscription-schedule.js
 scripts/test-subscription-store.js
 scripts/test-subscriptions-ui.js

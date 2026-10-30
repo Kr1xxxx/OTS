@@ -75,10 +75,18 @@ async function testSurface(surface) {
     assert.equal(payload.reasoning,undefined,'unrelated models/endpoints must not change reasoning behavior');
     assert.deepEqual(payload.thinking,provider==='zhipu'?{type:'disabled'}:undefined);
   }
+  for (const selectedModel of ['deepseek-flash']) {
+    await run('https://api.deepseek.com',selectedModel);
+    assert.equal(endpoint,'https://api.deepseek.com/chat/completions');
+    assert.deepEqual(payload.thinking,{type:'disabled'},`${surface}: official DeepSeek must not spend the extraction budget on thinking`);
+    assert.equal(payload.reasoning,undefined);
+    assert.deepEqual(payload.response_format,{type:'json_object'},`${surface}: official DeepSeek extraction must request JSON mode`);
+    await run('https://api.deepseek.com',selectedModel,'custom',true);
+    assert.equal(payload.response_format,undefined,'connection tests must not request JSON mode');
+  }
+  await run('https://openrouter.ai/api/v1',model);
+  assert.equal(payload.response_format,undefined,'JSON mode is only requested from the official DeepSeek endpoint');
   console.log(`${surface}: DeepSeek non-reasoning contract and unrelated-model isolation passed.`);
 }
-(async()=>{
-  const mode=process.argv[2] || 'all';
-  if(mode!=='client') await testSurface('server');
-  if(mode!=='server') await testSurface('client');
-})().catch(error=>{console.error(error);process.exitCode=1;});
+// The page always goes through /api/ai-chat, so the server is the only surface that builds provider payloads.
+testSurface('server').catch(error=>{console.error(error);process.exitCode=1;});

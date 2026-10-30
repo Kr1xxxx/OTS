@@ -1,4 +1,5 @@
 .env.example
+.github/workflows/ci.yml
 .gitignore
 EXPORT_CHECKSUMS.sha256
 README.md
@@ -18,6 +19,7 @@ chrome-extension/whatsapp-sync/wa-page.js
 data/demo-data.json
 docs/export-verification.md
 docs/project-notes.md
+eslint.config.js
 mac-app/AppIcon-1024.png
 mac-app/AppIcon-Source.png
 mac-app/README.md
@@ -33,10 +35,14 @@ mac-app/whatsapp-native-host.js
 mac-app/whatsapp-store.js
 package-lock.json
 package.json
+scripts/bench-render-save.js
 scripts/check-project.js
 scripts/check-release.js
+scripts/fixtures/customer-recognition-cases.json
 scripts/helpers/whatsapp-fixture.js
+scripts/lint.js
 scripts/make-rounded-app-icon.swift
+scripts/run-tests.js
 scripts/test-ai-usage.js
 scripts/test-app-icon.js
 scripts/test-board-layout.js
@@ -59,8 +65,10 @@ scripts/test-feishu-order-notification.js
 scripts/test-feishu-order-ui.js
 scripts/test-full-payment-status.js
 scripts/test-global-search.js
+scripts/test-html-injection-ui.js
 scripts/test-image-attachment-preparation.js
 scripts/test-image-upload-progress-ui.js
+scripts/test-mac-only-ui.js
 scripts/test-menu-popovers-ui.js
 scripts/test-modal-accessibility.js
 scripts/test-multi-shipments.js
@@ -71,6 +79,7 @@ scripts/test-order-number.js
 scripts/test-order-recognition.js
 scripts/test-refresh-backup-pagination.js
 scripts/test-save-confirmation.js
+scripts/test-save-conflict-ui.js
 scripts/test-save-ui.js
 scripts/test-server-security.js
 scripts/test-sqlite-storage.js
@@ -87,5 +96,6 @@ scripts/test-whatsapp-extension.js
 scripts/test-whatsapp-integration.js
 scripts/test-whatsapp-sync.js
 scripts/test-whatsapp-wajs.js
+scripts/update-export-checksums.js
 trade-order-data.json
 trade-order-system.html

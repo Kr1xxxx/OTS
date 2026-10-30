@@ -67,6 +67,7 @@ const context = vm.createContext({
 });
 context.clientHistory = () => Object.entries(context.state.customers || {}).map(([name, profile]) => ({ client: name, ...profile }));
 // Load the shared production labels used by both read-only and editable previews.
+vm.runInContext(html.match(/^const localCustomerLabelDefs = \[[\s\S]*?\];$/m)[0].replace('const ','var ') + html.match(/^const localCustomerLabelPattern = .*$/m)[0].replace('const ','var ') + html.match(/^const localCustomerNameStopWords = .*$/m)[0].replace('const ','var '), context);
 vm.runInContext(html.match(/^const customerPasteLabels = .*;$/m)[0], context);
 [
   'isMacAppMode',
@@ -112,6 +113,9 @@ vm.runInContext(html.match(/^const customerPasteLabels = .*;$/m)[0], context);
   'matchClientsFromPaste',
   'findExplicitNoteInText',
   'analyzePasteText',
+  'deobfuscateEmailText',
+  'sellerSideCustomerLines',
+  'sellerSideEmails',
   'normalizeCustomerEmail',
   'findEmailsInText',
   'findEmailInText',
@@ -157,6 +161,22 @@ vm.runInContext(html.match(/^const customerPasteLabels = .*;$/m)[0], context);
   'findCustomerTagsInText',
   'autoCapitalizeCustomerName',
   'normalizeTags',
+  'localCustomerLabelField',
+  'localCustomerSegments',
+  'localCustomerPersonName',
+  'localCustomerLeadingName',
+  'localCustomerSentenceCompany',
+  'localCustomerCompanyName',
+  'isLocalStreetLine',
+  'isLocalTailAddressLine',
+  'isLocalCountryLine',
+  'isLocalAddressLine',
+  'localCustomerAddresses',
+  'localCustomerPhones',
+  'localCustomerEmails',
+  'localCustomerContactFields',
+  'localCustomerCountry',
+  'localCustomerPaymentMethod',
   'analyzeCustomerPasteText',
   'customerFieldsFromCombinedPaste',
   'orderFieldsFromCombinedPaste',
@@ -700,5 +720,45 @@ assert.equal(context.isAddressUnitLine('Unit price 207'),false);
 assert.equal(context.findAmountInText('Suite 207\n阿里408'),408);
 assert.equal(context.findCustomerAddressInText('Eliza M 123 Sample Turnpike Suite 207 Poughkeepsie New York 12603'),
   '123 Sample Turnpike Suite 207 Poughkeepsie New York 12603');
+
+// Names that merely contain address words (rd, ave, lane, unit) are still names
+for (const name of ['Jordan Example', 'Dave Sample', 'Elaine Sample', 'Richard Ford', 'Trinity Sample']) {
+  assert.equal(context.looksLikeAddressText(name), false, `Name read as address: ${name}`);
+  assert.equal(context.cleanContactValue(name), name);
+}
+for (const address of ['27 Sample Crescent Floor 2', 'Sample Rd.', 'Unit 1208', '18 Example Avenue']) {
+  assert.equal(context.looksLikeAddressText(address), true, `Address missed: ${address}`);
+}
+
+// Local (offline) customer recognition against 30 realistic pastes; each field is checked like a reviewer would.
+{
+  const cases = JSON.parse(fs.readFileSync(path.join(root, 'scripts', 'fixtures', 'customer-recognition-cases.json'), 'utf8'));
+  const low = value => String(value || '').normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').trim();
+  const lastDigits = value => String(value || '').replace(/\(0\)/g, '').replace(/\D/g, '').slice(-9);
+  const list = (fields, many, one) => (fields[many]?.length ? fields[many] : String(fields[one] || '').split(/\s*;\s*/)).filter(Boolean);
+  const sameSet = (actual, expected, eq) => actual.length === expected.length && expected.every(item => actual.some(value => eq(value, item)));
+  const failures = [];
+  for (const item of cases) {
+    const fields = context.analyzeCustomerPasteText(item.text).extracted;
+    const errors = [];
+    if (!item.name.some(name => low(name) === low(fields.name))) errors.push(`name=${fields.name}`);
+    if (!sameSet(list(fields, 'contacts', 'contact'), item.contacts, (a, b) => low(a) === low(b))) errors.push(`contacts=${list(fields, 'contacts', 'contact')}`);
+    if (!sameSet(list(fields, 'phones', 'phone'), item.phones, (a, b) => lastDigits(a) === lastDigits(b))) errors.push(`phones=${list(fields, 'phones', 'phone')}`);
+    if (!sameSet(list(fields, 'emails', 'email'), item.emails, (a, b) => low(a) === low(b))) errors.push(`emails=${list(fields, 'emails', 'email')}`);
+    const addresses = list(fields, 'addresses', 'address');
+    const matches = tokens => addresses.findIndex(address => tokens.every(token => low(address).includes(low(token))));
+    const allowed = [...item.addresses, ...(item.optionalAddresses || [])];
+    if (matches(item.addresses[0]) !== 0 || !item.addresses.every(tokens => matches(tokens) >= 0)
+      || addresses.some(address => !allowed.some(tokens => tokens.every(token => low(address).includes(low(token)))))
+      || [...(item.noAddressText || []), ...item.contacts].some(text => addresses.some(address => low(address).includes(low(text))))) errors.push(`addresses=${addresses.join(' || ')}`);
+    const expectedCountry = item.country && context.countryDefs.find(country => country.includes(item.country));
+    if (expectedCountry ? fields.country !== expectedCountry : Boolean(item.country) && fields.country) errors.push(`country=${fields.country}`);
+    if ((fields.paymentMethod || '') !== (item.paymentMethod || '')) errors.push(`paymentMethod=${fields.paymentMethod}`);
+    if (low(fields.paymentEmail) !== low(item.paymentEmail)) errors.push(`paymentEmail=${fields.paymentEmail}`);
+    if ((item.forbidden || []).some(text => JSON.stringify(fields).toLowerCase().includes(text.toLowerCase()))) errors.push('seller or injected data leaked');
+    if (errors.length) failures.push(`${item.id}: ${errors.join('; ')}`);
+  }
+  assert.deepEqual(failures, [], `Local customer recognition regressions:\n${failures.join('\n')}`);
+}
 
 console.log('Order recognition tests passed.');

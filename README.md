@@ -21,11 +21,13 @@ npm test
 node scripts/check-release.js --app mac-app/TradeOrderSystem.app
 ```
 
+npm test runs every regression script, in parallel where safe, and prints a summary of all passes and failures; pass a name fragment to run a subset (for example node scripts/run-tests.js whatsapp). It also works on a clean checkout without a build: the server then reads the frontend and seed from the repository root. macOS-only checks (icon, Swift) are reported as skipped on other systems. GitHub Actions runs the suite on Linux and, with the native build, on macOS.
+
 The build runs the board-layout gate, compiles the native host, bundles Node, and verifies an ad-hoc signature. It does **not** install or restart the application. This is a local build, not a notarized distribution. On a clean Mac install Pillow in an appropriate Python environment before testing.
 
 ## Safe local development
 
-Build first: the local server reads frontend resources from the generated app. Use a newly created, isolated data directory so development cannot open your production database:
+The local server reads frontend resources from the generated app when one is built, otherwise from the repository root. Use a newly created, isolated data directory so development cannot open your production database:
 
 ```sh
 OTS_DEV_DATA_DIR="$(mktemp -d /tmp/ots-development.XXXXXX)"

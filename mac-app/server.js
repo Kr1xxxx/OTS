@@ -14,7 +14,9 @@ const { createSubscriptionStore } = require('./subscription-store');
 const appName = 'TradeOrderSystem';
 const port = Number(process.env.TRADE_APP_PORT || 47828);
 const bundledResourcesDir = path.join(__dirname, 'TradeOrderSystem.app', 'Contents', 'Resources');
-const resourcesDir = fs.existsSync(path.join(__dirname, 'trade-order-system.html')) ? __dirname : bundledResourcesDir;
+// Bundled app first, then a local build, then the repository root so tests run on a clean checkout.
+const resourcesDir = [__dirname, bundledResourcesDir, path.resolve(__dirname, '..')]
+  .find(dir => fs.existsSync(path.join(dir, 'trade-order-system.html'))) || bundledResourcesDir;
 const htmlFile = path.join(resourcesDir, 'trade-order-system.html');
 const appUpdatedAt = fs.existsSync(htmlFile) ? fs.statSync(htmlFile).mtime.toISOString() : null;
 const seedDataFile = path.join(resourcesDir, 'trade-order-data.json');
@@ -32,6 +34,8 @@ const aiUsageStore = createAiUsageStore({ file:path.join(supportDir, 'ai-usage.j
 const secretsDir = path.join(supportDir, 'secrets');
 const aiApiKeyFile = path.join(secretsDir, 'ai-api-key');
 const tinifyApiKeyFile = path.join(secretsDir, 'tinypng-api-key');
+const trackingSecretsFile = path.join(secretsDir, 'tracking-credentials.json');
+const trackingSecretKeys = ['dhlApiKey', 'fedexApiKey', 'fedexApiSecret'];
 const storageMarkerFile = path.join(supportDir, 'sqlite-storage.json');
 const larkProfile = 'OTS_BOT_CONFIGURE';
 const larkChatName = '订单通知群（待配置）';
@@ -48,6 +52,8 @@ let database = null;
 let storageMode = 'initializing';
 let storageError = '';
 let storageRevision = 0;
+let integrityCache = null;
+const integrityCacheMs = 5 * 60 * 1000;
 
 function ensureStorage() {
   fs.mkdirSync(backupDir, { recursive: true });
@@ -509,7 +515,29 @@ function databaseIntegrity() {
   if (!database) return { ok: false, message: storageError || 'SQLite unavailable' };
   const result = database.prepare('PRAGMA integrity_check').get();
   const message = String(result?.integrity_check || 'unknown');
-  return { ok: message === 'ok', message };
+  integrityCache = { ok: message === 'ok', message, checkedAt: Date.now() };
+  return { ok: integrityCache.ok, message };
+}
+
+// A full integrity_check scans every page; health probes reuse a recent result.
+function recentDatabaseIntegrity(maxAgeMs = integrityCacheMs) {
+  if (!database) return { ok: false, message: storageError || 'SQLite unavailable' };
+  if (integrityCache && Date.now() - integrityCache.checkedAt < maxAgeMs) {
+    return { ok: integrityCache.ok, message: integrityCache.message };
+  }
+  return databaseIntegrity();
+}
+
+function databaseCounts() {
+  const counts = { orders: 0, trashOrders: 0, deletedOrders: 0 };
+  database.prepare('SELECT bucket, COUNT(*) AS count FROM orders GROUP BY bucket').all().forEach(row => {
+    counts[row.bucket] = Number(row.count);
+  });
+  return {
+    ...counts,
+    customers: Number(database.prepare('SELECT COUNT(*) AS count FROM customers').get().count),
+    trackingLookups: Number(database.prepare('SELECT COUNT(*) AS count FROM tracking_lookups').get().count)
+  };
 }
 
 function archiveMigrationSource(sourceFile) {
@@ -1337,21 +1365,53 @@ function maskSecret(value = '') {
   return `${text.slice(0, 3)}******${text.slice(-3)}`;
 }
 
+function readTrackingSecrets() {
+  if (!fs.existsSync(trackingSecretsFile)) return {};
+  try {
+    fs.chmodSync(trackingSecretsFile, 0o600);
+    const raw = readJson(trackingSecretsFile);
+    return Object.fromEntries(trackingSecretKeys.map(key => [key, String(raw?.[key] || '').trim()]));
+  } catch (_) {
+    return {};
+  }
+}
+
+function withoutTrackingSecrets(settings) {
+  const copy = { ...settings };
+  trackingSecretKeys.forEach(key => { delete copy[key]; });
+  return copy;
+}
+
+// Carrier credentials live in secrets/ beside the AI key, not in the plain settings file.
+function migrateLegacyTrackingSecrets() {
+  ensureStorage();
+  if (!fs.existsSync(trackingSettingsFile)) return;
+  let raw;
+  try { raw = readJson(trackingSettingsFile); } catch (_) { return; }
+  if (!raw || typeof raw !== 'object' || !trackingSecretKeys.some(key => Object.hasOwn(raw, key))) return;
+  const stored = readTrackingSecrets();
+  const merged = Object.fromEntries(trackingSecretKeys.map(key => [key, stored[key] || String(raw[key] || '').trim()]));
+  atomicWrite(trackingSecretsFile, JSON.stringify(merged, null, 2));
+  const verified = readTrackingSecrets();
+  if (trackingSecretKeys.some(key => verified[key] !== merged[key])) throw new Error('tracking credential migration verification failed');
+  atomicWrite(trackingSettingsFile, JSON.stringify(withoutTrackingSecrets(raw), null, 2));
+}
+
 function readTrackingSettings() {
   ensureStorage();
-  if (!fs.existsSync(trackingSettingsFile)) return { ...defaultTrackingSettings };
-  try {
-    return normalizeTrackingSettings(readJson(trackingSettingsFile));
-  } catch (_) {
-    return { ...defaultTrackingSettings };
+  let raw = {};
+  if (fs.existsSync(trackingSettingsFile)) {
+    try { raw = readJson(trackingSettingsFile); } catch (_) { raw = {}; }
   }
+  return normalizeTrackingSettings({ ...raw, ...readTrackingSecrets() });
 }
 
 function writeTrackingSettings(settings) {
   ensureStorage();
   const current = readTrackingSettings();
   const next = normalizeTrackingSettings({ ...current, ...(settings || {}) });
-  atomicWrite(trackingSettingsFile, JSON.stringify(next, null, 2));
+  atomicWrite(trackingSecretsFile, JSON.stringify(Object.fromEntries(trackingSecretKeys.map(key => [key, next[key]])), null, 2));
+  atomicWrite(trackingSettingsFile, JSON.stringify(withoutTrackingSecrets(next), null, 2));
   return {
     ...next,
     dhlApiKeySaved: Boolean(next.dhlApiKey),
@@ -1618,8 +1678,11 @@ async function queryAiChat(body = {}) {
       body: JSON.stringify({
         model: settings.model,
         messages: boundedAiMessages(body.messages),
-        thinking: settings.provider === 'zhipu' ? { type: 'disabled' } : undefined,
+        // 智谱和 DeepSeek 官方接口都关掉深度思考：识别只要字段，思考会拖慢速度并占用输出额度
+        thinking: settings.provider === 'zhipu' || new URL(settings.baseUrl).hostname === 'api.deepseek.com' ? { type: 'disabled' } : undefined,
         reasoning: new URL(settings.baseUrl).hostname === 'openrouter.ai' && settings.model === 'deepseek/deepseek-v4.1-flash' ? { enabled: false } : undefined,
+        // DeepSeek 官方接口支持 JSON 模式：识别请求强制返回 JSON 对象，测试连接不用
+        response_format: !body.testOnly && new URL(settings.baseUrl).hostname === 'api.deepseek.com' ? { type: 'json_object' } : undefined,
         max_tokens: body.testOnly ? 256 : 1024,
         temperature: Number.isFinite(Number(body.temperature)) ? Number(body.temperature) : 0
       })
@@ -2018,6 +2081,9 @@ async function queryBocRate(dateText) {
 
 ensureStorage();
 migrateLegacyAiApiKey();
+try { migrateLegacyTrackingSecrets(); } catch (error) {
+  console.error(`Tracking credential migration skipped: ${error.message}`);
+}
 initializeStorage();
 cleanupOrphanAttachments();
 
@@ -2039,7 +2105,7 @@ const server = http.createServer(async (req, res) => {
       });
     }
     if (req.method === 'GET' && url.pathname === '/api/health') {
-      const integrity = storageMode === 'sqlite' ? databaseIntegrity() : { ok: false, message: storageError || storageMode };
+      const integrity = storageMode === 'sqlite' ? recentDatabaseIntegrity() : { ok: false, message: storageError || storageMode };
       const authorized = requestIsAuthorized(req);
       const health = {
         ok: integrity.ok,
@@ -2056,7 +2122,7 @@ const server = http.createServer(async (req, res) => {
           legacyJsonFile: fs.existsSync(dataFile) ? dataFile : '',
           backupDir,
           backups: backupSummary(),
-          counts: integrity.ok ? stateCounts(readCurrentPayload()) : null,
+          counts: integrity.ok ? databaseCounts() : null,
           migration: storageMode === 'sqlite' ? {
             migratedAt: metadataValue('migrated_at', ''),
             source: metadataValue('migration_source', ''),

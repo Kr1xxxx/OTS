@@ -972,6 +972,64 @@ tr:hover .rowview { background:var(--accent-tint); color:var(--accent); }
 .ctx [role=menuitem] .i { width:15px; height:15px; color:var(--muted); }
 .ctx-sep { height:1px; background:var(--hairline); margin:4px 2px; }
 .ctx .ctx-del { width:100%; justify-content:center; height:36px; color:var(--s-red); }
+
+/* 订阅 */
+.sub-hero { display:flex; justify-content:space-between; align-items:flex-end; gap:16px; padding:22px 26px; border-radius:var(--r-panel, 20px); background:radial-gradient(120% 140% at 85% 30%, oklch(38% .12 260) 0%, oklch(18% .02 270) 55%, oklch(12% 0 0) 100%); color:#fff; box-shadow:var(--shadow-raised); }
+.sub-hl { color:rgba(255,255,255,.62); font-size:13px; }
+.sub-big { display:flex; align-items:baseline; gap:4px; margin:6px 0 4px; font-size:22px; font-weight:600; }
+.sub-big b { font-size:44px; font-weight:700; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+.sub-big small { font-size:13px; color:rgba(255,255,255,.62); font-weight:400; margin-left:4px; }
+.sub-hr { display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+.sub-hr .pill { background:rgba(255,255,255,.12); color:#fff; border-color:transparent; }
+.sub-hr .pill .i { width:12px; height:12px; color:var(--s-green); }
+.sub-list { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px; }
+.sub-row { display:grid; grid-template-columns:auto minmax(0,1fr) auto auto; grid-template-rows:auto auto; column-gap:14px; row-gap:6px; align-items:center; padding:16px 18px; border-radius:18px; border:1px solid var(--border); background:color-mix(in oklab, var(--c) 7%, var(--card)); text-align:left; font:inherit; color:var(--ink); cursor:pointer; transition:transform .2s var(--ease-spring), box-shadow .2s; }
+.sub-row:hover { transform:translateY(-2px); box-shadow:var(--shadow-raised); }
+.sub-row.off { background:var(--card); }
+.sub-row .sub-ic { grid-row:1 / 3; }
+.sub-n { grid-row:1 / 3; display:flex; flex-direction:column; gap:2px; min-width:0; }
+.sub-n b { font-weight:600; font-size:16px; }
+.sub-n .ell { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sub-cat { grid-row:1 / 3; font-size:12px; color:var(--muted); }
+.sub-amt { display:flex; align-items:baseline; gap:6px; justify-self:end; }
+.sub-amt b { font-size:20px; font-weight:700; font-variant-numeric:tabular-nums; }
+.sub-amt small { color:var(--muted); font-size:12px; }
+.sub-row > .pill { justify-self:end; grid-column:4; }
+.pill.red.solid { background:var(--s-red); color:#fff; border-color:transparent; }
+.sub-ic { display:grid; place-items:center; width:44px; height:44px; border-radius:13px; background:var(--c); color:#fff; font-weight:700; font-size:15px; letter-spacing:-.02em; flex:none; }
+.sub-ic.big { width:64px; height:64px; border-radius:18px; font-size:22px; }
+.sub-dh { display:flex; gap:16px; align-items:center; margin-top:8px; }
+.sub-dh h3 { margin:0; }
+.sub-dh p { margin:2px 0 0; }
+.sub-price { display:flex; align-items:baseline; gap:6px; }
+.sub-price b { font-size:30px; font-weight:700; font-variant-numeric:tabular-nums; }
+.sub-price small { color:var(--muted); }
+.sub-cards { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+.sub-card { display:flex; flex-direction:column; gap:3px; padding:14px 16px; border-radius:14px; background:var(--panel); }
+.sub-card.wide { grid-column:1 / -1; }
+.sub-card span, .sub-card small { color:var(--muted); font-size:12px; }
+.sub-card b { font-size:20px; font-weight:700; font-variant-numeric:tabular-nums; }
+.sub-kv { margin-bottom:14px; }
+.sub-act { display:flex; flex-direction:column; gap:3px; align-items:flex-start; width:100%; padding:14px 16px; border-radius:14px; border:1px solid var(--border); background:var(--card); font:inherit; text-align:left; color:var(--ink); cursor:pointer; }
+.sub-act b { font-weight:600; font-size:15px; }
+.sub-act small { color:var(--muted); font-size:12px; }
+.sub-act.dark { flex-direction:row; justify-content:space-between; align-items:center; background:var(--ink); color:var(--card); border-color:transparent; margin-bottom:10px; }
+.sub-act.dark > span:first-child { display:flex; flex-direction:column; gap:3px; }
+.sub-act.dark small { color:color-mix(in oklab, var(--card) 65%, transparent); }
+.sub-act.dark .pill { background:var(--card); color:var(--ink); }
+.sub-acts { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.sub-act.danger { cursor:default; }
+.sub-act.danger b { color:var(--s-red); }
+.sub-act.danger .hold { margin-top:6px; }
+.sub-form .fields { margin:0; }
+.drawer.modal .sub-form { padding:20px 28px; }
+.sub-colors { display:flex; gap:8px; }
+.sub-colors button { width:28px; height:28px; border-radius:9px; border:2px solid transparent; background:var(--c); cursor:pointer; box-shadow:inset 0 0 0 2px var(--card); }
+.sub-colors button.on { border-color:var(--c); }
+@container win (max-width: 900px) { .sub-list { grid-template-columns:minmax(0,1fr); } .sub-hero { flex-direction:column; align-items:flex-start; } .sub-hr { align-items:flex-start; } }
+
+.drawer.modal:has(.sub-form) { height:auto; width:min(760px, calc(100% - 48px)); }
+.drawer.modal:has(.sub-form) .sub-form { flex:none; }
 </style>
 
 <div class="desk" id="desk">
@@ -1133,16 +1191,87 @@ const PAGES = [
   { id:'logistics', name:'物流', icon:'truck', g:1, count:() => orders.filter(o => o.logi === '运输中' || o.logi === '异常').length },
   { id:'calendar', name:'日历', icon:'cal', g:2 },
   { id:'insights', name:'数据与目标', icon:'chart', g:2 },
+  { id:'subs', name:'订阅', icon:'repeat', g:2, count:() => subs.length },
   { id:'prefs', name:'设置', icon:'gear', g:2 },
   { id:'search', name:'搜索结果', icon:'search', g:0 }
 ];
 const OF_DEF = { pay:'all', country:'all', month:'all', logi:'all', kind:'all' };
-const state = { page:'dashboard', taskFilter:'all', boardProduct:'all', quick:'all', q:'', stageF:'all', productF:'all', cust:'Harbor Hair Co.', custView:'table', custGroup:'all', custQ:'', custSort:'recent', custLevel:'all', sq:'', stab:'all', spage:0, payF:'all', of:{ ...OF_DEF }, oSort:'updated', oPage:0, oPer:10, oMore:false, prefs:'data', drawerTab:'info', open:null, view:'list', enter:true, flash:null, doneTasks:new Set(), snoozed:new Set(), kRange:'month', cardSet:false, cardOpts:new Set(['level', 'num', 'urgent', 'amount', 'next']), calY:2026, calM:9, itab:'money', irange:'n6', ifrom:'2026-05', ito:'2026-10', iprod:'all', gmonth:'2026-10', amonth:'2026-10', lcar:'all', lq:'', lhcar:'all', landed:null, newReq:null };
+const state = { page:'dashboard', taskFilter:'all', boardProduct:'all', quick:'all', q:'', stageF:'all', productF:'all', cust:'Harbor Hair Co.', custView:'table', custGroup:'all', custQ:'', custSort:'recent', custLevel:'all', sq:'', stab:'all', spage:0, payF:'all', of:{ ...OF_DEF }, oSort:'updated', oPage:0, oPer:10, oMore:false, prefs:'data', drawerTab:'info', open:null, view:'list', enter:true, flash:null, doneTasks:new Set(), snoozed:new Set(), kRange:'month', cardSet:false, cardOpts:new Set(['level', 'num', 'urgent', 'amount', 'next']), calY:2026, calM:9, subCat:'all', itab:'money', irange:'n6', ifrom:'2026-05', ito:'2026-10', iprod:'all', gmonth:'2026-10', amonth:'2026-10', lcar:'all', lq:'', lhcar:'all', landed:null, newReq:null };
 const fl = name => (state.flash === name ? 'enter' : '');
 
 function renderNav() {
   const item = p => `<button class="nav-item ${state.page === p.id ? 'on' : ''}" data-page="${p.id}" type="button">${ic(p.icon)}<span>${p.name}</span>${p.count ? `<span class="count">${wheel('nav-' + p.id, p.count(), 'int')}</span>` : ''}</button>`;
   document.getElementById('nav').innerHTML = `<div class="nav-group"><div class="nav-label">日常</div>${PAGES.filter(p => p.g === 1).map(item).join('')}</div><div class="nav-group"><div class="nav-label">管理</div>${PAGES.filter(p => p.g === 2).map(item).join('')}</div>`;
+}
+
+/* ---------- 订阅：软件、服务器、域名这类固定支出 ---------- */
+const SUB_CATS = ['工具效率', 'AI', '其他'];
+let subSeq = 8;
+const subs = [
+  { id:'s1', name:'iCloud+', note:'50GB', amt:6, cur:'CNY', cycle:'月付', start:'2023-03-29', cat:'工具效率', on:true, color:'#3b8ef0' },
+  { id:'s2', name:'ChatGPT Plus', note:'', amt:19.99, cur:'USD', cycle:'月付', start:'2024-11-24', cat:'AI', on:true, color:'#5b3cc4' },
+  { id:'s3', name:'1Password', note:'', amt:35.88, cur:'USD', cycle:'年付', start:'2022-12-29', cat:'工具效率', on:false, color:'#3a66c4' },
+  { id:'s4', name:'域名', note:'oakgo.cn', amt:42, cur:'CNY', cycle:'年付', start:'2021-01-26', cat:'其他', on:true, color:'#e8590c' },
+  { id:'s5', name:'阿里云主机', note:'2026 年后恢复原价 1009.19', amt:99, cur:'CNY', cycle:'年付', start:'2024-01-26', cat:'其他', on:true, color:'#e8590c' },
+  { id:'s6', name:'搬瓦工 VPS', note:'', amt:18.79, cur:'USD', cycle:'年付', start:'2023-02-18', cat:'其他', on:true, color:'#c98a12' },
+  { id:'s7', name:'Apple Developer', note:'', amt:688, cur:'CNY', cycle:'年付', start:'2023-05-13', cat:'工具效率', on:true, color:'#2f6fde' }
+];
+const SUB_SYM = { CNY:'¥', USD:'$' };
+const subMoney = (x, cur) => `${SUB_SYM[cur]}${(+x).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 })}`;
+const SUB_FX = 7.1; // 订阅页自己的美元汇率，不读其他页面的数据
+const toCny = (x, cur) => cur === 'USD' ? x * SUB_FX : x;
+const daysTo = d => Math.round((Date.parse(d) - Date.parse(TODAY)) / 864e5);
+function subInfo(x) {
+  // 从开始日期按周期往后推：今天及以前的都算已扣费，下一次 ≥ 今天
+  const step = x.cycle === '月付' ? 1 : 12, d0 = new Date(x.start + 'T00:00:00');
+  let n = 0, next;
+  for (;;) { const d = new Date(d0); d.setMonth(d0.getMonth() + n * step); next = ymd(d); if (next >= TODAY) break; n++; }
+  const charged = n + (next === TODAY ? 1 : 0), monthly = x.amt / step;
+  return { next, days:daysTo(next), charged, monthly, monthlyCny:toCny(monthly, x.cur), total:x.amt * charged };
+}
+const subIcon = (x, big) => `<span class="sub-ic${big ? ' big' : ''}" style="--c:${x.color}">${esc(x.name.replace(/[^A-Za-z0-9一-龥]/g, '').slice(0, x.name.match(/^[一-龥]/) ? 1 : 2) || '·')}</span>`;
+const subDue = (x, f) => !x.on ? `<span class="pill amber">${f.days}天后到期</span>` : f.days === 0 ? '<span class="pill red solid">今天扣费</span>' : `<span class="pill line">${f.days}天后扣费</span>`;
+function pageSubs() {
+  const all = subs.map(x => ({ x, f:subInfo(x) })), list = all.filter(r => state.subCat === 'all' || r.x.cat === state.subCat).sort((a, b) => a.f.days - b.f.days);
+  const live = all.filter(r => r.x.on), month = live.reduce((a, r) => a + r.f.monthlyCny, 0);
+  const soon = live.filter(r => r.f.days <= 7);
+  return `<div class="page ${state.enter ? 'enter' : ''}">
+    <section class="sub-hero"><div><span class="sub-hl">支出概览</span><div class="sub-big">¥<b>${month.toFixed(2)}</b><small>每月</small></div><span class="sub-hl">一年约 ¥${Math.round(month * 12).toLocaleString('en-US')} · 美元按 ${SUB_FX} 折算</span></div>
+      <div class="sub-hr"><span class="pill green">${ic('check')}${subs.length} 项订阅</span><span class="sub-hl">${live.length} 项自动续费 · ${subs.length - live.length} 项已取消</span>${soon.length ? `<span class="sub-hl">7 天内扣费 ${soon.length} 项</span>` : ''}</div></section>
+    <div class="toolbar"><div class="seg" data-seg="subCat" data-glide="subcat">${[['all', '全部']].concat(SUB_CATS.map(c => [c, c])).map(([v, n]) => `<button type="button" data-v="${v}" class="${state.subCat === v ? 'on' : ''}">${n}<span class="c">${v === 'all' ? subs.length : subs.filter(x => x.cat === v).length}</span></button>`).join('')}</div><button class="btn primary" type="button" data-subnew style="margin-left:auto">${ic('plus')}新增订阅</button></div>
+    <div class="sub-list ${fl('subs')}">${list.map(({ x, f }, i) => `<button class="sub-row ${state.enter || state.flash === 'subs' ? 'stag' : ''} ${x.on ? '' : 'off'}" style="--i:${i};--c:${x.color}" type="button" data-sub="${x.id}">${subIcon(x)}<span class="sub-n"><b>${esc(x.name)}</b>${x.note ? `<span class="sub ell">${esc(x.note)}</span>` : ''}</span><span class="sub-cat">${x.cat}</span><span class="sub-amt"><b>${subMoney(x.amt, x.cur)}</b><small>${x.cycle}</small></span>${subDue(x, f)}</button>`).join('') || '<div class="empty">这个分类还没有订阅</div>'}</div>
+  </div>`;
+}
+function subHTML() {
+  const x = subs.find(s => s.id === state.subId), f = subInfo(x);
+  return `<div class="dh"><div class="dh-r1"><span class="pill line">${x.cat}</span>${x.on ? '<span class="pill green">自动续费</span>' : '<span class="pill amber">已取消</span>'}<button class="btn icon ghost" type="button" data-close style="margin-left:auto" aria-label="关闭">${ic('x')}</button></div>
+    <div class="sub-dh">${subIcon(x, true)}<div><h3>${esc(x.name)}</h3><div class="sub-price"><b>${subMoney(x.amt, x.cur)}</b><small>${x.cycle === '月付' ? '每月' : '每年'}</small></div>${x.note ? `<p class="sub">${esc(x.note)}</p>` : ''}</div></div></div>
+  <div class="db">
+    <div class="sub-cards">
+      <div class="sub-card"><span>${x.on ? '下次扣费' : '有效期至'}</span><b>${f.next}</b><small>${f.days === 0 ? (x.on ? '今天扣费' : '今天到期') : `${f.days}天后${x.on ? '扣费' : '到期'}`}</small></div>
+      <div class="sub-card"><span>月均花费</span><b>¥${f.monthlyCny.toFixed(2)}</b><small>年度约 ¥${(f.monthlyCny * 12).toFixed(2)}</small></div>
+      <div class="sub-card wide"><span>累计已花费（估算）</span><b>${subMoney(f.total, x.cur)}</b><small>按当前价格估算，已扣费 ${f.charged} 次${x.cur === 'USD' ? `，约 ¥${toCny(f.total, x.cur).toFixed(2)}` : ''}</small></div>
+    </div>
+    <dl class="kv sub-kv"><dt>开始日期</dt><dd>${x.start}</dd><dt>分类</dt><dd>${x.cat}</dd><dt>状态</dt><dd>${x.on ? '自动续费中' : '已取消，等待到期'}</dd><dt>${x.on ? '下次扣费' : '有效期至'}</dt><dd>${f.next}</dd><dt>扣费周期</dt><dd>${x.cycle}</dd><dt>币种</dt><dd>${x.cur === 'USD' ? '美元' : '人民币'}</dd></dl>
+    <button class="sub-act dark" type="button" data-subedit="${x.id}"><span><b>编辑订阅</b><small>更新价格、周期、备注与样式</small></span><span class="pill">前往</span></button>
+    <div class="sub-acts">
+      <button class="sub-act" type="button" data-subtoggle="${x.id}"><b>${x.on ? '取消订阅' : '恢复订阅'}</b><small>${x.on ? '到期后不再续费' : '继续自动续费'}</small></button>
+      <div class="sub-act danger"><b>删除记录</b><small>该操作不可恢复</small>${holdBtn('sub-del', '按住删除', '继续按住…', '已删除', 1500)}</div>
+    </div>
+  </div>`;
+}
+function subEditHTML() {
+  const x = subs.find(s => s.id === state.subId) || { name:'', note:'', amt:'', cur:'CNY', cycle:'月付', start:TODAY, cat:'工具效率', on:true, color:'#7747ff' };
+  const colors = ['#7747ff', '#3b8ef0', '#2f6fde', '#5b3cc4', '#0f9d8a', '#e8590c', '#c98a12', '#e0336f', '#1f1f23'];
+  return `${mhead('repeat', x.name ? '编辑订阅' : '新增订阅', '价格、周期、分类和样式', '')}
+  <div class="db sub-form"><div class="fields">
+    ${inp('se-name', `名称 ${req}`, `value="${esc(x.name)}" placeholder="例如 ChatGPT Plus"`)}${inp('se-note', '备注', `value="${esc(x.note)}" placeholder="例如 50GB、域名、续费价"`)}
+    <div class="field"><label for="se-amt">金额 ${req}</label><div class="dep"><div class="cur-in"><span class="cur-sym" data-sym>${SUB_SYM[x.cur]}</span><input class="input" id="se-amt" inputmode="decimal" value="${x.amt}" placeholder="0.00"></div><select class="input" id="se-cur" aria-label="币种">${opts(['CNY', 'USD'], x.cur)}</select></div></div>
+    ${pick('se-cycle', '扣费周期', ['月付', '年付'], x.cycle)}
+    ${inp('se-start', '开始日期', `type="date" value="${x.start}"`)}${pick('se-cat', '分类', SUB_CATS, x.cat)}
+    <div class="field full"><label>样式</label><div class="sub-colors" role="radiogroup" aria-label="图标颜色">${colors.map(c => `<button type="button" role="radio" aria-checked="${c === x.color}" class="${c === x.color ? 'on' : ''}" style="--c:${c}" data-subcolor="${c}" aria-label="${c}"></button>`).join('')}</div></div>
+  </div></div>
+  <div class="df"><span class="sp"></span><button class="btn" type="button" data-close>取消</button><button class="btn primary" type="button" data-subsave>${x.name ? '保存' : '添加订阅'}</button></div>`;
 }
 
 /* ---------- 全部搜索结果 ---------- */
@@ -1751,7 +1880,7 @@ function openDrawer(id, tab) {
   delete glidePrev.dtabs;
   renderDrawer(true);
   const d = document.getElementById('drawer');
-  const modal = id === 'new' || id === 'newCustomer' || id === 'newBoth' || id === 'merge';
+  const modal = id === 'new' || id === 'newCustomer' || id === 'newBoth' || id === 'merge' || id === 'subEdit';
   if (d.classList.contains('modal') !== modal) { d.style.transition = 'none'; d.classList.remove('on'); d.classList.toggle('modal', modal); d.offsetWidth; d.style.transition = ''; }
   d.setAttribute('role', modal ? 'dialog' : ''); d.setAttribute('aria-modal', modal);
   if (modal) { delete glidePrev.mnav; syncGlides(d); }
@@ -1773,6 +1902,8 @@ function renderDrawer(fresh) {
   else if (state.open === 'merge') d.innerHTML = mergeHTML();
   else if (state.open === 'day') d.innerHTML = dayHTML();
   else if (state.open === 'logi') d.innerHTML = logiHTML();
+  else if (state.open === 'sub') d.innerHTML = subHTML();
+  else if (state.open === 'subEdit') d.innerHTML = subEditHTML();
   else d.innerHTML = orderHTML(orders.find(x => x.id === state.open));
   mProgress(); if (state.open === 'new') applyType();
   const db = d.querySelector('.db');
@@ -1919,7 +2050,7 @@ function newBothHTML() {
 function notesHTML() {
   return `<div class="dh"><div class="dh-r1"><span class="pill accent">设计说明</span><button class="btn icon ghost" type="button" data-close style="margin-left:auto" aria-label="关闭">${ic('x')}</button></div><h3>这版改了什么</h3></div>
   <div class="db notes">
-    <div><h4>这一版补上的原版功能</h4><ul><li>设置拆成 6 块：数据管理（导出范围、CSV / JSON / 主数据导出、导入前预览、SQLite 状态、清除示例客户）、客户设置（标签、等级、付款方式可增删，A~F 等级规则）、订单设置（订单号前缀和位数、新订单默认值）、按月手填 USD → RMB 汇率、DHL / FedEx 物流追踪、AI 接口和费用记录。</li><li>去掉了原版没有的飞书设置页、WhatsApp 设置页、逐笔收款记录和欧洲央行汇率；订单收款只记一个已付金额。</li><li>订单列表：收款状态、更多筛选与排序、重置筛选、已收 / 待收 / 国家 / 创建日期列、真实分页。订单详情加了客户永久备注、客户资料、飞书通知状态（失败可重发）、客户历史订单、复制订单。</li><li>工作台：订单额可选范围、待办「稍后」、看板右键卡片按住删除、卡片显示设置、最近更新的 5 单。日历可以翻月，点某天看当天任务，右边是当月日程。物流支持批量查询、承运商筛选、查询历史和人工核对。</li><li>「数据与目标」分成金额统计、业绩目标、分析三页；客户页加了汇总、A~F 和收款分组；侧栏 DHL / FedEx / AI 点一下实时检测；⌘K 回车进入全部搜索结果页。</li></ul></div>
+    <div><h4>这一版补上的原版功能</h4><ul><li>设置拆成 6 块：数据管理（导出范围、CSV / JSON / 主数据导出、导入前预览、SQLite 状态、清除示例客户）、客户设置（标签、等级、付款方式可增删，A~F 等级规则）、订单设置（订单号前缀和位数、新订单默认值）、按月手填 USD → RMB 汇率、DHL / FedEx 物流追踪、AI 接口和费用记录。</li><li>去掉了原版没有的飞书设置页、WhatsApp 设置页、逐笔收款记录和欧洲央行汇率；订单收款只记一个已付金额。</li><li>订单列表：收款状态、更多筛选与排序、重置筛选、已收 / 待收 / 国家 / 创建日期列、真实分页。订单详情加了客户永久备注、客户资料、飞书通知状态（失败可重发）、客户历史订单、复制订单。</li><li>工作台：订单额可选范围、待办「稍后」、看板右键卡片按住删除、卡片显示设置、最近更新的 5 单。日历可以翻月，点某天看当天任务，右边是当月日程。物流支持批量查询、承运商筛选、查询历史和人工核对。</li><li>新增「订阅」页：每月支出、分类、扣费 / 到期倒计时、订阅详情、编辑、取消和恢复、按住删除；数据只在这一页。</li><li>「数据与目标」分成金额统计、业绩目标、分析三页；客户页加了汇总、A~F 和收款分组；侧栏 DHL / FedEx / AI 点一下实时检测；⌘K 回车进入全部搜索结果页。</li></ul></div>
     <div><h4>结构</h4><ul><li>导航从 10 项减到 7 项：金额统计、业绩目标、分析合并成「数据与目标」；已删除订单放在订单页右上角。</li><li>订单详情改成右侧抽屉，不遮列表；新建订单和新建客户是屏幕中间的弹窗；顶部 6 段阶段条点一下就改阶段；长表单拆成 5 个标签。</li><li>工作台 5 个数字都能点，直接跳到对应筛选；看板每列显示单数和金额。</li><li>⌘K 或 / 打开全局搜索，能搜客户、订单号、运单号和功能入口，方向键选择。</li><li>客户页一屏看全：资料、长期要求、WhatsApp 聊天、历史订单。</li></ul></div>
     <div><h4>按钮（来自 Evil Buttons）</h4><ul><li>按住删除：删除订单要按住 1.5 秒，永久删除和恢复示例要 2.5 秒；中途松手按钮会抖一下，不执行。</li><li>滑动确认：清除示例订单要把圆钮滑到头。</li><li>状态变形按钮：保存、备份、查询、AI 识别会依次变成 转圈 → 打勾，宽度跟着文字平滑变化。</li><li>冷却按钮：发催款、发跟进后进入冷却，防止连点重复发消息。</li><li>复制按钮：订单号、运单号、电话、邮箱旁边都有，复制后图标变成对勾。</li></ul></div>
     <div><h4>动效（来自 Arc / uiarc.dev）</h4><ul><li>导航、分段筛选、抽屉标签、设置导航、客户列表都有滑动高亮，用弹簧缓动。</li><li>所有金额和数量都是数字滚轮，数值变化时逐位滚到新值。</li><li>看板卡片可以拖动：拿起时放大并随速度倾斜，放下时弹一下，列内金额跟着滚动。首页看板不显示已完成的订单；在订单抽屉里改成「已完成」会撒彩纸。</li><li>Toast 堆叠在右下角，悬停时展开，删除类提示带撤销。</li><li>页面切换时内容依次上浮；柱状图从底部长出，目标环自动画出，进度条从左向右填满。</li><li>深色模式切换用圆形扩散（浏览器支持时）。</li><li>系统设置了“减少动态效果”时，这些动画全部关闭。</li></ul></div>
@@ -2479,6 +2610,7 @@ document.addEventListener('input', e => {
   if (t.id === 'n-cur' || t.id === 'b-cur') syncSym(t);
   if (t.id === 'm-paid' || t.id === 'm-amt') { const d = document.getElementById('drawer'), amt = +document.getElementById('m-amt').value || 0, paid = Math.min(+document.getElementById('m-paid').value || 0, amt), pct = amt ? Math.round(paid / amt * 100) : 0; d.dataset.amt = amt; d.dataset.paid = paid; document.getElementById('mPaidV').textContent = usd(paid); document.getElementById('mPct').textContent = `已收 ${pct}%`; const dv = document.getElementById('mDueV'); dv.textContent = usd(amt - paid); dv.style.color = amt - paid > 0 ? 'var(--s-amber)' : 'var(--s-green)'; const b = document.getElementById('payBar'); b.style.width = pct + '%'; b.parentElement.classList.toggle('green', pct >= 100); }
   if (t.id === 'm-cur') syncSym(t);
+  if (t.id === 'se-cur') t.closest('.dep').querySelector('[data-sym]').textContent = SUB_SYM[t.value];
   if (t.getAttribute?.('list') === 'countryList') { const c = COUNTRIES.find(x => t.value === `${x[0]} ${x[1]} ${x[2]}`); if (c) { t.value = c[1]; t.dispatchEvent(new Event('change', { bubbles:true })); } }
   if (t.id === 'cf-prefix') { const keep = cfg.prefix; cfg.prefix = t.value.trim() || 'K'; document.getElementById('numPrev').textContent = nextNum(); cfg.prefix = keep; }
   if (t.matches('[data-fx]')) document.getElementById('fxN').textContent = [...document.querySelectorAll('[data-fx]')].filter(i => parseFloat(i.value) > 0).length;
@@ -2695,6 +2827,7 @@ function holdDone(btn) {
   }
   if (a === 'purge') { const row = btn.closest('tr'); setTimeout(() => collapseRow(row, () => { trash.splice(trash.findIndex(t => t.num === row.dataset.row), 1); render(); toast('已永久删除 ' + row.dataset.row, 'error'); }), 400); }
   if (a === 'board-del') { const id = btn.closest('#ctxMenu').dataset.oid, o = orders.find(x => x.id === id), idx = orders.indexOf(o); setTimeout(() => { closeCtx(); const card = document.querySelector(`.ocard[data-drag="${id}"]`); const done = () => { orders.splice(idx, 1); trash.unshift({ num:o.num, client:o.client, amount:o.amount, when:'今天', by:'看板删除' }); render(); }; card ? collapseRow(card, done) : done(); toast(`已删除 ${o.num}`, 'warn', '可以在已删除订单里恢复', () => { orders.splice(idx, 0, o); trash.shift(); render(); }); }, 350); }
+  if (a === 'sub-del') { const i = subs.findIndex(s => s.id === state.subId), x = subs[i]; setTimeout(() => { closeDrawer(); subs.splice(i, 1); state.flash = 'subs'; render(); toast(`已删除 ${x.name}`, 'warn', '这条订阅记录已移除', () => { subs.splice(i, 0, x); render(); }); }, 400); }
   if (a === 'import') { setTimeout(() => { state.imp = false; render(); toast('已从备份恢复', 'success', '订单 58 · 客户 35 · 目标 6；恢复前的数据已自动备份'); }, 700); }
   if (a === 'reset') { toast('已恢复示例数据', 'info', '这是原型，数据没有真的清空'); setTimeout(() => { if (!btn.isConnected) return; btn.classList.remove('ok'); btn.querySelector('.fill').style.transform = 'scaleX(0)'; btn.querySelector('.hl').textContent = btn.dataset.label; }, 1800); }
 }
@@ -2804,7 +2937,7 @@ function render() {
   const tt = state.page === 'orders' && state.view === 'trash' ? '回收站' : p.name;
   if (title.textContent !== tt) { title.textContent = tt; title.classList.remove('swap'); title.offsetWidth; title.classList.add('swap'); }
   renderNav();
-  const fn = { search:pageSearch, dashboard:pageDashboard, orders:pageOrders, customers:pageCustomers, logistics:pageLogistics, calendar:pageCalendar, insights:pageInsights, prefs:pagePrefs }[p.id];
+  const fn = { subs:pageSubs, search:pageSearch, dashboard:pageDashboard, orders:pageOrders, customers:pageCustomers, logistics:pageLogistics, calendar:pageCalendar, insights:pageInsights, prefs:pagePrefs }[p.id];
   const content = document.getElementById('content');
   content.innerHTML = fn();
   sync(document.querySelector('.side')); sync(content);
@@ -2934,6 +3067,21 @@ document.addEventListener('click', e => {
   if (ds.stab) { state.stab = ds.stab; state.spage = 0; state.flash = 'sres'; return render(); }
   if (ds.spg !== undefined) { state.spage = +ds.spg; state.flash = 'sres'; return render(); }
   if (ds.feat !== undefined) return FEATS[+ds.feat][2]();
+  if (ds.sub) { state.subId = ds.sub; return openDrawer('sub'); }
+  if ('subnew' in ds) { state.subId = null; return openDrawer('subEdit'); }
+  if (ds.subedit) { state.subId = ds.subedit; return openDrawer('subEdit'); }
+  if (ds.subtoggle) { const x = subs.find(s => s.id === ds.subtoggle); x.on = !x.on; renderDrawer(); state.flash = 'subs'; render(); return toast(x.on ? `${x.name} 已恢复自动续费` : `${x.name} 已取消订阅`, x.on ? 'success' : 'info', x.on ? `下次扣费 ${subInfo(x).next}` : `${subInfo(x).next} 到期后不再续费`, () => { x.on = !x.on; renderDrawer(); render(); }); }
+  if (ds.subcolor) { t.parentElement.querySelectorAll('button').forEach(b => { b.classList.toggle('on', b === t); b.setAttribute('aria-checked', b === t); }); return; }
+  if ('subsave' in ds) {
+    const v = id => document.getElementById(id).value.trim(), name = v('se-name'), amt = parseFloat(v('se-amt'));
+    const bad = [!name && 'se-name', !(amt > 0) && 'se-amt'].filter(Boolean);
+    if (bad.length) { bad.forEach(id => document.getElementById(id).closest('.field').classList.add('err')); return toast(!name ? '请填写名称' : '请填写金额', 'warn'); }
+    const data = { name, note:v('se-note'), amt, cur:v('se-cur'), cycle:curPick('se-cycle'), start:v('se-start') || TODAY, cat:curPick('se-cat'), color:document.querySelector('.sub-colors .on')?.dataset.subcolor || '#7747ff' };
+    let x = subs.find(s => s.id === state.subId);
+    if (x) Object.assign(x, data); else { x = { id:'s' + subSeq++, on:true, ...data }; subs.push(x); }
+    state.subId = x.id; state.flash = 'subs'; render(); openDrawer('sub');
+    return toast(`${name} 已保存`, 'success', `${subMoney(amt, data.cur)} ${data.cycle} · 下次扣费 ${subInfo(x).next}`);
+  }
   if ('lhclear' in ds) { const keep = lhist.splice(0); render(); return toast('已清除查询记录', 'info', '', () => { lhist.push(...keep); render(); }); }
   if (ds.imp) { state.imp = ds.imp === 'on'; return render(); }
   if (ds.aipg !== undefined) { cfg.aiPage = +ds.aipg; return render(); }
@@ -2948,7 +3096,7 @@ document.addEventListener('click', e => {
   if (ds.act === 'merge') { state.mergeIdx = 0; state.mergeKeep = null; return openDrawer('merge'); }
   if (ds.act === 'notes') return openDrawer('notes');
   const seg = t.closest('.seg');
-  if (seg && ds.v !== undefined && seg.dataset.seg) { state[seg.dataset.seg] = ds.v; state.oPage = 0; state.flash = { boardProduct:'board', taskFilter:'tasks', quick:'rows', lcar:'lships', itab:'ins', iprod:'ins', stab:'sres' }[seg.dataset.seg]; if (seg.dataset.seg === 'stab') state.spage = 0; return render(); }
+  if (seg && ds.v !== undefined && seg.dataset.seg) { state[seg.dataset.seg] = ds.v; state.oPage = 0; state.flash = { subCat:'subs', boardProduct:'board', taskFilter:'tasks', quick:'rows', lcar:'lships', itab:'ins', iprod:'ins', stab:'sres' }[seg.dataset.seg]; if (seg.dataset.seg === 'stab') state.spage = 0; return render(); }
   if (seg && !seg.dataset.seg) { seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); syncGlides(seg.parentElement); return; }
 });
 document.addEventListener('click', e => { const d = e.target.closest('[data-day]'); if (!d || e.target.closest('[data-open]')) return; state.day = d.dataset.day; openDrawer('day'); });

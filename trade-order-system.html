@@ -3651,6 +3651,13 @@ html[data-theme] .level-tag { background:var(--gray-100); color:var(--gray-700);
 html[data-theme] .customer-group-item.active, html[data-theme] .customer-group-item[aria-pressed="true"] { background:var(--surface-soft); color:var(--gray-900); box-shadow:none; }
 html[data-theme] .customer-summary-item { background:var(--surface-bg); }
 html[data-theme] .customer-workspace-summary { background:var(--hairline); border-color:var(--hairline); }
+html[data-theme] .insights-tabs { width:max-content; max-width:100%; grid-auto-columns:max-content; }
+html[data-theme] .insights-tabs .segment-option { padding:0 18px; }
+html[data-theme] .target-history-fill { box-shadow:none; }
+html[data-theme] .target-history-fill::after { display:none; }
+html[data-theme] .target-history-fill.empty { background:transparent; }
+html[data-theme] .target-history-track { background:var(--gray-100); box-shadow:none; }
+html[data-theme] :is(.target-hero, .target-setup, .rate-status-card, .customer-detail-hero) { border-color:var(--surface-border); box-shadow:none; }
 /* ===== 新版 UI：外壳与基础组件（OTS UI 规范）。选择器统一加 html[data-theme] 前缀，盖过旧的深色专用规则。 ===== */
 .ui-icon, .nav-icon.ui-icon { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; flex:none; }
 html[data-theme] :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
@@ -3856,6 +3863,39 @@ html[data-theme] .hold-btn.shake { animation:uiShake .4s var(--ease); }
 /* 数值变化：轻轻上滚一下（不改文字，读数始终是最终值） */
 html[data-theme] .num-tick { animation:uiTick .58s var(--ease-spring); }
 @keyframes uiTick { from { opacity:.2; transform:translateY(.35em); filter:blur(2px); } }
+/* ===== 通知面板（顶栏铃铛 → 右侧 440px 面板） ===== */
+html[data-theme] .bell-btn { position:relative; }
+html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); }
+@keyframes uiWiggle { 0%,100% { transform:rotate(0); } 25% { transform:rotate(-14deg); } 50% { transform:rotate(10deg); } 75% { transform:rotate(-6deg); } }
+.bell-badge { position:absolute; top:3px; right:2px; min-width:16px; height:16px; padding:0 4px; border-radius:999px; background:var(--s-red); color:#fff; font-size:10px; font-weight:600; line-height:16px; text-align:center; box-shadow:0 0 0 2px var(--page-bg); animation:uiPop var(--motion-spring) var(--ease-spring); }
+.notif-scrim { position:fixed; inset:0; z-index:85; background:transparent; }
+.notif-panel { position:fixed; top:12px; right:12px; bottom:12px; z-index:86; width:min(440px, calc(100vw - 24px)); display:flex; flex-direction:column; gap:12px; padding:20px 16px 12px;
+  background:var(--surface-bg); border:1px solid var(--surface-border); border-radius:var(--radius-panel); box-shadow:var(--floating-shadow); animation:uiNotifIn var(--motion-slow) var(--ease-drawer); }
+.notif-panel[hidden], .notif-scrim[hidden] { display:none; }
+@keyframes uiNotifIn { from { transform:translateX(24px); opacity:0; } }
+.notif-head { display:flex; align-items:center; gap:4px; padding:0 4px; }
+.notif-head > div { flex:1; display:flex; align-items:baseline; gap:8px; }
+.notif-head h2 { margin:0; font:600 20px/1.2 var(--display); letter-spacing:-.02em; color:var(--gray-900); }
+.notif-unread { font-size:13px; color:var(--gray-500); }
+.notif-tabs { width:100%; }
+.notif-list { flex:1; min-height:0; overflow:auto; display:flex; flex-direction:column; gap:8px; padding:2px; }
+.notif-card { display:grid; grid-template-columns:32px minmax(0,1fr) auto; gap:12px; align-items:start; width:100%; padding:12px; border:1px solid var(--surface-border); border-radius:var(--radius); background:var(--surface-bg); color:var(--gray-900); text-align:left;
+  transition:background var(--motion-fast) var(--ease), opacity var(--motion-med) var(--ease), transform var(--motion-spring) var(--ease-spring); animation:uiRise .4s var(--ease-out) backwards; animation-delay:calc(var(--i, 0) * 35ms); }
+.notif-card:hover { background:var(--surface-soft); }
+.notif-card:active { transform:scale(.98); transition-duration:var(--motion-instant); }
+.notif-card.is-read { opacity:.55; }
+.notif-ic { width:32px; height:32px; border-radius:10px; display:grid; place-items:center; background:var(--accent-tint); color:var(--accent); }
+.notif-ic .ui-icon { width:16px; height:16px; }
+.notif-card.is-error .notif-ic { background:var(--red-50); color:var(--s-red); }
+.notif-card.is-success .notif-ic { background:var(--green-50); color:var(--s-green); }
+.notif-card.is-warn .notif-ic { background:color-mix(in oklab, var(--s-amber) var(--s-tint), transparent); color:var(--s-amber); }
+.notif-body { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.notif-body b { font-weight:600; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.notif-body small { font-size:12px; color:var(--gray-500); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.notif-meta { display:flex; flex-direction:column; align-items:flex-end; gap:4px; font-size:11px; color:var(--gray-500); white-space:nowrap; font-variant-numeric:tabular-nums; }
+.notif-pill { padding:1px 8px; border-radius:999px; background:var(--gray-100); color:var(--gray-600); font-size:11px; }
+.notif-empty { padding:48px 0; text-align:center; color:var(--gray-500); font-size:13px; }
+.notif-panel:focus { outline:none; }
 </style>
 </head>
 <body>
@@ -3908,9 +3948,7 @@ html[data-theme] .num-tick { animation:uiTick .58s var(--ease-spring); }
     <div class="nav-group">
       <div class="nav-label">管理</div>
       <button class="nav-item" data-page="calendar" data-mobile-label="日历"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-cal"/></svg><span class="nav-text">日历</span></button>
-      <button class="nav-item" data-page="amount" data-mobile-label="金额"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-cash"/></svg><span class="nav-text">金额统计</span></button>
-      <button class="nav-item" data-page="targets" data-mobile-label="目标"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-bolt"/></svg><span class="nav-text">业绩目标</span></button>
-      <button class="nav-item" data-page="analysis" data-mobile-label="分析"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-chart"/></svg><span class="nav-text">分析</span></button>
+      <button class="nav-item" data-page="amount" data-nav-group="insights" data-mobile-label="数据"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-chart"/></svg><span class="nav-text">数据与目标</span></button>
       <button class="nav-item" data-page="deleted" data-mobile-label="删除"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-trash"/></svg><span class="nav-text">已删除订单</span><span class="nav-count" data-nav-count="deleted"></span></button>
       <button class="nav-item" data-page="settings" data-mobile-label="设置"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-gear"/></svg><span class="nav-text">设置</span></button>
     </div>
@@ -3947,6 +3985,7 @@ html[data-theme] .num-tick { animation:uiTick .58s var(--ease-spring); }
     </div>
     <div class="world-clock-strip" id="worldClockStrip" aria-label="主要时区时间"></div>
     <div class="top-actions">
+      <button class="btn btn-ghost btn-icon bell-btn" id="notifBtn" type="button" title="通知" aria-label="通知" aria-haspopup="dialog" aria-controls="notifPanel" aria-expanded="false"><svg class="ui-icon" aria-hidden="true"><use href="#i-bell"/></svg><span class="bell-badge" id="notifBadge" hidden></span></button>
       <button class="btn btn-ghost btn-icon theme-btn" id="themeBtn" title="切换白天/夜晚模式"><svg class="ui-icon" aria-hidden="true"><use href="#i-moon"/></svg></button>
       <button class="btn" id="topNewCustomerBtn"><svg class="ui-icon" aria-hidden="true"><use href="#i-user-plus"/></svg><span>新建客户</span></button>
       <button class="btn btn-primary" id="newOrderBtn"><svg class="ui-icon" aria-hidden="true"><use href="#i-plus"/></svg><span>新建订单</span></button>
@@ -4190,6 +4229,11 @@ html[data-theme] .num-tick { animation:uiTick .58s var(--ease-spring); }
     </section>
 
     <section class="page" id="page-amount">
+      <div class="segment-control insights-tabs" role="tablist" aria-label="数据与目标">
+        <button class="segment-option" type="button" role="tab" data-page="amount"><span class="nav-text">金额统计</span></button>
+        <button class="segment-option" type="button" role="tab" data-page="targets"><span class="nav-text">业绩目标</span></button>
+        <button class="segment-option" type="button" role="tab" data-page="analysis"><span class="nav-text">分析</span></button>
+      </div>
       <section class="panel" id="amount-report">
         <div class="amount-page-filter">
           <select class="inline-select" id="amountMonth">
@@ -4237,6 +4281,11 @@ html[data-theme] .num-tick { animation:uiTick .58s var(--ease-spring); }
     </section>
 
     <section class="page" id="page-targets">
+      <div class="segment-control insights-tabs" role="tablist" aria-label="数据与目标">
+        <button class="segment-option" type="button" role="tab" data-page="amount"><span class="nav-text">金额统计</span></button>
+        <button class="segment-option" type="button" role="tab" data-page="targets"><span class="nav-text">业绩目标</span></button>
+        <button class="segment-option" type="button" role="tab" data-page="analysis"><span class="nav-text">分析</span></button>
+      </div>
       <section class="panel">
         <div class="target-page">
           <div class="target-hero">
@@ -4303,6 +4352,11 @@ html[data-theme] .num-tick { animation:uiTick .58s var(--ease-spring); }
     </section>
 
     <section class="page" id="page-analysis">
+      <div class="segment-control insights-tabs" role="tablist" aria-label="数据与目标">
+        <button class="segment-option" type="button" role="tab" data-page="amount"><span class="nav-text">金额统计</span></button>
+        <button class="segment-option" type="button" role="tab" data-page="targets"><span class="nav-text">业绩目标</span></button>
+        <button class="segment-option" type="button" role="tab" data-page="analysis"><span class="nav-text">分析</span></button>
+      </div>
       <section class="analysis-page">
         <section class="panel">
           <div class="business-toolbar">
@@ -5199,6 +5253,21 @@ html[data-theme] .num-tick { animation:uiTick .58s var(--ease-spring); }
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="notif-scrim" id="notifScrim" hidden></div>
+<aside class="notif-panel" id="notifPanel" tabindex="-1" role="dialog" aria-modal="false" aria-labelledby="notifTitle" hidden>
+  <div class="notif-head">
+    <div><h2 id="notifTitle">通知</h2><span class="notif-unread" id="notifUnread"></span></div>
+    <button class="btn btn-ghost" type="button" id="notifReadAll">全部已读</button>
+    <button class="btn btn-ghost btn-icon" type="button" id="notifClose" aria-label="关闭通知"><svg class="ui-icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+  </div>
+  <div class="segment-control compact notif-tabs" id="notifTabs">
+    <button class="segment-option active" type="button" data-notif-tab="all">全部</button>
+    <button class="segment-option" type="button" data-notif-tab="error">错误</button>
+    <button class="segment-option" type="button" data-notif-tab="success">成功</button>
+    <button class="segment-option" type="button" data-notif-tab="info">提示</button>
+  </div>
+  <div class="notif-list" id="notifList"></div>
+</aside>
 <input type="file" id="importFile" accept="application/json,.json" hidden>
 <input type="file" id="dataFileInput" accept="application/json,.json" hidden>
 
@@ -6566,6 +6635,7 @@ async function checkApiStatus(kind) {
   statuses[kind] = item;
   saveApiStatuses(statuses);
   renderApiStatusLights();
+  uiRenderNotifs();
   if (kind === 'ai') await refreshAiUsage();
   toast(`${apiStatusNames[kind] || kind}：${item.message}${item.accountingWarning ? ` · ${item.accountingWarning}` : ''}`);
 }
@@ -10385,6 +10455,7 @@ function render() {
   enhanceBinarySelects();
   renderClientOptions();
   uiNavCounts();
+  uiRenderNotifs();
   uiTickChanged(numbersBefore);
   saveState();
 }
@@ -15147,7 +15218,7 @@ function setPage(page) {
   const changed = current !== target;
   document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === `page-${target}`));
   document.querySelectorAll('[data-page]').forEach(btn => btn.classList.toggle('active', btn.dataset.page === target));
-  const names = { dashboard:'工作台', 'order-list':'订单列表', 'search-results':'搜索结果', logistics:'物流查询', amount:'金额统计', targets:'业绩目标', calendar:'日历', analysis:'分析', customers:'客户管理', deleted:'已删除订单', settings:'设置' };
+  const names = { dashboard:'工作台', 'order-list':'订单列表', 'search-results':'搜索结果', logistics:'物流查询', amount:'数据与目标', targets:'数据与目标', calendar:'日历', analysis:'数据与目标', customers:'客户管理', deleted:'已删除订单', settings:'设置' };
   document.querySelector('.page-title').textContent = names[target] || '工作台';
   const activeNav = document.querySelector(`.nav-item[data-page="${target}"]`);
   if (activeNav && window.matchMedia('(max-width: 820px)').matches) {
@@ -16518,10 +16589,12 @@ function uiNavCounts() {
   });
 }
 function uiAfterPageChange(changed) {
+  const page = document.querySelector('.page.active');
+  const inInsights = ['page-amount', 'page-targets', 'page-analysis'].includes(page?.id);
+  document.querySelector('.nav-item[data-nav-group="insights"]')?.classList.toggle('active', inInsights);
   uiNavGlide(!changed);
   if (!changed) return;
   const title = document.querySelector('.page-title');
-  const page = document.querySelector('.page.active');
   if (uiReduceMotion()) return;
   title?.classList.remove('swap'); page?.classList.remove('page-enter');
   void page?.offsetWidth;
@@ -16710,6 +16783,98 @@ document.addEventListener('pointerdown', e => {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') uiCloseBoardMenu(); });
 window.addEventListener('blur', uiCloseBoardMenu);
 document.querySelector('.content')?.addEventListener('scroll', uiCloseBoardMenu, { passive:true });
+// 通知面板：从现有数据推出来（物流风险、接口异常、保存失败、加急/收款/跟进待办、近 3 天的订单动态），不新增存储；已读状态只记在本机。
+// 用函数属性存当前标签：render() 可能在脚本末尾这段执行前就调用 uiRenderNotifs。
+function uiNotifTab(next) { if (next) uiNotifTab.value = next; return uiNotifTab.value || 'all'; }
+function uiNotifRead() {
+  try { return new Set(JSON.parse(localStorage.getItem('ots-notif-read-v1') || '[]')); } catch (_) { return new Set(); }
+}
+function uiNotifSaveRead(set) {
+  try { localStorage.setItem('ots-notif-read-v1', JSON.stringify([...set].slice(-400))); } catch (_) { /* 本机存储不可用时只是不记已读 */ }
+}
+function uiNotifLogText(log) {
+  return typeof log === 'string' ? log : String(log?.text || '');
+}
+function uiNotifItems() {
+  const items = [];
+  if (macSaveLastError) items.push({ id:`save-${macSaveLastError}`, kind:'error', title:'数据保存失败', sub:macSaveLastError, pill:'保存', time:'' });
+  Object.entries(loadApiStatuses()).forEach(([kind, item]) => {
+    if (item && item.ok === false) items.push({ id:`api-${kind}-${item.checkedAt || ''}`, kind:'error', title:`${apiStatusNames[kind] || kind} 接口异常`, sub:item.message || '检测失败', pill:'接口', time:item.checkedAt || '' });
+  });
+  buildTaskItems().forEach(task => {
+    const risk = task.tag === '物流风险' || String(task.id || '').startsWith('logistics-risk-');
+    const remind = ['urgent', 'payment', 'logistics'].includes(task.type);
+    items.push({ id:`task-${task.id}-${task.date || ''}`, kind:risk ? 'error' : 'info', tone:risk ? '' : remind ? 'warn' : '', title:task.title, sub:[task.reason, task.detail].filter(Boolean).join(' · '), pill:task.tag || '待办', orderId:task.orderId || '', time:task.date || '' });
+  });
+  const since = Date.now() - 3 * 86400000;
+  state.orders.filter(o => parseDate(o.updated) >= since).sort((a, b) => parseDate(b.updated) - parseDate(a.updated)).slice(0, 8).forEach(o => {
+    items.push({ id:`log-${o.id}-${o.updated}`, kind:'success', title:uiNotifLogText((o.logs || [])[0]) || '订单已更新', sub:`${clientDisplayName(o.client)} · ${o.num}`, pill:stageDef(o.stage).name, orderId:o.id, time:o.updated });
+  });
+  return items.slice(0, 40);
+}
+function uiRenderNotifs() {
+  const items = uiNotifItems();
+  const read = uiNotifRead();
+  const unread = items.filter(item => !read.has(item.id)).length;
+  const badge = document.getElementById('notifBadge');
+  if (badge) { badge.hidden = !unread; badge.textContent = unread > 9 ? '9+' : String(unread); }
+  const panel = document.getElementById('notifPanel');
+  if (!panel || panel.hidden) return;
+  document.getElementById('notifUnread').textContent = unread ? `${unread} 条未读` : '全部已读';
+  document.querySelectorAll('#notifTabs [data-notif-tab]').forEach(btn => btn.classList.toggle('active', btn.dataset.notifTab === uiNotifTab()));
+  const list = items.filter(item => uiNotifTab() === 'all' || item.kind === uiNotifTab());
+  const icons = { error:'alert', success:'check', info:'info' };
+  document.getElementById('notifList').innerHTML = list.length ? list.map((item, i) => `
+    <button class="notif-card is-${item.kind}${item.tone ? ` is-${item.tone}` : ''}${read.has(item.id) ? ' is-read' : ''}" type="button" data-notif-id="${escapeAttr(item.id)}" data-order-id="${escapeAttr(item.orderId || '')}" style="--i:${Math.min(i, 12)}">
+      <span class="notif-ic">${uiIcon(item.tone === 'warn' ? 'bolt' : icons[item.kind])}</span>
+      <span class="notif-body"><b>${escapeAttr(item.title)}</b><small>${escapeAttr(item.sub)}</small></span>
+      <span class="notif-meta"><span class="notif-pill">${escapeAttr(item.pill)}</span>${item.time ? `<time>${escapeAttr(String(item.time).slice(5, 16))}</time>` : ''}</span>
+    </button>`).join('') : '<div class="notif-empty">这里没有通知</div>';
+}
+function uiToggleNotifs(open) {
+  const panel = document.getElementById('notifPanel');
+  const scrim = document.getElementById('notifScrim');
+  if (!panel) return;
+  const next = open ?? panel.hidden;
+  panel.hidden = !next;
+  scrim.hidden = !next;
+  document.getElementById('notifBtn')?.setAttribute('aria-expanded', String(next));
+  if (next) { uiRenderNotifs(); panel.focus(); }
+  else document.getElementById('notifBtn')?.focus();
+}
+document.getElementById('notifBtn')?.addEventListener('click', () => uiToggleNotifs());
+document.getElementById('notifClose')?.addEventListener('click', () => uiToggleNotifs(false));
+document.getElementById('notifScrim')?.addEventListener('click', () => uiToggleNotifs(false));
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !document.getElementById('notifPanel')?.hidden) uiToggleNotifs(false);
+});
+document.getElementById('notifTabs')?.addEventListener('click', e => {
+  const tab = e.target.closest('[data-notif-tab]');
+  if (!tab) return;
+  uiNotifTab(tab.dataset.notifTab);
+  uiRenderNotifs();
+});
+document.getElementById('notifReadAll')?.addEventListener('click', () => {
+  const before = uiNotifRead();
+  const read = new Set(before);
+  uiNotifItems().forEach(item => read.add(item.id));
+  uiNotifSaveRead(read);
+  uiRenderNotifs();
+  toast('已全部标为已读', { undo:() => { uiNotifSaveRead(before); uiRenderNotifs(); } });
+});
+document.getElementById('notifList')?.addEventListener('click', e => {
+  const card = e.target.closest('[data-notif-id]');
+  if (!card) return;
+  const read = uiNotifRead();
+  read.add(card.dataset.notifId);
+  uiNotifSaveRead(read);
+  uiRenderNotifs();
+  if (card.dataset.orderId && state.orders.some(o => o.id === card.dataset.orderId)) {
+    uiToggleNotifs(false);
+    openOrderDetail(card.dataset.orderId);
+  }
+});
+uiRenderNotifs();
 // ===== 新版 UI 交互 结束 =====
 </script>
 </body>

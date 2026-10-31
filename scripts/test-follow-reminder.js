@@ -5,7 +5,7 @@ const { chromium } = require('playwright');
 
 // Follow-up reminders: 假发 orders after 3 idle days, 睫毛 after 7, one task per order, none for
 // shipped / done orders. 完成 silences the task until the order changes again. The notification
-// panel no longer mirrors every task: only 加急 / 收款 / 最晚发货 / 物流风险 show up there, once each.
+// panel carries events only, so no task of any kind shows up there.
 (async () => {
   const browser = await chromium.launch({headless:true});
   try {
@@ -53,13 +53,13 @@ const { chromium } = require('playwright');
     await page.evaluate(stamp=>{ state.orders.find(o=>o.id==='wig3').updated = `${stamp} 10:00`; }, stamp(1));
     assert.deepEqual(await follows(),['follow-lash7'],'a freshly updated order is not nagged');
 
-    // Task list shows the follow-ups; the notification panel only carries alerting tasks, each once.
+    // Task list shows the follow-ups; the notification panel carries events only, never tasks.
     await page.evaluate(()=>render());
     assert.ok(await page.locator('#taskList [data-task-id="follow-lash7"]').count(),'follow-up missing from the task list');
     const notif = await page.evaluate(()=>uiNotifItems().filter(i=>i.id.startsWith('task-')).map(i=>i.id));
-    assert.deepEqual(notif,['task-payment-due'],`notifications should only carry alerting tasks, got ${notif.join(',')}`);
+    assert.deepEqual(notif,[],`notifications must not carry tasks, got ${notif.join(',')}`);
 
     assert.equal(errors.length,0,errors.join('\n'));
-    console.log('Follow reminder passed: 3/7-day idle rule, one task per order, done keyed to the last update, notifications only carry alerting tasks.');
+    console.log('Follow reminder passed: 3/7-day idle rule, one task per order, done keyed to the last update, notifications carry no tasks.');
   } finally { await browser.close(); }
 })().catch(error=>{console.error(error);process.exitCode=1;});

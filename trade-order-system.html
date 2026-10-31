@@ -2634,6 +2634,21 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
 .level-rule-row > div { padding: 9px 10px; border-right: 1px solid var(--gray-200); }
 .level-rule-row > div:last-child { border-right: 0; }
 .level-rule-row.head { background: var(--blue-50); color: var(--gray-900); font-weight: 600; }
+.level-rule-row .level-rule-input { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.level-rule-row .level-rule-input input { width:110px; min-width:0; height:30px; padding:0 8px; border:1px solid var(--gray-200); border-radius:8px; background:var(--white); color:var(--gray-900); font-size:12px; }
+.level-rule-row .level-rule-input input:focus { outline:0; border-color:var(--blue-500); box-shadow:0 0 0 3px var(--blue-100); }
+.level-rule-row .level-rule-input small { color:var(--gray-500); }
+.level-rule-foot { display:flex; justify-content:flex-end; gap:8px; margin-top:10px; }
+.copy-template-vars { display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 8px; }
+.copy-template-vars code { padding:2px 6px; border-radius:6px; background:var(--surface-soft, var(--gray-100)); color:var(--gray-700); font-size:11px; }
+.copy-menu-wrap { position:relative; display:inline-flex; }
+.copy-menu { position:absolute; right:0; top:calc(100% + 6px); z-index:6; min-width:190px; padding:6px; border:1px solid var(--surface-border); border-radius:var(--radius); background:var(--surface-bg); box-shadow:var(--floating-shadow); display:flex; flex-direction:column; gap:2px; animation:uiPop var(--motion-med) var(--ease-out); transform-origin:top right; }
+.copy-menu[hidden] { display:none; }
+.copy-menu button { display:flex; align-items:center; gap:8px; height:34px; padding:0 10px; border:0; border-radius:10px; background:transparent; color:var(--gray-800); text-align:left; font-size:13px; cursor:pointer; white-space:nowrap; }
+.copy-menu button:hover:not(:disabled) { background:var(--surface-soft); }
+.copy-menu button:disabled { opacity:.45; cursor:not-allowed; }
+.copy-menu button small { color:var(--gray-500); font-size:11px; margin-left:auto; }
+html[data-theme] .order-detail-head .btn.is-copied { background:var(--success-soft, var(--green-100)); color:var(--success, var(--green-700)); border-color:transparent; }
 .level-rule-name { background: color-mix(in srgb, var(--blue-500) 10%, var(--white)); font-weight: 600; color: var(--gray-900); }
 .settings-chip {
   display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--gray-200); border-radius: 999px;
@@ -6136,15 +6151,11 @@ html[data-theme] :is(.logistics-kpis > .logistics-kpi:not(:first-child), .amount
               <div><strong>客户等级</strong><div class="muted">用于客户筛选和分组。</div></div>
               <div class="tag-manager-add"><input id="settingsLevelInput" placeholder="例如 VIP客户"><button class="btn" id="settingsAddLevelBtn" type="button">添加等级</button></div>
               <div class="settings-list" id="settingsLevelList"></div>
-              <div class="level-rule-table">
-                <div class="level-rule-row head"><div>等级</div><div>区分条件 · 累计成交 USD</div><div>释义</div></div>
-                <div class="level-rule-row"><div class="level-rule-name">A级钻石客户</div><div>大于 100000</div><div>成交额累计大于 100000</div></div>
-                <div class="level-rule-row"><div class="level-rule-name">B级翡翠客户</div><div>50000-100000</div><div>成交额累计 50000-100000 的客户</div></div>
-                <div class="level-rule-row"><div class="level-rule-name">C级白金客户</div><div>10000-50000 且订单数大于 1</div><div>多次成交，累计 10000-50000 的客户</div></div>
-                <div class="level-rule-row"><div class="level-rule-name">D级黄金客户</div><div>1000-10000 且订单数大于 1</div><div>多次成交，累计 1000-10000 的客户</div></div>
-                <div class="level-rule-row"><div class="level-rule-name">E级白银客户</div><div>小于 1000 且订单数大于 1</div><div>多次成交，但累计成交额小于 1000</div></div>
-                <div class="level-rule-row"><div class="level-rule-name">F级青铜客户</div><div>订单数等于 1</div><div>只成交过一次的客户，包括样品单</div></div>
-              </div>
+              <form id="levelRuleForm" novalidate>
+                <div class="muted" style="margin:10px 0 8px">自动判断的门槛（累计成交 USD）可以改：按你的客户规模填，保存后客户列表会按新规则重新分级。</div>
+                <div class="level-rule-table" id="levelRuleTable"></div>
+                <div class="level-rule-foot"><button class="btn btn-small" type="button" id="levelRuleResetBtn">恢复默认</button><button class="btn btn-primary btn-small" type="submit">保存等级规则</button></div>
+              </form>
             </div>
             <div class="settings-card">
               <div><strong>付款方式</strong><div class="muted">用于客户资料中的付款方式下拉选项。</div></div>
@@ -6168,6 +6179,15 @@ html[data-theme] :is(.logistics-kpis > .logistics-kpi:not(:first-child), .amount
                 <div class="field"><label>默认承运商</label><select name="defaultCarrier"><option value="auto">默认自动</option><option value="DHL">DHL</option><option value="FedEx">FedEx</option><option value="UPS">UPS</option></select></div>
                 <div class="field"><label>默认加急订单</label><select name="defaultUrgentOrder"><option value="否">否</option><option value="是">是</option></select></div>
                 <div class="span-2" style="display:flex;justify-content:flex-end"><button class="btn btn-primary" type="submit">保存订单设置</button></div>
+              </form>
+            </div>
+            <div class="settings-card">
+              <div><strong>给客户的英文文案</strong><div class="muted">订单详情里「文案」按钮复制出来的内容。某一行里的变量全是空（比如还没有运单号）时，这一行会自动省略。</div></div>
+              <div class="copy-template-vars"><code>{client}</code><code>{num}</code><code>{stage}</code><code>{logistics}</code><code>{tracking}</code><code>{amount}</code><code>{paid}</code><code>{due}</code><code>{nextStep}</code><code>{date}</code></div>
+              <form class="settings-form" id="copyTemplatesForm">
+                <div class="field"><label>英文状态（复制英文状态）</label><textarea name="copyStatusTemplate" rows="8" spellcheck="false"></textarea></div>
+                <div class="field"><label>催款（复制催款）</label><textarea name="copyDunningTemplate" rows="8" spellcheck="false"></textarea></div>
+                <div class="span-2" style="display:flex;justify-content:flex-end;gap:8px"><button class="btn" type="button" id="copyTemplatesResetBtn">恢复默认</button><button class="btn btn-primary" type="submit">保存文案</button></div>
               </form>
             </div>
           </div>
@@ -6542,6 +6562,11 @@ html[data-theme] :is(.logistics-kpis > .logistics-kpi:not(:first-child), .amount
         <div class="order-action-group">
           <button class="btn btn-client btn-small" id="detailCustomerBtn" type="button"><svg class="ui-icon" aria-hidden="true"><use href="#i-users"/></svg>客户档案</button>
           <button class="btn btn-client btn-small" id="detailDuplicateBtn" type="button"><svg class="ui-icon" aria-hidden="true"><use href="#i-copy"/></svg>复制订单</button>
+          <span class="copy-menu-wrap"><button class="btn btn-client btn-small" id="detailCopyTextBtn" type="button" aria-haspopup="menu" aria-expanded="false" title="复制发给客户的英文文案">文案</button>
+            <div class="copy-menu" id="detailCopyMenu" role="menu" hidden>
+              <button type="button" role="menuitem" data-copy-text="status">复制英文状态<small>Status</small></button>
+              <button type="button" role="menuitem" data-copy-text="dunning">复制催款<small>Payment</small></button>
+            </div></span>
           <button class="btn btn-primary btn-small" id="detailEditBtn" type="button">编辑订单</button>
           <button class="order-detail-close" id="detailCloseBtn" type="button" title="关闭" aria-label="关闭">×</button>
         </div>
@@ -7180,8 +7205,26 @@ const defaultOrderSettings = {
   defaultDepositPercent: 30,
   defaultCarrier: 'auto',
   defaultUrgentOrder: '否',
-  defaultNext: ''
+  defaultNext: '',
+  copyStatusTemplate: '',
+  copyDunningTemplate: ''
 };
+// 订单详情「文案」按钮的默认英文模板；设置里留空就用这份。某行变量全空时整行省略（见 fillCopyTemplate）。
+const defaultCopyTemplates = {
+  status: 'Hi {client},\n\nHere is the latest on your order {num}:\nStatus: {stage}\nTracking: {tracking}\nTotal {amount} · Received {paid} · Balance {due}\n\nFeel free to reach out with any questions.\nBest regards',
+  dunning: 'Hi {client},\n\nA friendly reminder that order {num} has an outstanding balance of {due} (total {amount}, received {paid}).\nOnce the payment arrives we will {nextStep}.\n\nThank you!\nBest regards'
+};
+// 客户等级自动判断的门槛（累计成交 USD），可在 设置 → 客户设置 里改；按用户规模（几十个客户）默认值比老的 10 万低得多。
+const defaultCustomerLevelRules = { A:20000, B:10000, C:3000, D:1000 };
+function normalizeCustomerLevelRules(raw) {
+  const rules = { ...defaultCustomerLevelRules };
+  ['A','B','C','D'].forEach(key => {
+    const value = Number(raw?.[key]);
+    if (Number.isFinite(value) && value > 0) rules[key] = Math.round(value);
+  });
+  if (!(rules.A > rules.B && rules.B > rules.C && rules.C > rules.D)) return { ...defaultCustomerLevelRules };
+  return rules;
+}
 
 const demoOrders = [
   { id:'o1', productType:'假发', paymentChannel:'阿里巴巴', orderType:'定金订单', depositAmount:0, depositPercent:0, num:'SO260428001', client:'ABC Trading Co.', country:'🇺🇸 美国 United States', amount:12580, paidAmount:0, currency:'USD', createdAt:'2026-04-28', orderMonth:'2026-04', stage:'quote', next:'确认报价条款', owner:'Kris', note:'客户等待报价细节确认', updated:'2026-04-28 10:30', logs:['Kris 创建订单并进入报价阶段'] },
@@ -7352,6 +7395,9 @@ function applyOrderNotificationResult(orderId = '', result = {}) {
   const logs = existingTopLog === text ? current.logs : [{ time:nowText(), text }, ...(current.logs || [])];
   const updated = { ...current, feishuNotification:next, logs };
   state.orders[index] = updated;
+  if ((next.status === 'failed' || next.status === 'sent') && typeof uiNotifLogEvent === 'function') {
+    uiNotifLogEvent({ id:`feishu-${orderId}-${next.status}-${next.sentAt || next.updatedAt || ''}`, kind:next.status === 'failed' ? 'error' : 'success', title:next.status === 'failed' ? '飞书群消息发送失败' : '飞书群消息已发送', sub:`${clientDisplayName(current.client)} · ${current.num}${next.status === 'failed' ? ` · ${next.error || '可在订单记录里重试'}` : next.chatName ? ` · ${next.chatName}` : ''}`, pill:'飞书', orderId, tab:'records' });
+  }
   return updated;
 }
 async function completeOrderNotification(orderId = '', requested = false, successText = '订单已创建') {
@@ -7617,6 +7663,7 @@ async function runMacSaveQueue() {
       } catch (error) {
         macSaveLastError = error.message || '数据库保存失败';
         setMacStorageStatus('sqlite', 'error', macSaveLastError);
+        if (typeof uiNotifLogEvent === 'function') uiNotifLogEvent({ id:`save-${normalizeDate(new Date().toISOString())}-${macSaveLastError}`, kind:'error', title:'数据保存失败', sub:macSaveLastError, pill:'保存' });
         if (Date.now() - macSaveErrorToastAt > 10000) {
           macSaveErrorToastAt = Date.now();
           toast(macStorageReadOnly ? macSaveLastError : '数据库保存失败，请先不要关闭软件');
@@ -8006,6 +8053,7 @@ function normalizeState(raw) {
     paymentMethods: Array.from(new Set(raw.paymentMethods ? raw.paymentMethods : defaultPaymentMethods)),
     customerTags: uniqueList((raw.customerTags || []).filter(tag => !legacyCustomerLevels.includes(tag)), defaultCustomerTags),
     customerLevels: normalizeCustomerLevels(raw.customerLevels || defaultCustomerLevels),
+    customerLevelRules: normalizeCustomerLevelRules(raw.customerLevelRules),
     owners: Array.from(new Set(raw.owners ? raw.owners : [...defaultOwners, ...(raw.orders || []).map(o => o.owner).filter(Boolean)])),
     orderSettings: normalizeOrderSettings(raw.orderSettings || {}),
     boardCardSettings: normalizeBoardCardSettings(raw.boardCardSettings || {}),
@@ -8325,6 +8373,7 @@ async function checkApiStatus(kind) {
   statuses[kind] = item;
   saveApiStatuses(statuses);
   renderApiStatusLights();
+  if (!item.ok && typeof uiNotifLogEvent === 'function') uiNotifLogEvent({ id:`api-${kind}-${item.checkedAt || ''}`, kind:'error', title:`${apiStatusNames[kind] || kind} 接口异常`, sub:item.message || '检测失败', pill:'接口', time:item.checkedAt || '' });
   uiRenderNotifs();
   if (kind === 'ai') await refreshAiUsage();
   toast(`${apiStatusNames[kind] || kind}：${item.message}${item.accountingWarning ? ` · ${item.accountingWarning}` : ''}`);
@@ -9334,6 +9383,49 @@ function depositPresetOptions(amountValue, currencyValue = 'USD') {
 }
 function toast(text, options) {
   uiToast(text, options);
+}
+function copyTemplate(kind = 'status') {
+  const own = kind === 'dunning' ? state?.orderSettings?.copyDunningTemplate : state?.orderSettings?.copyStatusTemplate;
+  return String(own || '').trim() || defaultCopyTemplates[kind] || '';
+}
+function stageEnglish(stage = '') {
+  return { quote:'Quotation confirmed, awaiting deposit', production:'In production', balance:'Ready to ship, awaiting balance payment', shipment:'Shipped', done:'Completed' }[normalizeStage(stage)] || '';
+}
+function logisticsEnglish(status = '') {
+  return { '未发货':'Not shipped yet', '已发货':'Shipped', '运输中':'In transit', '派送中':'Out for delivery', '已签收':'Delivered', '异常':'Exception, please check' }[normalizeTrackingStatus(status) || String(status || '').trim()] || '';
+}
+function orderCopyVars(order = {}) {
+  const stage = normalizeStage(order.stage);
+  const shipments = normalizeOrderShipments(order).filter(item => item.trackingNumber);
+  const logistics = isSettledStage(stage) ? logisticsEnglish(order.logisticsStatus) : '';
+  const due = orderDueValue(order);
+  return {
+    client: clientDisplayName(order.client || '') || 'there',
+    num: order.num || '',
+    stage: [stageEnglish(stage), logistics && logistics !== 'Shipped' ? logistics : ''].filter(Boolean).join(' · '),
+    logistics,
+    tracking: shipments.map(item => `${item.carrier && item.carrier !== 'auto' ? carrierName(item.carrier) + ' ' : ''}${item.trackingNumber}`).join(', '),
+    amount: money(orderAmountValue(order), order.currency),
+    paid: money(orderPaidValue(order), order.currency),
+    due: money(due, order.currency),
+    nextStep: stage === 'quote' ? 'start production right away' : stage === 'balance' ? 'arrange shipment right away' : 'proceed with the next step',
+    date: normalizeDate(new Date().toISOString())
+  };
+}
+// 变量替换；一行里的变量全是空就整行去掉（比如没有运单号时不留 "Tracking: "），多余空行合并。
+function fillCopyTemplate(template = '', vars = {}) {
+  const lines = String(template || '').replace(/\r\n?/g, '\n').split('\n').map(line => {
+    let used = 0, filled = 0;
+    const text = line.replace(/\{(\w+)\}/g, (m, key) => {
+      if (!(key in vars)) return m;
+      used++;
+      const value = String(vars[key] ?? '').trim();
+      if (value) filled++;
+      return value;
+    });
+    return used && !filled ? null : text;
+  }).filter(line => line !== null);
+  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 async function copyText(text, message = '已复制') {
   const value = String(text || '').trim();
@@ -12567,15 +12659,34 @@ function enhanceBinarySelects(root = document) {
   });
   if (typeof enhanceAppSelects === 'function') enhanceAppSelects(root);
 }
+function customerLevelRules() {
+  return normalizeCustomerLevelRules(typeof state !== 'undefined' ? state?.customerLevelRules : null);
+}
 function autoCustomerLevel(total, orderCount, paid) {
   const value = Number(total || 0);
   const count = Number(orderCount || 0);
-  if (value > 100000) return 'A级钻石客户';
-  if (value >= 50000) return 'B级翡翠客户';
-  if (value >= 10000 && count > 1) return 'C级白金客户';
-  if (value >= 1000 && count > 1) return 'D级黄金客户';
-  if (value < 1000 && count > 1) return 'E级白银客户';
+  const rules = customerLevelRules();
+  if (value >= rules.A) return 'A级钻石客户';
+  if (value >= rules.B) return 'B级翡翠客户';
+  if (value >= rules.C && count > 1) return 'C级白金客户';
+  if (value >= rules.D && count > 1) return 'D级黄金客户';
+  if (count > 1) return 'E级白银客户';
   return 'F级青铜客户';
+}
+function renderLevelRuleTable() {
+  const table = document.getElementById('levelRuleTable');
+  if (!table) return;
+  const rules = customerLevelRules();
+  const fmt = n => Number(n).toLocaleString('en-US');
+  const input = key => `<div class="level-rule-input">≥ <input type="number" name="${key}" min="1" step="1" inputmode="numeric" value="${rules[key]}" aria-label="${key} 级门槛"><small>USD</small></div>`;
+  table.innerHTML = `
+    <div class="level-rule-row head"><div>等级</div><div>区分条件 · 累计成交 USD</div><div>释义</div></div>
+    <div class="level-rule-row"><div class="level-rule-name">A级钻石客户</div>${input('A')}<div>成交额累计不少于 ${fmt(rules.A)}</div></div>
+    <div class="level-rule-row"><div class="level-rule-name">B级翡翠客户</div>${input('B')}<div>成交额累计 ${fmt(rules.B)}－${fmt(rules.A)}</div></div>
+    <div class="level-rule-row"><div class="level-rule-name">C级白金客户</div>${input('C')}<div>多次成交，累计 ${fmt(rules.C)}－${fmt(rules.B)}</div></div>
+    <div class="level-rule-row"><div class="level-rule-name">D级黄金客户</div>${input('D')}<div>多次成交，累计 ${fmt(rules.D)}－${fmt(rules.C)}</div></div>
+    <div class="level-rule-row"><div class="level-rule-name">E级白银客户</div><div>小于 ${fmt(rules.D)} 且订单数大于 1</div><div>多次成交，但累计成交额小于 ${fmt(rules.D)}</div></div>
+    <div class="level-rule-row"><div class="level-rule-name">F级青铜客户</div><div>订单数等于 1</div><div>只成交过一次的客户，包括样品单</div></div>`;
 }
 function normalizeLog(item, fallbackTime = '') {
   if (typeof item === 'string') return { text: item, time: fallbackTime || '' };
@@ -13365,6 +13476,15 @@ function renderOrderDetailHeader(order, source = 'active') {
   `).join('');
   const count = document.getElementById('detailAttachmentCount');
   if (count) count.textContent = (order.attachments || []).length || '';
+  const copyBtn = document.getElementById('detailCopyTextBtn');
+  if (copyBtn) copyBtn.style.display = source === 'active' ? '' : 'none';
+  const dunning = document.querySelector('#detailCopyMenu [data-copy-text="dunning"]');
+  if (dunning) {
+    const due = orderDueValue(order);
+    dunning.disabled = !(due > 0);
+    dunning.title = due > 0 ? '' : '这单没有待收款';
+  }
+  uiCopyMenuToggle(false);
 }
 function openOrderDetail(id, { tab = '' } = {}) {
   const { order, source } = findOrderRecord(id);
@@ -13494,6 +13614,13 @@ function renderSettings() {
   renderSettingsList('settingsTagList', state.customerTags, 'customerTags');
   renderSettingsList('settingsLevelList', state.customerLevels, 'customerLevels');
   renderSettingsList('settingsPaymentList', state.paymentMethods, 'paymentMethods');
+  state.customerLevelRules = normalizeCustomerLevelRules(state.customerLevelRules);
+  renderLevelRuleTable();
+  const copyForm = document.getElementById('copyTemplatesForm');
+  if (copyForm) {
+    copyForm.elements.copyStatusTemplate.value = copyTemplate('status');
+    copyForm.elements.copyDunningTemplate.value = copyTemplate('dunning');
+  }
   const form = document.getElementById('orderSettingsForm');
   if (form) {
     form.elements.orderPrefix.value = state.orderSettings.orderPrefix || 'K';
@@ -14786,6 +14913,7 @@ function applyTrackingResultToOrder(clean, result) {
   const order = state.orders.find(o => normalizeOrderShipments(o).some(shipment => shipment.trackingNumber === clean));
   if (!order) return;
   const oldStage = normalizeStage(order.stage);
+  const oldStatus = normalizeTrackingStatus(normalizeOrderShipments(order).find(shipment => shipment.trackingNumber === clean)?.status || order.logisticsStatus) || '';
   const updatedAt = formatApiTime(result.updatedAt || result.checkedAt || nowText());
   order.shipments = normalizeOrderShipments(order).map(shipment => shipment.trackingNumber === clean
     ? { ...shipment, status:result.status, updated:updatedAt }
@@ -14801,6 +14929,10 @@ function applyTrackingResultToOrder(clean, result) {
     order.logs = [{ time:nowText(), text:'物流已签收，订单自动移动到已完成' }, ...(order.logs || [])];
   }
   order.updated = nowText();
+  const newStatus = normalizeTrackingStatus(result.status) || String(result.status || '').trim();
+  if (newStatus && newStatus !== oldStatus && typeof uiNotifLogEvent === 'function') {
+    uiNotifLogEvent({ id:`logistics-${order.id}-${clean}-${newStatus}-${normalizeDate(updatedAt) || ''}`, kind:newStatus === '异常' ? 'error' : newStatus === '已签收' ? 'success' : 'info', title:`物流${oldStatus ? `从「${oldStatus}」` : ''}变为「${newStatus}」`, sub:`${clientDisplayName(order.client)} · ${order.num} · ${clean}`, pill:'物流', orderId:order.id, tab:'logistics', time:updatedAt });
+  }
 }
 async function refreshTrackingOnce(clean, carrier, button) {
   const number = cleanTracking(clean);
@@ -19528,10 +19660,47 @@ document.getElementById('orderSettingsForm').addEventListener('submit', e => {
     defaultDepositPercent: data.defaultDepositPercent === '' ? defaultOrderSettings.defaultDepositPercent : Number(data.defaultDepositPercent),
     defaultCarrier: ['auto','DHL','FedEx','UPS'].includes(data.defaultCarrier) ? data.defaultCarrier : defaultOrderSettings.defaultCarrier,
     defaultUrgentOrder: data.defaultUrgentOrder === '是' ? '是' : '否',
-    defaultNext: ''
+    defaultNext: '',
+    copyStatusTemplate: state.orderSettings?.copyStatusTemplate || '',
+    copyDunningTemplate: state.orderSettings?.copyDunningTemplate || ''
   };
   render();
   toast('订单设置已保存');
+});
+document.getElementById('copyTemplatesForm')?.addEventListener('submit', e => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.currentTarget).entries());
+  state.orderSettings = { ...defaultOrderSettings, ...(state.orderSettings || {}) };
+  state.orderSettings.copyStatusTemplate = String(data.copyStatusTemplate || '').trim() === defaultCopyTemplates.status ? '' : String(data.copyStatusTemplate || '').trim();
+  state.orderSettings.copyDunningTemplate = String(data.copyDunningTemplate || '').trim() === defaultCopyTemplates.dunning ? '' : String(data.copyDunningTemplate || '').trim();
+  render();
+  toast('文案已保存');
+});
+document.getElementById('copyTemplatesResetBtn')?.addEventListener('click', () => {
+  const form = document.getElementById('copyTemplatesForm');
+  if (!form) return;
+  form.elements.copyStatusTemplate.value = defaultCopyTemplates.status;
+  form.elements.copyDunningTemplate.value = defaultCopyTemplates.dunning;
+  toast('已填回默认文案，记得点保存');
+});
+document.getElementById('levelRuleForm')?.addEventListener('submit', e => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.currentTarget).entries());
+  const next = {};
+  for (const key of ['A','B','C','D']) {
+    const value = Number(String(data[key] || '').replace(/[^\d.]/g, ''));
+    if (!Number.isFinite(value) || value <= 0) { toast(`${key} 级门槛要填一个大于 0 的数字`); return; }
+    next[key] = Math.round(value);
+  }
+  if (!(next.A > next.B && next.B > next.C && next.C > next.D)) { toast('门槛要从 A 到 D 依次递减，比如 20000 > 10000 > 3000 > 1000'); return; }
+  state.customerLevelRules = next;
+  render();
+  toast('等级规则已保存，客户已按新门槛重新分级');
+});
+document.getElementById('levelRuleResetBtn')?.addEventListener('click', () => {
+  state.customerLevelRules = { ...defaultCustomerLevelRules };
+  render();
+  toast('等级门槛已恢复默认');
 });
 document.getElementById('exchangeSettingsForm').addEventListener('submit', e => {
   e.preventDefault();
@@ -20328,7 +20497,8 @@ document.addEventListener('pointerdown', e => {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') uiCloseBoardMenu(); });
 window.addEventListener('blur', uiCloseBoardMenu);
 document.querySelector('.content')?.addEventListener('scroll', uiCloseBoardMenu, { passive:true });
-// 通知面板：从现有数据推出来（物流风险、接口异常、保存失败、加急/收款/跟进待办、近 3 天的订单动态），不新增存储；已读状态只记在本机。
+// 通知面板：只放「发生过的事」——保存失败、接口异常、物流状态变化、飞书群消息结果、发现新版本，加上近 3 天的订单动态。
+// 待办（加急/收款/跟进/复购）留在工作台的待办列表里，不再混进通知。事件和已读状态都只记在本机 localStorage。
 // 用函数属性存当前标签：render() 可能在脚本末尾这段执行前就调用 uiRenderNotifs。
 function uiNotifTab(next) { if (next) uiNotifTab.value = next; return uiNotifTab.value || 'all'; }
 function uiNotifRead() {
@@ -20340,24 +20510,44 @@ function uiNotifSaveRead(set) {
 function uiNotifLogText(log) {
   return typeof log === 'string' ? log : String(log?.text || '');
 }
+function uiNotifEvents() {
+  try { return (JSON.parse(localStorage.getItem('ots-notif-events-v1') || '[]') || []).filter(item => item && item.id); } catch (_) { return []; }
+}
+function uiNotifSaveEvents(list) {
+  try { localStorage.setItem('ots-notif-events-v1', JSON.stringify(list.slice(-200))); } catch (_) { /* 本机存储不可用时通知只活在当前会话 */ }
+}
+// 记一条事件通知。同一个 id 只记一次（比如同一次检测失败、同一个版本号），所以调用方把能区分这次事件的信息拼进 id。
+function uiNotifLogEvent(event = {}) {
+  if (!event || !event.title) return false;
+  const id = String(event.id || `evt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`);
+  const list = uiNotifEvents();
+  if (list.some(item => item.id === id)) return false;
+  list.push({ id, kind:['error','success','info'].includes(event.kind) ? event.kind : 'info', tone:event.tone || '', title:String(event.title), sub:String(event.sub || ''), pill:String(event.pill || ''), orderId:event.orderId || '', tab:event.tab || '', time:event.time || nowText() });
+  uiNotifSaveEvents(list);
+  if (typeof uiRenderNotifs === 'function') uiRenderNotifs();
+  return true;
+}
 function uiNotifItems() {
   const items = [];
-  if (macSaveLastError) items.push({ id:`save-${macSaveLastError}`, kind:'error', title:'数据保存失败', sub:macSaveLastError, pill:'保存', time:'' });
-  Object.entries(loadApiStatuses()).forEach(([kind, item]) => {
-    if (item && item.ok === false) items.push({ id:`api-${kind}-${item.checkedAt || ''}`, kind:'error', title:`${apiStatusNames[kind] || kind} 接口异常`, sub:item.message || '检测失败', pill:'接口', time:item.checkedAt || '' });
+  const seenApi = new Set();
+  uiNotifEvents().reverse().forEach(event => {
+    if (event.pill === '接口') seenApi.add(event.id);
+    items.push(event);
   });
-  // 跟进 / 复购这类日常待办只留在待办列表里，通知面板只放需要立刻处理的：加急、收款、最晚发货、物流风险。
-  buildTaskItems().forEach(task => {
-    const risk = task.tag === '物流风险' || String(task.id || '').startsWith('logistics-risk-');
-    const remind = ['urgent', 'payment', 'logistics'].includes(task.type);
-    if (!risk && !remind) return;
-    items.push({ id:`task-${task.id}`, kind:risk ? 'error' : 'info', tone:risk ? '' : 'warn', title:task.title, sub:[task.reason, task.detail].filter(Boolean).join(' · '), pill:task.tag || '待办', orderId:task.orderId || '', tab:taskDetailTab(task), time:task.date || '' });
+  // 还没恢复的保存失败 / 接口异常即使事件记录丢了也要露出来（事件 id 一致，不会重复）。
+  if (macSaveLastError && !items.some(item => item.id === `save-${normalizeDate(new Date().toISOString())}-${macSaveLastError}`)) {
+    items.unshift({ id:`save-${normalizeDate(new Date().toISOString())}-${macSaveLastError}`, kind:'error', title:'数据保存失败', sub:macSaveLastError, pill:'保存', time:'' });
+  }
+  Object.entries(loadApiStatuses()).forEach(([kind, item]) => {
+    if (item && item.ok === false && !seenApi.has(`api-${kind}-${item.checkedAt || ''}`)) items.push({ id:`api-${kind}-${item.checkedAt || ''}`, kind:'error', title:`${apiStatusNames[kind] || kind} 接口异常`, sub:item.message || '检测失败', pill:'接口', time:item.checkedAt || '' });
   });
   const since = Date.now() - 3 * 86400000;
-  state.orders.filter(o => parseDate(o.updated) >= since).sort((a, b) => parseDate(b.updated) - parseDate(a.updated)).slice(0, 8).forEach(o => {
+  // 飞书发送结果已经作为事件记过了，别再把同一条日志当成「订单已更新」重复露出来。
+  state.orders.filter(o => parseDate(o.updated) >= since && !/^飞书群消息/.test(uiNotifLogText((o.logs || [])[0]))).sort((a, b) => parseDate(b.updated) - parseDate(a.updated)).slice(0, 8).forEach(o => {
     items.push({ id:`log-${o.id}-${o.updated}`, kind:'success', title:uiNotifLogText((o.logs || [])[0]) || '订单已更新', sub:`${clientDisplayName(o.client)} · ${o.num}`, pill:stageDef(o.stage).name, orderId:o.id, time:o.updated });
   });
-  return items.slice(0, 40);
+  const stamp = item => parseDate(item.time) || 0;
+  return items.sort((a, b) => stamp(b) - stamp(a)).slice(0, 40);
 }
 function uiRenderNotifs() {
   const items = uiNotifItems();
@@ -20902,6 +21092,7 @@ document.addEventListener('keydown', e => {
   if (e.key !== 'Escape' || e.defaultPrevented || e.isComposing) return;
   if (e.target.matches?.('#customerPasteEditValue, #subsRateInput, [data-sub-opt-add] input, #confirmInput, #trackingQuickCard input')) return;
   if (typeof activeAppSelect !== 'undefined' && activeAppSelect) return;
+  if (document.getElementById('detailCopyMenu')?.hidden === false) { e.preventDefault(); uiCopyMenuToggle(false); document.getElementById('detailCopyTextBtn')?.focus(); return; }
   if (document.querySelector('.client-menu.open, .board-menu') || document.getElementById('notifPanel')?.hidden === false) return;
   const isOpen = id => document.getElementById(id)?.classList.contains('open');
   if (isOpen('confirmModal')) { e.preventDefault(); document.getElementById('confirmCancelBtn')?.click(); return; }
@@ -21028,6 +21219,59 @@ document.getElementById('detailCopyNumBtn')?.addEventListener('click', () => {
 document.getElementById('orderDetailBody')?.addEventListener('click', e => {
   if (e.target.closest('[data-detail-open-customer]')) document.getElementById('detailCustomerBtn')?.click();
 });
+// 订单详情「文案」：复制英文状态 / 催款给客户。复制后按钮变「已复制」1.5 秒，并在订单记录里留一条，当作一次跟进。
+function uiCopyMenuToggle(open) {
+  const menu = document.getElementById('detailCopyMenu');
+  const btn = document.getElementById('detailCopyTextBtn');
+  if (!menu || !btn) return;
+  const next = open ?? menu.hidden;
+  menu.hidden = !next;
+  btn.setAttribute('aria-expanded', String(next));
+  if (next) (menu.querySelector('button:not(:disabled)') || menu).focus?.({ preventScroll:true });
+}
+let detailCopyResetTimer = 0;
+async function copyOrderText(kind = 'status') {
+  const { order, source } = findOrderRecord(detailOrderId);
+  if (!order) return false;
+  const text = fillCopyTemplate(copyTemplate(kind), orderCopyVars(order));
+  if (!text) { toast('文案模板是空的，请先到设置里填写'); return false; }
+  uiCopyMenuToggle(false);
+  await copyText(text, kind === 'dunning' ? '催款文案已复制，可直接发给客户' : '英文状态已复制，可直接发给客户');
+  const btn = document.getElementById('detailCopyTextBtn');
+  if (btn) {
+    clearTimeout(detailCopyResetTimer);
+    btn.classList.add('is-copied');
+    btn.textContent = '已复制';
+    detailCopyResetTimer = setTimeout(() => { btn.classList.remove('is-copied'); btn.textContent = '文案'; }, 1500);
+  }
+  if (source === 'active') {
+    order.logs = [{ time:nowText(), text:kind === 'dunning' ? `复制催款文案（待收 ${money(orderDueValue(order), order.currency)}）` : '复制英文状态文案' }, ...(order.logs || [])];
+    order.updated = nowText();
+    saveState();
+    if (typeof renderTasks === 'function') renderTasks();
+    if (typeof uiRenderNotifs === 'function') uiRenderNotifs();
+    // 抽屉没有未保存的改动时就地刷新，让「记录」页签马上看到这一条。
+    if (typeof uiDetailDirty !== 'function' || !uiDetailDirty()) {
+      const body = document.getElementById('orderDetailBody');
+      const scrollTop = body?.scrollTop || 0;
+      body.innerHTML = renderOrderDetail(order, source);
+      uiDetailTab(uiDetailTab.current, true);
+      body.scrollTop = scrollTop;
+      if (typeof uiDetailMarkClean === 'function') uiDetailMarkClean();
+    }
+  }
+  return true;
+}
+document.getElementById('detailCopyTextBtn')?.addEventListener('click', () => uiCopyMenuToggle());
+document.getElementById('detailCopyMenu')?.addEventListener('click', e => {
+  const item = e.target.closest('[data-copy-text]');
+  if (item && !item.disabled) copyOrderText(item.dataset.copyText);
+});
+document.addEventListener('pointerdown', e => {
+  const menu = document.getElementById('detailCopyMenu');
+  if (!menu || menu.hidden || e.target.closest('.copy-menu-wrap')) return;
+  uiCopyMenuToggle(false);
+}, true);
 // 新版 UI：订单详情抽屉可以直接改（原型的 订单信息 / 收款 页签 + 底部 按住删除 / 取消 / 保存）。
 // 保存走原来的订单表单：先用 openOrder 把订单灌进 #orderForm，再把抽屉里的值写进去，交给 upsertOrder 做校验、阶段推断和持久化。
 function uiDetailEditValues() {
@@ -21267,6 +21511,7 @@ function otsAppUpdateStatus(status) {
     : status.state === 'latest' ? `当前 V${status.version || ''} 已是最新版本`
     : '检查更新：有新版本会下载并自动重装重启';
   if (status.state === 'error' && status.message) toast(`更新失败：${status.message}`);
+  if (status.state === 'available' && typeof uiNotifLogEvent === 'function') uiNotifLogEvent({ id:`update-${status.version || ''}`, kind:'info', title:`发现新版本 V${status.version || ''}`, sub:'点右上角「更新」会自动下载、重装并重启', pill:'更新' });
   if (status.state === 'latest' || status.state === 'error') {
     appUpdateResetTimer = setTimeout(() => otsAppUpdateStatus({state:'idle'}), status.state === 'error' ? 6000 : 3000);
   } else if (status.state === 'checking') {

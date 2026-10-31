@@ -20673,7 +20673,7 @@ document.addEventListener('keydown', e => {
   if (e.key !== 'Escape' || e.defaultPrevented || e.isComposing) return;
   if (e.target.matches?.('#customerPasteEditValue, #subsRateInput, [data-sub-opt-add] input, #confirmInput')) return;
   if (typeof activeAppSelect !== 'undefined' && activeAppSelect) return;
-  if (document.querySelector('.board-menu') || document.getElementById('notifPanel')?.hidden === false) return;
+  if (document.querySelector('.client-menu.open, .board-menu') || document.getElementById('notifPanel')?.hidden === false) return;
   const isOpen = id => document.getElementById(id)?.classList.contains('open');
   if (isOpen('confirmModal')) { e.preventDefault(); document.getElementById('confirmCancelBtn')?.click(); return; }
   if (isOpen('customerModal')) { e.preventDefault(); uiCloseCustomerGuarded(); return; }

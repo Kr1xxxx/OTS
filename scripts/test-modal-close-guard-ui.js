@@ -99,6 +99,14 @@ const { chromium } = require('playwright');
     assert.equal(await isOpen('orderModal'),false,'untouched existing order should close on Esc');
     await page.evaluate(()=>openOrder(''));
     await settle();
+    // Esc with the customer picker open only closes the picker.
+    await page.locator('#orderForm [name="client"]').fill('Ali');
+    await page.waitForSelector('#orderForm .client-menu.open');
+    await page.keyboard.press('Escape');
+    await settle();
+    assert.equal(await page.locator('#orderForm .client-menu.open').count(),0,'Esc should close the customer picker');
+    assert.equal(await isOpen('orderModal'),true,'Esc on an open picker must not touch the modal');
+    assert.equal(await isOpen('confirmModal'),false);
     await page.locator('#orderForm [name="amount"]').fill('1234');
     await page.keyboard.press('Escape');
     await settle();

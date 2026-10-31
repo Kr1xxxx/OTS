@@ -3802,6 +3802,149 @@ html[data-theme="dark"] .subs-colors button { box-shadow:inset 0 0 0 1px rgba(25
   .subs-fields { grid-template-columns:minmax(0,1fr); }
   .subs-df { padding:12px 14px 12px 18px; }
 }
+/* Sidebar: 订阅 opens a second-level menu (列表 / 分析 / 历史) while one of its pages is open */
+html[data-theme] .nav-item[data-nav-group="subs"] .nav-sub-chev { width:14px; height:14px; margin-left:auto; color:var(--gray-500); transition:transform .3s var(--ease-spring); }
+html[data-theme] .nav-item[data-nav-group="subs"].active .nav-sub-chev { transform:rotate(90deg); }
+html[data-theme] .nav-sub { display:grid; grid-template-rows:0fr; transition:grid-template-rows .28s var(--ease-out); }
+html[data-theme] .nav-sub.open { grid-template-rows:1fr; }
+html[data-theme] .nav-sub-inner { display:flex; flex-direction:column; gap:1px; min-height:0; overflow:hidden; margin-left:21px; padding-left:12px; border-left:1px solid var(--hairline); }
+html[data-theme] .nav-sub-item { position:relative; display:flex; align-items:center; height:30px; padding:0 10px; border:0; border-radius:10px; background:transparent; color:var(--gray-600); font:500 13px/1 var(--sans); text-align:left; cursor:pointer; opacity:0; transform:translateY(-4px); transition:background .16s, color .16s, opacity .2s, transform .3s var(--ease-spring); }
+html[data-theme] .nav-sub.open .nav-sub-item { opacity:1; transform:none; }
+html[data-theme] .nav-sub.open .nav-sub-item:nth-child(2) { transition-delay:0s, 0s, .03s, .03s; }
+html[data-theme] .nav-sub.open .nav-sub-item:nth-child(3) { transition-delay:0s, 0s, .06s, .06s; }
+html[data-theme] .nav-sub-item:first-child { margin-top:2px; }
+html[data-theme] .nav-sub-item:last-child { margin-bottom:4px; }
+html[data-theme] .nav-sub-item:hover { background:color-mix(in srgb, var(--surface-bg) 55%, transparent); color:var(--gray-800); }
+html[data-theme] .nav-sub-item.active { color:var(--accent); font-weight:600; }
+html[data-theme] .nav-sub-item.active::before { content:""; position:absolute; left:-13px; top:7px; bottom:7px; width:2px; border-radius:2px; background:var(--accent); }
+.subs-tabs { display:none; }
+@media (max-width: 820px) {
+  html[data-theme] .nav-sub, html[data-theme] .nav-item .nav-sub-chev { display:none; }
+  .subs-tabs { display:flex; gap:2px; align-self:flex-start; padding:3px; border-radius:9999px; background:var(--a-panel); }
+  .subs-tab { height:30px; padding:0 14px; border:0; border-radius:9999px; background:transparent; color:var(--a-ink-2); font:500 13px/1 var(--a-sans); cursor:pointer; }
+  .subs-tab.active { background:var(--a-card); color:var(--a-ink); box-shadow:var(--a-shadow-card); }
+}
+
+/* 订阅分析 / 订阅历史 */
+.subs-scope { --subs-c1:#2a78d6; --subs-c2:#eb6834; --subs-c3:#1baf7a; }
+html[data-theme="dark"] .subs-scope { --subs-c1:#3987e5; --subs-c2:#d95926; --subs-c3:#199e70; }
+#page-subs-analysis, #page-subs-history { gap:16px; max-width:1360px; }
+#page-subs-analysis.active, #page-subs-history.active { animation:none; }
+html[data-theme] :is(#page-subs-analysis, #page-subs-history).page-enter > :is(.subs-an, .subs-hist) { animation:none; }
+.subs-an { display:flex; flex-direction:column; gap:14px; }
+.subs-an-sk { height:120px; border-radius:22px; background:linear-gradient(90deg, var(--a-panel) 25%, var(--a-hairline) 50%, var(--a-panel) 75%); background-size:200% 100%; }
+.subs-an-sk.tall { height:300px; }
+.subs-kpis { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:12px; }
+.subs-kpi { display:flex; flex-direction:column; gap:4px; min-width:0; padding:16px 18px; border:1px solid var(--a-border); border-radius:20px; background:var(--a-card); box-shadow:var(--a-shadow-card); }
+.subs-kpi span, .subs-kpi small { color:var(--a-muted); font-size:12px; }
+.subs-kpi b { font:700 24px/1.25 var(--a-display); letter-spacing:-.02em; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.subs-kpi:first-child { border-color:transparent; background:radial-gradient(120% 140% at 85% 30%, color-mix(in oklab, var(--a-accent) 70%, #0e111b) 0%, #0e111b 60%, #060606 100%); color:#fff; }
+.subs-kpi:first-child :is(span, small) { color:rgba(255,255,255,.66); }
+.subs-panel { display:flex; flex-direction:column; gap:14px; min-width:0; padding:18px 20px; border:1px solid var(--a-border); border-radius:22px; background:var(--a-card); box-shadow:var(--a-shadow-card); }
+.subs-panel > header { display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:8px 16px; }
+.subs-panel h3 { margin:0; color:var(--a-ink); font:600 15px/1.3 var(--a-display); }
+.subs-panel p { margin:3px 0 0; color:var(--a-muted); font-size:12px; }
+.subs-legend { display:flex; flex-wrap:wrap; gap:6px 14px; color:var(--a-ink-2); font-size:12px; }
+.subs-legend span { display:inline-flex; align-items:center; gap:6px; }
+.subs-sw { display:inline-block; flex:none; width:10px; height:10px; border-radius:3px; }
+.subs-sw.plan { background:repeating-linear-gradient(135deg, var(--a-muted) 0 2px, transparent 2px 4px); box-shadow:inset 0 0 0 1px var(--a-border); }
+.subs-an-grid { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:14px; }
+.subs-an-none { padding:18px 0; color:var(--a-muted); font-size:13px; text-align:center; }
+
+/* Monthly bars: stacked by category, 2px surface gaps, the future hatched */
+.subs-chart { position:relative; height:260px; padding:0 0 22px 52px; }
+.subs-grid { position:absolute; inset:0 0 22px 52px; display:flex; flex-direction:column; justify-content:space-between; pointer-events:none; }
+.subs-grid span { position:relative; border-top:1px solid var(--a-hairline); }
+.subs-grid span:last-child { border-top-color:var(--a-border); }
+.subs-grid em { position:absolute; right:calc(100% + 8px); top:-7px; color:var(--a-muted); font:normal 11px/1 var(--a-sans); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.subs-bars { position:relative; display:grid; grid-template-columns:repeat(18, minmax(0,1fr)); gap:4px; height:100%; }
+.subs-bar { position:relative; display:flex; flex-direction:column; justify-content:flex-end; min-width:0; height:100%; padding:0; border:0; border-radius:8px; background:transparent; color:var(--a-muted); font:inherit; cursor:default; }
+.subs-bar:hover, .subs-bar:focus-visible { background:color-mix(in oklab, var(--a-panel) 70%, transparent); }
+.subs-bar-stack { display:flex; flex-direction:column-reverse; gap:2px; width:min(70%, 26px); height:100%; margin:0 auto; justify-content:flex-start; }
+.subs-bar-stack i { display:block; flex:none; min-height:2px; border-radius:2px; transform-origin:bottom; }
+.subs-bar-stack i:last-child { border-radius:4px 4px 2px 2px; }
+.subs-bar.plan .subs-bar-stack i { opacity:.42; background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.55) 0 2px, transparent 2px 5px) !important; background-blend-mode:normal; }
+.subs-bar-x { position:absolute; left:50%; bottom:-20px; transform:translateX(-50%); font-size:11px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.subs-bar.now .subs-bar-x { color:var(--a-accent); font-weight:600; }
+.subs-bar.now::after { content:""; position:absolute; left:-2px; right:-2px; top:0; bottom:0; border-radius:8px; box-shadow:inset 0 0 0 1px color-mix(in oklab, var(--a-accent) 35%, transparent); pointer-events:none; }
+.subs-entering .subs-bar-stack i { animation:subsGrow .6s var(--a-ease-enter) backwards; animation-delay:calc(var(--i, 0) * 25ms + .15s); }
+@keyframes subsGrow { from { transform:scaleY(0); } }
+.subs-tip { position:absolute; left:0; top:-6px; z-index:2; display:flex; flex-direction:column; gap:3px; min-width:150px; padding:10px 12px; border:1px solid var(--a-border); border-radius:12px; background:var(--a-card); box-shadow:var(--a-shadow-float); color:var(--a-ink-2); font-size:12px; font-variant-numeric:tabular-nums; pointer-events:none; transition:transform .2s var(--a-ease); }
+.subs-tip b { color:var(--a-ink); font-size:13px; }
+.subs-tip span:last-child { margin-top:2px; color:var(--a-ink); font-weight:600; }
+.subs-tip[hidden] { display:none; }
+
+/* Share rows, donut and top list */
+.subs-donut-wrap { position:relative; width:150px; height:150px; margin:0 auto; }
+.subs-donut { width:100%; height:100%; }
+.subs-donut circle { fill:none; stroke-width:16; }
+.subs-donut .track { stroke:var(--a-panel); }
+.subs-entering .subs-donut { animation:subsPop .6s var(--a-spring) backwards .2s; }
+.subs-donut-c { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.subs-donut-c b { font:700 20px/1.2 var(--a-display); letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+.subs-donut-c span { color:var(--a-muted); font-size:12px; }
+.subs-shares, .subs-tops { display:flex; flex-direction:column; gap:4px; }
+.subs-share { display:grid; grid-template-columns:minmax(0,1fr) auto; row-gap:6px; align-items:center; width:100%; padding:8px 10px; border:0; border-radius:12px; background:transparent; color:var(--a-ink); font:inherit; text-align:left; }
+button.subs-share { cursor:pointer; transition:background .16s; }
+button.subs-share:hover { background:var(--a-panel); }
+.subs-share-n { display:flex; align-items:center; gap:8px; min-width:0; font-size:13px; font-weight:500; }
+.subs-share-n small, .subs-share-v small { color:var(--a-muted); font-size:12px; font-weight:400; }
+.subs-share-v { display:flex; align-items:baseline; gap:6px; font-variant-numeric:tabular-nums; }
+.subs-share-v b { font-size:13px; }
+.subs-meter { grid-column:1 / -1; height:6px; border-radius:9999px; background:var(--a-panel); overflow:hidden; }
+.subs-meter i { display:block; height:100%; border-radius:9999px; background:var(--a-accent); transform-origin:left; }
+.subs-entering .subs-meter i { animation:subsFill .7s var(--a-ease-enter) backwards; animation-delay:calc(var(--i, 0) * 50ms + .25s); }
+@keyframes subsFill { from { transform:scaleX(0); } }
+.subs-top { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:12px; width:100%; padding:8px 10px; border:0; border-radius:14px; background:transparent; color:var(--a-ink); font:inherit; text-align:left; cursor:pointer; transition:background .16s, transform .2s var(--a-spring); }
+.subs-top:hover { background:var(--a-panel); }
+.subs-top:active { transform:scale(.985); }
+.subs-top .subs-ic { width:36px; height:36px; border-radius:11px; font-size:13px; }
+.subs-top-n, .subs-top-v { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.subs-top-n b { overflow:hidden; font-size:14px; font-weight:600; text-overflow:ellipsis; white-space:nowrap; }
+.subs-top-v { align-items:flex-end; font-variant-numeric:tabular-nums; }
+.subs-top-v b { font-size:14px; }
+.subs-top small { color:var(--a-muted); font-size:12px; white-space:nowrap; }
+
+/* History: newest month first */
+.subs-hist { display:flex; flex-direction:column; gap:18px; }
+.subs-h-month { display:flex; flex-direction:column; gap:8px; }
+.subs-h-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; padding:0 6px; }
+.subs-h-head b { font:600 15px/1.3 var(--a-display); }
+.subs-h-head span { color:var(--a-muted); font-size:13px; font-variant-numeric:tabular-nums; }
+.subs-h-list { display:flex; flex-direction:column; overflow:hidden; border:1px solid var(--a-border); border-radius:20px; background:var(--a-card); box-shadow:var(--a-shadow-card); }
+.subs-h-row { display:grid; grid-template-columns:64px auto minmax(0,1fr) auto; align-items:center; gap:14px; width:100%; padding:12px 18px; border:0; border-top:1px solid var(--a-hairline); background:transparent; color:var(--a-ink); font:inherit; text-align:left; cursor:pointer; transition:background .16s; }
+.subs-h-row:first-child { border-top:0; }
+.subs-h-row:hover { background:color-mix(in oklab, var(--a-panel) 70%, transparent); }
+.subs-h-row .subs-ic { width:36px; height:36px; border-radius:11px; font-size:13px; }
+.subs-h-row.end .subs-ic { filter:grayscale(1); opacity:.5; }
+.subs-h-d { display:flex; flex-direction:column; gap:1px; }
+.subs-h-d b { font:700 18px/1.1 var(--a-display); font-variant-numeric:tabular-nums; }
+.subs-h-d small, .subs-h-n small, .subs-h-v small { color:var(--a-muted); font-size:12px; white-space:nowrap; }
+.subs-h-n { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.subs-h-n b { overflow:hidden; font-size:14px; font-weight:600; text-overflow:ellipsis; white-space:nowrap; }
+.subs-h-n small { overflow:hidden; text-overflow:ellipsis; }
+.subs-h-v { display:flex; flex-direction:column; align-items:flex-end; gap:1px; font-variant-numeric:tabular-nums; }
+.subs-h-v b { font:700 16px/1.2 var(--a-display); letter-spacing:-.01em; }
+.subs-h-foot { display:flex; flex-direction:column; align-items:center; gap:10px; padding:4px 0 8px; color:var(--a-muted); font-size:12px; text-align:center; }
+@media (max-width: 1100px) {
+  .subs-kpis { grid-template-columns:repeat(2, minmax(0,1fr)); }
+  .subs-an-grid { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+  .subs-an-grid > :last-child { grid-column:1 / -1; }
+}
+@media (max-width: 760px) {
+  .subs-an-grid { grid-template-columns:minmax(0,1fr); }
+  .subs-kpi b { font-size:20px; }
+  .subs-panel { padding:16px; }
+  .subs-chart { height:220px; padding-left:40px; }
+  .subs-grid { left:40px; }
+  .subs-bars { gap:2px; }
+  .subs-bar:nth-child(odd):not(.now) .subs-bar-x { visibility:hidden; }
+  .subs-bar-x { font-size:10px; }
+  .subs-bar-x .y { display:none; }
+  .subs-h-row { grid-template-columns:44px auto minmax(0,1fr) auto; gap:10px; padding:12px 14px; }
+  .subs-h-d small { display:none; }
+}
+html[data-motion="reduce"] :is(.subs-bar-stack i, .subs-meter i, .subs-donut) { animation:none !important; }
 html[data-motion="reduce"] :is(.subs-scope, .subs-scope *) { animation-delay:0s !important; transition-delay:0s !important; }
 html[data-motion="reduce"] :is(.subs-sk, .subs-spin) { animation:none !important; }
 </style>
@@ -5296,7 +5439,14 @@ html[data-theme] :is(.logistics-kpis > .logistics-kpi:not(:first-child), .amount
       <div class="nav-label">管理</div>
       <button class="nav-item" data-page="calendar" data-mobile-label="日历"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-cal"/></svg><span class="nav-text">日历</span></button>
       <button class="nav-item" data-page="amount" data-nav-group="insights" data-mobile-label="数据"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-chart"/></svg><span class="nav-text">数据与目标</span></button>
-      <button class="nav-item" data-page="subscriptions" data-mobile-label="订阅"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg><span class="nav-text">订阅</span></button>
+      <button class="nav-item" data-page="subscriptions" data-nav-group="subs" data-mobile-label="订阅" aria-controls="navSubs"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg><span class="nav-text">订阅</span><svg class="nav-sub-chev ui-icon" aria-hidden="true"><use href="#i-chev"/></svg></button>
+      <div class="nav-sub" id="navSubs" role="group" aria-label="订阅">
+        <div class="nav-sub-inner">
+          <button class="nav-sub-item" type="button" data-page="subscriptions">订阅列表</button>
+          <button class="nav-sub-item" type="button" data-page="subs-analysis">分析</button>
+          <button class="nav-sub-item" type="button" data-page="subs-history">历史</button>
+        </div>
+      </div>
       <button class="nav-item" data-page="settings" data-mobile-label="设置"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-gear"/></svg><span class="nav-text">设置</span></button>
     </div>
   </nav>
@@ -5312,7 +5462,7 @@ html[data-theme] :is(.logistics-kpis > .logistics-kpi:not(:first-child), .amount
   </div>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.94，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.94</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.95，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.95</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -5821,6 +5971,7 @@ html[data-theme] :is(.logistics-kpis > .logistics-kpi:not(:first-child), .amount
     </section>
 
     <section class="page subs-scope" id="page-subscriptions">
+      <nav class="subs-tabs" aria-label="订阅"><button class="subs-tab" type="button" data-page="subscriptions">订阅列表</button><button class="subs-tab" type="button" data-page="subs-analysis">分析</button><button class="subs-tab" type="button" data-page="subs-history">历史</button></nav>
       <section class="subs-hero" id="subsHero"></section>
       <div class="subs-toolbar">
         <div class="subs-seg" id="subsFilter" role="group" aria-label="按分类筛选"><span class="subs-glide" aria-hidden="true"></span></div>
@@ -5831,6 +5982,23 @@ html[data-theme] :is(.logistics-kpis > .logistics-kpi:not(:first-child), .amount
         </div>
       </div>
       <div class="subs-list" id="subsList"></div>
+    </section>
+
+    <section class="page subs-scope" id="page-subs-analysis">
+      <nav class="subs-tabs" aria-label="订阅"><button class="subs-tab" type="button" data-page="subscriptions">订阅列表</button><button class="subs-tab" type="button" data-page="subs-analysis">分析</button><button class="subs-tab" type="button" data-page="subs-history">历史</button></nav>
+      <div class="subs-an" id="subsAnalysis"></div>
+    </section>
+
+    <section class="page subs-scope" id="page-subs-history">
+      <nav class="subs-tabs" aria-label="订阅"><button class="subs-tab" type="button" data-page="subscriptions">订阅列表</button><button class="subs-tab" type="button" data-page="subs-analysis">分析</button><button class="subs-tab" type="button" data-page="subs-history">历史</button></nav>
+      <div class="subs-toolbar">
+        <div class="subs-seg" id="subsHistoryFilter" role="group" aria-label="按分类筛选扣费记录"><span class="subs-glide" aria-hidden="true"></span></div>
+        <span class="subs-meta" id="subsHistoryMeta" aria-live="polite"></span>
+        <div class="subs-toolbar-r">
+          <label class="subs-search"><svg class="subs-i" aria-hidden="true"><use href="#i-search"/></svg><input id="subsHistorySearch" type="search" placeholder="搜索名称或付款方式" autocomplete="off" aria-label="搜索扣费记录"></label>
+        </div>
+      </div>
+      <div class="subs-hist" id="subsHistory"></div>
     </section>
 
     <section class="page" id="page-settings">
@@ -11974,6 +12142,8 @@ function renderPageContent(page, { entering = false } = {}) {
     customers: renderCustomers,
     deleted: renderDeletedOrders,
     subscriptions: () => renderSubscriptionsPage({ entering }),
+    'subs-analysis': () => renderSubscriptionAnalysisPage({ entering }),
+    'subs-history': () => renderSubscriptionHistoryPage({ entering }),
     settings: () => { renderSettings(); renderExchangeSettings(); }
   };
   pages[page]?.();
@@ -16959,7 +17129,7 @@ async function loadSubscriptions() {
   } finally {
     subscriptionState.loading = false;
   }
-  renderSubscriptionsPage({ entering:true });
+  renderSubscriptionArea({ entering:true });
 }
 function findSubscription(id) {
   return subscriptionState.items.find(item => item.id === id) || null;
@@ -17139,6 +17309,346 @@ function renderSubscriptionsPage({ entering = false } = {}) {
   }
   renderSubscriptionList(rows, entering);
 }
+// 订阅「分析」「历史」两个子页：只读 subscriptionState，扣费按开始日期和周期推算。
+const subscriptionPages = ['subscriptions', 'subs-analysis', 'subs-history'];
+const subscriptionCategoryVars = { 工具效率:'--subs-c1', AI:'--subs-c2', 其他:'--subs-c3' };
+const subscriptionWeekdays = ['日', '一', '二', '三', '四', '五', '六'];
+let subscriptionHistoryFilter = 'all';
+let subscriptionHistoryQuery = '';
+let subscriptionHistoryMonths = 12;
+function renderSubscriptionArea({ entering = false } = {}) {
+  const page = document.querySelector('.page.active')?.id?.replace('page-', '');
+  if (page === 'subs-analysis') renderSubscriptionAnalysisPage({ entering });
+  else if (page === 'subs-history') renderSubscriptionHistoryPage({ entering });
+  else renderSubscriptionsPage({ entering });
+}
+function subscriptionCycleCny(item, rate) {
+  return item.currency === 'USD' ? Number(item.amount) * rate : Number(item.amount);
+}
+function subscriptionCharges(item, from, to, rate) {
+  // Every charge dated from..to; a cancelled subscription is never charged on or after its end date.
+  const end = item.status === 'cancelled' ? (item.endsOn || subscriptionSchedule(item, to, rate).paidThrough) : '';
+  const cny = subscriptionCycleCny(item, rate);
+  const charges = [];
+  let index = Math.max(0, subscriptionChargeIndex(item, from));
+  let date = subscriptionChargeDate(item, index);
+  if (date < from) date = subscriptionChargeDate(item, ++index);
+  for (; date <= to && (!end || date < end); date = subscriptionChargeDate(item, ++index)) charges.push({ item, date, index, cny });
+  return charges;
+}
+function subscriptionMonthShift(monthKey, months) {
+  return subscriptionAddMonths(`${monthKey}-01`, months).slice(0, 7);
+}
+function subscriptionMonthEnd(monthKey) {
+  return subscriptionDateFromDay(subscriptionDayNumber(`${subscriptionMonthShift(monthKey, 1)}-01`) - 1);
+}
+function subscriptionMonthLabel(monthKey, withYear = false) {
+  const [year, month] = monthKey.split('-').map(Number);
+  return withYear ? `${year}年${month}月` : `${month}月`;
+}
+function subscriptionWhole(value) {
+  return `¥${Math.round(value).toLocaleString('zh-CN')}`;
+}
+function subscriptionNiceMax(value) {
+  if (value <= 0) return 100;
+  const step = 10 ** Math.floor(Math.log10(value));
+  return [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].map(n => n * step).find(n => n >= value);
+}
+function subscriptionAnalysis(items, today, rate) {
+  const thisMonth = today.slice(0, 7);
+  const first = subscriptionMonthShift(thisMonth, -11);
+  const months = Array.from({ length:18 }, (_, i) => {
+    const key = subscriptionMonthShift(first, i);
+    return { key, total:0, paid:0, count:0, byCategory:Object.fromEntries(subscriptionCategories.map(c => [c, 0])) };
+  });
+  const byKey = Object.fromEntries(months.map(month => [month.key, month]));
+  const yearStart = `${today.slice(0, 4)}-01-01`;
+  const nextYearEnd = subscriptionDateFromDay(subscriptionDayNumber(today) + 365);
+  const result = { months, thisMonth, monthPaid:0, monthDue:0, yearPaid:0, yearCount:0, next12:0, lifetime:0, monthlyCny:0, categories:[], methods:[], top:[] };
+  const categories = Object.fromEntries(subscriptionCategories.map(c => [c, { name:c, monthlyCny:0, count:0 }]));
+  const methods = {};
+  items.forEach(item => {
+    subscriptionCharges(item, `${first}-01`, subscriptionMonthEnd(months[months.length - 1].key), rate).forEach(charge => {
+      const month = byKey[charge.date.slice(0, 7)];
+      const category = month.byCategory[item.category] === undefined ? '其他' : item.category;
+      month.byCategory[category] += charge.cny;
+      month.total += charge.cny;
+      month.count += 1;
+      if (charge.date <= today) month.paid += charge.cny;
+      if (charge.date <= today && charge.date >= yearStart) { result.yearPaid += charge.cny; result.yearCount += 1; }
+      if (charge.date > today && charge.date <= nextYearEnd) result.next12 += charge.cny;
+    });
+    const schedule = subscriptionSchedule(item, today, rate);
+    result.lifetime += schedule.spentCny;
+    if (schedule.state !== 'active') return;
+    // The year-ahead total also has to cover charges beyond the 6-month chart window.
+    subscriptionCharges(item, `${subscriptionMonthShift(months[months.length - 1].key, 1)}-01`, nextYearEnd, rate).forEach(charge => { result.next12 += charge.cny; });
+    result.monthlyCny += schedule.monthlyCny;
+    const category = categories[item.category] || categories['其他'];
+    category.monthlyCny += schedule.monthlyCny;
+    category.count += 1;
+    const method = item.paymentMethod || '未填写';
+    methods[method] = methods[method] || { name:method, monthlyCny:0, count:0 };
+    methods[method].monthlyCny += schedule.monthlyCny;
+    methods[method].count += 1;
+    result.top.push({ item, monthlyCny:schedule.monthlyCny });
+  });
+  const current = byKey[thisMonth];
+  result.monthPaid = current.paid;
+  result.monthDue = current.total - current.paid;
+  result.categories = Object.values(categories);
+  result.methods = Object.values(methods).sort((a, b) => b.monthlyCny - a.monthlyCny);
+  result.top = result.top.sort((a, b) => b.monthlyCny - a.monthlyCny).slice(0, 5);
+  return result;
+}
+function subscriptionBarsHtml(data) {
+  const max = subscriptionNiceMax(Math.max(...data.months.map(month => month.total)));
+  const ticks = [max, max / 2, 0];
+  const columns = data.months.map((month, i) => {
+    const state = month.key < data.thisMonth ? 'past' : month.key === data.thisMonth ? 'now' : 'plan';
+    const segments = subscriptionCategories.filter(c => month.byCategory[c] > 0)
+      .map(c => `<i style="height:${(month.byCategory[c] / max * 100).toFixed(2)}%;background:var(${subscriptionCategoryVars[c]})"></i>`).join('');
+    const year = month.key.endsWith('-01') || i === 0 ? `<span class="y">${month.key.slice(2, 4)}年</span>` : '';
+    const tip = [subscriptionMonthLabel(month.key, true), ...subscriptionCategories.filter(c => month.byCategory[c] > 0).map(c => `${c} ${subscriptionMoney(month.byCategory[c])}`), `合计 ${subscriptionMoney(month.total)}${state === 'plan' ? '（预计）' : state === 'now' && month.total > month.paid ? `（已扣 ${subscriptionMoney(month.paid)}）` : ''}`];
+    return `<button class="subs-bar ${state}" type="button" style="--i:${i}" data-tip="${escapeAttr(tip.join('\n'))}" aria-label="${escapeAttr(tip.join('，'))}"><span class="subs-bar-stack">${segments}</span><span class="subs-bar-x">${state === 'now' ? '本月' : `${year}${subscriptionMonthLabel(month.key)}`}</span></button>`;
+  }).join('');
+  return `<div class="subs-chart" role="group" aria-label="每月扣费：过去 12 个月和未来 6 个月">
+    <div class="subs-grid">${ticks.map(tick => `<span><em>${subscriptionWhole(tick)}</em></span>`).join('')}</div>
+    <div class="subs-bars">${columns}</div>
+    <div class="subs-tip" hidden></div>
+  </div>`;
+}
+function subscriptionDonutHtml(data) {
+  // 2px surface gaps between arcs; the centre carries the monthly total.
+  const total = data.monthlyCny;
+  const radius = 54, length = 2 * Math.PI * radius;
+  let offset = 0;
+  const arcs = total > 0 ? data.categories.filter(c => c.monthlyCny > 0).map(c => {
+    const share = c.monthlyCny / total * length;
+    const gap = share < length ? 2 : 0;
+    const arc = `<circle r="${radius}" cx="70" cy="70" style="stroke:var(${subscriptionCategoryVars[c.name]})" stroke-dasharray="${Math.max(share - gap, 0.5).toFixed(2)} ${length.toFixed(2)}" stroke-dashoffset="${(-offset).toFixed(2)}"></circle>`;
+    offset += share;
+    return arc;
+  }).join('') : '';
+  return `<svg class="subs-donut" viewBox="0 0 140 140" aria-hidden="true"><circle class="track" r="${radius}" cx="70" cy="70"></circle><g transform="rotate(-90 70 70)">${arcs}</g></svg>
+    <div class="subs-donut-c"><b>${subscriptionWhole(total)}</b><span>每月</span></div>`;
+}
+function subscriptionShareRowsHtml(rows, total, { color, filter } = {}) {
+  if (!rows.length || total <= 0) return '<div class="subs-an-none">还没有自动续费的订阅</div>';
+  return rows.map((row, i) => {
+    const share = row.monthlyCny / total * 100;
+    const swatch = color ? `<i class="subs-sw" style="background:var(${color(row)})"></i>` : '';
+    const fill = Boolean(color);
+    const tag = filter ? `button type="button" data-subs-go-filter="${escapeAttr(row.name)}" title="在订阅列表里只看「${escapeAttr(row.name)}」"` : 'div';
+    return `<${tag} class="subs-share" style="--i:${i}">
+      <span class="subs-share-n">${swatch}${escapeAttr(row.name)}<small>${row.count} 项</small></span>
+      <span class="subs-share-v"><b>${subscriptionMoney(row.monthlyCny)}</b><small>${share.toFixed(share < 10 && share > 0 ? 1 : 0)}%</small></span>
+      <span class="subs-meter"><i style="width:${share.toFixed(2)}%${fill ? `;background:var(${color(row)})` : ''}"></i></span>
+    </${filter ? 'button' : 'div'}>`;
+  }).join('');
+}
+function renderSubscriptionAnalysisPage({ entering = false } = {}) {
+  const box = document.getElementById('subsAnalysis');
+  if (!box) return;
+  if (!subscriptionState.loaded) {
+    if (!subscriptionState.loading && !subscriptionState.error) { loadSubscriptions(); return; }
+    box.innerHTML = subscriptionState.error
+      ? subscriptionEmptyHtml('订阅没有读出来', subscriptionState.error, 'retry', '重试')
+      : '<div class="subs-sk subs-an-sk"></div><div class="subs-sk subs-an-sk tall"></div>';
+    return;
+  }
+  const { items, usdCnyRate:rate } = subscriptionState;
+  if (!items.length) {
+    box.innerHTML = subscriptionEmptyHtml('还没有订阅可以分析', '先在订阅列表里记下几项订阅，这里会按月汇总花费和占比。', 'go-list', '去订阅列表');
+    return;
+  }
+  const today = subscriptionLocalDate();
+  const data = subscriptionAnalysis(items, today, rate);
+  const year = today.slice(0, 4);
+  box.classList.toggle('subs-entering', entering);
+  box.innerHTML = `
+    <div class="subs-kpis">
+      <div class="subs-kpi subs-enter" style="--i:0"><span>本月扣费</span><b>${subscriptionMoney(data.monthPaid + data.monthDue)}</b><small>已扣 ${subscriptionWhole(data.monthPaid)} · 待扣 ${subscriptionWhole(data.monthDue)}</small></div>
+      <div class="subs-kpi subs-enter" style="--i:1"><span>${year} 年已付</span><b>${subscriptionMoney(data.yearPaid)}</b><small>${data.yearCount} 笔扣费</small></div>
+      <div class="subs-kpi subs-enter" style="--i:2"><span>未来 12 个月预计</span><b>${subscriptionMoney(data.next12)}</b><small>按当前自动续费的订阅推算</small></div>
+      <div class="subs-kpi subs-enter" style="--i:3"><span>累计已付</span><b>${subscriptionMoney(data.lifetime)}</b><small>所有订阅从开始到今天</small></div>
+    </div>
+    <section class="subs-panel subs-enter wide" style="--i:4">
+      <header><div><h3>每月扣费</h3><p>过去 12 个月是已扣的，浅色斜纹是按周期推算的未来 6 个月</p></div>
+        <div class="subs-legend">${subscriptionCategories.map(c => `<span><i class="subs-sw" style="background:var(${subscriptionCategoryVars[c]})"></i>${c}</span>`).join('')}<span><i class="subs-sw plan"></i>预计</span></div></header>
+      ${subscriptionBarsHtml(data)}
+    </section>
+    <div class="subs-an-grid">
+      <section class="subs-panel subs-enter" style="--i:5">
+        <header><div><h3>分类占比</h3><p>按月均花费，点一行去列表筛选</p></div></header>
+        <div class="subs-donut-wrap">${subscriptionDonutHtml(data)}</div>
+        <div class="subs-shares">${subscriptionShareRowsHtml(data.categories.filter(c => c.count), data.monthlyCny, { color:row => subscriptionCategoryVars[row.name], filter:true })}</div>
+      </section>
+      <section class="subs-panel subs-enter" style="--i:6">
+        <header><div><h3>付款方式</h3><p>每月从哪张卡、哪个账户扣</p></div></header>
+        <div class="subs-shares">${subscriptionShareRowsHtml(data.methods, data.monthlyCny)}</div>
+      </section>
+      <section class="subs-panel subs-enter" style="--i:7">
+        <header><div><h3>最贵的 ${data.top.length} 项</h3><p>按月均花费排，点一项看详情</p></div></header>
+        <div class="subs-tops">${data.top.length ? data.top.map(({ item, monthlyCny }, i) => `<button class="subs-top" type="button" data-subs-go-detail="${escapeAttr(item.id)}" style="--i:${i}">
+          ${subscriptionIconHtml(item)}<span class="subs-top-n"><b>${escapeAttr(item.name)}</b><small>${escapeAttr(subscriptionCycleLabel(item))} ${subscriptionMoney(item.amount, item.currency)}</small></span>
+          <span class="subs-top-v"><b>${subscriptionMoney(monthlyCny)}</b><small>每月 · 占 ${(monthlyCny / data.monthlyCny * 100).toFixed(0)}%</small></span></button>`).join('') : '<div class="subs-an-none">还没有自动续费的订阅</div>'}</div>
+      </section>
+    </div>`;
+}
+function subscriptionHistoryEvents(items, today, rate) {
+  const events = [];
+  items.forEach(item => {
+    subscriptionCharges(item, item.startDate, today, rate).forEach(charge => events.push({ ...charge, kind:'charge' }));
+    if (item.status === 'cancelled' && item.endsOn && item.endsOn <= today) events.push({ item, date:item.endsOn, kind:'end', cny:0 });
+  });
+  // Newest first; on the same day an ending sits above that day's charges.
+  return events.sort((a, b) => b.date.localeCompare(a.date) || (a.kind === 'end' ? -1 : 0) - (b.kind === 'end' ? -1 : 0) || a.item.name.localeCompare(b.item.name, 'zh-CN'));
+}
+function subscriptionHistoryRowHtml(event, i) {
+  const { item } = event;
+  const [, month, day] = event.date.split('-').map(Number);
+  const weekday = subscriptionWeekdays[new Date(subscriptionDayNumber(event.date) * 86400000).getUTCDay()];
+  const when = `<span class="subs-h-d"><b>${day}</b><small>${month}月 · 周${weekday}</small></span>`;
+  if (event.kind === 'end') {
+    return `<button class="subs-h-row end subs-enter" type="button" style="--i:${i}" data-subs-go-detail="${escapeAttr(item.id)}">${when}${subscriptionIconHtml(item)}
+      <span class="subs-h-n"><b>${escapeAttr(item.name)}</b><small>已取消，到期停用</small></span><span class="subs-pill">已到期</span></button>`;
+  }
+  const meta = [event.index === 0 ? '首次扣费' : `第 ${event.index + 1} 次扣费`, subscriptionCycleLabel(item), item.paymentMethod].filter(Boolean).join(' · ');
+  const converted = item.currency === 'USD' ? `<small>≈${subscriptionMoney(event.cny)}</small>` : '';
+  return `<button class="subs-h-row subs-enter" type="button" style="--i:${i}" data-subs-go-detail="${escapeAttr(item.id)}">${when}${subscriptionIconHtml(item)}
+    <span class="subs-h-n"><b>${escapeAttr(item.name)}</b><small>${escapeAttr(meta)}</small></span>
+    <span class="subs-h-v"><b>${subscriptionMoney(item.amount, item.currency)}</b>${converted}</span></button>`;
+}
+function renderSubscriptionHistoryFilter(events) {
+  const wrap = document.getElementById('subsHistoryFilter');
+  if (!wrap.querySelector('[data-sub-history-filter]')) {
+    const options = [['all', '全部'], ...subscriptionCategories.map(category => [category, category])];
+    wrap.insertAdjacentHTML('beforeend', options.map(([value, label]) => `<button type="button" data-sub-history-filter="${escapeAttr(value)}">${escapeAttr(label)}<span class="c"></span></button>`).join(''));
+  }
+  wrap.querySelectorAll('[data-sub-history-filter]').forEach(button => {
+    const value = button.dataset.subHistoryFilter;
+    button.setAttribute('aria-pressed', String(value === subscriptionHistoryFilter));
+    button.querySelector('.c').textContent = events.filter(event => event.kind === 'charge' && (value === 'all' || event.item.category === value)).length;
+  });
+  placeSubscriptionGlide(wrap, 'history');
+}
+function renderSubscriptionHistoryPage({ entering = false } = {}) {
+  const box = document.getElementById('subsHistory');
+  if (!box) return;
+  const search = document.getElementById('subsHistorySearch');
+  search.disabled = !subscriptionState.loaded;
+  if (entering) {
+    subscriptionHistoryMonths = 12;
+    delete subscriptionGlideRects.history;
+  }
+  if (!subscriptionState.loaded) {
+    if (!subscriptionState.loading && !subscriptionState.error) { loadSubscriptions(); return; }
+    box.innerHTML = subscriptionState.error
+      ? subscriptionEmptyHtml('订阅没有读出来', subscriptionState.error, 'retry', '重试')
+      : '<div class="subs-sk subs-an-sk"></div><div class="subs-sk subs-an-sk"></div>';
+    return;
+  }
+  const { items, usdCnyRate:rate } = subscriptionState;
+  const today = subscriptionLocalDate();
+  const all = subscriptionHistoryEvents(items, today, rate);
+  renderSubscriptionHistoryFilter(all);
+  const query = normalizeSearchText(subscriptionHistoryQuery);
+  const events = all.filter(event => (subscriptionHistoryFilter === 'all' || event.item.category === subscriptionHistoryFilter)
+    && (!query || normalizeSearchText(`${event.item.name} ${event.item.note} ${event.item.paymentMethod || ''}`).includes(query)));
+  const charges = events.filter(event => event.kind === 'charge');
+  const meta = document.getElementById('subsHistoryMeta');
+  meta.textContent = charges.length ? `共 ${charges.length} 笔 · 合计 ${subscriptionMoney(charges.reduce((sum, event) => sum + event.cny, 0))}` : '';
+  if (!events.length) {
+    box.innerHTML = items.length
+      ? subscriptionEmptyHtml('没有符合条件的扣费记录', query ? '换个关键词试试。' : '这个分类下还没有扣过费。')
+      : subscriptionEmptyHtml('还没有扣费记录', '在订阅列表里记下订阅后，到了扣费日这里会自动出现记录。', 'go-list', '去订阅列表');
+    return;
+  }
+  const groups = [];
+  events.forEach(event => {
+    const key = event.date.slice(0, 7);
+    if (groups[groups.length - 1]?.key !== key) groups.push({ key, events:[] });
+    groups[groups.length - 1].events.push(event);
+  });
+  const shown = groups.slice(0, subscriptionHistoryMonths);
+  let index = 0;
+  box.classList.toggle('subs-entering', entering);
+  box.innerHTML = shown.map(group => {
+    const paid = group.events.filter(event => event.kind === 'charge');
+    return `<section class="subs-h-month">
+      <header class="subs-h-head subs-enter" style="--i:${index++}"><b>${subscriptionMonthLabel(group.key, true)}</b><span>${paid.length} 笔 · ${subscriptionMoney(paid.reduce((sum, event) => sum + event.cny, 0))}</span></header>
+      <div class="subs-h-list">${group.events.map(event => subscriptionHistoryRowHtml(event, Math.min(index++, 14))).join('')}</div>
+    </section>`;
+  }).join('') + `<div class="subs-h-foot">${groups.length > shown.length ? `<button class="subs-btn sm" type="button" data-subs-history-more>再看更早的 12 个月</button>` : ''}<span>扣费记录按开始日期和扣费周期推算；改过金额的订阅按当前金额计算，美元按 ${escapeAttr(rate)} 折算。</span></div>`;
+}
+function subscriptionGoToDetail(id) {
+  setPage('subscriptions');
+  if (findSubscription(id)) openSubscriptionDetail(id);
+}
+document.getElementById('subsAnalysis')?.addEventListener('click', event => {
+  const filter = event.target.closest('[data-subs-go-filter]');
+  const detail = event.target.closest('[data-subs-go-detail]');
+  const empty = event.target.closest('[data-subs-empty-action]');
+  if (filter) {
+    subscriptionFilter = filter.dataset.subsGoFilter;
+    subscriptionQuery = '';
+    document.getElementById('subsSearch').value = '';
+    setPage('subscriptions');
+  } else if (detail) {
+    subscriptionGoToDetail(detail.dataset.subsGoDetail);
+  } else if (empty) {
+    if (empty.dataset.subsEmptyAction === 'retry') loadSubscriptions();
+    else setPage('subscriptions');
+  }
+});
+document.getElementById('subsAnalysis')?.addEventListener('pointerover', event => {
+  const bar = event.target.closest('.subs-bar');
+  const chart = event.target.closest('.subs-chart');
+  const tip = chart?.querySelector('.subs-tip');
+  if (!tip) return;
+  if (!bar) { tip.hidden = true; return; }
+  const lines = bar.dataset.tip.split('\n');
+  tip.innerHTML = `<b>${escapeAttr(lines[0])}</b>${lines.slice(1).map(line => `<span>${escapeAttr(line)}</span>`).join('')}`;
+  tip.hidden = false;
+  const c = chart.getBoundingClientRect(), r = bar.getBoundingClientRect();
+  const x = Math.min(Math.max(r.left - c.left + r.width / 2, tip.offsetWidth / 2), c.width - tip.offsetWidth / 2);
+  tip.style.transform = `translate(${x - tip.offsetWidth / 2}px, 0)`;
+});
+document.getElementById('subsAnalysis')?.addEventListener('pointerleave', () => {
+  document.querySelector('#subsAnalysis .subs-tip')?.setAttribute('hidden', '');
+});
+document.getElementById('subsAnalysis')?.addEventListener('focusin', event => {
+  if (event.target.closest('.subs-bar')) event.target.dispatchEvent(new PointerEvent('pointerover', { bubbles:true }));
+});
+document.getElementById('subsHistory')?.addEventListener('click', event => {
+  const detail = event.target.closest('[data-subs-go-detail]');
+  const empty = event.target.closest('[data-subs-empty-action]');
+  if (detail) subscriptionGoToDetail(detail.dataset.subsGoDetail);
+  else if (event.target.closest('[data-subs-history-more]')) {
+    subscriptionHistoryMonths += 12;
+    renderSubscriptionHistoryPage();
+  } else if (empty) {
+    if (empty.dataset.subsEmptyAction === 'retry') loadSubscriptions();
+    else setPage('subscriptions');
+  }
+});
+document.getElementById('subsHistoryFilter')?.addEventListener('click', event => {
+  const button = event.target.closest('[data-sub-history-filter]');
+  if (!button) return;
+  subscriptionHistoryFilter = button.dataset.subHistoryFilter;
+  subscriptionHistoryMonths = 12;
+  renderSubscriptionHistoryPage();
+});
+document.getElementById('subsHistorySearch')?.addEventListener('input', debounce(event => {
+  subscriptionHistoryQuery = event.target.value;
+  subscriptionHistoryMonths = 12;
+  renderSubscriptionHistoryPage();
+}, 150));
+document.getElementById('navSubs')?.addEventListener('transitionend', event => {
+  // The sub-menu opening or closing moves the items below it, so the nav highlight follows once it settles.
+  if (event.target === event.currentTarget) uiNavGlide();
+});
 function flashSubscriptionRow(id) {
   const row = document.querySelector(`#subsList [data-sub-id="${CSS.escape(id)}"]`);
   if (!row) return;
@@ -17772,7 +18282,7 @@ function setPage(page) {
   const changed = current !== target;
   document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === `page-${target}`));
   document.querySelectorAll('[data-page]').forEach(btn => btn.classList.toggle('active', btn.dataset.page === target));
-  const names = { dashboard:'工作台', 'order-list':'订单', 'search-results':'搜索结果', logistics:'物流', amount:'数据与目标', targets:'数据与目标', calendar:'日历', analysis:'数据与目标', customers:'客户', deleted:'已删除订单', subscriptions:'订阅', settings:'设置' };
+  const names = { dashboard:'工作台', 'order-list':'订单', 'search-results':'搜索结果', logistics:'物流', amount:'数据与目标', targets:'数据与目标', calendar:'日历', analysis:'数据与目标', customers:'客户', deleted:'已删除订单', subscriptions:'订阅', 'subs-analysis':'订阅分析', 'subs-history':'订阅历史', settings:'设置' };
   document.querySelector('.page-title').textContent = names[target] || '工作台';
   const activeNav = document.querySelector(`.nav-item[data-page="${target}"]`);
   if (activeNav && window.matchMedia('(max-width: 820px)').matches) {
@@ -17785,6 +18295,10 @@ function setPage(page) {
     renderSegmentControls();
     enhanceBinarySelects();
   }
+  // 订阅的三个子页共用侧边栏「订阅」，二级菜单只在这三页展开。
+  const inSubscriptions = subscriptionPages.includes(target);
+  document.querySelector('.nav-item[data-nav-group="subs"]')?.classList.toggle('active', inSubscriptions);
+  document.getElementById('navSubs')?.classList.toggle('open', inSubscriptions);
   scrollWorkspaceToTop(changed ? 'auto' : 'auto', true);
   uiAfterPageChange(changed);
 }

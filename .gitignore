@@ -35,3 +35,4 @@ demo-orders-backup-*.json
 .export-audit.cjs
 # trade-order-data.json is an intentionally synthetic seed in this export only.
 .lint/
+node_modules

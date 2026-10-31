@@ -9,6 +9,8 @@ const root = path.resolve(__dirname, '..');
 const next = process.argv[2];
 const current = fs.readFileSync(path.join(root, 'VERSION'), 'utf8').trim();
 if (!/^\d+\.\d+$/.test(next || '')) throw new Error('Usage: npm run bump-version -- <major.minor>, e.g. 3.90');
+// The updater compares versions numerically and builds the asset name from the numbers, so 4.01 would never match 4.1.
+if (/\.0\d/.test(next)) throw new Error(`Minor version must not have a leading zero (${next}); use ${next.replace(/\.0+(\d)/, '.$1')} instead.`);
 const [curMajor, curMinor] = current.split('.').map(Number);
 const [major, minor] = next.split('.').map(Number);
 if (major < curMajor || (major === curMajor && minor <= curMinor)) {

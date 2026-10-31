@@ -40,6 +40,7 @@ const localStorage = {
 const context = vm.createContext({
   Date:FixedDate,
   localStorage,
+  safeStorage: localStorage,
   normalizeMonth() { return '2026-08'; },
   orderMonths() { return ['2026-08', '2026-07']; }
 });

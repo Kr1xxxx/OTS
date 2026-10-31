@@ -41,6 +41,7 @@ const tinifyApiKeyFile = path.join(secretsDir, 'tinypng-api-key');
 const trackingSecretsFile = path.join(secretsDir, 'tracking-credentials.json');
 const trackingSecretKeys = ['dhlApiKey', 'fedexApiKey', 'fedexApiSecret'];
 const storageMarkerFile = path.join(supportDir, 'sqlite-storage.json');
+const migrationErrorFile = path.join(supportDir, 'migration-error.json');
 const larkProfile = 'OTS_BOT_CONFIGURE';
 const larkChatName = '订单通知群（待配置）';
 const larkChatId = 'oc_CONFIGURE_TARGET_CHAT_ID';
@@ -502,6 +503,13 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision } = 
       if (!customerMoves.has(from)) customerMoves.set(from, new Set());
       customerMoves.get(from).add(to);
     });
+    // A customer without orders renamed in the profile editor leaves no order move behind:
+    // exactly one old name gone and exactly one new name added in the same save is that rename.
+    const removedNames = [...existingCustomers.keys()].filter(name => !desiredCustomerNames.has(name) && !customerMoves.has(name));
+    const addedNames = [...desiredCustomerNames].filter(name => !existingCustomers.has(name));
+    if (removedNames.length === 1 && addedNames.length === 1 && !desiredOrders.some(({ order }) => String(order.client || '') === removedNames[0])) {
+      customerMoves.set(removedNames[0], new Set([addedNames[0]]));
+    }
     customerMoves.forEach((targets, from) => {
       if (targets.size === 1) renameWhatsAppCustomer(database, from, [...targets][0]);
     });
@@ -587,22 +595,23 @@ function readStateFromDatabase() {
   });
   data.trackingLookups = database.prepare('SELECT data_json FROM tracking_lookups ORDER BY position').all().map(row => JSON.parse(row.data_json));
   const deliveryByOrder = new Map(database.prepare(`
-    SELECT order_id, status, sent_at, message_id, last_error, updated_at
+    SELECT order_id, status, started_at, sent_at, message_id, last_error, updated_at
     FROM notification_deliveries
   `).all().map(row => [row.order_id, row]));
   orderBuckets.forEach(bucket => {
     data[bucket] = data[bucket].map(order => {
       const delivery = deliveryByOrder.get(order.id);
       if (!delivery) return order;
+      const stale = delivery.status === 'sending' && !(Date.now() - Date.parse(delivery.started_at || delivery.updated_at || 0) < 2 * 60 * 1000);
       return {
         ...order,
         feishuNotification: {
           requested: true,
-          status: delivery.status,
+          status: stale ? 'failed' : delivery.status,
           chatName: larkChatName,
           sentAt: delivery.sent_at || '',
           messageId: delivery.message_id || '',
-          error: delivery.last_error || '',
+          error: stale ? '上次发送没有完成，可以重新发送' : (delivery.last_error || ''),
           updatedAt: delivery.updated_at || ''
         }
       };
@@ -692,6 +701,11 @@ function initializeStorage() {
   if (!existed && hasPriorSqliteEvidence()) {
     storageMode = 'error';
     storageError = 'SQLite database is missing; automatic recovery from legacy JSON is disabled';
+    try {
+      // A first-run migration that failed leaves its reason here; show that instead of the generic message.
+      const lastError = readJson(migrationErrorFile);
+      if (lastError?.message) storageError = `${storageError} (last migration error: ${lastError.message})`;
+    } catch (_) {}
     database = null;
     return;
   }
@@ -703,8 +717,10 @@ function initializeStorage() {
       if (fs.existsSync(dataFile)) sourceFile = dataFile;
       else if (fs.existsSync(seedDataFile)) sourceFile = seedDataFile;
       const payload = sourceFile ? readJson(sourceFile) : emptyDataPayload();
-      const archive = sourceFile === dataFile ? archiveMigrationSource(sourceFile) : '';
       const result = writeStateToDatabase(payload, { migration: true });
+      // Archive only after the data is in SQLite: a copy left behind by a failed migration would count as
+      // "prior SQLite evidence" and block the retry on the next launch.
+      const archive = sourceFile === dataFile ? archiveMigrationSource(sourceFile) : '';
       setMetadata('initialized', '1');
       setMetadata('migration_source', sourceFile || 'empty');
       setMetadata('migration_archive', archive || '');
@@ -720,10 +736,18 @@ function initializeStorage() {
     try { fs.chmodSync(databaseFile, 0o600); } catch (_) {}
   } catch (error) {
     storageError = error.message || String(error);
+    const initialized = (() => { try { return Boolean(metadataValue('initialized', '')); } catch (_) { return false; } })();
     try { database?.close(); } catch (_) {}
     database = null;
     if (!existed && fs.existsSync(databaseFile)) {
-      try { fs.renameSync(databaseFile, `${databaseFile}.failed-${timestamp()}`); } catch (_) {}
+      if (initialized) {
+        try { fs.renameSync(databaseFile, `${databaseFile}.failed-${timestamp()}`); } catch (_) {}
+      } else {
+        // The migration never completed, so nothing in this file is worth keeping. Removing it lets the
+        // next launch retry from the legacy JSON instead of treating the failed file as prior SQLite evidence.
+        ['', '-wal', '-shm'].forEach(suffix => { try { fs.rmSync(`${databaseFile}${suffix}`, { force: true }); } catch (_) {} });
+        try { atomicWrite(migrationErrorFile, JSON.stringify({ at: new Date().toISOString(), message: storageError }, null, 2)); } catch (_) {}
+      }
     }
     storageMode = 'error';
   }
@@ -744,6 +768,7 @@ function safeFilePart(value = '') {
     .normalize('NFKD')
     .replace(/[^A-Za-z0-9._-]+/g, '-')
     .replace(/^-+|-+$/g, '')
+    .replace(/^\.+$/, '')
     .slice(0, 80) || 'file';
 }
 
@@ -2506,22 +2531,25 @@ function shutdown(signal) {
   shuttingDown = true;
   const forceExit = setTimeout(() => process.exit(1), 5000);
   forceExit.unref();
-  server.close(() => {
-    try {
-      if (database) {
-        database.exec('PRAGMA wal_checkpoint(TRUNCATE)');
-        database.close();
-        database = null;
-      }
-      clearTimeout(forceExit);
-      process.exit(0);
-    } catch (error) {
-      clearTimeout(forceExit);
-      console.error(`Storage shutdown failed after ${signal}: ${error.message || error}`);
-      process.exit(1);
+  // Saves are synchronous, so the database can be checkpointed right away; a request still being
+  // received must not keep the WAL open until the host kills the process.
+  let exitCode = 0;
+  try {
+    if (database) {
+      database.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+      database.close();
+      database = null;
     }
+  } catch (error) {
+    exitCode = 1;
+    console.error(`Storage shutdown failed after ${signal}: ${error.message || error}`);
+  }
+  server.close(() => {
+    clearTimeout(forceExit);
+    process.exit(exitCode);
   });
   server.closeIdleConnections?.();
+  setTimeout(() => server.closeAllConnections?.(), 1000).unref();
 }
 
 process.once('SIGTERM', () => shutdown('SIGTERM'));

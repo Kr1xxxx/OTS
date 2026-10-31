@@ -23,7 +23,8 @@ function extractFunction(name) {
 
 const context = vm.createContext({
   Date,
-  state:{ orderSettings:{} },
+  state:{ orderSettings:{}, orders:[] },
+  existingCustomerKey() { return ''; },
   defaultOrderSettings:{ defaultPaymentChannel:'Paypal', defaultOwner:'Kris' },
   cleanTracking(value) { return String(value || '').replace(/[^A-Z0-9]/gi, '').toUpperCase(); },
   carrierHintFromTrackingText() { return ''; },

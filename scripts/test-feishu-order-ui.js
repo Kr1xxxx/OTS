@@ -27,6 +27,10 @@ let saveSucceeds = true;
 let notificationCalls = [];
 const context = vm.createContext({
   console,
+  canSubmitStoredData() { return true; },
+  normalizeDate: value => String(value || '').slice(0, 10),
+  normalizeMonth: value => String(value || '').slice(0, 7),
+  isSettledStage: () => false,
   document:{ getElementById:() => ({ dataset:{} }) },
   isMacAppMode: () => true,
   flushPendingSave: async () => saveSucceeds,

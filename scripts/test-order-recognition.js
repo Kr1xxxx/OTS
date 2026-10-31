@@ -196,6 +196,7 @@ vm.runInContext(html.match(/^const customerPasteLabels = .*;$/m)[0], context);
   'normalizeOrderPaymentChannel',
   'normalizeOrderSettings',
   'patchOrdersForCustomerRename',
+  'sameCustomerName',
   'customerNameCollision',
   'ecbUsdRateForOrder',
   'orderAmountUsd',

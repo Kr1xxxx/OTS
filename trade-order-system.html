@@ -2635,7 +2635,7 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
 .manual-rate-item label {
   display: block; margin-bottom: 5px; color: var(--gray-500); font-size: 11px; font-weight: 600;
 }
-.manual-rate-item input { height: 36px; font-size: 13px; padding: 0 10px; }
+.manual-rate-item input { height: 36px; font-size: 13px; padding: 0 10px; width: 100%; min-width: 0; box-sizing: border-box; }
 .exchange-note {
   padding: 10px 12px; border-radius: 14px; background: color-mix(in srgb, var(--green-50) 54%, var(--white));
   color: var(--gray-600); font-size: 12px; font-weight: 600;
@@ -4038,7 +4038,7 @@ html[data-theme] .board-panel { padding:20px; }
 html[data-theme] .board-column { background:var(--surface-soft); border:0; border-radius:var(--radius); padding:12px 10px 10px; gap:10px; box-shadow:none; }
 html[data-theme] .board-column-head { padding:0 4px 4px; border-bottom:0; align-items:center; }
 html[data-theme] .board-column-head > div:first-child { display:flex; align-items:baseline; gap:8px; min-width:0; }
-html[data-theme] .board-column-title { font-size:14px; font-weight:600; display:inline-flex; align-items:center; gap:7px; }
+html[data-theme] .board-column-title { font-size:14px; font-weight:600; display:inline-flex; align-items:center; gap:7px; white-space:nowrap; flex-shrink:0; }
 html[data-theme] .board-column-title::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--stage-color, var(--gray-400)); }
 html[data-theme] .board-column[data-stage="quote"] { --stage-color:var(--s-blue); }
 html[data-theme] .board-column[data-stage="production"] { --stage-color:var(--s-teal); }
@@ -4573,6 +4573,8 @@ html[data-theme] .kpi-bar i { display:block; height:100%; width:0; background:va
 html[data-theme] #targetStat .stat-sub { order:4; }
 html[data-theme] .stats > .amount-stat .amount-stat-actions { position:absolute; right:14px; top:14px; margin:0; }
 html[data-theme] .stats > .amount-stat .stat-sub { padding-right:72px; }
+html[data-theme] .stats > .amount-stat .stat-head { padding-right:84px; min-width:0; }
+html[data-theme] .stats > .amount-stat .stat-head .stat-label { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
 /* 看板标题栏 */
 html[data-theme] .board-panel > .section-head { flex-wrap:wrap; gap:12px; }
@@ -4589,7 +4591,7 @@ html[data-theme] .board-settings-btn .ui-icon { width:16px; height:16px; }
 
 /* 列 */
 html[data-theme] .board-column { border-radius:22px; padding:10px; gap:8px; }
-html[data-theme] .board-column-head { display:flex; align-items:center; gap:8px; padding:2px 4px 4px; }
+html[data-theme] .board-column-head { display:flex; flex-wrap:wrap; align-items:center; gap:2px 8px; padding:2px 4px 4px; }
 html[data-theme] .board-column-title { font-size:13px; }
 html[data-theme] .board-column-title::before { width:8px; height:8px; }
 html[data-theme] .board-column-meta { margin-left:auto; display:inline-flex; gap:4px; font-size:12px; color:var(--gray-500); white-space:nowrap; }
@@ -5214,7 +5216,7 @@ html[data-theme] .deleted-head .btn { height:30px; min-height:30px; padding:0 14
 html[data-theme] .deleted-head .deleted-count { margin-left:auto; }
 html[data-theme] .deleted-panel { margin:0; padding:0; overflow:hidden; border:1px solid var(--surface-border); border-radius:22px; }
 html[data-theme] #deletedOrderList { display:block; }
-html[data-theme] .deleted-row { display:grid; grid-template-columns:130px minmax(0,1.6fr) 90px 150px 110px minmax(220px,auto); gap:14px; align-items:center; min-height:60px; padding:8px 18px; border-bottom:1px solid var(--hairline); }
+html[data-theme] .deleted-row { display:grid; grid-template-columns:130px minmax(160px,1.6fr) 90px 150px 110px minmax(200px,max-content); gap:14px; min-width:0; overflow:hidden; align-items:center; min-height:60px; padding:8px 18px; border-bottom:1px solid var(--hairline); }
 html[data-theme] .deleted-row:last-child { border-bottom:0; }
 html[data-theme] .deleted-row.head { min-height:38px; padding-block:0; color:var(--gray-500); font-size:12px; border-bottom:1px solid var(--surface-border); }
 html[data-theme] .deleted-row.head > :nth-child(4) { text-align:right; }
@@ -7000,6 +7002,11 @@ html[data-theme] :is(.logistics-kpis > .logistics-kpi:not(:first-child), .amount
 <input type="file" id="dataFileInput" accept="application/json,.json" hidden>
 
 <script>
+const safeStorage = {
+  getItem(key) { try { return window.localStorage.getItem(key); } catch (_) { return null; } },
+  setItem(key, value) { try { window.localStorage.setItem(key, value); } catch (_) { /* 本机存储不可用时只在本次生效 */ } },
+  removeItem(key) { try { window.localStorage.removeItem(key); } catch (_) { /* 忽略 */ } }
+};
 const stageDefs = [
   { key:'quote', name:'报价', tag:'tag-blue', cls:'stage-quote' },
   { key:'production', name:'生产中', tag:'tag-cyan', cls:'stage-production' },
@@ -7539,17 +7546,17 @@ let dhlAutoUpdateRunning = false;
 function dashboardAmountMonthValue(options = []) {
   const currentMonth = normalizeMonth(new Date().toISOString());
   const validOptions = options.length ? options : ['all', currentMonth, ...orderMonths()];
-  if (localStorage.getItem(dashboardAmountMonthAutoKey) !== currentMonth) {
-    localStorage.setItem(dashboardAmountMonthKey, currentMonth);
-    localStorage.setItem(dashboardAmountMonthAutoKey, currentMonth);
+  if (safeStorage.getItem(dashboardAmountMonthAutoKey) !== currentMonth) {
+    safeStorage.setItem(dashboardAmountMonthKey, currentMonth);
+    safeStorage.setItem(dashboardAmountMonthAutoKey, currentMonth);
     return currentMonth;
   }
-  const saved = localStorage.getItem(dashboardAmountMonthKey) || 'all';
+  const saved = safeStorage.getItem(dashboardAmountMonthKey) || 'all';
   return validOptions.includes(saved) ? saved : 'all';
 }
 
 function saveDashboardAmountMonth(value) {
-  localStorage.setItem(dashboardAmountMonthKey, value || 'all');
+  safeStorage.setItem(dashboardAmountMonthKey, value || 'all');
 }
 
 // Placeholder until loadMacAppState() reads the database.
@@ -7696,8 +7703,10 @@ async function runMacSaveQueue() {
         if (typeof uiNotifLogEvent === 'function') uiNotifLogEvent({ id:`save-${normalizeDate(new Date().toISOString())}-${macSaveLastError}`, kind:'error', title:'数据保存失败', sub:macSaveLastError, pill:'保存' });
         if (Date.now() - macSaveErrorToastAt > 10000) {
           macSaveErrorToastAt = Date.now();
-          toast(macStorageReadOnly ? macSaveLastError : '数据库保存失败，请先不要关闭软件');
+          toast(macStorageReadOnly ? macSaveLastError : '数据库保存失败，正在自动重试，请先不要关闭软件');
         }
+        // 网络抖动或服务端短暂出错时自动重试，别让修改一直停在内存里。
+        if (!macStorageReadOnly) window.setTimeout(() => { if (!macStorageReadOnly && macSaveCompletedVersion < macSaveRequestedVersion) scheduleMacSave(); }, 3000);
         return false;
       } finally {
         macSaveInFlight = false;
@@ -7775,7 +7784,7 @@ async function loadMacAppState() {
       macQueuedStateJson = macPersistedStateJson;
       macSaveRequestedVersion = 0;
       macSaveCompletedVersion = 0;
-      localStorage.removeItem(storeKey);
+      safeStorage.removeItem(storeKey);
     } else {
       const failure = await res.json().catch(() => ({}));
       throw new Error(failure.message || `数据库读取失败 HTTP ${res.status}`);
@@ -7787,10 +7796,10 @@ async function loadMacAppState() {
     setMacStorageStatus(health.storageMode || 'sqlite', 'saved', `数据库已连接 · ${health.counts?.orders ?? 0} 个订单 · 备份 ${health.backups?.sqliteCount ?? 0} 份${health.backups?.lastBackupAt ? ` · 上次备份 ${uiRelativeTime(health.backups.lastBackupAt)}` : ''}`);
     if (health.backups) renderBackupInfo(health.backups);
     const aiSettings = await fetchMacAiSettings();
-    if (aiSettings) localStorage.setItem(aiSettingsKey, JSON.stringify(aiSettings));
+    if (aiSettings) safeStorage.setItem(aiSettingsKey, JSON.stringify(aiSettings));
     await refreshAiUsage();
     const trackingSettings = await fetchMacTrackingSettings();
-    if (trackingSettings) localStorage.setItem(trackingApiSettingsKey, JSON.stringify(trackingSettings));
+    if (trackingSettings) safeStorage.setItem(trackingApiSettingsKey, JSON.stringify(trackingSettings));
     macDataLoaded = true;
     macStorageReadOnly = false;
     macSaveLastError = '';
@@ -7809,7 +7818,7 @@ async function loadMacAppState() {
 function applyTheme(theme) {
   const safeTheme = theme === 'dark' ? 'dark' : 'light';
   document.documentElement.dataset.theme = safeTheme;
-  localStorage.setItem(themeKey, safeTheme);
+  safeStorage.setItem(themeKey, safeTheme);
   const btn = document.getElementById('themeBtn');
   if (btn) {
     btn.innerHTML = `<svg class="ui-icon" aria-hidden="true"><use href="#i-${safeTheme === 'dark' ? 'sun' : 'moon'}"/></svg>`;
@@ -7817,7 +7826,7 @@ function applyTheme(theme) {
   }
 }
 function initTheme() {
-  const saved = localStorage.getItem(themeKey);
+  const saved = safeStorage.getItem(themeKey);
   const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   applyTheme(saved || (prefersDark ? 'dark' : 'light'));
 }
@@ -7851,11 +7860,11 @@ function savedSecretPlaceholder(saved, mask, fallback) {
 }
 function getAiSettings() {
   try {
-    const settings = normalizeAiSettings(JSON.parse(localStorage.getItem(aiSettingsKey) || '{}'));
+    const settings = normalizeAiSettings(JSON.parse(safeStorage.getItem(aiSettingsKey) || '{}'));
     // Keys live in the Mac app's secrets folder; drop any key left in browser storage by older versions.
     if (settings.apiKey) {
       const safe = localAiSettings(settings);
-      localStorage.setItem(aiSettingsKey, JSON.stringify(safe));
+      safeStorage.setItem(aiSettingsKey, JSON.stringify(safe));
       return safe;
     }
     return settings;
@@ -7873,7 +7882,7 @@ function localAiSettings(settings = {}) {
   };
 }
 function saveAiSettings(settings) {
-  localStorage.setItem(aiSettingsKey, JSON.stringify(localAiSettings(settings)));
+  safeStorage.setItem(aiSettingsKey, JSON.stringify(localAiSettings(settings)));
 }
 function normalizeTrackingApiSettings(raw = {}) {
   return {
@@ -7907,14 +7916,14 @@ function normalizeTrackingApiSettings(raw = {}) {
 }
 function getTrackingApiSettings() {
   try {
-    return normalizeTrackingApiSettings(JSON.parse(localStorage.getItem(trackingApiSettingsKey) || '{}'));
+    return normalizeTrackingApiSettings(JSON.parse(safeStorage.getItem(trackingApiSettingsKey) || '{}'));
   } catch (e) {
     return { ...defaultTrackingApiSettings };
   }
 }
 function saveTrackingApiSettings(settings) {
   const normalized = normalizeTrackingApiSettings(settings);
-  localStorage.setItem(trackingApiSettingsKey, JSON.stringify(normalized));
+  safeStorage.setItem(trackingApiSettingsKey, JSON.stringify(normalized));
   if (isMacAppMode()) saveMacTrackingSettings(normalized);
 }
 function trackingCarrierStatusPatch(carrier, message, checkedAt = nowText()) {
@@ -7967,7 +7976,7 @@ function normalizeOrderPaymentInput(data = {}, amountValue = 0, orderTypeValue =
   const amount = Math.max(0, Number(amountValue || 0));
   const orderType = orderTypeDefs.some(item => item.value === orderTypeValue) ? orderTypeValue : '定金订单';
   const hasValue = value => value !== undefined && value !== null && String(value).trim() !== '' && Number.isFinite(Number(value));
-  const clampMoney = value => roundMoneyValue(Math.min(amount, Math.max(0, Number(value || 0))));
+  const clampMoney = value => Math.min(amount, roundMoneyValue(Math.max(0, Number(value || 0))));
   let paidAmount = hasValue(data.paidAmount) ? clampMoney(data.paidAmount) : null;
   let depositAmount = hasValue(data.depositAmount) ? clampMoney(data.depositAmount) : null;
   let depositPercentValue = hasValue(data.depositPercent) ? Math.min(100, Math.max(0, Number(data.depositPercent))) : null;
@@ -8318,7 +8327,7 @@ function loadApiStatuses() {
   try { return JSON.parse(localStorage.getItem(apiStatusKey) || '{}') || {}; } catch (_) { return {}; }
 }
 function saveApiStatuses(statuses) {
-  localStorage.setItem(apiStatusKey, JSON.stringify(statuses || {}));
+  safeStorage.setItem(apiStatusKey, JSON.stringify(statuses || {}));
 }
 function apiStatusTitle(kind, item = {}) {
   const name = apiStatusNames[kind] || kind;
@@ -8707,9 +8716,9 @@ function ecbUsdRateForOrder(order = {}, rateRows = ecbHistoricalRates) {
   const currency = String(order?.currency || 'USD').toUpperCase();
   if (currency === 'USD') return 1;
   const date = String(order?.createdAt || order?.orderMonth || order?.updated || '').slice(0, 10);
-  const row = (Array.isArray(rateRows) ? rateRows : [])
-    .filter(item => item?.date && item.date <= date)
-    .sort((a, b) => b.date.localeCompare(a.date))[0];
+  const rows = (Array.isArray(rateRows) ? rateRows : []).filter(item => item?.date).sort((a, b) => b.date.localeCompare(a.date));
+  // 订单早于最早一条汇率时用最早那条，别把整单算成 0 美元。
+  const row = rows.find(item => item.date <= date) || rows[rows.length - 1];
   const usdPerEuro = Number(row?.rates?.USD || 0);
   const sourcePerEuro = currency === 'EUR' ? 1 : Number(row?.rates?.[currency] || 0);
   return usdPerEuro > 0 && sourcePerEuro > 0 ? usdPerEuro / sourcePerEuro : null;
@@ -8948,7 +8957,12 @@ function targetRate(actual, goal) {
   return goal > 0 ? Math.round((Number(actual || 0) / goal) * 100) : 0;
 }
 function parseDate(value) {
-  const d = new Date(String(value || '').replace(' ', 'T'));
+  const text = String(value || '').trim();
+  // 纯日期（2026-10-01）按本地日期解析；原生 Date 会当成 UTC 零点，在 UTC 以西的时区会少一天，
+  // 每次加载 + 保存都会把 createdAt 往前推一天。
+  const dateOnly = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnly) return new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]));
+  const d = new Date(text.replace(' ', 'T'));
   return Number.isNaN(d.getTime()) ? new Date(0) : d;
 }
 function daysBetween(from, to = new Date()) {
@@ -8987,7 +9001,7 @@ function inTotalRange(order) {
   return normalizeMonth(order.orderMonth || order.updated) === range;
 }
 function isRevenueOrder(order = {}) {
-  return ['production', 'balance', 'shipment', 'done'].includes(normalizeStage(order.stage));
+  return !order.isDraft && ['production', 'balance', 'shipment', 'done'].includes(normalizeStage(order.stage));
 }
 function isSettledStage(stage = '') {
   return ['shipment', 'done'].includes(String(stage || '').trim().toLowerCase());
@@ -9018,6 +9032,12 @@ function applyStagePaymentInvariant(order = {}, stage = order.stage, logReason =
 function applyOrderStageInvariants(order = {}, stage = order.stage) {
   if (!order) return false;
   let changed = applyStagePaymentInvariant(order, stage);
+  if (isSettledStage(stage) && Array.isArray(order.shipments) && order.shipments.some(item => item && (!item.status || item.status === '未发货'))) {
+    // 重新加载时物流状态取自第一个包裹，所以包裹状态也要跟着进入已发货，否则刷新后又变回未发货。
+    const today = normalizeDate(nowText());
+    order.shipments = order.shipments.map(item => item && (!item.status || item.status === '未发货') ? { ...item, status:'已发货', shippedAt:item.shippedAt || today } : item);
+    changed = true;
+  }
   if (normalizeStage(stage) === 'shipment') {
     if (!order.logisticsStatus || order.logisticsStatus === '未发货') {
       order.logisticsStatus = '已发货';
@@ -9517,8 +9537,26 @@ function setModalOpenState(modalOrId, open) {
   const modal = typeof modalOrId === 'string' ? document.getElementById(modalOrId) : modalOrId;
   if (!modal) return null;
   const isOpen = Boolean(open);
+  const wasOpen = typeof modal.classList?.contains === 'function' && modal.classList.contains('open');
+  const canManageFocus = typeof document === 'object' && typeof window === 'object' && typeof window.requestAnimationFrame === 'function' && typeof modal.querySelector === 'function';
   modal.classList.toggle('open', isOpen);
   modal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+  if (canManageFocus && isOpen && !wasOpen) {
+    const active = document.activeElement;
+    modal.__returnFocus = active && active !== document.body && !modal.contains(active) ? active : null;
+    window.requestAnimationFrame(() => {
+      if (!modal.classList.contains('open') || modal.contains(document.activeElement)) return;
+      const target = modal.querySelector('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]):not(.modal-close):not([data-close]), [tabindex]:not([tabindex="-1"])')
+        || modal.querySelector('button:not([disabled]), [tabindex]:not([tabindex="-1"])');
+      if (target && typeof target.focus === 'function') target.focus({ preventScroll:true });
+    });
+  } else if (canManageFocus && !isOpen && wasOpen) {
+    const back = modal.__returnFocus;
+    modal.__returnFocus = null;
+    if (back && back.isConnected && (modal.contains(document.activeElement) || document.activeElement === document.body)) {
+      try { back.focus({ preventScroll:true }); } catch (_) { /* 忽略 */ }
+    }
+  }
   return modal;
 }
 function appConfirm({
@@ -12447,10 +12485,10 @@ function contactForClient(name = '') {
   return cleanContactValue(profile.contact || '', profile.address || '');
 }
 function autoCapitalizeCustomerName(value = '') {
-  return decodeCustomerNameEntities(value).replace(/\s+\+\d{1,3}\s*$/, '').replace(/[A-Za-z][A-Za-z'.-]*/g, word => {
+  return decodeCustomerNameEntities(value).replace(/\s+\+\d{1,3}\s*$/, '').replace(/\p{L}[\p{L}'.-]*/gu, word => {
     if (!word) return word;
-    if (/^[A-Z0-9.&-]{2,}$/.test(word)) return word;
-    if (/[A-Z]/.test(word.slice(1)) && /[a-z]/.test(word)) return word;
+    if (/^[\p{Lu}0-9.&-]{2,}$/u.test(word)) return word;
+    if (/\p{Lu}/u.test(word.slice(1)) && /\p{Ll}/u.test(word)) return word;
     return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
   });
 }
@@ -13747,7 +13785,8 @@ function clientHistory() {
   state.orders.forEach(o => {
     if (!o.client || map.has(o.client)) return;
     if (state.demoCustomersCleared && isDemoClientName(o.client) && isDemoOrder(o)) return;
-    map.set(o.client, { ...o, ...(state.customers?.[o.client] || {}) });
+    // 没建档的客户只从订单带基本字段，订单备注不是客户备注。
+    map.set(o.client, { client:o.client, country:o.country, currency:o.currency, paymentChannel:o.paymentChannel, productType:o.productType, owner:o.owner, updated:o.updated, createdAt:o.createdAt, ...(state.customers?.[o.client] || {}) });
   });
   Object.entries(state.customers || {}).forEach(([name, profile]) => {
     if (state.demoCustomersCleared && isDemoClientName(name)) return;
@@ -13949,7 +13988,6 @@ function renderStats() {
   const targetActual = usdTotal(targetOrders);
   const targetGoal = targetForMonth(targetMonth);
   const rangeText = shortMonthLabel(totalRange);
-  const usdOrders = totalOrders.filter(o => (o.currency || 'USD') === 'USD');
   const amountLabel = document.getElementById('statAmountLabel');
   const amountValue = document.getElementById('statAmount');
   const amountSub = document.getElementById('statAmountSub');
@@ -13959,13 +13997,13 @@ function renderStats() {
   if (amountStatMode === 'paidRmb') {
     amountLabel.textContent = '已收款';
     amountValue.textContent = rmbMoney(usdPaidTotalRmb(totalOrders));
-    amountSub.textContent = `${rangeText} · ${usdOrders.length} 个订单`;
+    amountSub.textContent = `${rangeText} · ${totalOrders.length} 个订单`;
   } else {
     // 原型文案：当月叫「本月订单额」，别的月份写月份，全部范围叫「订单总额」。
     const currentMonth = normalizeMonth(new Date().toISOString());
     amountLabel.textContent = totalRange === 'all' ? '订单总额' : totalRange === currentMonth ? '本月订单额' : `${Number(totalRange.slice(5))} 月订单额`;
     amountValue.textContent = summaryMoney(usdTotal(totalOrders), 'USD');
-    amountSub.textContent = `${rangeText} · ${usdOrders.length} 个订单`;
+    amountSub.textContent = `${rangeText} · ${totalOrders.length} 个订单`;
   }
   amountValue.classList.toggle('is-paid-mode', amountStatMode === 'paidRmb');
   const paymentTotal = usdDueTotal(state.orders.filter(o => !o.isDraft && orderAmountValue(o) > 0));
@@ -15659,11 +15697,8 @@ async function mergeDuplicateCustomers(primaryName = '', secondaryName = '') {
     ...(primary.history || []),
     ...(secondary.history || [])
   ].slice(0, 40);
-  state.orders = state.orders.map(order =>
-    order.client === primaryName || order.client === secondaryName
-      ? { ...order, client:targetName }
-      : order
-  );
+  patchAllOrdersForCustomerRename(primaryName, targetName);
+  patchAllOrdersForCustomerRename(secondaryName, targetName);
   state.customers = state.customers || {};
   delete state.customers[primaryName];
   delete state.customers[secondaryName];
@@ -15973,7 +16008,18 @@ function openCustomerModal(name = '', { viewOnly = true } = {}) {
   syncCustomerContactPreferenceFields(form, data, { isNew });
   form.elements.tags.value = normalizeTags(data.tags || data.tag || data.level || '').join(', ');
   syncCustomerTags(form.elements.tags.value);
-  form.elements.repurchaseCycle.value = data.repurchaseCycle || '';
+  const cycleSelect = form.elements.repurchaseCycle;
+  cycleSelect.querySelectorAll('option[data-custom-cycle]').forEach(option => option.remove());
+  const cycleValue = String(data.repurchaseCycle || '');
+  // 45 / 75 / 120 这类不在预设里的周期临时补一个选项，否则下拉选不中，保存就被清成「不提醒」。
+  if (cycleValue && ![...cycleSelect.options].some(option => option.value === cycleValue)) {
+    const option = document.createElement('option');
+    option.value = cycleValue;
+    option.textContent = `${cycleValue} 天`;
+    option.dataset.customCycle = 'true';
+    cycleSelect.append(option);
+  }
+  cycleSelect.value = cycleValue;
   form.elements.note.value = data.note || '';
   form.elements.permanentNote.value = data.permanentNote || '';
   const shouldViewOnly = !isNew && viewOnly;
@@ -16070,9 +16116,18 @@ function customerNameCollision(customers = {}, oldName = '', newName = '') {
     return key === nextKey && key !== oldKey;
   }) || '';
 }
+function sameCustomerName(a = '', b = '') {
+  return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+}
 function patchOrdersForCustomerRename(orders = [], oldName = '', newName = '') {
   if (!oldName || oldName === newName) return orders.slice();
-  return orders.map(order => order.client === oldName ? { ...order, client:newName } : order);
+  return orders.map(order => sameCustomerName(order.client, oldName) ? { ...order, client:newName } : order);
+}
+// 改名 / 合并要连垃圾箱和已删除订单一起改，恢复时才不会冒出旧客户名。
+function patchAllOrdersForCustomerRename(oldName = '', newName = '') {
+  state.orders = patchOrdersForCustomerRename(state.orders, oldName, newName);
+  if (Array.isArray(state.trashOrders)) state.trashOrders = patchOrdersForCustomerRename(state.trashOrders, oldName, newName);
+  if (Array.isArray(state.deletedOrders)) state.deletedOrders = patchOrdersForCustomerRename(state.deletedOrders, oldName, newName);
 }
 async function confirmDuplicateCustomerSave({ oldName = '', newName = '', emails = [], email = '' } = {}) {
   const normalizedOld = String(oldName || '').trim().toLowerCase();
@@ -16148,7 +16203,7 @@ function commitCustomerSavePayload({ oldName = '', nextProfile, historyEntry, pr
   if (!nextProfile?.client) return '';
   syncCustomerTags(nextProfile.tags || []);
   state.customers = state.customers || {};
-  state.orders = patchOrdersForCustomerRename(state.orders, oldName, nextProfile.client);
+  patchAllOrdersForCustomerRename(oldName, nextProfile.client);
   if (oldName && oldName !== nextProfile.client) delete state.customers[oldName];
   state.customers[nextProfile.client] = { ...nextProfile, history: [historyEntry, ...previousHistory].slice(0, 20) };
   return nextProfile.client;
@@ -16772,7 +16827,7 @@ function nextOrderNum() {
   const prefix = String(settings.orderPrefix || 'K').trim().toUpperCase().replace(/[^A-Z0-9]/g, '') || 'K';
   const digits = Math.max(2, Math.min(4, Number(settings.serialDigits || 2)));
   const date = `${String(d.getFullYear()).slice(2)}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
-  const pattern = new RegExp(`^${prefix}${date}(\\d{${digits}})$`);
+  const pattern = new RegExp(`^${prefix}${date}(\\d{${digits},})$`);
   // Trashed and deleted orders still own their numbers in SQLite, so skip them too.
   const dailyNums = [...(state.orders || []), ...(state.trashOrders || []), ...(state.deletedOrders || [])]
     .map(o => String(o.num || '').match(pattern)?.[1])
@@ -16783,6 +16838,7 @@ function nextOrderNum() {
 }
 function inferNewOrderStage({ selectedStage, orderType, amount, paidAmount, trackingNumber } = {}) {
   const stage = normalizeStage(selectedStage);
+  if (stage === 'done') return stage;
   if (cleanTracking(trackingNumber)) return 'shipment';
   if (stage !== 'quote') return stage;
   const total = Math.max(0, Number(amount || 0));
@@ -16808,7 +16864,8 @@ function buildOrderFromFormData(data = {}, { existing = null, isDraft = false } 
   const orderType = data.orderType || '定金订单';
   const selectedStage = normalizeStage(data.stage);
   const enteredPaymentValues = normalizeOrderPaymentInput(data, amount, orderType, selectedStage);
-  const stageValue = !existing && !isDraft
+  // 草稿转正式单时阶段也按收款推断，和新建一样。
+  const stageValue = (!existing || existing.isDraft) && !isDraft
     ? inferNewOrderStage({
         selectedStage,
         orderType,
@@ -16832,7 +16889,9 @@ function buildOrderFromFormData(data = {}, { existing = null, isDraft = false } 
   const paymentValues = stageValue === selectedStage
     ? enteredPaymentValues
     : normalizeOrderPaymentInput(data, amount, orderType, stageValue);
-  const clientName = autoCapitalizeCustomerName(data.client) || (isDraft ? '未命名草稿' : '');
+  // 客户名大小写 / 空格不同时归到已有档案，别拆成两个客户。
+  const typedClient = autoCapitalizeCustomerName(data.client);
+  const clientName = (typedClient && (existingCustomerKey(typedClient) || state.orders.find(o => String(o.client || '').trim().toLowerCase() === typedClient.toLowerCase())?.client)) || typedClient || (isDraft ? '未命名草稿' : '');
   const paymentChannel = preferredOrderPaymentChannel(clientName, data.paymentChannel, state.orderSettings?.defaultPaymentChannel || defaultOrderSettings.defaultPaymentChannel || 'Paypal');
   const order = {
     id: existing ? existing.id : 'o' + Date.now(),
@@ -16843,7 +16902,7 @@ function buildOrderFromFormData(data = {}, { existing = null, isDraft = false } 
     amount,
     paidAmount: paymentValues.paidAmount,
     currency: data.currency || 'USD',
-    orderMonth: data.orderMonth || normalizeMonth(data.createdAt || nowText()),
+    orderMonth: data.orderMonth || (existing?.orderMonth && normalizeDate(data.createdAt || existing.createdAt) === normalizeDate(existing.createdAt) ? existing.orderMonth : normalizeMonth(data.createdAt || nowText())),
     productType: data.productType || '假发',
     paymentChannel,
     orderType,
@@ -16963,15 +17022,26 @@ function duplicateOrder() {
     return;
   }
   const src = state.orders.find(o => o.id === editingId);
-  if (!src) return;
+  if (!src || !canSubmitStoredData()) return;
+  // 复制出来的是一张新单：不带运单、附件和发货状态（否则物流更新会落到复制件上），日期用今天。
   const copy = {
     ...src,
     id:'o' + Date.now(),
     num: nextOrderNum(),
     client: src.client + ' 复制',
+    createdAt: normalizeDate(nowText()),
+    orderMonth: normalizeMonth(nowText()),
+    shipments: [],
+    trackingNumber: '',
+    carrier: 'auto',
+    logisticsStatus: '未发货',
+    logisticsUpdated: '',
+    shippedAt: '',
+    attachments: [],
+    stage: isSettledStage(src.stage) ? 'production' : src.stage,
     updated: nowText(),
     feishuNotification: normalizeFeishuNotification({ requested:false, status:'skipped' }),
-    logs:['复制生成订单']
+    logs:[{ time:nowText(), text:`由订单 ${src.num || ''} 复制生成` }]
   };
   state.orders.unshift(copy);
   closeOrder();
@@ -16985,8 +17055,9 @@ async function softDeleteOrder(id, { closeModal = false } = {}) {
     toast('附件正在处理，完成后才能删除订单');
     return false;
   }
+  if (!canSubmitStoredData()) return false;
   const order = state.orders.find(o => o.id === id);
-  if (!order) return;
+  if (!order) return false;
   state.deletedOrders = [{ ...order, deletedAt: nowText(), logs: [{ time:nowText(), text:'订单已删除，移入已删除订单' }, ...(order.logs || [])] }, ...(state.deletedOrders || [])];
   state.orders = state.orders.filter(o => o.id !== id);
   Object.keys(state.doneTasks || {}).forEach(key => { if (key.includes(id)) delete state.doneTasks[key]; });
@@ -16996,6 +17067,7 @@ async function softDeleteOrder(id, { closeModal = false } = {}) {
   return true;
 }
 function moveOrderToTrash(id) {
+  if (!canSubmitStoredData()) return false;
   const order = state.orders.find(o => o.id === id);
   if (!order) return false;
   const trashed = { ...order, trashedAt: nowText(), logs: [{ time:nowText(), text:'订单已放入工作台垃圾箱，等待确认删除' }, ...(order.logs || [])] };
@@ -17006,6 +17078,7 @@ function moveOrderToTrash(id) {
   return true;
 }
 function deleteTrashOrder(id) {
+  if (!canSubmitStoredData()) return false;
   const order = (state.trashOrders || []).find(o => o.id === id);
   if (!order) return false;
   const deleted = { ...order, deletedAt: nowText(), logs: [{ time:nowText(), text:'从工作台垃圾箱确认删除，移入已删除订单' }, ...(order.logs || [])] };
@@ -17017,6 +17090,7 @@ function deleteTrashOrder(id) {
   return true;
 }
 function moveOrderToStage(id, stage) {
+  if (!canSubmitStoredData()) return;
   const normalized = normalizeStage(stage);
   let order = state.orders.find(o => o.id === id);
   const fromTrash = !order;
@@ -17051,7 +17125,7 @@ function moveOrderToStage(id, stage) {
 }
 // 进入已发货 / 已完成会顺带把尾款记为收齐、补发货状态；撤销时这些一起还原，不只改回阶段。
 function stageMoveSnapshot(order = {}) {
-  return { stage:order.stage, paidAmount:order.paidAmount, logisticsStatus:order.logisticsStatus, shippedAt:order.shippedAt, logisticsUpdated:order.logisticsUpdated };
+  return { stage:order.stage, paidAmount:order.paidAmount, logisticsStatus:order.logisticsStatus, shippedAt:order.shippedAt, logisticsUpdated:order.logisticsUpdated, shipments:order.shipments };
 }
 function undoOrderStageMove(id, before, after) {
   const order = state.orders.find(o => o.id === id);
@@ -17071,6 +17145,7 @@ function deleteOrder() {
   softDeleteOrder(editingId, { closeModal: true });
 }
 function restoreOrder(id) {
+  if (!canSubmitStoredData()) return;
   const order = (state.deletedOrders || []).find(o => o.id === id);
   if (!order) return;
   const restored = { ...order, updated: nowText(), logs: [{ time:nowText(), text:'订单已从已删除订单恢复' }, ...(order.logs || [])] };
@@ -17139,7 +17214,7 @@ function exportCsv(month = 'all') {
   const header = ['订单号','客户','国家','创建日期','订单月份','金额','已付款','币种','产品类型','收款方式','订单类型','草稿','加急订单','客户要求收到日期','最晚发出日期','阶段','附件数量','备注','更新时间'];
   const list = ordersByMonth(month);
   const rows = list.map(o => [o.num,o.client,o.country,normalizeDate(o.createdAt || o.updated),normalizeMonth(o.orderMonth || o.updated),o.amount,orderPaidValue(o),o.currency || 'USD',o.productType || '',o.paymentChannel || '',o.orderType || '',o.isDraft ? '是' : '否',o.urgentOrder ? '是' : '否',o.customerRequiredDate || '',o.latestShipDate || '',stageDef(o.stage).name,(o.attachments || []).length,o.note,o.updated]);
-  download(`trade-orders-${month}.csv`, [header, ...rows].map(row => row.map(v => `"${String(v || '').replaceAll('"','""')}"`).join(',')).join('\n'));
+  download(`trade-orders-${month}.csv`, '\ufeff' + [header, ...rows].map(row => row.map(v => `"${String(v ?? '').replaceAll('"','""')}"`).join(',')).join('\n'));
 }
 function exportJson(month = 'all') {
   const data = month === 'all' ? state : { ...state, orders: ordersByMonth(month) };
@@ -17194,7 +17269,7 @@ async function previewImportDataFile(file) {
     if (!confirmed.confirmed) return;
     state = data;
     if (isMacAppMode()) syncStateToMacApp();
-    else localStorage.setItem(storeKey, JSON.stringify(state));
+    else safeStorage.setItem(storeKey, JSON.stringify(state));
     render();
     toast('数据文件已导入');
   } catch (e) {
@@ -20487,12 +20562,17 @@ function uiToast(text, { undo = null, undoText = '撤销', tone = '', desc = '' 
     btn.type = 'button';
     btn.className = 'toast-undo';
     btn.textContent = undoText;
-    btn.addEventListener('click', () => { dismiss(); undo(); });
+    btn.addEventListener('click', () => {
+      if (btn.disabled || item.classList.contains('leaving')) return;
+      btn.disabled = true;
+      dismiss();
+      undo();
+    });
     item.appendChild(btn);
   }
   const arm = () => { clearTimeout(timer); timer = setTimeout(dismiss, undo ? 6000 : 4000); };
-  stack.addEventListener('mouseenter', () => clearTimeout(timer));
-  stack.addEventListener('mouseleave', arm);
+  item.addEventListener('mouseenter', () => clearTimeout(timer));
+  item.addEventListener('mouseleave', arm);
   stack.appendChild(item);
   [...stack.querySelectorAll('.toast-item:not(.leaving)')].slice(0, -5).forEach(old => old.remove());
   stack.classList.add('show');
@@ -20640,6 +20720,21 @@ document.addEventListener('pointerdown', e => {
   if (!e.target.closest?.('.board-menu')) uiCloseBoardMenu();
 }, true);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') uiCloseBoardMenu(); });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || e.defaultPrevented) return;
+  if (document.getElementById('confirmModal')?.classList.contains('open')) return;
+  if (!document.getElementById('notifPanel')?.hidden) return;
+  const layers = [
+    ['attachmentPreviewModal', closeAttachmentPreview],
+    ['boardCardSettingsModal', closeBoardCardSettings],
+    ['calendarTaskDrawer', closeCalendarTaskDrawer],
+    ['trackingDetailDrawer', closeTrackingDetail]
+  ];
+  const hit = layers.find(([id]) => document.getElementById(id)?.classList.contains('open'));
+  if (!hit) return;
+  e.preventDefault();
+  hit[1]();
+});
 window.addEventListener('blur', uiCloseBoardMenu);
 document.querySelector('.content')?.addEventListener('scroll', uiCloseBoardMenu, { passive:true });
 // 通知面板：只放「发生过的事」——保存失败、接口异常、物流状态变化、飞书群消息结果、发现新版本，加上近 3 天的订单动态。

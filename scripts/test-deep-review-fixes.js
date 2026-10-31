@@ -147,7 +147,51 @@ async function pageTests() {
     await page.evaluate(() => { setPage('dashboard'); render(); });
     assert.match(await page.locator('#statAmountSub').textContent(), /\d+ 个订单/);
 
+    // UI shell: toast undo fires once even on a double-click.
+    await page.evaluate(() => { window.__undoCount = 0; uiToast('测试', { undo: () => { window.__undoCount += 1; } }); });
+    await page.locator('.toast-undo').last().dispatchEvent('click');
+    await page.locator('.toast-undo').last().dispatchEvent('click').catch(() => {});
+    await page.waitForTimeout(250);
+    assert.equal(await page.evaluate(() => window.__undoCount), 1, 'double-click on 撤销 ran the undo twice');
+
+    // Secondary drawers / modals close on Escape and return focus to where it came from.
+    await page.evaluate(() => { document.getElementById('newOrderBtn').focus(); openCalendarTaskDrawer(`${state.orders[0].createdAt}`); });
+    assert.ok(await page.evaluate(() => document.getElementById('calendarTaskDrawer').classList.contains('open')), 'calendar task drawer did not open');
+    {
+      await page.waitForTimeout(50);
+      assert.ok(await page.evaluate(() => document.getElementById('calendarTaskDrawer').contains(document.activeElement)), 'calendar task drawer did not take focus');
+      await page.keyboard.press('Escape');
+      assert.equal(await page.evaluate(() => document.getElementById('calendarTaskDrawer').classList.contains('open')), false, 'Escape left the calendar task drawer open');
+      assert.equal(await page.evaluate(() => document.activeElement?.id), 'newOrderBtn', 'focus did not return after closing the drawer');
+    }
+    await page.evaluate(() => openBoardCardSettings());
+    assert.ok(await page.evaluate(() => document.getElementById('boardCardSettingsModal').classList.contains('open')), 'card settings modal did not open');
+    {
+      await page.keyboard.press('Escape');
+      assert.equal(await page.evaluate(() => document.getElementById('boardCardSettingsModal').classList.contains('open')), false, 'Escape left the card settings modal open');
+    }
+
+    // Accented customer names keep their casing.
+    assert.equal(await page.evaluate(() => autoCapitalizeCustomerName('société française')), 'Société Française');
+
     assert.equal(errors.length, 0, errors.join('\n'));
+
+    // The app still boots when localStorage access throws (Safari with site data blocked).
+    const locked = await browser.newPage({ viewport: { width: 1440, height: 920 } });
+    const lockedErrors = [];
+    locked.on('pageerror', error => lockedErrors.push(error.message));
+    await locked.addInitScript(() => { Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('blocked', 'SecurityError'); } }); });
+    await locked.route('**/*', async route => {
+      const pathname = new URL(route.request().url()).pathname;
+      if (pathname === '/trade-order-system.html') return route.fulfill({ contentType: 'text/html', body: html });
+      if (pathname === '/api/data') return route.fulfill({ json: stored });
+      if (pathname === '/api/health') return route.fulfill({ json: { ok: true, storageMode: 'sqlite', counts: { orders: 5 }, backups: { sqliteCount: 0 } } });
+      return route.fulfill({ json: { ok: true } });
+    });
+    await locked.goto('http://127.0.0.1:47999/trade-order-system.html');
+    await locked.waitForFunction(() => window.pendingSaveStatus?.().loaded, null, { timeout: 10000 }).catch(() => {});
+    assert.equal(await locked.evaluate(() => Boolean(window.pendingSaveStatus?.().loaded)), true, `app did not boot without localStorage: ${lockedErrors.join('; ')}`);
+    assert.equal(lockedErrors.length, 0, lockedErrors.join('\n'));
   } finally { await browser.close(); }
 }
 

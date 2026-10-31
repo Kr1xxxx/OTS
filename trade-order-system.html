@@ -318,6 +318,24 @@ button { cursor: pointer; }
   box-shadow: 0 0 0 3px rgba(156,163,175,.14), 0 0 10px rgba(156,163,175,.35);
 }
 .api-status-dot[data-api-check="ai"] { cursor: default; }
+.settings-api-strip { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); max-width: 560px; }
+.settings-api-strip .api-status-dot { min-height: 36px; font-size: 12px; }
+.settings-api-strip .api-status-dot { justify-content: flex-start; gap: 10px; max-width: 240px; }
+html[data-theme] .board-column-head .board-column-title { white-space: nowrap; flex: 1 1 auto; min-width: 0; }
+html[data-theme] .board-column-head .board-column-meta { flex: none; }
+.nav-item { position: relative; }
+.nav-alert, .menu-alert { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,.18); }
+.nav-alert { right: 12px; top: 50%; transform: translateY(-50%); }
+.nav-alert[hidden], .menu-alert[hidden] { display: none; }
+.settings-menu-item { position: relative; }
+.menu-alert { right: 10px; top: 50%; transform: translateY(-50%); }
+.settings-card .accent-swatches, .settings-card .modal-style-picker { padding: 0; }
+.settings-card .accent-swatches > span, .settings-card .modal-style-picker > span { margin-right: 6px; }
+.settings-card .accent-swatch { width: 24px; height: 24px; }
+.settings-card .modal-style-seg { flex: none; }
+.board-column-sub { font-size: 11px; font-weight: 400; color: var(--gray-500); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.backup-info { display: grid; gap: 4px; }
+.backup-info code { font-size: 11px; color: var(--gray-700); word-break: break-all; }
 .api-status-dot.ok::before { background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,.18), 0 0 10px rgba(34,197,94,.6); }
 .api-status-dot.bad::before { background: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,.18), 0 0 10px rgba(239,68,68,.55); }
 .api-status-dot.checking::before { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,.18), 0 0 10px rgba(245,158,11,.6); }
@@ -5498,19 +5516,9 @@ html[data-theme] :is(.logistics-kpis > .logistics-kpi:not(:first-child), .amount
           <button class="nav-sub-item" type="button" data-page="subs-history">历史</button>
         </div>
       </div>
-      <button class="nav-item" data-page="settings" data-mobile-label="设置"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-gear"/></svg><span class="nav-text">设置</span></button>
+      <button class="nav-item" data-page="settings" data-mobile-label="设置"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-gear"/></svg><span class="nav-text">设置</span><i class="nav-alert" id="navSettingsAlert" hidden title="接口检测异常，点开设置 → 接口状态查看"></i></button>
     </div>
   </nav>
-  <div class="accent-swatches" role="group" aria-label="强调色"><span>配色</span><button class="accent-swatch" type="button" data-accent-choice="violet" title="紫色" aria-label="强调色：紫色"></button><button class="accent-swatch" type="button" data-accent-choice="blue" title="蓝色" aria-label="强调色：蓝色"></button><button class="accent-swatch" type="button" data-accent-choice="teal" title="青色" aria-label="强调色：青色"></button><button class="accent-swatch" type="button" data-accent-choice="orange" title="橙色" aria-label="强调色：橙色"></button><button class="accent-swatch" type="button" data-accent-choice="rose" title="玫红" aria-label="强调色：玫红"></button><button class="accent-swatch" type="button" data-accent-choice="ink" title="墨色" aria-label="强调色：墨色"></button></div>
-  <div class="modal-style-picker" role="group" aria-label="订单弹窗样式"><span>弹窗</span><div class="modal-style-seg"><i class="seg-glide" aria-hidden="true"></i><button type="button" data-modal-style-choice="" title="分区卡片（原样式）" aria-label="弹窗样式：卡片">卡片</button><button type="button" data-modal-style-choice="a" title="A 单栏：所有字段一列排下来" aria-label="弹窗样式：A 单栏">A</button><button type="button" data-modal-style-choice="b" title="B 左侧粘贴：左边贴聊天记录识别，右边填字段" aria-label="弹窗样式：B 左侧粘贴">B</button><button type="button" data-modal-style-choice="c" title="C 紧凑行：标签在左，顶部分区标签跳转" aria-label="弹窗样式：C 紧凑行">C</button></div></div>
-  <div class="sidebar-api-card">
-    <div class="sidebar-api-title">API 检测</div>
-    <div class="api-status-strip" id="apiStatusStrip" aria-label="API 连接状态">
-      <button class="api-status-dot" type="button" data-api-check="dhl" title="DHL API：未检测"><span class="api-status-name">DHL</span><span class="api-status-state">未测</span></button>
-      <button class="api-status-dot" type="button" data-api-check="fedex" title="FedEx API：未检测"><span class="api-status-name">FedEx</span><span class="api-status-state">未测</span></button>
-      <button class="api-status-dot" type="button" data-api-check="ai" title="AI API：未检测" onmouseenter="refreshAiUsage()" onfocus="refreshAiUsage()"><span class="api-status-name">AI 识别</span><span class="api-status-state">未测</span></button>
-    </div>
-  </div>
   <div class="sidebar-foot">
     <div class="team">
       <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.100，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.100</div>
@@ -5788,7 +5796,6 @@ html[data-theme] :is(.logistics-kpis > .logistics-kpi:not(:first-child), .amount
       <div class="segment-control insights-tabs" role="tablist" aria-label="数据与目标">
         <button class="segment-option" type="button" role="tab" data-page="amount"><span class="nav-text">金额统计</span></button>
         <button class="segment-option" type="button" role="tab" data-page="targets"><span class="nav-text">业绩目标</span></button>
-        <button class="segment-option" type="button" role="tab" data-page="analysis"><span class="nav-text">分析</span></button>
       </div>
       <section class="amount-report" id="amount-report">
         <div class="amount-filter-row">
@@ -5809,6 +5816,7 @@ html[data-theme] :is(.logistics-kpis > .logistics-kpi:not(:first-child), .amount
               <input class="inline-select" id="chartTo" type="month" aria-label="结束月份">
             </span>
             <span class="amount-range-text" id="amountRangeText"></span>
+            <span class="amount-range-text" id="amountRangeNote" hidden></span>
           </div>
           <div class="amount-page-filter">
             <span class="muted">数字卡</span>
@@ -5842,13 +5850,49 @@ html[data-theme] :is(.logistics-kpis > .logistics-kpi:not(:first-child), .amount
         <div class="breakdown-grid" id="amountBreakdowns"></div>
         <section class="panel report-table" id="monthReportTable"></section>
       </section>
+      <section class="analysis-page" id="analysisSection">
+        <div class="section-head analysis-section-head"><div><div class="section-title">经营分析</div><div class="section-meta">按月看收款结构、产品和客户贡献、需要关注的订单</div></div><span class="section-meta" id="analysisFallbackNote" hidden></span></div>
+        <div class="business-toolbar">
+          <div class="business-month-nav" aria-label="切换经营分析月份">
+            <button class="btn btn-small" type="button" id="businessPrevBtn">‹ 上月</button>
+            <button class="btn btn-small" type="button" id="businessCurrentBtn">本月</button>
+            <button class="btn btn-small" type="button" id="businessNextBtn">下月 ›</button>
+            <input type="month" id="analysisMonthInput" aria-label="分析月份">
+            <div class="business-month-title visually-hidden" id="businessMonthTitle">-</div>
+          </div>
+          <button class="link-btn" type="button" data-analysis-list="month">本月待收订单 <span>→</span></button>
+          <select id="analysisProduct" aria-label="分析产品"><option value="all">全部产品</option><option value="假发">假发</option><option value="睫毛">睫毛</option></select>
+        </div>
+        <div class="analysis-context"><svg class="ui-icon" aria-hidden="true"><use href="#i-chart"/></svg><div><div id="analysisComparison"></div><div id="businessRateStatus"></div><div>已收为这些订单截至目前的累计收款，不是当月现金到账。未记录成本，不统计利润。</div></div></div>
+        <section class="analysis-grid">
+          <section class="panel">
+            <div class="section-head"><div class="analysis-head"><div class="section-title">收款进度结构</div><div class="section-meta">累计已收 / 订单额</div></div></div>
+            <div class="business-payment-structure" id="businessPaymentStructure"></div>
+          </section>
+          <section class="panel">
+            <div class="section-head"><div class="analysis-head"><div class="section-title">产品贡献排行</div><div class="section-meta">按 USD 订单额</div></div></div>
+            <div class="business-product-contribution" id="businessProductContribution"></div>
+            <div class="analysis-mix" id="analysisCustomerMix"></div>
+          </section>
+        </section>
+        <section class="analysis-grid">
+          <section class="panel"><div class="section-head"><div class="analysis-head"><div class="section-title">客户贡献</div><div class="section-meta">前 8 名</div></div></div><div id="analysisClients"></div></section>
+          <section class="panel analysis-attention">
+            <div class="section-head"><div class="analysis-head"><div class="section-title">现在需要关注</div><div class="section-meta">截至今天 · 所有月份</div></div><button class="link-btn" type="button" data-analysis-list="outstanding">查看全部待收订单 <span>→</span></button></div>
+            <div id="analysisAttention"></div>
+          </section>
+        </section>
+        <section class="panel">
+          <div class="section-head"><div class="analysis-head"><div class="section-title">近六个月订单额</div><div class="section-meta">每月金额与订单数 · 当前产品范围</div></div></div>
+          <div class="business-trend-chart" id="businessTrendChart"></div>
+        </section>
+      </section>
     </section>
 
     <section class="page" id="page-targets">
       <div class="segment-control insights-tabs" role="tablist" aria-label="数据与目标">
         <button class="segment-option" type="button" role="tab" data-page="amount"><span class="nav-text">金额统计</span></button>
         <button class="segment-option" type="button" role="tab" data-page="targets"><span class="nav-text">业绩目标</span></button>
-        <button class="segment-option" type="button" role="tab" data-page="analysis"><span class="nav-text">分析</span></button>
       </div>
       <section class="target-page">
         <div class="target-layout">
@@ -5912,56 +5956,6 @@ html[data-theme] :is(.logistics-kpis > .logistics-kpi:not(:first-child), .amount
             <div class="calendar-agenda" id="calendarAgenda"></div>
           </section>
         </div>
-      </section>
-    </section>
-
-    <section class="page" id="page-analysis">
-      <div class="segment-control insights-tabs" role="tablist" aria-label="数据与目标">
-        <button class="segment-option" type="button" role="tab" data-page="amount"><span class="nav-text">金额统计</span></button>
-        <button class="segment-option" type="button" role="tab" data-page="targets"><span class="nav-text">业绩目标</span></button>
-        <button class="segment-option" type="button" role="tab" data-page="analysis"><span class="nav-text">分析</span></button>
-      </div>
-      <section class="analysis-page">
-        <div class="business-toolbar">
-          <div class="business-month-nav" aria-label="切换经营分析月份">
-            <button class="btn btn-small" type="button" id="businessPrevBtn">‹ 上月</button>
-            <button class="btn btn-small" type="button" id="businessCurrentBtn">本月</button>
-            <button class="btn btn-small" type="button" id="businessNextBtn">下月 ›</button>
-            <input type="month" id="analysisMonthInput" aria-label="分析月份">
-            <div class="business-month-title visually-hidden" id="businessMonthTitle">-</div>
-          </div>
-          <select id="analysisProduct" aria-label="分析产品"><option value="all">全部产品</option><option value="假发">假发</option><option value="睫毛">睫毛</option></select>
-        </div>
-        <section class="business-kpi-grid">
-          <div class="business-kpi"><span>订单额</span><strong id="businessRevenue">$0</strong><small id="businessRevenueSub">按订单归属月份 · 草稿不计入</small></div>
-          <div class="business-kpi"><span>正式订单数</span><strong id="businessOrderCount">0</strong><small>平均 <b id="businessAverage">$0</b></small></div>
-          <div class="business-kpi paid"><span>已收</span><strong id="businessPaid">$0</strong><small>所选月份订单的累计收款</small></div>
-          <div class="business-kpi"><span>收款率</span><strong id="businessCollectionRate">0%</strong><i class="business-kpi-bar"><b id="businessRateBar"></b></i></div>
-          <div class="business-kpi due"><span>当前待收</span><strong id="businessDue">$0</strong><button class="link-btn" type="button" data-analysis-list="month">查看订单 <span>→</span></button></div>
-        </section>
-        <div class="analysis-context"><svg class="ui-icon" aria-hidden="true"><use href="#i-chart"/></svg><div><div id="analysisComparison"></div><div id="businessRateStatus"></div><div>已收为这些订单截至目前的累计收款，不是当月现金到账。未记录成本，不统计利润。</div></div></div>
-        <section class="analysis-grid">
-          <section class="panel">
-            <div class="section-head"><div class="analysis-head"><div class="section-title">收款进度结构</div><div class="section-meta">累计已收 / 订单额</div></div></div>
-            <div class="business-payment-structure" id="businessPaymentStructure"></div>
-          </section>
-          <section class="panel">
-            <div class="section-head"><div class="analysis-head"><div class="section-title">产品贡献排行</div><div class="section-meta">按 USD 订单额</div></div></div>
-            <div class="business-product-contribution" id="businessProductContribution"></div>
-            <div class="analysis-mix" id="analysisCustomerMix"></div>
-          </section>
-        </section>
-        <section class="analysis-grid">
-          <section class="panel"><div class="section-head"><div class="analysis-head"><div class="section-title">客户贡献</div><div class="section-meta">前 8 名</div></div></div><div id="analysisClients"></div></section>
-          <section class="panel analysis-attention">
-            <div class="section-head"><div class="analysis-head"><div class="section-title">现在需要关注</div><div class="section-meta">截至今天 · 所有月份</div></div><button class="link-btn" type="button" data-analysis-list="outstanding">查看全部待收订单 <span>→</span></button></div>
-            <div id="analysisAttention"></div>
-          </section>
-        </section>
-        <section class="panel">
-          <div class="section-head"><div class="analysis-head"><div class="section-title">近六个月订单额</div><div class="section-meta">每月金额与订单数 · 当前产品范围</div></div></div>
-          <div class="business-trend-chart" id="businessTrendChart"></div>
-        </section>
       </section>
     </section>
 
@@ -6059,6 +6053,8 @@ html[data-theme] :is(.logistics-kpis > .logistics-kpi:not(:first-child), .amount
           <button class="settings-menu-item" type="button" data-settings-tab="exchange">汇率设置</button>
           <button class="settings-menu-item" type="button" data-settings-tab="tracking-api">物流追踪</button>
           <button class="settings-menu-item" type="button" data-settings-tab="ai">AI 识别</button>
+          <button class="settings-menu-item" type="button" data-settings-tab="api">接口状态<i class="menu-alert" id="settingsApiAlert" hidden></i></button>
+          <button class="settings-menu-item" type="button" data-settings-tab="appearance">外观</button>
         </aside>
         <div class="settings-content">
           <div class="settings-panel active" data-settings-panel="data">
@@ -6082,9 +6078,12 @@ html[data-theme] :is(.logistics-kpis > .logistics-kpi:not(:first-child), .amount
                 </div>
               </div>
               <div class="data-action mac-only">
-                <div><strong>Mac 本地数据</strong><div class="muted">备份包含 SQLite 和同名 .attachments 附件文件夹，请一起保留。恢复时两者需配套恢复。</div></div>
+                <div><strong>Mac 本地数据</strong><div class="muted">备份包含 SQLite 和同名 .attachments 附件文件夹，请一起保留。恢复时两者需配套恢复。</div>
+                  <div class="muted backup-info" id="macBackupInfo"><span>备份目录和上次备份时间：读取中…</span></div></div>
                 <div class="order-action-group">
                   <button class="btn" id="macManualBackupBtn">立即备份</button>
+                  <button class="btn" id="macChooseBackupDirBtn" title="选到 iCloud Drive 或网盘文件夹，硬盘坏了也还有一份">选择备份目录…</button>
+                  <button class="btn" id="macResetBackupDirBtn" hidden>恢复默认目录</button>
                   <button class="btn" id="macOpenDataFolderBtn">打开数据文件夹</button>
                 </div>
               </div>
@@ -6285,6 +6284,28 @@ html[data-theme] :is(.logistics-kpis > .logistics-kpi:not(:first-child), .amount
                   <button class="btn btn-primary" type="submit">保存物流追踪设置</button>
                 </div>
               </form>
+            </div>
+          </div>
+          <div class="settings-panel" data-settings-panel="api">
+            <div class="section-head"><div><div class="section-title">接口状态</div><div class="section-meta">DHL / FedEx / AI 识别的连接检测；有异常时侧栏「设置」上会出现红点</div></div></div>
+            <div class="settings-card">
+              <div><strong>API 检测</strong><div class="muted">点一下重新检测。密钥在「物流追踪」和「AI 识别」里维护。</div></div>
+              <div class="api-status-strip settings-api-strip" id="apiStatusStrip" aria-label="API 连接状态">
+                <button class="api-status-dot" type="button" data-api-check="dhl" title="DHL API：未检测"><span class="api-status-name">DHL</span><span class="api-status-state">未测</span></button>
+                <button class="api-status-dot" type="button" data-api-check="fedex" title="FedEx API：未检测"><span class="api-status-name">FedEx</span><span class="api-status-state">未测</span></button>
+                <button class="api-status-dot" type="button" data-api-check="ai" title="AI API：未检测" onmouseenter="refreshAiUsage()" onfocus="refreshAiUsage()"><span class="api-status-name">AI 识别</span><span class="api-status-state">未测</span></button>
+              </div>
+            </div>
+          </div>
+          <div class="settings-panel" data-settings-panel="appearance">
+            <div class="section-head"><div><div class="section-title">外观</div><div class="section-meta">强调色和订单弹窗样式，只记在这台电脑上</div></div></div>
+            <div class="settings-card">
+              <div><strong>强调色</strong><div class="muted">按钮、选中态和第一张数字卡的颜色。</div></div>
+              <div class="accent-swatches" role="group" aria-label="强调色"><span>配色</span><button class="accent-swatch" type="button" data-accent-choice="violet" title="紫色" aria-label="强调色：紫色"></button><button class="accent-swatch" type="button" data-accent-choice="blue" title="蓝色" aria-label="强调色：蓝色"></button><button class="accent-swatch" type="button" data-accent-choice="teal" title="青色" aria-label="强调色：青色"></button><button class="accent-swatch" type="button" data-accent-choice="orange" title="橙色" aria-label="强调色：橙色"></button><button class="accent-swatch" type="button" data-accent-choice="rose" title="玫红" aria-label="强调色：玫红"></button><button class="accent-swatch" type="button" data-accent-choice="ink" title="墨色" aria-label="强调色：墨色"></button></div>
+            </div>
+            <div class="settings-card">
+              <div><strong>订单弹窗样式</strong><div class="muted">卡片：分区卡片；A：单栏；B：左侧粘贴识别；C：紧凑行。</div></div>
+              <div class="modal-style-picker" role="group" aria-label="订单弹窗样式"><span>弹窗</span><div class="modal-style-seg"><i class="seg-glide" aria-hidden="true"></i><button type="button" data-modal-style-choice="" title="分区卡片（原样式）" aria-label="弹窗样式：卡片">卡片</button><button type="button" data-modal-style-choice="a" title="A 单栏：所有字段一列排下来" aria-label="弹窗样式：A 单栏">A</button><button type="button" data-modal-style-choice="b" title="B 左侧粘贴：左边贴聊天记录识别，右边填字段" aria-label="弹窗样式：B 左侧粘贴">B</button><button type="button" data-modal-style-choice="c" title="C 紧凑行：标签在左，顶部分区标签跳转" aria-label="弹窗样式：C 紧凑行">C</button></div></div>
             </div>
           </div>
           <div class="settings-panel" data-settings-panel="ai">
@@ -7307,6 +7328,14 @@ function normalizeFeishuNotification(raw = {}) {
     updatedAt: String(raw?.updatedAt || '')
   };
 }
+// 「保存后发送到飞书群」记住上次的选择（只记在本机），不用每单手动取消。
+const feishuChoiceKey = 'ots-feishu-send-v1';
+function feishuDefaultChecked() {
+  try { return localStorage.getItem(feishuChoiceKey) !== '0'; } catch (_) { return true; }
+}
+function rememberFeishuChoice(checked) {
+  try { localStorage.setItem(feishuChoiceKey, checked ? '1' : '0'); } catch (_) { /* 本机存储不可用时只在本次生效 */ }
+}
 function shouldRequestOrderNotification(existing = null, isDraft = false, checked = false) {
   if (isDraft || !checked) return false;
   return !existing || existing.isDraft === true;
@@ -7657,6 +7686,7 @@ async function runMacSaveQueue() {
         macSaveCompletedVersion = targetVersion;
         macPersistedStateJson = snapshotJson;
         const feedback = backupSaveFeedback(result.backup, macBackupWarning);
+        if (result.backup?.ok === true && !result.backup.skipped && macBackupSummary) renderBackupInfo({ ...macBackupSummary, lastBackupAt:Date.now(), sqliteCount:Number(macBackupSummary.sqliteCount || 0) + 1 });
         if (feedback.warning && !macBackupWarning) toast(feedback.message);
         macBackupWarning = feedback.message;
         setMacStorageStatus(result.storageMode || 'sqlite', feedback.warning ? 'warning' : 'saved', feedback.message || `数据库已保存 · 版本 ${macStorageRevision} · ${new Date().toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}`);
@@ -7754,7 +7784,8 @@ async function loadMacAppState() {
     const health = await healthRes.json().catch(() => ({}));
     setAppVersionUpdatedAt(health.appUpdatedAt);
     if (!healthRes.ok || !health.ok) throw new Error(health.storageError || health.integrity?.message || '数据库健康检查失败');
-    setMacStorageStatus(health.storageMode || 'sqlite', 'saved', `数据库已连接 · ${health.counts?.orders ?? 0} 个订单 · 备份 ${health.backups?.sqliteCount ?? 0} 份`);
+    setMacStorageStatus(health.storageMode || 'sqlite', 'saved', `数据库已连接 · ${health.counts?.orders ?? 0} 个订单 · 备份 ${health.backups?.sqliteCount ?? 0} 份${health.backups?.lastBackupAt ? ` · 上次备份 ${uiRelativeTime(health.backups.lastBackupAt)}` : ''}`);
+    if (health.backups) renderBackupInfo(health.backups);
     const aiSettings = await fetchMacAiSettings();
     if (aiSettings) localStorage.setItem(aiSettingsKey, JSON.stringify(aiSettings));
     await refreshAiUsage();
@@ -8306,6 +8337,9 @@ function apiStatusTitle(kind, item = {}) {
 }
 function renderApiStatusLights() {
   const statuses = loadApiStatuses();
+  // 侧栏不再常驻接口状态：只有检测异常时在「设置」上亮一个红点，点进去直达接口状态页。
+  const anyBad = Object.values(statuses).some(item => item && item.ok === false);
+  ['navSettingsAlert', 'settingsApiAlert'].forEach(id => { const dot = document.getElementById(id); if (dot) dot.hidden = !anyBad; });
   document.querySelectorAll('[data-api-check]').forEach(btn => {
     const kind = btn.dataset.apiCheck;
     const item = statuses[kind] || {};
@@ -8798,7 +8832,21 @@ function analysisDashboardData(orders, month, product, today, rates) {
   const overdue = scoped.filter(o => o.latestShipDate && o.latestShipDate < today && !['shipment','done'].includes(o.stage) && !o.shippedAt);
   return {current,previous,monthly,newOrders,repeatOrders,unknownOrders:monthly.length-newOrders-repeatOrders,clients:[...clients.values()].sort((a,b)=>b.amount-a.amount),receivables,overdue};
 }
+// 空月份兜底：用户还没手动切过月份时，本月没有正式订单就落到最近有数据的月份，并在标题旁说明。
+let analysisMonthTouched = false;
+function analysisMonthFallback() {
+  const note = document.getElementById('analysisFallbackNote');
+  const has = month => (state.orders || []).some(o => isRevenueOrder(o) && normalizeMonth(o.orderMonth || o.updated) === month);
+  if (analysisMonthTouched || has(activeBusinessMonth)) { if (note) note.hidden = true; return; }
+  const latest = (state.orders || []).filter(isRevenueOrder).map(o => normalizeMonth(o.orderMonth || o.updated)).filter(m => m && m < activeBusinessMonth).sort().at(-1);
+  if (!latest) { if (note) note.hidden = true; return; }
+  const asked = activeBusinessMonth;
+  activeBusinessMonth = latest;
+  if (note) { note.textContent = `${monthLabel(asked)}还没有正式订单，先显示最近有数据的${monthLabel(latest)}`; note.hidden = false; }
+}
 function renderAnalysisPage() {
+  if (!document.getElementById('analysisProduct')) return;
+  analysisMonthFallback();
   const product = document.getElementById('analysisProduct').value;
   const today = normalizeDate(new Date().toISOString());
   const data = analysisDashboardData(state.orders || [], activeBusinessMonth, product, today, ecbHistoricalRates);
@@ -11980,7 +12028,7 @@ const globalSearchPageDefs = [
   { page:'amount', title:'金额统计', icon:'$', keywords:'金额 收款 销售 统计 美元 人民币 汇率 报表' },
   { page:'targets', title:'业绩目标', icon:'◎', keywords:'业绩 目标 销售 完成率' },
   { page:'calendar', title:'日历', icon:'▦', keywords:'日历 日期 交期 发货 提醒 排期' },
-  { page:'analysis', title:'分析', icon:'⌁', keywords:'分析 客户增长 事件结构 新增客户 日程趋势' },
+  { page:'amount', title:'经营分析', icon:'⌁', keywords:'分析 经营 收款结构 产品贡献 客户贡献 趋势' },
   { page:'customers', title:'客户管理', icon:'◇', keywords:'客户 联系人 邮箱 电话 地址 国家 标签 复购' },
   { page:'deleted', title:'已删除订单', icon:'⌫', keywords:'删除 回收 恢复 订单' },
   { page:'subscriptions', title:'订阅', icon:'↻', keywords:'订阅 续费 扣费 会员 软件 服务器 域名' },
@@ -12291,10 +12339,9 @@ function renderPageContent(page, { entering = false } = {}) {
     'order-list': renderOrderListPage,
     'search-results': renderFullSearchResults,
     logistics: () => { renderTrackingApiMiniStatus(); renderLogistics(); renderPriceHistory(); },
-    amount: () => { renderMonthSelects(); renderAmountReport(); },
+    amount: () => { renderMonthSelects(); renderAmountReport(); renderAnalysisPage(); },
     targets: renderPerformanceTargets,
     calendar: renderCalendarPage,
-    analysis: renderAnalysisPage,
     customers: renderCustomers,
     deleted: renderDeletedOrders,
     subscriptions: () => renderSubscriptionsPage({ entering }),
@@ -13889,6 +13936,10 @@ function jumpToCustomerProfile(name) {
   renderCustomers();
   requestAnimationFrame(() => openCustomerModal(name, { viewOnly:true }));
 }
+// 看板列顺序保持 报价 → 生产中 → 尾款 → 已发货（用户选择只加副标题）：定金单先到「尾款」列，付清后才进「生产中」。
+function boardColumnSubtitle(stage) {
+  return { production:'已付清 · 生产中', balance:'已收定金 · 生产中，等尾款再发货' }[stage] || '';
+}
 function renderStats() {
   const active = state.orders.filter(o => !o.isDraft && !isSettledStage(o.stage));
   const totalOrders = state.orders.filter(o => inTotalRange(o) && !o.isDraft && orderAmountValue(o) > 0);
@@ -13960,7 +14011,22 @@ function renderMonthSelects() {
   if (chartFrom && !chartFrom.value) chartFrom.value = months[Math.min(5, months.length - 1)] || normalizeMonth(new Date().toISOString());
   if (chartTo && !chartTo.value) chartTo.value = months[0] || normalizeMonth(new Date().toISOString());
 }
+let chartRangeTouched = false;
+function amountRangeFallback() {
+  const select = document.getElementById('chartRange');
+  const note = document.getElementById('amountRangeNote');
+  if (!select) return;
+  if (chartRangeTouched || select.value !== 'this') { if (note) note.hidden = true; return; }
+  const thisMonth = normalizeMonth(new Date().toISOString());
+  const inMonth = month => state.orders.some(o => isRevenueOrder(o) && normalizeMonth(o.orderMonth || o.updated) === month);
+  if (inMonth(thisMonth)) { if (note) note.hidden = true; return; }
+  const last = monthOffset(thisMonth, -1);
+  select.value = inMonth(last) ? 'last' : '6';
+  if (typeof fitSegmentControl === 'function') document.querySelectorAll('#chartRangeSegments [data-segment-value]').forEach(btn => btn.classList.toggle('active', btn.dataset.segmentValue === select.value));
+  if (note) { note.textContent = `本月还没有正式订单，先显示${select.value === 'last' ? '上月' : '近 6 个月'}`; note.hidden = false; }
+}
 function renderAmountReport() {
+  amountRangeFallback();
   const selectedMonth = document.getElementById('amountMonth')?.value || 'all';
   const monthsForRange = chartMonths();
   const list = selectedMonth === 'all'
@@ -14311,7 +14377,7 @@ function renderPipeline() {
     return `
     <div class="board-column" data-stage="${s.key}">
       <div class="board-column-head">
-        <div class="board-column-title">${s.name}</div>
+        <div class="board-column-title">${s.name}${boardColumnSubtitle(s.key) ? `<small class="board-column-sub" title="${escapeAttr(boardColumnSubtitle(s.key))}">${escapeAttr(boardColumnSubtitle(s.key))}</small>` : ''}</div>
         <div class="board-column-meta"><span class="board-count">${orders.length}</span> · ${summaryMoney(amount, 'USD')}</div>
       </div>
       <div class="board-card-list">
@@ -16272,7 +16338,7 @@ function openCombinedCustomerOrderModal(preview = {}) {
   fillCombinedCustomerForm(customerFields, existingKey);
   fillCombinedOrderForm(preview.orderFields || {}, customerFields);
   const notificationCheckbox = document.getElementById('combinedOrderForm')?.elements?.sendFeishuNotification;
-  if (notificationCheckbox) notificationCheckbox.checked = true;
+  if (notificationCheckbox) notificationCheckbox.checked = feishuDefaultChecked();
   setModalOpenState(modal, true);
   resetModalScroll(modal);
 }
@@ -16652,7 +16718,7 @@ function openOrder(id) {
   const notificationCheckbox = fields.sendFeishuNotification;
   const notificationEligible = !id || order.isDraft === true;
   if (notificationField) notificationField.style.display = notificationEligible ? '' : 'none';
-  if (notificationCheckbox) notificationCheckbox.checked = notificationEligible;
+  if (notificationCheckbox) notificationCheckbox.checked = notificationEligible && feishuDefaultChecked();
   renderOrderAttachments(order.attachments || []);
   if (typeof uiOrderCompact === 'function') uiOrderCompact(form, !id);
   syncStageOptionsForForm(form);
@@ -16847,6 +16913,7 @@ async function saveCombinedCustomerOrder() {
   const pendingOrder = state.orders.find(o => o.id === orderForm.dataset.pendingOrderId);
   const order = buildOrderFromFormData(finalOrderData, { existing: pendingOrder || null, isDraft: false });
   const notificationRequested = shouldRequestOrderNotification(null, false, orderData.sendFeishuNotification === 'on');
+  rememberFeishuChoice(orderData.sendFeishuNotification === 'on');
   order.feishuNotification = normalizeFeishuNotification({ requested:notificationRequested, status:notificationRequested ? 'sending' : 'skipped' });
   if (pendingOrder) state.orders = state.orders.map(o => o.id === order.id ? order : o);
   else state.orders.unshift(order);
@@ -16873,6 +16940,7 @@ async function upsertOrder(form, options = {}) {
   const order = buildOrderFromFormData({ ...data, attachments: orderAttachmentsFromForm(form) }, { existing, isDraft });
   if (!existing) form.dataset.pendingNewOrder = 'true';
   const notificationRequested = shouldRequestOrderNotification(form.dataset.pendingNewOrder ? null : existing, isDraft, data.sendFeishuNotification === 'on');
+  if (!isDraft && (!existing || existing.isDraft || form.dataset.pendingNewOrder)) rememberFeishuChoice(data.sendFeishuNotification === 'on');
   if (!existing || existing.isDraft || form.dataset.pendingNewOrder) {
     order.feishuNotification = normalizeFeishuNotification({ requested:notificationRequested, status:notificationRequested ? 'sending' : 'skipped' });
   }
@@ -17136,6 +17204,64 @@ async function previewImportDataFile(file) {
 function importJson(file) {
   previewImportDataFile(file);
 }
+// 备份目录可选（比如 iCloud Drive）+ 上次备份时间；信息来自 /api/health 和 /api/backup-settings。
+let macBackupSummary = null;
+function uiRelativeTime(ms) {
+  const value = Number(ms || 0);
+  if (!value) return '';
+  const diff = Math.max(0, Date.now() - value);
+  const minutes = Math.round(diff / 60000);
+  if (minutes < 1) return '刚刚';
+  if (minutes < 60) return `${minutes} 分钟前`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} 小时前`;
+  const days = Math.round(hours / 24);
+  return days < 30 ? `${days} 天前` : new Date(value).toLocaleDateString('zh-CN');
+}
+function renderBackupInfo(summary = macBackupSummary) {
+  if (summary) macBackupSummary = summary;
+  const info = document.getElementById('macBackupInfo');
+  const pulse = document.getElementById('savePulse');
+  if (!macBackupSummary) return;
+  const last = macBackupSummary.lastBackupAt ? `上次备份 ${uiRelativeTime(macBackupSummary.lastBackupAt)}` : '还没有备份过';
+  if (pulse) pulse.title = `${last}${macBackupSummary.dir ? ` · ${macBackupSummary.dir}` : ''}`;
+  if (info) {
+    const count = Number(macBackupSummary.sqliteCount ?? macBackupSummary.count ?? 0);
+    info.innerHTML = `<span>${escapeAttr(last)}${count ? ` · 共 ${count} 份` : ''}${macBackupSummary.dirError ? ` · <b style="color:var(--red-600,#dc2626)">目录不可用，已临时用默认目录：${escapeAttr(macBackupSummary.dirError)}</b>` : ''}</span><span>备份目录：<code>${escapeAttr(macBackupSummary.dir || '')}</code>${macBackupSummary.isDefault ? '（默认）' : ''}</span>`;
+  }
+  const reset = document.getElementById('macResetBackupDirBtn');
+  if (reset) reset.hidden = macBackupSummary.isDefault !== false;
+}
+async function refreshBackupInfo() {
+  if (!isMacAppMode()) return null;
+  try {
+    const res = await apiFetch('/api/backup-settings', { cache:'no-store' });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok) renderBackupInfo(data);
+    return data;
+  } catch (_) { return null; }
+}
+async function macChooseBackupDir(btn) {
+  if (!isMacAppMode()) { toast('请在 Mac App 内选择备份目录'); return; }
+  return withButtonBusy(btn, '等待选择…', '已更新', async () => {
+    const res = await apiFetch('/api/choose-backup-folder', { method:'POST' });
+    const data = await res.json().catch(() => ({}));
+    if (data.cancelled) { toast('没有更改备份目录'); return; }
+    if (!res.ok || !data.ok) throw new Error(data.message || '备份目录设置失败');
+    renderBackupInfo(data);
+    toast(`备份目录已改为 ${data.dir}`, { desc:'下一次自动备份和立即备份都会写到这里' });
+  }).catch(error => toast(error.message || '备份目录设置失败'));
+}
+async function macResetBackupDir(btn) {
+  if (!isMacAppMode()) return;
+  return withButtonBusy(btn, '恢复中…', '已恢复', async () => {
+    const res = await apiFetch('/api/backup-settings', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ backupDir:'' }) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(data.message || '恢复默认目录失败');
+    renderBackupInfo(data);
+    toast('备份目录已恢复默认');
+  }).catch(error => toast(error.message || '恢复默认目录失败'));
+}
 async function macManualBackup(btn) {
   if (!isMacAppMode()) {
     toast('请在 Mac App 内使用本地备份');
@@ -17150,6 +17276,7 @@ async function macManualBackup(btn) {
     macBackupWarning = '';
     setMacStorageStatus('sqlite', 'saved', '数据已保存 · 手动备份已完成');
     toast('Mac 本地备份已生成');
+    refreshBackupInfo();
   } catch (e) {
     const missing = /附件文件缺失/.test(String(e?.message || ''));
     macBackupWarning = missing ? e.message : '备份失败，请在设置中重试备份';
@@ -18824,7 +18951,7 @@ window.addEventListener('resize', debounce(() => {
   document.querySelectorAll('#subscriptionEditForm [data-sub-segment]').forEach(group => placeSubscriptionGlide(group, `editor-${group.dataset.subSegment}`, { jump:true }));
 }, 80));
 function setPage(page) {
-  const normalized = page === 'data' ? 'settings' : page;
+  const normalized = page === 'data' ? 'settings' : page === 'analysis' ? 'amount' : page;
   const target = document.getElementById(`page-${normalized}`) ? normalized : 'dashboard';
   const current = document.querySelector('.page.active')?.id?.replace('page-', '') || '';
   const changed = current !== target;
@@ -18899,6 +19026,16 @@ document.getElementById('apiStatusStrip').addEventListener('click', e => {
   const btn = e.target.closest('[data-api-check]');
   if (!btn) return;
   checkApiStatus(btn.dataset.apiCheck);
+});
+function uiSettingsTab(tab) {
+  const btn = document.querySelector(`.settings-menu [data-settings-tab="${tab}"]`);
+  if (!btn) return;
+  document.querySelectorAll('[data-settings-tab]').forEach(item => item.classList.toggle('active', item === btn));
+  document.querySelectorAll('[data-settings-panel]').forEach(panel => panel.classList.toggle('active', panel.dataset.settingsPanel === tab));
+}
+// 侧栏「设置」带红点时，点进去直接落在接口状态页。
+document.querySelector('.nav-item[data-page="settings"]')?.addEventListener('click', () => {
+  if (document.getElementById('navSettingsAlert')?.hidden === false) uiSettingsTab('api');
 });
 document.getElementById('orderListSearch')?.addEventListener('input', debouncedOrderListRender);
 ['orderListStageFilter','orderListPaymentStateFilter','orderListProductFilter','orderListPaymentFilter','orderListCountryFilter','orderListMonthFilter','orderListLogisticsFilter','orderListDraftFilter','orderListSort'].forEach(id => {
@@ -19001,9 +19138,11 @@ document.getElementById('amountMonth').addEventListener('change', render);
 document.getElementById('chartRangeSegments')?.addEventListener('click', e => {
   const btn = e.target.closest('[data-segment-value]');
   if (!btn) return;
+  chartRangeTouched = true;
   document.getElementById('chartRange').value = btn.dataset.segmentValue;
   render();
 });
+document.getElementById('chartRange')?.addEventListener('change', () => { chartRangeTouched = true; });
 document.getElementById('amountSideChart').addEventListener('click', e => {
   const btn = e.target.closest('[data-amount-structure]');
   if (!btn) return;
@@ -20035,16 +20174,18 @@ document.getElementById('calendarTodayBtn')?.addEventListener('click', () => {
   renderCalendarPage();
 });
 document.getElementById('businessPrevBtn')?.addEventListener('click', () => {
+  analysisMonthTouched = true;
   activeBusinessMonth = monthOffset(activeBusinessMonth, -1);
   renderAnalysisPage();
 });
 document.getElementById('analysisProduct')?.addEventListener('change', renderAnalysisPage);
 document.getElementById('analysisMonthInput')?.addEventListener('change', e => {
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(e.target.value)) return;
+  analysisMonthTouched = true;
   activeBusinessMonth = e.target.value;
   renderAnalysisPage();
 });
-document.getElementById('page-analysis')?.addEventListener('click', e => {
+document.getElementById('page-amount')?.addEventListener('click', e => {
   const order = e.target.closest('[data-analysis-order]');
   if (order) { openOrderDetail(order.dataset.analysisOrder); return; }
   const link = e.target.closest('[data-analysis-list]');
@@ -20057,10 +20198,12 @@ document.getElementById('page-analysis')?.addEventListener('click', e => {
   setPage('order-list');
 });
 document.getElementById('businessCurrentBtn')?.addEventListener('click', () => {
+  analysisMonthTouched = true;
   activeBusinessMonth = normalizeMonth(new Date().toISOString());
   renderAnalysisPage();
 });
 document.getElementById('businessNextBtn')?.addEventListener('click', () => {
+  analysisMonthTouched = true;
   activeBusinessMonth = monthOffset(activeBusinessMonth, 1);
   renderAnalysisPage();
 });
@@ -20158,6 +20301,8 @@ document.getElementById('dataHealthCheckBtn').addEventListener('click', e => {
 });
 document.getElementById('macManualBackupBtn')?.addEventListener('click', e => macManualBackup(e.currentTarget));
 document.getElementById('macOpenDataFolderBtn')?.addEventListener('click', e => macOpenDataFolder(e.currentTarget));
+document.getElementById('macChooseBackupDirBtn')?.addEventListener('click', e => macChooseBackupDir(e.currentTarget));
+document.getElementById('macResetBackupDirBtn')?.addEventListener('click', e => macResetBackupDir(e.currentTarget));
 document.getElementById('resetBtn').addEventListener('click', async () => {
   const confirmed = await confirmDangerFlow({
     title:'恢复示例数据',

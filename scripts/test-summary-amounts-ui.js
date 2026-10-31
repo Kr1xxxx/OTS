@@ -31,7 +31,7 @@ const { chromium } = require('playwright');
       dashboard:'#statAmount,#statPayment,#statTargetSub,.board-column-meta',
       amount:'#reportUsd,#reportPaid,#reportDue,#reportOverdue,.breakdown-row strong,.side-bar-head strong',
       targets:'#targetGoal,#targetActual,#targetGap,.target-history-values span',
-      analysis:'#businessRevenue,#businessPaid,#businessDue,#businessAverage,.analysis-rank strong,.analysis-trend-row strong,.business-product-value,.business-payment-item strong',
+      analysis:'.analysis-rank strong,.analysis-trend-row strong,.business-product-value,.business-payment-item strong',
       customers:'.customer-summary-item strong,.customer-summary-item small'
     };
     for (const theme of ['light','dark']) {
@@ -52,7 +52,7 @@ const { chromium } = require('playwright');
             assert.ok(amount.fits,`${surface} summary must fit at ${width}px in ${theme}: ${amount.text}`);
             assert.equal(amount.ellipsis,false,`${surface} summary must not ellipsize`);
           }
-          if (surface === 'analysis') assert.equal(await page.locator('#businessRevenue').innerText(),'$12,345.7 USD');
+          if (surface === 'analysis') assert.equal(await page.evaluate(() => document.querySelector('.page.active')?.id),'page-amount','分析 now lives inside the 金额统计 page');
           if (surface === 'amount') {
             assert.equal(await page.locator('#reportPaid').innerText(),'$4,567.9 USD');
             assert.equal(await page.locator('#reportDue').innerText(),'$7,777.8 USD');

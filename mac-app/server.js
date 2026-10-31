@@ -21,7 +21,11 @@ const htmlFile = path.join(resourcesDir, 'trade-order-system.html');
 const appUpdatedAt = fs.existsSync(htmlFile) ? fs.statSync(htmlFile).mtime.toISOString() : null;
 const seedDataFile = path.join(resourcesDir, 'trade-order-data.json');
 const supportDir = process.env.TRADE_APP_DATA_DIR || path.join(os.homedir(), 'Library', 'Application Support', appName);
-const backupDir = path.join(supportDir, 'backups');
+// 备份目录可以改（比如 iCloud Drive），记在 backup-settings.json；目录不可用时这次会话退回默认目录并把原因带给前端。
+const defaultBackupDir = path.join(supportDir, 'backups');
+const backupSettingsFile = path.join(supportDir, 'backup-settings.json');
+let backupDir = defaultBackupDir;
+let backupDirError = '';
 const attachmentsDir = path.join(supportDir, 'attachments');
 const dataFile = path.join(supportDir, 'trade-order-data.json');
 const databaseFile = path.join(supportDir, 'trade-order-system.sqlite');
@@ -55,8 +59,79 @@ let storageRevision = 0;
 let integrityCache = null;
 const integrityCacheMs = 5 * 60 * 1000;
 
-function ensureStorage() {
+function loadBackupSettings() {
+  backupDir = defaultBackupDir;
+  backupDirError = '';
+  if (!fs.existsSync(backupSettingsFile)) return;
+  try {
+    const saved = readJson(backupSettingsFile);
+    const dir = String(saved?.backupDir || '').trim();
+    if (dir && path.isAbsolute(dir)) backupDir = path.resolve(dir);
+  } catch (error) {
+    backupDirError = error.message || 'backup-settings.json unreadable';
+  }
+}
+function prepareBackupDir() {
+  if (backupDir !== defaultBackupDir) {
+    try {
+      fs.mkdirSync(backupDir, { recursive: true });
+      fs.accessSync(backupDir, fs.constants.W_OK);
+      backupDirError = '';
+    } catch (error) {
+      backupDirError = error.message || '备份目录不可写';
+      backupDir = defaultBackupDir;
+    }
+  }
   fs.mkdirSync(backupDir, { recursive: true });
+}
+function setBackupDir(input) {
+  const dir = String(input || '').trim();
+  if (!dir || dir === 'default') {
+    try { fs.rmSync(backupSettingsFile, { force: true }); } catch (_) {}
+    backupDir = defaultBackupDir;
+    backupDirError = '';
+    prepareBackupDir();
+    return backupSummary();
+  }
+  if (!path.isAbsolute(dir)) throw httpError(400, '备份目录要用完整路径');
+  const resolved = path.resolve(dir);
+  const inside = (child, parent) => { const rel = path.relative(parent, child); return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel)); };
+  if (inside(resolved, attachmentsDir) || inside(supportDir, resolved)) throw httpError(400, '备份目录不能是数据目录本身或附件目录');
+  try {
+    fs.mkdirSync(resolved, { recursive: true });
+    fs.accessSync(resolved, fs.constants.W_OK);
+  } catch (error) {
+    throw httpError(400, `备份目录不可写：${error.message}`);
+  }
+  atomicWrite(backupSettingsFile, JSON.stringify({ backupDir: resolved }, null, 2));
+  backupDir = resolved;
+  backupDirError = '';
+  return backupSummary();
+}
+function chooseBackupFolder() {
+  if (process.platform !== 'darwin') return Promise.reject(httpError(400, '请在 Mac App 内选择备份目录'));
+  return new Promise((resolve, reject) => {
+    const script = 'POSIX path of (choose folder with prompt "选择备份目录（建议选 iCloud Drive 或网盘里的文件夹）")';
+    const child = spawn('/usr/bin/osascript', ['-e', script], { stdio: ['ignore', 'pipe', 'pipe'] });
+    let out = '';
+    let err = '';
+    const timer = setTimeout(() => { child.kill(); reject(httpError(408, '选择目录超时')); }, 180000);
+    child.stdout.on('data', chunk => { out += chunk; });
+    child.stderr.on('data', chunk => { err += chunk; });
+    child.on('error', error => { clearTimeout(timer); reject(httpError(500, error.message)); });
+    child.on('close', code => {
+      clearTimeout(timer);
+      if (code !== 0) {
+        if (/-128|User canceled/i.test(err)) return resolve({ ok: false, cancelled: true });
+        return reject(httpError(500, err.trim() || '选择目录失败'));
+      }
+      resolve({ ok: true, path: out.trim() });
+    });
+  });
+}
+function ensureStorage() {
+  loadBackupSettingsOnce();
+  prepareBackupDir();
   fs.mkdirSync(attachmentsDir, { recursive: true });
   fs.mkdirSync(migrationArchiveDir, { recursive: true });
   fs.mkdirSync(secretsDir, { recursive: true });
@@ -67,6 +142,12 @@ function ensureStorage() {
 
 function readJson(file) {
   return JSON.parse(fs.readFileSync(file, 'utf8'));
+}
+let backupSettingsLoaded = false;
+function loadBackupSettingsOnce() {
+  if (backupSettingsLoaded) return;
+  backupSettingsLoaded = true;
+  loadBackupSettings();
 }
 
 function atomicWrite(file, text) {
@@ -1234,11 +1315,22 @@ function backupSummary() {
     .filter(name => name.endsWith('.json') || name.endsWith('.sqlite'))
     .sort()
     .reverse();
+  let meta = {};
+  if (fs.existsSync(backupMetaFile)) {
+    try { meta = readJson(backupMetaFile); } catch (_) {}
+  }
   return {
+    ok: true,
     count: backups.length,
     sqliteCount: backups.filter(name => name.endsWith('.sqlite')).length,
     jsonCount: backups.filter(name => name.endsWith('.json')).length,
-    latest: backups[0] || null
+    latest: backups[0] || null,
+    dir: backupDir,
+    defaultDir: defaultBackupDir,
+    isDefault: backupDir === defaultBackupDir,
+    dirError: backupDirError,
+    lastBackupAt: Number(meta.lastBackupAt) || 0,
+    lastBackupFile: meta.lastBackupFile || ''
   };
 }
 
@@ -1578,7 +1670,7 @@ function requireJsonContentType(req, pathname) {
   const jsonRoutes = new Set([
     '/api/save', '/api/open-attachment-folder', '/api/delete-attachments', '/api/attachments',
     '/api/open-url', '/api/ai-settings', '/api/ai-chat', '/api/api-status',
-    '/api/tracking-settings', '/api/order-notification',
+    '/api/tracking-settings', '/api/order-notification', '/api/backup-settings',
     '/api/subscriptions/save', '/api/subscriptions/delete', '/api/subscriptions/rate',
     '/api/subscriptions/options'
   ]);
@@ -2254,6 +2346,18 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && url.pathname === '/api/manual-backup') {
       const result = createBackup(true);
       return send(res, result.ok ? 200 : 503, JSON.stringify(result));
+    }
+    if (req.method === 'GET' && url.pathname === '/api/backup-settings') {
+      return send(res, 200, JSON.stringify(backupSummary()));
+    }
+    if (req.method === 'POST' && url.pathname === '/api/backup-settings') {
+      const body = JSON.parse(await readBody(req) || '{}');
+      return send(res, 200, JSON.stringify(setBackupDir(body.backupDir)));
+    }
+    if (req.method === 'POST' && url.pathname === '/api/choose-backup-folder') {
+      const picked = await chooseBackupFolder();
+      if (!picked.ok) return send(res, 200, JSON.stringify(picked));
+      return send(res, 200, JSON.stringify(setBackupDir(picked.path)));
     }
     if (req.method === 'POST' && url.pathname === '/api/open-data-folder') {
       ensureStorage();

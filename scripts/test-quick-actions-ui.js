@@ -5,8 +5,8 @@ const { chromium } = require('playwright');
 
 // Everyday actions in one step: the new-order modal opens compact (3 sections + 展开更多, editing
 // shows all), cards / the context menu / list rows offer 收齐尾款 and 推进到下一阶段 (with undo),
-// entering 已发货 without a tracking number shows a small non-blocking card to add one, tasks and
-// notifications open the drawer on the matching tab, and repurchase reminders can be postponed
+// entering 已发货 without a tracking number shows a small non-blocking card to add one, tasks
+// open the drawer on the matching tab, and repurchase reminders can be postponed
 // 7 / 30 days or turned into a new order.
 (async () => {
   const browser = await chromium.launch({headless:true});
@@ -123,8 +123,7 @@ const { chromium } = require('playwright');
     assert.equal(await page.evaluate(()=>uiDetailTab.current),'payment','收款 task should land on the 收款 tab');
     assert.equal(await page.evaluate(()=>document.querySelector('#detailTabs [data-detail-tab-btn="payment"]').getAttribute('aria-selected')),'true');
     await page.evaluate(()=>closeOrderDetail());
-    const notif = await page.evaluate(()=>uiNotifItems().find(i=>i.id==='task-payment-o-bal'));
-    assert.equal(notif?.tab,'payment','notification should carry the target tab');
+    assert.equal(await page.evaluate(()=>uiNotifItems().some(i=>i.id.startsWith('task-'))),false,'tasks stay in the task list, not in notifications');
 
     const rep = page.locator('#taskList .task[data-task-id="repurchase-Carl"]');
     assert.equal(await rep.count(),1,'Carl is 40 days past shipping with a 30-day cycle');

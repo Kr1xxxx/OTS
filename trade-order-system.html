@@ -5462,7 +5462,7 @@ html[data-theme] :is(.logistics-kpis > .logistics-kpi:not(:first-child), .amount
   </div>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.95，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.95</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.96，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.96</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -16208,7 +16208,8 @@ function applyOrderDefaults(form) {
   if (form.elements.depositPercent) form.elements.depositPercent.value = settings.defaultDepositPercent ?? '';
   if (form.elements.carrier) form.elements.carrier.value = settings.defaultCarrier || 'auto';
   if (form.elements.urgentOrder) form.elements.urgentOrder.value = settings.defaultUrgentOrder || '否';
-  if (form.elements.stage) form.elements.stage.value = normalizeStage(settings.defaultStage);
+  // 先按订单类型重建阶段选项再选默认阶段，避免旧选项里没有这个阶段时落到报价。
+  if (form.elements.stage) renderStageSelect(form.elements.stage, normalizeStage(settings.defaultStage), form.elements.orderType?.value || '');
   syncStageOptionsForForm(form);
   syncDepositFields(form, 'percent');
 }
@@ -16381,7 +16382,9 @@ function openOrder(id) {
   fields.orderType.value = order.orderType || '定金订单';
   fields.depositAmount.value = order.depositAmount || order.paidAmount || '';
   fields.depositPercent.value = order.depositPercent || depositPercent(order.amount, order.depositAmount || order.paidAmount) || '';
-  fields.stage.value = normalizeStage(order.stage);
+  // 阶段下拉的选项跟着订单类型走（全款订单没有「尾款」）。上一个打开的订单类型不同时，
+  // 旧选项里可能没有这个阶段，先按当前订单类型重建选项再选中，否则尾款单会被显示成报价并在保存时退回。
+  renderStageSelect(fields.stage, normalizeStage(order.stage), fields.orderType.value);
   if (fields.next) fields.next.value = order.next || '';
   if (fields.owner) fields.owner.value = order.owner;
   setOrderShipmentFields(form, order);
@@ -20419,6 +20422,15 @@ async function uiDetailSave() {
   if (!order || source !== 'active') return;
   const values = uiDetailEditValues();
   const saveBtn = document.getElementById('detailSaveBtn');
+  // 订单表单里客户是必填，但抽屉保存不经过浏览器校验，这里自己拦一下。
+  if (values.client !== undefined && !String(values.client).trim()) {
+    const field = document.querySelector('#orderDetailBody [data-dedit="client"]');
+    const wrap = field?.closest('.field');
+    if (wrap) { wrap.classList.remove('ui-err'); void wrap.offsetWidth; wrap.classList.add('ui-err'); }
+    field?.focus();
+    toast('请填写客户名称');
+    return;
+  }
   const orderModal = document.getElementById('orderModal');
   const wasOpen = orderModal?.classList.contains('open');
   openOrder(id);
@@ -20431,6 +20443,23 @@ async function uiDetailSave() {
     const paid = Number(values.paidAmount || 0);
     if ((values.orderType || order.orderType) === '全款订单') uiDetailSetFormValue(form, 'fullPaymentStatus', amount > 0 && paid >= amount ? '已付' : '未付');
     else uiDetailSetFormValue(form, 'paidAmount', values.paidAmount);
+  }
+  // 改了收款的话，报价 / 尾款阶段的订单按收款情况推进：没收定金留在报价，收到定金进尾款，付清进生产中（和新建订单一样）。
+  // 只改备注等其它字段时阶段不动，避免手动拖到尾款的订单被悄悄退回。
+  const paymentTouched = values.paidAmount !== undefined && (
+    Number(values.paidAmount || 0) !== Number(orderPaidValue(order) || 0)
+    || Number(values.amount || 0) !== Number(order.amount || 0)
+    || (values.orderType || order.orderType) !== (order.orderType || '定金订单'));
+  const currentStage = normalizeStage(form.elements.stage?.value || order.stage);
+  if (paymentTouched && ['quote', 'balance'].includes(currentStage) && form.elements.stage) {
+    const inferred = inferNewOrderStage({
+      selectedStage:'quote',
+      orderType:form.elements.orderType?.value || order.orderType,
+      amount:Number(form.elements.amount?.value || 0),
+      paidAmount:Number(form.elements.paidAmount?.value || 0),
+      trackingNumber:''
+    });
+    if (inferred !== currentStage) uiDetailSetFormValue(form, 'stage', inferred);
   }
   if (values.next !== undefined) order.next = String(values.next || '').trim();
   const feishu = document.getElementById('detailFeishuToggle');
@@ -20611,6 +20640,9 @@ function otsAppUpdateStatus(status) {
   if (status.state === 'error' && status.message) toast(`更新失败：${status.message}`);
   if (status.state === 'latest' || status.state === 'error') {
     appUpdateResetTimer = setTimeout(() => otsAppUpdateStatus({state:'idle'}), status.state === 'error' ? 6000 : 3000);
+  } else if (status.state === 'checking') {
+    // 原生端正忙（比如启动后的自动检查还没结束）时会忽略这次点击，不回传状态；别让按钮一直停在「检查中…」。
+    appUpdateResetTimer = setTimeout(() => otsAppUpdateStatus({state:'idle'}), 45000);
   }
 }
 window.otsAppUpdateStatus = otsAppUpdateStatus;

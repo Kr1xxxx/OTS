@@ -16338,7 +16338,7 @@ function openCombinedCustomerOrderModal(preview = {}) {
   fillCombinedCustomerForm(customerFields, existingKey);
   fillCombinedOrderForm(preview.orderFields || {}, customerFields);
   const notificationCheckbox = document.getElementById('combinedOrderForm')?.elements?.sendFeishuNotification;
-  if (notificationCheckbox) notificationCheckbox.checked = feishuDefaultChecked();
+  if (notificationCheckbox) notificationCheckbox.checked = typeof feishuDefaultChecked !== 'function' || feishuDefaultChecked();
   setModalOpenState(modal, true);
   resetModalScroll(modal);
 }
@@ -16718,7 +16718,7 @@ function openOrder(id) {
   const notificationCheckbox = fields.sendFeishuNotification;
   const notificationEligible = !id || order.isDraft === true;
   if (notificationField) notificationField.style.display = notificationEligible ? '' : 'none';
-  if (notificationCheckbox) notificationCheckbox.checked = notificationEligible && feishuDefaultChecked();
+  if (notificationCheckbox) notificationCheckbox.checked = notificationEligible && (typeof feishuDefaultChecked !== 'function' || feishuDefaultChecked());
   renderOrderAttachments(order.attachments || []);
   if (typeof uiOrderCompact === 'function') uiOrderCompact(form, !id);
   syncStageOptionsForForm(form);
@@ -16913,7 +16913,7 @@ async function saveCombinedCustomerOrder() {
   const pendingOrder = state.orders.find(o => o.id === orderForm.dataset.pendingOrderId);
   const order = buildOrderFromFormData(finalOrderData, { existing: pendingOrder || null, isDraft: false });
   const notificationRequested = shouldRequestOrderNotification(null, false, orderData.sendFeishuNotification === 'on');
-  rememberFeishuChoice(orderData.sendFeishuNotification === 'on');
+  if (typeof rememberFeishuChoice === 'function') rememberFeishuChoice(orderData.sendFeishuNotification === 'on');
   order.feishuNotification = normalizeFeishuNotification({ requested:notificationRequested, status:notificationRequested ? 'sending' : 'skipped' });
   if (pendingOrder) state.orders = state.orders.map(o => o.id === order.id ? order : o);
   else state.orders.unshift(order);
@@ -16940,7 +16940,7 @@ async function upsertOrder(form, options = {}) {
   const order = buildOrderFromFormData({ ...data, attachments: orderAttachmentsFromForm(form) }, { existing, isDraft });
   if (!existing) form.dataset.pendingNewOrder = 'true';
   const notificationRequested = shouldRequestOrderNotification(form.dataset.pendingNewOrder ? null : existing, isDraft, data.sendFeishuNotification === 'on');
-  if (!isDraft && (!existing || existing.isDraft || form.dataset.pendingNewOrder)) rememberFeishuChoice(data.sendFeishuNotification === 'on');
+  if (!isDraft && (!existing || existing.isDraft || form.dataset.pendingNewOrder) && typeof rememberFeishuChoice === 'function') rememberFeishuChoice(data.sendFeishuNotification === 'on');
   if (!existing || existing.isDraft || form.dataset.pendingNewOrder) {
     order.feishuNotification = normalizeFeishuNotification({ requested:notificationRequested, status:notificationRequested ? 'sending' : 'skipped' });
   }

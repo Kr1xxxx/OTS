@@ -31,10 +31,13 @@ function extractFunction(name) {
 assert.doesNotMatch(html, /data-page="freight"/, 'navigation still exposes the retired freight page');
 assert.doesNotMatch(html, /id="page-freight"/, 'retired freight page is still rendered');
 assert.match(html, /data-page="calendar"[^>]*>[\s\S]*?<span class="nav-text">日历<\/span>/, 'calendar navigation entry is missing');
-assert.match(html, /data-page="analysis"[^>]*>[\s\S]*?<span class="nav-text">分析<\/span>/, 'analysis navigation entry is missing');
+// 分析 merged into the 金额统计 page (PM review P1 #13): no separate tab or page any more.
+assert.doesNotMatch(html, /data-page="analysis"/, 'analysis must not keep a separate navigation entry');
+assert.doesNotMatch(html, /id="page-analysis"/, 'analysis must not keep a separate page');
 
 const calendarPage = pageMarkup('calendar');
-const analysisPage = pageMarkup('analysis');
+const analysisPage = pageMarkup('amount');
+assert.match(analysisPage, /id="analysisSection"/, '金额统计 page must host the 经营分析 section');
 assert.match(calendarPage, /id="calendarGrid"/, 'calendar page must own the month grid');
 assert.match(calendarPage, /id="calendarAgenda"/, 'calendar page must own the monthly agenda');
 assert.doesNotMatch(calendarPage, /id="customerGrowthChart"/, 'calendar page still contains customer analysis');

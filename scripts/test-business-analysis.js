@@ -27,16 +27,12 @@ assert.match(html, /data-page="order-list"[^>]*>[\s\S]*?订单列表/, 'order li
 
 [
   'businessMonthTitle',
-  'businessOrderCount',
-  'businessRevenue',
-  'businessPaid',
-  'businessDue',
-  'businessAverage',
-  'businessCollectionRate',
   'businessTrendChart',
   'businessPaymentStructure',
   'businessProductContribution'
 ].forEach(id => assert.match(html, new RegExp(`id="${id}"`), `missing business analysis output: ${id}`));
+['reportUsd','reportPaid','reportDue','reportCount'].forEach(id => assert.match(html, new RegExp(`id="${id}"`), `merged page must keep the amount KPI: ${id}`));
+assert.doesNotMatch(html, /id="businessRevenue"/, 'analysis KPI grid duplicated the 金额统计 数字卡 and was removed');
 
 const context = vm.createContext({});
 vm.runInContext(extractFunction('ecbUsdRateForOrder'), context);

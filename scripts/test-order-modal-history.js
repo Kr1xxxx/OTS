@@ -75,6 +75,7 @@ const context = vm.createContext({
   cleanTracking(value) { return String(value || '').replace(/\s/g, ''); },
   depositPercent() { return 0; },
   renderOrderAttachments() {},
+  renderStageSelect(sel, current) { sel.value = current; },
   syncStageOptionsForForm() {},
   syncDepositFields() {},
   enhanceBinarySelects() {},

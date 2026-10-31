@@ -5228,6 +5228,7 @@ html[data-theme] .mbody > .customer-modal-body, html[data-theme]:not([data-modal
 html[data-theme] .mbody > .customer-modal-body.customer-view-mode { padding:2px 24px 24px; }
 html[data-theme] .mbody:has(> .customer-view-mode) { grid-template-columns:minmax(0,1fr); }
 html[data-theme] .mbody:has(> .customer-view-mode) .mnav { display:none; }
+html[data-theme] .mbody:has(> .mnav.is-empty) { grid-template-columns:minmax(0,1fr); }
 html[data-theme] .customer-edit-workspace { display:flex; flex-direction:column; gap:12px; }
 html[data-theme] .customer-edit-workspace > .order-section .customer-edit-form-grid { grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px; }
 html[data-theme] .customer-edit-workspace > .order-section .customer-trade-preference-grid { gap:12px; }
@@ -5237,6 +5238,7 @@ html[data-theme] .mbody .order-section-head { align-items:end; }
 html[data-theme] .mbody .order-section-title { font-size:15px; }
 html[data-theme] .mbody .order-section-sub { margin-top:2px; }
 html[data-theme] .mbody .order-paste-section .paste-assist { border:0; border-radius:14px; background:var(--surface-soft); }
+html[data-theme] .paste-result-empty .paste-result-top > .tag { flex:none; white-space:nowrap; }
 
 html[data-theme] .modal-foot { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:14px 22px 14px 24px; border:0; border-top:1px solid var(--surface-border); border-radius:0; background:var(--surface-bg); box-shadow:none; }
 html[data-theme] .modal-foot .df-sum { display:flex; align-items:baseline; gap:10px; min-width:0; margin-right:auto; font-size:13px; color:var(--gray-500); }
@@ -5470,7 +5472,7 @@ html[data-theme] :is(.logistics-kpis > .logistics-kpi:not(:first-child), .amount
   </div>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.97，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.97</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.98，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.98</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -8349,24 +8351,25 @@ function customerFirstDates() {
   });
   return [...map.values()].sort((a, b) => parseDate(a.date) - parseDate(b.date));
 }
+// 跟进提醒：假发 3 天、睫毛 7 天没有任何更新才提醒一次；已发货 / 已完成的订单不提醒。
+// 任务 id 不带日期，所以一个订单只占一条；「完成」按订单最后更新时间记账，订单有新动态后才会再提醒。
 function orderFollowReminder(order, today) {
-  if (!order || order.stage === 'shipment') return null;
+  if (!order || ['shipment', 'done'].includes(order.stage)) return null;
   const product = productTypeDef(order.productType).value;
-  const interval = product === '睫毛' ? 7 : 1;
-  const idleDays = daysBetween(order.updated || order.createdAt);
+  const interval = product === '睫毛' ? 7 : 3;
+  const since = order.updated || order.createdAt;
+  const idleDays = daysBetween(since);
   if (idleDays < interval) return null;
-  const cycle = Math.max(1, Math.floor(idleDays / interval));
-  const dueDate = addDays(order.updated || order.createdAt, cycle * interval) || today;
-  const cadence = product === '睫毛' ? '每7天' : '每天';
-  const firstDue = product === '睫毛' ? '7天' : '次日';
+  const dueDate = addDays(since, interval) || today;
   return {
-    id:`follow-${order.id}-${dueDate}`,
+    id:`follow-${order.id}`,
+    doneKey:`follow-${order.id}-${since}`,
     orderId:order.id,
     client:order.client,
     date:dueDate,
     type:'follow',
     title:order.client,
-    reason:`${product}${firstDue}跟进，后续${cadence}提醒`,
+    reason:`${product}订单 ${idleDays} 天没有新动态，该跟进了`,
     detail:`${order.num} · ${order.note || stageDef(order.stage).name}`,
     value:`${idleDays}天`,
     tag:'跟进',
@@ -8400,7 +8403,7 @@ function buildTaskItems({ includeDone = false, includeSnoozed = false } = {}) {
     .filter(item => isDueDate(item.nextDate))
     .map(item => ({ id:`repurchase-${item.c.client}`, orderId:item.latest?.id || '', client:item.c.client, date:item.nextDate, type:'repurchase', title:item.c.client, reason:'客户复购提醒', detail:`应跟进 ${item.nextDate}`, value:item.nextDate, tag:'复购', tagClass:'tag-green', priority:4 }));
   return [...orderTasks, ...repurchaseTasks]
-    .filter(item => includeDone || !state.doneTasks[item.id])
+    .filter(item => includeDone || !state.doneTasks[item.doneKey || item.id])
     .filter(item => includeSnoozed || !snoozedTasks.has(item.id))
     .sort((a, b) => (a.priority - b.priority) || parseDate(a.date) - parseDate(b.date));
 }
@@ -10178,7 +10181,9 @@ function renderPasteAssistResults(analysis) {
       </div>
     `));
   }
-  if (Object.keys(analysis.extracted).length) {
+  // 币种是兜底的 USD，不算真的识别到了东西；只有它时按「没识别出内容」处理。
+  const meaningfulKeys = Object.keys(analysis.extracted).filter(key => key !== 'currency' || findCurrencyInText(analysis.text));
+  if (meaningfulKeys.length) {
     cards.push(`
       <div class="paste-result-card">
         <div class="paste-result-top">
@@ -10195,7 +10200,21 @@ function renderPasteAssistResults(analysis) {
       </div>
     `);
   }
-  el.innerHTML = cards.join('') || '<div class="muted">暂未识别到已有客户、订单或可填字段。</div>';
+  el.innerHTML = cards.join('') || `
+    <div class="paste-result-card paste-result-empty">
+      <div class="paste-result-top">
+        <div>
+          <div class="paste-result-title">没识别出可以填的内容</div>
+          <div class="paste-result-meta">本地识别只认得已有客户、订单号，以及金额、币种、产品、收款方式这类字段。新客户的聊天记录用 AI 识别更准，也可以直接往下手填。</div>
+        </div>
+        <span class="tag tag-gray">无结果</span>
+      </div>
+      <div class="paste-result-actions">
+        <button class="btn btn-small" type="button" data-paste-fill-manually>手动填写</button>
+        <button class="btn btn-primary btn-small" type="button" data-paste-run-ai>AI 识别</button>
+      </div>
+    </div>`;
+  if (!cards.length) el.scrollIntoView?.({ block:'nearest' });
 }
 function aiFailureDetail(error) {
   const message = String(error?.message || error || '').trim();
@@ -10262,6 +10281,18 @@ async function handleOrderPasteResultClick(e) {
   const openOrderBtn = e.target.closest('[data-paste-open-order]');
   const fillBtn = e.target.closest('[data-paste-fill-extracted]');
   const createComboBtn = e.target.closest('[data-paste-create-customer-order]');
+  if (e.target.closest('[data-paste-run-ai]')) {
+    await runAiPasteAnalysis();
+    return;
+  }
+  if (e.target.closest('[data-paste-fill-manually]')) {
+    const form = document.getElementById('orderForm');
+    const client = form?.elements.client;
+    document.querySelector('#orderModal .mnav [data-jump="1"]')?.click();
+    client?.closest('.order-section')?.scrollIntoView?.({ block:'start' });
+    client?.focus();
+    return;
+  }
   if (retryBtn) {
     await runAiPasteAnalysis();
     return;
@@ -13338,6 +13369,7 @@ function openOrderDetail(id) {
   setModalOpenState('orderDetailDrawer', true);
   resetModalScroll('#orderDetailDrawer');
   if (typeof uiDetailTab === 'function') uiDetailTab(uiDetailTab.current, true);
+  if (typeof uiDetailMarkClean === 'function') uiDetailMarkClean();
 }
 function openCustomerFromOrderDetail(name = '') {
   const clean = String(name || '').trim();
@@ -15204,7 +15236,8 @@ function handleTaskAction(actionName, row) {
     return;
   }
   if (actionName === 'done') {
-    state.doneTasks[id] = true;
+    const task = buildTaskItems({ includeDone:true, includeSnoozed:true }).find(item => item.id === id);
+    state.doneTasks[task?.doneKey || id] = true;
     saveState();
     render();
     if (document.getElementById('calendarTaskDrawer')?.classList.contains('open')) openCalendarTaskDrawer(selectedCalendarDate);
@@ -15703,6 +15736,7 @@ async function openNewOrderForCustomer(name = '') {
   });
   renderOrderClientAutofillSummary(customerDataForName(clean));
   document.getElementById('modalTitle').textContent = `给 ${clientDisplayName(clean)} 新建订单`;
+  if (typeof uiFormMarkClean === 'function') uiFormMarkClean(document.getElementById('orderForm'));
 }
 function customerChangeSummary(before, after) {
   const fields = [
@@ -16669,7 +16703,7 @@ async function softDeleteOrder(id, { closeModal = false } = {}) {
   if (!order) return;
   state.deletedOrders = [{ ...order, deletedAt: nowText(), logs: [{ time:nowText(), text:'订单已删除，移入已删除订单' }, ...(order.logs || [])] }, ...(state.deletedOrders || [])];
   state.orders = state.orders.filter(o => o.id !== id);
-  delete state.doneTasks[id];
+  Object.keys(state.doneTasks || {}).forEach(key => { if (key.includes(id)) delete state.doneTasks[key]; });
   if (closeModal) closeOrder();
   render();
   toast('订单已移入已删除订单', { undo:() => restoreOrder(id) });
@@ -18949,7 +18983,7 @@ document.getElementById('chartTo').addEventListener('change', () => {
 });
 document.getElementById('themeBtn').addEventListener('click', toggleTheme);
 document.getElementById('newOrderBtn').addEventListener('click', () => openOrder());
-document.getElementById('closeModalBtn').addEventListener('click', closeOrder);
+document.getElementById('closeModalBtn').addEventListener('click', () => uiCloseOrderGuarded());
 const pasteAnalyzeBtn = document.getElementById('pasteAssistAnalyzeBtn');
 const pasteClearBtn = document.getElementById('pasteAssistClearBtn');
 const pasteAiBtn = document.getElementById('pasteAssistAiBtn');
@@ -18966,7 +19000,7 @@ pasteAnalyzeBtn?.addEventListener('click', () => {
 pasteClearBtn?.addEventListener('click', clearPasteAssist);
 pasteAiBtn?.addEventListener('click', runAiPasteAnalysis);
 pasteResultsEl?.addEventListener('click', handleOrderPasteResultClick);
-document.getElementById('detailCloseBtn').addEventListener('click', closeOrderDetail);
+document.getElementById('detailCloseBtn').addEventListener('click', () => uiCloseDetailGuarded());
 document.getElementById('detailCustomerBtn').addEventListener('click', e => openCustomerFromOrderDetail(e.currentTarget.dataset.customer));
 document.getElementById('detailEditBtn').addEventListener('click', () => {
   const id = detailOrderId;
@@ -18995,7 +19029,7 @@ document.getElementById('orderDetailDrawer').addEventListener('click', e => {
     openOrderDetail(relatedOrderBtn.dataset.orderCustomerOrder);
     return;
   }
-  if (e.target.id === 'orderDetailDrawer') closeOrderDetail();
+  if (e.target.id === 'orderDetailDrawer') uiCloseDetailGuarded();
 });
 document.getElementById('trackingDetailCloseBtn')?.addEventListener('click', closeTrackingDetail);
 document.getElementById('trackingDetailDrawer')?.addEventListener('click', e => {
@@ -19227,17 +19261,17 @@ document.addEventListener('click', e => {
   const removeButton = e.target.closest('[data-remove-customer-value]');
   if (removeButton) removeButton.closest('[data-customer-extra-row]')?.remove();
 });
-document.getElementById('closeCustomerModalBtn').addEventListener('click', closeCustomerModal);
+document.getElementById('closeCustomerModalBtn').addEventListener('click', () => uiCloseCustomerGuarded());
 document.getElementById('customerDetailEditBtn').addEventListener('click', () => {
   setCustomerModalMode(true);
   document.getElementById('customerModalSub').textContent = '编辑客户档案';
   resetModalScroll('#customerModal');
 });
-document.getElementById('customerEditCancelBtn').addEventListener('click', () => openCustomerModal(editingCustomer, { viewOnly:true }));
+document.getElementById('customerEditCancelBtn').addEventListener('click', () => uiCancelCustomerEditGuarded());
 document.getElementById('customerNewOrderBtn').addEventListener('click', () => openNewOrderForCustomer(editingCustomer));
 document.getElementById('customerModal').addEventListener('click', async e => {
   if (e.target.id === 'customerModal') {
-    closeCustomerModal();
+    uiCloseCustomerGuarded();
     return;
   }
   const detailCopyBtn = e.target.closest('[data-copy-customer-detail]');
@@ -20116,10 +20150,16 @@ document.addEventListener('pointerdown', e => {
   btn.setPointerCapture?.(e.pointerId);
   uiStartHold(btn);
 });
-['pointerup', 'pointercancel', 'pointerleave'].forEach(type => document.addEventListener(type, e => {
+['pointerup', 'pointercancel'].forEach(type => document.addEventListener(type, e => {
   const btn = e.target.closest?.('[data-hold]');
   if (btn) uiCancelHold(btn);
 }, true));
+// 只有指针离开按钮本体才算放弃。按在「按住删除」文字上时，指针捕获会让文字 span 先收到 pointerleave，
+// 以前这一下就把按住取消了（手稍微一动就删不掉）。
+document.addEventListener('pointerleave', e => {
+  const btn = e.target.closest?.('[data-hold]');
+  if (btn && e.target === btn && !(e.relatedTarget && btn.contains(e.relatedTarget))) uiCancelHold(btn);
+}, true);
 document.addEventListener('keydown', e => {
   const btn = e.target.closest?.('[data-hold]');
   if (!btn || (e.key !== ' ' && e.key !== 'Enter')) return;
@@ -20207,10 +20247,12 @@ function uiNotifItems() {
   Object.entries(loadApiStatuses()).forEach(([kind, item]) => {
     if (item && item.ok === false) items.push({ id:`api-${kind}-${item.checkedAt || ''}`, kind:'error', title:`${apiStatusNames[kind] || kind} 接口异常`, sub:item.message || '检测失败', pill:'接口', time:item.checkedAt || '' });
   });
+  // 跟进 / 复购这类日常待办只留在待办列表里，通知面板只放需要立刻处理的：加急、收款、最晚发货、物流风险。
   buildTaskItems().forEach(task => {
     const risk = task.tag === '物流风险' || String(task.id || '').startsWith('logistics-risk-');
     const remind = ['urgent', 'payment', 'logistics'].includes(task.type);
-    items.push({ id:`task-${task.id}-${task.date || ''}`, kind:risk ? 'error' : 'info', tone:risk ? '' : remind ? 'warn' : '', title:task.title, sub:[task.reason, task.detail].filter(Boolean).join(' · '), pill:task.tag || '待办', orderId:task.orderId || '', time:task.date || '' });
+    if (!risk && !remind) return;
+    items.push({ id:`task-${task.id}`, kind:risk ? 'error' : 'info', tone:risk ? '' : 'warn', title:task.title, sub:[task.reason, task.detail].filter(Boolean).join(' · '), pill:task.tag || '待办', orderId:task.orderId || '', time:task.date || '' });
   });
   const since = Date.now() - 3 * 86400000;
   state.orders.filter(o => parseDate(o.updated) >= since).sort((a, b) => parseDate(b.updated) - parseDate(a.updated)).slice(0, 8).forEach(o => {
@@ -20491,14 +20533,20 @@ function uiStepNavSetup(modalId, formId) {
     form.scrollTo({ top:Math.max(0, target.offsetTop - form.offsetTop - 8), behavior:uiReduceMotion() ? 'auto' : 'smooth' });
   });
   // 识别结果填入、客户切换编辑模式等不会触发 input，用观察器兜底刷新进度。
-  let pending = 0;
-  new MutationObserver(() => {
+  let pending = 0, needBuild = false;
+  new MutationObserver(records => {
+    // 表单自己的 class 变了（客户 查看 → 编辑资料）要重建分区导航，否则导航还是空的、表单被挤进导航那一栏。
+    needBuild = needBuild || records.some(record => record.target === form && record.type === 'attributes');
     if (pending) return;
-    pending = requestAnimationFrame(() => { pending = 0; uiStepNavProgress(form); });
+    pending = requestAnimationFrame(() => {
+      pending = 0;
+      if (needBuild) uiStepNavBuild(form); else uiStepNavProgress(form);
+      needBuild = false;
+    });
   }).observe(form, { childList:true, subtree:true, attributes:true, attributeFilter:['class', 'style', 'hidden'] });
   const backdrop = document.getElementById(modalId);
   new MutationObserver(() => {
-    if (backdrop.classList.contains('open')) requestAnimationFrame(() => uiStepNavBuild(form));
+    if (backdrop.classList.contains('open')) requestAnimationFrame(() => { uiStepNavBuild(form); uiFormMarkClean(form); });
   }).observe(backdrop, { attributes:true, attributeFilter:['class'] });
 }
 function uiStepNavBuild(form) {
@@ -20574,6 +20622,64 @@ uiStepNavSetup('orderModal', 'orderForm');
 uiStepNavSetup('customerModal', 'customerForm');
 uiStepNavCloseIcons();
 document.getElementById('customerFooterCancelBtn')?.addEventListener('click', () => document.getElementById('closeCustomerModalBtn')?.click());
+// ===== 关闭保护：订单 / 客户弹窗和详情抽屉里有没保存的改动时，关闭、点遮罩、Esc 都先确认；没改动直接关。=====
+function uiFormFingerprint(form) {
+  if (!form) return '';
+  return JSON.stringify([...form.elements]
+    .filter(el => el.name && !['button', 'submit', 'reset', 'file'].includes(el.type))
+    .map(el => (el.type === 'checkbox' || el.type === 'radio') ? (el.checked ? 1 : 0) : el.value));
+}
+function uiFormMarkClean(form) { if (form) form._cleanFingerprint = uiFormFingerprint(form); }
+function uiFormDirty(form) { return !!form && form._cleanFingerprint !== undefined && uiFormFingerprint(form) !== form._cleanFingerprint; }
+function uiDetailMarkClean() {
+  const body = document.getElementById('orderDetailBody');
+  if (body) body._cleanFingerprint = JSON.stringify(uiDetailEditValues());
+}
+function uiDetailDirty() {
+  const body = document.getElementById('orderDetailBody');
+  return !!body && body._cleanFingerprint !== undefined && JSON.stringify(uiDetailEditValues()) !== body._cleanFingerprint;
+}
+async function uiConfirmDiscard(host, sub) {
+  if (host._discardPending) return false;
+  host._discardPending = true;
+  try {
+    const result = await appConfirm({ title:'放弃未保存的修改？', sub, message:'这里有还没保存的内容，关闭后就找不回来了。', confirmText:'放弃修改', cancelText:'继续编辑', danger:true });
+    return result.confirmed;
+  } finally { host._discardPending = false; }
+}
+async function uiCloseOrderGuarded() {
+  const form = document.getElementById('orderForm');
+  if (uiFormDirty(form) && !await uiConfirmDiscard(form, '关闭订单')) return;
+  closeOrder();
+}
+async function uiCloseCustomerGuarded() {
+  const form = document.getElementById('customerForm');
+  if (form?.classList.contains('customer-edit-mode') && uiFormDirty(form) && !await uiConfirmDiscard(form, '关闭客户资料')) return;
+  closeCustomerModal();
+}
+async function uiCancelCustomerEditGuarded() {
+  const form = document.getElementById('customerForm');
+  if (uiFormDirty(form) && !await uiConfirmDiscard(form, '取消编辑')) return;
+  openCustomerModal(editingCustomer, { viewOnly:true });
+}
+async function uiCloseDetailGuarded() {
+  const body = document.getElementById('orderDetailBody');
+  if (uiDetailDirty() && !await uiConfirmDiscard(body, '关闭订单详情')) return;
+  closeOrderDetail();
+}
+// Esc 关最上面那一层：确认框 → 客户弹窗 → 详情抽屉 → 订单弹窗（订阅页的弹窗有自己的处理）。
+// 用捕获阶段抢在通知面板、看板菜单等处理器前面看状态；自带 Esc 行为的输入框不碰。
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || e.defaultPrevented || e.isComposing) return;
+  if (e.target.matches?.('#customerPasteEditValue, #subsRateInput, [data-sub-opt-add] input, #confirmInput')) return;
+  if (typeof activeAppSelect !== 'undefined' && activeAppSelect) return;
+  if (document.querySelector('.client-menu.open, .board-menu') || document.getElementById('notifPanel')?.hidden === false) return;
+  const isOpen = id => document.getElementById(id)?.classList.contains('open');
+  if (isOpen('confirmModal')) { e.preventDefault(); document.getElementById('confirmCancelBtn')?.click(); return; }
+  if (isOpen('customerModal')) { e.preventDefault(); uiCloseCustomerGuarded(); return; }
+  if (isOpen('orderDetailDrawer')) { e.preventDefault(); uiCloseDetailGuarded(); return; }
+  if (isOpen('orderModal')) { e.preventDefault(); uiCloseOrderGuarded(); }
+}, true);
 // 新版 UI：工作台数字卡的趋势线、环比、待办分类和目标进度条（数据仍由 renderStats 计算）。
 function uiMonthShift(month, delta) {
   const [y, m] = String(month).split('-').map(Number);
@@ -20773,7 +20879,7 @@ function uiDetailPaidFull() {
   setTimeout(() => paid.classList.remove('ui-flash'), 600);
 }
 document.getElementById('detailSaveBtn')?.addEventListener('click', () => uiDetailSave());
-document.getElementById('detailCancelBtn')?.addEventListener('click', () => closeOrderDetail());
+document.getElementById('detailCancelBtn')?.addEventListener('click', () => uiCloseDetailGuarded());
 document.getElementById('detailDeleteBtn')?.addEventListener('hold-confirm', async () => {
   const id = detailOrderId;
   if (!id) return;

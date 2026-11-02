@@ -5283,7 +5283,16 @@ html[data-theme] .mbody .order-section:hover { border-color:var(--surface-border
 html[data-theme] .mbody .order-section-head { align-items:end; }
 html[data-theme] .mbody .order-section-title { font-size:15px; }
 html[data-theme] .mbody .order-section-sub { margin-top:2px; }
-html[data-theme] .mbody .order-paste-section .paste-assist { border:0; border-radius:14px; background:var(--surface-soft); }
+/* 粘贴识别分区扁平化：分区卡片本身就是容器，内层不再套一层底色卡片，也不重复标题（B 样式挪到左栏时仍显示自己的标题）。 */
+html[data-theme] .order-paste-section .paste-assist,
+html[data-theme][data-modal-style] .order-form .order-paste-section .paste-assist { padding:0; border:0; border-radius:0; background:transparent; gap:12px; }
+html[data-theme] .order-paste-section .paste-assist-head { display:none; }
+html[data-theme] .order-paste-section .paste-assist textarea { min-height:96px; border-radius:14px; border:1px solid var(--surface-border); background:var(--surface-soft); padding:12px 14px; line-height:1.55; }
+html[data-theme] .order-paste-section .paste-assist textarea:focus { border-color:var(--accent); background:var(--surface-bg); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent); }
+html[data-theme] #customerEditWorkspace .order-paste-section #customerPasteInput { min-height:72px; height:auto; padding:12px 14px; }
+html[data-theme] .order-paste-section .paste-assist.ai-reading::after { border-radius:14px; }
+html[data-theme] .order-paste-section .paste-results:empty { display:none; }
+html[data-theme] .order-paste-section:has(.paste-assist.ai-reading) .order-section-title { background:linear-gradient(90deg, var(--gray-500) 30%, var(--gray-900) 50%, var(--gray-500) 70%); background-size:200% 100%; -webkit-background-clip:text; background-clip:text; color:transparent; animation:uiSweep 1.8s linear infinite; }
 /* 新建订单精简模式：附件 / 交期 / 物流 / 备注 折叠，金额并入基础分区，点「展开更多」恢复。 */
 .order-form .order-section.is-folded { display:none !important; }
 .order-more-toggle { display:none; }
@@ -6403,7 +6412,7 @@ html[data-theme] .oc-r3 .board-card-amount.due { color:var(--s-amber); }
         <div class="order-section-head">
           <div>
             <div class="order-section-title">粘贴识别</div>
-            <div class="order-section-sub">整段粘贴聊天、报价或物流信息</div>
+            <div class="order-section-sub">整段粘贴聊天、报价或物流信息，本地检索后确认再填入表单</div>
           </div>
         </div>
         <div class="paste-assist">

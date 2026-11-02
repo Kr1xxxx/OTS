@@ -22,9 +22,10 @@ function extractFunction(name) {
 }
 
 const context = vm.createContext({});
+vm.runInContext(html.match(/const subscriptionRemindDays = [^;]+;/)[0].replace('const ', 'var '), context);
 [
   'subscriptionLocalDate', 'subscriptionDayNumber', 'subscriptionDateFromDay', 'subscriptionAddMonths',
-  'subscriptionCycle', 'subscriptionChargeDate', 'subscriptionCycleEvery', 'subscriptionCycleLabel', 'subscriptionChargeIndex', 'subscriptionSchedule', 'subscriptionSummary', 'subscriptionCompare', 'subscriptionWhen',
+  'subscriptionCycle', 'subscriptionChargeDate', 'subscriptionCycleEvery', 'subscriptionCycleLabel', 'subscriptionChargeIndex', 'subscriptionSchedule', 'subscriptionSummary', 'subscriptionCompare', 'subscriptionWhen', 'subscriptionRemindWindow',
   'subscriptionInitial'
 ].forEach(name => vm.runInContext(extractFunction(name), context));
 const call = (name, ...args) => context[name](...args);
@@ -57,8 +58,14 @@ assert.equal(today.paidThrough, '2026-04-18', 'paying today covers the subscript
 assert.equal(today.charges, 3, 'today’s charge counts as spent');
 assert.deepEqual({ ...call('subscriptionWhen', today) }, { cls:'red solid', text:'今天扣费' });
 
-assert.deepEqual({ ...call('subscriptionWhen', call('subscriptionSchedule', item({ startDate:'2026-01-25' }), '2026-03-18', 7.1)) }, { cls:'accent', text:'7天后扣费' });
+assert.deepEqual({ ...call('subscriptionWhen', call('subscriptionSchedule', item({ startDate:'2026-01-25' }), '2026-03-18', 7.1)) }, { cls:'amber', text:'7天后扣费' });
 assert.deepEqual({ ...call('subscriptionWhen', call('subscriptionSchedule', item({ startDate:'2026-01-26' }), '2026-03-18', 7.1)) }, { cls:'line', text:'8天后扣费' });
+assert.deepEqual({ ...call('subscriptionWhen', call('subscriptionSchedule', item({ startDate:'2026-01-21' }), '2026-03-18', 7.1)) }, { cls:'red', text:'3天后扣费' });
+// Manual renewals (most domains) count down to expiry and turn amber 30 days ahead.
+const manual = item({ startDate:'2025-04-10', cycleMonths:12, autoRenew:false });
+assert.deepEqual({ ...call('subscriptionWhen', call('subscriptionSchedule', manual, '2026-03-18', 7.1), manual) }, { cls:'amber', text:'23天后到期' });
+assert.deepEqual({ ...call('subscriptionWhen', call('subscriptionSchedule', manual, '2026-03-09', 7.1), manual) }, { cls:'line', text:'32天后到期' });
+assert.deepEqual({ ...call('subscriptionWhen', call('subscriptionSchedule', manual, '2026-04-09', 7.1), manual) }, { cls:'red', text:'明天到期' });
 
 const future = call('subscriptionSchedule', item({ startDate:'2026-04-02' }), '2026-03-18', 7.1);
 assert.equal(future.nextCharge, '2026-04-02', 'a future start is the first charge');

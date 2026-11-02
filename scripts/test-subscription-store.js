@@ -61,7 +61,16 @@ function storeTests() {
   expectInvalid(() => store.save({ ...sample, cycleUnit:'day', cycleCount:1.5 }), '扣费周期无效');
   expectInvalid(() => store.save({ ...sample, paymentMethod:'x'.repeat(41) }), '付款方式无效');
   expectInvalid(() => store.save({ ...sample, startDate:'2026-02-30' }), '开始日期无效');
-  expectInvalid(() => store.save({ ...sample, category:'影音' }), '分类无效');
+  expectInvalid(() => store.save({ ...sample, category:'' }), '类型无效');
+  expectInvalid(() => store.save({ ...sample, category:'x'.repeat(21) }), '类型无效');
+  expectInvalid(() => store.save({ ...sample, provider:'x'.repeat(41) }), '服务商无效');
+  // Types are free labels (custom ones stay on records after being deleted); the old name maps to the new one.
+  const domain = store.save({ ...sample, name:'example.com', category:'域名', provider:' Cloudflare ', autoRenew:false }).item;
+  assert.deepEqual([domain.category, domain.provider, domain.autoRenew], ['域名', 'Cloudflare', false]);
+  assert.equal(store.save({ ...domain, category:'工具效率', autoRenew:undefined }).item.category, '软件');
+  assert.equal(store.list().items.find(item => item.id === domain.id).autoRenew, true, 'auto-renew defaults to on');
+  assert.equal(store.save({ ...domain, category:'邮箱' }).item.category, '邮箱');
+  store.remove({ id:domain.id });
   expectInvalid(() => store.save({ ...sample, color:'red' }), '颜色无效');
   expectInvalid(() => store.save({ ...sample, status:'paused' }), '状态无效');
   expectInvalid(() => store.save({ ...sample, id:'../x' }), '续费项标识无效');
@@ -91,6 +100,11 @@ function storeTests() {
   expectInvalid(() => store.setOptions({ customCycles:[{ unit:'hour', count:1 }] }), '扣费周期无效');
   expectInvalid(() => store.setOptions({ customPaymentMethods:['  '] }), '付款方式无效');
   expectInvalid(() => store.setOptions({ customPaymentMethods:Array.from({ length:31 }, (_, i) => `卡${i}`) }), '自定义付款方式无效');
+  const typed = store.setOptions({ customCategories:['邮箱', '邮箱', 'VPS', ' 证书 '] });
+  assert.deepEqual(typed.customCategories, ['邮箱', '证书'], 'duplicates and built-in types are dropped');
+  assert.deepEqual(typed.customPaymentMethods, ['招行信用卡', 'Wise'], 'a call without a list keeps the saved one');
+  assert.deepEqual(store.list().customCategories, ['邮箱', '证书']);
+  expectInvalid(() => store.setOptions({ customCategories:['x'.repeat(21)] }), '类型无效');
   db.close();
 
   // A database created before custom cycles gets the new columns, and old rows stay monthly or yearly.
@@ -101,6 +115,7 @@ function storeTests() {
     INSERT INTO subscriptions VALUES('legacy-0001', '1Password', '', 35.88, 'USD', 12, '2022-05-18', '工具效率', '#2f6fde', 'active', '', 'x', 'x', '{}');`);
   const migrated = createSubscriptionStore(legacy).list().items[0];
   assert.deepEqual([migrated.cycleUnit, migrated.cycleCount, migrated.paymentMethod], ['month', 12, '']);
+  assert.deepEqual([migrated.category, migrated.provider, migrated.autoRenew], ['软件', '', true], 'old 工具效率 rows become 软件, auto-renew on');
   legacy.close();
 }
 
@@ -118,7 +133,7 @@ async function serverTests() {
   const empty = await request('/api/subscriptions');
   assert.deepEqual(empty.items, [], 'tables are created on first use in an existing database');
   assert.equal(empty.usdCnyRate, 7.1);
-  assert.deepEqual(empty.categories, ['工具效率', 'AI', '其他']);
+  assert.deepEqual(empty.categories, ['软件', 'AI', 'VPS', '域名', '云服务', '其他']);
 
   const saved = await request('/api/subscriptions/save', { method:'POST', body:{ item:sample } });
   assert.equal(saved.item.name, 'ChatGPT Plus');

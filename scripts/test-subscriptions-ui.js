@@ -77,12 +77,12 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     assert.match(await rows.nth(0).innerText(), /ChatGPT Plus[\s\S]*个人账号[\s\S]*AI[\s\S]*\$20\.00[\s\S]*月付 · ≈¥142\.00[\s\S]*今天扣费/);
     assert.match(await rows.nth(1).innerText(), /阿里云域名[\s\S]*其他[\s\S]*¥69\.00[\s\S]*年付[\s\S]*7天后扣费/);
     assert.deepEqual(await rows.locator('.subs-pill').evaluateAll(pills => pills.map(pill => pill.className)),
-      ['subs-pill red solid', 'subs-pill accent', 'subs-pill line']);
+      ['subs-pill red solid', 'subs-pill amber', 'subs-pill line']);
     assert.deepEqual(await rows.locator('.subs-ic').allInnerTexts(), ['Ch', '阿', '1P']);
     await page.waitForFunction(() => document.getElementById('subsHeroMonthly')?.getAttribute('aria-label') === '168.98');
     assert.equal(await page.locator('#subsHeroMonthly .subs-wh').count(), 5, 'every digit of 168.98 is a rolling strip');
     assert.equal(await page.locator('#subsHeroYear').innerText(), '一年约 ¥2,028 · 美元按 7.1 折算');
-    assert.match(await page.locator('#subsHeroSide').innerText(), /3 项续费[\s\S]*3 项自动续费 · 0 项已取消[\s\S]*未来 30 天要付 ¥211\.00 · 2 笔[\s\S]*7 天内扣费 2 项/);
+    assert.match(await page.locator('#subsHeroSide').innerText(), /3 项续费[\s\S]*3 项自动续费 · 0 项已取消[\s\S]*未来 30 天要付 ¥211\.00 · 2 笔[\s\S]*2 项快到续费日/);
 
     // Category filter with a sliding highlight, and in-page search.
     await page.locator('[data-sub-filter="AI"]').click();
@@ -93,7 +93,20 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
       const active = document.querySelector('[data-sub-filter="AI"]').getBoundingClientRect();
       return Math.abs(glide.left - active.left) < 1 && Math.abs(glide.width - active.width) < 1;
     });
-    assert.match(await page.locator('[data-sub-filter="工具效率"]').innerText(), /工具效率\s*1/);
+    // Old 工具效率 records show as 软件; only types in use get a filter button.
+    assert.match(await page.locator('[data-sub-filter="软件"]').innerText(), /软件\s*1/);
+    assert.equal(await page.locator('[data-sub-filter="VPS"]').count(), 0);
+    assert.equal(await page.locator('#subsList .subs-cat .subs-type use').first().getAttribute('href'), '#i-spark');
+
+    // Renewals due soon show up in the bell; clicking one opens that record.
+    await page.locator('#notifBtn').click();
+    const renewCards = page.locator('#notifList .notif-card[data-sub-id]:not([data-sub-id=""])');
+    await renewCards.first().waitFor();
+    assert.deepEqual((await renewCards.locator('b').allInnerTexts()).sort(), ['ChatGPT Plus 今天扣费 · 续费', '阿里云域名 7天后扣费 · 续费']);
+    await renewCards.filter({ hasText:'阿里云域名' }).click();
+    await page.waitForFunction(() => document.getElementById('subscriptionDrawer').classList.contains('open'));
+    assert.equal(await page.locator('#subscriptionDrawerTitle').innerText(), '阿里云域名');
+    await page.keyboard.press('Escape');
     await page.locator('[data-sub-filter="all"]').click();
     await page.locator('#subsSearch').fill('家庭');
     assert.deepEqual(await rows.locator('.subs-name').allInnerTexts(), ['1Password']);
@@ -192,7 +205,20 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     await paymentOpts.locator('[data-opt-value="招行信用卡"][aria-pressed="true"]').waitFor();
     assert.equal(await modal.locator('[data-sub-opt-add="payment"]').isHidden(), true);
     assert.deepEqual(store.list().customPaymentMethods, ['招行信用卡']);
-    await modal.locator('[data-sub-segment="category"] [data-value="AI"]').click();
+    // Type: built-in chips with icons plus a custom type; provider and manual renewal.
+    const typeOpts = modal.locator('[data-sub-opts="category"]');
+    assert.deepEqual(await typeOpts.locator('[data-opt-value]').allInnerTexts(), ['软件', 'AI', 'VPS', '域名', '云服务', '其他']);
+    await typeOpts.locator('[data-opt-add="category"]').click();
+    await modal.locator('[name="subCategoryCustom"]').fill('邮箱');
+    await modal.locator('[name="subCategoryCustom"]').press('Enter');
+    await typeOpts.locator('[data-opt-value="邮箱"][aria-pressed="true"]').waitFor();
+    assert.deepEqual(store.list().customCategories, ['邮箱']);
+    await typeOpts.locator('[data-opt-value="AI"]').click();
+    await modal.locator('#subscriptionProvider').fill('Anthropic');
+    await modal.locator('.subs-renew').click();
+    assert.equal(await page.locator('#subscriptionPreviewWhen').innerText(), '今天到期');
+    assert.match(await page.locator('#subscriptionAutoRenewText').innerText(), /手动续费/);
+    await modal.locator('.subs-renew').click();
     await modal.locator('[data-sub-color="#e0336f"]').click();
     assert.equal(await page.locator('#subscriptionCurrencySymbol').innerText(), '$');
     assert.equal(await page.locator('#subscriptionPreviewLogo').innerText(), 'Cl');
@@ -212,7 +238,9 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     assert.equal(await page.locator('#subscriptionDrawerTitle').innerText(), 'Claude Pro');
     await toasts.filter({ hasText:'Claude Pro 已添加' }).waitFor();
     assert.match(await page.locator('#subscriptionDrawerBody').innerText(), /付款方式\s+招行信用卡/);
-    assert.match(await rows.filter({ hasText:'Claude Pro' }).locator('.subs-cat').innerText(), /AI · 招行信用卡/);
+    assert.match(await rows.filter({ hasText:'Claude Pro' }).locator('.subs-cat').innerText(), /AI · Anthropic · 招行信用卡/);
+    assert.deepEqual([added.provider, added.autoRenew], ['Anthropic', true]);
+    assert.match(await page.locator('#subscriptionDrawerBody').innerText(), /服务商\s+Anthropic/);
     await page.keyboard.press('Escape');
     assert.equal(await drawer.getAttribute('aria-hidden'), 'true');
 

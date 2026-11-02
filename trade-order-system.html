@@ -5455,6 +5455,14 @@ html[data-theme] :is(.logistics-kpis > .logistics-kpi:first-child, .amount-kpi-b
 html[data-theme] :is(.logistics-kpis > .logistics-kpi:first-child strong, .amount-kpi-board > .report-stat:first-child .report-value) { color:#fff; }
 html[data-theme] :is(.logistics-kpis > .logistics-kpi:first-child, .amount-kpi-board > .report-stat:first-child)::after { content:''; position:absolute; right:-30px; bottom:-40px; width:140px; height:140px; border-radius:50%; border:22px solid oklch(100% 0 0 / .08); pointer-events:none; }
 html[data-theme] :is(.logistics-kpis > .logistics-kpi:not(:first-child), .amount-kpi-board > .report-stat:not(:first-child)) { background:radial-gradient(140px 90px at 100% 0%, color-mix(in oklab, var(--accent) 9%, transparent), transparent 70%), var(--surface-bg); }
+/* 看板列表头统一：第一行 圆点+列名 / 数量·金额（同一行右对齐），第二行 短副标题；四列结构和高度一致 */
+html[data-theme] .board-column-head { display:grid; grid-template-columns:minmax(0,1fr); gap:2px; padding:2px 4px 6px; }
+html[data-theme] .board-column-head > .board-column-top { display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0; }
+html[data-theme] .board-column-top .board-column-title { flex:0 1 auto; min-width:0; }
+html[data-theme] .board-column-top .board-column-meta { flex:none; margin-left:auto; white-space:nowrap; text-align:right; }
+html[data-theme] .board-column-head > .board-column-sub { display:block; padding-left:15px; font-size:11px; line-height:16px; height:16px; color:var(--gray-500); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+html[data-theme] .oc-next.empty { color:var(--gray-400); }
+html[data-theme] .oc-r3 .board-card-amount.due { color:var(--s-amber); }
 </style>
 </head>
 <body>
@@ -5523,7 +5531,7 @@ html[data-theme] :is(.logistics-kpis > .logistics-kpi:not(:first-child), .amount
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.104，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.104</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.105，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.105</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -13977,7 +13985,17 @@ function jumpToCustomerProfile(name) {
 }
 // 看板列顺序保持 报价 → 生产中 → 尾款 → 已发货（用户选择只加副标题）：定金单先到「尾款」列，付清后才进「生产中」。
 function boardColumnSubtitle(stage) {
-  return { production:'已付清 · 生产中', balance:'已收定金 · 生产中，等尾款再发货' }[stage] || '';
+  // 四列都有一行短副标题，表头结构和高度一致。
+  return { quote:'未收定金 · 待确认', production:'已付清 · 生产中', balance:'已收定金 · 等尾款', shipment:'已发出 · 跟进签收' }[stage] || '';
+}
+// 金额行右侧：有待收（报价阶段除外）就显示「待收 $X」，总额放到悬停提示里，卡片始终三行。
+function boardCardAmountHtml(o, balanceDue, cardSettings) {
+  const total = money(o.amount, o.currency);
+  if (balanceDue > 0 && o.stage !== 'quote') {
+    const due = money(balanceDue, o.currency);
+    return `<span class="board-card-amount${cardSettings.redDueAmount ? ' due' : ''}" title="总额 ${escapeAttr(total)} · 待收 ${escapeAttr(due)}">待收 ${due}</span>`;
+  }
+  return `<span class="board-card-amount" title="总额 ${escapeAttr(total)}">${total}</span>`;
 }
 function renderStats() {
   const active = state.orders.filter(o => !o.isDraft && !isSettledStage(o.stage));
@@ -14405,6 +14423,9 @@ function renderPipeline() {
   document.querySelectorAll('#boardProductFilter .segment-option').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.boardProduct === boardProductFilter);
   });
+  // 卡片统一高度：有一张卡写了下一步，所有卡都留这一行；待收并进金额行，不再多出一行。
+  const boardHasNext = state.orders.some(o => o.stage !== 'done' && String(o.next || '').trim()
+    && (boardProductFilter === 'all' || o.productType === boardProductFilter));
   const columns = stageDefs.filter(s => s.key !== 'done').map(s => {
     const orders = state.orders
       .filter(o => o.stage === s.key)
@@ -14415,8 +14436,11 @@ function renderPipeline() {
     return `
     <div class="board-column" data-stage="${s.key}">
       <div class="board-column-head">
-        <div class="board-column-title">${s.name}${boardColumnSubtitle(s.key) ? `<small class="board-column-sub" title="${escapeAttr(boardColumnSubtitle(s.key))}">${escapeAttr(boardColumnSubtitle(s.key))}</small>` : ''}</div>
-        <div class="board-column-meta"><span class="board-count">${orders.length}</span> · ${summaryMoney(amount, 'USD')}</div>
+        <div class="board-column-top">
+          <div class="board-column-title">${s.name}</div>
+          <div class="board-column-meta"><span class="board-count">${orders.length}</span> · ${summaryMoney(amount, 'USD')}</div>
+        </div>
+        <small class="board-column-sub" title="${escapeAttr(boardColumnSubtitle(s.key))}">${escapeAttr(boardColumnSubtitle(s.key))}</small>
       </div>
       <div class="board-card-list">
       ${orders.map((o, index) => {
@@ -14445,9 +14469,8 @@ function renderPipeline() {
             ${quick ? `<div class="oc-actions">${quick}</div>` : ''}
             <div class="oc-r1">${flag ? `<span class="oc-flag">${flag}</span>` : ''}${cardSettings.showLevelIcon ? renderLevelIcon(level) : ''}${cardSettings.showOrderNumber ? `<span class="oc-num">${escapeAttr(o.num)}</span>${cleanTracking(o.trackingNumber) ? '<span class="tracking-submitted-check" title="已提交运单" aria-label="已提交运单">✓</span>' : ''}` : ''}${status}${date}</div>
             <div class="board-card-title oc-client" title="${escapeAttr(clientDisplayName(o.client))}">${escapeAttr(clientDisplayName(o.client))}</div>
-            ${meta || cardSettings.showAmount ? `<div class="oc-r3"><span class="oc-meta">${meta}</span>${cardSettings.showAmount ? `<span class="board-card-amount">${money(o.amount, o.currency)}</span>` : ''}</div>` : ''}
-            ${cardSettings.showAmount && balanceDue > 0 ? `<div class="oc-sub ${cardSettings.redDueAmount ? 'due' : ''}">待收 ${money(balanceDue, o.currency)}</div>` : ''}
-            ${o.next ? `<div class="oc-next">${uiIcon('arrow')}<span>${escapeAttr(o.next)}</span></div>` : ''}
+            ${meta || cardSettings.showAmount ? `<div class="oc-r3"><span class="oc-meta">${meta}</span>${cardSettings.showAmount ? boardCardAmountHtml(o, balanceDue, cardSettings) : ''}</div>` : ''}
+            ${boardHasNext ? `<div class="oc-next${o.next ? '' : ' empty'}">${uiIcon('arrow')}<span>${o.next ? escapeAttr(o.next) : '未设下一步'}</span></div>` : ''}
           </article>
         `;
       }).join('') || '<div class="board-empty">暂无订单</div>'}

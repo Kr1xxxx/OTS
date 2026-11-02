@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// 订阅的二级菜单、分析子页和历史子页：数字按扣费周期推算，只读订阅数据。
+// 续费的二级菜单、分析子页和历史子页：数字按扣费周期推算，只读续费数据。
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -51,13 +51,13 @@ function seededStore() {
     await page.locator('.nav-item[data-page="subscriptions"]').click();
     await page.locator('#subsList .subs-row').first().waitFor();
     assert.equal(await sub.evaluate(el => el.classList.contains('open')), true);
-    assert.deepEqual(await sub.locator('.nav-sub-item').allInnerTexts(), ['订阅列表', '分析', '历史']);
-    assert.equal(await sub.locator('.nav-sub-item.active').innerText(), '订阅列表');
+    assert.deepEqual(await sub.locator('.nav-sub-item').allInnerTexts(), ['续费列表', '分析', '历史']);
+    assert.equal(await sub.locator('.nav-sub-item.active').innerText(), '续费列表');
 
     // Analysis: KPIs, 18 monthly bars, category and payment-method shares, top list.
     await sub.locator('[data-page="subs-analysis"]').click();
     await page.locator('#subsAnalysis .arc-metric').first().waitFor();
-    assert.equal(await page.locator('.page-title').innerText(), '订阅分析');
+    assert.equal(await page.locator('.page-title').innerText(), '续费分析');
     assert.equal(new URL(page.url()).hash, '#subs-analysis');
     assert.equal(await page.locator('.nav-item[data-page="subscriptions"]').getAttribute('class'), 'nav-item active', 'the parent item stays lit');
     assert.equal(await sub.locator('.nav-sub-item.active').innerText(), '分析');
@@ -125,7 +125,7 @@ function seededStore() {
     // History: newest month first, 12 months at a time, an ended subscription shows once.
     await sub.locator('[data-page="subs-history"]').click();
     await page.locator('#subsHistory .subs-h-row').first().waitFor();
-    assert.equal(await page.locator('.page-title').innerText(), '订阅历史');
+    assert.equal(await page.locator('.page-title').innerText(), '续费历史');
     assert.equal(await page.locator('#subsHistoryMeta').innerText(), '共 17 笔 · 合计 ¥1,902.99');
     const heads = page.locator('#subsHistory .subs-h-head b');
     assert.equal(await heads.count(), 12);
@@ -145,7 +145,7 @@ function seededStore() {
     await page.locator('#subsHistoryFilter [data-sub-history-filter="all"]').click();
     await page.locator('#subsHistory .subs-h-row', { hasText:'阿里云域名' }).click();
     await page.locator('.subs-drawer .subs-card').first().waitFor();
-    assert.equal(await page.locator('.page-title').innerText(), '订阅');
+    assert.equal(await page.locator('.page-title').innerText(), '续费');
     await page.keyboard.press('Escape');
 
     // Leaving the subscription pages closes the menu.

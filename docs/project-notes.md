@@ -2,7 +2,7 @@
 
 The root frontend is the sole authority. Source V3.88 is verified separately from production installation. This is the HTML/JavaScript application with a Swift native host, not the separate SwiftUI rewrite. Financial receivables are historical outstanding balances, not total order amounts. Deposit amount is not proof of receipt; received payment uses paidAmount.
 
-Personal subscriptions on the 订阅 page live in their own SQLite tables behind /api/subscriptions. Never move them into the saved order state: whole-state saves delete unknown keys, and the dashboard, reports, global search, export and import must not see them.
+Personal subscriptions on the 续费 page (code still calls it subscriptions) live in their own SQLite tables behind /api/subscriptions. Never move them into the saved order state: whole-state saves delete unknown keys, and the dashboard, reports, global search, export and import must not see them.
 
 Keep business data, attachments, backups, API keys and notification destinations out of Git. Use synthetic fixtures and isolated data directories. Notifications require explicit bot identity and idempotency. Shipping and settled-stage behavior are covered by regression tests.
 

@@ -1324,7 +1324,7 @@ function createBackup(force = false) {
 }
 
 function subscriptionStore() {
-  if (!database || storageMode !== 'sqlite') throw httpError(503, '订阅数据库暂不可用');
+  if (!database || storageMode !== 'sqlite') throw httpError(503, '续费数据库暂不可用');
   return createSubscriptionStore(database);
 }
 

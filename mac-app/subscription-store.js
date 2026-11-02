@@ -39,14 +39,14 @@ function cleanCycle(unit, count) {
   return { unit, count:value };
 }
 function cleanItem(input) {
-  if (!input || typeof input !== 'object' || Array.isArray(input)) fail('订阅内容无效');
+  if (!input || typeof input !== 'object' || Array.isArray(input)) fail('续费内容无效');
   const amount = Number(input.amount);
   if (!Number.isFinite(amount) || amount <= 0 || amount > 10000000) fail('金额无效');
   const status = oneOf(input.status ?? 'active', statuses, '状态');
   const extra = input.extra ?? {};
   if (!extra || typeof extra !== 'object' || Array.isArray(extra) || JSON.stringify(extra).length > 4000) fail('附加信息无效');
-  const id = input.id === undefined || input.id === '' ? crypto.randomUUID() : bounded(input.id, '订阅标识', 64);
-  if (!/^[A-Za-z0-9-]{8,64}$/.test(id)) fail('订阅标识无效');
+  const id = input.id === undefined || input.id === '' ? crypto.randomUUID() : bounded(input.id, '续费项标识', 64);
+  if (!/^[A-Za-z0-9-]{8,64}$/.test(id)) fail('续费项标识无效');
   const color = bounded(input.color ?? '#7747ff', '颜色', 7);
   if (!/^#[0-9a-fA-F]{6}$/.test(color)) fail('颜色无效');
   // Records saved before custom cycles only carry cycleMonths (1 or 12).
@@ -157,9 +157,9 @@ function createSubscriptionStore(db) {
       return { ok:true, item:fromRow(db.prepare('SELECT * FROM subscriptions WHERE id = ?').get(item.id)) };
     },
     remove(input = {}) {
-      const id = bounded(input.id, '订阅标识', 64);
+      const id = bounded(input.id, '续费项标识', 64);
       const deleted = Number(db.prepare('DELETE FROM subscriptions WHERE id = ?').run(id).changes);
-      if (!deleted) { const error = new Error('订阅不存在'); error.status = 404; throw error; }
+      if (!deleted) { const error = new Error('续费项不存在'); error.status = 404; throw error; }
       return { ok:true, deleted };
     },
     setRate(input = {}) {

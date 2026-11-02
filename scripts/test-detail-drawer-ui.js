@@ -111,6 +111,13 @@ const { chromium } = require('playwright');
     await page.clock.runFor(46000);
     assert.equal(await page.evaluate(()=>document.getElementById('appUpdateBtn').classList.contains('is-busy')),false,'update button stays busy after the native side ignored the click');
 
+    // The same update failure twice in a row (double click / menu + button) shows one toast, not two.
+    const updateToasts = await page.evaluate(()=>{
+      otsAppUpdateStatus({state:'error',message:'GitHub 测试失败'});
+      otsAppUpdateStatus({state:'error',message:'GitHub 测试失败'});
+      return [...document.querySelectorAll('#toast .toast-item')].filter(item=>item.textContent.includes('GitHub 测试失败')).length;
+    });
+    assert.equal(updateToasts,1,'identical update errors stacked two toasts');
     assert.equal(errors.length,0,errors.join('\n'));
     console.log('Detail drawer UI passed: payment edits move 报价/尾款 orders, note edits keep the stage (also after a 全款订单 was open), empty customer refused, update button recovers.');
   } finally { await browser.close(); }

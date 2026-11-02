@@ -95,7 +95,18 @@ const { chromium } = require('playwright');
     assert.deepEqual(heads.map(h=>h.stage),['quote','production','balance','shipment']);
     assert.match(heads.find(h=>h.stage==='balance').sub,/已收定金/);
     assert.match(heads.find(h=>h.stage==='production').sub,/已付清/);
-    assert.equal(heads.find(h=>h.stage==='quote').sub,'');
+    assert.ok(heads.every(h=>h.sub),'every column has a subtitle so the four heads share one structure');
+    const geo = await page.evaluate(()=>[...document.querySelectorAll('.board-column')].map(col=>{
+      const head=col.querySelector('.board-column-head').getBoundingClientRect();
+      const title=col.querySelector('.board-column-title').getBoundingClientRect();
+      const meta=col.querySelector('.board-column-meta').getBoundingClientRect();
+      return {h:Math.round(head.height),sameLine:Math.abs((title.top+title.height/2)-(meta.top+meta.height/2))<4,cards:[...col.querySelectorAll('.board-card')].map(c=>Math.round(c.getBoundingClientRect().height)),subs:col.querySelectorAll('.oc-sub').length};
+    }));
+    assert.ok(geo.every(g=>g.h===geo[0].h),`column heads share one height: ${geo.map(g=>g.h)}`);
+    assert.ok(geo.every(g=>g.sameLine),'count · amount stays on the title line');
+    const cardHeights=geo.flatMap(g=>g.cards);
+    assert.ok(cardHeights.every(h=>Math.abs(h-cardHeights[0])<=1),`board cards share one height: ${cardHeights}`);
+    assert.ok(geo.every(g=>g.subs===0),'no extra 待收 row on cards');
 
     // 4. Feishu checkbox remembers the last choice.
     await page.evaluate(()=>openOrder(''));

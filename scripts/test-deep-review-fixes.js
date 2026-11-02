@@ -158,8 +158,9 @@ async function pageTests() {
     await page.evaluate(() => { document.getElementById('newOrderBtn').focus(); openCalendarTaskDrawer(`${state.orders[0].createdAt}`); });
     assert.ok(await page.evaluate(() => document.getElementById('calendarTaskDrawer').classList.contains('open')), 'calendar task drawer did not open');
     {
-      await page.waitForTimeout(50);
-      assert.ok(await page.evaluate(() => document.getElementById('calendarTaskDrawer').contains(document.activeElement)), 'calendar task drawer did not take focus');
+      // 焦点在下一帧才移进抽屉；CI 机器忙时 50ms 不够，改成等到为止（最多 2 秒）。
+      const tookFocus = await page.waitForFunction(() => document.getElementById('calendarTaskDrawer').contains(document.activeElement), null, { timeout:2000 }).then(() => true, () => false);
+      assert.ok(tookFocus, 'calendar task drawer did not take focus');
       await page.keyboard.press('Escape');
       assert.equal(await page.evaluate(() => document.getElementById('calendarTaskDrawer').classList.contains('open')), false, 'Escape left the calendar task drawer open');
       assert.equal(await page.evaluate(() => document.activeElement?.id), 'newOrderBtn', 'focus did not return after closing the drawer');

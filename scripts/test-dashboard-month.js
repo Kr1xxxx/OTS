@@ -84,8 +84,8 @@ console.log('Dashboard month test passed: current-month default and manual selec
     await page.waitForFunction(()=>window.pendingSaveStatus?.().loaded);
     for(const [month,total] of [['2026-08',780],['2026-07',300],['all',1080]]) {
       await page.locator('#totalRange').selectOption(month,{force:true});
-      assert.equal(await page.locator('#statPayment').innerText(),'$410.0 USD','historical receivables must remain unchanged when switching amount months');
-      assert.equal(await page.locator('#statAmount').innerText(),`$${total.toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})} USD`,'order total must still follow the selected month');
+      assert.equal(await page.locator('#statPayment').innerText(),'$410','historical receivables must remain unchanged when switching amount months');
+      assert.equal(await page.locator('#statAmount').innerText(),`$${total.toLocaleString('en-US')}`,'order total must still follow the selected month');
       assert.match(await page.locator('#statPayment').locator('..').innerText(),/历史累计/);
     }
     const rawAmounts = await page.evaluate(()=>{
@@ -95,13 +95,13 @@ console.log('Dashboard month test passed: current-month default and manual selec
       renderStats();
       return {before,after:JSON.stringify(state.orders),ordinaryMoney:money(123.456,'USD')};
     });
-    assert.equal(await page.locator('#statAmount').innerText(),'$12,345.7 USD','Homepage USD total must show at most one fractional digit');
-    assert.equal(await page.locator('#statPayment').innerText(),'$12,245.7 USD','Homepage historical receivables must use the same display precision');
-    assert.equal(await page.locator('#statAmountSub').innerText(),'26/8 · 13 个订单','The homepage caption must say orders without the transaction qualifier');
+    assert.equal(await page.locator('#statAmount').innerText(),'$12,346','Homepage USD total uses the prototype whole-dollar format');
+    assert.equal(await page.locator('#statPayment').innerText(),'$12,246','Homepage historical receivables must use the same display precision');
+    assert.equal(await page.locator('#statAmountSub').innerText(),'13 单 · 草稿不计','The homepage caption follows the prototype: count + 草稿不计 (the month is in the label)');
     assert.equal(rawAmounts.before,rawAmounts.after,'Display rounding must not modify underlying order amounts');
     assert.equal(rawAmounts.ordinaryMoney,'$123.456 USD','Amounts outside the homepage retain their existing display precision');
     await page.evaluate(()=>{amountStatMode='paidRmb';renderStats();});
-    assert.equal(await page.locator('#statAmountSub').innerText(),'26/8 · 13 个订单','The alternate paid view must use the same shortened caption');
+    assert.equal(await page.locator('#statAmountSub').innerText(),'26/8 · 13 单','The paid view keeps the month because its label is 已收款');
     await page.evaluate(()=>{amountStatMode='totalUsd';renderStats();});
     for(const theme of ['light','dark']) {
       await page.evaluate(t=>applyTheme(t),theme);

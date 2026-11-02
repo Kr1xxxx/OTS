@@ -41,29 +41,29 @@ const { chromium } = require('playwright');
         for (const [surface,selector] of Object.entries(surfaces)) {
           await page.evaluate(name => {activeBusinessMonth='2026-10';setPage(name);},surface);
           await page.clock.fastForward(1000);
-          const amounts = await page.locator(selector).evaluateAll(nodes => nodes.filter(el => el.getBoundingClientRect().width > 0 && /\d USD/.test(el.textContent)).map(el => {
+          const amounts = await page.locator(selector).evaluateAll(nodes => nodes.filter(el => el.getBoundingClientRect().width > 0 && /[$¥]\d/.test(el.textContent)).map(el => {
             const style = getComputedStyle(el), box = el.getBoundingClientRect(), parent = el.parentElement.getBoundingClientRect();
             return {text:el.textContent.trim(),fits:el.scrollWidth <= el.clientWidth+1 && box.right <= parent.right+1,ellipsis:style.textOverflow==='ellipsis'};
           }));
           assert.ok(amounts.length,`${surface} must render synthetic monetary summaries`);
           for (const amount of amounts) {
-            assert.match(amount.text,/\d\.\d USD/,`${surface}: fixed one decimal: ${amount.text}`);
-            assert.doesNotMatch(amount.text,/\d\.\d{2,} USD/,`${surface}: excess precision`);
+            assert.match(amount.text,/\$\d[\d,]*/,`${surface}: prototype money format: ${amount.text}`);
+            assert.doesNotMatch(amount.text,/\$[\d,]+\.\d|\d USD/,`${surface}: summaries show whole dollars without the USD suffix: ${amount.text}`);
             assert.ok(amount.fits,`${surface} summary must fit at ${width}px in ${theme}: ${amount.text}`);
             assert.equal(amount.ellipsis,false,`${surface} summary must not ellipsize`);
           }
           if (surface === 'analysis') assert.equal(await page.evaluate(() => document.querySelector('.page.active')?.id),'page-amount','分析 now lives inside the 金额统计 page');
           if (surface === 'amount') {
-            assert.equal(await page.locator('#reportPaid').innerText(),'$4,567.9 USD');
-            assert.equal(await page.locator('#reportDue').innerText(),'$7,777.8 USD');
-            assert.equal(await page.locator('#reportOverdue').innerText(),'$0.0 USD');
+            assert.equal(await page.locator('#reportPaid').innerText(),'$4,568');
+            assert.equal(await page.locator('#reportDue').innerText(),'$7,778');
+            assert.equal(await page.locator('#reportOverdue').innerText(),'$0');
           }
           if (process.env.UI_SCREENSHOT && ['amount','analysis','customers'].includes(surface)) await page.screenshot({path:`${process.env.UI_SCREENSHOT}.${surface}.${theme}.${width}.png`,fullPage:true,animations:'disabled'});
         }
         await page.evaluate(() => openCustomerModal('Example Buyer',{viewOnly:true}));
-        const metrics = await page.locator('.customer-metric-card strong').evaluateAll(nodes => nodes.filter(el => /USD/.test(el.textContent)).map(el => ({text:el.textContent,fits:el.scrollWidth<=el.clientWidth+1,ellipsis:getComputedStyle(el).textOverflow==='ellipsis'})));
+        const metrics = await page.locator('.customer-metric-card strong').evaluateAll(nodes => nodes.filter(el => /\$\d/.test(el.textContent)).map(el => ({text:el.textContent,fits:el.scrollWidth<=el.clientWidth+1,ellipsis:getComputedStyle(el).textOverflow==='ellipsis'})));
         assert.equal(metrics.length,3);
-        for (const metric of metrics) { assert.match(metric.text,/\d\.\d USD/); assert.doesNotMatch(metric.text,/\d\.\d{2,} USD/); assert.ok(metric.fits); assert.equal(metric.ellipsis,false); }
+        for (const metric of metrics) { assert.doesNotMatch(metric.text,/\$[\d,]+\.\d|USD/); assert.ok(metric.fits); assert.equal(metric.ellipsis,false); }
         if (process.env.UI_SCREENSHOT) await page.locator('.customer-profile-metrics').screenshot({path:`${process.env.UI_SCREENSHOT}.profile.${theme}.${width}.png`,animations:'disabled'});
         await page.evaluate(() => closeCustomerModal());
       }
@@ -72,7 +72,7 @@ const { chromium } = require('playwright');
     await page.evaluate(() => setPage('order-list'));
     assert.ok((await page.locator('.order-table-money').allTextContents()).includes('$12,345.678 USD'),'Order amounts retain original precision');
     assert.deepEqual(await page.evaluate(() => ({money:money(123.456,'USD'),cost:formatAiCost(0.0001234567),tiny:formatAiCost(0.00000001),rate:ecbUsdRateForOrder({currency:'GBP',createdAt:'2026-10-16'},[{date:'2026-10-16',rates:{USD:1.23456789,GBP:1}}])})),{money:'$123.456 USD',cost:'USD 0.000123',tiny:'USD <0.000001',rate:1.23456789},'Detail, AI cost and exchange-rate precision are unchanged');
-    assert.deepEqual(await page.evaluate(() => [summaryMoney(100),summaryMoney(0),summaryMoney(12.04),rmbMoney(123.456)]),['$100.0 USD','$0.0 USD','$12.0 USD','¥123.5 RMB']);
+    assert.deepEqual(await page.evaluate(() => [summaryMoney(100),summaryMoney(0),summaryMoney(12.04),rmbMoney(123.456)]),['$100','$0','$12','¥123']);
     // Large totals must remain fully readable, not merely have fewer decimals.
     await page.evaluate(() => {state.orders[0].amount=1234567.891;state.orders[0].paidAmount=456789.123;state.performanceTargets['2026-10']=2000000.123;});
     for (const width of [1360,1100,768,390]) {
@@ -80,12 +80,12 @@ const { chromium } = require('playwright');
       for (const [surface,selector] of Object.entries(surfaces)) {
         await page.evaluate(name => {activeBusinessMonth='2026-10';setPage(name);},surface);
         await page.clock.fastForward(1000);
-        const overflow = await page.locator(selector).evaluateAll(nodes => nodes.filter(el => el.getBoundingClientRect().width>0 && /\d USD/.test(el.textContent) && (el.scrollWidth>el.clientWidth+1 || el.getBoundingClientRect().right>el.parentElement.getBoundingClientRect().right+1)).map(el => el.id || el.className || el.parentElement.className));
+        const overflow = await page.locator(selector).evaluateAll(nodes => nodes.filter(el => el.getBoundingClientRect().width>0 && /[$¥]\d/.test(el.textContent) && (el.scrollWidth>el.clientWidth+1 || el.getBoundingClientRect().right>el.parentElement.getBoundingClientRect().right+1)).map(el => el.id || el.className || el.parentElement.className));
         assert.deepEqual(overflow,[],`${surface}: million-scale summaries must not clip at ${width}px`);
       }
     }
     assert.equal(saves,0,'Read-only rendering must never save business data');
     assert.deepEqual(errors,[]);
-    console.log('Summary amounts UI passed: fixed one decimal, light/dark responsive layouts, unchanged detail/rate/AI precision, zero saves.');
+    console.log('Summary amounts UI passed: prototype whole-dollar format, light/dark responsive layouts, unchanged detail/rate/AI precision, zero saves.');
   } finally { await browser.close(); }
 })().catch(error => {console.error(error);process.exitCode=1;});

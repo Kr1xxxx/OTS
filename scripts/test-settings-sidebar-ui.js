@@ -77,7 +77,7 @@ const { chromium } = require('playwright');
     assert.match(await page.locator('#amountRangeNote').innerText(),/本月还没有正式订单/);
     assert.equal(await page.evaluate(()=>activeBusinessMonth),last,'analysis month falls back to the latest month with orders');
     assert.equal(await page.locator('#analysisFallbackNote').isHidden(),false);
-    assert.equal(await page.locator('#reportUsd').innerText(),'$1,800.0 USD','numbers follow the fallback month');
+    assert.equal(await page.locator('#reportUsd').innerText(),'$1,800','numbers follow the fallback month');
     // Touching the month stops the fallback.
     await page.locator('#businessNextBtn').click();
     await settle();

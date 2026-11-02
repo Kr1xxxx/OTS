@@ -64,8 +64,8 @@ function storeTests() {
   expectInvalid(() => store.save({ ...sample, category:'影音' }), '分类无效');
   expectInvalid(() => store.save({ ...sample, color:'red' }), '颜色无效');
   expectInvalid(() => store.save({ ...sample, status:'paused' }), '状态无效');
-  expectInvalid(() => store.save({ ...sample, id:'../x' }), '订阅标识无效');
-  expectInvalid(() => store.save(null), '订阅内容无效');
+  expectInvalid(() => store.save({ ...sample, id:'../x' }), '续费项标识无效');
+  expectInvalid(() => store.save(null), '续费内容无效');
 
   const removedCopy = store.list().items[0];
   assert.equal(store.remove({ id:removedCopy.id }).deleted, 1);

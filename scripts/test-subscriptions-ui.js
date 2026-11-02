@@ -71,7 +71,7 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     await rows.first().waitFor();
 
     // List: sorted by next charge, converted with the page rate, isolated from order data.
-    assert.equal(await page.locator('.page-title').innerText(), '订阅');
+    assert.equal(await page.locator('.page-title').innerText(), '续费');
     assert.equal(await page.locator('.nav-item[data-page="subscriptions"]').getAttribute('class'), 'nav-item active');
     assert.deepEqual(await rows.locator('.subs-name').allInnerTexts(), ['ChatGPT Plus', '阿里云域名', '1Password']);
     assert.match(await rows.nth(0).innerText(), /ChatGPT Plus[\s\S]*个人账号[\s\S]*AI[\s\S]*\$20\.00[\s\S]*月付 · ≈¥142\.00[\s\S]*今天扣费/);
@@ -82,7 +82,7 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     await page.waitForFunction(() => document.getElementById('subsHeroMonthly')?.getAttribute('aria-label') === '168.98');
     assert.equal(await page.locator('#subsHeroMonthly .subs-wh').count(), 5, 'every digit of 168.98 is a rolling strip');
     assert.equal(await page.locator('#subsHeroYear').innerText(), '一年约 ¥2,028 · 美元按 7.1 折算');
-    assert.match(await page.locator('#subsHeroSide').innerText(), /3 项订阅[\s\S]*3 项自动续费 · 0 项已取消[\s\S]*未来 30 天要付 ¥211\.00 · 2 笔[\s\S]*7 天内扣费 2 项/);
+    assert.match(await page.locator('#subsHeroSide').innerText(), /3 项续费[\s\S]*3 项自动续费 · 0 项已取消[\s\S]*未来 30 天要付 ¥211\.00 · 2 笔[\s\S]*7 天内扣费 2 项/);
 
     // Category filter with a sliding highlight, and in-page search.
     await page.locator('[data-sub-filter="AI"]').click();
@@ -122,8 +122,8 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     assert.equal(store.list().items.find(item => item.name === '1Password').endsOn, '2026-05-18');
     assert.match(await page.locator('#subsHeroSide').innerText(), /2 项自动续费 · 1 项已取消/);
     assert.equal(await rows.filter({ hasText:'1Password' }).locator('.subs-pill').innerText(), '61天后到期');
-    const cancelToast = toasts.filter({ hasText:'1Password 已取消订阅' });
-    assert.match(await cancelToast.innerText(), /2026-05-18 到期后不再续费/);
+    const cancelToast = toasts.filter({ hasText:'1Password 已停止续费' });
+    assert.match(await cancelToast.innerText(), /2026-05-18 到期后不再扣费/);
     await cancelToast.locator('.toast-undo').click();
     await drawer.locator('.subs-dh .subs-pill.green').waitFor();
     assert.deepEqual((({ status, endsOn }) => ({ status, endsOn }))(store.list().items.find(item => item.name === '1Password')), { status:'active', endsOn:'' });
@@ -164,9 +164,9 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     await page.locator('#subsAddBtn').click();
     const modal = page.locator('#subscriptionEditModal');
     await modal.locator('#subscriptionName').waitFor({ state:'visible' });
-    assert.equal(await modal.locator('#subscriptionSaveBtn').innerText(), '添加订阅');
+    assert.equal(await modal.locator('#subscriptionSaveBtn').innerText(), '添加');
     await modal.locator('#subscriptionSaveBtn').click();
-    assert.equal(await page.locator('#subscriptionEditError').innerText(), '请填写订阅名称');
+    assert.equal(await page.locator('#subscriptionEditError').innerText(), '请填写名称');
     assert.match(await modal.locator('#subscriptionName').evaluate(el => el.closest('.subs-field').className), /\berr\b/);
     await modal.locator('#subscriptionName').fill('Claude Pro');
     await modal.locator('#subscriptionSaveBtn').click();
@@ -240,7 +240,7 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     await drawer.locator('[data-sub-action="edit"]').click();
     await modal.locator('#subscriptionName').waitFor({ state:'visible' });
     assert.equal(await modal.locator('#subscriptionName').inputValue(), 'Claude Pro');
-    assert.equal(await page.locator('#subscriptionEditTitle').innerText(), '编辑订阅');
+    assert.equal(await page.locator('#subscriptionEditTitle').innerText(), '编辑续费项');
     assert.equal(await modal.locator('#subscriptionSaveBtn').innerText(), '保存');
     await page.keyboard.press('Escape');
     assert.equal(await modal.getAttribute('aria-hidden'), 'true');
@@ -253,8 +253,8 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     await page.locator('#searchInput').fill('ChatGPT');
     await page.waitForTimeout(250);
     assert.match(await page.locator('#globalSearchPanel').innerText(), /共 0 条结果/, 'subscription records are not search results');
-    await page.locator('#searchInput').fill('订阅');
-    await page.locator('#globalSearchPanel', { hasText:'订阅' }).waitFor();
+    await page.locator('#searchInput').fill('续费');
+    await page.locator('#globalSearchPanel', { hasText:'续费' }).waitFor();
     await page.keyboard.press('Escape');
     assert.equal(await page.evaluate(() => JSON.stringify(state).includes('ChatGPT')), false);
     assert.equal(counters.saves, 0, 'subscription changes must not save order data');
@@ -298,7 +298,7 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     await expiredRow.first().click();
     await expiredApp.page.locator('[data-sub-action="resubscribe"]').click();
     await expiredApp.page.locator('#subscriptionName').waitFor({ state:'visible' });
-    assert.equal(await expiredApp.page.locator('#subscriptionEditTitle').innerText(), '重新订阅');
+    assert.equal(await expiredApp.page.locator('#subscriptionEditTitle').innerText(), '重新续费');
     assert.equal(await expiredApp.page.locator('#subscriptionStart').inputValue(), '2026-03-18');
     await expiredApp.page.locator('#subscriptionSaveBtn').click();
     await expiredApp.page.waitForFunction(() => !document.getElementById('subscriptionEditModal').classList.contains('open'));

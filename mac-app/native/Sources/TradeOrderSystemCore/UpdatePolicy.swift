@@ -63,6 +63,37 @@ public struct UpdatePolicy: Sendable {
         URL(string: "https://api.github.com/repos/\(owner)/\(repository)/releases/latest")!
     }
 
+    /// Public release page. github.com/<repo>/releases/latest redirects to
+    /// .../releases/tag/<tag>; unlike the API it has no 60-per-hour anonymous quota.
+    public var latestReleasePageURL: URL {
+        URL(string: "https://github.com/\(owner)/\(repository)/releases/latest")!
+    }
+
+    /// Fallback when the API refuses (403/429 rate limit): read the tag from where the
+    /// release page redirected, and build the archive URL the workflow always uses.
+    /// No digest here, so the installer falls back to the uploaded .sha256 file.
+    public func releaseFromPage(_ finalURL: URL, architecture: String) -> (version: AppVersion, asset: UpdateAsset)? {
+        guard finalURL.scheme?.lowercased() == "https",
+              finalURL.host?.lowercased() == "github.com" else { return nil }
+        let prefix = "/\(owner)/\(repository)/releases/tag/".lowercased()
+        let path = finalURL.path
+        guard path.lowercased().hasPrefix(prefix) else { return nil }
+        let tag = String(path.dropFirst(prefix.count))
+        guard !tag.isEmpty, !tag.contains("/"), let version = AppVersion(tag) else { return nil }
+        let name = assetName(version: version, architecture: architecture)
+        guard let url = URL(string: "https://github.com/\(owner)/\(repository)/releases/download/\(tag)/\(name)"),
+              isTrustedDownload(url) else { return nil }
+        return (version, UpdateAsset(name: name, downloadURL: url, sha256: nil))
+    }
+
+    /// Message when both the API and the release page fail.
+    public static func checkFailureMessage(status: Int) -> String {
+        if status == 403 || status == 429 {
+            return "GitHub 暂时限制了查询次数（同一网络每小时约 60 次，开着代理/VPN 时更容易碰到），请过半小时左右再试。"
+        }
+        return "GitHub 返回状态 \(status)，请稍后再试。"
+    }
+
     /// Release workflow publishes TradeOrderSystem-<version>-mac-<arch>.zip.
     public func assetName(version: AppVersion, architecture: String) -> String {
         "TradeOrderSystem-\(version)-mac-\(architecture).zip"

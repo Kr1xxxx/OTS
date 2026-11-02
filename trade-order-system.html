@@ -5523,7 +5523,7 @@ html[data-theme] :is(.logistics-kpis > .logistics-kpi:not(:first-child), .amount
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.102，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.102</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.103，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.103</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -21711,6 +21711,7 @@ function uiBellRing(unread) {
 // Mac App 的原生更新器负责检查、下载、校验、替换并重启；网页里只发起请求，
 // 并把它回传的进度画在「更新」按钮上（不弹窗、不确认）。
 let appUpdateResetTimer = 0;
+let appUpdateLastError = { message: '', at: 0 };
 function requestAppUpdate() {
   const btn = document.getElementById('appUpdateBtn');
   if (btn?.classList.contains('is-busy')) return;
@@ -21750,7 +21751,12 @@ function otsAppUpdateStatus(status) {
     : status.state === 'available' ? `发现新版本 V${status.version || ''}，点一下直接下载并重启`
     : status.state === 'latest' ? `当前 V${status.version || ''} 已是最新版本`
     : '检查更新：有新版本会下载并自动重装重启';
-  if (status.state === 'error' && status.message) toast(`更新失败：${status.message}`);
+  // 同一条失败原因短时间内只提示一次（连点两下、菜单和按钮各点一次时不叠两张一样的提示）。
+  if (status.state === 'error' && status.message) {
+    const now = Date.now();
+    if (status.message !== appUpdateLastError.message || now - appUpdateLastError.at > 15000) toast(`更新失败：${status.message}`, { tone:'error' });
+    appUpdateLastError = { message: status.message, at: now };
+  }
   if (status.state === 'available' && typeof uiNotifLogEvent === 'function') uiNotifLogEvent({ id:`update-${status.version || ''}`, kind:'info', title:`发现新版本 V${status.version || ''}`, sub:'点右上角「更新」会自动下载、重装并重启', pill:'更新' });
   if (status.state === 'latest' || status.state === 'error') {
     appUpdateResetTimer = setTimeout(() => otsAppUpdateStatus({state:'idle'}), status.state === 'error' ? 6000 : 3000);

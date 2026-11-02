@@ -73,22 +73,14 @@ final class AppUpdater {
             defer { if !installing { self.busy = false } }
             do {
                 guard let current = currentVersion else { throw UpdateError.message("无法读取当前版本号。") }
-                var request = URLRequest(url: policy.latestReleaseURL, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
-                request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-                request.setValue("TradeOrderSystem/\(current)", forHTTPHeaderField: "User-Agent")
-                let (data, response) = try await URLSession.shared.data(for: request)
-                let status = (response as? HTTPURLResponse)?.statusCode ?? 0
-                if status == 404 { throw UpdateError.message("还没有发布任何版本。") }
-                guard (200...299).contains(status) else { throw UpdateError.message("GitHub 返回状态 \(status)，请稍后再试。") }
-                guard let release = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                      let tag = release["tag_name"] as? String,
-                      let latest = AppVersion(tag) else { throw UpdateError.message("无法读取最新版本信息。") }
+                let found = try await latestRelease(current: current)
+                let latest = found.version
 
                 guard latest > current else {
                     if userInitiated { report(.latest("\(current)")) }
                     return
                 }
-                guard let selected = policy.selectAsset(fromRelease: release, architecture: Self.architecture) else {
+                guard let asset = found.asset else {
                     throw UpdateError.message("V\(latest) 没有适用于这台 Mac（\(Self.architecture)）的安装包。")
                 }
                 guard userInitiated else {
@@ -97,11 +89,55 @@ final class AppUpdater {
                 }
                 try preflightInstallLocation()
                 installing = true
-                await install(selected.asset, version: latest)
+                await install(asset, version: latest)
             } catch {
                 if userInitiated { report(.failed(error.localizedDescription)) }
             }
         }
+    }
+
+    private func userAgent(_ current: AppVersion) -> String { "TradeOrderSystem/\(current)" }
+
+    /// API first (it carries asset digests). Anonymous API calls are capped at 60 per hour
+    /// per IP, and people behind a shared proxy/VPN hit 403 quickly, so on any refusal
+    /// read the version from the public release page instead.
+    private func latestRelease(current: AppVersion) async throws -> (version: AppVersion, asset: UpdateAsset?) {
+        var request = URLRequest(url: policy.latestReleaseURL, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        request.setValue(userAgent(current), forHTTPHeaderField: "User-Agent")
+        var status = 0
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            if status == 404 { throw UpdateError.message("还没有发布任何版本。") }
+            if (200...299).contains(status) {
+                guard let release = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let tag = release["tag_name"] as? String,
+                      let latest = AppVersion(tag) else { throw UpdateError.message("无法读取最新版本信息。") }
+                return (latest, policy.selectAsset(fromRelease: release, architecture: Self.architecture)?.asset)
+            }
+        } catch let error as UpdateError {
+            throw error
+        } catch {
+            // Network error on the API host: still worth trying github.com itself.
+        }
+        if let fallback = try? await latestFromReleasePage(current: current) {
+            return (fallback.version, fallback.asset)
+        }
+        throw UpdateError.message(status == 0 ? "连不上 GitHub，请检查网络后再试。" : UpdatePolicy.checkFailureMessage(status: status))
+    }
+
+    private func latestFromReleasePage(current: AppVersion) async throws -> (version: AppVersion, asset: UpdateAsset) {
+        var request = URLRequest(url: policy.latestReleasePageURL, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
+        request.httpMethod = "HEAD"
+        request.setValue(userAgent(current), forHTTPHeaderField: "User-Agent")
+        let (_, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode),
+              let finalURL = http.url,
+              let found = policy.releaseFromPage(finalURL, architecture: Self.architecture) else {
+            throw UpdateError.message("无法读取最新版本信息。")
+        }
+        return found
     }
 
     private func preflightInstallLocation() throws {

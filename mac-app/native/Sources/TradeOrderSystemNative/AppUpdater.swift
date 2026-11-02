@@ -98,40 +98,65 @@ final class AppUpdater {
 
     private func userAgent(_ current: AppVersion) -> String { "TradeOrderSystem/\(current)" }
 
-    /// API first (it carries asset digests). Anonymous API calls are capped at 60 per hour
-    /// per IP, and people behind a shared proxy/VPN hit 403 quickly, so on any refusal
-    /// read the version from the public release page instead.
+    /// Version checks skip the system proxy/VPN: a proxy exit IP is shared by many people,
+    /// so GitHub's anonymous API quota (60 per hour per IP) is often already spent there.
+    /// Short timeout, because if direct access fails we still go through the proxy.
+    private static let directSession: URLSession = {
+        let config = URLSessionConfiguration.ephemeral
+        config.connectionProxyDictionary = [
+            "HTTPEnable": 0,
+            "HTTPSEnable": 0,
+            "SOCKSEnable": 0,
+            "ProxyAutoConfigEnable": 0,
+            "ProxyAutoDiscoveryEnable": 0
+        ]
+        config.timeoutIntervalForRequest = 8
+        config.timeoutIntervalForResource = 15
+        config.requestCachePolicy = .reloadIgnoringLocalCacheData
+        return URLSession(configuration: config)
+    }()
+
+    /// Direct first, then the system proxy as configured.
+    private static var checkSessions: [URLSession] { [directSession, .shared] }
+
+    /// API first (it carries asset digests), direct then via proxy. If every API attempt is
+    /// refused or unreachable, read the version from the public release page, which has no quota.
     private func latestRelease(current: AppVersion) async throws -> (version: AppVersion, asset: UpdateAsset?) {
         var request = URLRequest(url: policy.latestReleaseURL, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         request.setValue(userAgent(current), forHTTPHeaderField: "User-Agent")
         var status = 0
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            status = (response as? HTTPURLResponse)?.statusCode ?? 0
-            if status == 404 { throw UpdateError.message("还没有发布任何版本。") }
-            if (200...299).contains(status) {
-                guard let release = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                      let tag = release["tag_name"] as? String,
-                      let latest = AppVersion(tag) else { throw UpdateError.message("无法读取最新版本信息。") }
-                return (latest, policy.selectAsset(fromRelease: release, architecture: Self.architecture)?.asset)
+        for session in Self.checkSessions {
+            do {
+                let (data, response) = try await session.data(for: request)
+                let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+                if code == 404 { throw UpdateError.message("还没有发布任何版本。") }
+                if (200...299).contains(code) {
+                    guard let release = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                          let tag = release["tag_name"] as? String,
+                          let latest = AppVersion(tag) else { throw UpdateError.message("无法读取最新版本信息。") }
+                    return (latest, policy.selectAsset(fromRelease: release, architecture: Self.architecture)?.asset)
+                }
+                status = code
+            } catch let error as UpdateError {
+                throw error
+            } catch {
+                // Unreachable this way (or unreadable reply): try the next route.
             }
-        } catch let error as UpdateError {
-            throw error
-        } catch {
-            // Network error on the API host: still worth trying github.com itself.
         }
-        if let fallback = try? await latestFromReleasePage(current: current) {
-            return (fallback.version, fallback.asset)
+        for session in Self.checkSessions {
+            if let fallback = try? await latestFromReleasePage(current: current, session: session) {
+                return (fallback.version, fallback.asset)
+            }
         }
         throw UpdateError.message(status == 0 ? "连不上 GitHub，请检查网络后再试。" : UpdatePolicy.checkFailureMessage(status: status))
     }
 
-    private func latestFromReleasePage(current: AppVersion) async throws -> (version: AppVersion, asset: UpdateAsset) {
+    private func latestFromReleasePage(current: AppVersion, session: URLSession) async throws -> (version: AppVersion, asset: UpdateAsset) {
         var request = URLRequest(url: policy.latestReleasePageURL, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
         request.httpMethod = "HEAD"
         request.setValue(userAgent(current), forHTTPHeaderField: "User-Agent")
-        let (_, response) = try await URLSession.shared.data(for: request)
+        let (_, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode),
               let finalURL = http.url,
               let found = policy.releaseFromPage(finalURL, architecture: Self.architecture) else {

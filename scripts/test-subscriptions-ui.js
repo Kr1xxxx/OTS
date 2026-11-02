@@ -179,11 +179,11 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     await modal.locator('#subscriptionName').waitFor({ state:'visible' });
     assert.equal(await modal.locator('#subscriptionSaveBtn').innerText(), '添加');
     await modal.locator('#subscriptionSaveBtn').click();
-    assert.equal(await page.locator('#subscriptionEditError').innerText(), '请填写名称');
+    await page.waitForFunction(text => document.getElementById('subscriptionEditError').textContent === text, '请填写名称', { timeout:5000 });
     assert.match(await modal.locator('#subscriptionName').evaluate(el => el.closest('.subs-field').className), /\berr\b/);
     await modal.locator('#subscriptionName').fill('Claude Pro');
     await modal.locator('#subscriptionSaveBtn').click();
-    assert.equal(await page.locator('#subscriptionEditError').innerText(), '请填写大于 0 的金额');
+    await page.waitForFunction(text => document.getElementById('subscriptionEditError').textContent === text, '请填写大于 0 的金额', { timeout:5000 });
     await modal.locator('#subscriptionAmount').fill('200');
     await modal.locator('[data-sub-segment="currency"] [data-value="USD"]').click();
     // Custom cycle: 每 2 周 is saved as a reusable option and selected.

@@ -4587,10 +4587,30 @@ html[data-theme] .stat-sub .down { color:var(--s-red); }
 html[data-theme] .kpi-bar { height:6px; margin-top:6px; background:var(--surface-soft); border-radius:999px; overflow:hidden; }
 html[data-theme] .kpi-bar i { display:block; height:100%; width:0; background:var(--accent); border-radius:inherit; transition:width .8s var(--ease-spring); }
 html[data-theme] #targetStat .stat-sub { order:4; }
-html[data-theme] .stats > .amount-stat .amount-stat-actions { position:absolute; right:14px; top:14px; margin:0; }
-html[data-theme] .stats > .amount-stat .stat-sub { padding-right:72px; }
-html[data-theme] .stats > .amount-stat .stat-head { padding-right:84px; min-width:0; }
-html[data-theme] .stats > .amount-stat .stat-head .stat-label { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+/* 数字卡字号对齐原型：标签 13px、大数字 28px/600/1.25、副行 12px/1.5，全部单行不换行 */
+html[data-theme] .stats > .stat { gap:4px; padding:18px 20px; }
+html[data-theme] .stats > .stat > .stat-label, html[data-theme] .stats .stat-head .stat-label { font-size:13px; font-weight:400; line-height:1.5; white-space:nowrap; }
+html[data-theme] .stats .stat-value, html[data-theme] .stats .amount-stat .stat-value, html[data-theme] .stats #statPayment { font-size:min(28px, 16cqw); font-weight:600; line-height:1.25; letter-spacing:-.03em; white-space:nowrap; overflow-wrap:normal; max-width:100%; margin:0; }
+html[data-theme] .stats .stat-sub, html[data-theme] .stats #statTargetSub { font-size:12px; line-height:1.5; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; overflow-wrap:normal; max-width:100%; }
+html[data-theme] .stats #statPayment.has-due { color:var(--gray-900); }
+html[data-theme] .stats > .stat:first-child #statPayment.has-due { color:#fff; }
+html[data-theme] #targetStat.has-goal #statTargetSub { display:none; }
+html[data-theme] #targetStat:not(.has-goal) .kpi-bar { display:none; }
+html[data-theme] #targetStat .kpi-bar { margin-top:8px; }
+/* 其他页面的数字卡（客户、金额统计、业绩目标、分析）跟工作台一样：大数字 28px/600/1.25，卡太窄时按卡宽缩小，不换行 */
+html[data-theme] .content .page :is(.report-stat, .target-metric, .business-kpi, .customer-summary-item) :is(#reportUsd, #reportPaid, #reportDue, #reportOverdue, #reportCount, #targetGoal, #targetActual, #targetGap, #targetOrderCount, #businessRevenue, #businessPaid, #businessDue, #businessAverage),
+html[data-theme] .content .page .customer-summary-item strong, html[data-theme] .content .page .customer-summary-item strong.summary-money { font-size:min(28px, 16cqw); font-weight:600; line-height:1.25; letter-spacing:-.03em; white-space:nowrap; overflow-wrap:normal; }
+html[data-theme] .content .page .target-metric :is(#targetGoal, #targetActual, #targetGap, #targetOrderCount) { font-size:min(28px, 20cqw); }
+html[data-theme] .content .page .target-metric :is(#targetGoal, #targetActual, #targetGap).is-long { font-size:min(28px, 15cqw); }
+/* 本月订单额：像原型一样把标签本身当下拉（标签 + 小箭头），选择器透明盖在标签上 */
+@media (min-width: 821px) {
+  html[data-theme] .stats > .amount-stat .stat-head { position:relative; display:inline-flex; min-width:0; align-items:center; gap:2px; align-self:flex-start; max-width:calc(100% - 76px); }
+  html[data-theme] .stats > .amount-stat .stat-head .stat-label { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+  html[data-theme] .stats > .amount-stat .stat-head::after { content:''; flex:none; width:6px; height:6px; margin:0 4px 3px 6px; border-right:1.5px solid currentColor; border-bottom:1.5px solid currentColor; color:var(--gray-500); transform:rotate(45deg); pointer-events:none; }
+  html[data-theme] .stats > .amount-stat .amount-stat-actions { position:absolute; left:0; top:0; width:100%; height:100%; max-width:none; z-index:2; margin:0; display:block; }
+  html[data-theme] .stats > .amount-stat .amount-stat-actions :is(.app-select, select, .app-select-button) { width:100%; height:100%; min-height:0; opacity:0; cursor:pointer; }
+  html[data-theme] .stats > .amount-stat .kpi-spark { top:16px; right:14px; bottom:auto; }
+}
 
 /* 看板标题栏 */
 html[data-theme] .board-panel > .section-head { flex-wrap:wrap; gap:12px; }
@@ -5604,7 +5624,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.109，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.109</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.110，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.110</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -5642,15 +5662,15 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
         <div class="stat amount-stat">
           <div class="stat-head">
             <div class="stat-label" id="statAmountLabel">订单总额</div>
+            <div class="amount-stat-actions">
+              <select class="inline-select amount-range-select" id="totalRange" aria-label="订单额统计月份">
+                <option value="all">全部</option>
+              </select>
+            </div>
           </div>
           <span class="kpi-spark" id="statSpark" aria-hidden="true"></span>
           <div class="stat-value" id="statAmount">$0</div>
           <div class="stat-sub" id="statAmountSub">按订单月份汇总 USD 订单</div>
-          <div class="amount-stat-actions">
-            <select class="inline-select amount-range-select" id="totalRange">
-              <option value="all">全部</option>
-            </select>
-          </div>
         </div>
         <div class="stat"><div class="stat-label">待收款</div><div class="stat-value" id="statPayment">$0</div><div class="stat-sub" id="statPaymentSub">USD · 历史累计待收款</div></div>
         <div class="stat clickable" id="todayTasksStat" role="button" tabindex="0"><div class="stat-label">今日待办</div><div class="stat-value" id="statTasks">0</div><div class="stat-sub" id="statTasksSub">按产品周期提醒</div></div>
@@ -8219,7 +8239,8 @@ function money(n, code = 'USD', maximumFractionDigits = 3) {
 // Summary display only: never round stored values, individual orders, rates or API costs.
 function summaryMoney(n, code = 'USD') {
   const c = currencyDef(code);
-  return `${c.symbol}${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits:1, maximumFractionDigits:1 })} ${c.code}`;
+  // 原型格式：汇总金额只写币种符号 + 整数（$82,620），不带小数和币种代码；明细金额仍用 money() 保留原精度。
+  return `${c.symbol}${Math.round(Number(n || 0)).toLocaleString('en-US')}`;
 }
 function formatBytes(value = 0) {
   const bytes = Number(value || 0);
@@ -8986,7 +9007,7 @@ function usdDueTotal(orders) {
 }
 let usdToRmbRate = defaultExchangeSettings.fallbackRate;
 function rmbMoney(value) {
-  return `¥${Number(value || 0).toLocaleString('zh-CN', { minimumFractionDigits:1, maximumFractionDigits:1 })} RMB`;
+  return `¥${Math.round(Number(value || 0)).toLocaleString('en-US')}`;
 }
 function getExchangeSettings() {
   state.exchangeSettings = normalizeExchangeSettings(state.exchangeSettings);
@@ -14102,13 +14123,13 @@ function renderStats() {
   if (amountStatMode === 'paidRmb') {
     amountLabel.textContent = '已收款';
     amountValue.textContent = rmbMoney(usdPaidTotalRmb(totalOrders));
-    amountSub.textContent = `${rangeText} · ${totalOrders.length} 个订单`;
+    amountSub.textContent = `${rangeText} · ${totalOrders.length} 单`;
   } else {
     // 原型文案：当月叫「本月订单额」，别的月份写月份，全部范围叫「订单总额」。
     const currentMonth = normalizeMonth(new Date().toISOString());
     amountLabel.textContent = totalRange === 'all' ? '订单总额' : totalRange === currentMonth ? '本月订单额' : `${Number(totalRange.slice(5))} 月订单额`;
     amountValue.textContent = summaryMoney(usdTotal(totalOrders), 'USD');
-    amountSub.textContent = `${rangeText} · ${totalOrders.length} 个订单`;
+    amountSub.textContent = `${totalOrders.length} 单 · 草稿不计`;
   }
   amountValue.classList.toggle('is-paid-mode', amountStatMode === 'paidRmb');
   const paymentTotal = usdDueTotal(state.orders.filter(o => !o.isDraft && orderAmountValue(o) > 0));
@@ -14120,7 +14141,8 @@ function renderStats() {
   targetValue.textContent = targetGoal ? `${currentTargetRate}%` : '未设';
   targetValue.classList.toggle('has-target', Boolean(targetGoal));
   targetValue.classList.toggle('is-achieved', Boolean(targetGoal) && currentTargetRate >= 100);
-  document.getElementById('statTargetSub').textContent = `${shortMonthLabel(targetMonth)} · ${summaryMoney(targetActual, 'USD')} / ${targetGoal ? summaryMoney(targetGoal, 'USD') : '未设置目标'}`;
+  document.getElementById('statTargetSub').textContent = targetGoal ? `已完成 ${summaryMoney(targetActual, 'USD')}` : `点这里设置 ${Number(targetMonth.slice(5))} 月目标`;
+  document.getElementById('targetStat')?.classList.toggle('has-goal', Boolean(targetGoal));
   const dashboardProgress = document.getElementById('dashboardTargetProgress');
   const dashboardTargetText = document.getElementById('dashboardTargetText');
   if (dashboardProgress) dashboardProgress.style.width = targetGoal ? `${Math.min(100, targetRate(targetActual, targetGoal))}%` : '0%';
@@ -14329,6 +14351,8 @@ function renderPerformanceTargets() {
   const gapLabel = document.getElementById('targetGapLabel');
   if (gapLabel) gapLabel.textContent = over ? '超出' : '差额';
   document.getElementById('targetOrderCount').textContent = orders.length;
+  // 百万级金额（$1,234,568）字数多，卡又窄，单独缩小一档，避免溢出。
+  ['targetGoal', 'targetActual', 'targetGap'].forEach(id => { const el = document.getElementById(id); el.classList.toggle('is-long', el.textContent.length > 8); });
   document.getElementById('targetMonthBadge').textContent = `${Number(month.slice(5))} 月`;
   const ring = document.getElementById('targetProgress');
   ring.setAttribute('stroke-dasharray', `${goal ? Math.min(100, rate) : 0} 100`);
@@ -21577,7 +21601,7 @@ function uiDashboardKpis() {
     const now = monthTotal(month), before = monthTotal(uiMonthShift(month, -1));
     if (before > 0) {
       const pct = Math.round((now - before) / before * 100);
-      amountSub.insertAdjacentHTML('afterbegin', `<span class="${pct >= 0 ? 'up' : 'down'}">比上月 ${pct >= 0 ? '+' : ''}${pct}%</span> · `);
+      amountSub.insertAdjacentHTML('afterbegin', `<span class="${pct >= 0 ? 'up' : 'down'}">比 ${Number(uiMonthShift(month, -1).slice(5))} 月 ${pct >= 0 ? '+' : ''}${pct}%</span> · `);
     }
   }
   const dueOrders = state.orders.filter(o => !o.isDraft && orderDueValue(o) > 0);

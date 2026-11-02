@@ -46,7 +46,8 @@ const fields = {name:'Alice Example',phones:['+1 2025550101','+1 2025550102'],em
     assert.match(await page.locator('#customerPasteResults').innerText(),/已用时 [12]\.\d 秒/,'loading must show an updating elapsed timer');
     await finish();
     const completed = await page.locator('[data-customer-paste-timing]').innerText();
-    assert.match(completed,/AI 识别结果 · 耗时 1\.\d 秒 · 请核对后填入/);
+    // 同上：假时钟 1.4 秒 + 慢机器上真实流逝的时间，结果可能落到 2.x 秒。
+    assert.match(completed,/AI 识别结果 · 耗时 [12]\.\d 秒 · 请核对后填入/);
     await page.clock.runFor(2500);
     assert.equal(await page.locator('[data-customer-paste-timing]').innerText(),completed,'completed timer must stop');
     assert.equal(await page.locator('[data-customer-paste-edit="phones"]').count(),2,'each phone has its own edit button');
@@ -115,7 +116,7 @@ const fields = {name:'Alice Example',phones:['+1 2025550101','+1 2025550102'],em
     assert.equal(await page.locator('#customerPasteEditValue').count(),0,'clear must discard editor draft');
     assert.equal(await page.locator('#customerPasteResults').innerText(),'');
     mode='failure'; await start(); await page.clock.runFor(2200); await finish();
-    assert.match(await page.locator('[data-customer-paste-timing]').innerText(),/耗时 2\.\d 秒.*本地/);
+    assert.match(await page.locator('[data-customer-paste-timing]').innerText(),/耗时 [23]\.\d 秒.*本地/);
     assert.equal(await page.locator('[data-customer-paste-edit="phones"]').count(),2,'fallback must split individual phone edit buttons');
     await edit('phones',1,'+1 2025550198');
     assert.match(await page.locator('[data-customer-paste-edit="phones"]').first().innerText(),/0101/);

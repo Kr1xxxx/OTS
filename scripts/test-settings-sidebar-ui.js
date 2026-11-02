@@ -116,7 +116,8 @@ const { chromium } = require('playwright');
     await page.locator('#orderForm [name="client"]').fill('Carl');
     await page.locator('#orderForm [name="client"]').press('Escape');
     await page.locator('#orderForm [name="amount"]').fill('500');
-    await page.evaluate(()=>upsertOrder(document.getElementById('orderForm')));
+    // 只触发保存，不把 upsertOrder 的 promise 交回 Playwright（macOS 上偶发 "Resulting promise was garbage collected"）；下一行等订单真的进了 state。
+    await page.evaluate(()=>{ upsertOrder(document.getElementById('orderForm')); });
     await page.waitForFunction(()=>state.orders.some(o=>o.client==='Carl'));
     await page.evaluate(()=>closeOrder());
     await page.evaluate(()=>openOrder(''));

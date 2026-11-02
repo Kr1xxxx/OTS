@@ -98,7 +98,7 @@ function seededStore() {
     const category = page.locator('#subsArcCategory');
     await page.waitForTimeout(600);
     assert.match(await category.locator('.arc-center').innerText(), /每月合计\s*¥168\.98\s*3 项/);
-    assert.match(await category.locator('.arc-legend').innerText(), /工具效率\s*1 项\s*¥21\.23\s*13%\s*AI\s*1 项\s*¥142\.00\s*84%\s*其他\s*1 项\s*¥5\.75\s*3%/);
+    assert.match(await category.locator('.arc-legend').innerText(), /软件\s*1 项\s*¥21\.23\s*13%\s*AI\s*1 项\s*¥142\.00\s*84%\s*其他\s*1 项\s*¥5\.75\s*3%/);
     await category.locator('.arc-row[data-key="AI"]').hover();
     await page.waitForTimeout(600);
     assert.match(await category.locator('.arc-center').innerText(), /AI\s*¥142\.00\s*占 84%/);
@@ -130,12 +130,12 @@ function seededStore() {
     const heads = page.locator('#subsHistory .subs-h-head b');
     assert.equal(await heads.count(), 12);
     assert.deepEqual((await heads.allInnerTexts()).slice(0, 3), ['2026年3月', '2026年2月', '2026年1月']);
-    assert.match(await page.locator('#subsHistory .subs-h-month').first().innerText(), /2026年3月\s*1 笔 · ¥142\.00[\s\S]*18\s*3月 · 周三[\s\S]*ChatGPT Plus\s*第 5 次扣费 · 月付 · 信用卡\s*\$20\.00\s*≈¥142\.00/);
+    assert.match(await page.locator('#subsHistory .subs-h-month').first().innerText(), /2026年3月\s*1 笔 · ¥142\.00[\s\S]*18\s*3月 · 周三[\s\S]*ChatGPT Plus\s*第 5 次扣费 · AI · 月付 · 信用卡\s*\$20\.00\s*≈¥142\.00/);
     assert.match(await page.locator('#subsHistory .subs-h-month').nth(2).innerText(), /Spotify\s*已取消，到期停用\s*已到期/);
     await capture(page, 'history', { fullPage:true });
     await page.locator('[data-subs-history-more]').click();
     assert.equal(await heads.count(), 15);
-    assert.match(await page.locator('#subsHistory .subs-h-month').last().innerText(), /2022年5月[\s\S]*1Password\s*首次扣费 · 年付\s*\$35\.88/);
+    assert.match(await page.locator('#subsHistory .subs-h-month').last().innerText(), /2022年5月[\s\S]*1Password\s*首次扣费 · 软件 · 年付\s*\$35\.88/);
     assert.equal(await page.locator('[data-subs-history-more]').count(), 0);
     await page.locator('#subsHistoryFilter [data-sub-history-filter="AI"]').click();
     assert.equal(await page.locator('#subsHistoryMeta').innerText(), '共 5 笔 · 合计 ¥710.00');

@@ -3,7 +3,10 @@ const crypto = require('node:crypto');
 
 // Personal subscriptions live only in these two tables. Orders, reports, search and the JSON
 // data file never read them; the hourly SQLite backup copies them with the rest of the database.
-const categories = ['工具效率', 'AI', '其他'];
+// Built-in types, each with its own icon and color on the page; the user can add their own.
+const categories = ['软件', 'AI', 'VPS', '域名', '云服务', '其他'];
+// Types renamed when the page grew from software subscriptions to all renewals.
+const legacyCategories = { 工具效率:'软件' };
 const currencies = ['CNY', 'USD'];
 // A billing cycle is a count of days or months; weeks are stored as 7 days and years as 12 months.
 const cycleUnits = { day:3650, month:120 };
@@ -60,7 +63,11 @@ function cleanItem(input) {
     cycleCount:cycle.count,
     paymentMethod:bounded(input.paymentMethod, '付款方式', 40, false),
     startDate:isoDate(input.startDate, '开始日期'),
-    category:oneOf(input.category, categories, '分类'),
+    // Any short label: a custom type deleted later stays on the records that used it.
+    category:legacyCategories[input.category] || bounded(input.category, '类型', 20),
+    provider:bounded(input.provider, '服务商', 40, false),
+    // Off for things renewed by hand, such as most domains; those are reminded earlier.
+    autoRenew:input.autoRenew !== false,
     color:color.toLowerCase(),
     status,
     // A cancelled subscription keeps running until the charge date it would have renewed on.
@@ -74,6 +81,7 @@ function fromRow(row) {
   return {
     id:row.id, name:row.name, note:row.note, amount:row.amount, currency:row.currency,
     cycleUnit:row.cycle_unit, cycleCount:row.cycle_months, paymentMethod:row.payment_method, startDate:row.start_date, category:row.category, color:row.color,
+    provider:row.provider || '', autoRenew:row.auto_renew !== 0,
     status:row.status, endsOn:row.ends_on, createdAt:row.created_at, updatedAt:row.updated_at, extra
   };
 }
@@ -105,6 +113,9 @@ function createSubscriptionStore(db) {
   const columns = db.prepare('PRAGMA table_info(subscriptions)').all().map(column => column.name);
   if (!columns.includes('cycle_unit')) db.exec("ALTER TABLE subscriptions ADD COLUMN cycle_unit TEXT NOT NULL DEFAULT 'month'");
   if (!columns.includes('payment_method')) db.exec("ALTER TABLE subscriptions ADD COLUMN payment_method TEXT NOT NULL DEFAULT ''");
+  if (!columns.includes('provider')) db.exec("ALTER TABLE subscriptions ADD COLUMN provider TEXT NOT NULL DEFAULT ''");
+  if (!columns.includes('auto_renew')) db.exec('ALTER TABLE subscriptions ADD COLUMN auto_renew INTEGER NOT NULL DEFAULT 1');
+  for (const [from, to] of Object.entries(legacyCategories)) db.prepare('UPDATE subscriptions SET category = ? WHERE category = ?').run(to, from);
   const setting = key => db.prepare('SELECT value FROM subscription_settings WHERE key = ?').get(key)?.value;
   const writeSetting = (key, value) => db.prepare(`INSERT INTO subscription_settings(key, value) VALUES(?, ?)
     ON CONFLICT(key) DO UPDATE SET value = excluded.value`).run(key, value);
@@ -113,7 +124,8 @@ function createSubscriptionStore(db) {
     try { saved = JSON.parse(setting('options') || '{}'); } catch (_) {}
     return {
       customCycles:Array.isArray(saved.customCycles) ? saved.customCycles : [],
-      customPaymentMethods:Array.isArray(saved.customPaymentMethods) ? saved.customPaymentMethods : []
+      customPaymentMethods:Array.isArray(saved.customPaymentMethods) ? saved.customPaymentMethods : [],
+      customCategories:Array.isArray(saved.customCategories) ? saved.customCategories : []
     };
   };
   const usdCnyRate = () => {
@@ -133,15 +145,15 @@ function createSubscriptionStore(db) {
       const restoredAt = typeof input.createdAt === 'string' && !Number.isNaN(Date.parse(input.createdAt)) ? input.createdAt : '';
       const createdAt = previous?.created_at || restoredAt || now;
       db.prepare(`
-        INSERT INTO subscriptions(id, name, note, amount, currency, cycle_months, cycle_unit, payment_method, start_date, category, color, status, ends_on, created_at, updated_at, extra_json)
-        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO subscriptions(id, name, note, amount, currency, cycle_months, cycle_unit, payment_method, start_date, category, provider, auto_renew, color, status, ends_on, created_at, updated_at, extra_json)
+        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           name = excluded.name, note = excluded.note, amount = excluded.amount, currency = excluded.currency,
           cycle_months = excluded.cycle_months, cycle_unit = excluded.cycle_unit, payment_method = excluded.payment_method, start_date = excluded.start_date, category = excluded.category,
-          color = excluded.color, status = excluded.status, ends_on = excluded.ends_on,
+          provider = excluded.provider, auto_renew = excluded.auto_renew, color = excluded.color, status = excluded.status, ends_on = excluded.ends_on,
           updated_at = excluded.updated_at, extra_json = excluded.extra_json
       `).run(item.id, item.name, item.note, item.amount, item.currency, item.cycleCount, item.cycleUnit, item.paymentMethod, item.startDate,
-        item.category, item.color, item.status, item.endsOn, createdAt, now, JSON.stringify(item.extra));
+        item.category, item.provider, item.autoRenew ? 1 : 0, item.color, item.status, item.endsOn, createdAt, now, JSON.stringify(item.extra));
       return { ok:true, item:fromRow(db.prepare('SELECT * FROM subscriptions WHERE id = ?').get(item.id)) };
     },
     remove(input = {}) {
@@ -158,11 +170,15 @@ function createSubscriptionStore(db) {
       return { ok:true, usdCnyRate:value };
     },
     setOptions(input = {}) {
-      // The user's own billing cycles and payment methods, offered next to the built-in ones.
-      const cyclesIn = input.customCycles ?? [];
-      const methodsIn = input.customPaymentMethods ?? [];
+      // The user's own billing cycles, payment methods and types, offered next to the built-in ones.
+      // A call that leaves a list out keeps what was saved for it.
+      const saved = options();
+      const cyclesIn = input.customCycles ?? saved.customCycles;
+      const methodsIn = input.customPaymentMethods ?? saved.customPaymentMethods;
+      const categoriesIn = input.customCategories ?? saved.customCategories;
       if (!Array.isArray(cyclesIn) || cyclesIn.length > maxCustomOptions) fail('自定义扣费周期无效');
       if (!Array.isArray(methodsIn) || methodsIn.length > maxCustomOptions) fail('自定义付款方式无效');
+      if (!Array.isArray(categoriesIn) || categoriesIn.length > maxCustomOptions) fail('自定义类型无效');
       const customCycles = [];
       cyclesIn.forEach(entry => {
         const cycle = cleanCycle(entry?.unit, entry?.count);
@@ -173,8 +189,13 @@ function createSubscriptionStore(db) {
         const method = bounded(entry, '付款方式', 40);
         if (!customPaymentMethods.includes(method) && !defaultPaymentMethods.includes(method)) customPaymentMethods.push(method);
       });
-      writeSetting('options', JSON.stringify({ customCycles, customPaymentMethods }));
-      return { ok:true, customCycles, customPaymentMethods };
+      const customCategories = [];
+      categoriesIn.forEach(entry => {
+        const category = bounded(entry, '类型', 20);
+        if (!customCategories.includes(category) && !categories.includes(category)) customCategories.push(category);
+      });
+      writeSetting('options', JSON.stringify({ customCycles, customPaymentMethods, customCategories }));
+      return { ok:true, customCycles, customPaymentMethods, customCategories };
     }
   };
 }

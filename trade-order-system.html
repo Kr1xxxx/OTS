@@ -4316,6 +4316,8 @@ html[data-theme] .top-actions { flex:0 0 auto; }
 @media (min-width: 821px) {
 html[data-theme] .sidebar { width:var(--sidebar); background:var(--surface-soft); border-right:0; box-shadow:none; padding:18px 12px 14px; gap:18px; overflow:auto; }
 html[data-theme] .logo { height:auto; padding:0 8px; border:0; justify-content:flex-start; }
+/* Mac App 原生窗口：左上角红黄绿按钮压在侧边栏顶上，品牌区往下让出标题栏高度 */
+html.mac-native-window[data-theme] .sidebar { padding-top:44px; }
 html[data-theme] .nav { padding:0; gap:14px; flex:1; position:relative; isolation:isolate; }
 html[data-theme] .nav-group { display:flex; flex-direction:column; gap:2px; }
 html[data-theme] .nav-item { min-height:38px; padding:9px 12px; border-radius:14px; gap:10px; color:var(--gray-600); font-weight:500; background:transparent; box-shadow:none; transform:none;
@@ -5581,6 +5583,7 @@ html[data-theme] .order-form .payment-grid::before { display:none; }
 html[data-theme] .order-form .payment-compact-row { gap:12px; }
 html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-columns:132px minmax(0,1fr); }
 </style>
+<script>if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.appUpdate) document.documentElement.classList.add('mac-native-window');</script>
 </head>
 <body>
 <svg class="ui-icon-sprite" width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -5654,7 +5657,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.111，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.111</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.112，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.112</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>

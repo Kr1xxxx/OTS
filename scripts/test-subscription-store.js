@@ -50,6 +50,21 @@ function storeTests() {
   assert.equal(cancelled.endsOn, '2026-11-24');
   expectInvalid(() => store.save({ ...renamed, status:'cancelled', endsOn:'' }), '到期日无效');
 
+  // Per-period prices and a planned stop date round-trip; same period + kind keeps the later entry.
+  assert.deepEqual(renamed.priceChanges, [], 'records start without price changes');
+  assert.equal(renamed.stopOn, '');
+  const priced = store.save({ ...renamed, stopOn:'2026-12-31', priceChanges:[
+    { from:'2026-09-01', amount:25.555 }, { from:'2026-03-01', amount:18, once:true }, { from:'2026-09-01', amount:26 }
+  ] }).item;
+  assert.deepEqual(priced.priceChanges, [{ from:'2026-03-01', amount:18, once:true }, { from:'2026-09-01', amount:26, once:false }]);
+  assert.equal(priced.stopOn, '2026-12-31');
+  assert.equal(store.save({ ...priced, stopOn:'' }).item.stopOn, '', 'clearing the planned stop');
+  expectInvalid(() => store.save({ ...renamed, stopOn:'2026-13-01' }), '预计停止时间无效');
+  expectInvalid(() => store.save({ ...renamed, priceChanges:[{ from:'x', amount:1 }] }), '周期价格日期无效');
+  expectInvalid(() => store.save({ ...renamed, priceChanges:[{ from:'2026-01-01', amount:-1 }] }), '周期价格无效');
+  expectInvalid(() => store.save({ ...renamed, priceChanges:'nope' }), '周期价格无效');
+  store.save({ ...renamed, stopOn:'', priceChanges:[] });
+
   expectInvalid(() => store.save({ ...sample, name:'  ' }), '名称无效');
   expectInvalid(() => store.save({ ...sample, name:'x'.repeat(81) }), '名称无效');
   expectInvalid(() => store.save({ ...sample, amount:0 }), '金额无效');

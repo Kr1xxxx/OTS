@@ -36,7 +36,8 @@ assert.deepEqual(modalIds, [
   'confirmModal',
   'attachmentPreviewModal',
   'subscriptionDrawer',
-  'subscriptionEditModal'
+  'subscriptionEditModal',
+  'subscriptionPriceModal'
 ]);
 
 const helperSource = extractFunction('setModalOpenState', { optional:true });

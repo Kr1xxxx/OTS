@@ -3681,21 +3681,30 @@ html[data-theme="dark"] .subs-hero { box-shadow:inset 0 0 0 1px rgba(255,255,255
 .subs-search input::placeholder { color:var(--a-placeholder); }
 .subs-search input:focus { width:280px; border-color:var(--a-accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--a-accent) 20%, transparent); }
 .subs-list { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap:12px; }
-.subs-row { display:grid; grid-template-columns:auto minmax(0,1fr) auto auto; grid-template-rows:auto auto; column-gap:14px; row-gap:6px; align-items:center; width:100%; min-width:0; padding:16px 18px; border:1px solid var(--a-border); border-radius:18px; background:color-mix(in oklab, var(--c) 7%, var(--a-card)); color:var(--a-ink); font:inherit; text-align:left; cursor:pointer; transition:transform .2s var(--a-spring), box-shadow .2s, background .3s; }
+.subs-row { display:grid; grid-template-columns:auto minmax(0,1fr) auto auto; grid-template-rows:24px 22px; column-gap:14px; row-gap:4px; align-items:center; width:100%; min-width:0; padding:16px 12px 16px 18px; border:1px solid var(--a-border); border-radius:18px; background:color-mix(in oklab, var(--c) 7%, var(--a-card)); color:var(--a-ink); font:inherit; text-align:left; cursor:pointer; outline:none; transition:transform .2s var(--a-spring), box-shadow .2s, background .3s; }
 .subs-row:hover { transform:translateY(-2px); box-shadow:var(--a-shadow-raised); }
 .subs-row:active { transform:scale(.985); transition-duration:.12s; }
+.subs-row:focus-visible { box-shadow:0 0 0 3px var(--a-accent-tint), var(--a-shadow-raised); }
 .subs-row.off { background:var(--a-card); }
 .subs-row.is-ended .subs-ic { filter:grayscale(1); opacity:.5; }
 .subs-row.is-ended .subs-amt b { color:var(--a-muted); }
+/* Left column: name over meta, both starting at the same x; right column: price over countdown, both flush right. */
 .subs-row > .subs-ic { grid-column:1; grid-row:1 / 3; }
-.subs-n { grid-column:2; grid-row:1 / 3; display:flex; flex-direction:column; gap:2px; min-width:0; }
+.subs-row > .subs-name { grid-column:2; grid-row:1; line-height:24px; }
+.subs-meta { grid-column:2; grid-row:2; display:block; min-width:0; overflow:hidden; color:var(--a-muted); font-size:12px; line-height:22px; white-space:nowrap; text-overflow:ellipsis; }
+.subs-meta .subs-type { height:22px; vertical-align:top; color:var(--a-ink-2); }
+.subs-n { display:flex; flex-direction:column; gap:2px; min-width:0; }
 .subs-name { overflow:hidden; font-size:16px; font-weight:600; text-overflow:ellipsis; white-space:nowrap; }
 .subs-note { overflow:hidden; color:var(--a-muted); font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
-.subs-cat { grid-column:3; grid-row:1 / 3; color:var(--a-muted); font-size:12px; white-space:nowrap; }
-.subs-amt { grid-column:4; grid-row:1; justify-self:end; display:flex; align-items:baseline; gap:6px; white-space:nowrap; }
-.subs-amt b { font:700 20px/1.2 var(--a-display); letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
-.subs-amt small { color:var(--a-muted); font-size:12px; }
-.subs-row > .subs-pill { grid-column:4; grid-row:2; justify-self:end; }
+.subs-amt { grid-column:3; grid-row:1; justify-self:end; display:flex; align-items:baseline; gap:6px; white-space:nowrap; line-height:24px; }
+.subs-amt b { font:700 20px/24px var(--a-display); letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+.subs-amt small { color:var(--a-muted); font-size:12px; font-variant-numeric:tabular-nums; }
+.subs-row > .subs-pill { grid-column:3; grid-row:2; justify-self:end; }
+.subs-row-edit { grid-column:4; grid-row:1 / 3; align-self:center; color:var(--a-muted); opacity:.55; transition:opacity .16s, background .16s, color .16s; }
+.subs-row:hover .subs-row-edit, .subs-row:focus-within .subs-row-edit { opacity:1; }
+.subs-row-edit:hover { color:var(--a-ink); }
+.subs-preview { grid-template-columns:auto minmax(0,1fr) auto; }
+.subs-preview .subs-row-edit { display:none; }
 .subs-ic { display:grid; place-items:center; flex:none; width:44px; height:44px; border-radius:13px; background:var(--c); color:#fff; font:700 15px/1 var(--a-display); letter-spacing:-.02em; }
 html[data-theme="dark"] .subs-ic { box-shadow:inset 0 0 0 1px rgba(255,255,255,.08); }
 .subs-ic.big { width:64px; height:64px; border-radius:18px; font-size:22px; }
@@ -3775,6 +3784,28 @@ button.subs-act:active { transform:scale(.98); transition-duration:.12s; }
 .subs-mh-t p { margin:3px 0 0; color:var(--a-muted); font-size:13px; }
 .subs-form { flex:1; display:flex; flex-direction:column; gap:18px; min-height:0; padding:2px 28px 22px; overflow:auto; overscroll-behavior:contain; }
 .subs-preview { flex:none; cursor:default; pointer-events:none; }
+.subs-modal-sm { width:min(480px, calc(100% - 48px)); }
+.subs-fields.one { grid-template-columns:minmax(0,1fr); }
+/* 周期费用 list in the detail drawer */
+.subs-pers { display:flex; flex-direction:column; gap:8px; }
+.subs-pers-h { display:flex; align-items:baseline; justify-content:space-between; gap:10px; padding:0 2px; }
+.subs-pers-h b { font:600 15px var(--a-display); }
+.subs-pers-h span { color:var(--a-muted); font-size:12px; font-variant-numeric:tabular-nums; text-align:right; }
+.subs-pers-list { display:flex; flex-direction:column; border:1px solid var(--a-border); border-radius:14px; background:var(--a-card); overflow:hidden; }
+.subs-per { display:grid; grid-template-columns:minmax(0,1fr) 56px 104px 32px; align-items:center; column-gap:10px; min-height:52px; padding:6px 6px 6px 14px; }
+.subs-per + .subs-per { border-top:1px solid var(--a-hairline); }
+.subs-per .subs-pill { justify-self:start; }
+.subs-per-n { display:flex; flex-direction:column; gap:1px; min-width:0; }
+.subs-per-n b { font-size:13px; font-weight:600; }
+.subs-per-n small { color:var(--a-muted); font-size:12px; font-variant-numeric:tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.subs-per-v { display:flex; flex-direction:column; align-items:flex-end; gap:1px; }
+.subs-per-v b { font:600 14px/1.2 var(--a-display); font-variant-numeric:tabular-nums; }
+.subs-per.past .subs-per-v b { color:var(--a-ink-2); }
+.subs-per-mark { color:var(--a-accent); font-size:11px; font-style:normal; }
+.subs-per-edit { color:var(--a-muted); }
+.subs-per-edit:hover { color:var(--a-ink); }
+.subs-pers-more { align-self:flex-start; padding:4px 2px; border:0; background:none; color:var(--a-accent); font:500 12px var(--a-sans); cursor:pointer; }
+.subs-pers-foot { margin:0; padding:0 2px; color:var(--a-muted); font-size:12px; }
 .subs-fields { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:14px 16px; }
 .subs-field { display:flex; flex-direction:column; gap:6px; min-width:0; }
 .subs-field.full { grid-column:1 / -1; }
@@ -3828,10 +3859,8 @@ html[data-theme="dark"] .subs-colors button { box-shadow:inset 0 0 0 1px rgba(25
   .subs-toolbar-r { width:100%; margin-left:0; }
   .subs-search { flex:1; }
   .subs-search input, .subs-search input:focus { width:100%; }
-  .subs-row { grid-template-columns:auto minmax(0,1fr) auto; column-gap:12px; padding:14px; }
-  .subs-cat { display:none; }
-  .subs-amt { grid-column:3; flex-direction:column; align-items:flex-end; gap:0; }
-  .subs-row > .subs-pill { grid-column:3; }
+  .subs-row { column-gap:12px; padding:14px 8px 14px 14px; }
+  .subs-amt small { display:none; }
   .subs-drawer { top:auto; left:8px; right:8px; bottom:8px; width:auto; max-height:calc(100% - 40px); border-radius:28px; transform:translateY(calc(100% + 24px)); }
   .subs-dh, .subs-db { padding-left:18px; padding-right:18px; }
   .subs-acts { grid-template-columns:minmax(0,1fr); }
@@ -5588,6 +5617,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
 <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
 <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18a4.5 4.5 0 0 1-.5-8.97A6 6 0 0 1 18 9.5a4.25 4.25 0 0 1-.5 8.5Z"/></symbol>
 <symbol id="i-app" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
 <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9-9-9Z"/><path d="M7.5 7.5h.01"/></symbol>
 <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
 <symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></symbol>
@@ -7035,8 +7065,8 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
     <form class="subs-form" id="subscriptionEditForm" novalidate>
       <div class="subs-row subs-preview" id="subscriptionPreview" aria-hidden="true">
         <span class="subs-ic" id="subscriptionPreviewLogo">·</span>
-        <span class="subs-n"><b class="subs-name" id="subscriptionPreviewName">名称</b><span class="subs-note" id="subscriptionPreviewMeta"></span></span>
-        <span class="subs-cat" id="subscriptionPreviewCat"></span>
+        <b class="subs-name" id="subscriptionPreviewName">名称</b>
+        <span class="subs-meta" id="subscriptionPreviewCat"></span>
         <span class="subs-amt"><b id="subscriptionPreviewPrice">—</b><small id="subscriptionPreviewCycle"></small></span>
         <span class="subs-pill line" id="subscriptionPreviewWhen"></span>
       </div>
@@ -7072,6 +7102,14 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
           </div>
         </div>
         <div class="subs-field full">
+          <span class="subs-label" id="subscriptionStopLabel">预计停止</span>
+          <div class="subs-opts" role="group" aria-labelledby="subscriptionStopLabel" data-sub-opts="stop"></div>
+          <div class="subs-opt-add" data-sub-stop-custom hidden>
+            <span>扣到</span><input class="subs-input text" id="subscriptionStopDate" name="subStopOn" type="date" aria-label="预计停止日期"><span>为止</span>
+          </div>
+          <div class="subs-hint" id="subscriptionStopHint"></div>
+        </div>
+        <div class="subs-field full">
           <span class="subs-label" id="subscriptionPaymentLabel">付款方式</span>
           <div class="subs-opts" role="group" aria-labelledby="subscriptionPaymentLabel" data-sub-opts="payment"></div>
           <div class="subs-opt-add" data-sub-opt-add="payment" hidden>
@@ -7091,6 +7129,35 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </div>
 </div>
 
+<div class="modal-backdrop subs-backdrop subs-scope" id="subscriptionPriceModal" aria-hidden="true">
+  <div class="subs-modal subs-modal-sm" role="dialog" aria-modal="true" aria-labelledby="subscriptionPriceTitle">
+    <header class="subs-mh">
+      <div class="subs-mh-badge"><svg class="subs-i" aria-hidden="true"><use href="#i-cash"/></svg></div>
+      <div class="subs-mh-t"><h3 id="subscriptionPriceTitle">修改这一期价格</h3><p id="subscriptionPriceSub"></p></div>
+      <button class="subs-btn icon ghost" type="button" data-price-action="close" aria-label="关闭"><svg class="subs-i" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </header>
+    <form class="subs-form" id="subscriptionPriceForm" novalidate>
+      <div class="subs-fields one">
+        <div class="subs-field">
+          <label for="subscriptionPriceAmount">这一期的价格</label>
+          <div class="subs-cur"><span class="subs-cur-sym" id="subscriptionPriceSymbol">¥</span><input class="subs-input" id="subscriptionPriceAmount" name="priceAmount" inputmode="decimal" placeholder="0.00" autocomplete="off"></div>
+        </div>
+        <div class="subs-field">
+          <span class="subs-label" id="subscriptionPriceScopeLabel">生效范围</span>
+          <div class="subs-seg" role="group" aria-labelledby="subscriptionPriceScopeLabel" data-price-scope><span class="subs-glide" aria-hidden="true"></span><button type="button" data-value="once" aria-pressed="false">只改这一期</button><button type="button" data-value="onward" aria-pressed="true">从这一期起</button></div>
+          <div class="subs-hint" id="subscriptionPriceHint"></div>
+        </div>
+      </div>
+    </form>
+    <footer class="subs-df">
+      <button class="subs-btn ghost" type="button" data-price-action="reset" id="subscriptionPriceReset">恢复原价</button>
+      <span class="subs-ferr" id="subscriptionPriceError" role="alert"></span>
+      <span class="subs-df-sp"></span>
+      <button class="subs-btn" type="button" data-price-action="close">取消</button>
+      <button class="subs-btn primary" id="subscriptionPriceSave" type="submit" form="subscriptionPriceForm"><span class="lbl">保存</span></button>
+    </footer>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 <div class="notif-scrim" id="notifScrim" hidden></div>
@@ -17623,29 +17690,71 @@ function subscriptionChargeIndex(item, dateText) {
   while (index > 0 && subscriptionAddMonths(item.startDate, index * count) > dateText) index -= 1;
   return index;
 }
+function subscriptionDayAfter(dateText) {
+  return subscriptionDateFromDay(subscriptionDayNumber(dateText) + 1);
+}
+function subscriptionPriceChanges(item) {
+  return (Array.isArray(item.priceChanges) ? item.priceChanges : []).slice().sort((a, b) => a.from.localeCompare(b.from));
+}
+function subscriptionPriceAt(item, dateText) {
+  // A period's price: the starting amount, then the latest change dated on or before the charge;
+  // a one-off override for exactly that charge (a period paid at a different price) wins.
+  let amount = Number(item.amount);
+  let once = null;
+  subscriptionPriceChanges(item).forEach(change => {
+    if (change.once) { if (change.from === dateText) once = Number(change.amount); }
+    else if (change.from <= dateText) amount = Number(change.amount);
+  });
+  return once ?? amount;
+}
+function subscriptionToCny(item, amount, rate) {
+  return item.currency === 'USD' ? amount * rate : amount;
+}
+function subscriptionStopBound(item, fallbackEnd = '') {
+  // First date that is no longer charged: a cancelled item's end date, or the day after its planned stop.
+  const bounds = [];
+  if (item.status === 'cancelled') bounds.push(item.endsOn || fallbackEnd);
+  if (item.stopOn) bounds.push(subscriptionDayAfter(item.stopOn));
+  return bounds.filter(Boolean).sort()[0] || '';
+}
 function subscriptionSchedule(item, today, rate) {
   const chargeOn = index => subscriptionChargeDate(item, index);
   const { unit, count } = subscriptionCycle(item);
-  const cycleCny = item.currency === 'USD' ? Number(item.amount) * rate : Number(item.amount);
-  const monthlyCny = unit === 'day' ? cycleCny * 365 / 12 / count : cycleCny / count;
   const lastIndex = subscriptionChargeIndex(item, today);
   const renewsOn = chargeOn(lastIndex + 1);
-  const base = { cycleCny, monthlyCny, yearlyCny:monthlyCny * 12 };
-  if (item.status === 'cancelled') {
-    // A cancelled subscription stays usable until its end date and is never charged on or after it.
-    const endsOn = item.endsOn || renewsOn;
-    let endIndex = subscriptionChargeIndex(item, endsOn);
-    if (endIndex >= 0 && chargeOn(endIndex) === endsOn) endIndex -= 1;
-    const charges = Math.min(lastIndex, endIndex) + 1;
+  const cancelled = item.status === 'cancelled';
+  const endsOn = cancelled ? (item.endsOn || renewsOn) : '';
+  const bound = subscriptionStopBound(item, renewsOn);
+  let boundIndex = Infinity;
+  if (bound) {
+    boundIndex = subscriptionChargeIndex(item, bound);
+    if (boundIndex >= 0 && chargeOn(boundIndex) === bound) boundIndex -= 1;
+  }
+  // Charges that already happened, each at its own period price.
+  const charges = Math.max(0, Math.min(lastIndex, boundIndex) + 1);
+  let spent = 0;
+  for (let index = 0; index < charges; index += 1) spent += subscriptionPriceAt(item, chargeOn(index));
+  const dueDate = lastIndex >= 0 && chargeOn(lastIndex) === today ? today : renewsOn;
+  const hasNext = !bound || dueDate < bound;
+  // The price shown is the next charge's; once nothing is left to charge, the last one paid.
+  const priceDate = hasNext ? dueDate : chargeOn(Math.max(0, Math.min(boundIndex, lastIndex)));
+  const cycleAmount = subscriptionPriceAt(item, priceDate);
+  const cycleCny = subscriptionToCny(item, cycleAmount, rate);
+  const monthlyCny = unit === 'day' ? cycleCny * 365 / 12 / count : cycleCny / count;
+  const base = { cycleAmount, cycleCny, monthlyCny, yearlyCny:monthlyCny * 12, charges, spent, spentCny:subscriptionToCny(item, spent, rate), stopOn:item.stopOn || '' };
+  if (cancelled || !hasNext) {
+    // Cancelled: usable until its end date. Planned stop: counted up to the stop date, then off.
+    const planned = !cancelled || (item.stopOn && subscriptionDayAfter(item.stopOn) < endsOn);
+    const paidThrough = planned ? item.stopOn : endsOn;
+    const expired = planned ? today > item.stopOn : today >= endsOn;
     return {
-      ...base, state:today >= endsOn ? 'expired' : 'ending', nextCharge:'', paidThrough:endsOn,
-      charges, spentCny:charges * cycleCny, daysLeft:subscriptionDayNumber(endsOn) - subscriptionDayNumber(today)
+      ...base, state:expired ? 'expired' : 'ending', stopReason:planned ? 'planned' : 'cancelled', nextCharge:'', paidThrough,
+      daysLeft:subscriptionDayNumber(paidThrough) - subscriptionDayNumber(today)
     };
   }
-  const nextCharge = lastIndex >= 0 && chargeOn(lastIndex) === today ? today : renewsOn;
   return {
-    ...base, state:'active', nextCharge, paidThrough:renewsOn,
-    charges:lastIndex + 1, spentCny:(lastIndex + 1) * cycleCny, daysLeft:subscriptionDayNumber(nextCharge) - subscriptionDayNumber(today)
+    ...base, state:'active', stopReason:'', nextCharge:dueDate, paidThrough:renewsOn,
+    daysLeft:subscriptionDayNumber(dueDate) - subscriptionDayNumber(today)
   };
 }
 function subscriptionSummary(items, today, rate, windowDays = 30) {
@@ -17660,11 +17769,10 @@ function subscriptionSummary(items, today, rate, windowDays = 30) {
     summary.active += 1;
     summary.monthlyCny += schedule.monthlyCny;
     if (schedule.daysLeft <= subscriptionRemindWindow(item)) summary.dueSoon += 1;
-    let index = subscriptionChargeIndex(item, schedule.nextCharge);
-    for (let date = schedule.nextCharge; date <= windowEnd; date = subscriptionChargeDate(item, ++index)) {
-      summary.upcoming.push({ item, date, cny:schedule.cycleCny });
-      summary.upcomingCny += schedule.cycleCny;
-    }
+    subscriptionCharges(item, schedule.nextCharge, windowEnd, rate).forEach(({ date, cny }) => {
+      summary.upcoming.push({ item, date, cny });
+      summary.upcomingCny += cny;
+    });
   });
   summary.yearlyCny = summary.monthlyCny * 12;
   summary.upcoming.sort((a, b) => a.date.localeCompare(b.date));
@@ -17763,7 +17871,7 @@ function subscriptionReminders(today = subscriptionLocalDate()) {
     return [{
       id:`renew-${item.id}-${schedule.nextCharge}`, kind:'info', tone:'warn',
       title:`${item.name} ${when}`, pill:'续费', subId:item.id, time:today,
-      sub:[schedule.nextCharge, subscriptionMoney(item.amount, item.currency), item.category, manual ? '需要手动续费' : item.paymentMethod].filter(Boolean).join(' · ')
+      sub:[schedule.nextCharge, subscriptionMoney(schedule.cycleAmount, item.currency), item.category, manual ? '需要手动续费' : item.paymentMethod].filter(Boolean).join(' · ')
     }];
   });
 }
@@ -17845,17 +17953,27 @@ function placeSubscriptionGlide(group, key, { jump = false } = {}) {
 function subscriptionEmptyHtml(title, text, action = '', actionText = '') {
   return `<div class="subs-empty"><span class="subs-empty-ic">${subscriptionIcon('repeat')}</span><b>${escapeAttr(title)}</b><div>${escapeAttr(text)}</div>${action ? `<button class="subs-btn primary sm" type="button" data-subs-empty-action="${action}">${action === 'add' ? subscriptionIcon('plus') : ''}${escapeAttr(actionText)}</button>` : ''}</div>`;
 }
+function subscriptionMetaText(item, schedule) {
+  const stop = schedule?.state === 'active' && item.stopOn ? `预计 ${subscriptionShortDate(item.stopOn)} 停止` : '';
+  return [item.provider, item.paymentMethod, stop, item.note].filter(Boolean).map(text => ` · ${escapeAttr(text)}`).join('');
+}
+function subscriptionShortDate(dateText) {
+  const [year, month, day] = dateText.split('-').map(Number);
+  return `${year === new Date().getFullYear() ? '' : `${year}年`}${month}月${day}日`;
+}
 function subscriptionRowHtml({ item, schedule }, enterIndex) {
   const when = subscriptionWhen(schedule, item);
   const converted = item.currency === 'USD' ? ` · ≈${subscriptionMoney(schedule.cycleCny)}` : '';
   const classes = ['subs-row', schedule.state === 'active' ? '' : 'off', schedule.state === 'expired' ? 'is-ended' : '', enterIndex >= 0 ? 'subs-enter' : ''].filter(Boolean).join(' ');
-  return `<button class="${classes}" type="button" data-sub-id="${escapeAttr(item.id)}" style="--c:${escapeAttr(item.color)};--i:${Math.max(enterIndex, 0)}">
+  // Two aligned lines: name and price on top, type/provider/payment and the countdown below.
+  return `<div class="${classes}" role="button" tabindex="0" data-sub-id="${escapeAttr(item.id)}" style="--c:${escapeAttr(item.color)};--i:${Math.max(enterIndex, 0)}">
     ${subscriptionIconHtml(item)}
-    <span class="subs-n"><b class="subs-name">${escapeAttr(item.name)}</b>${item.note ? `<span class="subs-note">${escapeAttr(item.note)}</span>` : ''}</span>
-    <span class="subs-cat">${subscriptionTypeHtml(item.category)}${[item.provider, item.paymentMethod].filter(Boolean).map(text => ` · ${escapeAttr(text)}`).join('')}</span>
-    <span class="subs-amt"><b>${subscriptionMoney(item.amount, item.currency)}</b><small>${subscriptionCycleLabel(item)}${converted}</small></span>
+    <b class="subs-name">${escapeAttr(item.name)}</b>
+    <span class="subs-meta">${subscriptionTypeHtml(item.category)}${subscriptionMetaText(item, schedule)}</span>
+    <span class="subs-amt"><b>${subscriptionMoney(schedule.cycleAmount, item.currency)}</b><small>${subscriptionCycleLabel(item)}${converted}</small></span>
     <span class="subs-pill ${when.cls}" title="${schedule.nextCharge || schedule.paidThrough}">${when.text}</span>
-  </button>`;
+    <button class="subs-btn icon ghost subs-row-edit" type="button" data-sub-edit="${escapeAttr(item.id)}" aria-label="编辑 ${escapeAttr(item.name)}" title="编辑">${subscriptionIcon('edit')}</button>
+  </div>`;
 }
 function renderSubscriptionList(rows, entering) {
   // New rows rise in with a 35 ms stagger; rows that stay glide to their new place instead of re-entering.
@@ -17976,18 +18094,18 @@ function renderSubscriptionArea({ entering = false } = {}) {
   else renderSubscriptionsPage({ entering });
   if (typeof uiRenderNotifs === 'function') uiRenderNotifs();
 }
-function subscriptionCycleCny(item, rate) {
-  return item.currency === 'USD' ? Number(item.amount) * rate : Number(item.amount);
-}
 function subscriptionCharges(item, from, to, rate) {
-  // Every charge dated from..to; a cancelled subscription is never charged on or after its end date.
-  const end = item.status === 'cancelled' ? (item.endsOn || subscriptionSchedule(item, to, rate).paidThrough) : '';
-  const cny = subscriptionCycleCny(item, rate);
+  // Every charge dated from..to at its own period price; nothing on or after a cancelled item's end
+  // date or after a planned stop.
+  const end = subscriptionStopBound(item, item.status === 'cancelled' ? subscriptionChargeDate(item, subscriptionChargeIndex(item, to) + 1) : '');
   const charges = [];
   let index = Math.max(0, subscriptionChargeIndex(item, from));
   let date = subscriptionChargeDate(item, index);
   if (date < from) date = subscriptionChargeDate(item, ++index);
-  for (; date <= to && (!end || date < end); date = subscriptionChargeDate(item, ++index)) charges.push({ item, date, index, cny });
+  for (; date <= to && (!end || date < end); date = subscriptionChargeDate(item, ++index)) {
+    const amount = subscriptionPriceAt(item, date);
+    charges.push({ item, date, index, amount, cny:subscriptionToCny(item, amount, rate) });
+  }
   return charges;
 }
 function subscriptionMonthShift(monthKey, months) {
@@ -18046,7 +18164,7 @@ function subscriptionAnalysis(items, today, rate) {
     methods[method] = methods[method] || { name:method, monthlyCny:0, count:0 };
     methods[method].monthlyCny += schedule.monthlyCny;
     methods[method].count += 1;
-    result.top.push({ item, monthlyCny:schedule.monthlyCny });
+    result.top.push({ item, monthlyCny:schedule.monthlyCny, cycleAmount:schedule.cycleAmount });
   });
   const current = byKey[thisMonth];
   result.monthPaid = current.paid;
@@ -18421,8 +18539,8 @@ function renderSubscriptionAnalysisPage({ entering = false } = {}) {
       </section>
       <section class="subs-panel subs-enter" style="--i:7">
         <header><div><h3>最贵的 ${data.top.length} 项</h3><p>按月均花费排，点一项看详情</p></div></header>
-        <div class="subs-tops">${data.top.length ? data.top.map(({ item, monthlyCny }, i) => `<button class="subs-top" type="button" data-subs-go-detail="${escapeAttr(item.id)}" style="--i:${i}">
-          ${subscriptionIconHtml(item)}<span class="subs-top-n"><b>${escapeAttr(item.name)}</b><small>${escapeAttr(subscriptionCycleLabel(item))} ${subscriptionMoney(item.amount, item.currency)}</small></span>
+        <div class="subs-tops">${data.top.length ? data.top.map(({ item, monthlyCny, cycleAmount }, i) => `<button class="subs-top" type="button" data-subs-go-detail="${escapeAttr(item.id)}" style="--i:${i}">
+          ${subscriptionIconHtml(item)}<span class="subs-top-n"><b>${escapeAttr(item.name)}</b><small>${escapeAttr(subscriptionCycleLabel(item))} ${subscriptionMoney(cycleAmount, item.currency)}</small></span>
           <span class="subs-top-v"><b>${subscriptionMoney(monthlyCny)}</b><small>每月 · 占 ${(monthlyCny / data.monthlyCny * 100).toFixed(0)}%</small></span></button>`).join('') : '<div class="subs-an-none">还没有自动续费的项目</div>'}</div>
       </section>
     </div>`;
@@ -18463,7 +18581,8 @@ function subscriptionHistoryEvents(items, today, rate) {
   const events = [];
   items.forEach(item => {
     subscriptionCharges(item, item.startDate, today, rate).forEach(charge => events.push({ ...charge, kind:'charge' }));
-    if (item.status === 'cancelled' && item.endsOn && item.endsOn <= today) events.push({ item, date:item.endsOn, kind:'end', cny:0 });
+    const schedule = subscriptionSchedule(item, today, rate);
+    if (schedule.state === 'expired') events.push({ item, date:schedule.paidThrough, kind:'end', cny:0, planned:schedule.stopReason === 'planned' });
   });
   // Newest first; on the same day an ending sits above that day's charges.
   return events.sort((a, b) => b.date.localeCompare(a.date) || (a.kind === 'end' ? -1 : 0) - (b.kind === 'end' ? -1 : 0) || a.item.name.localeCompare(b.item.name, 'zh-CN'));
@@ -18475,13 +18594,13 @@ function subscriptionHistoryRowHtml(event, i) {
   const when = `<span class="subs-h-d"><b>${day}</b><small>${month}月 · 周${weekday}</small></span>`;
   if (event.kind === 'end') {
     return `<button class="subs-h-row end subs-enter" type="button" style="--i:${i}" data-subs-go-detail="${escapeAttr(item.id)}">${when}${subscriptionIconHtml(item)}
-      <span class="subs-h-n"><b>${escapeAttr(item.name)}</b><small>已取消，到期停用</small></span><span class="subs-pill">已到期</span></button>`;
+      <span class="subs-h-n"><b>${escapeAttr(item.name)}</b><small>${event.planned ? '按预计时间停止' : '已取消，到期停用'}</small></span><span class="subs-pill">已到期</span></button>`;
   }
   const meta = [event.index === 0 ? '首次扣费' : `第 ${event.index + 1} 次扣费`, item.category, subscriptionCycleLabel(item), item.paymentMethod].filter(Boolean).join(' · ');
   const converted = item.currency === 'USD' ? `<small>≈${subscriptionMoney(event.cny)}</small>` : '';
   return `<button class="subs-h-row subs-enter" type="button" style="--i:${i}" data-subs-go-detail="${escapeAttr(item.id)}">${when}${subscriptionIconHtml(item)}
     <span class="subs-h-n"><b>${escapeAttr(item.name)}</b><small>${escapeAttr(meta)}</small></span>
-    <span class="subs-h-v"><b>${subscriptionMoney(item.amount, item.currency)}</b>${converted}</span></button>`;
+    <span class="subs-h-v"><b>${subscriptionMoney(event.amount, item.currency)}</b>${converted}</span></button>`;
 }
 function renderSubscriptionHistoryFilter(events) {
   const wrap = document.getElementById('subsHistoryFilter');
@@ -18548,7 +18667,7 @@ function renderSubscriptionHistoryPage({ entering = false } = {}) {
       <header class="subs-h-head subs-enter" style="--i:${index++}"><b>${subscriptionMonthLabel(group.key, true)}</b><span>${paid.length} 笔 · ${subscriptionMoney(paid.reduce((sum, event) => sum + event.cny, 0))}</span></header>
       <div class="subs-h-list">${group.events.map(event => subscriptionHistoryRowHtml(event, Math.min(index++, 14))).join('')}</div>
     </section>`;
-  }).join('') + `<div class="subs-h-foot">${groups.length > shown.length ? `<button class="subs-btn sm" type="button" data-subs-history-more>再看更早的 12 个月</button>` : ''}<span>扣费记录按开始日期和扣费周期推算；改过金额的项目按当前金额计算，美元按 ${escapeAttr(rate)} 折算。</span></div>`;
+  }).join('') + `<div class="subs-h-foot">${groups.length > shown.length ? `<button class="subs-btn sm" type="button" data-subs-history-more>再看更早的 12 个月</button>` : ''}<span>扣费记录按开始日期和扣费周期推算，每期按当期价格计（在续费项详情的「周期费用」里改）；美元按 ${escapeAttr(rate)} 折算。</span></div>`;
 }
 function subscriptionGoToDetail(id) {
   setPage('subscriptions');
@@ -18645,10 +18764,68 @@ async function commitSubscriptionRate({ cancel = false, fromBlur = false } = {})
   }
   if (!fromBlur) document.getElementById('subsRateBtn')?.focus({ preventScroll:true });
 }
+// 周期费用：已经发生的每期记当期价格；未来的期默认沿用上一期价格，可以单独改一期，或从某期起调价。
+let subscriptionPeriodsAll = false;
+const subscriptionFuturePeriods = 6;
+function subscriptionPeriods(item, today, schedule) {
+  const bound = subscriptionStopBound(item, schedule.paidThrough);
+  const changes = subscriptionPriceChanges(item);
+  const periods = [];
+  let future = 0;
+  for (let index = 0; future < subscriptionFuturePeriods; index += 1) {
+    const date = subscriptionChargeDate(item, index);
+    if (bound && date >= bound) break;
+    const past = date <= today;
+    if (!past) future += 1;
+    const next = subscriptionChargeDate(item, index + 1);
+    periods.push({
+      index, date, until:subscriptionDateFromDay(subscriptionDayNumber(next) - 1), past,
+      current:past && next > today, amount:subscriptionPriceAt(item, date),
+      once:changes.some(change => change.once && change.from === date),
+      change:index > 0 && changes.some(change => !change.once && change.from === date)
+    });
+  }
+  return { periods, bound, more:!bound && future >= subscriptionFuturePeriods };
+}
+function subscriptionPeriodRange(period) {
+  const fmt = text => { const [, m, d] = text.split('-').map(Number); return `${m}月${d}日`; };
+  return period.until > period.date ? `${fmt(period.date)} – ${fmt(period.until)}` : fmt(period.date);
+}
+function subscriptionPeriodsHtml(item, schedule) {
+  const today = subscriptionLocalDate();
+  const { periods, bound, more } = subscriptionPeriods(item, today, schedule);
+  if (!periods.length) return '';
+  const past = periods.filter(period => period.past);
+  const hidden = subscriptionPeriodsAll ? 0 : Math.max(0, past.length - 3);
+  const shown = periods.slice(hidden);
+  const pastTotal = past.reduce((sum, period) => sum + period.amount, 0);
+  const futureTotal = periods.filter(period => !period.past).reduce((sum, period) => sum + period.amount, 0);
+  const rows = shown.map(period => {
+    const tag = period.current ? ['accent', '本期'] : period.past ? ['', '已发生'] : ['line', '未来'];
+    const mark = period.once ? '<em class="subs-per-mark">单独改价</em>' : period.change ? '<em class="subs-per-mark">起调价</em>' : '';
+    return `<div class="subs-per${period.past ? ' past' : ''}" data-period="${period.date}">
+      <span class="subs-per-n"><b>第 ${period.index + 1} 期</b><small>${subscriptionPeriodRange(period)}</small></span>
+      <span class="subs-pill ${tag[0]}">${tag[1]}</span>
+      <span class="subs-per-v"><b>${subscriptionMoney(period.amount, item.currency)}</b>${mark}</span>
+      <button class="subs-btn icon ghost subs-per-edit" type="button" data-sub-period="${period.date}" aria-label="修改第 ${period.index + 1} 期价格" title="改价">${subscriptionIcon('edit')}</button>
+    </div>`;
+  }).join('');
+  const foot = bound && item.stopOn && subscriptionDayAfter(item.stopOn) === bound
+    ? `预计 ${item.stopOn} 停止，之后不再计费`
+    : bound ? `${bound} 到期，之后不再扣费`
+    : more ? `之后每期 ${subscriptionMoney(periods[periods.length - 1].amount, item.currency)}，直到设置预计停止` : '';
+  return `<section class="subs-pers" aria-label="周期费用">
+    <header class="subs-pers-h"><b>周期费用</b><span>已发生 ${past.length} 期 ${subscriptionMoney(pastTotal, item.currency)}${futureTotal ? ` · 未来 ${periods.length - past.length} 期 ${subscriptionMoney(futureTotal, item.currency)}` : ''}</span></header>
+    ${hidden ? `<button class="subs-pers-more" type="button" data-sub-action="periods-all">再看更早的 ${hidden} 期</button>` : ''}
+    <div class="subs-pers-list">${rows}</div>
+    ${foot ? `<p class="subs-pers-foot">${escapeAttr(foot)}</p>` : ''}
+  </section>`;
+}
 function openSubscriptionDetail(id) {
   if (!findSubscription(id)) return;
   const wasOpen = document.getElementById('subscriptionDrawer').classList.contains('open');
   if (!wasOpen) subscriptionReturnFocus = document.activeElement;
+  if (subscriptionDetailId !== id) subscriptionPeriodsAll = false;
   subscriptionDetailId = id;
   renderSubscriptionDetail({ entering:!wasOpen });
   setModalOpenState('subscriptionDrawer', true);
@@ -18671,41 +18848,44 @@ function renderSubscriptionDetail({ entering = false } = {}) {
   const schedule = subscriptionSchedule(item, subscriptionLocalDate(), rate);
   const active = schedule.state === 'active';
   const manual = item.autoRenew === false;
-  const status = { active:manual ? ['line', '手动续费'] : ['green', '自动续费'], ending:['amber', '已取消'], expired:['', '已到期'] }[schedule.state];
+  const planned = schedule.stopReason === 'planned';
+  const status = { active:manual ? ['line', '手动续费'] : ['green', '自动续费'], ending:planned ? ['amber', '预计停止'] : ['amber', '已取消'], expired:['', planned ? '已停止' : '已到期'] }[schedule.state];
   const when = subscriptionWhen(schedule, item);
   const first = {
     active:[manual ? '到期日' : '下次扣费', schedule.nextCharge, manual ? `${when.text}，记得手动续费` : when.text],
-    ending:['有效期至', schedule.paidThrough, `${schedule.daysLeft}天后到期，不再扣费`],
-    expired:['已到期', schedule.paidThrough, '已停止扣费']
+    ending:planned ? ['预计停止', schedule.paidThrough, `${schedule.daysLeft}天后停止，不再扣费`] : ['有效期至', schedule.paidThrough, `${schedule.daysLeft}天后到期，不再扣费`],
+    expired:[planned ? '已停止' : '已到期', schedule.paidThrough, '已停止扣费']
   }[schedule.state];
   const kv = [
     ['开始日期', item.startDate],
     ['类型', item.category],
     ['服务商', item.provider || '未填写'],
-    ['状态', { active:manual ? `手动续费，到期前 ${subscriptionRemindDays.manual} 天提醒` : `自动续费，扣费前 ${subscriptionRemindDays.auto} 天提醒`, ending:'已取消，等待到期', expired:'已到期，不再扣费' }[schedule.state]],
+    ['状态', { active:manual ? `手动续费，到期前 ${subscriptionRemindDays.manual} 天提醒` : `自动续费，扣费前 ${subscriptionRemindDays.auto} 天提醒`, ending:planned ? '预计停止，之后不再扣费' : '已取消，等待到期', expired:'已到期，不再扣费' }[schedule.state]],
     ['扣费周期', subscriptionCycleEvery(item)],
+    ['预计停止', item.stopOn ? `${item.stopOn}，之后的周期不再计费` : '未设置'],
     ['付款方式', item.paymentMethod || '未设置'],
     ['币种', item.currency === 'USD' ? `美元 · 1 USD = ${rate} CNY` : '人民币']
   ];
   const toggle = {
     active:['toggle', '停止续费', '到期后不再扣费'],
-    ending:['toggle', '恢复续费', '继续自动续费'],
+    ending:planned ? ['clear-stop', '取消预计停止', '继续按周期扣费'] : ['toggle', '恢复续费', '继续自动续费'],
     expired:['resubscribe', '重新续费', '从今天开始新的扣费周期']
   }[schedule.state];
   const name = escapeAttr(item.name);
   document.getElementById('subscriptionDrawerPanel').innerHTML = `
     <header class="subs-dh">
       <div class="subs-dh-r1"><span class="subs-pill line">${subscriptionTypeHtml(item.category)}</span><span class="subs-pill ${status[0]}">${status[1]}</span><button class="subs-btn icon ghost" type="button" data-sub-action="close" aria-label="关闭">${subscriptionIcon('x')}</button></div>
-      <div class="subs-dh-main">${subscriptionIconHtml(item, true)}<div><h3 id="subscriptionDrawerTitle">${name}</h3><div class="subs-price"><b>${subscriptionMoney(item.amount, item.currency)}</b><small>${subscriptionCycleEvery(item)}</small></div>${item.note ? `<p class="subs-dh-note">${escapeAttr(item.note)}</p>` : ''}</div></div>
+      <div class="subs-dh-main">${subscriptionIconHtml(item, true)}<div><h3 id="subscriptionDrawerTitle">${name}</h3><div class="subs-price"><b>${subscriptionMoney(schedule.cycleAmount, item.currency)}</b><small>${subscriptionCycleEvery(item)}</small></div>${item.note ? `<p class="subs-dh-note">${escapeAttr(item.note)}</p>` : ''}</div></div>
     </header>
     <div class="subs-db${entering ? ' subs-stagger' : ''}" id="subscriptionDrawerBody">
       <div class="subs-cards">
         <div class="subs-card${active && when.cls !== 'line' ? ` is-${when.cls.split(' ')[0]}` : ''}"><span>${first[0]}</span><b>${first[1]}</b><small>${first[2]}</small></div>
         <div class="subs-card"><span>月均花费</span><b>${subscriptionMoney(schedule.monthlyCny)}</b><small>年度约 ${subscriptionMoney(schedule.yearlyCny)}</small></div>
-        <div class="subs-card wide"><span>累计已花费（估算）</span><b>${subscriptionMoney(schedule.charges * Number(item.amount), item.currency)}</b><small>按当前价格估算，已扣费 ${schedule.charges} 次${item.currency === 'USD' ? `，约 ${subscriptionMoney(schedule.spentCny)}` : ''}</small></div>
+        <div class="subs-card wide"><span>累计已花费</span><b>${subscriptionMoney(schedule.spent, item.currency)}</b><small>已扣费 ${schedule.charges} 次，每期按当期价格计${item.currency === 'USD' ? `，约 ${subscriptionMoney(schedule.spentCny)}` : ''}</small></div>
       </div>
+      ${subscriptionPeriodsHtml(item, schedule)}
       <dl class="subs-kv">${kv.map(([label, value]) => `<dt>${label}</dt><dd>${escapeAttr(value)}</dd>`).join('')}</dl>
-      <button class="subs-act dark" type="button" data-sub-action="edit"><span><b>编辑续费项</b><small>更新价格、周期、备注与样式</small></span><span class="subs-pill">前往</span></button>
+      <button class="subs-act dark" type="button" data-sub-action="edit"><span><b>编辑续费项</b><small>更新价格、周期、预计停止、备注与样式</small></span><span class="subs-pill">前往</span></button>
       <div class="subs-acts">
         <button class="subs-act" type="button" data-sub-action="${toggle[0]}"><b>${toggle[1]}</b><small>${toggle[2]}</small></button>
         <div class="subs-act danger"><b>删除记录</b><small>按住 1.5 秒删除，6 秒内可撤销</small><button class="subs-btn sm subs-hold" type="button" data-sub-action="hold" aria-label="按住删除 ${name}"><span class="subs-hold-fill"></span><span class="lbl">${subscriptionIcon('trash')}<span class="subs-hold-text">按住删除</span></span></button></div>
@@ -18822,14 +19002,144 @@ async function toggleSubscriptionStatus() {
     subscriptionBusy = false;
   }
 }
+async function saveSubscriptionChange(previous, next, message) {
+  // Saves an edited copy of a record from the drawer, refreshes every view and offers undo.
+  subscriptionBusy = true;
+  try {
+    const { item:saved } = await subscriptionRequest('/api/subscriptions/save', { item:next });
+    upsertSubscription(saved);
+    renderSubscriptionsPage();
+    flashSubscriptionRow(saved.id);
+    if (subscriptionDetailId === saved.id) renderSubscriptionDetail();
+    subscriptionToast(typeof message === 'function' ? message(saved) : message, () => restoreSubscription(previous, '已撤销'));
+    return saved;
+  } catch (error) {
+    subscriptionToast(`没有保存：${error.message}`);
+    return null;
+  } finally {
+    subscriptionBusy = false;
+  }
+}
+function clearSubscriptionStop() {
+  const item = findSubscription(subscriptionDetailId);
+  if (!item || subscriptionBusy) return;
+  saveSubscriptionChange(item, { ...item, stopOn:'' }, saved => `${saved.name} 已取消预计停止，继续按周期扣费`);
+}
+let subscriptionPriceDraft = null;
+function subscriptionPriceWithout(item, date) {
+  // The price this period would have with no change entered on its own date.
+  return subscriptionPriceAt({ ...item, priceChanges:subscriptionPriceChanges(item).filter(change => change.from !== date) }, date);
+}
+function openSubscriptionPriceEditor(date) {
+  const item = findSubscription(subscriptionDetailId);
+  if (!item) return;
+  const today = subscriptionLocalDate();
+  const index = subscriptionChargeIndex(item, date);
+  const period = { index, date, until:subscriptionDateFromDay(subscriptionDayNumber(subscriptionChargeDate(item, index + 1)) - 1) };
+  const past = date <= today;
+  const changes = subscriptionPriceChanges(item).filter(change => change.from === date);
+  // A period already paid is usually a one-off correction; a future one usually a price rise.
+  const scope = changes.some(change => change.once) ? 'once' : changes.length ? 'onward' : past ? 'once' : 'onward';
+  subscriptionPriceDraft = { id:item.id, date, index, past, scope };
+  const form = document.getElementById('subscriptionPriceForm');
+  form.elements.priceAmount.value = String(subscriptionPriceAt(item, date));
+  document.getElementById('subscriptionPriceTitle').textContent = `修改第 ${index + 1} 期价格`;
+  document.getElementById('subscriptionPriceSub').textContent = `${item.name} · ${subscriptionPeriodRange(period)} · ${past ? '已发生' : '未来'}`;
+  document.getElementById('subscriptionPriceSymbol').textContent = item.currency === 'USD' ? '$' : '¥';
+  document.getElementById('subscriptionPriceReset').hidden = !changes.length;
+  form.querySelector('.subs-field').classList.remove('err');
+  showSubscriptionPriceError('');
+  delete subscriptionGlideRects['price-scope'];
+  syncSubscriptionPriceEditor();
+  setModalOpenState('subscriptionPriceModal', true);
+  setTimeout(() => { form.elements.priceAmount.focus({ preventScroll:true }); form.elements.priceAmount.select(); }, 60);
+}
+function syncSubscriptionPriceEditor() {
+  const draft = subscriptionPriceDraft;
+  if (!draft) return;
+  const group = document.querySelector('#subscriptionPriceForm [data-price-scope]');
+  group.querySelectorAll('[data-value]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.value === draft.scope)));
+  placeSubscriptionGlide(group, 'price-scope');
+  document.getElementById('subscriptionPriceHint').textContent = draft.scope === 'once'
+    ? `只改第 ${draft.index + 1} 期，前后各期价格不变${draft.past ? '，适合记下这一期实际付了多少' : ''}`
+    : `第 ${draft.index + 1} 期和之后每一期都按这个价格计，之前的期不变`;
+}
+function closeSubscriptionPriceEditor() {
+  setModalOpenState('subscriptionPriceModal', false);
+  const date = subscriptionPriceDraft?.date;
+  subscriptionPriceDraft = null;
+  document.querySelector(`#subscriptionDrawer.open [data-sub-period="${date}"]`)?.focus({ preventScroll:true });
+}
+function showSubscriptionPriceError(message) {
+  const el = document.getElementById('subscriptionPriceError');
+  el.textContent = message;
+  el.classList.toggle('in', Boolean(message));
+}
+function subscriptionWithPrice(item, date, amount, scope) {
+  const today = subscriptionLocalDate();
+  let changes = subscriptionPriceChanges(item).filter(change => change.from !== date);
+  if (scope === 'reset') return { ...item, priceChanges:changes };
+  if (scope === 'once') {
+    if (amount !== subscriptionPriceWithout(item, date)) changes.push({ from:date, amount, once:true });
+    return { ...item, priceChanges:changes };
+  }
+  // From this period on: later price changes are replaced; one-off amounts already paid stay.
+  changes = changes.filter(change => change.from < date || (change.once && change.from <= today));
+  if (subscriptionChargeIndex(item, date) === 0) return { ...item, amount, priceChanges:changes };
+  if (amount !== subscriptionPriceAt({ ...item, priceChanges:changes }, date)) changes.push({ from:date, amount, once:false });
+  return { ...item, priceChanges:changes };
+}
+async function saveSubscriptionPrice(scope) {
+  const draft = subscriptionPriceDraft;
+  const item = draft && findSubscription(draft.id);
+  if (!item || subscriptionBusy) return;
+  const input = document.getElementById('subscriptionPriceAmount');
+  const amount = Math.round(Number(input.value.trim()) * 100) / 100;
+  if (scope !== 'reset' && !(input.value.trim() !== '' && amount >= 0 && amount <= 10000000)) {
+    const field = input.closest('.subs-field');
+    field.classList.remove('err');
+    void field.offsetWidth;
+    field.classList.add('err');
+    showSubscriptionPriceError('请填写 0 或以上的金额');
+    input.focus();
+    return;
+  }
+  const next = subscriptionWithPrice(item, draft.date, amount, scope);
+  const label = `第 ${draft.index + 1} 期`;
+  const message = scope === 'reset' ? `${label} 已恢复原价`
+    : scope === 'once' ? `${label} 改为 ${subscriptionMoney(amount, item.currency)}`
+    : `从${label}起改为 ${subscriptionMoney(amount, item.currency)}`;
+  closeSubscriptionPriceEditor();
+  await saveSubscriptionChange(item, next, message);
+}
+document.getElementById('subscriptionPriceModal').addEventListener('click', event => {
+  if (event.target.id === 'subscriptionPriceModal') return closeSubscriptionPriceEditor();
+  const action = event.target.closest('[data-price-action]')?.dataset.priceAction;
+  if (action === 'close') return closeSubscriptionPriceEditor();
+  if (action === 'reset') return saveSubscriptionPrice('reset');
+  const scope = event.target.closest('[data-price-scope] [data-value]');
+  if (scope && subscriptionPriceDraft) {
+    subscriptionPriceDraft.scope = scope.dataset.value;
+    syncSubscriptionPriceEditor();
+  }
+});
+document.getElementById('subscriptionPriceForm').addEventListener('submit', event => {
+  event.preventDefault();
+  saveSubscriptionPrice(subscriptionPriceDraft?.scope || 'onward');
+});
+document.getElementById('subscriptionPriceForm').addEventListener('input', () => {
+  document.querySelector('#subscriptionPriceForm .subs-field.err')?.classList.remove('err');
+  showSubscriptionPriceError('');
+});
 function openSubscriptionEditor(id = '', { resubscribe = false } = {}) {
   const existing = findSubscription(id);
-  subscriptionDraft = existing ? { ...existing, ...subscriptionCycleFields(existing), paymentMethod:existing.paymentMethod || '', provider:existing.provider || '', autoRenew:existing.autoRenew !== false, amount:String(existing.amount) } : {
+  subscriptionDraft = existing ? { ...existing, ...subscriptionCycleFields(existing), paymentMethod:existing.paymentMethod || '', provider:existing.provider || '', autoRenew:existing.autoRenew !== false, amount:String(existing.amount), stopOn:existing.stopOn || '', priceChanges:subscriptionPriceChanges(existing) } : {
     id:'', name:'', note:'', amount:'', currency:'CNY', cycleUnit:'month', cycleCount:1, paymentMethod:'', provider:'', autoRenew:true, startDate:subscriptionLocalDate(),
-    category:subscriptionCategories[0], color:subscriptionColors[0][0], status:'active', endsOn:''
+    category:subscriptionCategories[0], color:subscriptionColors[0][0], status:'active', endsOn:'', stopOn:'', priceChanges:[]
   };
+  subscriptionDraft.stopCustom = false;
   // Re-subscribing starts a fresh billing cycle from today; the user can still change the date.
-  if (existing && resubscribe) Object.assign(subscriptionDraft, { status:'active', endsOn:'', startDate:subscriptionLocalDate() });
+  if (existing && resubscribe) Object.assign(subscriptionDraft, { status:'active', endsOn:'', stopOn:'', startDate:subscriptionLocalDate() });
   if (!document.getElementById('subscriptionDrawer').classList.contains('open')) subscriptionReturnFocus = document.activeElement;
   const form = document.getElementById('subscriptionEditForm');
   form.elements.subName.value = subscriptionDraft.name;
@@ -18904,10 +19214,29 @@ function renderSubscriptionOptions() {
   form.querySelector('[data-sub-opts="payment"]').innerHTML = methods
     .map(([method, removable]) => subscriptionOptionHtml(method, method, method === draft.paymentMethod, removable))
     .join('') + addButton('payment');
+  const stop = subscriptionStopChoice(draft);
+  form.querySelector('[data-sub-opts="stop"]').innerHTML = [['none', '不停止'], ['this', `本月底（${subscriptionStopPreset('this').slice(5).replace('-', '/')}）`], ['next', `下个月底（${subscriptionStopPreset('next').slice(5).replace('-', '/')}）`], ['custom', '自定义日期']]
+    .map(([value, label]) => subscriptionOptionHtml(value, label, value === stop, false)).join('');
+  form.querySelector('[data-sub-stop-custom]').hidden = stop !== 'custom';
+  if (stop === 'custom' && form.elements.subStopOn.value !== draft.stopOn) form.elements.subStopOn.value = draft.stopOn;
+  document.getElementById('subscriptionStopHint').textContent = draft.stopOn
+    ? `扣费算到 ${draft.stopOn}，之后的周期不再计入未来费用`
+    : '不设置就一直按周期计算未来费用';
   const types = subscriptionTypes([draft]).map(type => [type, subscriptionState.customCategories.includes(type)]);
   form.querySelector('[data-sub-opts="category"]').innerHTML = types
     .map(([type, removable]) => subscriptionOptionHtml(type, type, type === draft.category, removable, subscriptionTypeHtml(type)))
     .join('') + addButton('category');
+}
+function subscriptionStopPreset(which, today = subscriptionLocalDate()) {
+  // 本月底 / 下个月底: charges are counted up to and including that day.
+  return subscriptionMonthEnd(subscriptionMonthShift(today.slice(0, 7), which === 'next' ? 1 : 0));
+}
+function subscriptionStopChoice(draft) {
+  if (!draft.stopOn && !draft.stopCustom) return 'none';
+  if (draft.stopCustom) return 'custom';
+  if (draft.stopOn === subscriptionStopPreset('this')) return 'this';
+  if (draft.stopOn === subscriptionStopPreset('next')) return 'next';
+  return 'custom';
 }
 function openSubscriptionOptionAdd(kind) {
   const row = document.querySelector(`#subscriptionEditForm [data-sub-opt-add="${kind}"]`);
@@ -19018,8 +19347,7 @@ function renderSubscriptionPreview() {
   }
   document.getElementById('subscriptionPreview').style.setProperty('--c', draft.color);
   document.getElementById('subscriptionPreviewName').textContent = draft.name.trim() || '名称';
-  document.getElementById('subscriptionPreviewMeta').textContent = draft.note.trim() || '备注会显示在这里';
-  document.getElementById('subscriptionPreviewCat').innerHTML = subscriptionTypeHtml(draft.category) + [draft.provider.trim(), draft.paymentMethod].filter(Boolean).map(text => ` · ${escapeAttr(text)}`).join('');
+  document.getElementById('subscriptionPreviewCat').innerHTML = subscriptionTypeHtml(draft.category) + subscriptionMetaText({ ...draft, provider:draft.provider.trim(), note:draft.note.trim() }, { state:'active' });
   document.getElementById('subscriptionPreviewPrice').textContent = hasAmount ? subscriptionMoney(amount, draft.currency) : '—';
   document.getElementById('subscriptionPreviewCycle').textContent = subscriptionCycleLabel(draft) + (hasAmount && draft.currency === 'USD' ? ` · ≈${subscriptionMoney(cny)}` : '');
   const when = document.getElementById('subscriptionPreviewWhen');
@@ -19030,13 +19358,16 @@ function renderSubscriptionPreview() {
   const monthly = validStart && hasAmount ? subscriptionSchedule({ ...draft, amount }, subscriptionLocalDate(), rate).monthlyCny : cny;
   const isMonthly = subscriptionCycleKey(subscriptionCycle(draft)) === 'month:1';
   document.getElementById('subscriptionAmountHint').textContent = !hasAmount ? ''
-    : [draft.currency === 'USD' ? `≈${subscriptionMoney(cny)}（1 USD = ${rate} CNY）` : '', isMonthly ? '' : `月均 ${subscriptionMoney(monthly)}`].filter(Boolean).join(' · ');
+    : [draft.currency === 'USD' ? `≈${subscriptionMoney(cny)}（1 USD = ${rate} CNY）` : '', isMonthly ? '' : `月均 ${subscriptionMoney(monthly)}`,
+      (draft.priceChanges || []).some(change => !change.once) ? '这是第 1 期的价格，之后的调价在详情「周期费用」里改' : ''].filter(Boolean).join(' · ');
 }
 function subscriptionDraftError(draft) {
   if (!String(draft.name || '').trim()) return { field:'subName', message:'请填写名称' };
   const amount = Number(draft.amount);
   if (!(amount > 0 && amount <= 10000000)) return { field:'subAmount', message:'请填写大于 0 的金额' };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(draft.startDate || '')) return { field:'subStart', message:'请选择开始日期' };
+  if (draft.stopCustom && !draft.stopOn) return { field:'subStopOn', message:'请选择预计停止日期' };
+  if (draft.stopOn && draft.stopOn < draft.startDate) return { field:'subStopOn', message:'预计停止时间不能早于开始日期' };
   return null;
 }
 function showSubscriptionEditError(message) {
@@ -19077,7 +19408,7 @@ async function saveSubscriptionDraft(event) {
   let item;
   try {
     ({ item } = await subscriptionRequest('/api/subscriptions/save', {
-      item:{ ...draft, name:draft.name.trim(), note:draft.note.trim(), amount:Number(draft.amount), ...subscriptionCycleFields(draft), paymentMethod:draft.paymentMethod || '', provider:draft.provider.trim() }
+      item:{ ...draft, stopCustom:undefined, name:draft.name.trim(), note:draft.note.trim(), amount:Number(draft.amount), ...subscriptionCycleFields(draft), paymentMethod:draft.paymentMethod || '', provider:draft.provider.trim() }
     }));
   } catch (error) {
     subscriptionBusy = false;
@@ -19127,6 +19458,11 @@ document.getElementById('subsHero').addEventListener('focusout', event => {
   if (event.target.id === 'subsRateInput') commitSubscriptionRate({ fromBlur:true });
 });
 document.getElementById('subsList').addEventListener('click', event => {
+  const edit = event.target.closest('[data-sub-edit]');
+  if (edit) {
+    openSubscriptionEditor(edit.dataset.subEdit);
+    return;
+  }
   const row = event.target.closest('[data-sub-id]');
   if (row) {
     openSubscriptionDetail(row.dataset.subId);
@@ -19135,6 +19471,12 @@ document.getElementById('subsList').addEventListener('click', event => {
   const action = event.target.closest('[data-subs-empty-action]')?.dataset.subsEmptyAction;
   if (action === 'add') openSubscriptionEditor();
   if (action === 'retry') loadSubscriptions();
+});
+document.getElementById('subsList').addEventListener('keydown', event => {
+  const row = event.target.closest?.('.subs-row[data-sub-id]');
+  if (!row || event.target !== row || (event.key !== 'Enter' && event.key !== ' ')) return;
+  event.preventDefault();
+  openSubscriptionDetail(row.dataset.subId);
 });
 document.getElementById('subscriptionDrawer').addEventListener('click', event => {
   if (event.target.id === 'subscriptionDrawer') {
@@ -19146,6 +19488,13 @@ document.getElementById('subscriptionDrawer').addEventListener('click', event =>
   if (action === 'edit') openSubscriptionEditor(subscriptionDetailId);
   if (action === 'resubscribe') openSubscriptionEditor(subscriptionDetailId, { resubscribe:true });
   if (action === 'toggle') toggleSubscriptionStatus();
+  if (action === 'clear-stop') clearSubscriptionStop();
+  if (action === 'periods-all') {
+    subscriptionPeriodsAll = true;
+    renderSubscriptionDetail();
+  }
+  const period = event.target.closest('[data-sub-period]');
+  if (period) openSubscriptionPriceEditor(period.dataset.subPeriod);
 });
 document.getElementById('subscriptionDrawer').addEventListener('pointerdown', event => {
   const hold = event.target.closest('.subs-hold');
@@ -19195,6 +19544,14 @@ document.getElementById('subscriptionEditForm').addEventListener('input', event 
     renderSubscriptionPreview();
     return;
   }
+  if (event.target.name === 'subStopOn' && subscriptionDraft) {
+    subscriptionDraft.stopOn = event.target.value;
+    event.target.closest('.subs-field')?.classList.remove('err');
+    showSubscriptionEditError('');
+    document.getElementById('subscriptionStopHint').textContent = subscriptionDraft.stopOn ? `扣费算到 ${subscriptionDraft.stopOn}，之后的周期不再计入未来费用` : '请选择日期';
+    renderSubscriptionPreview();
+    return;
+  }
   const field = { subName:'name', subNote:'note', subAmount:'amount', subStart:'startDate', subProvider:'provider' }[event.target.name];
   if (!field || !subscriptionDraft) return;
   subscriptionDraft[field] = event.target.value;
@@ -19219,6 +19576,17 @@ document.getElementById('subscriptionEditForm').addEventListener('click', event 
   if (event.target.closest('[data-sub-opt-save]')) return addSubscriptionOption(kindName);
   if (event.target.closest('[data-sub-opt-cancel]')) return closeSubscriptionOptionAdd(kindName);
   if (event.target.closest('[data-opt-remove]')) return removeSubscriptionOption(kindName, event.target.closest('[data-opt-remove]').dataset.optRemove);
+  if (choice && kindName === 'stop') {
+    const value = choice.dataset.optValue;
+    subscriptionDraft.stopCustom = value === 'custom';
+    if (value === 'none') subscriptionDraft.stopOn = '';
+    else if (value === 'custom') subscriptionDraft.stopOn = subscriptionDraft.stopOn || subscriptionStopPreset('this');
+    else subscriptionDraft.stopOn = subscriptionStopPreset(value);
+    syncSubscriptionEditorControls();
+    renderSubscriptionPreview();
+    if (value === 'custom') document.getElementById('subscriptionStopDate').focus();
+    return;
+  }
   if (choice && kindName === 'cycle') {
     const [cycleUnit, count] = choice.dataset.optValue.split(':');
     Object.assign(subscriptionDraft, { cycleUnit, cycleCount:Number(count) });
@@ -19238,7 +19606,10 @@ document.getElementById('subscriptionEditForm').addEventListener('click', event 
 });
 document.addEventListener('keydown', event => {
   if (event.key !== 'Escape' || document.getElementById('confirmModal').classList.contains('open')) return;
-  if (document.getElementById('subscriptionEditModal').classList.contains('open')) {
+  if (document.getElementById('subscriptionPriceModal').classList.contains('open')) {
+    event.preventDefault();
+    closeSubscriptionPriceEditor();
+  } else if (document.getElementById('subscriptionEditModal').classList.contains('open')) {
     event.preventDefault();
     closeSubscriptionEditor();
   } else if (document.getElementById('subscriptionDrawer').classList.contains('open')) {

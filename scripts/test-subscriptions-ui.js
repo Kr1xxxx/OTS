@@ -74,7 +74,7 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     assert.equal(await page.locator('.page-title').innerText(), '续费');
     assert.equal(await page.locator('.nav-item[data-page="subscriptions"]').getAttribute('class'), 'nav-item active');
     assert.deepEqual(await rows.locator('.subs-name').allInnerTexts(), ['ChatGPT Plus', '阿里云域名', '1Password']);
-    assert.match(await rows.nth(0).innerText(), /ChatGPT Plus[\s\S]*个人账号[\s\S]*AI[\s\S]*\$20\.00[\s\S]*月付 · ≈¥142\.00[\s\S]*今天扣费/);
+    assert.match(await rows.nth(0).innerText(), /ChatGPT Plus[\s\S]*AI[\s\S]*个人账号[\s\S]*\$20\.00[\s\S]*月付 · ≈¥142\.00[\s\S]*今天扣费/);
     assert.match(await rows.nth(1).innerText(), /阿里云域名[\s\S]*其他[\s\S]*¥69\.00[\s\S]*年付[\s\S]*7天后扣费/);
     assert.deepEqual(await rows.locator('.subs-pill').evaluateAll(pills => pills.map(pill => pill.className)),
       ['subs-pill red solid', 'subs-pill amber', 'subs-pill line']);
@@ -96,7 +96,7 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     // Old 工具效率 records show as 软件; only types in use get a filter button.
     assert.match(await page.locator('[data-sub-filter="软件"]').innerText(), /软件\s*1/);
     assert.equal(await page.locator('[data-sub-filter="VPS"]').count(), 0);
-    assert.equal(await page.locator('#subsList .subs-cat .subs-type use').first().getAttribute('href'), '#i-spark');
+    assert.equal(await page.locator('#subsList .subs-meta .subs-type use').first().getAttribute('href'), '#i-spark');
 
     // Renewals due soon show up in the bell; clicking one opens that record.
     await page.locator('#notifBtn').click();
@@ -124,7 +124,7 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     const cards = await drawer.locator('.subs-card').allInnerTexts();
     assert.match(cards[0], /下次扣费\s*2026-05-18\s*61天后扣费/);
     assert.match(cards[1], /月均花费\s*¥21\.23\s*年度约 ¥254\.75/);
-    assert.match(cards[2], /累计已花费（估算）\s*\$143\.52\s*按当前价格估算，已扣费 4 次，约 ¥1,018\.99/);
+    assert.match(cards[2], /累计已花费\s*\$143\.52\s*已扣费 4 次，每期按当期价格计，约 ¥1,018\.99/);
     assert.match(await drawer.locator('.subs-kv').innerText(), /币种\s*美元 · 1 USD = 7\.1 CNY/);
     await capture(page, 'detail');
 
@@ -238,7 +238,7 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     assert.equal(await page.locator('#subscriptionDrawerTitle').innerText(), 'Claude Pro');
     await toasts.filter({ hasText:'Claude Pro 已添加' }).waitFor();
     assert.match(await page.locator('#subscriptionDrawerBody').innerText(), /付款方式\s+招行信用卡/);
-    assert.match(await rows.filter({ hasText:'Claude Pro' }).locator('.subs-cat').innerText(), /AI · Anthropic · 招行信用卡/);
+    assert.match(await rows.filter({ hasText:'Claude Pro' }).locator('.subs-meta').innerText(), /AI · Anthropic · 招行信用卡/);
     assert.deepEqual([added.provider, added.autoRenew], ['Anthropic', true]);
     assert.match(await page.locator('#subscriptionDrawerBody').innerText(), /服务商\s+Anthropic/);
     await page.keyboard.press('Escape');

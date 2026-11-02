@@ -26,7 +26,8 @@ vm.runInContext(html.match(/const subscriptionRemindDays = [^;]+;/)[0].replace('
 [
   'subscriptionLocalDate', 'subscriptionDayNumber', 'subscriptionDateFromDay', 'subscriptionAddMonths',
   'subscriptionCycle', 'subscriptionChargeDate', 'subscriptionCycleEvery', 'subscriptionCycleLabel', 'subscriptionChargeIndex', 'subscriptionSchedule', 'subscriptionSummary', 'subscriptionCompare', 'subscriptionWhen', 'subscriptionRemindWindow',
-  'subscriptionInitial'
+  'subscriptionInitial', 'subscriptionDayAfter', 'subscriptionPriceChanges', 'subscriptionPriceAt', 'subscriptionToCny', 'subscriptionStopBound', 'subscriptionCharges',
+  'subscriptionMonthShift', 'subscriptionMonthEnd', 'subscriptionStopPreset', 'subscriptionWithPrice', 'subscriptionPriceWithout'
 ].forEach(name => vm.runInContext(extractFunction(name), context));
 const call = (name, ...args) => context[name](...args);
 const item = overrides => ({
@@ -119,6 +120,52 @@ assert.equal(expired.state, 'expired', 'a cancelled subscription expires on its 
 assert.equal(expired.charges, 4, 'no charge is counted on or after the end date');
 const longAfter = call('subscriptionSchedule', cancelled, '2030-01-01', 7.1);
 assert.equal(longAfter.charges, 4);
+
+// Per-period prices: past periods keep what they cost, future ones follow the last price.
+const raised = item({ startDate:'2026-01-05', amount:10, priceChanges:[{ from:'2026-04-05', amount:15, once:false }, { from:'2026-02-05', amount:12, once:true }] });
+const raisedNow = call('subscriptionSchedule', raised, '2026-03-18', 7.1);
+assert.equal(raisedNow.charges, 3, 'Jan 5, Feb 5, Mar 5');
+assert.equal(raisedNow.spent, 10 + 12 + 10, 'the one-off Feb override counts only for February');
+assert.equal(raisedNow.cycleAmount, 15, 'the next charge (Apr 5) is at the raised price');
+assert.equal(raisedNow.monthlyCny, 15);
+assert.deepEqual(Array.from(call('subscriptionCharges', raised, '2026-01-01', '2026-06-30', 7.1), charge => charge.amount), [10, 12, 10, 15, 15, 15]);
+
+// A planned stop counts charges up to and including its date, then nothing.
+const stopping = item({ startDate:'2026-01-05', stopOn:'2026-04-30' });
+const beforeStop = call('subscriptionSchedule', stopping, '2026-03-18', 7.1);
+assert.equal(beforeStop.state, 'active', 'charges remain before the stop');
+assert.equal(beforeStop.nextCharge, '2026-04-05');
+assert.deepEqual(Array.from(call('subscriptionCharges', stopping, '2026-01-01', '2026-12-31', 7.1), charge => charge.date), ['2026-01-05', '2026-02-05', '2026-03-05', '2026-04-05']);
+const afterLast = call('subscriptionSchedule', stopping, '2026-04-10', 7.1);
+assert.equal(afterLast.state, 'ending', 'no charge left before the stop date');
+assert.equal(afterLast.stopReason, 'planned');
+assert.equal(afterLast.paidThrough, '2026-04-30');
+assert.equal(afterLast.daysLeft, 20);
+assert.equal(call('subscriptionSchedule', stopping, '2026-05-01', 7.1).state, 'expired');
+assert.equal(call('subscriptionSchedule', stopping, '2027-01-01', 7.1).charges, 4);
+const stoppingSummary = call('subscriptionSummary', [stopping], '2026-04-10', 7);
+assert.equal(stoppingSummary.active, 0, 'an item with nothing left to charge leaves the monthly total');
+assert.equal(call('subscriptionStopPreset', 'this', '2026-11-02'), '2026-11-30');
+assert.equal(call('subscriptionStopPreset', 'next', '2026-11-02'), '2026-12-31');
+assert.equal(call('subscriptionStopPreset', 'next', '2026-12-15'), '2027-01-31');
+
+// Editing a period's price: once, from that period on, or back to the original.
+const realLocalDate = context.subscriptionLocalDate;
+context.subscriptionLocalDate = () => '2026-03-18';
+const base = item({ startDate:'2026-01-05', amount:10, priceChanges:[] });
+const once = call('subscriptionWithPrice', base, '2026-02-05', 11, 'once');
+assert.deepEqual(JSON.parse(JSON.stringify(once.priceChanges)), [{ from:'2026-02-05', amount:11, once:true }]);
+const onward = call('subscriptionWithPrice', once, '2026-05-05', 20, 'onward');
+assert.deepEqual(Array.from(call('subscriptionCharges', onward, '2026-01-01', '2026-06-30', 7.1), charge => charge.amount), [10, 11, 10, 10, 20, 20]);
+const earlier = call('subscriptionWithPrice', onward, '2026-04-05', 18, 'onward');
+assert.deepEqual(Array.from(call('subscriptionCharges', earlier, '2026-01-01', '2026-06-30', 7.1), charge => charge.amount), [10, 11, 10, 18, 18, 18], 'a new rise replaces later ones');
+const first = call('subscriptionWithPrice', base, '2026-01-05', 9, 'onward');
+assert.equal(first.amount, 9, 'changing the first period from then on changes the base price');
+assert.deepEqual(Array.from(first.priceChanges), []);
+const reset = call('subscriptionWithPrice', once, '2026-02-05', 0, 'reset');
+assert.deepEqual(Array.from(reset.priceChanges), []);
+assert.deepEqual(Array.from(call('subscriptionWithPrice', base, '2026-02-05', 10, 'once').priceChanges), [], 'same price adds nothing');
+context.subscriptionLocalDate = realLocalDate;
 
 // The local calendar day decides “today”, not the UTC day.
 const previousTz = process.env.TZ;

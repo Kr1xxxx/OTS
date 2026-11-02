@@ -38,6 +38,25 @@ function cleanCycle(unit, count) {
   if (!Number.isInteger(value) || value < 1 || value > cycleUnits[unit]) fail('扣费周期无效');
   return { unit, count:value };
 }
+const maxPriceChanges = 240;
+function cleanPriceChanges(value) {
+  // Price changes per billing period: `once` overrides one charge (a period already paid at a
+  // different price), otherwise the price holds from that charge date on until the next change.
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value) || value.length > maxPriceChanges) fail('周期价格无效');
+  // A later entry for the same period and kind replaces an earlier one.
+  const byKey = new Map();
+  value.forEach(entry => {
+    if (!entry || typeof entry !== 'object') fail('周期价格无效');
+    const from = isoDate(entry.from, '周期价格日期');
+    const amount = Number(entry.amount);
+    if (!Number.isFinite(amount) || amount < 0 || amount > 10000000) fail('周期价格无效');
+    const once = entry.once === true;
+    byKey.set(`${from}:${once}`, { from, amount:Math.round(amount * 100) / 100, once });
+  });
+  const list = [...byKey.values()];
+  return list.sort((a, b) => a.from.localeCompare(b.from) || Number(a.once) - Number(b.once));
+}
 function cleanItem(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) fail('续费内容无效');
   const amount = Number(input.amount);
@@ -72,8 +91,14 @@ function cleanItem(input) {
     status,
     // A cancelled subscription keeps running until the charge date it would have renewed on.
     endsOn:status === 'cancelled' ? isoDate(input.endsOn, '到期日') : '',
+    priceChanges:cleanPriceChanges(input.priceChanges),
+    // Planned last day: charges dated after it are not counted.
+    stopOn:input.stopOn ? isoDate(input.stopOn, '预计停止时间') : '',
     extra
   };
+}
+function parsePriceChanges(text) {
+  try { const list = JSON.parse(text || '[]'); return Array.isArray(list) ? list : []; } catch (_) { return []; }
 }
 function fromRow(row) {
   let extra = {};
@@ -82,7 +107,7 @@ function fromRow(row) {
     id:row.id, name:row.name, note:row.note, amount:row.amount, currency:row.currency,
     cycleUnit:row.cycle_unit, cycleCount:row.cycle_months, paymentMethod:row.payment_method, startDate:row.start_date, category:row.category, color:row.color,
     provider:row.provider || '', autoRenew:row.auto_renew !== 0,
-    status:row.status, endsOn:row.ends_on, createdAt:row.created_at, updatedAt:row.updated_at, extra
+    status:row.status, endsOn:row.ends_on, priceChanges:parsePriceChanges(row.price_changes_json), stopOn:row.stop_on || '', createdAt:row.created_at, updatedAt:row.updated_at, extra
   };
 }
 
@@ -115,6 +140,8 @@ function createSubscriptionStore(db) {
   if (!columns.includes('payment_method')) db.exec("ALTER TABLE subscriptions ADD COLUMN payment_method TEXT NOT NULL DEFAULT ''");
   if (!columns.includes('provider')) db.exec("ALTER TABLE subscriptions ADD COLUMN provider TEXT NOT NULL DEFAULT ''");
   if (!columns.includes('auto_renew')) db.exec('ALTER TABLE subscriptions ADD COLUMN auto_renew INTEGER NOT NULL DEFAULT 1');
+  if (!columns.includes('price_changes_json')) db.exec("ALTER TABLE subscriptions ADD COLUMN price_changes_json TEXT NOT NULL DEFAULT '[]'");
+  if (!columns.includes('stop_on')) db.exec("ALTER TABLE subscriptions ADD COLUMN stop_on TEXT NOT NULL DEFAULT ''");
   for (const [from, to] of Object.entries(legacyCategories)) db.prepare('UPDATE subscriptions SET category = ? WHERE category = ?').run(to, from);
   const setting = key => db.prepare('SELECT value FROM subscription_settings WHERE key = ?').get(key)?.value;
   const writeSetting = (key, value) => db.prepare(`INSERT INTO subscription_settings(key, value) VALUES(?, ?)
@@ -145,15 +172,16 @@ function createSubscriptionStore(db) {
       const restoredAt = typeof input.createdAt === 'string' && !Number.isNaN(Date.parse(input.createdAt)) ? input.createdAt : '';
       const createdAt = previous?.created_at || restoredAt || now;
       db.prepare(`
-        INSERT INTO subscriptions(id, name, note, amount, currency, cycle_months, cycle_unit, payment_method, start_date, category, provider, auto_renew, color, status, ends_on, created_at, updated_at, extra_json)
-        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO subscriptions(id, name, note, amount, currency, cycle_months, cycle_unit, payment_method, start_date, category, provider, auto_renew, color, status, ends_on, price_changes_json, stop_on, created_at, updated_at, extra_json)
+        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           name = excluded.name, note = excluded.note, amount = excluded.amount, currency = excluded.currency,
           cycle_months = excluded.cycle_months, cycle_unit = excluded.cycle_unit, payment_method = excluded.payment_method, start_date = excluded.start_date, category = excluded.category,
           provider = excluded.provider, auto_renew = excluded.auto_renew, color = excluded.color, status = excluded.status, ends_on = excluded.ends_on,
+          price_changes_json = excluded.price_changes_json, stop_on = excluded.stop_on,
           updated_at = excluded.updated_at, extra_json = excluded.extra_json
       `).run(item.id, item.name, item.note, item.amount, item.currency, item.cycleCount, item.cycleUnit, item.paymentMethod, item.startDate,
-        item.category, item.provider, item.autoRenew ? 1 : 0, item.color, item.status, item.endsOn, createdAt, now, JSON.stringify(item.extra));
+        item.category, item.provider, item.autoRenew ? 1 : 0, item.color, item.status, item.endsOn, JSON.stringify(item.priceChanges), item.stopOn, createdAt, now, JSON.stringify(item.extra));
       return { ok:true, item:fromRow(db.prepare('SELECT * FROM subscriptions WHERE id = ?').get(item.id)) };
     },
     remove(input = {}) {

@@ -5509,6 +5509,49 @@ html[data-theme] .board-column-head > .board-column-sub { display:block; padding
 html[data-theme] .oc-next.empty { color:var(--gray-400); }
 html[data-theme] .oc-r3 .board-card-amount.due { color:var(--s-amber); }
 </style>
+<style id="ots-form-v3">
+/* 表单字段统一（V3.109）：标签 12px/600、标签到控件 6px、控件高 40px、列距 12px、行距 14px。
+   选项控件两种：2～4 个短选项 = 分段控件（和输入框同底色、同边框、同圆角，选中项紫色淡底）；
+   5 个以上 = 可换行 chip 组，字段占整行。深浅色都只用 token。 */
+html[data-theme] .field { --field-h:41px; }
+html[data-theme] .field > label { margin-bottom:6px; line-height:18px; }
+html[data-theme] .field .binary-segment:not(.binary-chips) {
+  display:grid; min-height:var(--field-h); height:var(--field-h); padding:3px; gap:3px;
+  border:1px solid var(--surface-border); border-radius:var(--control-radius, 12px);
+  background:var(--surface-bg); box-shadow:none; overflow:hidden;
+}
+html[data-theme] .field .binary-segment:not(.binary-chips) .binary-option {
+  min-height:0; height:100%; padding:0 10px; border-radius:calc(var(--control-radius, 12px) - 4px);
+  font-size:13px; font-weight:500; color:var(--gray-600); background:transparent; box-shadow:none;
+  overflow:hidden; text-overflow:ellipsis;
+}
+html[data-theme] .field .binary-segment:not(.binary-chips) .binary-option:hover:not(.active) { color:var(--gray-900); background:var(--surface-soft); }
+html[data-theme] .field .binary-segment .binary-option.active {
+  color:var(--accent); background:var(--accent-tint); font-weight:600; box-shadow:none;
+}
+html[data-theme] .field .binary-segment:hover:not(.binary-chips) { border-color:var(--surface-border-strong); }
+html[data-theme] .field .binary-option:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+/* chip 组：自动宽度、可换行，不再等分硬塞。 */
+html[data-theme] .field .binary-segment.binary-chips {
+  display:flex; flex-wrap:wrap; align-items:center; gap:8px; width:100%; min-height:var(--field-h); height:auto;
+  padding:0; border:0; border-radius:0; background:transparent; box-shadow:none; overflow:visible;
+}
+html[data-theme] .field .binary-chips .binary-option {
+  flex:none; min-width:64px; height:var(--field-h); min-height:0; padding:0 16px;
+  border:1px solid var(--surface-border); border-radius:999px; background:var(--surface-bg);
+  font-size:13px; font-weight:500; color:var(--gray-700); line-height:1; overflow:visible; box-shadow:none;
+}
+html[data-theme] .field .binary-chips .binary-option:hover:not(.active) { border-color:var(--surface-border-strong); color:var(--gray-900); }
+html[data-theme] .field .binary-chips .binary-option.active { border-color:color-mix(in oklab, var(--accent) 55%, transparent); }
+/* 占整行：网格里用 dense 回填，左右两列不留空洞。 */
+html[data-theme] :is(.order-section-grid, .payment-grid, .form-grid, .settings-grid, .settings-form) { grid-auto-flow:row dense; }
+html[data-theme] :is(.order-section-grid, .payment-grid, .form-grid, .settings-grid, .settings-form) > .field-chips { grid-column:1 / -1; }
+/* 金额与收款：列距和上面基础信息一致（12px），去掉中间竖线，标签左右对齐。 */
+html[data-theme] .order-form .payment-grid { gap:14px 12px; }
+html[data-theme] .order-form .payment-grid::before { display:none; }
+html[data-theme] .order-form .payment-compact-row { gap:12px; }
+html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-columns:132px minmax(0,1fr); }
+</style>
 </head>
 <body>
 <svg class="ui-icon-sprite" width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -5581,7 +5624,7 @@ html[data-theme] .oc-r3 .board-card-amount.due { color:var(--s-amber); }
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.108，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.108</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.109，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.109</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -12803,11 +12846,16 @@ function enhanceBinarySelects(root = document) {
       wrap = document.createElement('div');
       select.insertAdjacentElement('afterend', wrap);
     }
-    wrap.className = `binary-segment${options.length > 4 ? ' binary-scroll' : ''}${options.length > 4 ? ' binary-many' : ''}${options.length > 6 ? ' binary-dense' : ''}`;
+    // 2～4 个短选项用等宽分段控件；5 个以上（如收款方式）改成可换行的 chip 组，字段占整行，不再挤字。
+    const chips = options.length > 4;
+    wrap.className = `binary-segment${chips ? ' binary-chips' : ''}`;
+    wrap.setAttribute('role', 'group');
+    wrap.setAttribute('aria-label', appSelectLabel(select));
     wrap.style.setProperty('--binary-count', options.length);
-    wrap.style.gridTemplateColumns = `repeat(${options.length}, minmax(0, 1fr))`;
+    wrap.style.gridTemplateColumns = chips ? '' : `repeat(${options.length}, minmax(0, 1fr))`;
+    select.closest('.field')?.classList.toggle('field-chips', chips);
     wrap.innerHTML = options.map(option => `
-      <button class="binary-option ${option.value === select.value ? 'active' : ''}" type="button" data-binary-value="${escapeAttr(option.value)}">${escapeAttr(selectButtonLabel(select, option))}</button>
+      <button class="binary-option ${option.value === select.value ? 'active' : ''}" type="button" aria-pressed="${option.value === select.value}" data-binary-value="${escapeAttr(option.value)}">${escapeAttr(selectButtonLabel(select, option))}</button>
     `).join('');
   });
   if (typeof enhanceAppSelects === 'function') enhanceAppSelects(root);
@@ -19798,7 +19846,7 @@ document.addEventListener('click', e => {
   const select = wrap?.previousElementSibling;
   if (!select || select.tagName !== 'SELECT') return;
   select.value = btn.dataset.binaryValue;
-  wrap.querySelectorAll('.binary-option').forEach(item => item.classList.toggle('active', item === btn));
+  wrap.querySelectorAll('.binary-option').forEach(item => { item.classList.toggle('active', item === btn); item.setAttribute('aria-pressed', String(item === btn)); });
   select.dispatchEvent(new Event('change', { bubbles: true }));
 });
 document.getElementById('addAttachmentBtn').addEventListener('click', () => {

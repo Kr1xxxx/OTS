@@ -139,7 +139,7 @@ async function pageTests() {
     await page.evaluate(() => moveOrderToStage('o-balance', 'shipment'));
     let moved = await page.evaluate(() => { const o = state.orders.find(x => x.id === 'o-balance'); return { stage: o.stage, parcel: o.shipments[0].status, reloaded: normalizeActiveOrder(JSON.parse(JSON.stringify(o))).logisticsStatus }; });
     assert.deepEqual(moved, { stage: 'shipment', parcel: '已发货', reloaded: '已发货' });
-    await page.locator('.toast-undo').first().click();
+    await page.locator('.toast-undo').first().dispatchEvent('click'); // 开屏问候 toast 可能正盖在撤销按钮上
     moved = await page.evaluate(() => { const o = state.orders.find(x => x.id === 'o-balance'); return { stage: o.stage, parcel: o.shipments[0].status }; });
     assert.deepEqual(moved, { stage: 'balance', parcel: '未发货' }, 'undo left the parcel marked as sent');
 

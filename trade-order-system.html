@@ -3837,7 +3837,7 @@ html[data-theme="dark"] .subs-colors button { box-shadow:inset 0 0 0 1px rgba(25
   .subs-fields { grid-template-columns:minmax(0,1fr); }
   .subs-df { padding:12px 14px 12px 18px; }
 }
-/* Sidebar: 订阅 opens a second-level menu (列表 / 分析 / 历史) while one of its pages is open */
+/* Sidebar: 续费 opens a second-level menu (列表 / 分析 / 历史) while one of its pages is open */
 html[data-theme] .nav-item[data-nav-group="subs"] .nav-sub-chev { width:14px; height:14px; margin-left:auto; color:var(--gray-500); transition:transform .3s var(--ease-spring); }
 html[data-theme] .nav-item[data-nav-group="subs"].active .nav-sub-chev { transform:rotate(90deg); }
 html[data-theme] .nav-sub { display:grid; grid-template-rows:0fr; transition:grid-template-rows .28s var(--ease-out); }
@@ -3854,7 +3854,7 @@ html[data-theme] .nav-sub-item.active { color:var(--accent); font-weight:600; }
 html[data-theme] .nav-sub-item.active::before { content:""; position:absolute; left:-13px; top:7px; bottom:7px; width:2px; border-radius:2px; background:var(--accent); }
 @media (max-width: 820px) { html[data-theme] .nav-sub, html[data-theme] .nav-item .nav-sub-chev { display:none; } }
 
-/* 订阅分析 / 订阅历史 */
+/* 续费分析 / 续费历史 */
 .subs-scope { --subs-c1:#2a78d6; --subs-c2:#eb6834; --subs-c3:#1baf7a; }
 html[data-theme="dark"] .subs-scope { --subs-c1:#3987e5; --subs-c2:#d95926; --subs-c3:#199e70; }
 #page-subs-analysis, #page-subs-history { gap:16px; max-width:1360px; }
@@ -4489,7 +4489,7 @@ html[data-theme] .level-icon { width:16px; height:16px; display:inline-grid; pla
 html[data-theme] .level-icon::before { content:attr(data-level-letter); width:auto; height:auto; background:none; border:0; border-radius:0; box-shadow:none; font-size:inherit; line-height:1; transform:none; }
 html[data-theme] .level-tag .level-icon { width:14px; height:14px; font-size:9px; margin-right:2px; }
 
-/* 订阅页主按钮用强调色（原型是紫色「新增订阅」） */
+/* 续费页主按钮用强调色（原型是紫色主按钮） */
 html[data-theme] .subs-scope { --a-primary:var(--accent); --a-primary-hover:color-mix(in oklab, var(--accent) 88%, black); --a-primary-ink:#fff; }
 /* 客户管理：顶部五张数字卡，分组和列表分成两张卡，行按原型（头像、国旗国家、等级胶囊、待收琥珀） */
 html[data-theme] #page-customers.active { display:flex; flex-direction:column; gap:20px; }
@@ -5527,10 +5527,10 @@ html[data-theme] .oc-r3 .board-card-amount.due { color:var(--s-amber); }
       <div class="nav-label">管理</div>
       <button class="nav-item" data-page="calendar" data-mobile-label="日历"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-cal"/></svg><span class="nav-text">日历</span></button>
       <button class="nav-item" data-page="amount" data-nav-group="insights" data-mobile-label="数据"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-chart"/></svg><span class="nav-text">数据与目标</span></button>
-      <button class="nav-item" data-page="subscriptions" data-nav-group="subs" data-mobile-label="订阅" aria-controls="navSubs"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg><span class="nav-text">订阅</span><svg class="nav-sub-chev ui-icon" aria-hidden="true"><use href="#i-chev"/></svg></button>
-      <div class="nav-sub" id="navSubs" role="group" aria-label="订阅">
+      <button class="nav-item" data-page="subscriptions" data-nav-group="subs" data-mobile-label="续费" aria-controls="navSubs"><svg class="nav-icon ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg><span class="nav-text">续费</span><svg class="nav-sub-chev ui-icon" aria-hidden="true"><use href="#i-chev"/></svg></button>
+      <div class="nav-sub" id="navSubs" role="group" aria-label="续费">
         <div class="nav-sub-inner">
-          <button class="nav-sub-item" type="button" data-page="subscriptions">订阅列表</button>
+          <button class="nav-sub-item" type="button" data-page="subscriptions">续费列表</button>
           <button class="nav-sub-item" type="button" data-page="subs-analysis">分析</button>
           <button class="nav-sub-item" type="button" data-page="subs-history">历史</button>
         </div>
@@ -5540,7 +5540,7 @@ html[data-theme] .oc-r3 .board-card-amount.due { color:var(--s-amber); }
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.106，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.106</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.107，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.107</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -6040,8 +6040,8 @@ html[data-theme] .oc-r3 .board-card-amount.due { color:var(--s-amber); }
         <div class="subs-seg" id="subsFilter" role="group" aria-label="按分类筛选"><span class="subs-glide" aria-hidden="true"></span></div>
         <span class="subs-meta" id="subsMeta" aria-live="polite"></span>
         <div class="subs-toolbar-r">
-          <label class="subs-search"><svg class="subs-i" aria-hidden="true"><use href="#i-search"/></svg><input id="subsSearch" type="search" placeholder="搜索名称或备注" autocomplete="off" aria-label="搜索订阅"></label>
-          <button class="subs-btn primary" id="subsAddBtn" type="button"><svg class="subs-i" aria-hidden="true"><use href="#i-plus"/></svg>新增订阅</button>
+          <label class="subs-search"><svg class="subs-i" aria-hidden="true"><use href="#i-search"/></svg><input id="subsSearch" type="search" placeholder="搜索名称或备注" autocomplete="off" aria-label="搜索续费项"></label>
+          <button class="subs-btn primary" id="subsAddBtn" type="button"><svg class="subs-i" aria-hidden="true"><use href="#i-plus"/></svg>新增续费项</button>
         </div>
       </div>
       <div class="subs-list" id="subsList"></div>
@@ -6945,19 +6945,19 @@ html[data-theme] .oc-r3 .board-card-amount.due { color:var(--s-amber); }
   <div class="subs-modal" role="dialog" aria-modal="true" aria-labelledby="subscriptionEditTitle">
     <header class="subs-mh">
       <div class="subs-mh-badge"><svg class="subs-i" aria-hidden="true"><use href="#i-repeat"/></svg></div>
-      <div class="subs-mh-t"><h3 id="subscriptionEditTitle">新增订阅</h3><p id="subscriptionEditSub">价格、周期、付款方式和样式</p></div>
+      <div class="subs-mh-t"><h3 id="subscriptionEditTitle">新增续费项</h3><p id="subscriptionEditSub">价格、周期、付款方式和样式</p></div>
       <button class="subs-btn icon ghost" id="subscriptionEditCloseBtn" type="button" aria-label="关闭"><svg class="subs-i" aria-hidden="true"><use href="#i-x"/></svg></button>
     </header>
     <form class="subs-form" id="subscriptionEditForm" novalidate>
       <div class="subs-row subs-preview" id="subscriptionPreview" aria-hidden="true">
         <span class="subs-ic" id="subscriptionPreviewLogo">·</span>
-        <span class="subs-n"><b class="subs-name" id="subscriptionPreviewName">订阅名称</b><span class="subs-note" id="subscriptionPreviewMeta"></span></span>
+        <span class="subs-n"><b class="subs-name" id="subscriptionPreviewName">名称</b><span class="subs-note" id="subscriptionPreviewMeta"></span></span>
         <span class="subs-cat" id="subscriptionPreviewCat"></span>
         <span class="subs-amt"><b id="subscriptionPreviewPrice">—</b><small id="subscriptionPreviewCycle"></small></span>
         <span class="subs-pill line" id="subscriptionPreviewWhen"></span>
       </div>
       <div class="subs-fields">
-        <div class="subs-field"><label for="subscriptionName">名称<em class="subs-req">*</em></label><input class="subs-input" id="subscriptionName" name="subName" maxlength="80" placeholder="例如 ChatGPT Plus" autocomplete="off"></div>
+        <div class="subs-field"><label for="subscriptionName">名称<em class="subs-req">*</em></label><input class="subs-input" id="subscriptionName" name="subName" maxlength="80" placeholder="例如 VPS、域名、ChatGPT Plus" autocomplete="off"></div>
         <div class="subs-field"><label for="subscriptionNote">备注</label><input class="subs-input" id="subscriptionNote" name="subNote" maxlength="200" placeholder="例如 50GB、域名、续费价" autocomplete="off"></div>
         <div class="subs-field">
           <label for="subscriptionAmount">金额<em class="subs-req">*</em></label>
@@ -6993,7 +6993,7 @@ html[data-theme] .oc-r3 .board-card-amount.due { color:var(--s-amber); }
       <span class="subs-ferr" id="subscriptionEditError" role="alert"></span>
       <span class="subs-df-sp"></span>
       <button class="subs-btn" id="subscriptionEditCancelBtn" type="button">取消</button>
-      <button class="subs-btn primary" id="subscriptionSaveBtn" type="submit" form="subscriptionEditForm"><span class="lbl">添加订阅</span></button>
+      <button class="subs-btn primary" id="subscriptionSaveBtn" type="submit" form="subscriptionEditForm"><span class="lbl">添加</span></button>
     </footer>
   </div>
 </div>
@@ -12086,7 +12086,7 @@ const globalSearchPageDefs = [
   { page:'amount', title:'经营分析', icon:'⌁', keywords:'分析 经营 收款结构 产品贡献 客户贡献 趋势' },
   { page:'customers', title:'客户管理', icon:'◇', keywords:'客户 联系人 邮箱 电话 地址 国家 标签 复购' },
   { page:'deleted', title:'已删除订单', icon:'⌫', keywords:'删除 回收 恢复 订单' },
-  { page:'subscriptions', title:'订阅', icon:'↻', keywords:'订阅 续费 扣费 会员 软件 服务器 域名' },
+  { page:'subscriptions', title:'续费', icon:'↻', keywords:'续费 订阅 VPS 扣费 会员 软件 服务器 域名' },
   { page:'settings', title:'设置', icon:'⚙', keywords:'设置 数据 导入 导出 API 汇率 默认值 备份' }
 ];
 let allGlobalSearchResults = [];
@@ -17603,7 +17603,7 @@ async function subscriptionRequest(resource, body) {
     method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify(body)
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok || data.ok === false) throw new Error(data.message || `订阅服务暂时不可用（${response.status}）`);
+  if (!response.ok || data.ok === false) throw new Error(data.message || `续费服务暂时不可用（${response.status}）`);
   return data;
 }
 async function loadSubscriptions() {
@@ -17618,7 +17618,7 @@ async function loadSubscriptions() {
     });
     if (Array.isArray(data.defaultPaymentMethods)) subscriptionState.defaultPaymentMethods = data.defaultPaymentMethods;
   } catch (error) {
-    subscriptionState.error = error.message || '读取订阅失败';
+    subscriptionState.error = error.message || '读取续费数据失败';
   } finally {
     subscriptionState.loading = false;
   }
@@ -17722,12 +17722,12 @@ function renderSubscriptionList(rows, entering) {
 function renderSubscriptionHero(summary, rate, roll) {
   const hero = document.getElementById('subsHero');
   if (!subscriptionState.loaded) {
-    hero.innerHTML = `<div class="subs-hero-l"><span class="subs-hl">支出概览</span><div class="subs-big">¥<span class="subs-sk"></span><small>每月</small></div><span class="subs-hl">${subscriptionState.error ? '订阅没有读出来' : '正在读取订阅…'}</span></div>`;
+    hero.innerHTML = `<div class="subs-hero-l"><span class="subs-hl">支出概览</span><div class="subs-big">¥<span class="subs-sk"></span><small>每月</small></div><span class="subs-hl">${subscriptionState.error ? '续费数据没有读出来' : '正在读取续费数据…'}</span></div>`;
     return;
   }
   const rateHtml = subscriptionRateEditing
     ? `<input class="subs-rate-input" id="subsRateInput" inputmode="decimal" value="${escapeAttr(rate)}" aria-label="1 美元折合多少人民币">`
-    : `<button class="subs-rate" id="subsRateBtn" type="button" title="修改订阅页的美元汇率">${escapeAttr(rate)}</button>`;
+    : `<button class="subs-rate" id="subsRateBtn" type="button" title="修改续费页的美元汇率">${escapeAttr(rate)}</button>`;
   hero.innerHTML = `
     <div class="subs-hero-l">
       <span class="subs-hl">支出概览</span>
@@ -17735,7 +17735,7 @@ function renderSubscriptionHero(summary, rate, roll) {
       <span class="subs-hl" id="subsHeroYear">一年约 ¥${Math.round(summary.yearlyCny).toLocaleString('zh-CN')} · 美元按 ${rateHtml} 折算</span>
     </div>
     <div class="subs-hr" id="subsHeroSide">
-      <span class="subs-pill">${subscriptionIcon('check')}${summary.total} 项订阅</span>
+      <span class="subs-pill">${subscriptionIcon('check')}${summary.total} 项续费</span>
       <span class="subs-hl">${summary.active} 项自动续费 · ${summary.cancelled} 项已取消</span>
       <span class="subs-hl">未来 30 天要付 ${subscriptionMoney(summary.upcomingCny)} · ${summary.upcoming.length} 笔</span>
       ${summary.dueSoon ? `<span class="subs-hl">7 天内扣费 ${summary.dueSoon} 项</span>` : ''}
@@ -17781,7 +17781,7 @@ function renderSubscriptionsPage({ entering = false } = {}) {
   if (!subscriptionState.loaded) {
     meta.textContent = '';
     list.innerHTML = subscriptionState.error
-      ? subscriptionEmptyHtml('订阅没有读出来', subscriptionState.error, 'retry', '重试')
+      ? subscriptionEmptyHtml('续费数据没有读出来', subscriptionState.error, 'retry', '重试')
       : '<div class="subs-sk"></div><div class="subs-sk"></div><div class="subs-sk"></div><div class="subs-sk"></div>';
     return;
   }
@@ -17793,16 +17793,16 @@ function renderSubscriptionsPage({ entering = false } = {}) {
     .sort(subscriptionCompare);
   meta.textContent = query ? `找到 ${rows.length} 项` : '';
   if (!items.length) {
-    list.innerHTML = subscriptionEmptyHtml('还没有订阅', '把 ChatGPT、iCloud、域名这类按月或按年扣费的服务记下来，每月花多少一眼就知道。', 'add', '新增第一个订阅');
+    list.innerHTML = subscriptionEmptyHtml('还没有续费项', '把 VPS、域名、ChatGPT、iCloud 这类按月或按年扣费的服务记下来，每月花多少一眼就知道。', 'add', '新增第一项');
     return;
   }
   if (!rows.length) {
-    list.innerHTML = subscriptionEmptyHtml('没有符合条件的订阅', query ? '换个关键词试试。' : '这个分类下还没有订阅。');
+    list.innerHTML = subscriptionEmptyHtml('没有符合条件的续费项', query ? '换个关键词试试。' : '这个分类下还没有续费项。');
     return;
   }
   renderSubscriptionList(rows, entering);
 }
-// 订阅「分析」「历史」两个子页：只读 subscriptionState，扣费按开始日期和周期推算。
+// 续费「分析」「历史」两个子页：只读 subscriptionState，扣费按开始日期和周期推算。
 const subscriptionPages = ['subscriptions', 'subs-analysis', 'subs-history'];
 const subscriptionCategoryVars = { 工具效率:'--subs-c1', AI:'--subs-c2', 其他:'--subs-c3' };
 const subscriptionWeekdays = ['日', '一', '二', '三', '四', '五', '六'];
@@ -18216,13 +18216,13 @@ function renderSubscriptionAnalysisPage({ entering = false } = {}) {
   if (!subscriptionState.loaded) {
     if (!subscriptionState.loading && !subscriptionState.error) { loadSubscriptions(); return; }
     box.innerHTML = subscriptionState.error
-      ? subscriptionEmptyHtml('订阅没有读出来', subscriptionState.error, 'retry', '重试')
+      ? subscriptionEmptyHtml('续费数据没有读出来', subscriptionState.error, 'retry', '重试')
       : '<div class="subs-sk subs-an-sk"></div><div class="subs-sk subs-an-sk tall"></div>';
     return;
   }
   const { items, usdCnyRate:rate } = subscriptionState;
   if (!items.length) {
-    box.innerHTML = subscriptionEmptyHtml('还没有订阅可以分析', '先在订阅列表里记下几项订阅，这里会按月汇总花费和占比。', 'go-list', '去订阅列表');
+    box.innerHTML = subscriptionEmptyHtml('还没有续费项可以分析', '先在续费列表里记下几项，这里会按月汇总花费和占比。', 'go-list', '去续费列表');
     return;
   }
   const today = subscriptionLocalDate();
@@ -18235,8 +18235,8 @@ function renderSubscriptionAnalysisPage({ entering = false } = {}) {
   const cards = [
     ['本月扣费', monthTotal, `已扣 ${subscriptionWhole(data.monthPaid)} · 待扣 ${subscriptionWhole(data.monthDue)}`, changePill],
     [`${year} 年已付`, data.yearPaid, '今年 1 月 1 日到今天', `<small class="arc-change">${data.yearCount} 笔</small>`],
-    ['未来 12 个月预计', data.next12, '按当前自动续费的订阅推算', ''],
-    ['累计已付', data.lifetime, '所有订阅从开始到今天', '']
+    ['未来 12 个月预计', data.next12, '按当前自动续费的项目推算', ''],
+    ['累计已付', data.lifetime, '所有续费项从开始到今天', '']
   ];
   box.classList.toggle('subs-entering', entering);
   box.innerHTML = `
@@ -18261,7 +18261,7 @@ function renderSubscriptionAnalysisPage({ entering = false } = {}) {
         <header><div><h3>最贵的 ${data.top.length} 项</h3><p>按月均花费排，点一项看详情</p></div></header>
         <div class="subs-tops">${data.top.length ? data.top.map(({ item, monthlyCny }, i) => `<button class="subs-top" type="button" data-subs-go-detail="${escapeAttr(item.id)}" style="--i:${i}">
           ${subscriptionIconHtml(item)}<span class="subs-top-n"><b>${escapeAttr(item.name)}</b><small>${escapeAttr(subscriptionCycleLabel(item))} ${subscriptionMoney(item.amount, item.currency)}</small></span>
-          <span class="subs-top-v"><b>${subscriptionMoney(monthlyCny)}</b><small>每月 · 占 ${(monthlyCny / data.monthlyCny * 100).toFixed(0)}%</small></span></button>`).join('') : '<div class="subs-an-none">还没有自动续费的订阅</div>'}</div>
+          <span class="subs-top-v"><b>${subscriptionMoney(monthlyCny)}</b><small>每月 · 占 ${(monthlyCny / data.monthlyCny * 100).toFixed(0)}%</small></span></button>`).join('') : '<div class="subs-an-none">还没有自动续费的项目</div>'}</div>
       </section>
     </div>`;
   box.querySelectorAll('.arc-metric-v').forEach(el => arcCount(el, Number(el.dataset.target), value => subscriptionMoney(value), 900));
@@ -18294,7 +18294,7 @@ function renderSubscriptionAnalysisPage({ entering = false } = {}) {
       label:'付款方式', totalLabel:'每月合计', format:value => subscriptionMoney(value)
     });
   } else {
-    category.innerHTML = method.innerHTML = '<div class="subs-an-none">还没有自动续费的订阅</div>';
+    category.innerHTML = method.innerHTML = '<div class="subs-an-none">还没有自动续费的项目</div>';
   }
 }
 function subscriptionHistoryEvents(items, today, rate) {
@@ -18346,7 +18346,7 @@ function renderSubscriptionHistoryPage({ entering = false } = {}) {
   if (!subscriptionState.loaded) {
     if (!subscriptionState.loading && !subscriptionState.error) { loadSubscriptions(); return; }
     box.innerHTML = subscriptionState.error
-      ? subscriptionEmptyHtml('订阅没有读出来', subscriptionState.error, 'retry', '重试')
+      ? subscriptionEmptyHtml('续费数据没有读出来', subscriptionState.error, 'retry', '重试')
       : '<div class="subs-sk subs-an-sk"></div><div class="subs-sk subs-an-sk"></div>';
     return;
   }
@@ -18363,7 +18363,7 @@ function renderSubscriptionHistoryPage({ entering = false } = {}) {
   if (!events.length) {
     box.innerHTML = items.length
       ? subscriptionEmptyHtml('没有符合条件的扣费记录', query ? '换个关键词试试。' : '这个分类下还没有扣过费。')
-      : subscriptionEmptyHtml('还没有扣费记录', '在订阅列表里记下订阅后，到了扣费日这里会自动出现记录。', 'go-list', '去订阅列表');
+      : subscriptionEmptyHtml('还没有扣费记录', '在续费列表里记下续费项后，到了扣费日这里会自动出现记录。', 'go-list', '去续费列表');
     return;
   }
   const groups = [];
@@ -18381,7 +18381,7 @@ function renderSubscriptionHistoryPage({ entering = false } = {}) {
       <header class="subs-h-head subs-enter" style="--i:${index++}"><b>${subscriptionMonthLabel(group.key, true)}</b><span>${paid.length} 笔 · ${subscriptionMoney(paid.reduce((sum, event) => sum + event.cny, 0))}</span></header>
       <div class="subs-h-list">${group.events.map(event => subscriptionHistoryRowHtml(event, Math.min(index++, 14))).join('')}</div>
     </section>`;
-  }).join('') + `<div class="subs-h-foot">${groups.length > shown.length ? `<button class="subs-btn sm" type="button" data-subs-history-more>再看更早的 12 个月</button>` : ''}<span>扣费记录按开始日期和扣费周期推算；改过金额的订阅按当前金额计算，美元按 ${escapeAttr(rate)} 折算。</span></div>`;
+  }).join('') + `<div class="subs-h-foot">${groups.length > shown.length ? `<button class="subs-btn sm" type="button" data-subs-history-more>再看更早的 12 个月</button>` : ''}<span>扣费记录按开始日期和扣费周期推算；改过金额的项目按当前金额计算，美元按 ${escapeAttr(rate)} 折算。</span></div>`;
 }
 function subscriptionGoToDetail(id) {
   setPage('subscriptions');
@@ -18470,7 +18470,7 @@ async function commitSubscriptionRate({ cancel = false, fromBlur = false } = {})
       subscriptionState.usdCnyRate = data.usdCnyRate;
       renderSubscriptionsPage();
       if (subscriptionDetailId) renderSubscriptionDetail();
-      subscriptionToast(`汇率已改为 ${data.usdCnyRate}，只影响订阅页的人民币折算`);
+      subscriptionToast(`汇率已改为 ${data.usdCnyRate}，只影响续费页的人民币折算`);
     } catch (error) {
       renderSubscriptionsPage();
       subscriptionToast(`汇率没有保存：${error.message}`);
@@ -18519,9 +18519,9 @@ function renderSubscriptionDetail({ entering = false } = {}) {
     ['币种', item.currency === 'USD' ? `美元 · 1 USD = ${rate} CNY` : '人民币']
   ];
   const toggle = {
-    active:['toggle', '取消订阅', '到期后不再续费'],
-    ending:['toggle', '恢复订阅', '继续自动续费'],
-    expired:['resubscribe', '重新订阅', '从今天开始新的扣费周期']
+    active:['toggle', '停止续费', '到期后不再扣费'],
+    ending:['toggle', '恢复续费', '继续自动续费'],
+    expired:['resubscribe', '重新续费', '从今天开始新的扣费周期']
   }[schedule.state];
   const name = escapeAttr(item.name);
   document.getElementById('subscriptionDrawerPanel').innerHTML = `
@@ -18536,7 +18536,7 @@ function renderSubscriptionDetail({ entering = false } = {}) {
         <div class="subs-card wide"><span>累计已花费（估算）</span><b>${subscriptionMoney(schedule.charges * Number(item.amount), item.currency)}</b><small>按当前价格估算，已扣费 ${schedule.charges} 次${item.currency === 'USD' ? `，约 ${subscriptionMoney(schedule.spentCny)}` : ''}</small></div>
       </div>
       <dl class="subs-kv">${kv.map(([label, value]) => `<dt>${label}</dt><dd>${escapeAttr(value)}</dd>`).join('')}</dl>
-      <button class="subs-act dark" type="button" data-sub-action="edit"><span><b>编辑订阅</b><small>更新价格、周期、备注与样式</small></span><span class="subs-pill">前往</span></button>
+      <button class="subs-act dark" type="button" data-sub-action="edit"><span><b>编辑续费项</b><small>更新价格、周期、备注与样式</small></span><span class="subs-pill">前往</span></button>
       <div class="subs-acts">
         <button class="subs-act" type="button" data-sub-action="${toggle[0]}"><b>${toggle[1]}</b><small>${toggle[2]}</small></button>
         <div class="subs-act danger"><b>删除记录</b><small>按住 1.5 秒删除，6 秒内可撤销</small><button class="subs-btn sm subs-hold" type="button" data-sub-action="hold" aria-label="按住删除 ${name}"><span class="subs-hold-fill"></span><span class="lbl">${subscriptionIcon('trash')}<span class="subs-hold-text">按住删除</span></span></button></div>
@@ -18645,7 +18645,7 @@ async function toggleSubscriptionStatus() {
     flashSubscriptionRow(saved.id);
     if (subscriptionDetailId === saved.id) renderSubscriptionDetail();
     const undo = () => restoreSubscription(item, '已撤销');
-    if (saved.status === 'cancelled') subscriptionToast(`${saved.name} 已取消订阅，${saved.endsOn} 到期后不再续费`, undo);
+    if (saved.status === 'cancelled') subscriptionToast(`${saved.name} 已停止续费，${saved.endsOn} 到期后不再扣费`, undo);
     else subscriptionToast(`${saved.name} 已恢复自动续费，下次扣费 ${subscriptionSchedule(saved, subscriptionLocalDate(), subscriptionState.usdCnyRate).nextCharge}`, undo);
   } catch (error) {
     subscriptionToast(`操作失败：${error.message}`);
@@ -18670,8 +18670,8 @@ function openSubscriptionEditor(id = '', { resubscribe = false } = {}) {
   form.querySelectorAll('.subs-field.err').forEach(field => field.classList.remove('err'));
   form.querySelectorAll('[data-sub-opt-add]').forEach(row => closeSubscriptionOptionAdd(row.dataset.subOptAdd));
   form.scrollTop = 0;
-  const saveLabel = existing ? (resubscribe ? '重新订阅' : '保存') : '添加订阅';
-  document.getElementById('subscriptionEditTitle').textContent = existing ? (resubscribe ? '重新订阅' : '编辑订阅') : '新增订阅';
+  const saveLabel = existing ? (resubscribe ? '重新续费' : '保存') : '添加';
+  document.getElementById('subscriptionEditTitle').textContent = existing ? (resubscribe ? '重新续费' : '编辑续费项') : '新增续费项';
   document.getElementById('subscriptionEditSub').textContent = existing ? `${existing.name} · 价格、周期、付款方式和样式` : '价格、周期、付款方式和样式';
   document.getElementById('subscriptionSaveBtn').dataset.label = saveLabel;
   setSubscriptionSaveState('idle');
@@ -18832,7 +18832,7 @@ function renderSubscriptionPreview() {
     logo.classList.add('bump');
   }
   document.getElementById('subscriptionPreview').style.setProperty('--c', draft.color);
-  document.getElementById('subscriptionPreviewName').textContent = draft.name.trim() || '订阅名称';
+  document.getElementById('subscriptionPreviewName').textContent = draft.name.trim() || '名称';
   document.getElementById('subscriptionPreviewMeta').textContent = draft.note.trim() || '备注会显示在这里';
   document.getElementById('subscriptionPreviewCat').textContent = [draft.category, draft.paymentMethod].filter(Boolean).join(' · ');
   document.getElementById('subscriptionPreviewPrice').textContent = hasAmount ? subscriptionMoney(amount, draft.currency) : '—';
@@ -18848,7 +18848,7 @@ function renderSubscriptionPreview() {
     : [draft.currency === 'USD' ? `≈${subscriptionMoney(cny)}（1 USD = ${rate} CNY）` : '', isMonthly ? '' : `月均 ${subscriptionMoney(monthly)}`].filter(Boolean).join(' · ');
 }
 function subscriptionDraftError(draft) {
-  if (!String(draft.name || '').trim()) return { field:'subName', message:'请填写订阅名称' };
+  if (!String(draft.name || '').trim()) return { field:'subName', message:'请填写名称' };
   const amount = Number(draft.amount);
   if (!(amount > 0 && amount <= 10000000)) return { field:'subAmount', message:'请填写大于 0 的金额' };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(draft.startDate || '')) return { field:'subStart', message:'请选择开始日期' };
@@ -19064,7 +19064,7 @@ function setPage(page) {
   const changed = current !== target;
   document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === `page-${target}`));
   document.querySelectorAll('[data-page]').forEach(btn => btn.classList.toggle('active', btn.dataset.page === target));
-  const names = { dashboard:'工作台', 'order-list':'订单', 'search-results':'搜索结果', logistics:'物流', amount:'数据与目标', targets:'数据与目标', calendar:'日历', analysis:'数据与目标', customers:'客户', deleted:'已删除订单', subscriptions:'订阅', 'subs-analysis':'订阅分析', 'subs-history':'订阅历史', settings:'设置' };
+  const names = { dashboard:'工作台', 'order-list':'订单', 'search-results':'搜索结果', logistics:'物流', amount:'数据与目标', targets:'数据与目标', calendar:'日历', analysis:'数据与目标', customers:'客户', deleted:'已删除订单', subscriptions:'续费', 'subs-analysis':'续费分析', 'subs-history':'续费历史', settings:'设置' };
   document.querySelector('.page-title').textContent = names[target] || '工作台';
   const activeNav = document.querySelector(`.nav-item[data-page="${target}"]`);
   if (activeNav && window.matchMedia('(max-width: 820px)').matches) {
@@ -19077,7 +19077,7 @@ function setPage(page) {
     renderSegmentControls();
     enhanceBinarySelects();
   }
-  // 订阅的三个子页共用侧边栏「订阅」，二级菜单只在这三页展开。
+  // 续费的三个子页共用侧边栏「续费」，二级菜单只在这三页展开。
   const inSubscriptions = subscriptionPages.includes(target);
   document.querySelector('.nav-item[data-nav-group="subs"]')?.classList.toggle('active', inSubscriptions);
   document.getElementById('navSubs')?.classList.toggle('open', inSubscriptions);
@@ -21358,7 +21358,7 @@ function uiTrackingQuickCard(id) {
   });
   setTimeout(() => input.focus({ preventScroll:true }), 60);
 }
-// Esc 关最上面那一层：确认框 → 客户弹窗 → 详情抽屉 → 订单弹窗（订阅页的弹窗有自己的处理）。
+// Esc 关最上面那一层：确认框 → 客户弹窗 → 详情抽屉 → 订单弹窗（续费页的弹窗有自己的处理）。
 // 用捕获阶段抢在通知面板、看板菜单等处理器前面看状态；自带 Esc 行为的输入框不碰。
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape' || e.defaultPrevented || e.isComposing) return;

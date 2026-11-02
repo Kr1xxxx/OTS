@@ -1,4 +1,4 @@
-# Order Track System (OTS) V3.106
+# Order Track System (OTS) V3.107
 
 Local macOS trade-order and customer management, SQLite storage, logistics/AI helpers, and the KME WhatsApp customer-sync Chrome extension. This is a privacy-sanitized **source export**, not a production database or installed application.
 
@@ -69,7 +69,7 @@ Repository: https://github.com/Kr1xxxx/OTS . This V3.89 export continues the cle
 
 ## Changes since V3.88
 
-- New 订阅 page (sidebar 管理 group, after 数据与目标) for personal subscriptions: monthly total with a rolling-digit hero, what is due in the next 30 days, category filter, in-page search, detail drawer, cancel/resume and hold-to-delete with a 6-second undo in the app toast stack, and a USD→CNY rate that only this page uses (default 7.1, edited inline in the hero).
+- New 续费 page (formerly 订阅; VPS, domains, software memberships) (sidebar 管理 group, after 数据与目标) for personal subscriptions: monthly total with a rolling-digit hero, what is due in the next 30 days, category filter, in-page search, detail drawer, cancel/resume and hold-to-delete with a 6-second undo in the app toast stack, and a USD→CNY rate that only this page uses (default 7.1, edited inline in the hero).
 - The page follows docs/ui-prototype/ots-ui.html and reads the app-wide design tokens, so the 配色 accent picker and dark mode apply to it as well.
 - Subscriptions live in their own SQLite tables (mac-app/subscription-store.js) behind /api/subscriptions routes. They are never part of the order state, dashboard, reports, global search records, JSON export or import; SQLite backups include them.
 - Charge dates clamp month-end starts (Jan 31 → Feb 28 → Mar 31), use the local calendar day, and stop at a cancelled subscription's end date.

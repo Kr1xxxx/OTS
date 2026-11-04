@@ -4317,7 +4317,11 @@ html[data-theme] .top-actions { flex:0 0 auto; }
 html[data-theme] .sidebar { width:var(--sidebar); background:var(--surface-soft); border-right:0; box-shadow:none; padding:18px 12px 14px; gap:18px; overflow:auto; }
 html[data-theme] .logo { height:auto; padding:0 8px; border:0; justify-content:flex-start; }
 /* Mac App 原生窗口：左上角红黄绿按钮压在侧边栏顶上，品牌区往下让出标题栏高度 */
-html.mac-native-window[data-theme] .sidebar { padding-top:44px; }
+html.mac-native-window[data-theme] .sidebar { padding-top:calc(44px / var(--ui-zoom, 1)); }
+/* 界面大小只在 Mac App 里能调（靠原生 pageZoom）；按下的那档直接铺白底，不用滑块。 */
+html:not(.mac-native-window) .ui-zoom-card { display:none; }
+html[data-theme] .ui-zoom-seg button[aria-pressed="true"] { background:var(--surface-bg); box-shadow:0 1px 2px oklch(0% 0 0 / .1); }
+html[data-theme="dark"] .ui-zoom-seg button[aria-pressed="true"] { background:var(--surface-raised); }
 html[data-theme] .nav { padding:0; gap:14px; flex:1; position:relative; isolation:isolate; }
 html[data-theme] .nav-group { display:flex; flex-direction:column; gap:2px; }
 html[data-theme] .nav-item { min-height:38px; padding:9px 12px; border-radius:14px; gap:10px; color:var(--gray-600); font-weight:500; background:transparent; box-shadow:none; transform:none;
@@ -6442,6 +6446,10 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
             <div class="settings-card">
               <div><strong>订单弹窗样式</strong><div class="muted">卡片：分区卡片；A：单栏；B：左侧粘贴识别；C：紧凑行。</div></div>
               <div class="modal-style-picker" role="group" aria-label="订单弹窗样式"><span>弹窗</span><div class="modal-style-seg"><i class="seg-glide" aria-hidden="true"></i><button type="button" data-modal-style-choice="" title="分区卡片（原样式）" aria-label="弹窗样式：卡片">卡片</button><button type="button" data-modal-style-choice="a" title="A 单栏：所有字段一列排下来" aria-label="弹窗样式：A 单栏">A</button><button type="button" data-modal-style-choice="b" title="B 左侧粘贴：左边贴聊天记录识别，右边填字段" aria-label="弹窗样式：B 左侧粘贴">B</button><button type="button" data-modal-style-choice="c" title="C 紧凑行：标签在左，顶部分区标签跳转" aria-label="弹窗样式：C 紧凑行">C</button></div></div>
+            </div>
+            <div class="settings-card ui-zoom-card">
+              <div><strong>界面大小</strong><div class="muted">原型是把 1440×920 的窗口缩小放进浏览器看的，所以显得更紧凑；默认 85% 和原型一致。也可以用 ⌘- / ⌘+ / ⌘0。</div></div>
+              <div class="modal-style-picker" role="group" aria-label="界面大小"><span>缩放</span><div class="modal-style-seg ui-zoom-seg"><button type="button" data-ui-zoom-choice="0.75">75%</button><button type="button" data-ui-zoom-choice="0.8">80%</button><button type="button" data-ui-zoom-choice="0.85">85%</button><button type="button" data-ui-zoom-choice="0.9">90%</button><button type="button" data-ui-zoom-choice="1">100%</button></div></div>
             </div>
           </div>
           <div class="settings-panel" data-settings-panel="ai">
@@ -21589,6 +21597,23 @@ if (document.getElementById('orderModal')) {
   }).observe(document.getElementById('orderModal'), { attributes:true, attributeFilter:['class'] });
 }
 try { uiApplyModalStyle(localStorage.getItem('ots-modal-style-v1')); } catch (_) { uiApplyModalStyle(''); }
+// 界面大小：Mac App 用原生 pageZoom 缩放（和原型在浏览器里被缩小看是一回事）；原生那边改了会回调 otsUiZoomChanged。
+function uiApplyUiZoom(value) {
+  const zoom = Number(value) > 0 ? Number(value) : 1;
+  document.documentElement.style.setProperty('--ui-zoom', String(zoom));
+  document.querySelectorAll('[data-ui-zoom-choice]').forEach(btn => btn.setAttribute('aria-pressed', String(Math.abs(Number(btn.dataset.uiZoomChoice) - zoom) < 0.001)));
+  return zoom;
+}
+window.otsUiZoomChanged = zoom => uiApplyUiZoom(zoom);
+document.querySelector('.ui-zoom-seg')?.addEventListener('click', e => {
+  const btn = e.target.closest('[data-ui-zoom-choice]');
+  const handler = window.webkit?.messageHandlers?.uiZoom;
+  if (!btn || !handler) return;
+  handler.postMessage({ zoom:Number(btn.dataset.uiZoomChoice) });
+  uiApplyUiZoom(btn.dataset.uiZoomChoice);
+  uiToast(`界面大小：${btn.textContent}`);
+});
+uiApplyUiZoom(window.__otsUiZoom);
 // 新版 UI：长表单弹窗（新建订单 / 客户）的分步导航：左侧编号分区、完成打勾、已填 N 项、底部摘要，和原型一致。
 // 注意：订单表单里有 name="id" 的隐藏域，form.id 会拿到那个 input，所以一律用 getAttribute('id')。
 function uiStepNavConfig(form) {

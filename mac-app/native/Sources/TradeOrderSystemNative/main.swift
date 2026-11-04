@@ -48,6 +48,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     private var flushAttemptID: UUID?
     private var checkedForUpdatesAtLaunch = false
 
+    /// 界面缩放（像浏览器 ⌘-/⌘+）：原型是 1440×920 窗口缩到浏览器里看的，所以默认 85% 让软件和原型一样紧凑。
+    private static let uiZoomKey = "uiZoom"
+    private static let uiZoomDefault = 0.85
+    private static let uiZoomRange = 0.7...1.2
+    private var uiZoom: Double {
+        let stored = UserDefaults.standard.object(forKey: Self.uiZoomKey) as? Double ?? Self.uiZoomDefault
+        return Self.clampZoom(stored)
+    }
+
+    private static func clampZoom(_ value: Double) -> Double {
+        guard value.isFinite else { return uiZoomDefault }
+        let stepped = (value * 20).rounded() / 20
+        return min(max(stepped, uiZoomRange.lowerBound), uiZoomRange.upperBound)
+    }
+
     private lazy var updater = AppUpdater(
         prepareToQuit: { [unowned self] completion in self.prepareForUpdateRelaunch(completion) },
         quit: { [unowned self] in
@@ -107,6 +122,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         config.preferences.javaScriptCanOpenWindowsAutomatically = true
         config.userContentController.add(self, name: "windowDragRegions")
         config.userContentController.add(self, name: "appUpdate")
+        config.userContentController.add(self, name: "uiZoom")
+        config.userContentController.addUserScript(WKUserScript(
+            source: "window.__otsUiZoom = \(uiZoom);",
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true
+        ))
         let dragBridgeScript = WKUserScript(
             source: """
             (() => {
@@ -164,6 +185,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         webView.navigationDelegate = self
         webView.uiDelegate = self
         webView.setValue(false, forKey: "drawsBackground")
+        webView.pageZoom = CGFloat(uiZoom)
         self.webView = webView
 
         let window = NSWindow(
@@ -199,6 +221,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
 
     func userContentController(_ userContentController: WKUserContentController,
                                didReceive message: WKScriptMessage) {
+        if message.name == "uiZoom" {
+            guard let url = webView?.url, originPolicy?.contains(url) == true else { return }
+            let body = message.body as? [String: Any]
+            if let zoom = (body?["zoom"] as? NSNumber)?.doubleValue ?? (message.body as? NSNumber)?.doubleValue {
+                setUiZoom(zoom)
+            }
+            return
+        }
         if message.name == "appUpdate" {
             guard let url = webView?.url, originPolicy?.contains(url) == true else { return }
             updater.checkForUpdates(userInitiated: true)
@@ -217,12 +247,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     }
 
     private func nativeRects(from values: [[String: Any]], in view: NSView) -> [NSRect] {
-        values.compactMap { value in
-            guard let x = finiteNumber(value["x"]),
-                  let y = finiteNumber(value["y"]),
-                  let width = finiteNumber(value["width"]),
-                  let height = finiteNumber(value["height"]),
-                  width > 0, height > 0 else { return nil }
+        // 页面坐标是 CSS 像素，缩放后要乘上 pageZoom 才是窗口里的点。
+        let zoom = webView?.pageZoom ?? 1
+        return values.compactMap { value in
+            guard let cssX = finiteNumber(value["x"]),
+                  let cssY = finiteNumber(value["y"]),
+                  let cssWidth = finiteNumber(value["width"]),
+                  let cssHeight = finiteNumber(value["height"]),
+                  cssWidth > 0, cssHeight > 0 else { return nil }
+            let x = cssX * zoom, y = cssY * zoom, width = cssWidth * zoom, height = cssHeight * zoom
             let rect = NSRect(x: x, y: view.bounds.height - y - height, width: width, height: height)
                 .intersection(view.bounds)
             return rect.isNull || rect.isEmpty ? nil : rect
@@ -261,7 +294,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         editMenuItem.submenu = editMenu
         mainMenu.addItem(editMenuItem)
 
+        let viewMenuItem = NSMenuItem()
+        let viewMenu = NSMenu(title: "显示")
+        let zoomIn = NSMenuItem(title: "放大", action: #selector(zoomInFromMenu(_:)), keyEquivalent: "=")
+        let zoomInPlus = NSMenuItem(title: "放大", action: #selector(zoomInFromMenu(_:)), keyEquivalent: "+")
+        // 隐藏项照样响应快捷键：⌘= 和 ⌘+ 都能放大。
+        zoomInPlus.isHidden = true
+        let zoomOut = NSMenuItem(title: "缩小", action: #selector(zoomOutFromMenu(_:)), keyEquivalent: "-")
+        let zoomDefault = NSMenuItem(title: "默认大小（85%）", action: #selector(zoomDefaultFromMenu(_:)), keyEquivalent: "0")
+        let zoomActual = NSMenuItem(title: "实际大小（100%）", action: #selector(zoomActualFromMenu(_:)), keyEquivalent: "")
+        for item in [zoomIn, zoomInPlus, zoomOut, zoomDefault, zoomActual] {
+            item.target = self
+            viewMenu.addItem(item)
+        }
+        viewMenuItem.submenu = viewMenu
+        mainMenu.addItem(viewMenuItem)
+
         NSApp.mainMenu = mainMenu
+    }
+
+    @objc private func zoomInFromMenu(_ sender: Any?) { setUiZoom(uiZoom + 0.05) }
+    @objc private func zoomOutFromMenu(_ sender: Any?) { setUiZoom(uiZoom - 0.05) }
+    @objc private func zoomDefaultFromMenu(_ sender: Any?) { setUiZoom(Self.uiZoomDefault) }
+    @objc private func zoomActualFromMenu(_ sender: Any?) { setUiZoom(1) }
+
+    /// 改缩放：记住、应用到网页，并告诉页面（设置页的「界面大小」、侧栏顶部留白跟着变）。
+    private func setUiZoom(_ value: Double) {
+        let zoom = Self.clampZoom(value)
+        UserDefaults.standard.set(zoom, forKey: Self.uiZoomKey)
+        guard let webView else { return }
+        webView.pageZoom = CGFloat(zoom)
+        webView.evaluateJavaScript("window.__otsUiZoom = \(zoom); window.otsUiZoomChanged && window.otsUiZoomChanged(\(zoom));")
     }
 
     func webView(_ webView: WKWebView,

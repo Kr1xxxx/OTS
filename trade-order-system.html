@@ -5657,7 +5657,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.112，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.112</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.113，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.113</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -20652,6 +20652,11 @@ document.querySelectorAll('.client-trigger').forEach(btn => {
     else openClientMenu(input);
   });
 });
+// Mac App（WKWebView）里点按钮不会把焦点交给按钮，输入框先失焦、focusout 把菜单收起，
+// ↗ 和字母筛选的 click 就落空了。按下时阻止默认的失焦，焦点留在输入框，菜单保持打开。
+document.addEventListener('mousedown', e => {
+  if (e.target.closest?.('.client-menu [data-open-client], .client-menu [data-client-letter]')) e.preventDefault();
+}, true);
 document.addEventListener('pointerdown', e => {
   if (e.target.closest('[data-open-client], [data-client-letter]')) return;
   const target = e.target.closest('[data-select-client], .client-option[data-client]');

@@ -11,6 +11,7 @@ const root = path.resolve(__dirname, '..');
 const serverFile = path.join(root, 'mac-app', 'server.js');
 const seedFile = path.join(root, 'trade-order-data.json');
 const testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'trade-order-security-test-'));
+const exportDir = path.join(testDir, 'Downloads');
 const port = 50000 + (process.pid % 1000);
 const baseUrl = `http://127.0.0.1:${port}`;
 const apiToken = `security-token-${process.pid}`;
@@ -198,6 +199,23 @@ async function main() {
   backupDb.close();
   assert.equal(backupRevision, saveA.revision, 'backup did not contain the committed revision');
 
+  // 导出：Mac App 的 WebKit 不处理 blob 下载，由本地服务写进「下载」文件夹；重名不覆盖，文件名不能跳出目录。
+  const csvExport = await request('/api/export-file', { method: 'POST', body: { name: 'trade-orders-all.csv', text: '\ufeff"订单号"\n"K1"' } });
+  assert.equal(csvExport.name, 'trade-orders-all.csv');
+  assert.equal(path.dirname(csvExport.path), path.resolve(exportDir));
+  assert.equal(fs.readFileSync(csvExport.path, 'utf8'), '\ufeff"订单号"\n"K1"');
+  const secondExport = await request('/api/export-file', { method: 'POST', body: { name: 'trade-orders-all.csv', text: 'second' } });
+  assert.equal(secondExport.name, 'trade-orders-all (1).csv', 'a second export overwrote the first file');
+  assert.equal(fs.readFileSync(csvExport.path, 'utf8'), '\ufeff"订单号"\n"K1"');
+  const escapedExport = await request('/api/export-file', { method: 'POST', body: { name: '../../escape.json', text: '{}' } });
+  assert.equal(path.dirname(escapedExport.path), path.resolve(exportDir), 'export name escaped the downloads folder');
+  assert.equal(fs.existsSync(path.join(testDir, 'escape.json')), false);
+  await expectStatus('/api/export-file', 400, { method: 'POST', body: { name: 'run.sh', text: 'echo' } });
+  await expectStatus('/api/export-file', 400, { method: 'POST', body: { name: '.json', text: '{}' } });
+  await expectStatus('/api/export-file', 401, { method: 'POST', body: { name: 'a.csv', text: '' }, authenticated: false });
+  await expectStatus('/api/export-file', 415, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, rawBody: JSON.stringify({ name: 'a.csv', text: '' }) });
+  await expectStatus('/api/open-url', 400, { method: 'POST', body: { url: 'https://evil.example.com/ups.com' } });
+
   await expectStatus('/api/api-status', 413, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -227,7 +245,9 @@ function startServer() {
       TRADE_APP_PORT: String(port),
       TRADE_APP_NO_OPEN: '1',
       TRADE_API_TOKEN: apiToken,
-      TRADE_INSTANCE_NONCE: instanceNonce
+      TRADE_INSTANCE_NONCE: instanceNonce,
+      TRADE_EXPORT_DIR: exportDir,
+      TRADE_EXPORT_NO_REVEAL: '1'
     },
     stdio: ['ignore', 'pipe', 'pipe']
   });

@@ -11,6 +11,7 @@ const { chromium } = require('playwright');
     const stored = {app:'trade-order-system',data:{orders:[],customers:{},demoCleared:true,demoCustomersCleared:true},revision:4};
     let conflict = false;
     let loads = 0;
+    let exportRequest = null;
     const errors = [];
     page.on('pageerror',error=>errors.push(error.message));
     await page.route('**/*',async route => {
@@ -20,6 +21,7 @@ const { chromium } = require('playwright');
       if (pathname === '/api/health') return route.fulfill({json:{ok:true,storageMode:'sqlite',counts:{orders:0},backups:{sqliteCount:0}}});
       if (pathname === '/api/save' && conflict) return route.fulfill({status:409,json:{ok:false,message:'state revision conflict',currentRevision:7}});
       if (pathname === '/api/save') return route.fulfill({json:{ok:true,revision:stored.revision,backup:{ok:true,skipped:true}}});
+      if (pathname === '/api/export-file') { exportRequest = route.request().postDataJSON(); return route.fulfill({json:{ok:true,name:exportRequest.name,path:`/Users/test/Downloads/${exportRequest.name}`}}); }
       return route.fulfill({json:{ok:true}});
     });
     await page.goto('http://127.0.0.1:47999/trade-order-system.html');
@@ -33,8 +35,11 @@ const { chromium } = require('playwright');
     assert.equal(await page.evaluate(()=>window.pendingSaveStatus().readOnly),true,'conflict must switch to read-only');
     assert.equal(await panel.isVisible(),true,'conflict must show reload and export actions');
 
-    const [download] = await Promise.all([page.waitForEvent('download'), page.locator('#macConflictExportBtn').click()]);
-    const exported = JSON.parse(fs.readFileSync(await download.path(),'utf8'));
+    // Mac App 的 WebKit 不处理 blob 下载，导出交给本地服务写进「下载」文件夹。
+    await page.locator('#macConflictExportBtn').click();
+    await page.waitForFunction(()=>document.getElementById('toast')?.textContent.includes('已导出到「下载」文件夹'));
+    assert.match(exportRequest.name,/^trade-order-unsaved-\d+\.json$/);
+    const exported = JSON.parse(exportRequest.text);
     assert.ok(exported.data.customers['Conflict Buyer'],'export must contain the unsaved local change');
 
     conflict = false;

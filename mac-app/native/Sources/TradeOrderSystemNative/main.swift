@@ -26,6 +26,8 @@ final class DragRegionView: NSView {
     }
 }
 
+private let serverPortDefaultsKey = "LocalServerPort"
+
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler, @unchecked Sendable {
     private var window: NSWindow?
     private var webView: WKWebView?
@@ -351,8 +353,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
                  for navigationAction: WKNavigationAction,
                  windowFeatures: WKWindowFeatures) -> WKWebView? {
         guard navigationAction.targetFrame == nil,
-              let url = navigationAction.request.url,
-              originPolicy?.contains(url) == true else { return nil }
+              let url = navigationAction.request.url else { return nil }
+        guard originPolicy?.contains(url) == true else {
+            // window.open 打开的外部网址（物流官网等）交给默认浏览器；以前直接返回 nil，点了没反应。
+            if originPolicy?.mayOpenExternally(url) == true { NSWorkspace.shared.open(url) }
+            return nil
+        }
 
         let popup = WKWebView(frame: NSRect(x: 0, y: 0, width: 960, height: 720), configuration: configuration)
         popup.navigationDelegate = self
@@ -369,6 +375,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         popupWindow.makeKeyAndOrderFront(nil)
         auxiliaryWindows.append(popupWindow)
         return popup
+    }
+
+    /// `<input type="file">`（导入 JSON、导入数据文件）需要 App 自己弹选择框；不实现时 WebKit 当作用户点了取消，按钮没反应。
+    func webView(_ webView: WKWebView,
+                 runOpenPanelWith parameters: WKOpenPanelParameters,
+                 initiatedByFrame frame: WKFrameInfo,
+                 completionHandler: @escaping @MainActor @Sendable ([URL]?) -> Void) {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = parameters.allowsDirectories
+        panel.allowsMultipleSelection = parameters.allowsMultipleSelection
+        panel.prompt = "选择"
+        guard let window = webView.window else {
+            completionHandler(panel.runModal() == .OK ? panel.urls : nil)
+            return
+        }
+        panel.beginSheetModal(for: window) { response in
+            completionHandler(response == .OK ? panel.urls : nil)
+        }
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
@@ -427,9 +452,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
 
     nonisolated private func launchServerWithRetries(node: String, server: URL, resources: URL) {
         var lastFailure = "服务未响应"
-        for _ in 0..<6 {
+        // 先试上次成功的端口：端口不变，网页的 localStorage（主题、配色、通知已读）才能跨启动保留。
+        let preferredPort = UserDefaults.standard.object(forKey: serverPortDefaultsKey) as? Int
+        for attempt in 0..<6 {
             if shouldStopServer() { return }
-            let identity = LocalServiceIdentity.random()
+            let identity = attempt == 0 ? LocalServiceIdentity.random(preferredPort: preferredPort) : LocalServiceIdentity.random()
             let process = configuredServerProcess(node: node, server: server, resources: resources, identity: identity)
             do {
                 try process.run()
@@ -441,6 +468,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
 
             let probe = waitForHealthyServer(identity: identity, process: process, timeout: 12)
             if probe.healthy {
+                UserDefaults.standard.set(identity.port, forKey: serverPortDefaultsKey)
                 DispatchQueue.main.async { [weak self] in
                     guard let self, !self.shouldStopServer() else { return }
                     self.localIdentity = identity

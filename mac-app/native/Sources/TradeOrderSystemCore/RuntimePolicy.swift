@@ -11,12 +11,23 @@ public struct LocalServiceIdentity: Equatable, Sendable {
         self.instanceNonce = instanceNonce
     }
 
+    public static let portRange = 49_152...65_535
+
     public static func random() -> LocalServiceIdentity {
         LocalServiceIdentity(
-            port: Int.random(in: 49_152...65_535),
+            port: Int.random(in: portRange),
             apiToken: randomHexIdentifier() + randomHexIdentifier(),
             instanceNonce: randomHexIdentifier()
         )
+    }
+
+    /// Reuses the port of the last healthy launch when it is a valid ephemeral port. The page's
+    /// origin includes the port, so a new port every launch wiped its localStorage (theme, accent,
+    /// notification read state). Token and nonce stay fresh on every launch.
+    public static func random(preferredPort: Int?) -> LocalServiceIdentity {
+        let fresh = random()
+        guard let preferredPort, portRange.contains(preferredPort) else { return fresh }
+        return LocalServiceIdentity(port: preferredPort, apiToken: fresh.apiToken, instanceNonce: fresh.instanceNonce)
     }
 
     private static func randomHexIdentifier() -> String {

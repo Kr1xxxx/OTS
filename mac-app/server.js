@@ -130,6 +130,37 @@ function chooseBackupFolder() {
     });
   });
 }
+// 导出 CSV / JSON：Mac App 的 WebKit 不处理网页下载（blob 链接被拦下，点了导出什么都没有），
+// 由本地服务直接写进「下载」文件夹，再在访达里选中它。重名时加 (1)、(2)，不覆盖已有文件。
+function exportDirectory() {
+  return path.resolve(process.env.TRADE_EXPORT_DIR || path.join(os.homedir(), 'Downloads'));
+}
+function safeExportName(name = '') {
+  const base = path.basename(String(name || '').replace(/\\/g, '/'))
+    .replace(/[\u0000-\u001f\u007f:*?"<>|]/g, '')
+    .replace(/^[.\s]+/, '')
+    .trim();
+  if (!/\.(csv|json|txt)$/i.test(base) || base.length > 120) throw httpError(400, '导出文件名不支持');
+  return base;
+}
+function writeExportFile(name, text) {
+  const fileName = safeExportName(name);
+  const dir = exportDirectory();
+  fs.mkdirSync(dir, { recursive: true });
+  const ext = path.extname(fileName);
+  const stem = fileName.slice(0, -ext.length);
+  let target = '';
+  for (let index = 0; index < 1000 && !target; index += 1) {
+    const candidate = path.join(dir, index ? `${stem} (${index})${ext}` : fileName);
+    if (!fs.existsSync(candidate)) target = candidate;
+  }
+  if (!target) throw httpError(409, '下载文件夹里同名文件太多');
+  atomicWrite(target, String(text ?? ''));
+  if (process.platform === 'darwin' && process.env.TRADE_EXPORT_NO_REVEAL !== '1') {
+    spawn('/usr/bin/open', ['-R', target], { detached: true, stdio: 'ignore' }).unref();
+  }
+  return { ok: true, path: target, name: path.basename(target) };
+}
 function ensureStorage() {
   loadBackupSettingsOnce();
   prepareBackupDir();
@@ -1382,10 +1413,8 @@ const defaultTrackingSettings = {
 
 function isAllowedTrackingHost(hostname = '') {
   const host = String(hostname).toLowerCase();
-  return host === 'dhl.com'
-    || host.endsWith('.dhl.com')
-    || host === 'fedex.com'
-    || host.endsWith('.fedex.com');
+  // 和前端 carrierDefs 的官网一一对应：UPS 单号查不了 API，只能打开官网，以前漏了 ups.com，Mac App 里点「官网查询」没反应。
+  return ['dhl.com', 'fedex.com', 'ups.com'].some(domain => host === domain || host.endsWith(`.${domain}`));
 }
 
 const defaultAiSettings = {
@@ -1611,7 +1640,7 @@ function bodyLimitForRequest(req) {
   let pathname = '';
   try { pathname = new URL(req.url, `http://127.0.0.1:${port}`).pathname; } catch (_) {}
   if (pathname === '/api/attachments') return attachmentBodyLimit;
-  if (pathname === '/api/save') return saveBodyLimit;
+  if (pathname === '/api/save' || pathname === '/api/export-file') return saveBodyLimit;
   return defaultBodyLimit;
 }
 
@@ -1697,7 +1726,7 @@ function requireJsonContentType(req, pathname) {
     '/api/open-url', '/api/ai-settings', '/api/ai-chat', '/api/api-status',
     '/api/tracking-settings', '/api/order-notification', '/api/backup-settings',
     '/api/subscriptions/save', '/api/subscriptions/delete', '/api/subscriptions/rate',
-    '/api/subscriptions/options'
+    '/api/subscriptions/options', '/api/export-file'
   ]);
   if (req.method !== 'POST' || !jsonRoutes.has(pathname)) return;
   const type = String(req.headers['content-type'] || '').split(';', 1)[0].trim().toLowerCase();
@@ -2383,6 +2412,10 @@ const server = http.createServer(async (req, res) => {
       const picked = await chooseBackupFolder();
       if (!picked.ok) return send(res, 200, JSON.stringify(picked));
       return send(res, 200, JSON.stringify(setBackupDir(picked.path)));
+    }
+    if (req.method === 'POST' && url.pathname === '/api/export-file') {
+      const body = JSON.parse(await readBody(req));
+      return send(res, 200, JSON.stringify(writeExportFile(body.name, body.text)));
     }
     if (req.method === 'POST' && url.pathname === '/api/open-data-folder') {
       ensureStorage();

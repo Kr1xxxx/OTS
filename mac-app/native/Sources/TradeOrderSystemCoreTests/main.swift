@@ -18,6 +18,15 @@ do {
     try verify(identity.apiToken.allSatisfy(\.isHexDigit), "API token is not hexadecimal")
     try verify(identity.instanceNonce.allSatisfy(\.isHexDigit), "instance nonce is not hexadecimal")
 
+    let reused = LocalServiceIdentity.random(preferredPort: 51_234)
+    try verify(reused.port == 51_234, "preferred port from the last launch was not reused")
+    try verify(reused.apiToken.count == 64 && reused.apiToken != identity.apiToken, "reused port must still get a fresh API token")
+    try verify(reused.instanceNonce != identity.instanceNonce, "reused port must still get a fresh instance nonce")
+    for invalid in [nil, 80, 47_828, 70_000] as [Int?] {
+        try verify(LocalServiceIdentity.portRange.contains(LocalServiceIdentity.random(preferredPort: invalid).port), "invalid preferred port \(String(describing: invalid)) was used")
+    }
+    try verify(LocalServiceIdentity.random(preferredPort: 80).port != 80, "privileged preferred port was used")
+
     let policy = LocalOriginPolicy(port: 51_234)
     try verify(policy.contains(URL(string: "http://127.0.0.1:51234/trade-order-system.html")!), "exact local origin was rejected")
     try verify(!policy.contains(URL(string: "http://localhost:51234/trade-order-system.html")!), "localhost alias must not be trusted")

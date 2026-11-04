@@ -4366,7 +4366,8 @@ html[data-theme] .analysis-page { display:flex; flex-direction:column; gap:16px;
 html[data-theme] .analysis-page .business-toolbar { flex-direction:row; align-items:center; flex-wrap:wrap; }
 html[data-theme] .analysis-page .business-month-nav { gap:8px; }
 html[data-theme] .analysis-page .business-month-nav .btn { height:32px; min-height:32px; padding:0 14px; border-radius:999px; }
-html[data-theme] .analysis-page #analysisMonthInput { height:36px; padding:0 14px; border:1px solid var(--surface-border); border-radius:999px; background:var(--surface-bg); color:var(--gray-900); font:inherit; font-size:13px; }
+/* 月份用下拉选（Mac App 的 WebKit 不支持 type=month，以前是一个只能手打 2026-11 的文本框） */
+html[data-theme] .analysis-page .business-month-nav :is(select.inline-select, .app-select) { width:auto; min-width:128px; height:36px; min-height:36px; border:1px solid var(--surface-border); border-radius:999px; background:var(--surface-bg); color:var(--gray-900); font-size:13px; }
 html[data-theme] .analysis-page .business-toolbar .segment-control { display:inline-flex; width:auto; flex:none; grid-template-columns:none !important; }
 html[data-theme] .analysis-page .business-toolbar .segment-control .segment-option { flex:none; height:30px; min-height:30px; padding:0 14px; font-size:13px; }
 html[data-theme] .analysis-page .business-kpi-grid { grid-template-columns:repeat(5, minmax(0,1fr)); gap:16px; }
@@ -4870,7 +4871,6 @@ html[data-theme] .amount-filter-row .chart-controls { display:flex; align-items:
 html[data-theme] .amount-filter-row :is(select.inline-select, .app-select) { width:auto; min-width:128px; height:36px; min-height:36px; border-radius:999px; font-size:13px; }
 html[data-theme] .amount-custom-range { display:none; align-items:center; gap:6px; }
 html[data-theme] .amount-report.custom-range .amount-custom-range { display:inline-flex; }
-html[data-theme] .amount-custom-range input { height:36px; border-radius:999px; padding:0 12px; }
 html[data-theme] .amount-range-text { color:var(--gray-500); font-size:12.5px; font-variant-numeric:tabular-nums; }
 html[data-theme] .amount-page-filter { display:flex; align-items:center; gap:8px; margin:0; font-size:12.5px; }
 html[data-theme] .amount-kpi-board { grid-template-columns:repeat(5, minmax(0,1fr)); gap:16px; margin:0; }
@@ -5661,7 +5661,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.114，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.114</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.115，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.115</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -5951,9 +5951,9 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
               <option value="all">全部月份</option>
             </select>
             <span class="amount-custom-range">
-              <input class="inline-select" id="chartFrom" type="month" aria-label="开始月份">
+              <select class="inline-select" id="chartFrom" aria-label="开始月份"></select>
               <span class="muted">至</span>
-              <input class="inline-select" id="chartTo" type="month" aria-label="结束月份">
+              <select class="inline-select" id="chartTo" aria-label="结束月份"></select>
             </span>
             <span class="amount-range-text" id="amountRangeText"></span>
             <span class="amount-range-text" id="amountRangeNote" hidden></span>
@@ -5997,7 +5997,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
             <button class="btn btn-small" type="button" id="businessPrevBtn">‹ 上月</button>
             <button class="btn btn-small" type="button" id="businessCurrentBtn">本月</button>
             <button class="btn btn-small" type="button" id="businessNextBtn">下月 ›</button>
-            <input type="month" id="analysisMonthInput" aria-label="分析月份">
+            <select class="inline-select" id="analysisMonthInput" aria-label="分析月份"></select>
             <div class="business-month-title visually-hidden" id="businessMonthTitle">-</div>
           </div>
           <button class="link-btn" type="button" data-analysis-list="month">本月待收订单 <span>→</span></button>
@@ -7195,6 +7195,12 @@ const safeStorage = {
   setItem(key, value) { try { window.localStorage.setItem(key, value); } catch (_) { /* 本机存储不可用时只在本次生效 */ } },
   removeItem(key) { try { window.localStorage.removeItem(key); } catch (_) { /* 忽略 */ } }
 };
+// 中文输入法候选还没上屏时按的回车 / Esc 是给输入法的，不能当成「确定」「关闭」。
+// Chrome 里这一下 isComposing 为 true；Safari / Mac App（WKWebView）先结束输入法再派 keydown，
+// isComposing 已经是 false，只剩 keyCode 229 能认出来。
+function isImeKeyEvent(event) {
+  return Boolean(event?.isComposing || event?.keyCode === 229);
+}
 const stageDefs = [
   { key:'quote', name:'报价', tag:'tag-blue', cls:'stage-quote' },
   { key:'production', name:'生产中', tag:'tag-cyan', cls:'stage-production' },
@@ -9054,7 +9060,7 @@ function renderAnalysisPage() {
   document.getElementById('analysisComparison').textContent = data.current.missingRateCount || data.previous.missingRateCount
     ? '有订单缺少汇率，金额对比暂不展示。订单数：本期 ' + data.current.orderCount + ' 单 / 上月 ' + data.previous.orderCount + ' 单'
     : '较上月整月：订单额 ' + compare(data.current.total,data.previous.total) + ' · 订单数 ' + data.current.orderCount + ' / ' + data.previous.orderCount + ' 单 · 平均订单额 ' + compare(data.current.average,data.previous.average) + '。当月尚未结束时，不代表最终增减。';
-  document.getElementById('analysisMonthInput').value = activeBusinessMonth;
+  fillMonthOptions(document.getElementById('analysisMonthInput'), orderMonths(), activeBusinessMonth);
   const revenueSub = document.getElementById('businessRevenueSub');
   if (revenueSub) {
     const prevLabel = `${Number(monthOffset(activeBusinessMonth, -1).slice(5))} 月`;
@@ -9430,6 +9436,40 @@ function syncAppSelect(select) {
     }
   }
 }
+// 自绘下拉（app-select 按钮、分段按钮）跟着原生 <select> 的值走。代码里直接 select.value = … 不会触发 change，
+// 以前按钮会停在旧值上（例如填了 UPS 单号，承运商实际已识别成 UPS，按钮还显示「自动识别」）。
+function syncSelectControl(select) {
+  const segment = select?.classList?.contains('binary-native') ? select.nextElementSibling : null;
+  if (segment?.classList.contains('binary-segment')) {
+    segment.querySelectorAll('.binary-option').forEach(btn => {
+      const on = btn.dataset.binaryValue === select.value;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-pressed', String(on));
+    });
+    return;
+  }
+  syncAppSelect(select);
+}
+function watchSelectValue(select) {
+  if (!select || select._otsValueWatched || typeof HTMLSelectElement === 'undefined') return;
+  const proto = HTMLSelectElement.prototype;
+  const descriptors = ['value', 'selectedIndex'].map(name => [name, Object.getOwnPropertyDescriptor(proto, name)]);
+  if (descriptors.some(([, d]) => !d?.get || !d?.set)) return;
+  select._otsValueWatched = true;
+  const schedule = () => {
+    if (select._otsSyncQueued) return;
+    select._otsSyncQueued = true;
+    queueMicrotask(() => {
+      select._otsSyncQueued = false;
+      if (select.isConnected) syncSelectControl(select);
+    });
+  };
+  descriptors.forEach(([name, d]) => Object.defineProperty(select, name, {
+    configurable:true,
+    get() { return d.get.call(this); },
+    set(value) { d.set.call(this, value); schedule(); }
+  }));
+}
 function destroyAppSelect(select) {
   const { wrap } = appSelectParts(select);
   if (!wrap) {
@@ -9449,6 +9489,7 @@ function destroyAppSelect(select) {
   wrap.remove();
 }
 function enhanceAppSelect(select) {
+  if (select && !select.multiple) watchSelectValue(select);
   if (!shouldUseAppSelect(select)) {
     destroyAppSelect(select);
     return;
@@ -9684,13 +9725,17 @@ function fillCopyTemplate(template = '', vars = {}) {
   }).filter(line => line !== null);
   return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
+// 复制到剪贴板，返回是否真的复制成功。剪贴板接口被拒（Mac App 偶尔会）时退回 execCommand；两条路都失败要明说，
+// 以前不管成没成功都提示「已复制」，粘贴出来却是上一次的内容。
 async function copyText(text, message = '已复制') {
   const value = String(text || '').trim();
-  if (!value) return;
+  if (!value) return false;
+  let copied = false;
   try {
     await navigator.clipboard.writeText(value);
-    toast(message);
+    copied = true;
   } catch {
+    const previousFocus = document.activeElement;
     const input = document.createElement('textarea');
     input.value = value;
     input.setAttribute('readonly', '');
@@ -9698,10 +9743,12 @@ async function copyText(text, message = '已复制') {
     input.style.left = '-9999px';
     document.body.appendChild(input);
     input.select();
-    document.execCommand('copy');
+    try { copied = document.execCommand('copy'); } catch { copied = false; }
     input.remove();
-    toast(message);
+    previousFocus?.focus?.({ preventScroll:true });
   }
+  toast(copied ? message : '复制失败，请手动选中文字复制');
+  return copied;
 }
 function customerAddressCopyText(record = {}) {
   const name = String(clientDisplayName(record.client || record.name || '') || '').trim();
@@ -9811,6 +9858,7 @@ function appConfirm({
     cancelBtn.onclick = () => cleanup({ confirmed: false, value: input.value.trim() });
     closeBtn.onclick = () => cleanup({ confirmed: false, value: input.value.trim() });
     input.onkeydown = e => {
+      if (isImeKeyEvent(e)) return;
       if (e.key === 'Enter') okBtn.click();
       if (e.key === 'Escape') cancelBtn.click();
     };
@@ -12639,6 +12687,23 @@ document.querySelectorAll('.modal-backdrop').forEach(modal => {
 });
 document.addEventListener('wheel', preventModalScrollChaining, { capture:true, passive:false });
 syncModalScrollLock();
+// 点弹窗/抽屉外面的灰色背景才关闭：按下和松开都要落在背景本身。在输入框里拖选文字、松手时滑到了背景上，
+// 浏览器会把 click 派给两者的共同父层（也就是背景），以前会直接关掉弹窗，没保存的内容就丢了。
+const backdropPress = { down:null, up:null };
+window.addEventListener('pointerdown', e => {
+  backdropPress.down = e.button === 0 ? e.target : null;
+  backdropPress.up = null;
+}, true);
+window.addEventListener('pointerup', e => { backdropPress.up = e.target; }, true);
+window.addEventListener('pointercancel', () => { backdropPress.down = backdropPress.up = null; }, true);
+window.addEventListener('click', e => {
+  const { down, up } = backdropPress;
+  backdropPress.down = backdropPress.up = null;
+  if (!down || !e.target?.matches?.('.modal-backdrop, .notif-scrim')) return;
+  if (down === e.target && (!up || up === e.target)) return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+}, true);
 function scrollWorkspaceToTop(behavior = 'auto', repeat = false) {
   const reset = () => {
     const nodes = [
@@ -14249,10 +14314,22 @@ function renderMonthSelects() {
     sel.value = options.includes(previous) ? previous : 'all';
   });
   const months = orderMonths();
+  const thisMonth = normalizeMonth(new Date().toISOString());
   const chartFrom = document.getElementById('chartFrom');
   const chartTo = document.getElementById('chartTo');
-  if (chartFrom && !chartFrom.value) chartFrom.value = months[Math.min(5, months.length - 1)] || normalizeMonth(new Date().toISOString());
-  if (chartTo && !chartTo.value) chartTo.value = months[0] || normalizeMonth(new Date().toISOString());
+  fillMonthOptions(chartFrom, months, chartFrom?.value || months[Math.min(5, months.length - 1)] || thisMonth);
+  fillMonthOptions(chartTo, months, chartTo?.value || months[0] || thisMonth);
+}
+// 月份下拉（自定义区间、经营分析）：选项是有订单的月份加近 12 个月，新的在前；当前值不在列表里也补上。
+function fillMonthOptions(select, months = [], value = '') {
+  if (!select) return;
+  const list = Array.from(new Set([...months, value].filter(month => /^\d{4}-(0[1-9]|1[0-2])$/.test(month || '')))).sort().reverse();
+  const key = list.join(',');
+  if (select.dataset.monthOptions !== key) {
+    select.innerHTML = list.map(month => `<option value="${month}">${monthLabel(month)}</option>`).join('');
+    select.dataset.monthOptions = key;
+  }
+  select.value = list.includes(value) ? value : (list[0] || '');
 }
 let chartRangeTouched = false;
 function amountRangeFallback() {
@@ -15434,10 +15511,8 @@ function renderTrackingEvents(item) {
 function openOfficialTracking(number, carrier) {
   const url = trackingUrl(number, carrier);
   if (!url) return;
-  const fallbackOpen = () => {
-    const opened = window.open(url, '_blank', 'noopener');
-    if (!opened) window.location.href = url;
-  };
+  // 带 noopener 的 window.open 按规范总是返回 null，不能拿返回值判断有没有打开（以前会顺带把当前页面也跳到物流官网）。
+  const fallbackOpen = () => { window.open(url, '_blank', 'noopener'); };
   if (isMacAppMode()) {
     apiFetch('/api/open-url', {
       method: 'POST',
@@ -17426,11 +17501,11 @@ function exportCsv(month = 'all') {
   const header = ['订单号','客户','国家','创建日期','订单月份','金额','已付款','币种','产品类型','收款方式','订单类型','草稿','加急订单','客户要求收到日期','最晚发出日期','阶段','附件数量','备注','更新时间'];
   const list = ordersByMonth(month);
   const rows = list.map(o => [o.num,o.client,o.country,normalizeDate(o.createdAt || o.updated),normalizeMonth(o.orderMonth || o.updated),o.amount,orderPaidValue(o),o.currency || 'USD',o.productType || '',o.paymentChannel || '',o.orderType || '',o.isDraft ? '是' : '否',o.urgentOrder ? '是' : '否',o.customerRequiredDate || '',o.latestShipDate || '',stageDef(o.stage).name,(o.attachments || []).length,o.note,o.updated]);
-  download(`trade-orders-${month}.csv`, '\ufeff' + [header, ...rows].map(row => row.map(v => `"${String(v ?? '').replaceAll('"','""')}"`).join(',')).join('\n'));
+  return download(`trade-orders-${month}.csv`, '\ufeff' + [header, ...rows].map(row => row.map(v => `"${String(v ?? '').replaceAll('"','""')}"`).join(',')).join('\n'));
 }
 function exportJson(month = 'all') {
   const data = month === 'all' ? state : { ...state, orders: ordersByMonth(month) };
-  download(`trade-orders-backup-${month}.json`, JSON.stringify(data, null, 2));
+  return download(`trade-orders-backup-${month}.json`, JSON.stringify(data, null, 2));
 }
 function dataFilePayload(data = state) {
   return {
@@ -17441,7 +17516,7 @@ function dataFilePayload(data = state) {
   };
 }
 function exportDataFile() {
-  download('trade-order-data.json', JSON.stringify(dataFilePayload(state), null, 2));
+  return download('trade-order-data.json', JSON.stringify(dataFilePayload(state), null, 2));
 }
 function readJsonFile(file) {
   return new Promise((resolve, reject) => {
@@ -17605,13 +17680,37 @@ function runDataHealthCheck() {
     confirmText: '知道了'
   });
 }
-function download(name, text) {
+// 导出文件，返回是否成功。浏览器里走普通下载；Mac App 的 WebKit 会拦下 blob 下载（以前点了导出只提示「已导出」，
+// 下载文件夹里什么都没有，连保存冲突时的「导出未保存数据」也一样），改由本地服务写进「下载」文件夹并在访达里选中。
+async function download(name, text) {
+  if (isMacAppMode()) {
+    try {
+      const res = await apiFetch('/api/export-file', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body:JSON.stringify({ name, text })
+      });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok || !result.ok) throw new Error(result.message || `HTTP ${res.status}`);
+      toast(`已导出到「下载」文件夹：${result.name || name}`);
+      return true;
+    } catch (error) {
+      toast(`导出失败：${error.message || '本地服务没有响应'}`);
+      return false;
+    }
+  }
   const blob = new Blob([text], { type:'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = name; a.click();
-  URL.revokeObjectURL(url);
+  a.href = url;
+  a.download = name;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  // 点完立刻释放链接，Safari 会让下载失败；稍后再释放。
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
   toast('已导出文件');
+  return true;
 }
 // Personal subscriptions use their own SQLite table and API. They never enter `state`,
 // so the dashboard, reports, global search and exports cannot see them.
@@ -19455,7 +19554,7 @@ document.getElementById('subsHero').addEventListener('click', event => {
   if (event.target.closest('#subsRateBtn')) startSubscriptionRateEdit();
 });
 document.getElementById('subsHero').addEventListener('keydown', event => {
-  if (event.target.id !== 'subsRateInput') return;
+  if (event.target.id !== 'subsRateInput' || isImeKeyEvent(event)) return;
   if (event.key === 'Enter') {
     event.preventDefault();
     commitSubscriptionRate();
@@ -19533,7 +19632,7 @@ document.getElementById('subscriptionEditModal').addEventListener('click', event
 document.getElementById('subscriptionEditForm').addEventListener('submit', saveSubscriptionDraft);
 document.getElementById('subscriptionEditForm').addEventListener('keydown', event => {
   const row = event.target.closest('[data-sub-opt-add]');
-  if (!row || event.target.tagName !== 'INPUT') return;
+  if (!row || event.target.tagName !== 'INPUT' || isImeKeyEvent(event)) return;
   if (event.key === 'Enter') {
     event.preventDefault();
     addSubscriptionOption(row.dataset.subOptAdd);
@@ -19616,7 +19715,7 @@ document.getElementById('subscriptionEditForm').addEventListener('click', event 
   renderSubscriptionPreview();
 });
 document.addEventListener('keydown', event => {
-  if (event.key !== 'Escape' || document.getElementById('confirmModal').classList.contains('open')) return;
+  if (event.key !== 'Escape' || isImeKeyEvent(event) || document.getElementById('confirmModal').classList.contains('open')) return;
   if (document.getElementById('subscriptionPriceModal').classList.contains('open')) {
     event.preventDefault();
     closeSubscriptionPriceEditor();
@@ -19673,11 +19772,20 @@ const searchInput = document.getElementById('searchInput');
 const globalSearchPanel = document.getElementById('globalSearchPanel');
 searchInput.addEventListener('focus', () => renderGlobalSearchPanel({ forceOpen:true }));
 searchInput.addEventListener('input', () => renderGlobalSearchPanel({ forceOpen:true }));
+// → 只在搜索框有焦点时显示。Mac App 里点按钮会先让输入框失焦，→ 当场隐藏，click 落空；按下时保住输入框焦点。
+// 有关键词时 → 打开全部搜索结果，没有时展开快速前往。
+document.getElementById('globalSearchBtn').addEventListener('mousedown', e => e.preventDefault());
 document.getElementById('globalSearchBtn').addEventListener('click', () => {
+  if (searchInput.value.trim()) {
+    openFullSearchResults(searchInput.value);
+    searchInput.blur();
+    return;
+  }
   searchInput.focus();
   renderGlobalSearchPanel({ forceOpen:true });
 });
 searchInput.addEventListener('keydown', e => {
+  if (isImeKeyEvent(e)) return;
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
     e.preventDefault();
     if (!globalSearchPanel.classList.contains('open')) renderGlobalSearchPanel({ forceOpen:true });
@@ -19734,6 +19842,25 @@ document.getElementById('orderListQuickFilters')?.addEventListener('click', e =>
   renderOrderListPage();
 });
 document.getElementById('orderListResetBtn')?.addEventListener('click', resetOrderListFilters);
+// 「更多筛选与排序」在桌面版是浮在列表上方的面板：点面板外面或按 Esc 收起（以前只能再点一次标题，一直挡着下面的订单）。
+// 面板里的下拉菜单挂在 body 上，点菜单项不算点外面；手机版面板是普通的展开区，不自动收起。
+function orderListMoreFloating(more) {
+  const grid = more?.querySelector('.order-list-filter-grid');
+  return Boolean(more?.open && grid && getComputedStyle(grid).position === 'absolute');
+}
+document.addEventListener('pointerdown', e => {
+  const more = document.getElementById('orderListMoreFilters');
+  if (!orderListMoreFloating(more) || more.contains(e.target) || e.target.closest?.('.app-select-popover')) return;
+  more.open = false;
+}, true);
+document.addEventListener('keydown', e => {
+  const more = document.getElementById('orderListMoreFilters');
+  if (e.key !== 'Escape' || e.defaultPrevented || isImeKeyEvent(e) || !orderListMoreFloating(more)) return;
+  if (activeAppSelect || document.querySelector('.modal-backdrop.open')) return;
+  e.preventDefault();
+  more.open = false;
+  more.querySelector('summary')?.focus({ preventScroll:true });
+});
 document.getElementById('orderListActiveFilters')?.addEventListener('click', e => {
   const button = e.target.closest('[data-clear-order-filter]');
   if (!button) return;
@@ -19783,7 +19910,7 @@ document.getElementById('orderListPagination')?.addEventListener('click', e => {
 });
 document.getElementById('fullSearchInput')?.addEventListener('input', debouncedFullSearchRender);
 document.getElementById('fullSearchInput')?.addEventListener('keydown', e => {
-  if (e.key !== 'Enter') return;
+  if (e.key !== 'Enter' || isImeKeyEvent(e)) return;
   e.preventDefault();
   renderFullSearchResults();
 });
@@ -20019,16 +20146,18 @@ document.getElementById('saveTargetBtn').addEventListener('click', () => {
   toast(amount > 0 ? '业绩目标已保存' : '业绩目标已清除');
 });
 document.getElementById('chartRange').addEventListener('change', render);
-document.getElementById('chartFrom').addEventListener('change', () => {
+// 自定义区间：开始月份晚于结束月份时把另一头跟过去，不出现空图表。
+['chartFrom', 'chartTo'].forEach(id => document.getElementById(id).addEventListener('change', () => {
+  const from = document.getElementById('chartFrom');
+  const to = document.getElementById('chartTo');
+  if (from.value && to.value && from.value > to.value) {
+    if (id === 'chartFrom') to.value = from.value;
+    else from.value = to.value;
+  }
   document.getElementById('chartRange').value = 'custom';
   renderSegmentControls();
   render();
-});
-document.getElementById('chartTo').addEventListener('change', () => {
-  document.getElementById('chartRange').value = 'custom';
-  renderSegmentControls();
-  render();
-});
+}));
 document.getElementById('themeBtn').addEventListener('click', toggleTheme);
 document.getElementById('newOrderBtn').addEventListener('click', () => openOrder());
 document.getElementById('closeModalBtn').addEventListener('click', () => uiCloseOrderGuarded());
@@ -20175,7 +20304,7 @@ document.addEventListener('keydown', e => {
   }
 });
 document.addEventListener('change', e => {
-  if (e.target.matches?.('select')) syncAppSelect(e.target);
+  if (e.target.matches?.('select')) syncSelectControl(e.target);
 }, true);
 document.addEventListener('reset', e => {
   requestAnimationFrame(() => enhanceAppSelects(e.target));
@@ -20386,7 +20515,7 @@ document.getElementById('customerPasteAnalyzeBtn').addEventListener('click', run
 document.getElementById('customerPasteResults').addEventListener('click', handleCustomerPasteResultClick);
 document.getElementById('customerPasteResults').addEventListener('keydown', e => {
   if (e.target.id !== 'customerPasteEditValue') return;
-  if (e.isComposing || e.keyCode === 229) return;
+  if (isImeKeyEvent(e)) return;
   if (e.key === 'Escape' || (e.key === 'Enter' && (e.target.tagName !== 'TEXTAREA' || e.ctrlKey || e.metaKey))) {
     e.preventDefault(); e.stopPropagation();
     finishCustomerPasteEdit(e.key === 'Enter');
@@ -20413,7 +20542,7 @@ document.addEventListener('blur', e => {
 document.getElementById('customerSearch').addEventListener('input', debouncedRender);
 document.getElementById('customerSearchBtn').addEventListener('click', renderCustomers);
 document.getElementById('customerSearch').addEventListener('keydown', e => {
-  if (e.key === 'Enter') {
+  if (e.key === 'Enter' && !isImeKeyEvent(e)) {
     e.preventDefault();
     renderCustomers();
   }
@@ -20450,7 +20579,7 @@ document.getElementById('settingsAddLevelBtn').addEventListener('click', () => a
 document.getElementById('settingsAddPaymentBtn').addEventListener('click', () => addSettingItem('settingsPaymentInput', 'paymentMethods', defaultPaymentMethods, '付款方式已添加'));
 document.querySelectorAll('#settingsTagInput,#settingsLevelInput,#settingsPaymentInput').forEach(input => {
   input.addEventListener('keydown', e => {
-    if (e.key !== 'Enter') return;
+    if (e.key !== 'Enter' || isImeKeyEvent(e)) return;
     e.preventDefault();
     e.currentTarget.parentElement.querySelector('button').click();
   });
@@ -20625,7 +20754,7 @@ document.querySelectorAll('.client-picker input[name="client"]').forEach(input =
     if (!picker.contains(e.relatedTarget)) closeClientMenus();
   });
   picker.addEventListener('keydown', e => {
-    if (e.isComposing || e.keyCode === 229) return;
+    if (isImeKeyEvent(e)) return;
     const menu = picker.querySelector('.client-menu');
     if (e.key === 'Escape' && menu.classList.contains('open')) {
       e.preventDefault();
@@ -20661,9 +20790,10 @@ document.querySelectorAll('.client-trigger').forEach(btn => {
   });
 });
 // Mac App（WKWebView）里点按钮不会把焦点交给按钮，输入框先失焦、focusout 把菜单收起，
-// ↗ 和字母筛选的 click 就落空了。按下时阻止默认的失焦，焦点留在输入框，菜单保持打开。
+// ↗、字母筛选的 click 就落空了；▾ 也会先收起再被 click 重新打开，永远收不起来。
+// 在菜单里任何地方（含表头、空白、底栏）和 ▾ 上按下都阻止默认的失焦，焦点一直留在输入框。
 document.addEventListener('mousedown', e => {
-  if (e.target.closest?.('.client-menu [data-open-client], .client-menu [data-client-letter]')) e.preventDefault();
+  if (e.target.closest?.('.client-menu, .client-trigger')) e.preventDefault();
 }, true);
 document.addEventListener('pointerdown', e => {
   if (e.target.closest('[data-open-client], [data-client-letter]')) return;
@@ -20803,7 +20933,7 @@ workspaceBoard?.addEventListener('click', e => {
 }, true);
 document.getElementById('trackingLookupBtn').addEventListener('click', renderTrackingLookup);
 document.getElementById('trackingLookupInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !isImeKeyEvent(e)) {
     e.preventDefault();
     renderTrackingLookup();
   }
@@ -20954,13 +21084,14 @@ document.getElementById('deletedOrderList').addEventListener('hold-confirm', e =
 document.getElementById('deleteOrderBtn').addEventListener('hold-confirm', deleteOrder);
 document.getElementById('duplicateBtn').addEventListener('click', duplicateOrder);
 document.getElementById('topNewCustomerBtn').addEventListener('click', () => openCustomerModal());
-document.getElementById('dataExportCsvBtn').addEventListener('click', e => {
-  exportCsv(document.getElementById('exportMonth').value);
-  setButtonFeedback(e.currentTarget, '已导出');
+// 导出成功才把按钮换成「已导出」（Mac App 里要等本地服务写完文件）。
+document.getElementById('dataExportCsvBtn').addEventListener('click', async e => {
+  const button = e.currentTarget;
+  if (await exportCsv(document.getElementById('exportMonth').value)) setButtonFeedback(button, '已导出');
 });
-document.getElementById('exportJsonBtn').addEventListener('click', e => {
-  exportJson(document.getElementById('exportMonth').value);
-  setButtonFeedback(e.currentTarget, '已导出');
+document.getElementById('exportJsonBtn').addEventListener('click', async e => {
+  const button = e.currentTarget;
+  if (await exportJson(document.getElementById('exportMonth').value)) setButtonFeedback(button, '已导出');
 });
 document.getElementById('importJsonBtn').addEventListener('click', e => {
   setButtonFeedback(e.currentTarget, '请选择文件', { restoreAfter: 1800 });
@@ -20970,9 +21101,9 @@ document.getElementById('importFile').addEventListener('change', e => {
   importJson(e.target.files[0]);
   e.target.value = '';
 });
-document.getElementById('exportDataFileBtn').addEventListener('click', e => {
-  exportDataFile();
-  setButtonFeedback(e.currentTarget, '已导出');
+document.getElementById('exportDataFileBtn').addEventListener('click', async e => {
+  const button = e.currentTarget;
+  if (await exportDataFile()) setButtonFeedback(button, '已导出');
 });
 document.getElementById('previewImportDataFileBtn').addEventListener('click', e => {
   setButtonFeedback(e.currentTarget, '请选择文件', { restoreAfter: 1800 });
@@ -21331,9 +21462,9 @@ document.getElementById('pipeline')?.addEventListener('contextmenu', e => {
 document.addEventListener('pointerdown', e => {
   if (!e.target.closest?.('.board-menu')) uiCloseBoardMenu();
 }, true);
-document.addEventListener('keydown', e => { if (e.key === 'Escape') uiCloseBoardMenu(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !isImeKeyEvent(e)) uiCloseBoardMenu(); });
 document.addEventListener('keydown', e => {
-  if (e.key !== 'Escape' || e.defaultPrevented) return;
+  if (e.key !== 'Escape' || e.defaultPrevented || isImeKeyEvent(e)) return;
   if (document.getElementById('confirmModal')?.classList.contains('open')) return;
   if (!document.getElementById('notifPanel')?.hidden) return;
   const layers = [
@@ -21456,7 +21587,7 @@ document.getElementById('notifBtn')?.addEventListener('click', () => uiToggleNot
 document.getElementById('notifClose')?.addEventListener('click', () => uiToggleNotifs(false));
 document.getElementById('notifScrim')?.addEventListener('click', () => uiToggleNotifs(false));
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && !document.getElementById('notifPanel')?.hidden) uiToggleNotifs(false);
+  if (e.key === 'Escape' && !isImeKeyEvent(e) && !document.getElementById('notifPanel')?.hidden) uiToggleNotifs(false);
 });
 document.getElementById('notifTabs')?.addEventListener('click', e => {
   const tab = e.target.closest('[data-notif-tab]');
@@ -21960,7 +22091,7 @@ function uiTrackingQuickCard(id) {
   card.querySelector('[data-track-save]').addEventListener('click', save);
   card.querySelector('[data-track-skip]').addEventListener('click', () => uiTrackingQuickCardClose(id));
   input.addEventListener('keydown', e => {
-    if (e.isComposing) return;
+    if (isImeKeyEvent(e)) return;
     if (e.key === 'Enter') { e.preventDefault(); save(); }
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); uiTrackingQuickCardClose(id); }
   });
@@ -21969,7 +22100,7 @@ function uiTrackingQuickCard(id) {
 // Esc 关最上面那一层：确认框 → 客户弹窗 → 详情抽屉 → 订单弹窗（续费页的弹窗有自己的处理）。
 // 用捕获阶段抢在通知面板、看板菜单等处理器前面看状态；自带 Esc 行为的输入框不碰。
 document.addEventListener('keydown', e => {
-  if (e.key !== 'Escape' || e.defaultPrevented || e.isComposing) return;
+  if (e.key !== 'Escape' || e.defaultPrevented || isImeKeyEvent(e)) return;
   if (e.target.matches?.('#customerPasteEditValue, #subsRateInput, [data-sub-opt-add] input, #confirmInput, #trackingQuickCard input')) return;
   if (typeof activeAppSelect !== 'undefined' && activeAppSelect) return;
   if (document.getElementById('detailCopyMenu')?.hidden === false) { e.preventDefault(); uiCopyMenuToggle(false); document.getElementById('detailCopyTextBtn')?.focus(); return; }
@@ -22094,7 +22225,7 @@ document.getElementById('detailStageBar')?.addEventListener('click', e => {
 document.getElementById('detailCopyNumBtn')?.addEventListener('click', () => {
   const num = document.getElementById('detailNum')?.textContent.trim();
   if (!num) return;
-  navigator.clipboard?.writeText(num).then(() => toast(`已复制 ${num}`), () => toast('复制失败'));
+  copyText(num, `已复制 ${num}`);
 });
 document.getElementById('orderDetailBody')?.addEventListener('click', e => {
   if (e.target.closest('[data-detail-open-customer]')) document.getElementById('detailCustomerBtn')?.click();
@@ -22116,7 +22247,8 @@ async function copyOrderText(kind = 'status') {
   const text = fillCopyTemplate(copyTemplate(kind), orderCopyVars(order));
   if (!text) { toast('文案模板是空的，请先到设置里填写'); return false; }
   uiCopyMenuToggle(false);
-  await copyText(text, kind === 'dunning' ? '催款文案已复制，可直接发给客户' : '英文状态已复制，可直接发给客户');
+  // 没复制成功就不显示「已复制」，也不在订单记录里记一次跟进。
+  if (!await copyText(text, kind === 'dunning' ? '催款文案已复制，可直接发给客户' : '英文状态已复制，可直接发给客户')) return false;
   const btn = document.getElementById('detailCopyTextBtn');
   if (btn) {
     clearTimeout(detailCopyResetTimer);

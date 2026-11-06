@@ -15,6 +15,7 @@ migration-archive/
 ai-settings.json
 ai-usage.json
 tracking-settings.json
+feishu-settings.json
 backup-meta.json
 sqlite-storage.json
 exchange-rates-cache.json

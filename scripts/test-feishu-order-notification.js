@@ -6,7 +6,7 @@ const path = require('node:path');
 const { spawn } = require('node:child_process');
 
 const root = path.resolve(__dirname, '..');
-const serverFile = path.join(root, 'mac-app', 'server.js');
+let serverFile = path.join(root, 'mac-app', 'server.js');
 const seedFile = path.join(root, 'trade-order-data.json');
 const testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'trade-order-feishu-test-'));
 const fakeCli = path.join(testDir, 'fake-lark-cli.js');
@@ -27,6 +27,9 @@ main().catch(error => {
 
 async function main() {
   fs.copyFileSync(seedFile, path.join(testDir, 'trade-order-data.json'));
+  const settingsFile = path.join(testDir, 'feishu-settings.json');
+  const settings = { profile:'OTS_TEST_BOT', chatName:'Synthetic notification group', chatId:'oc_testtarget123' };
+  fs.writeFileSync(settingsFile, JSON.stringify(settings), { mode:0o600 });
   writeFakeCli();
   startServer();
   await waitForHealth();
@@ -53,6 +56,8 @@ async function main() {
   payload.data.orders.unshift(testOrder('o-feishu-success', 'TEST-FEISHU-001', image.fileUrl));
   payload.data.orders.unshift(testOrder('o-feishu-fail', 'TEST-FAIL-002', ''));
   payload.data.orders.unshift({ ...testOrder('o-feishu-draft', 'TEST-DRAFT-003', ''), isDraft: true });
+  payload.data.orders.unshift(testOrder('o-feishu-upgrade', 'TEST-UPGRADE-004', ''));
+  payload.data.orders.unshift(testOrder('o-feishu-no-config', 'TEST-NO-CONFIG-005', ''));
   await request('/api/save', { method: 'POST', body: { state: payload, baseRevision: payload.revision } });
 
   const sent = await request('/api/order-notification', { method: 'POST', body: { orderId: 'o-feishu-success' } });
@@ -68,7 +73,8 @@ async function main() {
   assert.equal(messageCalls.length, 1, 'expected one rich-text send');
   const messageArgs = messageCalls[0];
   assertExplicitBotIdentity(messageArgs);
-  assert.equal(valueAfter(messageArgs, '--chat-id'), 'oc_CONFIGURE_TARGET_CHAT_ID');
+  assert.equal(valueAfter(messageArgs, '--chat-id'), settings.chatId);
+  assert.equal(sent.chatName, settings.chatName);
   const markdown = valueAfter(messageArgs, '--markdown');
   assert.equal(markdown.trimStart().split('\n')[0], '**客户名称：** Emma Test', '客户名称必须是通知第一行');
   assert.ok(
@@ -110,7 +116,37 @@ async function main() {
   assert.equal(retried.status, 'sent');
   assert.equal(readCliCalls().filter(args => args.includes('+messages-send')).length, 3, 'failed send was not retried exactly once');
 
-  console.log('Feishu order notification test passed: fixed rich text, inline image, bot identity, idempotency, failure retry, and redaction verified.');
+  // Replace all application-side files while retaining the independent local data/config directory.
+  await stopServer();
+  const replacement = path.join(testDir, 'replacement-app');
+  fs.mkdirSync(replacement);
+  for (const file of ['server.js','feishu-settings.js','ai-usage-store.js','whatsapp-store.js','subscription-store.js']) {
+    fs.copyFileSync(path.join(root, 'mac-app', file), path.join(replacement, file));
+  }
+  fs.writeFileSync(path.join(replacement, 'trade-order-system.html'), '<!DOCTYPE html><title>Synthetic replacement</title>');
+  fs.copyFileSync(seedFile, path.join(replacement, 'trade-order-data.json'));
+  serverFile = path.join(replacement, 'server.js');
+  startServer();
+  await waitForHealth();
+  const upgraded = await request('/api/order-notification', { method:'POST', body:{ orderId:'o-feishu-upgrade' } });
+  assert.equal(upgraded.status, 'sent');
+  const latest = readCliCalls().filter(args => args.includes('+messages-send')).at(-1);
+  assertExplicitBotIdentity(latest);
+  assert.equal(valueAfter(latest, '--chat-id'), settings.chatId, 'application replacement must retain the local target');
+  assert.deepEqual(JSON.parse(fs.readFileSync(settingsFile, 'utf8')), settings, 'upgrade must not overwrite local configuration');
+
+  await stopServer();
+  fs.unlinkSync(settingsFile);
+  startServer();
+  await waitForHealth();
+  const callCount = readCliCalls().length;
+  const unconfigured = await rawRequest('/api/order-notification', { method:'POST', body:{ orderId:'o-feishu-no-config' } });
+  assert.equal(unconfigured.status, 503);
+  assert.equal(unconfigured.data.message, '飞书机器人配置不可用');
+  assert.equal(readCliCalls().length, callCount, 'missing settings must never invoke a placeholder identity or group');
+  const sentWithMissingConfig = await request('/api/order-notification', { method:'POST', body:{ orderId:'o-feishu-success' } });
+  assert.equal(sentWithMissingConfig.alreadySent, true, 'configuration failure must not resend an already delivered order');
+  console.log('Feishu order notification passed: rich text, bot identity, idempotency, retry, local settings across app replacement, and safe missing configuration.');
 }
 
 function testOrder(id, num, fileUrl) {
@@ -160,7 +196,7 @@ process.exit(2);
 }
 
 function assertExplicitBotIdentity(args) {
-  assert.equal(valueAfter(args, '--profile'), 'OTS_BOT_CONFIGURE');
+  assert.equal(valueAfter(args, '--profile'), 'OTS_TEST_BOT');
   assert.equal(valueAfter(args, '--as'), 'bot');
 }
 

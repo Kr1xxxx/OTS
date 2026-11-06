@@ -267,6 +267,14 @@ final class AppUpdater {
               AppVersion(raw) == version else {
             throw UpdateError.message("安装包信息与发布版本不一致，已取消更新。")
         }
+        let localSettings = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Application Support/TradeOrderSystem/feishu-settings.json")
+        if let blocker = UpdatePolicy.notificationConfigBlocker(
+            localConfigurationExists: FileManager.default.fileExists(atPath: localSettings.path),
+            incomingConfigurationVersion: (info["OTSFeishuSettingsVersion"] as? NSNumber)?.intValue ?? 0
+        ) {
+            throw UpdateError.message(blocker)
+        }
     }
 
     nonisolated private static func run(_ tool: String, _ arguments: [String], failure: String) throws {

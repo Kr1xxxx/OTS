@@ -78,6 +78,9 @@ do {
     try verify(UpdatePolicy.installBlocker(bundlePath: "/Applications/TradeOrderSystem.app", parentWritable: true) == nil, "/Applications install was blocked")
     try verify(UpdatePolicy.installBlocker(bundlePath: "/private/var/folders/x/AppTranslocation/y/d/TradeOrderSystem.app", parentWritable: true) != nil, "translocated copy was not blocked")
     try verify(UpdatePolicy.installBlocker(bundlePath: "/Volumes/OTS/TradeOrderSystem.app", parentWritable: false) != nil, "DMG copy was not blocked")
+    try verify(UpdatePolicy.notificationConfigBlocker(localConfigurationExists: true, incomingConfigurationVersion: 0) != nil, "update must not disconnect existing local Feishu configuration")
+    try verify(UpdatePolicy.notificationConfigBlocker(localConfigurationExists: true, incomingConfigurationVersion: 1) == nil, "compatible update must retain normal installation")
+    try verify(UpdatePolicy.notificationConfigBlocker(localConfigurationExists: false, incomingConfigurationVersion: 0) == nil, "unconfigured installation must not gain a notification update restriction")
 
     print("Native runtime policy tests passed.")
 } catch {

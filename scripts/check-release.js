@@ -25,6 +25,8 @@ for (const file of [
 }
 
 assertFilesEqual(path.join(root, 'mac-app', 'server.js'), path.join(resources, 'server.js'));
+assertFilesEqual(path.join(root, 'mac-app', 'feishu-settings.js'), path.join(resources, 'feishu-settings.js'));
+assert(!fs.existsSync(path.join(resources, 'feishu-settings.json')), 'Private Feishu deployment configuration must not be bundled');
 assertFilesEqual(path.join(root, 'mac-app', 'ai-usage-store.js'), path.join(resources, 'ai-usage-store.js'));
 assertFilesEqual(path.join(root, 'mac-app', 'whatsapp-store.js'), path.join(resources, 'whatsapp-store.js'));
 assertFilesEqual(path.join(root, 'mac-app', 'subscription-store.js'), path.join(resources, 'subscription-store.js'));
@@ -36,6 +38,8 @@ const plistVersion = execFileSync('/usr/libexec/PlistBuddy', ['-c', 'Print :CFBu
 const buildVersion = execFileSync('/usr/libexec/PlistBuddy', ['-c', 'Print :CFBundleVersion', plist], { encoding: 'utf8' }).trim();
 assert.equal(plistVersion, expectedVersion, 'Info.plist app version differs from VERSION');
 assert.equal(buildVersion, expectedVersion.replaceAll('.', ''), 'Info.plist build version differs from VERSION');
+const feishuSettingsVersion = execFileSync('/usr/libexec/PlistBuddy', ['-c', 'Print :OTSFeishuSettingsVersion', plist], { encoding:'utf8' }).trim();
+assert.equal(feishuSettingsVersion, '1', 'App must retain external Feishu configuration support');
 
 const packageVersion = require(path.join(root, 'package.json')).version;
 assert.equal(packageVersion, `${expectedVersion}.0`, 'package.json version differs from VERSION');

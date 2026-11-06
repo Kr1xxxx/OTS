@@ -1,4 +1,4 @@
-# Order Track System (OTS) V3.115
+# Order Track System (OTS) V3.116
 
 Local macOS trade-order and customer management, SQLite storage, logistics/AI helpers, and the KME WhatsApp customer-sync Chrome extension. This is a privacy-sanitized **source export**, not a production database or installed application.
 
@@ -50,7 +50,7 @@ The bundled seed contains **three synthetic demo orders**, not an empty producti
 
 Configure AI/logistics settings and keys through Settings. Keys remain outside source in the selected local data directory. The AI default in source is OpenRouter / DeepSeek V4.1 Flash; no claim about availability or price is made by this export. .env.example is documentation, not an automatically loaded application configuration.
 
-Feishu's profile, display name, and destination ID have been replaced with explicit CONFIGURE placeholders in mac-app/server.js; the frontend has a generic group display name. To enable notifications in your own deployment, configure your own application identity and target group, rebuild, and approve a real test message. Every CLI operation must retain --as bot and an explicit --profile. This package does not send any real test messages.
+Feishu notifications read the existing CLI profile name, group display label and target group ID from the independent local `feishu-settings.json` file in Application Support. Credentials remain in the CLI profile. See [local configuration](docs/feishu-local-configuration.md). The file is never bundled or published; compatible updates retain it, and the updater blocks incompatible packages when it exists. Every CLI operation retains `--as bot` and an explicit `--profile`. Tests do not send real group messages.
 
 Tests use stubs or isolated data directories. npm run test:api is an **opt-in live logistics request** and is not part of npm test. The paid live AI benchmark probe and its results are excluded. WhatsApp real-account compatibility is not established by the synthetic tests; see chrome-extension/whatsapp-sync/README.md.
 

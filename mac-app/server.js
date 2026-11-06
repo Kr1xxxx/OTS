@@ -10,6 +10,7 @@ const { DatabaseSync } = require('node:sqlite');
 const { createWhatsAppStore, renameWhatsAppCustomer } = require('./whatsapp-store');
 const { createAiUsageStore } = require('./ai-usage-store');
 const { createSubscriptionStore } = require('./subscription-store');
+const { readFeishuSettings } = require('./feishu-settings');
 
 const appName = 'TradeOrderSystem';
 const port = Number(process.env.TRADE_APP_PORT || 47828);
@@ -42,9 +43,11 @@ const trackingSecretsFile = path.join(secretsDir, 'tracking-credentials.json');
 const trackingSecretKeys = ['dhlApiKey', 'fedexApiKey', 'fedexApiSecret'];
 const storageMarkerFile = path.join(supportDir, 'sqlite-storage.json');
 const migrationErrorFile = path.join(supportDir, 'migration-error.json');
-const larkProfile = 'OTS_BOT_CONFIGURE';
-const larkChatName = '订单通知群（待配置）';
-const larkChatId = 'oc_CONFIGURE_TARGET_CHAT_ID';
+const feishuSettingsFile = path.join(supportDir, 'feishu-settings.json');
+const feishuSettings = readFeishuSettings(feishuSettingsFile);
+const larkProfile = feishuSettings.profile;
+const larkChatName = feishuSettings.chatName;
+const larkChatId = feishuSettings.chatId;
 const dhlTrackingEndpoint = 'https://api-eu.dhl.com/track/shipments';
 const apiToken = String(process.env.TRADE_API_TOKEN || crypto.randomBytes(32).toString('base64url'));
 const instanceNonce = String(process.env.TRADE_INSTANCE_NONCE || crypto.randomBytes(24).toString('base64url'));
@@ -1108,6 +1111,10 @@ function safeLarkError(result = null) {
 
 function runLarkCli(args, { cwd = resourcesDir, timeoutMs = 45000 } = {}) {
   return new Promise((resolve, reject) => {
+    if (!feishuSettings.configured) {
+      reject(httpError(503, '飞书机器人配置不可用'));
+      return;
+    }
     let child;
     try {
       child = spawn(process.execPath, [resolveLarkCli(), '--profile', larkProfile, ...args, '--as', 'bot'], {
@@ -1212,6 +1219,7 @@ async function sendOrderNotification(orderId = '') {
   if (existing?.status === 'sending' && Date.now() - Date.parse(existing.started_at) < 2 * 60 * 1000) {
     throw httpError(409, '群消息正在发送，请稍候');
   }
+  if (!feishuSettings.configured) throw httpError(503, '飞书机器人配置不可用');
   const startedAt = new Date().toISOString();
   const idempotencyKey = existing?.idempotency_key || notificationIdempotencyKey(context.order.id);
   database.prepare(`

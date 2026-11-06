@@ -48,6 +48,7 @@ swift build -c release --product TradeOrderSystemNative
 mkdir -p "$MACOS" "$RESOURCES" "$ICONSET"
 install -m 755 "$NATIVE/.build/release/TradeOrderSystemNative" "$EXECUTABLE"
 install -m 644 "$ROOT/mac-app/server.js" "$RESOURCES/server.js"
+install -m 644 "$ROOT/mac-app/feishu-settings.js" "$RESOURCES/feishu-settings.js"
 install -m 644 "$ROOT/mac-app/ai-usage-store.js" "$RESOURCES/ai-usage-store.js"
 install -m 644 "$ROOT/mac-app/whatsapp-store.js" "$RESOURCES/whatsapp-store.js"
 install -m 644 "$ROOT/mac-app/subscription-store.js" "$RESOURCES/subscription-store.js"
@@ -100,6 +101,8 @@ cat > "$CONTENTS/Info.plist" <<PLIST
   <string>$APP_VERSION</string>
   <key>CFBundleVersion</key>
   <string>$BUILD_VERSION</string>
+  <key>OTSFeishuSettingsVersion</key>
+  <integer>1</integer>
   <key>LSMinimumSystemVersion</key>
   <string>13.5</string>
   <key>NSHighResolutionCapable</key>

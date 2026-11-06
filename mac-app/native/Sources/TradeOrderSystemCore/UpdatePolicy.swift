@@ -131,6 +131,12 @@ public struct UpdatePolicy: Sendable {
         return hex
     }
 
+    /// A release that cannot read local notification settings must not silently disconnect an existing deployment.
+    public static func notificationConfigBlocker(localConfigurationExists: Bool, incomingConfigurationVersion: Int) -> String? {
+        guard localConfigurationExists && incomingConfigurationVersion < 1 else { return nil }
+        return "这个更新包尚不支持读取本机飞书配置，更新后会断开订单通知。已保留当前版本，请使用支持本机飞书配置的更新包。"
+    }
+
     /// The running copy can only be replaced in place from a real, writable location.
     public static func installBlocker(bundlePath: String, parentWritable: Bool) -> String? {
         if bundlePath.contains("/AppTranslocation/") {

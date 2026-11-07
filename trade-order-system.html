@@ -202,9 +202,9 @@ button { cursor: pointer; }
   width: min(700px, calc(100vw - var(--sidebar) - 54px)); max-height: min(72vh, 640px);
   overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; padding: 10px;
   border: 1px solid var(--surface-border); border-radius: 20px;
-  background: color-mix(in srgb, var(--white) 96%, transparent);
-  box-shadow: 0 24px 70px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.7);
-  backdrop-filter: blur(22px); display: none;
+  /* 不透明：面板在顶栏里，顶栏自己有 backdrop-filter，嵌套的模糊不生效，下面的数字会透上来。 */
+  background: var(--surface-bg);
+  box-shadow: 0 24px 70px rgba(0,0,0,.24); display: none;
 }
 .global-search-panel.open { display: block; }
 .global-search-head {
@@ -212,8 +212,8 @@ button { cursor: pointer; }
   padding: 5px 7px 9px; color: var(--gray-500); font-size: 11px; font-weight: 600;
 }
 .global-search-head strong { color: var(--gray-900); font-size: 13px; }
-.global-search-scope { display: flex; flex-wrap: wrap; gap: 5px; }
-.global-search-scope span, .global-search-kind {
+.global-search-scope { color: var(--gray-500); font-size: 11px; font-weight: 500; }
+.global-search-kind {
   border: 1px solid var(--gray-200); border-radius: 999px; background: var(--gray-50);
   padding: 3px 7px; color: var(--gray-500); font-size: 10px; font-weight: 600; white-space: nowrap;
 }
@@ -226,9 +226,10 @@ button { cursor: pointer; }
   display: grid; grid-template-columns: 34px minmax(0,1fr) auto; align-items: center; gap: 10px;
   padding: 9px; text-align: left; cursor: pointer;
 }
-.global-search-result:hover, .global-search-result.active {
-  background: color-mix(in srgb, var(--teal-100) 72%, var(--white));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--teal-500) 28%, transparent);
+/* 以前用的 --teal-100 / --teal-500 从没定义过，整条规则无效，↑↓ 选中和悬停都没有底色。 */
+.global-search-result.active {
+  background: color-mix(in oklab, var(--accent) 12%, var(--surface-bg));
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 38%, transparent);
 }
 .global-search-icon {
   width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center;
@@ -269,7 +270,8 @@ button { cursor: pointer; }
   border-radius: 10px; background: var(--surface-bg); color: var(--gray-800); padding: 0 12px; outline: 0;
 }
 .full-search-query input:focus { border-color: var(--semantic-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--semantic-primary) 16%, transparent); }
-.full-search-type-filters {
+/* 和 .segment-control 同级的选择器写在它前面会被它的 width:100% 盖掉，左右再加 16px 外边距就超出卡片 15px。 */
+.segment-control.full-search-type-filters {
   width: min(660px, calc(100% - 32px)); margin: 12px 16px; background: var(--surface-soft);
 }
 .full-search-result-groups { min-height: 360px; padding: 0 16px 16px; }
@@ -844,6 +846,7 @@ html[data-theme="dark"] .segment-option.active {
 .order-table-view:hover { border-color: var(--semantic-primary); color: var(--semantic-primary-dark); }
 .order-table-empty { height: 180px !important; text-align: center !important; color: var(--gray-500); cursor: default; }
 .order-table-empty button { margin-left: 8px; }
+.order-list-page-gap { padding: 0 4px; color: var(--gray-400); }
 .order-list-pagination {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   min-height: 54px; padding: 9px 14px; background: var(--surface-soft); color: var(--gray-600); font-size: 12px;
@@ -2520,7 +2523,7 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
 .customer-multi-list { display: grid; gap: 7px; }
 .customer-multi-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; align-items: center; }
 .customer-multi-row textarea { min-height: 64px; resize: vertical; }
-.customer-multi-remove { width: 32px; height: 32px; padding: 0; border: 1px solid var(--gray-200); border-radius: 8px; background: var(--surface); color: var(--gray-500); cursor: pointer; font-size: 18px; line-height: 1; }
+.customer-multi-remove { width: 32px; height: 32px; padding: 0; border: 1px solid var(--gray-200); border-radius: 8px; background: var(--surface-bg); color: var(--gray-500); cursor: pointer; font-size: 18px; line-height: 1; }
 .customer-multi-remove:hover { color: var(--red-600); border-color: var(--red-600); background: var(--red-50); }
 .customer-view-mode .customer-multi-add,
 .customer-view-mode .customer-multi-remove { display: none; }
@@ -2692,7 +2695,7 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
 .copy-menu button:hover:not(:disabled) { background:var(--surface-soft); }
 .copy-menu button:disabled { opacity:.45; cursor:not-allowed; }
 .copy-menu button small { color:var(--gray-500); font-size:11px; margin-left:auto; }
-html[data-theme] .order-detail-head .btn.is-copied { background:var(--success-soft, var(--green-100)); color:var(--success, var(--green-700)); border-color:transparent; }
+html[data-theme] .order-detail-head .btn.is-copied { background:var(--success-soft, var(--green-50)); color:var(--success, var(--green-700)); border-color:transparent; }
 .level-rule-name { background: color-mix(in srgb, var(--blue-500) 10%, var(--white)); font-weight: 600; color: var(--gray-900); }
 .settings-chip {
   display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--gray-200); border-radius: 999px;
@@ -2843,7 +2846,7 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
   .global-search-foot { align-items: flex-start; flex-direction: column; }
   .full-search-title-wrap { align-items: flex-start; flex-direction: column; gap: 3px; }
   .full-search-query { align-items: stretch; }
-  .full-search-type-filters { width: calc(100% - 24px); margin: 10px 12px; overflow-x: auto; }
+  .segment-control.full-search-type-filters { width: calc(100% - 24px); margin: 10px 12px; overflow-x: auto; }
   .full-search-result-groups { padding: 0 12px 12px; }
   .top-actions .btn span { display: none; }
   .combined-modal-body { grid-template-columns: 1fr; }
@@ -4208,6 +4211,8 @@ html[data-theme] :is(.target-hero, .target-setup, .rate-status-card, .customer-d
 /* ===== 新版 UI：外壳与基础组件（OTS UI 规范）。选择器统一加 html[data-theme] 前缀，盖过旧的深色专用规则。 ===== */
 .ui-icon, .nav-icon.ui-icon { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; flex:none; }
 html[data-theme] :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+/* 顶栏搜索框外面已有一圈焦点环，里面的输入框不再画第二圈。 */
+html[data-theme] .search input:focus-visible { outline:none; }
 html[data-theme] :is(.page-title, .section-title, .modal-title, .stat-value, .logo-title) { font-family:var(--display); letter-spacing:-.02em; }
 html[data-theme] :is(.stat-value, .board-card-amount, .board-column-meta, .nav-count, .world-clock strong, td) { font-variant-numeric:tabular-nums; }
 @keyframes uiRise { from { opacity:0; transform:translateY(10px); } }
@@ -5250,7 +5255,7 @@ html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); 
 .visually-hidden { position:absolute !important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
 html[data-theme] .order-table-panel { overflow:visible; border:0; border-radius:0; background:transparent; box-shadow:none; display:flex; flex-direction:column; gap:14px; }
 html[data-theme] .order-list-page-head { min-height:0; padding:0; border:0; gap:16px; flex-wrap:wrap; }
-html[data-theme] .order-list-quick.segment-control { display:inline-flex; width:auto; margin:0; flex:none; }
+html[data-theme] .order-list-quick.segment-control { display:inline-flex; width:auto; max-width:100%; margin:0; flex:none; overflow-x:auto; scrollbar-width:none; }
 html[data-theme] .order-list-quick .segment-option { flex:none; height:30px; min-height:30px; padding:0 14px; font-size:13px; }
 html[data-theme] .order-list-title-wrap { align-items:center; gap:18px; margin-left:auto; }
 html[data-theme] .order-list-count { color:var(--gray-500); font-size:13px; }
@@ -5740,7 +5745,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.122，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.122</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.123，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.123</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -5755,7 +5760,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
       <div class="page-title">工作台</div>
       <div class="search">
         <svg class="ui-icon search-icon" aria-hidden="true"><use href="#i-search"/></svg>
-        <input id="searchInput" type="search" placeholder="搜索客户、订单号、邮箱、电话、物流单号…" autocomplete="off" aria-autocomplete="list" aria-controls="globalSearchPanel" aria-expanded="false">
+        <input id="searchInput" type="search" role="combobox" placeholder="搜索客户、订单号、邮箱、电话、物流单号…" autocomplete="off" aria-autocomplete="list" aria-controls="globalSearchPanel" aria-expanded="false">
         <kbd class="search-kbd" aria-hidden="true">⌘K</kbd>
         <button class="search-action" id="globalSearchBtn" type="button" title="搜索" aria-label="搜索"><svg class="ui-icon" aria-hidden="true"><use href="#i-arrow"/></svg></button>
         <div class="global-search-panel" id="globalSearchPanel" role="listbox" aria-label="全局搜索结果"></div>
@@ -5765,8 +5770,8 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
     <div class="top-actions">
       <button class="btn btn-ghost btn-icon bell-btn" id="notifBtn" type="button" title="通知" aria-label="通知" aria-haspopup="dialog" aria-controls="notifPanel" aria-expanded="false"><svg class="ui-icon" aria-hidden="true"><use href="#i-bell"/></svg><span class="bell-badge" id="notifBadge" hidden></span></button>
       <button class="btn btn-ghost btn-icon theme-btn" id="themeBtn" title="切换白天/夜晚模式"><svg class="ui-icon" aria-hidden="true"><use href="#i-moon"/></svg></button>
-      <button class="btn" id="topNewCustomerBtn"><svg class="ui-icon" aria-hidden="true"><use href="#i-user-plus"/></svg><span>新建客户</span></button>
-      <button class="btn btn-primary" id="newOrderBtn"><svg class="ui-icon" aria-hidden="true"><use href="#i-plus"/></svg><span>新建订单</span></button>
+      <button class="btn" id="topNewCustomerBtn" title="新建客户" aria-label="新建客户"><svg class="ui-icon" aria-hidden="true"><use href="#i-user-plus"/></svg><span>新建客户</span></button>
+      <button class="btn btn-primary" id="newOrderBtn" title="新建订单" aria-label="新建订单"><svg class="ui-icon" aria-hidden="true"><use href="#i-plus"/></svg><span>新建订单</span></button>
     </div>
   </header>
 
@@ -5848,7 +5853,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
                 <div class="section-title">最近订单</div>
                 <div class="section-meta">最近更新的 5 单</div>
               </div>
-              <button class="link-btn" type="button" data-page-link="order-list">全部订单 <span aria-hidden="true">→</span></button>
+              <button class="link-btn" type="button" data-page-link="order-list" data-reset-order-list>全部订单 <span aria-hidden="true">→</span></button>
             </div>
             <div class="activity-list" id="recentOrderList"></div>
           </section>
@@ -5893,12 +5898,12 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
               <option value="delivered">已签收</option>
               <option value="exception">物流异常</option>
             </select>
-            <select class="inline-select" id="orderListDraftFilter" aria-label="筛选订单属性"><option value="all">全部订单属性</option><option value="formal">正式订单</option><option value="draft">草稿</option></select>
+            <select class="inline-select" id="orderListDraftFilter" aria-label="筛选订单属性"><option value="all">全部（含草稿）</option><option value="formal">不含草稿</option><option value="draft">只看草稿</option></select>
             <select class="inline-select" id="orderListSort" aria-label="订单排序">
-              <option value="updatedDesc">最近更新优先</option>
-              <option value="createdDesc">创建时间优先</option>
-              <option value="amountDesc">订单金额从高到低</option>
-              <option value="paymentDesc">待收金额从高到低</option>
+              <option value="updatedDesc">最近更新（新 → 旧）</option>
+              <option value="createdDesc">创建日期（新 → 旧）</option>
+              <option value="amountDesc">订单金额（美元换算，高 → 低）</option>
+              <option value="paymentDesc">待收金额（美元换算，高 → 低）</option>
             </select>
             </div>
           </details>
@@ -9409,6 +9414,8 @@ function renderAnalysisPage() {
   analysisMonthFallback();
   const product = document.getElementById('analysisProduct').value;
   const today = normalizeDate(new Date().toISOString());
+  const monthListLink = document.querySelector('[data-analysis-list="month"]');
+  if (monthListLink) monthListLink.innerHTML = `${activeBusinessMonth === normalizeMonth(today) ? '本月' : escapeAttr(monthLabel(activeBusinessMonth))}待收订单 <span>→</span>`;
   const data = analysisDashboardData(state.orders || [], activeBusinessMonth, product, today, ecbHistoricalRates);
   const scoped = (state.orders || []).filter(o => product === 'all' || o.productType === product);
   renderBusinessAnalysis(scoped);
@@ -10310,8 +10317,9 @@ let customerPasteRequestId = 0;
 let customerPasteTimer = null;
 let customerPasteEditor = null;
 let pendingCombinedOrderFields = null;
+// 先做 NFKC：输入法全角状态打出的「ａｌｐｈａ」「１０２２」按半角比较。
 function normalizeSearchText(value) {
-  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+  return String(value || '').normalize('NFKC').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 }
 function searchCountryAliasGroups() {
   return [
@@ -10402,30 +10410,47 @@ function searchCountryAliasGroups() {
     ['南非', 'south africa', 'za']
   ];
 }
+// 国家别名表只规范化一次（以前每段被搜索的文本都把 90 组别名重新规范化一遍，搜一次 1000 单要半秒）。
+function searchCountryAliasTable() {
+  if (searchCountryAliasTable.cache) return searchCountryAliasTable.cache;
+  const clean = item => normalizeSearchText(item).replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/\s+/g, ' ').trim();
+  searchCountryAliasTable.cache = searchCountryAliasGroups().map(group => ({
+    aliases:group.map(clean).filter(Boolean),
+    expanded:group.map(clean).filter(Boolean).join(' ')
+  }));
+  return searchCountryAliasTable.cache;
+}
+// 同一段文本（每张单、每位客户）在逐字输入时会反复比较，结果按原文缓存；只缓存长度有限的条目，满了整体清空。
 function searchTextDocument(value, { expandCountries = true } = {}) {
-  const normalized = normalizeSearchText(value).replace(/[’'`]/g, '');
+  const searchTextDocumentCache = searchTextDocument.cache || (searchTextDocument.cache = new Map());
+  const source = String(value || '');
+  const cacheKey = `${expandCountries ? 1 : 0}\u0000${source}`;
+  const cached = searchTextDocumentCache.get(cacheKey);
+  if (cached) return cached;
+  const normalized = normalizeSearchText(source).replace(/[’'`]/g, '');
   const plain = normalized.replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/\s+/g, ' ').trim();
-  const baseWords = plain.split(/\s+/).filter(Boolean);
   const additions = [];
   if (expandCountries && plain) {
-    searchCountryAliasGroups().forEach(group => {
-      const matched = group.some(alias => {
-        const aliasText = normalizeSearchText(alias).replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/\s+/g, ' ').trim();
-        if (!aliasText) return false;
+    const padded = ` ${plain} `;
+    searchCountryAliasTable().forEach(group => {
+      const matched = group.aliases.some(aliasText => {
         if (/^[a-z]{2,3}$/.test(aliasText)) return plain === aliasText;
-        return (` ${plain} `).includes(` ${aliasText} `) || plain.includes(aliasText);
+        return padded.includes(` ${aliasText} `) || plain.includes(aliasText);
       });
-      if (matched) additions.push(...group);
+      if (matched) additions.push(group.expanded);
     });
   }
-  const text = [plain, ...additions].map(item => normalizeSearchText(item).replace(/[^\p{L}\p{N}]+/gu, ' ').trim()).filter(Boolean).join(' ');
+  const text = [plain, ...additions].filter(Boolean).join(' ');
   const words = [...new Set(text.split(/\s+/).filter(Boolean))];
-  return {
+  const doc = {
     text,
     words,
     compact:text.replace(/[^\p{L}\p{N}]/gu, ''),
-    digits:String(value || '').replace(/\D/g, '')
+    digits:source.normalize('NFKC').replace(/\D/g, '')
   };
+  if (searchTextDocumentCache.size > 4000) searchTextDocumentCache.clear();
+  searchTextDocumentCache.set(cacheKey, doc);
+  return doc;
 }
 function boundedDamerauLevenshtein(left, right, maxDistance = 2) {
   const source = Array.from(String(left || ''));
@@ -10461,20 +10486,43 @@ function searchWordFuzzyMatch(queryWord, haystackWords = []) {
     return boundedDamerauLevenshtein(word, candidate, maxDistance) <= maxDistance;
   });
 }
+// 中日韩文字没有空格，「张三美发用品」整段是一个词：查询里的中文按子串比较，不设长度下限。
+function searchHasCjk(value) {
+  return /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u.test(String(value || ''));
+}
+// 数字查询按金额比较：1022.50、1,022.00、$1,022.5 都等于存着的 1022.5（以前把小数点当分隔符，拼成 102250 去找）。
+function searchAmountValue(value) {
+  const text = String(value || '').normalize('NFKC').replace(/[\s$€£¥]/g, '').replace(/^(?:usd|eur|gbp|cny|rmb|cad|aud)/i, '');
+  if (!/^\d+(?:,\d{3})*\.\d+$/.test(text)) return null;
+  const amount = Number(text.replace(/,/g, ''));
+  return Number.isFinite(amount) ? amount : null;
+}
 function searchTextMatchDetail(haystack, query) {
   const cleanNumbers = value => String(value || '').replace(/(\d),(?=\d{3}(?:\D|$))/g, '$1');
-  haystack = cleanNumbers(haystack);
-  query = cleanNumbers(query);
+  const queryAmount = searchAmountValue(query);
+  haystack = cleanNumbers(String(haystack || '').normalize('NFKC'));
+  query = cleanNumbers(String(query || '').normalize('NFKC'));
   const queryDoc = searchTextDocument(query, { expandCountries:false });
   if (!queryDoc.text && !queryDoc.compact && !queryDoc.digits) return { matched:true, fuzzy:false, direct:true };
   const haystackDoc = searchTextDocument(haystack);
   const normalizedQuery = normalizeSearchText(query);
   const normalizedHaystack = normalizeSearchText(haystack);
-  if (normalizedQuery.length >= 4 && normalizedHaystack.includes(normalizedQuery)) return { matched:true, fuzzy:false, direct:true };
+  if ((normalizedQuery.length >= 4 || searchHasCjk(normalizedQuery)) && normalizedHaystack.includes(normalizedQuery)) return { matched:true, fuzzy:false, direct:true };
+  if (queryAmount !== null && (haystack.match(/\d+(?:\.\d+)?/g) || []).some(value => Math.abs(Number(value) - queryAmount) < 0.005)) return { matched:true, fuzzy:false, direct:true };
   const numberRuns = (String(haystack).match(/\+?\d[\d ().-]*\d|\d/g) || []).map(value => value.replace(/\D/g, ''));
   const numericQuery = /^[\d\s+().,$€£¥-]+$/.test(String(query));
-  if (numericQuery && queryDoc.digits.length >= 3 && numberRuns.some(value => value.includes(queryDoc.digits))) return { matched:true, fuzzy:false, direct:true };
-  const matchesWord = word => haystackDoc.words.includes(word) || (/^\d{3,}$/.test(word) && numberRuns.some(value => value.includes(word)));
+  if (numericQuery && queryDoc.digits.length >= 3) {
+    // 电话：本地写法 07700 900127 去掉开头的 0；国际写法 +44 7700 900127 / 0044… 比较末 9 位，两边写法不同也能对上。
+    const candidates = [queryDoc.digits];
+    if (/^0[1-9]/.test(queryDoc.digits) && queryDoc.digits.length >= 7) candidates.push(queryDoc.digits.replace(/^0+/, ''));
+    const tail = /^\s*(?:\+|00)/.test(String(query)) && queryDoc.digits.length >= 10 ? queryDoc.digits.slice(-9) : '';
+    if (numberRuns.some(value => candidates.some(item => value.includes(item)) || (tail && value.length >= 9 && value.endsWith(tail)))) return { matched:true, fuzzy:false, direct:true };
+  }
+  // 拉丁字母 / 数字满 2 个字符按「词的前缀」比较：Alp → Alpha、K26 → K261006056、Jo → John。
+  const matchesWord = word => haystackDoc.words.includes(word)
+    || (searchHasCjk(word) && haystackDoc.text.includes(word))
+    || (word.length >= 2 && !/^\d+$/.test(word) && haystackDoc.words.some(candidate => candidate.startsWith(word)))
+    || (/^\d{3,}$/.test(word) && numberRuns.some(value => value.includes(word)));
   const directWords = queryDoc.words.every(matchesWord);
   if (directWords) return { matched:true, fuzzy:false, direct:true };
   const fuzzyWords = queryDoc.words.every(word => matchesWord(word) || searchWordFuzzyMatch(word, haystackDoc.words));
@@ -13162,20 +13210,28 @@ async function runAiCustomerPasteAnalysis() {
     if (localBtn) localBtn.disabled = false;
   }
 }
+// 名字和侧栏一致（订单、客户、物流、数据与目标……），关键词带英文和拼音首字母。
 const globalSearchPageDefs = [
-  { page:'dashboard', title:'工作台', icon:'□', keywords:'首页 概览 提醒 待办 最近订单' },
-  { page:'order-list', title:'订单列表', icon:'☷', keywords:'全部订单 表格 列表 筛选 排序 搜索 待收款 物流' },
-  { page:'logistics', title:'物流查询', icon:'⇢', keywords:'物流 快递 运单 单号 DHL FedEx UPS 查询 轨迹 签收' },
-  { page:'amount', title:'金额统计', icon:'$', keywords:'金额 收款 销售 统计 美元 人民币 汇率 报表' },
-  { page:'targets', title:'业绩目标', icon:'◎', keywords:'业绩 目标 销售 完成率' },
-  { page:'calendar', title:'日历', icon:'▦', keywords:'日历 日期 交期 发货 提醒 排期' },
-  { page:'amount', title:'经营分析', icon:'⌁', keywords:'分析 经营 收款结构 产品贡献 客户贡献 趋势' },
-  { page:'customers', title:'客户管理', icon:'◇', keywords:'客户 联系人 邮箱 电话 地址 国家 标签 复购' },
-  { page:'deleted', title:'已删除订单', icon:'⌫', keywords:'删除 回收 恢复 订单' },
-  { page:'subscriptions', title:'续费', icon:'↻', keywords:'续费 订阅 VPS 扣费 会员 软件 服务器 域名' },
-  { page:'settings', title:'设置', icon:'⚙', keywords:'设置 数据 导入 导出 API 汇率 默认值 备份' }
+  { page:'dashboard', title:'工作台', icon:'□', keywords:'gzt gongzuotai dashboard home 首页 概览 提醒 待办 最近订单 看板' },
+  { page:'order-list', title:'订单', icon:'☷', keywords:'dd dingdan orders order list 订单列表 全部订单 表格 筛选 排序 待收款' },
+  { page:'customers', title:'客户', icon:'◇', keywords:'kh kehu customers customer clients 客户管理 联系人 邮箱 电话 地址 国家 标签 复购' },
+  { page:'logistics', title:'物流', icon:'⇢', keywords:'wl wuliu logistics tracking shipping 物流查询 快递 运单 单号 DHL FedEx UPS 轨迹 签收' },
+  { page:'calendar', title:'日历', icon:'▦', keywords:'rl rili calendar 日期 交期 发货 提醒 排期' },
+  { page:'amount', title:'数据与目标', icon:'⌁', keywords:'sj shuju data analysis stats 金额统计 经营分析 收款 销售 统计 美元 人民币 汇率 报表 趋势 产品贡献 客户贡献' },
+  { page:'targets', title:'业绩目标', icon:'◎', keywords:'yjmb yeji mubiao targets goals 目标 完成率 销售' },
+  { page:'subscriptions', title:'续费', icon:'↻', keywords:'xf xufei subscriptions renewals 订阅 VPS 扣费 会员 软件 服务器 域名' },
+  { page:'subs-analysis', title:'续费分析', icon:'↻', keywords:'xffx xufei fenxi subscription analysis 续费统计' },
+  { page:'subs-history', title:'续费历史', icon:'↻', keywords:'xfls xufei lishi subscription history 续费记录 扣费记录' },
+  { page:'deleted', title:'已删除订单', icon:'⌫', keywords:'ysc yishanchu deleted trash 已删除 删除 回收 恢复' },
+  { page:'settings', title:'设置', icon:'⚙', keywords:'sz shezhi settings preferences 数据 导入 导出 API 汇率 默认值 备份' }
+];
+// 「操作」：输入「新建」「新建订单」直接给出新建入口，不再列出几十张操作记录里写着「新建订单」的单。
+const globalSearchActionDefs = [
+  { action:'new-order', title:'新建订单', icon:'+', keywords:'xjdd xinjian dingdan new order create 新订单 创建订单 添加订单 开单' },
+  { action:'new-customer', title:'新建客户', icon:'+', keywords:'xjkh xinjian kehu new customer create 新客户 添加客户 建档' }
 ];
 let allGlobalSearchResults = [];
+let globalSearchRenderedQuery = null;
 let currentGlobalSearchResults = [];
 let globalSearchActiveIndex = -1;
 let fullSearchQuery = '';
@@ -13196,16 +13252,18 @@ function globalSearchText(value, depth = 0) {
 function globalSearchTokens(query) {
   return searchTextDocument(query, { expandCountries:false }).words;
 }
+// 传原始查询：以前先拆词再用空格拼回去（john.doe@ac → 「john doe ac」），邮箱、带横杠的单号打到一半就 0 结果。
 function globalSearchScore(title, haystack, tokens) {
-  const query = Array.isArray(tokens) ? tokens.join(' ') : String(tokens || '');
+  const query = Array.isArray(tokens) ? tokens.join(' ') : String(tokens || '').trim();
   if (!query) return 1;
   const haystackMatch = searchTextMatchDetail(haystack, query);
   if (!haystackMatch.matched) return -1;
   const cleanTitle = normalizeSearchText(title);
+  const cleanQuery = normalizeSearchText(query);
   const titleMatch = searchTextMatchDetail(title, query);
-  if (cleanTitle === query) return 120;
-  if (cleanTitle.startsWith(query)) return 100;
-  if (cleanTitle.includes(query)) return 80;
+  if (cleanTitle === cleanQuery) return 120;
+  if (cleanTitle.startsWith(cleanQuery)) return 100;
+  if (cleanTitle.includes(cleanQuery)) return 80;
   if (titleMatch.matched) return titleMatch.fuzzy ? 62 : 76;
   return haystackMatch.fuzzy ? 28 : 42;
 }
@@ -13238,44 +13296,70 @@ function globalSearchCustomerProfile(name = '') {
   const savedName = Object.keys(state.customers || {}).find(item => item.toLowerCase() === clean);
   return savedName ? state.customers[savedName] : {};
 }
+// 订单结果的副标题优先显示命中的那一项：第 2 批运单号、邮箱、电话；否则是第一批运单号或备注。
+function globalSearchOrderDetail(order = {}, profile = {}, query = '') {
+  const key = cleanTracking(query);
+  const shipments = normalizeOrderShipments(order);
+  if (key.length >= 4) {
+    const index = shipments.findIndex(item => item.trackingNumber.includes(key));
+    if (index >= 0) return shipments.length > 1 ? `第 ${index + 1} 批 · ${shipments[index].trackingNumber}` : shipments[index].trackingNumber;
+  }
+  const contacts = [profile.email, ...(Array.isArray(profile.emails) ? profile.emails : []), profile.phone, ...(Array.isArray(profile.phones) ? profile.phones : [])]
+    .map(item => typeof item === 'object' && item ? (item.value || item.email || item.phone || '') : item).filter(Boolean);
+  const contact = contacts.find(item => searchTextMatchDetail(String(item), query).direct);
+  if (contact) return String(contact);
+  return order.trackingNumber || shipments[0]?.trackingNumber || order.note || '暂无备注';
+}
 function buildGlobalSearchResults(query = '') {
-  const tokens = globalSearchTokens(query);
+  const cleanQuery = String(query || '').trim();
+  const tokens = globalSearchTokens(cleanQuery);
+  const hasQuery = Boolean(tokens.length || cleanQuery);
   const results = [];
   globalSearchPageDefs.forEach(item => {
-    const score = globalSearchScore(item.title, `${item.title} ${item.keywords}`, tokens);
-    if (score >= 0 && (tokens.length || ['dashboard','order-list','customers','logistics'].includes(item.page))) {
-      results.push({ ...item, type:'page', group:'功能入口', kind:'功能', subtitle:`打开${item.title}`, score:score + (tokens.length ? 0 : 200) });
+    const score = globalSearchScore(item.title, `${item.title} ${item.keywords}`, cleanQuery);
+    if (score >= 0 && (hasQuery || ['dashboard','order-list','customers','logistics'].includes(item.page))) {
+      results.push({ ...item, type:'page', group:'功能入口', kind:'功能', subtitle:`打开${item.title}`, score:score + (hasQuery ? 0 : 200) });
     }
   });
-  if (!tokens.length) return results;
+  if (!hasQuery) return results;
+  globalSearchActionDefs.forEach(item => {
+    const score = globalSearchScore(item.title, `${item.title} ${item.keywords}`, cleanQuery);
+    if (score >= 0) results.push({ ...item, type:'action', group:'操作', kind:'操作', subtitle:item.action === 'new-order' ? '打开新建订单表单' : '打开新建客户表单', score:score + 30 });
+  });
+  // 客户只按自己的资料打分（名字、联系人、邮箱、电话、地址、备注、标签）：以前把名下全部订单的全文也算进来，
+  // 搜运单号、金额、订单备注时客户总排在订单前面，Enter 打开的是客户档案。打分用的名字和面板上显示的一致。
   clientHistory().forEach(customer => {
     const name = customer.client || '';
     const profile = globalSearchCustomerProfile(name);
-    const customerOrders = globalSearchOrderRecords().filter(({ order }) => normalizeSearchText(order.client) === normalizeSearchText(name)).map(item => item.order);
-    const haystack = `${name} ${globalSearchText(customer)} ${globalSearchText(profile)} ${globalSearchText(customerOrders)}`;
-    const score = globalSearchScore(name, haystack, tokens);
+    const { updated:_updated, createdAt:_createdAt, ...customerFields } = customer;
+    const { updated:_profileUpdated, createdAt:_profileCreatedAt, history:_history, ...profileFields } = profile || {};
+    const title = clientDisplayName(name);
+    const haystack = `${name} ${title} ${globalSearchText(customerFields)} ${globalSearchText(profileFields)}`;
+    const score = globalSearchScore(title, haystack, cleanQuery);
     if (score < 0) return;
     const details = [profile.email || customer.email, profile.contact || customer.contact, profile.phone || customer.phone, profile.address || customer.address, normalizeCountry(profile.country || customer.country)].filter(Boolean);
-    results.push({ type:'customer', group:'客户', kind:'客户', icon:'◇', id:name, title:clientDisplayName(name), subtitle:details.join(' · ') || '查看客户基础信息', score:score + 30 });
+    results.push({ type:'customer', group:'客户', kind:'客户', icon:'◇', id:name, title, subtitle:details.join(' · ') || '查看客户基础信息', score:score + 30 });
   });
+  const exactKey = cleanTracking(cleanQuery);
   globalSearchOrderRecords().forEach(({ order, source }) => {
     const attachments = (order.attachments || []).map(item => `${item.name || ''} ${item.type || ''} ${item.link || ''} ${item.fileUrl || ''}`).join(' ');
-    const logs = (order.logs || []).map(item => `${item.text || ''} ${item.time || ''}`).join(' ');
     const profile = globalSearchCustomerProfile(order.client || '');
-    const dueAmount = orderDueValue(order);
-    const haystack = `${globalSearchText(order)} ${globalSearchText(profile)} ${order.num || ''} ${order.client || ''} ${order.country || ''} ${order.currency || ''} ${order.amount || ''} ${order.paidAmount || ''} ${dueAmount} ${order.productType || ''} ${order.paymentChannel || ''} ${order.orderType || ''} ${stageDef(order.stage).name} ${order.trackingNumber || ''} ${order.carrier || ''} ${order.logisticsStatus || ''} ${order.customerRequiredDate || ''} ${order.latestShipDate || ''} ${order.note || ''} ${attachments} ${logs}`;
+    const haystack = `${orderSearchText(order, profile)} ${attachments}`;
     const title = `${order.num || '未编号订单'} ${clientDisplayName(order.client || '')}`;
-    const score = globalSearchScore(title, haystack, tokens);
+    let score = globalSearchScore(title, haystack, cleanQuery);
     if (score < 0) return;
+    // 查询和单号、任一批运单号完全相同：这张单置顶，Enter 直接打开它；按运单号找到的打开物流页签。
+    const trackingHit = exactKey.length >= 4 && normalizeOrderShipments(order).some(item => item.trackingNumber === exactKey);
+    if (trackingHit || (exactKey.length >= 4 && cleanTracking(order.num) === exactKey)) score = 300;
     const sourceText = source === 'deleted' ? '已删除' : source === 'trash' ? '垃圾箱' : stageDef(order.stage).name;
-    results.push({ type:'order', group:'订单', kind:sourceText, icon:'≡', id:order.id, source, title, subtitle:`${storedCountry(order.country)} · ${money(order.amount, order.currency)} · ${order.trackingNumber || order.note || '暂无备注'}`, score:score + 20 });
+    results.push({ type:'order', group:'订单', kind:sourceText, icon:'≡', id:order.id, source, tab:trackingHit ? 'logistics' : '', title, subtitle:`${storedCountry(order.country)} · ${money(order.amount, order.currency)} · ${globalSearchOrderDetail(order, profile, cleanQuery)}`, score:score + 20 });
   });
   (state.trackingLookups || []).forEach(item => {
     const title = item.trackingNumber || '未填写物流单号';
     const haystack = `${title} ${item.carrier || ''} ${item.client || ''} ${item.displayClient || ''} ${item.orderNum || ''} ${item.status || ''} ${item.queryMessage || ''} ${globalSearchText(item.events || [])}`;
-    const score = globalSearchScore(title, haystack, tokens);
+    const score = globalSearchScore(title, haystack, cleanQuery);
     if (score < 0) return;
-    results.push({ type:'tracking', group:'物流', kind:'物流', icon:'⇢', id:item.id, title, subtitle:`${item.displayClient || item.client || '未关联客户'} · ${carrierName(item.carrier)} · ${item.status || '待查询'}`, score:score + 25 });
+    results.push({ type:'tracking', group:'物流', kind:'物流', icon:'⇢', id:item.id, orderId:item.orderId || '', title, subtitle:`${item.displayClient || item.client || '未关联客户'} · ${carrierName(item.carrier)} · ${item.status || '待查询'}`, score:score + 25 });
   });
   return results.sort((a, b) => b.score - a.score || a.title.localeCompare(b.title));
 }
@@ -13284,6 +13368,7 @@ function renderGlobalSearchPanel({ forceOpen = false } = {}) {
   const panel = document.getElementById('globalSearchPanel');
   if (!input || !panel) return;
   const query = input.value.trim();
+  globalSearchRenderedQuery = query;
   allGlobalSearchResults = buildGlobalSearchResults(query);
   const limitedResults = limitGlobalSearchResultsByGroup(allGlobalSearchResults, 5);
   // 面板按分组显示，↑↓ 的顺序也要按分组排，否则方向键高亮的和 Enter 打开的不是同一条。
@@ -13296,7 +13381,7 @@ function renderGlobalSearchPanel({ forceOpen = false } = {}) {
     map[item.group].push({ item, index });
     return map;
   }, {});
-  const scopes = '<div class="global-search-scope"><span>客户</span><span>订单</span><span>邮箱电话</span><span>地址备注</span><span>物流附件</span></div>';
+  const scopes = '<div class="global-search-scope">可搜客户、订单、邮箱电话、地址备注、物流附件</div>';
   const groupsHtml = Object.entries(grouped).map(([group, items]) => `
     <section class="global-search-group">
       <div class="global-search-group-title">${escapeAttr(group)} · ${items.length}${resultCounts[group] > items.length ? ` / ${resultCounts[group]}` : ''}</div>
@@ -13309,10 +13394,10 @@ function renderGlobalSearchPanel({ forceOpen = false } = {}) {
     </section>`).join('');
   panel.innerHTML = `
     <div class="global-search-head"><strong>${query ? `搜索“${escapeAttr(query)}”` : '快速前往'}</strong>${scopes}</div>
-    ${groupsHtml || `<div class="global-search-empty"><strong>没有找到完全匹配的内容</strong>可尝试姓名、邮箱、电话、地址、订单号、金额、备注或物流单号</div>`}
+    ${groupsHtml || `<div class="global-search-empty"><strong>没有找到相关内容</strong>可尝试姓名、邮箱、电话、地址、订单号、金额、备注或物流单号</div>`}
     <div class="global-search-foot">
-      <span>↑ ↓ 选择 · Enter 打开 · Esc 关闭${query ? ` · 共 ${allGlobalSearchResults.length} 条结果` : ''}</span>
-      ${query ? `<button class="global-search-all-btn" type="button" data-open-full-search>查看全部搜索结果 <span>${allGlobalSearchResults.length}</span></button>` : ''}
+      <span>↑ ↓ 选择 · Enter 打开 · Esc 关闭${query ? ` · 共 ${allGlobalSearchResults.length} 条结果` : ' · ⌘K 或 / 随时打开搜索'}</span>
+      ${query && allGlobalSearchResults.length ? `<button class="global-search-all-btn" type="button" data-open-full-search>查看全部搜索结果 <span>${allGlobalSearchResults.length}</span></button>` : ''}
     </div>`;
   if (forceOpen || document.activeElement === input || query) {
     panel.classList.add('open');
@@ -13326,14 +13411,16 @@ function closeGlobalSearchPanel() {
   input?.removeAttribute('aria-activedescendant');
   globalSearchActiveIndex = -1;
 }
-function setGlobalSearchActive(index) {
+function setGlobalSearchActive(index, { scroll = true } = {}) {
   if (!currentGlobalSearchResults.length) return;
+  // 还没选中时按 ↑ 选最后一条（以前 (−1 − 1 + n) % n 选到倒数第二条）。
+  if (index < -1) index = currentGlobalSearchResults.length - 1;
   globalSearchActiveIndex = (index + currentGlobalSearchResults.length) % currentGlobalSearchResults.length;
   document.querySelectorAll('[data-global-search-index]').forEach(el => el.classList.toggle('active', Number(el.dataset.globalSearchIndex) === globalSearchActiveIndex));
   const active = document.getElementById(`global-search-result-${globalSearchActiveIndex}`);
   if (active) {
     document.getElementById('searchInput')?.setAttribute('aria-activedescendant', active.id);
-    active.scrollIntoView({ block:'nearest' });
+    if (scroll) active.scrollIntoView({ block:'nearest' });
   }
 }
 function activateGlobalSearchResult(index) {
@@ -13341,18 +13428,44 @@ function activateGlobalSearchResult(index) {
   if (!item) return;
   activateGlobalSearchItem(item);
 }
+// 跳到订单列表时，这张单如果被列表现有的筛选 / 搜索词挡住，先清掉筛选，关掉抽屉后能在列表里看到它。
+function revealOrderInList(order) {
+  if (!order || !document.getElementById('orderListSearch')) return;
+  if (filterOrdersForList([order], orderListFiltersFromControls(), state.customers || {}).length) return;
+  resetOrderListFilters();
+  toast('已清除订单列表的筛选，方便找到这张单');
+}
+function openGlobalSearchOrder(id, source, options = {}) {
+  const { order } = findOrderRecord(id);
+  if (!order) return;
+  // 垃圾箱的单在工作台「垃圾箱」那一列，不在订单列表里。
+  if (source === 'deleted') setPage('deleted');
+  else if (source === 'trash') setPage('dashboard');
+  else {
+    revealOrderInList(order);
+    setPage('order-list');
+  }
+  openOrderDetail(id, options);
+}
 function activateGlobalSearchItem(item) {
   closeGlobalSearchPanel();
   if (item.type === 'page') setPage(item.page);
+  if (item.type === 'action') {
+    if (item.action === 'new-order') document.getElementById('newOrderBtn')?.click();
+    if (item.action === 'new-customer') document.getElementById('topNewCustomerBtn')?.click();
+  }
   if (item.type === 'customer') {
     setPage('customers');
     openCustomerModal(item.id, { viewOnly:true });
   }
-  if (item.type === 'order') {
-    setPage(item.source === 'deleted' ? 'deleted' : 'order-list');
-    openOrderDetail(item.id);
-  }
+  if (item.type === 'order') openGlobalSearchOrder(item.id, item.source, item.tab ? { tab:item.tab } : {});
   if (item.type === 'tracking') {
+    // 关联了订单的物流记录直接打开这张单的物流页签（补运单号、看收款都在这里）；没关联的才去物流页。
+    const linked = item.orderId ? findOrderRecord(item.orderId) : { order:null };
+    if (linked.order) {
+      openGlobalSearchOrder(item.orderId, linked.source, { tab:'logistics' });
+      return;
+    }
     setPage('logistics');
     openTrackingDetail(item.id);
   }
@@ -13407,15 +13520,31 @@ function renderFullSearchResults() {
       </div>
     </section>`).join('') || '<div class="full-search-empty"><strong>没有找到匹配内容</strong>可换用姓名、订单号、电话数字、国家简称或备注关键词</div>';
 }
+// 订单被搜索的文本只取用户看得到的字段：以前把整张单（内部 id、操作记录、更新时间、飞书状态……）都拼进去，
+// 搜「250」会命中 id 里的数字。阶段用中文名（报价、生产中），不用内部英文值。客户档案只取联系方式和地址。
+function orderSearchText(order = {}, profile = {}) {
+  const stageName = typeof stageDef === 'function' ? stageDef(order.stage).name : '';
+  const shipments = (Array.isArray(order.shipments) ? order.shipments : []).map(item => [item?.trackingNumber, item?.number, item?.carrier, item?.status, item?.logisticsStatus, item?.note].filter(Boolean).join(' '));
+  const contact = ['contact', 'contacts', 'email', 'emails', 'paymentEmail', 'phone', 'phones', 'mobile', 'tel', 'whatsapp', 'address', 'addresses', 'alternativeContactMethods', 'tag', 'tags']
+    .map(key => globalSearchText(profile?.[key])).filter(Boolean).join(' ');
+  return [
+    order.num, order.client, typeof clientDisplayName === 'function' ? clientDisplayName(order.client || '') : '',
+    order.country, order.currency, order.amount, order.paidAmount, typeof orderDueValue === 'function' ? orderDueValue(order) : '',
+    order.productType, order.paymentChannel, order.orderType, stageName, order.isDraft ? '草稿' : '', order.urgentOrder ? '加急' : '',
+    order.trackingNumber, order.carrier, order.logisticsStatus, shipments.join(' '),
+    order.note, order.next, order.customerRequiredDate, order.latestShipDate, order.owner, contact
+  ].map(value => value === null || value === undefined ? '' : String(value)).filter(Boolean).join(' ');
+}
 function orderListSearchHaystack(order = {}, customers = {}) {
   const clientName = String(order.client || '').trim();
   const savedName = Object.keys(customers || {}).find(name => name.toLowerCase() === clientName.toLowerCase());
   const profile = savedName ? customers[savedName] : {};
-  return globalSearchText({ ...order, attachments:[], profile, dueAmount:orderDueValue(order) });
+  return orderSearchText(order, profile);
 }
 function orderListQuickMatch(order = {}, quick = 'all') {
   if (quick === 'active') return !order.isDraft && !isSettledStage(order.stage);
-  if (quick === 'unpaid') return orderDueValue(order) > 0;
+  // 和工作台「待收款」一致：草稿不算待收。
+  if (quick === 'unpaid') return !order.isDraft && orderDueValue(order) > 0;
   if (quick === 'shipment') return normalizeStage(order.stage) === 'shipment';
   if (quick === 'done') return normalizeStage(order.stage) === 'done';
   if (quick === 'draft') return Boolean(order.isDraft);
@@ -13444,7 +13573,8 @@ function orderListDetailMatch(order = {}, filters = {}) {
   if (draft === 'formal' && order.isDraft) return false;
   if (draft === 'draft' && !order.isDraft) return false;
   if (paymentState === 'unpaid' && orderDueValue(order) <= 0) return false;
-  if (paymentState === 'paid' && orderDueValue(order) > 0) return false;
+  // 金额为 0 的单（多半是还没填金额的草稿）不算「已收清」。
+  if (paymentState === 'paid' && (orderDueValue(order) > 0 || !(Number(order.amount) > 0))) return false;
   if (logistics === 'unshipped' && tracking) return false;
   // 已完成的单不算「运输中」（UPS 满 5 天自动完成的单状态还停在已发货）。
   if (logistics === 'inTransit' && (!tracking || isDelivered || isException || normalizeStage(order.stage) === 'done')) return false;
@@ -13452,17 +13582,23 @@ function orderListDetailMatch(order = {}, filters = {}) {
   if (logistics === 'exception' && !isException) return false;
   return true;
 }
+// 近似匹配（Anna → Anne、拼错一个字母）只在没有任何精确结果时才用，不和精确结果混在一起。
 function filterOrdersForList(orders = [], filters = {}, customers = {}) {
   const query = String(filters.query || '').trim();
-  return orders.filter(order => {
-    const searchOk = !query || searchTextMatches(orderListSearchHaystack(order, customers), query);
-    return searchOk && orderListQuickMatch(order, filters.quick || 'all') && orderListDetailMatch(order, filters);
-  });
+  const candidates = orders.filter(order => orderListQuickMatch(order, filters.quick || 'all') && orderListDetailMatch(order, filters));
+  if (!query) return candidates;
+  const matched = candidates.map(order => ({ order, detail:searchTextMatchDetail(orderListSearchHaystack(order, customers), query) })).filter(item => item.detail.matched);
+  const direct = matched.filter(item => item.detail.direct);
+  return (direct.length ? direct : matched).map(item => item.order);
 }
+// 金额 / 待收排序按美元换算后比较（和页头「合计 / 待收」同一口径），以前按原币数字排，人民币单排第一。
+// 拿不到汇率的单排在最后。
 function orderListSortValue(order = {}, sort = 'updatedDesc') {
   if (sort === 'createdDesc') return parseDate(order.createdAt || order.updated);
-  if (sort === 'amountDesc') return Number(order.amount || 0);
-  if (sort === 'paymentDesc') return orderDueValue(order);
+  if (sort === 'amountDesc' || sort === 'paymentDesc') {
+    if (!ecbUsdRateForOrder(order)) return -1;
+    return sort === 'amountDesc' ? orderAmountUsd(order) : orderDueUsd(order);
+  }
   return parseDate(order.updated || order.createdAt);
 }
 function sortOrdersForList(orders = [], sort = 'updatedDesc') {
@@ -15930,7 +16066,12 @@ function syncOrderListSelect(id, allLabel, options = []) {
   const select = document.getElementById(id);
   if (!select) return;
   const current = select.value || 'all';
+  const currentLabel = select.selectedOptions?.[0]?.textContent || current;
   const unique = Array.from(new Map(options.filter(item => item?.value).map(item => [String(item.value), item])).values());
+  // 选中的值已经没有订单了（唯一那张单删掉、改了国家）：保留这个选项并标「0 单」，不悄悄改回「全部」。
+  if (current !== 'all' && !unique.some(item => String(item.value) === current)) {
+    unique.push({ value:current, label:/（0 单）$/.test(currentLabel) ? currentLabel : `${currentLabel}（0 单）` });
+  }
   select.innerHTML = `<option value="all">${escapeAttr(allLabel)}</option>${unique.map(item => `<option value="${escapeAttr(item.value)}">${escapeAttr(item.label || item.value)}</option>`).join('')}`;
   select.value = unique.some(item => String(item.value) === current) ? current : 'all';
 }
@@ -15969,9 +16110,14 @@ function orderListPaginationButtons(currentPage, totalPages) {
   const start = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
   const end = Math.min(totalPages, start + 4);
   for (let page = start; page <= end; page += 1) pages.push(page);
+  // 页数多时补上首页、末页和省略号，不用一页页点到最后。
+  const pageButton = page => `<button class="${page === currentPage ? 'active' : ''}" type="button" data-order-list-page="${page}" aria-current="${page === currentPage ? 'page' : 'false'}">${page}</button>`;
+  const gap = '<span class="order-list-page-gap" aria-hidden="true">…</span>';
+  const head = start > 1 ? `${pageButton(1)}${start > 2 ? gap : ''}` : '';
+  const tail = end < totalPages ? `${end < totalPages - 1 ? gap : ''}${pageButton(totalPages)}` : '';
   return `
     <button type="button" data-order-list-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''}>上一页</button>
-    ${pages.map(page => `<button class="${page === currentPage ? 'active' : ''}" type="button" data-order-list-page="${page}" aria-current="${page === currentPage ? 'page' : 'false'}">${page}</button>`).join('')}
+    ${head}${pages.map(pageButton).join('')}${tail}
     <button type="button" data-order-list-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>`;
 }
 function orderListActiveFilters(controls) {
@@ -15992,6 +16138,26 @@ function orderListCountryShort(country = '') {
   const parts = String(country || '').trim().split(/\s+/);
   return /\p{Regional_Indicator}/u.test(parts[0] || '') && parts[1] ? `${parts[0]} ${parts[1]}` : String(country || '');
 }
+let orderListPin = null;
+let orderListQuickActionAt = 0;
+function releaseOrderListPin() {
+  if (orderListPin) clearTimeout(orderListPin.timer);
+  orderListPin = null;
+}
+function checkOrderListPin() {
+  if (!orderListPin) return;
+  if (document.getElementById('orderTableBody')?.matches(':hover')) {
+    orderListPin.timer = setTimeout(checkOrderListPin, 1500);
+    return;
+  }
+  releaseOrderListPin();
+  if (document.getElementById('page-order-list')?.classList.contains('active')) renderOrderListPage();
+}
+function pinOrderListRows() {
+  const ids = Array.from(document.querySelectorAll('#orderTableBody [data-order-list-id]')).map(row => row.dataset.orderListId);
+  releaseOrderListPin();
+  orderListPin = { ids, key:'', timer:setTimeout(checkOrderListPin, 5000) };
+}
 function renderOrderListPage() {
   const body = document.getElementById('orderTableBody');
   const pagination = document.getElementById('orderListPagination');
@@ -15999,22 +16165,45 @@ function renderOrderListPage() {
   renderOrderListFilterOptions();
   const filterControls = Array.from(document.querySelectorAll('#page-order-list select[id$="Filter"]'));
   const activeFilters = orderListActiveFilters(filterControls.map(select => ({id:select.id, value:select.value, label:select.selectedOptions[0]?.textContent || select.value})));
-  document.getElementById('orderListActiveFilters').innerHTML = activeFilters.map(filter => `<button type="button" class="order-list-filter-chip" data-clear-order-filter="${escapeAttr(filter.id)}" aria-label="移除筛选：${escapeAttr(filter.label)}">${escapeAttr(filter.label)} ×</button>`).join('');
-  const moreCount = activeFilters.filter(filter => document.getElementById('orderListMoreFilters').contains(document.getElementById(filter.id))).length;
+  const sort = document.getElementById('orderListSort')?.value || 'updatedDesc';
+  // 已选条件里也列出快捷标签、搜索词和非默认排序：以前这三样不显示，叠出 0 单时看不出是哪个条件在起作用。
+  const quickLabel = document.querySelector(`[data-order-list-quick="${orderListQuickFilter}"]`)?.textContent.trim() || '';
+  const searchText = (document.getElementById('orderListSearch')?.value || '').trim();
+  const sortSelect = document.getElementById('orderListSort');
+  const extraChips = [
+    orderListQuickFilter !== 'all' && quickLabel ? { id:'quick', label:`快捷：${quickLabel}` } : null,
+    searchText ? { id:'search', label:`搜索：${searchText}` } : null,
+    sort !== 'updatedDesc' ? { id:'orderListSort', label:`排序：${sortSelect?.selectedOptions[0]?.textContent || sort}` } : null
+  ].filter(Boolean);
+  document.getElementById('orderListActiveFilters').innerHTML = [...extraChips, ...activeFilters].map(filter => `<button type="button" class="order-list-filter-chip" data-clear-order-filter="${escapeAttr(filter.id)}" aria-label="移除筛选：${escapeAttr(filter.label)}">${escapeAttr(filter.label)} ×</button>`).join('');
+  const moreCount = activeFilters.filter(filter => document.getElementById('orderListMoreFilters').contains(document.getElementById(filter.id))).length + (sort !== 'updatedDesc' ? 1 : 0);
   document.getElementById('orderListMoreCount').textContent = moreCount ? `（${moreCount}）` : '';
   const filters = orderListFiltersFromControls();
-  const sort = document.getElementById('orderListSort')?.value || 'updatedDesc';
   const filtered = filterOrdersForList(state.orders || [], filters, state.customers || {});
   const sorted = sortOrdersForList(filtered, sort);
   const page = paginateOrdersForList(sorted, orderListCurrentPage, orderListPageSize);
   orderListCurrentPage = page.currentPage;
+  // 行内「收齐 / 推进」之后，这一页先按原来的顺序显示（行不跳走），等鼠标离开表格或改了条件再重排。
+  const pinKey = JSON.stringify([filters, sort, page.currentPage]);
+  if (orderListPin && orderListPin.key && orderListPin.key !== pinKey) releaseOrderListPin();
+  if (orderListPin && !orderListPin.key) orderListPin.key = pinKey;
+  const pinnedItems = orderListPin ? orderListPin.ids.map(id => (state.orders || []).find(order => order.id === id)).filter(Boolean) : null;
+  if (pinnedItems) page.items = pinnedItems;
   const count = document.getElementById('orderListResultCount');
-  if (count) count.textContent = `${filtered.length === (state.orders || []).length ? filtered.length : `${filtered.length} / ${(state.orders || []).length}`} 单 · 合计 ${summaryMoney(usdTotal(filtered), 'USD')} · 待收 ${summaryMoney(usdDueTotal(filtered), 'USD')}`;
+  // 合计 / 待收不含草稿（和工作台一致）；全是草稿时按草稿算，并写明。
+  const formalOrders = filtered.filter(order => !order.isDraft);
+  const draftCount = filtered.length - formalOrders.length;
+  const summaryOrders = formalOrders.length ? formalOrders : filtered;
+  const summaryNote = draftCount && formalOrders.length ? ` · 另有草稿 ${draftCount} 单未计入` : (draftCount ? '（草稿）' : '');
+  if (count) count.textContent = `${filtered.length === (state.orders || []).length ? filtered.length : `${filtered.length} / ${(state.orders || []).length}`} 单 · 合计 ${summaryMoney(usdTotal(summaryOrders), 'USD')} · 待收 ${summaryMoney(usdDueTotal(summaryOrders), 'USD')}${summaryNote}`;
   const deletedCount = document.getElementById('orderListDeletedCount');
   if (deletedCount) deletedCount.textContent = (state.deletedOrders || []).length;
   document.querySelectorAll('[data-order-list-quick]').forEach(button => button.classList.toggle('active', button.dataset.orderListQuick === orderListQuickFilter));
   fitSegmentControl(document.getElementById('orderListQuickFilters'));
-  if (!page.items.length) {
+  const noOrders = !(state.orders || []).length;
+  if (!page.items.length && noOrders) {
+    body.innerHTML = '<tr><td class="order-table-empty" colspan="9">还没有订单。<button class="btn btn-small btn-primary" type="button" data-order-list-new>新建订单</button></td></tr>';
+  } else if (!page.items.length) {
     body.innerHTML = '<tr><td class="order-table-empty" colspan="9">没有符合条件的订单。<button class="btn btn-small" type="button" data-order-list-reset>重置筛选</button></td></tr>';
   } else {
     body.innerHTML = page.items.map(order => {
@@ -16024,6 +16213,8 @@ function renderOrderListPage() {
       const paid = orderPaidValue(order);
       const due = orderDueValue(order);
       const logistics = orderListLogisticsDisplay(order);
+      const usdRate = ecbUsdRateForOrder(order);
+      const usdHint = String(order.currency || 'USD').toUpperCase() === 'USD' ? '' : (usdRate ? ` · ≈ ${summaryMoney(orderAmountUsd(order), 'USD')}` : ' · 缺汇率，未换算成美元');
       return `
         <tr data-order-list-id="${escapeAttr(order.id)}" tabindex="0" aria-label="查看订单 ${escapeAttr(order.num || '')}">
           <td class="col-order">
@@ -16032,17 +16223,18 @@ function renderOrderListPage() {
           </td>
           <td class="col-customer">
             <button class="order-table-customer" type="button" data-order-list-customer="${escapeAttr(order.client || '')}" title="${escapeAttr(clientDisplayName(order.client || '未命名客户'))} · 查看客户资料"><span class="order-table-ellipsis">${escapeAttr(clientDisplayName(order.client || '未命名客户'))}</span></button>
-            <span class="order-table-sub order-table-ellipsis">${escapeAttr(order.next || order.note || order.orderType || '')}</span>
+            <span class="order-table-sub order-table-ellipsis">${escapeAttr(order.next || order.note || '')}</span>
           </td>
           <td class="col-country"><span class="order-table-ellipsis" title="${escapeAttr(order.country || '未填写')}">${escapeAttr(orderListCountryShort(order.country) || '未填写')}</span></td>
           <td class="col-product"><div class="order-table-product"><strong>${escapeAttr(product.value)}</strong><span> · ${escapeAttr(boardPaymentLabel(payment.value))}</span></div><span class="order-table-sub">${escapeAttr(order.orderType || '')}</span></td>
           <td class="col-stage"><div class="order-table-stage"><span class="tag ${stage.tag}">${escapeAttr(stage.name)}</span>${order.isDraft ? '<span class="order-table-mini-flag">草稿</span>' : ''}${order.urgentOrder ? '<span class="order-table-mini-flag urgent">加急</span>' : ''}${logistics.partial ? `<span class="order-table-mini-flag partial" title="${escapeAttr(logistics.partial)}">${escapeAttr(logistics.partial.startsWith('部分发货') ? '部分发货' : logistics.partial)}</span>` : ''}</div></td>
-          <td class="col-money" title="已收 ${escapeAttr(money(paid, order.currency))}"><span class="order-table-money order-table-total">${money(order.amount, order.currency)}</span><span class="order-table-paybar" aria-hidden="true"><i style="width:${Math.min(100, orderAmountValue(order) ? Math.round(paid / orderAmountValue(order) * 100) : 0)}%"></i></span>${due > 0 ? `<span class="order-table-due-line">待收 ${money(due, order.currency)}</span>` : ''}</td>
+          <td class="col-money" title="已收 ${escapeAttr(money(paid, order.currency))}${escapeAttr(usdHint)}"><span class="order-table-money order-table-total">${money(order.amount, order.currency)}</span><span class="order-table-paybar" aria-hidden="true"><i style="width:${Math.min(100, orderAmountValue(order) ? Math.round(paid / orderAmountValue(order) * 100) : 0)}%"></i></span>${due > 0 ? `<span class="order-table-due-line">待收 ${money(due, order.currency)}</span>` : ''}</td>
           <td class="col-logistics"><div class="order-table-logistics ${logistics.exception ? 'exception' : ''}"><strong>${escapeAttr(logistics.status)}</strong><span class="order-table-sub">${escapeAttr(logistics.carrier || '')}${logistics.carrier && logistics.tracking ? '  ' : ''}${escapeAttr(logistics.tracking || '')}</span></div></td>
           <td class="col-date"><span class="order-table-date">${escapeAttr(normalizeDate(order.createdAt || order.updated))}</span></td>
           <td class="col-action">${(() => {
-            const next = typeof nextStageFor === 'function' ? nextStageFor(order) : '';
-            const buttons = [
+            // 草稿不在列表上收款 / 推进：要先在详情里转为正式订单。
+            const next = !order.isDraft && typeof nextStageFor === 'function' ? nextStageFor(order) : '';
+            const buttons = order.isDraft ? '' : [
               due > 0 && !isSettledStage(order.stage) ? `<button class="order-table-view" type="button" data-order-list-quick="paid" data-order-list-open="${escapeAttr(order.id)}" title="${quickPaidLabel(order)} ${escapeAttr(money(due, order.currency))}">收齐</button>` : '',
               next ? `<button class="order-table-view" type="button" data-order-list-quick="advance" data-order-list-open="${escapeAttr(order.id)}" title="推进到${escapeAttr(stageDef(next).name)}">→ ${escapeAttr(stageDef(next).name)}</button>` : ''
             ].join('');
@@ -16053,7 +16245,8 @@ function renderOrderListPage() {
   }
   const rangeStart = page.total ? page.start + 1 : 0;
   const rangeEnd = Math.min(page.start + orderListPageSize, page.total);
-  pagination.innerHTML = `<span>显示 ${rangeStart}-${rangeEnd}，共 ${page.total} 个订单</span><div class="order-list-page-buttons">${orderListPaginationButtons(page.currentPage, page.totalPages)}</div>`;
+  pagination.style.display = noOrders ? 'none' : '';
+  pagination.innerHTML = `<span>显示 ${rangeStart}-${rangeEnd}，共 ${page.total} 单</span><div class="order-list-page-buttons">${orderListPaginationButtons(page.currentPage, page.totalPages)}</div>`;
 }
 function resetOrderListFilters() {
   orderListQuickFilter = 'all';
@@ -19138,7 +19331,11 @@ async function upsertOrder(form, options = {}) {
     order.feishuNotification = normalizeFeishuNotification({ requested:notificationRequested, status:notificationRequested ? 'sending' : 'skipped' });
   }
   if (existing) state.orders = state.orders.map(o => o.id === existing.id ? order : o);
-  else state.orders.unshift(order);
+  else {
+    state.orders.unshift(order);
+    // 新单排在最前：订单列表回到第 1 页，保存后能看到它。
+    orderListCurrentPage = 1;
+  }
   form.dataset.pendingOrderId = order.id;
   if (!await persistFormState(form)) {
     // 没写进数据库：记下怎么撤回。放弃这张表单时内存回到保存前（新单删掉、编辑恢复原样），后台重试不会再写进去。
@@ -19213,6 +19410,7 @@ function duplicateOrder() {
     logs:[{ time:nowText(), text:`由订单 ${src.num || ''} 复制生成` }]
   };
   state.orders.unshift(copy);
+  orderListCurrentPage = 1;
   closeOrder();
   render();
   // 直接打开复制出来的新单：号码、金额当场就能看到、能改。
@@ -21980,6 +22178,15 @@ initTheme();
 loadCachedUsdCnyRate();
 const debouncedRender = debounce(render);
 const debouncedPriceHistory = debounce(renderPriceHistory);
+// 搜索框共用：输入法组字期间（拼音 z → zh → zhang）不重算，组字结束（上屏）后算一次。
+function bindSearchInput(input, onChange) {
+  if (!input) return;
+  input.addEventListener('input', e => {
+    if (e.isComposing) return;
+    onChange(e);
+  });
+  input.addEventListener('compositionend', e => onChange(e));
+}
 const debouncedOrderListRender = debounce(() => {
   orderListCurrentPage = 1;
   renderOrderListPage();
@@ -21987,8 +22194,14 @@ const debouncedOrderListRender = debounce(() => {
 const debouncedFullSearchRender = debounce(renderFullSearchResults);
 const searchInput = document.getElementById('searchInput');
 const globalSearchPanel = document.getElementById('globalSearchPanel');
+// 输入加 100ms 防抖（以前每个按键同步重算全部客户和订单），输入法组字期间不算。
+const debouncedGlobalSearchRender = debounce(() => renderGlobalSearchPanel({ forceOpen:true }), 100);
 searchInput.addEventListener('focus', () => renderGlobalSearchPanel({ forceOpen:true }));
-searchInput.addEventListener('input', () => renderGlobalSearchPanel({ forceOpen:true }));
+bindSearchInput(searchInput, debouncedGlobalSearchRender);
+// 按键时面板还停在防抖之前的查询：先按当前输入算一次，↑↓ / Enter 指向的就是看得到的结果。
+function syncGlobalSearchPanel() {
+  if (!globalSearchPanel.classList.contains('open') || globalSearchRenderedQuery !== searchInput.value.trim()) renderGlobalSearchPanel({ forceOpen:true });
+}
 // → 只在搜索框有焦点时显示。Mac App 里点按钮会先让输入框失焦，→ 当场隐藏，click 落空；按下时保住输入框焦点。
 // 有关键词时 → 打开全部搜索结果，没有时展开快速前往。
 document.getElementById('globalSearchBtn').addEventListener('mousedown', e => e.preventDefault());
@@ -22005,17 +22218,25 @@ searchInput.addEventListener('keydown', e => {
   if (isImeKeyEvent(e)) return;
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
     e.preventDefault();
-    if (!globalSearchPanel.classList.contains('open')) renderGlobalSearchPanel({ forceOpen:true });
-    setGlobalSearchActive(globalSearchActiveIndex + (e.key === 'ArrowDown' ? 1 : -1));
+    syncGlobalSearchPanel();
+    setGlobalSearchActive(e.key === 'ArrowUp' && globalSearchActiveIndex < 0 ? -2 : globalSearchActiveIndex + (e.key === 'ArrowDown' ? 1 : -1));
   } else if (e.key === 'Enter') {
     e.preventDefault();
-    if (!globalSearchPanel.classList.contains('open')) renderGlobalSearchPanel({ forceOpen:true });
+    syncGlobalSearchPanel();
     if (currentGlobalSearchResults.length) activateGlobalSearchResult(globalSearchActiveIndex >= 0 ? globalSearchActiveIndex : 0);
+    else if (searchInput.value.trim()) toast('没有找到相关内容，换个关键词试试');
   } else if (e.key === 'Escape') {
     e.preventDefault();
     closeGlobalSearchPanel();
     searchInput.blur();
   }
+});
+// 鼠标停在哪一条，哪一条就是选中项：悬停和 Enter 指向同一条。
+globalSearchPanel.addEventListener('pointermove', e => {
+  const result = e.target.closest('[data-global-search-index]');
+  if (!result) return;
+  const index = Number(result.dataset.globalSearchIndex);
+  if (index !== globalSearchActiveIndex) setGlobalSearchActive(index, { scroll:false });
 });
 globalSearchPanel.addEventListener('click', e => {
   const openAll = e.target.closest('[data-open-full-search]');
@@ -22044,7 +22265,7 @@ function uiSettingsTab(tab) {
 document.querySelector('.nav-item[data-page="settings"]')?.addEventListener('click', () => {
   if (document.getElementById('navSettingsAlert')?.hidden === false) uiSettingsTab('api');
 });
-document.getElementById('orderListSearch')?.addEventListener('input', debouncedOrderListRender);
+bindSearchInput(document.getElementById('orderListSearch'), debouncedOrderListRender);
 ['orderListStageFilter','orderListPaymentStateFilter','orderListProductFilter','orderListPaymentFilter','orderListCountryFilter','orderListMonthFilter','orderListLogisticsFilter','orderListDraftFilter','orderListSort'].forEach(id => {
   document.getElementById(id)?.addEventListener('change', () => {
     orderListCurrentPage = 1;
@@ -22081,15 +22302,26 @@ document.addEventListener('keydown', e => {
 document.getElementById('orderListActiveFilters')?.addEventListener('click', e => {
   const button = e.target.closest('[data-clear-order-filter]');
   if (!button) return;
-  const select = document.getElementById(button.dataset.clearOrderFilter);
-  if (!select) return;
-  select.value = 'all';
+  const target = button.dataset.clearOrderFilter;
+  if (target === 'quick') orderListQuickFilter = 'all';
+  else if (target === 'search') {
+    const search = document.getElementById('orderListSearch');
+    if (search) search.value = '';
+  } else {
+    const select = document.getElementById(target);
+    if (!select) return;
+    select.value = target === 'orderListSort' ? 'updatedDesc' : 'all';
+  }
   orderListCurrentPage = 1;
   renderOrderListPage();
 });
 document.getElementById('orderTableBody')?.addEventListener('click', e => {
   if (e.target.closest('[data-order-list-reset]')) {
     resetOrderListFilters();
+    return;
+  }
+  if (e.target.closest('[data-order-list-new]')) {
+    openOrder();
     return;
   }
   const customerButton = e.target.closest('[data-order-list-customer]');
@@ -22103,6 +22335,10 @@ document.getElementById('orderTableBody')?.addEventListener('click', e => {
   if (openButton?.dataset.orderListQuick) {
     e.preventDefault();
     e.stopPropagation();
+    // 双击的第二下、或 400ms 内的连点不再执行：第一下改完后按钮会换成「→ 下一阶段」，第二下会接着推进。
+    if (e.detail > 1 || Date.now() - orderListQuickActionAt < 400) return;
+    orderListQuickActionAt = Date.now();
+    pinOrderListRows();
     if (openButton.dataset.orderListQuick === 'paid') quickMarkPaidFull(openButton.dataset.orderListOpen);
     else quickAdvanceStage(openButton.dataset.orderListOpen);
     return;
@@ -22125,7 +22361,7 @@ document.getElementById('orderListPagination')?.addEventListener('click', e => {
   renderOrderListPage();
   document.querySelector('#page-order-list .order-table-scroll')?.scrollTo({ top:0, behavior:'smooth' });
 });
-document.getElementById('fullSearchInput')?.addEventListener('input', debouncedFullSearchRender);
+bindSearchInput(document.getElementById('fullSearchInput'), debouncedFullSearchRender);
 document.getElementById('fullSearchInput')?.addEventListener('keydown', e => {
   if (e.key !== 'Enter' || isImeKeyEvent(e)) return;
   e.preventDefault();
@@ -23386,7 +23622,12 @@ document.getElementById('page-amount')?.addEventListener('click', e => {
   document.getElementById('orderListPaymentStateFilter').value = 'unpaid';
   document.getElementById('orderListDraftFilter').value = 'formal';
   document.getElementById('orderListProductFilter').value = document.getElementById('analysisProduct').value;
-  if (link.dataset.analysisList === 'month') document.getElementById('orderListMonthFilter').value = activeBusinessMonth;
+  if (link.dataset.analysisList === 'month') {
+    // 看的月份没有订单、也不在最近 12 个月里时，下拉里没有这个选项，以前赋值失败、月份条件被悄悄丢掉。
+    const monthSelect = document.getElementById('orderListMonthFilter');
+    if (![...monthSelect.options].some(option => option.value === activeBusinessMonth)) monthSelect.add(new Option(monthLabel(activeBusinessMonth), activeBusinessMonth));
+    monthSelect.value = activeBusinessMonth;
+  }
   setPage('order-list');
 });
 document.getElementById('businessCurrentBtn')?.addEventListener('click', () => {
@@ -23622,14 +23863,34 @@ function uiAfterPageChange(changed) {
   if (typeof uiStaggerPage === 'function') uiStaggerPage(page);
   setTimeout(() => page?.classList.remove('page-enter'), 900);
 }
+// 打开搜索前先收起其他浮层（通知、下拉、客户菜单、看板菜单、更多筛选），不然它们盖在搜索结果上、点结果点不中。
+function closeTransientLayers() {
+  if (document.getElementById('notifPanel') && !document.getElementById('notifPanel').hidden) uiToggleNotifs(false);
+  closeAppSelectMenu();
+  closeClientMenus();
+  if (typeof uiCloseBoardMenu === 'function') uiCloseBoardMenu();
+  const more = document.getElementById('orderListMoreFilters');
+  if (more?.open && typeof orderListMoreFloating === 'function' && orderListMoreFloating(more)) more.open = false;
+}
+// Mac 上只认 ⌘K：Ctrl+K 是文本框里「删到行尾」的系统快捷键。
+const globalSearchIsMac = /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent || '');
 document.addEventListener('keydown', e => {
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName || '') || e.target?.isContentEditable;
-  if (((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') || (e.key === '/' && !typing && !e.metaKey && !e.ctrlKey && !e.altKey)) {
-    if (document.querySelector('.modal-backdrop.open')) return;
+  const commandK = (globalSearchIsMac ? e.metaKey && !e.ctrlKey : e.ctrlKey || e.metaKey) && !e.altKey && String(e.key).toLowerCase() === 'k';
+  if (commandK || (e.key === '/' && !typing && !e.metaKey && !e.ctrlKey && !e.altKey)) {
+    if (isImeKeyEvent(e)) return;
+    if (document.querySelector('.modal-backdrop.open')) {
+      // 弹窗开着不打开搜索，但 ⌘K 也不交给浏览器（Chrome 会跳到地址栏）。
+      if (commandK) e.preventDefault();
+      return;
+    }
     e.preventDefault();
+    closeTransientLayers();
     const input = document.getElementById('searchInput');
     input?.focus();
     input?.select();
+    // 焦点已经在搜索框时 focus 不会再触发，面板要手动展开。
+    renderGlobalSearchPanel({ forceOpen:true });
   }
 });
 window.addEventListener('resize', () => uiNavGlide(true));
@@ -24095,7 +24356,7 @@ document.getElementById('notifBtn')?.addEventListener('click', () => uiToggleNot
 document.getElementById('notifClose')?.addEventListener('click', () => uiToggleNotifs(false));
 document.getElementById('notifScrim')?.addEventListener('click', () => uiToggleNotifs(false));
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && !isImeKeyEvent(e) && !document.getElementById('notifPanel')?.hidden) uiToggleNotifs(false);
+  if (e.key === 'Escape' && !e.defaultPrevented && !isImeKeyEvent(e) && !document.getElementById('notifPanel')?.hidden) uiToggleNotifs(false);
 });
 document.getElementById('notifTabs')?.addEventListener('click', e => {
   const tab = e.target.closest('[data-notif-tab]');
@@ -24841,7 +25102,11 @@ function uiDashboardKpis() {
   const bar = document.getElementById('statTargetBar');
   if (bar) bar.style.width = goal ? `${Math.min(100, targetRate(usdTotal(ordersByMonth(month).filter(isRevenueOrder)), goal))}%` : '0%';
 }
-document.querySelectorAll('[data-page-link]').forEach(btn => btn.addEventListener('click', () => setPage(btn.dataset.pageLink)));
+// 工作台「全部订单 →」进来就是全部订单，不带着上次在列表里留下的筛选和搜索词。
+document.querySelectorAll('[data-page-link]').forEach(btn => btn.addEventListener('click', () => {
+  if (btn.hasAttribute('data-reset-order-list')) resetOrderListFilters();
+  setPage(btn.dataset.pageLink);
+}));
 
 // 原型：打开软件后右下角问候一次（每天一次），顺便报一下今天的待办构成。
 function uiGreetOnce() {

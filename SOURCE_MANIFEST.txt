@@ -87,6 +87,7 @@ scripts/test-feishu-settings.js
 scripts/test-follow-reminder.js
 scripts/test-form-chips-ui.js
 scripts/test-full-payment-status.js
+scripts/test-global-search-ui.js
 scripts/test-global-search.js
 scripts/test-html-injection-ui.js
 scripts/test-image-attachment-preparation.js
@@ -99,6 +100,7 @@ scripts/test-modal-close-guard-ui.js
 scripts/test-multi-shipments.js
 scripts/test-new-order-stage.js
 scripts/test-order-list-page.js
+scripts/test-order-list-ui-fixes.js
 scripts/test-order-modal-history.js
 scripts/test-order-num-duplicates-ui.js
 scripts/test-order-number.js

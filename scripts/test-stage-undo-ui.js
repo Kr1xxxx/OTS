@@ -47,6 +47,8 @@ const { chromium } = require('playwright');
     assert.equal(moved.logisticsStatus,'已发货');
 
     await page.locator('.toast-undo').first().click();
+    // 撤销在点击处理里完成，慢机器上给它一点时间落地再比对（没撤销照样会在下面失败）。
+    await page.waitForFunction(()=>state.orders.find(item=>item.id==='o-undo').stage==='production',null,{timeout:5000}).catch(()=>{});
     assert.deepEqual(await snapshot(),before,'undo left the auto-filled payment or shipment behind');
     assert.match(await page.locator('#orderDetailBody').textContent(),/待收/,'drawer still shows the order as fully paid after undo');
     await page.evaluate(()=>window.flushPendingSave());

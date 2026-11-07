@@ -70,6 +70,9 @@ assert.ok(Math.abs(vm.runInContext(`ecbUsdRateForOrder({ currency:'GBP', created
   { date:'2026-08-28', rates:{ USD:1.2, GBP:0.8 } }
 ])})`, context) - 1.5) < 1e-9, '周末订单必须使用之前最近一个 ECB 工作日汇率');
 
+// 「超过最晚发出日期」和工作台待办共用 orderPastShipDeadline。
+vm.runInContext(extractFunction('isSettledStage'), context);
+vm.runInContext(extractFunction('orderPastShipDeadline'), context);
 vm.runInContext(extractFunction('analysisDashboardData'), context);
 const snapshot = context.analysisDashboardData([
   {id:'old',client:'A',orderMonth:'2026-07',amount:100,paidAmount:100,currency:'USD',productType:'假发'},

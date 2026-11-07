@@ -185,9 +185,9 @@ async function pageTests() {
     const zIndex = await page.evaluate(() => ['confirmModal', 'orderModal'].map(id => Number(getComputedStyle(document.getElementById(id)).zIndex)));
     assert.ok(zIndex[0] > zIndex[1], `confirm z-index ${zIndex[0]} not above order modal ${zIndex[1]}`);
 
-    // The snooze ("稍后", until tomorrow) ends on the next day.
-    const snooze = await page.evaluate(() => { snoozedTasks.add('x'); const had = snoozedTasks.has('x'); snoozedTasks.days.set('x', '2000-01-01'); return [had, snoozedTasks.has('x'), snoozedTasks.size]; });
-    assert.deepEqual(snooze, [true, false, 0]);
+    // The snooze ("稍后", until tomorrow) is stored with the data and ends on the next day.
+    const snooze = await page.evaluate(() => { snoozedTasks.add('x'); const had = snoozedTasks.has('x'); const stored = state.snoozedTasks.x === normalizeDate(new Date().toISOString()); state.snoozedTasks.x = '2000-01-01'; const out = [had, stored, snoozedTasks.has('x'), snoozedTasks.size]; snoozedTasks.remove('x'); return out; });
+    assert.deepEqual(snooze, [true, true, false, 0]);
 
     assert.deepEqual(errors, [], `page errors: ${errors.join('; ')}`);
   } finally { await browser.close(); }

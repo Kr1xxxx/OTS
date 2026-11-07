@@ -4501,6 +4501,7 @@ html[data-theme] .calendar-event { display:block; width:100%; padding:3px 7px; b
 html[data-theme] .calendar-legend .calendar-event { width:auto; }
 html[data-theme] .calendar-event.repurchase { background:color-mix(in srgb, var(--s-teal, #0f8f81) 13%, transparent); color:var(--s-teal, #0f8f81); }
 html[data-theme] .calendar-event.payment { background:color-mix(in srgb, var(--s-amber) 14%, transparent); color:var(--s-amber); }
+html[data-theme] .calendar-event.follow { background:color-mix(in srgb, var(--accent) 13%, transparent); color:var(--accent); }
 html[data-theme] .calendar-event.logistics { background:color-mix(in srgb, var(--s-green) 13%, transparent); color:var(--s-green); }
 html[data-theme] .calendar-event.urgent { background:color-mix(in srgb, var(--s-red) 12%, transparent); color:var(--s-red); }
 html[data-theme] .calendar-event.done { background:var(--surface-soft); color:var(--gray-600); }
@@ -4518,6 +4519,7 @@ html[data-theme] .agenda-num { color:var(--gray-500); font-family:var(--mono, ui
 html[data-theme] .agenda-dot { width:7px; height:7px; border-radius:50%; background:var(--s-blue, #2f6fdf); }
 html[data-theme] .agenda-dot.repurchase { background:var(--s-teal, #0f8f81); }
 html[data-theme] .agenda-dot.payment { background:var(--s-amber); }
+html[data-theme] .agenda-dot.follow { background:var(--accent); }
 html[data-theme] .agenda-dot.logistics { background:var(--s-green); }
 html[data-theme] .agenda-dot.urgent { background:var(--s-red); }
 html[data-theme] .agenda-dot.done { background:var(--gray-400); }
@@ -4780,10 +4782,17 @@ html[data-theme] #taskList .task-sub { margin-top:2px; font-size:13px; color:var
 html[data-theme] #taskList .task-actions { display:flex; gap:6px; align-items:center; }
 html[data-theme] #taskList .task-action-btn { height:30px; padding:0 12px; border-radius:999px; border:1px solid var(--surface-border); background:var(--surface-bg); color:var(--gray-800); font-size:13px; }
 html[data-theme] #taskList .task-action-btn[data-task-action="snooze"] { border-color:transparent; background:transparent; color:var(--gray-600); }
-html[data-theme] .task-tick { width:30px; height:30px; padding:0; border-radius:50%; border:1.5px solid var(--surface-border-strong); background:transparent; display:grid; place-items:center; color:transparent; cursor:pointer; transition:all var(--motion-spring) var(--ease-spring); }
-html[data-theme] .task-tick:hover { border-color:var(--s-green); color:var(--s-green); }
-html[data-theme] .task-tick:active { background:var(--s-green); border-color:var(--s-green); color:var(--surface-bg); transform:scale(1.12); }
+/* 「完成 / 已催款 / 已跟进」：带文字的按钮，描边和文字用绿色（对白底、深色卡片都超过 3:1），不再是看不清的空心圆。 */
+html[data-theme] .task-tick { height:30px; padding:0 12px 0 9px; border-radius:999px; border:1.5px solid var(--s-green); background:transparent; display:inline-flex; align-items:center; gap:5px; color:var(--s-green); font-size:13px; font-weight:500; white-space:nowrap; cursor:pointer; transition:all var(--motion-spring) var(--ease-spring); }
+html[data-theme] .task-tick:hover { background:color-mix(in srgb, var(--s-green) 12%, transparent); }
+html[data-theme] .task-tick:active { background:var(--s-green); color:var(--surface-bg); transform:scale(1.04); }
+html[data-theme] .task-tick:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 html[data-theme] .task-tick .ui-icon { width:14px; height:14px; }
+html[data-theme] .task-icon.tone-orange { background:color-mix(in srgb, var(--s-orange) 14%, transparent); color:var(--s-orange); }
+html[data-theme] #taskList .task-group-head { padding:14px 4px 6px; border-top:1px solid var(--surface-border); font-size:12px; font-weight:600; color:var(--gray-600); }
+html[data-theme] #taskList .task-group-head + .task { border-top:0; }
+html[data-theme] #taskList .task-more { align-self:flex-start; margin:8px 4px 0; height:30px; padding:0 12px; border-radius:999px; border:1px solid var(--surface-border); background:var(--surface-bg); color:var(--gray-800); font-size:13px; cursor:pointer; }
+html[data-theme] #taskList .task-more:hover { border-color:var(--accent); color:var(--accent); }
 html[data-theme] .page-enter #taskList .task, html[data-theme] .page-enter .feed-item { animation:uiRise .4s var(--ease-out) backwards; animation-delay:calc(min(var(--i, 0), 10) * 40ms); }
 html[data-theme] #recentOrderList.activity-list { display:flex; flex-direction:column; gap:0; }
 html[data-theme] .feed-item { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:4px 8px; padding:10px 6px; border:0; border-top:1px solid var(--surface-border); background:none; border-radius:0; text-align:left; font:inherit; color:inherit; cursor:pointer; transition:background var(--motion-fast) var(--ease), padding var(--motion-spring) var(--ease-spring); }
@@ -5745,7 +5754,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.123，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.123</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.124，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.124</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -5842,6 +5851,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
               <button class="segment-option" type="button" data-task-filter="repurchase">复购</button>
               <button class="segment-option" type="button" data-task-filter="logistics">物流</button>
               <button class="segment-option" type="button" data-task-filter="snoozed">稍后</button>
+              <button class="segment-option" type="button" data-task-filter="done">已处理</button>
             </div>
           </div>
           <div class="tasks" id="taskList"></div>
@@ -6053,7 +6063,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
           <div class="report-stat"><div class="report-label">订单额</div><div class="report-value" id="reportUsd">$0 USD</div><div class="report-sub">草稿不计</div></div>
           <div class="report-stat paid"><div class="report-label">已收</div><div class="report-value" id="reportPaid">$0 USD</div><div class="report-sub" id="reportPaidSub">收款率 0%</div></div>
           <div class="report-stat due"><div class="report-label">待收</div><div class="report-value" id="reportDue">$0 USD</div><div class="report-sub">按订单归属月份</div></div>
-          <div class="report-stat risk"><div class="report-label">逾期未收</div><div class="report-value" id="reportOverdue">$0 USD</div><div class="report-sub">尾款超过 7 天未付</div></div>
+          <div class="report-stat risk"><div class="report-label">下单超 30 天未收</div><div class="report-value" id="reportOverdue">$0 USD</div><div class="report-sub" title="订单上没有尾款到期日，这里按下单日算账龄，不是付款逾期">按下单日算，还没收清的欠款</div></div>
           <div class="report-stat"><div class="report-label">订单数量</div><div class="report-value" id="reportCount">0</div><div class="report-sub" id="reportCountSub">平均 -</div></div>
         </div>
         <div class="amount-main-grid">
@@ -6168,7 +6178,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
             <button class="btn btn-small calendar-today-btn" type="button" id="calendarTodayBtn">今天</button>
           </div>
           <div class="calendar-legend" aria-label="颜色说明">
-            <span class="calendar-event order">下单</span><span class="calendar-event repurchase">交期 / 复购</span><span class="calendar-event payment">收款</span><span class="calendar-event logistics">物流</span><span class="calendar-event urgent">加急 / 异常</span>
+            <span class="calendar-event order">下单</span><span class="calendar-event repurchase">交期 / 复购</span><span class="calendar-event follow">跟进</span><span class="calendar-event payment">收款</span><span class="calendar-event logistics">物流</span><span class="calendar-event urgent">加急 / 异常</span>
           </div>
         </div>
         <div class="calendar-layout">
@@ -6211,7 +6221,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
               <option>F级青铜客户</option>
             </select>
             <select class="inline-select" id="customerSort" aria-label="客户排序">
-              <option value="recent">最近跟进</option>
+              <option value="recent">最近更新</option>
               <option value="sales">成交金额</option>
               <option value="due">待收款</option>
               <option value="orders">订单数量</option>
@@ -7815,22 +7825,29 @@ let orderListQuickFilter = 'all';
 let orderListCurrentPage = 1;
 const orderListPageSize = 50;
 let customerRoadmapFilter = 'all';
-// 「稍后」= 暂缓到明天：记下是哪天暂缓的，第二天自动回到待办（软件连开好几天也一样）。
+// 「稍后」= 暂缓到明天：state.snoozedTasks[待办 id] = 暂缓那天的本地日期，跟数据一起保存（刷新、重启 App 都还在），
+// 第二天自动回到待办（软件连开好几天也一样，见 watchTaskDayRollover）。以前只记在内存里，一刷新就回来了。
 const snoozedTasks = {
-  days: new Map(),
-  today() { return nowText().slice(0, 10); },
-  add(id) { this.days.set(id, this.today()); },
-  has(id) {
-    const day = this.days.get(id);
-    if (day && day !== this.today()) this.days.delete(id);
-    return this.days.get(id) === this.today();
+  today() { return normalizeDate(new Date().toISOString()); },
+  map() {
+    if (!state.snoozedTasks || typeof state.snoozedTasks !== 'object' || Array.isArray(state.snoozedTasks)) state.snoozedTasks = {};
+    return state.snoozedTasks;
   },
+  add(id) { this.map()[id] = this.today(); },
+  remove(id) { delete this.map()[id]; },
+  has(id) { return this.map()[id] === this.today(); },
   get size() {
     const today = this.today();
-    for (const [id, day] of this.days) if (day !== today) this.days.delete(id);
-    return this.days.size;
+    return Object.values(this.map()).filter(day => day === today).length;
   }
 };
+// 收款提醒点「已催款」后几天再提醒（直到收齐）。
+const paymentRemindAgainDays = 3;
+// 只留今天的「稍后」：昨天及更早的暂缓已经失效，不必再存。
+function normalizeSnoozedTasks(raw) {
+  const today = normalizeDate(new Date().toISOString());
+  return Object.fromEntries(Object.entries(raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}).filter(([id, day]) => id && day === today));
+}
 let amountStatMode = 'totalUsd';
 const dashboardAmountMonthKey = 'trade-order-dashboard-amount-month';
 const dashboardAmountMonthAutoKey = 'trade-order-dashboard-amount-month-auto';
@@ -8590,21 +8607,47 @@ function normalizeState(raw) {
         events: normalizeTrackingEvents(item.events || [])
       }))
       : [],
-    doneTasks: migrateDoneTaskKeys(raw.doneTasks || {}, rawOrders),
+    doneTasks: migrateDoneTaskKeys(raw.doneTasks || {}, rawOrders, raw.customers || {}),
+    snoozedTasks: normalizeSnoozedTasks(raw.snoozedTasks),
     demoCleared: raw.demoCleared === true,
     demoCustomersCleared: raw.demoCustomersCleared === true
   };
 }
-// 收款提醒以前只按订单记「完成」，点一次就永远不再提醒；现在按已收金额和更新时间记。老的完成记录换成当前这一版的键，
-// 已经点过完成的提醒不会因为升级一下子全冒出来，之后订单有变化再重新提醒。
-function migrateDoneTaskKeys(doneTasks, orders = []) {
-  const done = { ...doneTasks };
+// 「已处理」记录换成 { at, until } 之后（见 taskDoneUntil）：旧数据里的 true 换成新键。
+// - 收款 payment-<id>[-<已收>-<更新时间>]、跟进 follow-<id>-<更新时间>：和当前这一版对得上的，换成「今天处理过、按规则过几天再提醒」，
+//   升级时不会一下子全冒出来；对不上的（订单早就变了）是死键，直接丢掉，doneTasks 不再只增不减。
+// - 最晚发出日期 ship-<id>、加急 urgent-<id>：以前不带日期，点一次永久静音；换成带当前日期的键，以后改日期会重新提醒。
+// - 复购 repurchase-<客户>-<日期>：以前点一次就再也不提醒；换成从今天起再等一个复购周期。
+// - 已经过了 until 的记录没用了，顺手清掉。
+function migrateDoneTaskKeys(doneTasks, orders = [], customers = {}) {
+  const today = normalizeDate(new Date().toISOString());
+  const at = nowText();
+  const done = {};
+  Object.entries(doneTasks || {}).forEach(([key, value]) => {
+    if (!value) return;
+    if (typeof value === 'object' && value.until && value.until <= today) return;
+    done[key] = value;
+  });
+  if (!Object.values(done).some(value => value === true)) return done;
   orders.forEach(raw => {
-    const legacy = `payment-${raw?.id}`;
-    if (done[legacy] !== true) return;
+    if (!raw?.id) return;
     const order = normalizeActiveOrder(raw);
-    done[`payment-${order.id}-${orderPaidValue(order)}-${order.updated || ''}`] = true;
-    delete done[legacy];
+    const id = order.id;
+    const paid = orderPaidValue(order);
+    const legacyPayment = [`payment-${id}`, `payment-${id}-${paid}-${order.updated || ''}`];
+    if (legacyPayment.some(key => done[key] === true)) done[`payment-${id}-${paid}`] = { at, until:addDays(today, paymentRemindAgainDays) };
+    const legacyFollow = `follow-${id}-${order.updated || order.createdAt}`;
+    if (done[legacyFollow] === true) done[`follow-${id}`] = { at, until:addDays(today, followIntervalDays(order)) };
+    if (done[`ship-${id}`] === true) { delete done[`ship-${id}`]; done[`ship-${id}-${order.latestShipDate || ''}`] = true; }
+    if (done[`urgent-${id}`] === true) { delete done[`urgent-${id}`]; done[`urgent-${id}-${urgentTaskDate(order)}`] = true; }
+  });
+  Object.keys(done).forEach(key => {
+    if (done[key] !== true) return;
+    if (key.startsWith('payment-') || key.startsWith('follow-')) delete done[key];
+    else if (key.startsWith('repurchase-')) {
+      const client = Object.keys(customers || {}).find(name => key.startsWith(`repurchase-${name}-`));
+      done[key] = { at, until:addDays(today, Number(customers?.[client]?.repurchaseCycle) || 30) };
+    }
   });
   return done;
 }
@@ -8664,6 +8707,13 @@ function currencyDef(code) {
 function money(n, code = 'USD', maximumFractionDigits = 3) {
   const c = currencyDef(code);
   return `${c.symbol}${Number(n || 0).toLocaleString('en-US', { maximumFractionDigits })} ${c.code}`;
+}
+// 发给客户的金额：有小数就固定两位（€700.50，不写 €700.5），整数不带小数（$700）。软件里自己看的金额仍用 money()。
+function moneyForCustomer(n, code = 'USD') {
+  const c = currencyDef(code);
+  const value = roundMoneyValue(Number(n || 0));
+  const fraction = Number.isInteger(value) ? 0 : 2;
+  return `${c.symbol}${value.toLocaleString('en-US', { minimumFractionDigits:fraction, maximumFractionDigits:2 })} ${c.code}`;
 }
 // Summary display only: never round stored values, individual orders, rates or API costs.
 function summaryMoney(n, code = 'USD') {
@@ -9015,27 +9065,75 @@ function customerFirstDates() {
   });
   return [...map.values()].sort((a, b) => parseDate(a.date) - parseDate(b.date));
 }
-// 跟进提醒：假发 3 天、睫毛 7 天没有任何更新才提醒一次；已发货 / 已完成的订单不提醒。
-// 任务 id 不带日期，所以一个订单只占一条；「完成」按订单最后更新时间记账，订单有新动态后才会再提醒。
+function followIntervalDays(order = {}) {
+  return productTypeDef(order.productType).value === '睫毛' ? 7 : 3;
+}
+// 加急提醒按「客户要求收到日期」（没填就用最晚发出日期）排；「已处理」的键带上这个日期，日期改了就重新提醒。
+function urgentTaskDate(order = {}) {
+  return order.customerRequiredDate || order.latestShipDate || '';
+}
+// 订单账龄：从下单日（createdAt，没有就用下单月份 1 号）算到今天的天数。订单上没有「尾款到期日」，
+// 所以这里只说「下单多少天了还有欠款」，不叫「付款逾期」；也不看最后修改时间（改备注、复制催款都会改它）。
+function orderAgeDays(order = {}) {
+  const start = order.createdAt || (order.orderMonth ? `${order.orderMonth}-01` : '');
+  return start ? Math.max(0, daysBetween(start)) : 0;
+}
+// 「欠款超过 N 天没收」：已确认的订单（生产中 / 尾款 / 已发货 / 已完成，不含报价和草稿），还有欠款，下单已超过 N 天。
+// 工作台「待收款」卡和金额页用同一个口径。
+const dueAgeAlertDays = 30;
+function orderDueAged(order = {}, days = dueAgeAlertDays) {
+  return isRevenueOrder(order) && orderDueValue(order) > 0 && orderAgeDays(order) > days;
+}
+// 「超过最晚发出日期」：还没发货（不在已发货 / 已完成，也没有发货日）、最晚发出日期已经过了。和付款无关。
+// 工作台待办、经营分析用同一个口径。
+function orderPastShipDeadline(order = {}, today = normalizeDate(new Date().toISOString())) {
+  return !order.isDraft && Boolean(order.latestShipDate) && order.latestShipDate < today && !isSettledStage(order.stage) && !order.shippedAt;
+}
+// 最近一次催款：订单记录里最近一条「复制催款文案」或「待办已处理：收款提醒」的日期。
+function lastDunningDate(order = {}) {
+  const log = (order.logs || []).map(item => normalizeLog(item, order.updated)).find(item => /^(复制催款文案|待办已处理：收款提醒)/.test(item.text || ''));
+  return log ? normalizeDate(log.time) : '';
+}
+// 「已处理」记录：state.doneTasks[键] = { at:处理时间, until:哪天再提醒 }。until 之前不提醒；到了那天事情还在就再提醒。
+// 没有 until（或旧数据里的 true）= 这一版不再提醒，键里带着版本（日期 / 已收金额 / 物流进度），版本一变就是新提醒。
+// 各类的规则：
+// - 收款 payment-<id>-<已收>：「已催款」后 3 天再提醒，直到收齐；收到一笔钱（已收变了）立刻按新欠款提醒。改备注、复制英文状态都不影响。
+// - 跟进 follow-<id>：「已跟进」后按产品周期（假发 3 天、睫毛 7 天）再提醒。
+// - 最晚发出日期 ship-<id>-<日期>、加急 urgent-<id>-<日期>：日期改了换新键，重新提醒。
+// - 复购 repurchase-<客户>-<日期>：处理后再等一个复购周期（没设按 30 天）。
+// - 物流风险 logistics-risk-<id>-<进度时间>：物流有新进度才重新提醒。
+function taskDoneUntil(item = {}, today = normalizeDate(new Date().toISOString())) {
+  if (item.remindAgainDays > 0) return addDays(today, item.remindAgainDays);
+  return '';
+}
+function isTaskDoneKey(key, today = normalizeDate(new Date().toISOString())) {
+  const value = state.doneTasks?.[key];
+  if (!value) return false;
+  if (typeof value !== 'object') return true;
+  return !value.until || today < value.until;
+}
+// 跟进提醒：假发 3 天、睫毛 7 天没有任何更新就提醒；已发货 / 已完成的订单不提醒。
+// 任务 id 不带日期，所以一个订单只占一条；「已跟进」后按同一个周期再提醒（以前按更新时间记账，一张单只提醒一次）。
 // 「部分发货」（已发货但还有批次没发）的单照样提醒跟进，别发了第一批就没人管第二批。
 function orderFollowReminder(order, today) {
   if (!order || order.stage === 'done') return null;
   const partial = order.stage === 'shipment' && order.partialShipment === true;
   if (order.stage === 'shipment' && !partial) return null;
   const product = productTypeDef(order.productType).value;
-  const interval = product === '睫毛' ? 7 : 3;
+  const interval = followIntervalDays(order);
   const since = order.updated || order.createdAt;
   const idleDays = daysBetween(since);
   if (idleDays < interval) return null;
   const dueDate = addDays(since, interval) || today;
   return {
     id:`follow-${order.id}`,
-    doneKey:`follow-${order.id}-${since}`,
+    doneKey:`follow-${order.id}`,
+    remindAgainDays:interval,
     orderId:order.id,
     client:order.client,
     date:dueDate,
     type:'follow',
-    title:order.client,
+    title:clientDisplayName(order.client),
     reason:partial ? `部分发货：还有批次没发，${idleDays} 天没有新动态，该跟进了` : `${product}订单 ${idleDays} 天没有新动态，该跟进了`,
     detail:`${order.num} · ${order.note || stageDef(order.stage).name}`,
     value:`${idleDays}天`,
@@ -9043,6 +9141,22 @@ function orderFollowReminder(order, today) {
     tagClass:'tag-cyan',
     priority:3
   };
+}
+// 下次复购提醒日期：待办、客户页「待跟进」、客户档案、订单详情都用这一个算法。
+// - 复购周期选「不提醒」（空）就不提醒，以前「推迟」留下的日期也不算。
+// - 客户还有进行中的订单（没发货，或部分发货）就不提醒复购，那张单自己有跟进提醒。
+// - 周期从最近一张已发货 / 已完成订单的发货日起算（没有发货日退回物流更新、最后更新时间）；没有订单的客户档案从建档日起算。
+// - 「推迟 7 / 30 天」写的 nextFollow 和周期日期取较晚的那个：推迟后客户又下单发货，按新的周期。
+function nextRepurchaseDate(name = '') {
+  const profile = state.customers?.[name] || {};
+  const cycle = Number(profile.repurchaseCycle || 0);
+  if (!name || !(cycle > 0)) return '';
+  const orders = state.orders.filter(o => o.client === name && !o.isDraft);
+  if (orders.some(o => !isSettledStage(o.stage) || (o.stage === 'shipment' && o.partialShipment === true))) return '';
+  const shippedDates = orders.map(o => normalizeDate(o.shippedAt || o.logisticsUpdated || o.updated || o.createdAt)).filter(Boolean).sort();
+  const base = shippedDates.pop() || (orders.length ? '' : normalizeDate(profile.createdAt || profile.updated || ''));
+  const cycleDate = base ? addDays(base, cycle) : '';
+  return [profile.nextFollow, cycleDate].filter(Boolean).sort().pop() || '';
 }
 function buildTaskItems({ includeDone = false, includeSnoozed = false } = {}) {
   const today = normalizeDate(new Date().toISOString());
@@ -9054,32 +9168,55 @@ function buildTaskItems({ includeDone = false, includeSnoozed = false } = {}) {
     const due = orderDueValue(o);
     const latestDays = daysUntil(o.latestShipDate);
     const fallbackDate = today;
+    const title = clientDisplayName(o.client);
     const logisticsRisk = logisticsRiskTask(o, fallbackDate);
     const followReminder = orderFollowReminder(o, today);
     if (logisticsRisk) reminders.push(logisticsRisk);
-    if (o.urgentOrder && !settled) reminders.push({ id:`urgent-${o.id}`, orderId:o.id, client:o.client, date:o.customerRequiredDate || o.latestShipDate || fallbackDate, type:'urgent', title:o.client, reason:`加急订单：${o.note || '等待处理'}`, detail:`${o.num} · ${stageDef(o.stage).name}`, value:o.customerRequiredDate ? `要求 ${o.customerRequiredDate}` : '加急', tag:'加急', tagClass:'tag-orange', priority:1 });
-    if (o.latestShipDate && latestDays <= 3 && !settled) reminders.push({ id:`ship-${o.id}`, orderId:o.id, client:o.client, date:o.latestShipDate, type:'logistics', title:o.client, reason:`最晚发出日期 ${o.latestShipDate}`, detail:`${latestDays < 0 ? '已逾期' + Math.abs(latestDays) + '天' : latestDays + '天内'} · ${o.num}`, value:'发货', tag:'物流', tagClass:'tag-orange', priority:0 });
-    if (due > 0 && o.stage === 'balance') reminders.push({ id:`payment-${o.id}`, doneKey:`payment-${o.id}-${orderPaidValue(o)}-${o.updated || ''}`, orderId:o.id, client:o.client, date:fallbackDate, type:'payment', title:o.client, reason:`待收款 ${money(due, o.currency)}`, detail:`${o.num} · ${stageDef(o.stage).name}`, value:money(due, o.currency), tag:'收款', tagClass:'tag-green', priority:2 });
+    if (o.urgentOrder && !settled) reminders.push({ id:`urgent-${o.id}`, doneKey:`urgent-${o.id}-${urgentTaskDate(o)}`, orderId:o.id, client:o.client, date:urgentTaskDate(o) || fallbackDate, type:'urgent', title, reason:`加急订单：${o.note || '等待处理'}`, detail:`${o.num} · ${stageDef(o.stage).name}`, value:o.customerRequiredDate ? `要求 ${o.customerRequiredDate}` : '加急', tag:'加急', tagClass:'tag-orange', priority:1 });
+    if (o.latestShipDate && latestDays <= 3 && !settled) {
+      const past = orderPastShipDeadline(o, today);
+      reminders.push({ id:`ship-${o.id}`, doneKey:`ship-${o.id}-${o.latestShipDate}`, orderId:o.id, client:o.client, date:o.latestShipDate, type:'ship', title, reason:past ? `超过最晚发出日期 ${Math.abs(latestDays)} 天（${o.latestShipDate}）` : `最晚发出日期 ${o.latestShipDate}`, detail:`${past ? '还没发货' : latestDays === 0 ? '今天要发出' : latestDays + ' 天内要发出'} · ${o.num}`, value:'', tag:'发货期限', tagClass:'tag-orange', priority:0 });
+    }
+    if (due > 0 && o.stage === 'balance') {
+      const age = orderAgeDays(o);
+      const dunned = lastDunningDate(o);
+      reminders.push({ id:`payment-${o.id}`, doneKey:`payment-${o.id}-${orderPaidValue(o)}`, remindAgainDays:paymentRemindAgainDays, orderId:o.id, client:o.client, date:fallbackDate, type:'payment', title, reason:`待收款 ${money(due, o.currency)}`, detail:`${o.num} · ${stageDef(o.stage).name} · 下单 ${age} 天`, value:dunned ? `上次催款 ${dunned.slice(5)}` : '', tag:'收款', tagClass:'tag-green', priority:2, sortWeight:age });
+    }
     if (followReminder) reminders.push(followReminder);
     return reminders;
   });
   const repurchaseTasks = clientHistory()
-    .map(c => {
-      const profile = state.customers?.[c.client] || {};
-      const latest = state.orders.filter(o => o.client === c.client).sort((a, b) => parseDate(b.updated) - parseDate(a.updated))[0] || c;
-      // 复购周期从上一单发货日起算（没有发货日再退回最后更新时间），不是从最后一次改单算。
-      // 推迟 sets nextFollow; a newer order moves the cycle date past it, so the later of the two wins
-      // (taking nextFollow alone pinned the reminder to an old date that, once ticked, never fired again).
-      const cycleDate = profile.repurchaseCycle ? addDays(latest.shippedAt || latest.updated || latest.createdAt, profile.repurchaseCycle) : '';
-      const nextDate = [profile.nextFollow, cycleDate].filter(Boolean).sort().pop() || '';
-      return { c, profile, latest, nextDate };
-    })
+    .map(c => ({ c, profile:state.customers?.[c.client] || {}, nextDate:nextRepurchaseDate(c.client) }))
     .filter(item => isDueDate(item.nextDate))
-    .map(item => ({ id:`repurchase-${item.c.client}`, doneKey:`repurchase-${item.c.client}-${item.nextDate}`, orderId:item.latest?.id || '', client:item.c.client, date:item.nextDate, type:'repurchase', title:item.c.client, reason:'客户复购提醒', detail:`应跟进 ${item.nextDate}`, value:item.nextDate, tag:'复购', tagClass:'tag-green', priority:4 }));
+    .map(item => {
+      const latest = state.orders.filter(o => o.client === item.c.client).sort((a, b) => parseDate(b.updated) - parseDate(a.updated))[0];
+      return { id:`repurchase-${item.c.client}`, doneKey:`repurchase-${item.c.client}-${item.nextDate}`, remindAgainDays:Number(item.profile.repurchaseCycle) || 30, orderId:latest?.id || '', client:item.c.client, date:item.nextDate, type:'repurchase', title:clientDisplayName(item.c.client), reason:'客户复购提醒', detail:`应跟进 ${item.nextDate}`, value:item.nextDate, tag:'复购', tagClass:'tag-green', priority:4 };
+    });
   return [...orderTasks, ...repurchaseTasks]
-    .filter(item => includeDone || !state.doneTasks[item.doneKey || item.id])
+    .filter(item => includeDone || !isTaskDoneKey(item.doneKey || item.id, today))
     .filter(item => includeSnoozed || !snoozedTasks.has(item.id))
-    .sort((a, b) => (a.priority - b.priority) || parseDate(a.date) - parseDate(b.date));
+    // 同优先级：日期早的在前；收款按账龄（下单天数）从久到近。
+    .sort((a, b) => (a.priority - b.priority) || parseDate(a.date) - parseDate(b.date) || ((b.sortWeight || 0) - (a.sortWeight || 0)));
+}
+// 今天要处理的待办（日期 ≤ 今天）。「今日待办」卡、卡片副标题、开机问候都用它，三处的数一致；日期在以后的算「即将到期」。
+function todayTaskItems(items = buildTaskItems()) {
+  return items.filter(taskDueToday);
+}
+// 待办的类型名（问候、副标题里用）。最晚发出日期单独叫「发货期限」，不再算成「物流异常」。
+const taskTypeLabels = { payment:['收款', '笔收款'], follow:['跟进', '个跟进'], urgent:['加急', '个加急单'], ship:['发货期限', '个临近发货期限'], logistics:['物流异常', '个物流异常'], repurchase:['复购', '个复购'] };
+function taskTypeBreakdown(items = [], { long = false } = {}) {
+  return Object.keys(taskTypeLabels)
+    .map(type => [type, items.filter(item => item.type === type).length])
+    .filter(([, n]) => n > 0)
+    .map(([type, n]) => long ? `${n} ${taskTypeLabels[type][1]}` : `${taskTypeLabels[type][0]} ${n}`);
+}
+// 「完成」按钮的文字：收款叫「已催款」（钱收齐时提醒自己会消失），跟进叫「已跟进」，其它叫「完成」。
+function taskDoneLabel(item = {}) {
+  return item.type === 'payment' ? '已催款' : item.type === 'follow' ? '已跟进' : '完成';
+}
+function taskKindName(item = {}) {
+  if (String(item.id || '').startsWith('logistics-risk-')) return '物流风险提醒';
+  return { payment:'收款提醒', follow:'跟进提醒', urgent:'加急提醒', ship:'最晚发出日期提醒', repurchase:'复购提醒' }[item.type] || '提醒';
 }
 // 物流风险按每一批看：哪一批（DHL / FedEx，没签收）查得到却 3 天以上没有新进度，就提醒那一批。以前只看第一批，第一批签收后整单不再检查。
 function logisticsRiskTask(order, fallbackDate) {
@@ -9101,7 +9238,7 @@ function logisticsRiskTask(order, fallbackDate) {
     client: order.client,
     date: fallbackDate,
     type:'logistics',
-    title: order.client,
+    title: clientDisplayName(order.client),
     reason:`物流 ${staleDays} 天未更新进度`,
     detail:`${carrier} · ${clean} · ${order.num}`,
     value:`${staleDays}天`,
@@ -9119,11 +9256,19 @@ function calendarShortName(client = '') {
   if (!words.length) return '未命名客户';
   return words[0].length < 5 && words[1] ? `${words[0]} ${words[1]}` : words[0];
 }
+// 待办排在日历的哪一天：已经过期还没处理的（跟进、复购、过了最晚发出日期）放到今天，不再留在过去的格子里没人看见。
+function calendarTaskDate(item = {}, today = normalizeDate(new Date().toISOString())) {
+  const date = normalizeDate(item.date || today);
+  return date < today ? today : date;
+}
 function calendarEventsForMonth(month = activeCalendarMonth) {
   const events = [];
+  const today = normalizeDate(new Date().toISOString());
   buildTaskItems().forEach(item => {
-    if (normalizeMonth(item.date) === month) {
-      events.push({ ...item, label: `${item.tag} ${item.title}`, sub: `${item.reason} · ${item.detail || ''}`, taskId: item.id });
+    const date = calendarTaskDate(item, today);
+    if (normalizeMonth(date) === month) {
+      const late = normalizeDate(item.date || today) < today ? `已过 ${daysBetween(item.date)} 天 · ` : '';
+      events.push({ ...item, date, label: `${item.tag} ${item.title}`, sub: `${late}${item.reason} · ${item.detail || ''}`, taskId: item.id });
     }
   });
   state.orders.forEach(order => {
@@ -9179,7 +9324,7 @@ function groupCalendarEvents(events = []) {
   events.forEach(event => {
     const type = String(event?.type || 'other');
     if (type === 'order') grouped.order += 1;
-    else if (['due', 'urgent', 'payment'].includes(type)) grouped.due += 1;
+    else if (['due', 'urgent', 'payment', 'ship'].includes(type)) grouped.due += 1;
     else if (type === 'logistics') grouped.logistics += 1;
     else if (type === 'repurchase') grouped.repurchase += 1;
     else if (type === 'customer') grouped.customer += 1;
@@ -9187,12 +9332,14 @@ function groupCalendarEvents(events = []) {
   });
   return grouped;
 }
-// 日历事件的颜色分组：下单 / 交期复购 / 收款 / 物流 / 加急异常 / 已签收。
+// 日历事件的颜色分组：下单 / 交期复购 / 跟进 / 收款 / 物流 / 加急异常 / 已签收。最晚发出日期是「交期」，不是物流。
 function calendarEventTone(event = {}) {
   if (event.type === 'urgent' || /异常/.test(event.label || '')) return 'urgent';
   if (event.type === 'logistics' && /已签收/.test(event.label || '')) return 'done';
   if (['order', 'customer'].includes(event.type)) return 'order';
   if (['payment', 'due'].includes(event.type)) return 'payment';
+  if (event.type === 'follow') return 'follow';
+  if (event.type === 'ship') return 'repurchase';
   if (event.type === 'logistics') return 'logistics';
   return 'repurchase';
 }
@@ -9394,7 +9541,7 @@ function analysisDashboardData(orders, month, product, today, rates) {
   const newOrders = monthly.filter(o => o.client && first.get(o.client) === month).length;
   const repeatOrders = monthly.filter(o => o.client && first.get(o.client) < month).length;
   const receivables = scoped.filter(o => !['shipment','done'].includes(o.stage) && Number(o.amount || 0) > Math.max(0,Number(o.paidAmount || 0)));
-  const overdue = scoped.filter(o => o.latestShipDate && o.latestShipDate < today && !['shipment','done'].includes(o.stage) && !o.shippedAt);
+  const overdue = scoped.filter(o => orderPastShipDeadline(o, today));
   return {current,previous,monthly,newOrders,repeatOrders,unknownOrders:monthly.length-newOrders-repeatOrders,clients:[...clients.values()].sort((a,b)=>b.amount-a.amount),receivables,overdue};
 }
 // 空月份兜底：用户还没手动切过月份时，本月没有正式订单就落到最近有数据的月份，并在标题旁说明。
@@ -10104,11 +10251,11 @@ function orderCopyVars(order = {}) {
     logistics,
     // 多批时每批后面带上自己的状态，客户一眼看出哪一箱到了、哪一箱还在路上。
     tracking: shipments.map(item => `${item.carrier && item.carrier !== 'auto' ? carrierName(item.carrier) + ' ' : ''}${item.trackingNumber}${shipments.length > 1 && logisticsEnglish(item.status) ? ` (${logisticsEnglish(item.status)})` : ''}`).join(', '),
-    amount: money(amount, order.currency),
-    paid: money(paid, order.currency),
-    due: money(due, order.currency),
+    amount: moneyForCustomer(amount, order.currency),
+    paid: moneyForCustomer(paid, order.currency),
+    due: moneyForCustomer(due, order.currency),
     dueLabel,
-    deposit: deposit > 0 ? money(deposit, order.currency) : '',
+    deposit: deposit > 0 ? moneyForCustomer(deposit, order.currency) : '',
     nextStep: stage === 'quote' ? 'start production right away' : stage === 'balance' ? 'arrange shipment right away' : 'proceed with the next step',
     date: normalizeDate(new Date().toISOString())
   };
@@ -14101,7 +14248,7 @@ function renderRoadmap(events = [], emptyText = '暂无路线图记录。') {
 }
 function roadmapFilterType(event = {}) {
   if (['payment', 'deposit', 'balance'].includes(event.type)) return 'payment';
-  if (['logistics', 'shipment', 'risk'].includes(event.type)) return 'logistics';
+  if (['logistics', 'shipment', 'risk', 'ship'].includes(event.type)) return 'logistics';
   if (['follow', 'repurchase', 'note', 'urgent'].includes(event.type)) return 'follow';
   return 'order';
 }
@@ -14190,9 +14337,10 @@ function customerRoadmapEvents(name = '', history = []) {
   });
   buildTaskItems({ includeSnoozed: true }).filter(item => String(item.client || '').toLowerCase() === clean.toLowerCase()).forEach(item => {
     events.push({
+      // 这是还没处理的待办，不是发生过的跟进：标题写明「待办（未处理）」，别画成「跟进记录」。处理过的会作为订单记录出现。
       type: item.type === 'logistics' ? 'risk' : item.type,
       time: item.date || nowText(),
-      title: item.tag === '物流风险' ? '物流异常' : item.type === 'repurchase' ? '复购提醒' : '跟进记录',
+      title: `待办（未处理）：${taskTypeLabels[item.type]?.[0] || '提醒'}`,
       meta: `${item.reason || ''} · ${item.detail || ''}`,
       action: item.orderId ? `<button class="btn btn-small" type="button" data-roadmap-order-id="${escapeAttr(item.orderId)}">查看订单</button>` : ''
     });
@@ -14980,8 +15128,8 @@ function renderOrderDetailHeader(order, source = 'active') {
   const dunning = document.querySelector('#detailCopyMenu [data-copy-text="dunning"]');
   if (dunning) {
     const due = orderDueValue(order);
-    dunning.disabled = !(due > 0);
-    dunning.title = due > 0 ? '' : '这单没有待收款';
+    dunning.disabled = !(due > 0) || order.isDraft === true;
+    dunning.title = order.isDraft ? '草稿还没确认，先保存为正式订单再催款' : due > 0 ? '' : '这单没有待收款';
   }
   uiCopyMenuToggle(false);
 }
@@ -15603,7 +15751,8 @@ function renderAmountReport() {
   const list = selectedMonth === 'all'
     ? state.orders.filter(o => isRevenueOrder(o) && monthsForRange.includes(normalizeMonth(o.orderMonth || o.updated)))
     : ordersByMonth(selectedMonth).filter(isRevenueOrder);
-  const overdueOrders = list.filter(o => orderDueValue(o) > 0 && daysBetween(o.updated) >= 7);
+  // 订单上没有尾款到期日：这里数「下单超过 30 天还有欠款」，按下单日算，不看最后修改时间（复制催款、改备注都会改它）。
+  const overdueOrders = list.filter(o => orderDueAged(o));
   const paidTotal = usdPaidTotal(list);
   const dueTotal = usdDueTotal(list);
   const overdueTotal = usdDueTotal(overdueOrders);
@@ -17069,49 +17218,84 @@ async function renderTrackingLookup() {
     </div>
   `;
 }
+// 待办列表一次显示 14 条，多出来的在底部写明「还有 N 条」，可以展开。
+const taskListLimit = 14;
+let taskListExpanded = false;
+// 上次画待办是哪一天：App 开着过了午夜，watchTaskDayRollover 发现日期变了就重画。
+let taskListRenderedDay = '';
+function taskIsRisk(item = {}) {
+  return item.tag === '物流风险' || String(item.id || '').startsWith('logistics-risk-');
+}
+// 「已处理」页签里每一行的说明：哪天处理的，哪天会再提醒。
+function taskDoneNote(item = {}) {
+  const record = state.doneTasks?.[item.doneKey || item.id];
+  const at = record && typeof record === 'object' && record.at ? `${monthDayTimeLabel(record.at)} 处理` : '已处理';
+  const until = record && typeof record === 'object' ? record.until : '';
+  return `${at} · ${until ? `${monthDayLabel(until)} 还没解决会再提醒` : '日期改了会重新提醒'}`;
+}
 function renderTasks() {
   const el = document.getElementById('taskList');
   const summaryEl = document.getElementById('reminderSummary');
+  const today = normalizeDate(new Date().toISOString());
+  taskListRenderedDay = today;
   const activeReminders = buildTaskItems();
-  const dueToday = activeReminders.filter(taskDueToday);
-  // 「稍后」页签：列出今天被暂缓的待办，和原型一致。
+  const dueToday = todayTaskItems(activeReminders);
+  // 「稍后」页签：今天被暂缓的待办；「已处理」页签：点过完成、还没到再提醒那天的，可以恢复。
   const snoozedReminders = snoozedTasks.size ? buildTaskItems({ includeSnoozed:true }).filter(item => snoozedTasks.has(item.id)) : [];
-  const reminders = (taskInboxFilter === 'snoozed' ? snoozedReminders : activeReminders
-    .filter(item => taskInboxFilter === 'all' || item.type === taskInboxFilter))
-    .slice(0, 14);
-  const riskReminders = reminders.filter(item => item.tag === '物流风险' || String(item.id || '').startsWith('logistics-risk-'));
-  const regularReminders = reminders.filter(item => !riskReminders.includes(item));
+  const doneReminders = buildTaskItems({ includeDone:true, includeSnoozed:true }).filter(item => isTaskDoneKey(item.doneKey || item.id, today));
+  // 「物流」页签也收最晚发出日期（type ship），只是它不再叫「物流异常」。
+  const matches = (item, type) => type === 'all' || item.type === type || (type === 'logistics' && item.type === 'ship');
+  const listMode = taskInboxFilter === 'snoozed' || taskInboxFilter === 'done' ? taskInboxFilter : 'active';
+  const pool = listMode === 'snoozed' ? snoozedReminders : listMode === 'done' ? doneReminders : activeReminders.filter(item => matches(item, taskInboxFilter));
+  // 今天的在前（物流风险最先），日期在以后的放在「即将到期」下面。
+  const todayPool = listMode === 'active' ? pool.filter(taskDueToday) : pool;
+  const laterPool = listMode === 'active' ? pool.filter(item => !taskDueToday(item)) : [];
+  const ordered = [...todayPool.filter(taskIsRisk), ...todayPool.filter(item => !taskIsRisk(item)), ...laterPool];
+  const shown = taskListExpanded ? ordered : ordered.slice(0, taskListLimit);
+  const hidden = ordered.length - shown.length;
   const filterBar = document.getElementById('taskInboxFilters');
   if (filterBar) filterBar.querySelectorAll('[data-task-filter]').forEach(btn => {
     const type = btn.dataset.taskFilter;
     btn.classList.toggle('active', type === taskInboxFilter);
-    const n = type === 'all' ? activeReminders.length : type === 'snoozed' ? snoozedReminders.length : activeReminders.filter(item => item.type === type).length;
-    btn.innerHTML = `${{ all:'全部', payment:'收款', follow:'跟进', urgent:'加急', repurchase:'复购', logistics:'物流', snoozed:'稍后' }[type] || btn.textContent}<span class="c">${n}</span>`;
+    const n = type === 'snoozed' ? snoozedReminders.length : type === 'done' ? doneReminders.length : activeReminders.filter(item => matches(item, type)).length;
+    btn.innerHTML = `${{ all:'全部', payment:'收款', follow:'跟进', urgent:'加急', repurchase:'复购', logistics:'物流', snoozed:'稍后', done:'已处理' }[type] || btn.textContent}<span class="c">${n}</span>`;
   });
   if (summaryEl) summaryEl.innerHTML = '';
   document.getElementById('statTasks').textContent = dueToday.length;
-  if (!reminders.length) {
-    el.innerHTML = '<div class="empty">当前筛选下没有待办。</div>';
+  if (!shown.length) {
+    el.innerHTML = `<div class="empty">${listMode === 'done' ? '没有已处理的待办。点过「完成」的提醒会在这里留到再提醒那天，可以恢复。' : listMode === 'snoozed' ? '今天没有暂缓的待办。' : '当前筛选下没有待办。'}</div>`;
     return;
   }
-  const taskLook = { payment:['cash', 'amber'], urgent:['bolt', 'red'], logistics:['alert', 'red'], follow:['chat', 'blue'], repurchase:['repeat', 'teal'] };
+  const taskLook = { payment:['cash', 'amber'], urgent:['bolt', 'red'], logistics:['alert', 'red'], ship:['truck', 'orange'], follow:['chat', 'blue'], repurchase:['repeat', 'teal'] };
+  const doneTitle = item => item.remindAgainDays > 0 ? `${taskDoneLabel(item)}：${item.remindAgainDays} 天后还没解决会再提醒` : `${taskDoneLabel(item)}：日期改了会重新提醒`;
+  const actions = item => {
+    if (listMode === 'done') return `<button class="task-action-btn" type="button" data-task-action="undone" title="放回待办">恢复提醒</button>`;
+    const extra = listMode === 'snoozed' ? '<button class="task-action-btn" type="button" data-task-action="unsnooze" title="放回今天的待办">取消稍后</button>' : '';
+    return `${taskActionButtons(item, { snooze:listMode !== 'snoozed' })}${extra}
+          <button class="task-tick" type="button" data-task-action="done" title="${escapeAttr(doneTitle(item))}">${uiIcon('check')}<span>${escapeAttr(taskDoneLabel(item))}</span></button>`;
+  };
   const taskHtml = (item, index) => {
     const [icon, tone] = taskLook[item.type] || ['info', 'gray'];
+    const sub = listMode === 'done' ? `${item.detail || ''} · ${taskDoneNote(item)}` : `${item.detail || ''}${item.value ? ` · ${item.value}` : ''}`;
     return `
       <div class="task ${item.type}" data-task-id="${escapeAttr(item.id)}" data-order-id="${escapeAttr(item.orderId || '')}" data-task-client="${escapeAttr(item.client || item.title || '')}" style="--i:${index}">
         <div class="task-icon tone-${tone}">${uiIcon(icon)}</div>
         <div class="task-main">
           <div class="task-title">${escapeAttr(item.title)}<span class="task-reason">${escapeAttr(item.reason)}</span></div>
-          <div class="task-sub">${escapeAttr(item.detail || '')}${item.value ? ` · ${escapeAttr(item.value)}` : ''}</div>
+          <div class="task-sub">${escapeAttr(sub)}</div>
         </div>
         <div class="task-actions">
-          ${taskActionButtons(item, { snooze:taskInboxFilter !== 'snoozed' })}
-          <button class="task-tick" type="button" data-task-action="done" aria-label="标记完成" title="完成">${uiIcon('check')}</button>
+          ${actions(item)}
         </div>
       </div>
     `;
   };
-  el.innerHTML = [...riskReminders, ...regularReminders].map(taskHtml).join('');
+  const firstLater = shown.findIndex(item => laterPool.includes(item));
+  const rows = shown.map((item, index) => (index === firstLater ? `<div class="task-group-head">即将到期 · ${laterPool.length}</div>` : '') + taskHtml(item, index));
+  const more = hidden > 0
+    ? `<button class="task-more" type="button" data-task-more="expand">还有 ${hidden} 条 · 全部显示</button>`
+    : taskListExpanded && ordered.length > taskListLimit ? '<button class="task-more" type="button" data-task-more="collapse">收起</button>' : '';
+  el.innerHTML = rows.join('') + more;
 }
 function renderCalendarTaskRows(tasks) {
   if (!tasks.length) return '<div class="empty">当天暂无任务。</div>';
@@ -17129,7 +17313,7 @@ function renderCalendarTaskRows(tasks) {
           </div>
           <div class="task-actions">
             ${taskActionButtons(item, { snooze:true, short:true })}
-            <button class="task-action-btn done" type="button" data-task-action="done">完成</button>
+            <button class="task-action-btn done" type="button" data-task-action="done">${escapeAttr(taskDoneLabel(item))}</button>
           </div>
         </div>
       `).join('')}
@@ -17138,7 +17322,7 @@ function renderCalendarTaskRows(tasks) {
 }
 function openCalendarTaskDrawer(date) {
   selectedCalendarDate = normalizeDate(date || new Date().toISOString());
-  const tasks = buildTaskItems().filter(item => normalizeDate(item.date) === selectedCalendarDate);
+  const tasks = buildTaskItems().filter(item => calendarTaskDate(item) === selectedCalendarDate);
   document.getElementById('calendarTaskDate').textContent = selectedCalendarDate;
   document.getElementById('calendarTaskTitle').textContent = `${monthDayLabel(selectedCalendarDate)} 任务`;
   document.getElementById('calendarTaskBody').innerHTML = renderCalendarTaskRows(tasks);
@@ -17165,7 +17349,7 @@ function taskActionButtons(item, { snooze = true, short = false } = {}) {
 // 待办直达抽屉的对应页签：收款 → 收款，最晚发货 / 物流风险 → 物流，其它 → 订单信息。
 function taskDetailTab(task = {}) {
   if (task.type === 'payment') return 'payment';
-  if (task.type === 'logistics' || String(task.id || '').startsWith('logistics-risk-')) return 'logistics';
+  if (task.type === 'logistics' || task.type === 'ship' || String(task.id || '').startsWith('logistics-risk-')) return 'logistics';
   return 'info';
 }
 function postponeRepurchase(client, days) {
@@ -17184,6 +17368,60 @@ function postponeRepurchase(client, days) {
     render();
   } });
 }
+function refreshCalendarTaskDrawer() {
+  if (document.getElementById('calendarTaskDrawer')?.classList.contains('open')) openCalendarTaskDrawer(selectedCalendarDate);
+}
+function findTaskItem(id) {
+  return buildTaskItems({ includeDone:true, includeSnoozed:true }).find(item => item.id === id);
+}
+function taskToastLabel(task = {}) {
+  return `${task.title || task.client || ''} ${task.reason || ''}`.trim();
+}
+// 「完成 / 已催款 / 已跟进」：记下处理时间和再提醒的日期，在订单记录里留一条（不改订单的「最近更新」），
+// 弹 6 秒的撤销提示：撤销会放回原来的记录、删掉刚写的那条订单记录。
+function markTaskDone(id) {
+  const task = findTaskItem(id);
+  if (!task) return;
+  const key = task.doneKey || id;
+  const today = normalizeDate(new Date().toISOString());
+  const hadPrevious = Object.prototype.hasOwnProperty.call(state.doneTasks || {}, key);
+  const previous = state.doneTasks?.[key];
+  const until = taskDoneUntil(task, today);
+  state.doneTasks = state.doneTasks || {};
+  state.doneTasks[key] = { at:nowText(), until };
+  const wasSnoozed = snoozedTasks.has(id);
+  if (wasSnoozed) snoozedTasks.remove(id);
+  const later = until ? `${monthDayLabel(until)} 还没解决会再提醒` : '日期改了会重新提醒';
+  const order = task.orderId && task.type !== 'repurchase' ? state.orders.find(o => o.id === task.orderId) : null;
+  const log = order ? { time:nowText(), text:`待办已处理：${taskKindName(task)}（${taskDoneLabel(task)}）· ${task.reason}，${later}` } : null;
+  if (order) order.logs = [log, ...(order.logs || [])];
+  saveState();
+  render();
+  refreshCalendarTaskDrawer();
+  toast(`${taskDoneLabel(task)}：${taskToastLabel(task)}`, { desc:`${later} · 可在「已处理」里恢复`, group:`task-${id}`, undo:() => {
+    if (hadPrevious) state.doneTasks[key] = previous;
+    else delete state.doneTasks[key];
+    if (wasSnoozed) snoozedTasks.add(id);
+    const current = order ? state.orders.find(o => o.id === order.id) : null;
+    if (current && log) current.logs = (current.logs || []).filter(item => item !== log);
+    saveState();
+    render();
+    refreshCalendarTaskDrawer();
+  } });
+}
+// 「已处理」页签里的「恢复提醒」：去掉处理记录，提醒马上回到待办；订单记录里也写一条。
+function restoreTaskReminder(id) {
+  const task = findTaskItem(id);
+  if (!task) return;
+  const key = task.doneKey || id;
+  delete state.doneTasks[key];
+  const order = task.orderId && task.type !== 'repurchase' ? state.orders.find(o => o.id === task.orderId) : null;
+  if (order) order.logs = [{ time:nowText(), text:`待办恢复提醒：${taskKindName(task)} · ${task.reason}` }, ...(order.logs || [])];
+  saveState();
+  render();
+  refreshCalendarTaskDrawer();
+  toast(`已恢复提醒：${taskToastLabel(task)}`);
+}
 function handleTaskAction(actionName, row) {
   const id = row?.dataset.taskId;
   if (!id) return;
@@ -17200,7 +17438,7 @@ function handleTaskAction(actionName, row) {
     // 日历抽屉在订单详情后面写，同为一层：不先关掉它，详情会开在抽屉底下看不见。
     if (document.getElementById('calendarTaskDrawer')?.classList.contains('open')) closeCalendarTaskDrawer();
     if (row.dataset.orderId) {
-      const task = buildTaskItems({ includeDone:true, includeSnoozed:true }).find(item => item.id === id);
+      const task = findTaskItem(id);
       openOrderDetail(row.dataset.orderId, { tab:taskDetailTab(task || {}) });
     } else {
       setPage('customers');
@@ -17210,18 +17448,31 @@ function handleTaskAction(actionName, row) {
     return;
   }
   if (actionName === 'snooze') {
+    const task = findTaskItem(id);
     snoozedTasks.add(id);
-    render();
-    if (document.getElementById('calendarTaskDrawer')?.classList.contains('open')) openCalendarTaskDrawer(selectedCalendarDate);
-    return;
-  }
-  if (actionName === 'done') {
-    const task = buildTaskItems({ includeDone:true, includeSnoozed:true }).find(item => item.id === id);
-    state.doneTasks[task?.doneKey || id] = true;
     saveState();
     render();
-    if (document.getElementById('calendarTaskDrawer')?.classList.contains('open')) openCalendarTaskDrawer(selectedCalendarDate);
+    refreshCalendarTaskDrawer();
+    toast(`已暂缓到明天：${taskToastLabel(task || {})}`, { desc:'明天回到待办，今天可在「稍后」里取消', group:`task-${id}`, undo:() => {
+      snoozedTasks.remove(id);
+      saveState();
+      render();
+      refreshCalendarTaskDrawer();
+    } });
+    return;
   }
+  if (actionName === 'unsnooze') {
+    snoozedTasks.remove(id);
+    saveState();
+    render();
+    refreshCalendarTaskDrawer();
+    return;
+  }
+  if (actionName === 'undone') {
+    restoreTaskReminder(id);
+    return;
+  }
+  if (actionName === 'done') markTaskDone(id);
 }
 function normalizeCustomerDuplicateText(value = '') {
   return normalizeSearchText(value).replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
@@ -17379,7 +17630,8 @@ function customerWorkspaceRecord(client = {}) {
   const latestSource = latestOrder || client;
   const latestOrderDate = latestOrder ? normalizeDate(latestOrder.createdAt || latestOrder.updated) : '-';
   const tags = normalizeTags(profile.tags || profile.tag || level);
-  const repurchaseDate = profile.nextFollow || (profile.repurchaseCycle && latestSource?.updated ? addDays(latestSource.updated, profile.repurchaseCycle) : '');
+  // 和待办里的复购提醒同一个算法（nextRepurchaseDate），客户页「待跟进」和待办「复购」是同一批人。
+  const repurchaseDate = nextRepurchaseDate(name);
   const updated = profile.updated || latestSource?.updated || latestSource?.createdAt || '';
   return {
     ...client, ...profile, client:name, level, tags, orders, sortedOrders, orderCount:orders.length,
@@ -17395,8 +17647,9 @@ function renderCustomerWorkspaceSummary(customers = []) {
   const total = customers.reduce((sum, c) => sum + c.total, 0);
   const paid = customers.reduce((sum, c) => sum + c.paid, 0);
   const due = customers.reduce((sum, customer) => sum + Number(customer.due || 0), 0);
-  const today = normalizeDate(new Date().toISOString());
-  const followups = customers.filter(c => c.repurchaseDate && c.repurchaseDate <= today).length;
+  // 「待跟进」= 待办里正在提醒的复购（已到期、没点完成、没暂缓），和工作台待办同一批人。
+  const repurchaseDue = new Set(buildTaskItems().filter(item => item.type === 'repurchase').map(item => item.client));
+  const followups = customers.filter(c => repurchaseDue.has(c.client)).length;
   const dueCustomers = customers.filter(c => Number(c.due || 0) > 0).length;
   el.innerHTML = `
     <div class="customer-summary-item"><span>客户数</span><strong>${customers.length}</strong><small>当前筛选结果</small></div>
@@ -17480,7 +17733,7 @@ function renderCustomers() {
         <div class="customer-cell-stack"><div class="customer-tag-stack"><span class="customer-level-pill" title="${escapeAttr(c.level)}">${escapeAttr(String(c.level || '').slice(0, 2))}</span>${visibleTags.map(tag => `<span class="level-tag">${escapeAttr(tag)}</span>`).join('')}${hiddenTagCount ? `<span class="level-tag">+${hiddenTagCount}</span>` : ''}</div><span class="muted customer-cell-ellipsis">${escapeAttr(c.productType || '产品未设')} · ${c.primaryContactMethod ? `首选 ${escapeAttr(c.primaryContactMethod)}` : escapeAttr(c.paymentMethod || '收款未设')}</span></div>
         <div class="customer-cell-stack"><strong>${c.orderCount} 单${c.latestOrder ? ` · ${escapeAttr(c.latestOrder.num || '')}` : ''}</strong><span class="muted customer-cell-ellipsis">${c.latestOrder ? `${escapeAttr(stageDef(c.latestOrder.stage).name)} · ${c.latestOrderDate}` : '暂无订单'}</span></div>
         <div class="customer-cell-stack customer-cell-money"><strong>${money(c.total, 'USD')}</strong><span class="${c.due > 0 ? 'customer-due-amount' : (c.total > 0 ? 'paid-amount' : 'muted')}">${c.due > 0 ? `待收 ${money(c.due, 'USD')}` : (c.total > 0 ? '已收清' : '暂无成交')}</span></div>
-        <div class="customer-cell-stack"><strong>${escapeAttr(c.repurchaseDate || '未设提醒')}</strong><span class="muted customer-cell-ellipsis">${c.repurchaseCycle ? `每 ${escapeAttr(c.repurchaseCycle)} 天复购` : `更新 ${escapeAttr(c.updated || '-')}`}</span></div>
+        <div class="customer-cell-stack"><strong>${escapeAttr(c.repurchaseDate || (c.repurchaseCycle ? '发货后计算' : '未设提醒'))}</strong><span class="muted customer-cell-ellipsis">${c.repurchaseCycle ? `每 ${escapeAttr(c.repurchaseCycle)} 天复购` : `更新 ${escapeAttr(c.updated || '-')}`}</span></div>
       </div>
     `;
     }).join('') || '<div class="empty">暂无客户数据。</div>'}
@@ -17505,7 +17758,7 @@ function renderCustomerProfileMetrics(name = '') {
     <div class="customer-metric-card"><span>已收款</span><strong class="summary-money">${summaryMoney(record.paid, 'USD')}</strong><small>${record.total ? `${Math.round(record.paid / record.total * 100)}% 已收` : '暂无收款'}</small></div>
     <div class="customer-metric-card"><span>待收款</span><strong class="summary-money ${record.due > 0 ? 'customer-due-amount' : ''}">${summaryMoney(record.due, 'USD')}</strong><small>${record.due > 0 ? '需要跟进' : '暂无待收'}</small></div>
     <div class="customer-metric-card"><span>最近订单</span><strong>${escapeAttr(record.latestOrder?.num || '暂无')}</strong><small>${escapeAttr(record.latestOrder ? `${stageDef(record.latestOrder.stage).name} · ${record.latestOrderDate}` : '还没有订单')}</small></div>
-    <div class="customer-metric-card"><span>复购提醒</span><strong>${escapeAttr(record.repurchaseDate || repurchase)}</strong><small>${escapeAttr(record.nextFollow || (record.repurchaseCycle ? '按周期计算' : '未设置提醒'))}</small></div>
+    <div class="customer-metric-card"><span>复购提醒</span><strong>${escapeAttr(record.repurchaseDate || repurchase)}</strong><small>${escapeAttr(!record.repurchaseCycle ? '未设置提醒' : !record.repurchaseDate ? '有进行中的订单，发货后再算' : record.nextFollow && record.nextFollow === record.repurchaseDate ? '已推迟到这天' : `每 ${record.repurchaseCycle} 天，从上次发货算`)}</small></div>
   `;
 }
 let whatsappReadSequence = 0;
@@ -17869,7 +18122,8 @@ function buildCustomerSavePayload(data = {}, previousProfile = {}, oldName = '')
     ...contactPreferences,
     repurchaseCycle: data.repurchaseCycle || '',
     tags,
-    nextFollow: previousProfile.nextFollow || '',
+    // 复购周期选「不提醒」：以前「推迟」留下的下次跟进日期一起清掉，不然照样提醒。
+    nextFollow: data.repurchaseCycle ? (previousProfile.nextFollow || '') : '',
     note: String(data.note || '').trim(),
     permanentNote: String(data.permanentNote || '').trim(),
     updated: nowText()
@@ -19486,7 +19740,8 @@ async function softDeleteOrder(id, { closeModal = false } = {}) {
   // 清掉的「已处理」标记跟着删掉的单存起来，撤销 / 恢复时放回去，提醒不会重新冒出来。
   const doneKeys = orderDoneTaskKeys(id);
   const deleted = { ...order, deletedAt: nowText(), logs: [{ time:nowText(), text:'订单已删除，移入已删除订单' }, ...(order.logs || [])] };
-  if (doneKeys.length) deleted.deletedDoneTasks = doneKeys;
+  // 连同记录本身（处理时间、再提醒日期）一起存，恢复时原样放回。
+  if (doneKeys.length) deleted.deletedDoneTasks = Object.fromEntries(doneKeys.map(key => [key, state.doneTasks[key]]));
   state.deletedOrders = [deleted, ...(state.deletedOrders || [])];
   state.orders = state.orders.filter(o => o.id !== id);
   doneKeys.forEach(key => { delete state.doneTasks[key]; });
@@ -19694,11 +19949,13 @@ function restoreOrder(id) {
   if (!order) return;
   const restored = { ...order, logs: [{ time:nowText(), text:'订单已从已删除订单恢复' }, ...(order.logs || [])] };
   delete restored.deletedAt;
-  const doneKeys = Array.isArray(restored.deletedDoneTasks) ? restored.deletedDoneTasks : [];
+  // 旧版本存的是键的数组（值都是 true），新版本存 { 键: 记录 }。
+  const savedDone = restored.deletedDoneTasks;
+  const doneEntries = Array.isArray(savedDone) ? savedDone.map(key => [key, true]) : Object.entries(savedDone && typeof savedDone === 'object' ? savedDone : {});
   delete restored.deletedDoneTasks;
-  if (doneKeys.length) {
+  if (doneEntries.length) {
     state.doneTasks = state.doneTasks || {};
-    doneKeys.forEach(key => { state.doneTasks[key] = true; });
+    doneEntries.forEach(([key, value]) => { state.doneTasks[key] = value || true; });
   }
   state.orders.unshift(restored);
   state.deletedOrders = (state.deletedOrders || []).filter(o => o.id !== id);
@@ -23557,17 +23814,28 @@ document.getElementById('taskInboxFilters')?.addEventListener('click', e => {
   const btn = e.target.closest('[data-task-filter]');
   if (!btn) return;
   taskInboxFilter = btn.dataset.taskFilter;
+  taskListExpanded = false;
   renderTasks();
 });
 document.getElementById('taskList').addEventListener('click', e => {
+  const more = e.target.closest('[data-task-more]');
+  if (more) {
+    taskListExpanded = more.dataset.taskMore === 'expand';
+    renderTasks();
+    return;
+  }
   const action = e.target.closest('[data-task-action]');
   if (!action) return;
   const row = action.closest('[data-task-id]');
   if (!row) return;
   handleTaskAction(action.dataset.taskAction, row);
 });
+// 点「今日待办」卡：回到「全部」页签再滚过去，别停在上次选的「复购」等页签里。
 function jumpToReminderCenter() {
+  taskInboxFilter = 'all';
+  taskListExpanded = false;
   setPage('dashboard');
+  renderTasks();
   requestAnimationFrame(() => {
     document.getElementById('tasks')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
@@ -25086,15 +25354,18 @@ function uiDashboardKpis() {
   const dueOrders = state.orders.filter(o => !o.isDraft && orderDueValue(o) > 0);
   const paymentSub = document.getElementById('statPaymentSub');
   if (paymentSub) {
-    const today = normalizeDate(new Date().toISOString());
-    const overdue = dueOrders.filter(o => o.latestShipDate && o.latestShipDate < today).length;
-    paymentSub.textContent = dueOrders.length ? `历史累计 · 待收 ${dueOrders.length} 笔 · 逾期 ${overdue}` : '历史累计 · 没有待收款';
+    // 订单上没有尾款到期日，不说「逾期」：只数已确认订单里「下单超过 30 天还有欠款」的（不含报价单，不看最后修改时间）。
+    const aged = dueOrders.filter(o => orderDueAged(o)).length;
+    paymentSub.textContent = dueOrders.length ? `历史累计 · 待收 ${dueOrders.length} 笔${aged ? ` · 下单超 ${dueAgeAlertDays} 天未收清 ${aged}` : ''}` : '历史累计 · 没有待收款';
+    paymentSub.title = aged ? `已确认的订单（生产中 / 尾款 / 已发货 / 已完成）里，下单已超过 ${dueAgeAlertDays} 天、还有欠款的有 ${aged} 笔。订单上没有尾款到期日，这不是付款逾期。` : '';
   }
   const tasksSub = document.getElementById('statTasksSub');
   if (tasksSub && typeof buildTaskItems === 'function') {
+    // 和卡片上的数、开机问候同一批：今天要处理的待办；日期在以后的单独写「另有 N 件即将到期」。
     const items = buildTaskItems();
-    const count = type => items.filter(item => item.type === type).length;
-    tasksSub.textContent = `收款 ${count('payment')} · 加急 ${count('urgent')} · 物流 ${count('logistics')}`;
+    const todayItems = todayTaskItems(items);
+    const later = items.length - todayItems.length;
+    tasksSub.textContent = [...taskTypeBreakdown(todayItems), later ? `另有 ${later} 件即将到期` : ''].filter(Boolean).join(' · ') || '今天没有待办';
   }
   const goal = targetForMonth(month);
   const label = document.getElementById('statTargetLabel');
@@ -25115,13 +25386,28 @@ function uiGreetOnce() {
   try { seen = localStorage.getItem('ots-greet-v1') || ''; } catch (_) { /* 本机存储不可用时每次启动都问候 */ }
   if (seen === today || typeof buildTaskItems !== 'function') return;
   try { localStorage.setItem('ots-greet-v1', today); } catch (_) { /* 忽略 */ }
-  const items = buildTaskItems();
-  const count = type => items.filter(item => item.type === type).length;
+  // 和「今日待办」卡同一个数：只数今天要处理的；最晚发出日期叫「临近发货期限」，不再算成物流异常。
+  const items = todayTaskItems(buildTaskItems());
   const hour = new Date().getHours();
   const hello = hour < 5 ? '夜深了' : hour < 12 ? '早上好' : hour < 18 ? '下午好' : '晚上好';
-  const parts = [[count('payment'), '笔收款'], [count('urgent'), '个加急单'], [count('logistics'), '个物流异常']].filter(([n]) => n > 0).map(([n, label]) => `${n} ${label}`);
-  toast(items.length ? `${hello}，今天有 ${items.length} 件待办` : `${hello}，今天没有待办`, { tone:'info', desc:parts.join('、') });
+  toast(items.length ? `${hello}，今天有 ${items.length} 件待办` : `${hello}，今天没有待办`, { tone:'info', desc:taskTypeBreakdown(items, { long:true }).join('、') });
 }
+// App 开着过了午夜（或者从睡眠里醒来）：日期一变就重画待办、「今日待办」，昨天「稍后」的提醒回来，并补上当天的问候。
+// 每分钟看一次本地日期，窗口重新可见 / 获得焦点时也看一次。
+function checkTaskDayRollover() {
+  const today = normalizeDate(new Date().toISOString());
+  if (typeof window.pendingSaveStatus === 'function' && !window.pendingSaveStatus().loaded) return false;
+  // 开着别的页面、待办还没画过：先记下今天，过了午夜照样会刷新。
+  if (!taskListRenderedDay) { taskListRenderedDay = today; return false; }
+  if (taskListRenderedDay === today) return false;
+  taskListRenderedDay = today;
+  render();
+  uiGreetOnce();
+  return true;
+}
+setInterval(checkTaskDayRollover, 60 * 1000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkTaskDayRollover(); });
+window.addEventListener('focus', checkTaskDayRollover);
 (function uiGreetWhenLoaded(tries) {
   if (typeof window.pendingSaveStatus === 'function' && window.pendingSaveStatus().loaded) return setTimeout(uiGreetOnce, 900);
   if (tries > 0) setTimeout(() => uiGreetWhenLoaded(tries - 1), 500);
@@ -25249,6 +25535,11 @@ async function copyOrderText(kind = 'status') {
   if (source === 'active') {
     order.logs = [{ time:nowText(), text:kind === 'dunning' ? `复制催款文案（${vars.dueLabel === 'deposit' ? '催定金' : '待收'} ${vars.due}）` : '复制英文状态文案' }, ...(order.logs || [])];
     order.updated = nowText();
+    // 复制催款就是催过一次款：这张单的收款提醒记成「已催款」，几天后还没收齐再提醒，不用再回待办点一次。
+    if (kind === 'dunning') {
+      const paymentTask = buildTaskItems({ includeDone:true, includeSnoozed:true }).find(item => item.type === 'payment' && item.orderId === order.id);
+      if (paymentTask) state.doneTasks[paymentTask.doneKey] = { at:nowText(), until:taskDoneUntil(paymentTask) };
+    }
     saveState();
     if (typeof renderTasks === 'function') renderTasks();
     if (typeof uiRenderNotifs === 'function') uiRenderNotifs();

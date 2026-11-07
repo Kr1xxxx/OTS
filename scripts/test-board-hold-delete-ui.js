@@ -15,7 +15,9 @@ const orders = [
   { ...base, id:'o1-import-10', num:'K206', client:'Import Ten', amount:100, paidAmount:0, orderType:'全款订单', stage:'quote', updated:`${day(1)} 09:06` }
 ];
 const trashOrders = [{ ...base, id:'t1', num:'K299', client:'Old Trash', amount:50, paidAmount:0, orderType:'全款订单', stage:'quote', trashedAt:`${day(1)} 08:00`, updated:`${day(1)} 08:00` }];
-const doneTasks = { 'follow-o1-import-1-2026-01-01':true, 'follow-o1-import-10-2026-01-01':true };
+// 「已处理」记录：{ at:处理时间, until:哪天再提醒 }（until 远在以后，加载时不会当成过期清掉）。
+const doneRecord = { at:`${day(1)} 10:00`, until:'2999-01-01' };
+const doneTasks = { 'follow-o1-import-1':doneRecord, 'follow-o1-import-10':doneRecord };
 
 const inOrders = (page, id) => page.evaluate(id => state.orders.some(o => o.id === id), id);
 
@@ -89,7 +91,7 @@ async function pressMenuDelete(page, id) {
     assert.equal(await h.deleted(page, 'o1-import-1'), true);
     await h.waitToast(page, '已删除 K205 Import One');
     let marks = await page.evaluate(() => Object.keys(state.doneTasks));
-    assert.deepEqual(marks, ['follow-o1-import-10-2026-01-01'], '只清这张单的「已处理」标记，id 是它前缀的单不受影响');
+    assert.deepEqual(marks, ['follow-o1-import-10'], '只清这张单的「已处理」标记，id 是它前缀的单不受影响');
     await h.flush(page);
     assert(store.current.data.deletedOrders.some(o => o.id === 'o1-import-1'), '删除已保存');
     await h.clickUndo(page, '已删除 K205 Import One');
@@ -97,8 +99,8 @@ async function pressMenuDelete(page, id) {
     const restored = await h.order(page, 'o1-import-1');
     assert.equal(restored.updated, before.updated, '恢复后保留原来的「最近更新」，卡片回到原位置');
     assert.equal(restored.deletedDoneTasks, undefined);
-    marks = await page.evaluate(() => Object.keys(state.doneTasks).sort());
-    assert.deepEqual(marks, ['follow-o1-import-1-2026-01-01', 'follow-o1-import-10-2026-01-01'], '撤销删除后「已处理」标记放回去');
+    marks = await page.evaluate(() => JSON.parse(JSON.stringify(state.doneTasks)));
+    assert.deepEqual(marks, doneTasks, '撤销删除后「已处理」标记连同处理时间、再提醒日期原样放回去');
     await h.waitToast(page, '已恢复 K205 Import One');
 
     // 7. 详情抽屉里按住删除时按 Esc：抽屉关掉，订单不删。

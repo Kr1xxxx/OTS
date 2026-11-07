@@ -84,6 +84,8 @@ vm.runInContext(html.match(/^const customerPasteLabels = .*;$/m)[0], context);
   'detectCarrier',
   'normalizeCountry',
   'roundMoneyValue',
+  'aiMoneyNumber',
+  'pasteTotalLabelPattern',
   'findAmountInText',
   'findOrderCreatedAtInText',
   'findPartialPaymentInText',
@@ -182,6 +184,11 @@ vm.runInContext(html.match(/^const customerPasteLabels = .*;$/m)[0], context);
   'customerFieldsFromCombinedPaste',
   'orderFieldsFromCombinedPaste',
   'combinedPasteCreatePreview',
+  'inferNewOrderStage',
+  'pasteOrderFieldLabel',
+  'pasteOrderFieldText',
+  'pasteStageHint',
+  'hasPaidSignalText',
   'pasteFieldLabels',
   'customerPasteFieldLabels',
   'combinedPastePreviewHtml',
@@ -763,6 +770,54 @@ for (const address of ['27 Sample Crescent Floor 2', 'Sample Rd.', 'Unit 1208', 
     if (errors.length) failures.push(`${item.id}: ${errors.join('; ')}`);
   }
   assert.deepEqual(failures, [], `Local customer recognition regressions:\n${failures.join('\n')}`);
+}
+
+// V3.120 粘贴识别：欧洲金额写法、小计行不当客户名、没写币种不兜底 USD、付款状态按聊天内容、阶段预告按收款规则。
+{
+  context.state = {orders:[], customers:{}};
+  const realStageDef = context.stageDef;
+  context.stageDef = stage => ({ name: { quote:'报价', balance:'尾款', production:'生产中', shipment:'已发货' }[stage] || stage });
+  const german = 'Hallo, hier ist Anna\n2x Body Wave Perücke 24 Zoll\nZwischensumme: 1.180,50 €\nVersand: 100,00 €\nGesamt: 1.280,50 € (ca. 1,390 USD)\nAnzahlung 30% per Überweisung bezahlt\nLieferadresse: Anna Schmidt, Hauptstraße 12, 10115 Berlin';
+  const de = context.analyzePasteText(german).extracted;
+  assert.equal(de.amount, 1280.5, 'European 1.280,50 must read as 1280.5, not the subtotal or the USD conversion');
+  assert.equal(de.currency, 'EUR');
+  assert.equal(de.productType, '假发');
+  assert.equal(de.paymentMentioned, undefined, 'A deposit is not a full payment');
+  assert.doesNotMatch(context.findCustomerNameInText(german), /zwischensumme|hallo/i);
+  assert.notEqual(de.country, '🇵🇪 秘鲁 Peru', 'Perücke must not match Peru');
+  const british = 'Hi! Order Summary\n2x lash trays\nSubtotal £1.150,00\nShipping £45,00\nTotal £1.195,00\nPaid in full by bank transfer yesterday, thanks!\nHarper Sample, Flat 5B, 88 Example Street, London SW1A 1AA';
+  const gb = context.analyzePasteText(british).extracted;
+  assert.equal(gb.amount, 1195);
+  assert.equal(gb.currency, 'GBP');
+  assert.equal(gb.paymentMentioned, true);
+  assert.doesNotMatch(context.findCustomerNameInText(british), /order summary|subtotal/i);
+  assert.equal(context.analyzePasteText('total 450, paid via paypal').extracted.currency, undefined, 'No currency in the chat: leave it empty, no USD fallback');
+  for (const text of ['total 450, will pay tomorrow via paypal', 'total 450 let me know paypal', '总计 3200，明天付', 'Total 500 USD deposit paid', 'total 300 not paid yet']) {
+    assert.equal(context.analyzePasteText(text).extracted.paymentMentioned, undefined, `Not a payment: ${text}`);
+  }
+  // 新客户卡片：客户档案币种优先于设置默认；没提付款的全款单是「未付」，阶段预告是报价；说了付了才是「已付」。
+  const unpaid = context.orderFieldsFromCombinedPaste('total 450 let me know paypal', { name:'Eva Sample', currency:'EUR' });
+  assert.equal(unpaid.currency, 'EUR');
+  assert.equal(unpaid.fullPaymentStatus, '未付');
+  assert.equal(context.pasteStageHint(unpaid), '报价（按收款）');
+  const paid = context.orderFieldsFromCombinedPaste('total 450, paid via paypal', { name:'Eva Sample' });
+  assert.equal(paid.fullPaymentStatus, '已付');
+  assert.equal(paid.paymentMentioned, undefined);
+  assert.equal(context.pasteStageHint(paid), '生产中（按收款）');
+  // AI 给的定金单：收到定金 = 尾款；没收定金 = 报价；有物流单号 = 已发货。
+  assert.equal(context.pasteStageHint({ amount:680, orderType:'定金订单', paidAmount:204 }), '尾款（按收款）');
+  assert.equal(context.pasteStageHint({ amount:680, orderType:'定金订单' }), '报价（聊天没提付款）');
+  assert.equal(context.pasteStageHint({ amount:680 }, '定金订单'), '报价（聊天没提付款）');
+  assert.equal(context.pasteStageHint({ amount:680, paymentMentioned:true }, '定金订单'), '报价（聊天没写付了多少）');
+  assert.equal(context.pasteStageHint({ trackingNumber:'1234567890' }), '已发货（有物流单号）');
+  const fromAi = context.orderFieldsFromCombinedPaste('', { name:'Ana' }, { amount:680, currency:'USD', orderType:'定金订单', paidAmount:204, depositAmount:204, stage:'production' });
+  assert.equal(fromAi.stage, undefined, 'The AI stage is never written; saving decides it');
+  assert.equal(fromAi.depositPercent, undefined);
+  assert.equal(fromAi.paidAmount, 204);
+  assert.equal(context.pasteOrderFieldLabel('depositPercent'), '定金比例');
+  assert.equal(context.pasteOrderFieldText('stage', 'balance'), '尾款');
+  assert.equal(context.pasteOrderFieldText('fullPaymentStatus', '部分'), '部分已付');
+  context.stageDef = realStageDef;
 }
 
 console.log('Order recognition tests passed.');

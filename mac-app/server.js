@@ -1894,6 +1894,14 @@ async function queryAiChat(body = {}) {
   if (settings.enabled !== '是') return { ok: false, message: 'AI 识别未启用。' };
   if (!apiKey) return { ok: false, message: 'AI API Key 未保存。' };
   if (!settings.baseUrl || !settings.model) return { ok: false, message: 'AI Base URL 或模型名称未设置。' };
+  // 先在本地检查消息：太长 / 太多条时直接回中文提示，不调用上游，也不记一条「请求失败」的费用记录。
+  let messages;
+  try {
+    messages = boundedAiMessages(body.messages);
+  } catch (error) {
+    const tooLarge = /too large/i.test(String(error?.message || ''));
+    return { ok: false, status: 413, message: tooLarge ? '粘贴内容太长：AI 一次最多读 20 万字，请只粘贴和这笔订单有关的部分。' : '一次发给 AI 的消息太多。' };
+  }
   let response, requestError;
   const startedAt = Date.now();
   try {
@@ -1903,7 +1911,7 @@ async function queryAiChat(body = {}) {
       timeout: body.testOnly ? 20000 : 45000,
       body: JSON.stringify({
         model: settings.model,
-        messages: boundedAiMessages(body.messages),
+        messages,
         // 智谱和 DeepSeek 官方接口都关掉深度思考：识别只要字段，思考会拖慢速度并占用输出额度
         thinking: settings.provider === 'zhipu' || new URL(settings.baseUrl).hostname === 'api.deepseek.com' ? { type: 'disabled' } : undefined,
         reasoning: new URL(settings.baseUrl).hostname === 'openrouter.ai' && settings.model === 'deepseek/deepseek-v4.1-flash' ? { enabled: false } : undefined,

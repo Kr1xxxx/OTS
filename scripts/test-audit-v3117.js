@@ -32,7 +32,7 @@ function pureFunctionTests() {
     currencyDefs: [{ code:'USD' }, { code:'EUR' }, { code:'GBP' }, { code:'CNY' }, { code:'AUD' }, { code:'CAD' }],
     state: { customers: {} }
   });
-  ['findAmountInText', 'findCurrencyInText', 'cleanTracking', 'isUpsTrackingNumber', 'carrierHintFromTrackingText', 'detectCarrier',
+  ['pasteTotalLabelPattern', 'findAmountInText', 'findCurrencyInText', 'cleanTracking', 'isUpsTrackingNumber', 'carrierHintFromTrackingText', 'detectCarrier',
     'hasTrackingSignalText', 'hasPhoneSignalText', 'trackingCandidatesFromLine', 'findTrackingInText', 'parseAiJson', 'aiMoneyNumber',
     'sameCustomerName', 'customerNameCollision', 'patchOrdersForCustomerRename']
     .forEach(name => vm.runInContext(extractFunction(name), context));

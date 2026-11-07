@@ -51,8 +51,12 @@ const context = vm.createContext({
   normalizeFeishuNotification(value) { return value || {}; },
   isSettledStage(stage) { return stage === 'shipment' || stage === 'done'; },
   applyOrderStageInvariants() {},
-  orderChangeSummary() { return []; }
+  orderChangeSummary() { return []; },
+  money(value, currency = 'USD') { return `${currency} ${value}`; },
+  stageDef(key) { return { name:key }; }
 });
+vm.runInContext(extractFunction('finiteMoneyOrNull'), context);
+vm.runInContext(extractFunction('restoreAutoPaymentsOnStageExit'), context);
 vm.runInContext(extractFunction('normalizeOrderNum'), context);
 vm.runInContext(extractFunction('inferNewOrderStage'), context);
 vm.runInContext(extractFunction('resolveOrderSaveStage'), context);

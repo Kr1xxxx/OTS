@@ -45,6 +45,7 @@ scripts/bump-version.js
 scripts/check-project.js
 scripts/check-release.js
 scripts/fixtures/customer-recognition-cases.json
+scripts/helpers/board-page.js
 scripts/helpers/whatsapp-fixture.js
 scripts/lint.js
 scripts/make-rounded-app-icon.swift
@@ -53,7 +54,10 @@ scripts/test-ai-usage.js
 scripts/test-app-icon.js
 scripts/test-audit-v3117.js
 scripts/test-backup-settings.js
+scripts/test-board-drag-ui.js
+scripts/test-board-hold-delete-ui.js
 scripts/test-board-layout.js
+scripts/test-board-menu-keyboard-ui.js
 scripts/test-business-analysis.js
 scripts/test-calendar-analysis-ui.js
 scripts/test-client-picker-fixes-ui.js
@@ -110,6 +114,7 @@ scripts/test-server-security.js
 scripts/test-settings-sidebar-ui.js
 scripts/test-shipments-partial-ui.js
 scripts/test-sqlite-storage.js
+scripts/test-stage-settle-restore-ui.js
 scripts/test-stage-undo-ui.js
 scripts/test-subscription-analysis-ui.js
 scripts/test-subscription-periods-ui.js

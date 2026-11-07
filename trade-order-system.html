@@ -24499,6 +24499,19 @@ document.addEventListener('keydown', e => {
   hit[1]();
 });
 window.addEventListener('blur', () => uiCloseBoardMenu());
+// 顶栏是 sticky 的：浏览器把东西滚进视野（Tab 到卡片、scrollIntoView、焦点跳转）时默认贴着窗口顶边放，正好被顶栏盖住。
+// 把页面的 scroll-padding-top 设成顶栏的实际高度（顶栏高度随窄屏 / 换行变化，用 ResizeObserver 跟着改），滚进来的东西停在顶栏下面。
+(function uiKeepScrollTargetsBelowTopbar() {
+  const topbar = document.querySelector('.topbar');
+  if (!topbar) return;
+  const sync = () => {
+    const sticky = /^(sticky|fixed)$/.test(getComputedStyle(topbar).position) && topbar.getBoundingClientRect().top <= 1;
+    document.documentElement.style.scrollPaddingTop = sticky ? `${Math.ceil(topbar.offsetHeight) + 12}px` : '';
+  };
+  sync();
+  if (typeof ResizeObserver === 'function') new ResizeObserver(sync).observe(topbar);
+  window.addEventListener('resize', sync);
+})();
 // 打开菜单时记下卡片所有祖先（列表、列、看板、页面）的滚动位置。
 function uiBoardMenuScrollSnapshot(card) {
   const nodes = [];

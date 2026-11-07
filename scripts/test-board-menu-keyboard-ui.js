@@ -50,8 +50,9 @@ const settledMenuBox = async page => {
     // 2b. 卡片还在做 transform 动画（页面刚切回来的入场上浮、悬停上浮的弹簧）时打开菜单，随后来一个和卡片无关的滚动事件
     // （关抽屉时重置滚动、打开前那次滚动迟到的事件）：菜单不能关。以前按卡片的 getBoundingClientRect 判断「卡片动了」，
     // 它带着动画里的 transform，macOS CI 上偶发菜单一打开就没了。动画用一段 10 秒、每秒 40px 的位移代替，结果和机器快慢无关。
-    await page.locator('#pipeline .board-card[data-id="k1"]').evaluate(card => { window.__moving = card.animate([{ transform:'translateY(400px)' }, { transform:'translateY(0)' }], { duration:10000 }); });
+    // 先聚焦再开始动画；往上偏移（-400px → 0）：向下的偏移会撑大页面的可滚动高度，动画收回时页面被迫滚回去，那是真滚动。
     await page.locator('#pipeline .board-card[data-id="k1"]').focus();
+    await page.locator('#pipeline .board-card[data-id="k1"]').evaluate(card => { window.__moving = card.animate([{ transform:'translateY(-400px)' }, { transform:'translateY(0)' }], { duration:10000 }); });
     await page.keyboard.press('Shift+F10');
     await page.waitForSelector('.board-menu');
     // 等卡片从打开菜单那一刻起又移动了 5px 以上（40px/秒），再来滚动事件。
@@ -153,9 +154,11 @@ const settledMenuBox = async page => {
     await h.rightClick(page, firstShip);
     assert.equal(await page.evaluate(() => document.querySelector('#pipeline .board-column[data-stage="shipment"] .board-card-list').scrollTop), 0);
     const listBox = await page.locator('#pipeline .board-column[data-stage="shipment"] .board-card-list').boundingBox();
-    // 鼠标放在列表左下（避开菜单，菜单在点击处右下方）。
-    await page.mouse.move(listBox.x + 16, listBox.y + listBox.height - 30);
-    assert.equal(await page.evaluate(([x, y]) => !!document.elementFromPoint(x, y)?.closest('.board-card-list'), [listBox.x + 16, listBox.y + listBox.height - 30]), true);
+    // 鼠标放在列表看得见部分的左下（避开菜单，菜单在点击处右下方）。看板滚进来时停在 sticky 顶栏下面，列表底部可能在窗口外。
+    const listBottom = Math.min(listBox.y + listBox.height, page.viewportSize().height);
+    await h.clearToasts(page); // 右下角「已移动到已发货」的提示会盖住列表左下角
+    await page.mouse.move(listBox.x + 16, listBottom - 30);
+    assert.equal(await page.evaluate(([x, y]) => !!document.elementFromPoint(x, y)?.closest('.board-card-list'), [listBox.x + 16, listBottom - 30]), true);
     assert.equal(await page.locator('.board-menu').count(), 1, '刚打开的菜单不能被打开前那次滚动的迟到事件关掉');
     await page.mouse.wheel(0, 300);
     await page.waitForFunction(() => document.querySelector('#pipeline .board-column[data-stage="shipment"] .board-card-list').scrollTop > 0);

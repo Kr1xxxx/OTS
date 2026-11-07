@@ -83,6 +83,30 @@ const h = {
     if (!onTop) throw new Error(`「${text}」的撤销按钮被挡住了：${await page.evaluate(p => document.elementFromPoint(p.x, p.y)?.outerHTML.slice(0, 160), point)}`);
     await page.mouse.click(point.x, point.y);
   },
+  // 点卡片上悬停才出现的快捷按钮（收齐 / 推进）：和用户一样先把卡片放到顶栏下面看得见的地方，鼠标移到卡片上，
+  // 等悬停上浮的弹簧过渡停下、按钮出现，确认那一点就是这个按钮，再在那一点点下去。
+  // 不用 locator.click()：按钮在 sticky 顶栏底下（或卡片还在动）时它会换几种对齐方式重新滚动页面，滚完鼠标已经不在卡片上，
+  // 按钮跟着悬停消失，之后一直是「element is not visible」直到超时（macOS CI 上出现过）。
+  clickQuick: async (page, id, action) => {
+    const card = page.locator(`#pipeline .board-card[data-id="${id}"]`);
+    await card.scrollIntoViewIfNeeded();
+    await page.evaluate(id => {
+      const el = document.querySelector(`#pipeline .board-card[data-id="${id}"]`);
+      const topbar = document.querySelector('.topbar')?.getBoundingClientRect().bottom || 0;
+      const top = el.getBoundingClientRect().top;
+      if (top < topbar + 8) window.scrollBy(0, top - topbar - 16);
+    }, id);
+    const box = await card.boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + Math.min(box.height / 2, 24));
+    const btn = card.locator(`[data-quick="${action}"]`);
+    await btn.waitFor({ state:'visible' });
+    await page.waitForFunction(id => !document.querySelector(`#pipeline .board-card[data-id="${id}"]`).getAnimations({ subtree:true }).some(a => a.playState === 'running'), id);
+    const b = await btn.boundingBox();
+    const point = { x:b.x + b.width / 2, y:b.y + b.height / 2 };
+    const onTop = await btn.evaluate((el, p) => document.elementFromPoint(p.x, p.y)?.closest('[data-quick]') === el, point);
+    if (!onTop) throw new Error(`卡片 ${id} 的「${action}」按钮被挡住了：${await page.evaluate(p => document.elementFromPoint(p.x, p.y)?.outerHTML.slice(0, 160), point)}`);
+    await page.mouse.click(point.x, point.y);
+  },
   clearToasts: page => page.evaluate(() => document.querySelectorAll('#toast .toast-item').forEach(el => el.remove())),
   flush: page => page.evaluate(() => window.flushPendingSave?.()),
   center: async (page, selector) => {

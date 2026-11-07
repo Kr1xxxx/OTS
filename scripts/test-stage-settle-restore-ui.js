@@ -126,9 +126,7 @@ async function skipTrackingCard(page) {
 
     // 7. 卡片上的「收齐全款」马上撤销：已收、阶段还原；操作记录只追加，原来的和「收齐」那条都还在。
     await h.clearToasts(page);
-    const card = page.locator('#pipeline .board-card[data-id="e4"]');
-    await card.hover();
-    await card.locator('[data-quick="paid"]').click();
+    await h.clickQuick(page, 'e4', 'paid');
     await page.waitForFunction(() => state.orders.find(o => o.id === 'e4').paidAmount === 500);
     await h.clickUndo(page, 'K504 Paid Undo 已收齐');
     await page.waitForFunction(() => state.orders.find(o => o.id === 'e4').paidAmount === 0);

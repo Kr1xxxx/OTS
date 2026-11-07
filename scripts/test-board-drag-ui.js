@@ -138,9 +138,7 @@ const orders = [
 
     // 之后又被改过（编辑弹窗把阶段改了）：较早的「收齐」撤销作废，不动数据、不删记录。
     await h.clearToasts(page);
-    const paidBtn = page.locator('#pipeline .board-card[data-id="w1"] [data-quick="paid"]');
-    await page.locator('#pipeline .board-card[data-id="w1"]').hover();
-    await paidBtn.click();
+    await h.clickQuick(page, 'w1', 'paid');
     await page.waitForFunction(() => state.orders.find(o => o.id === 'w1').stage === 'production');
     await h.waitToast(page, 'K108 Paid Then Edit 已收齐');
     await h.rightClick(page, 'w1');

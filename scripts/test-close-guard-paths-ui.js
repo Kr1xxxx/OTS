@@ -226,16 +226,25 @@ async function launch() {
     await reset();
 
     // P2-7: the order modal closes on a backdrop click like the other drawers; with edits it asks first.
+    // 弹窗打开的动画没跑完时，按下和松开落在不同元素上，背景点击会被当成拖选忽略（负载高时会碰上）。
+    // 所以先等弹窗自己和里面的动画都停了、并且 (8,460) 这个点确实是背景，再点。
+    const clickOrderBackdrop = async () => {
+      await page.waitForFunction(() => {
+        const modal = document.getElementById('orderModal');
+        const moving = modal.getAnimations({ subtree:true }).some(a => a.playState === 'running' && a.effect?.getComputedTiming?.().endTime !== Infinity);
+        return modal.classList.contains('open') && !moving && document.elementFromPoint(8, 460) === modal;
+      });
+      await page.mouse.click(8, 460);
+    };
     await page.evaluate(() => openOrder('o3'));
-    await settle(400);
-    await page.mouse.click(8, 460);
-    await settle();
+    await clickOrderBackdrop();
+    await page.waitForFunction(() => !document.getElementById('orderModal').classList.contains('open'), null, { timeout:3000 }).catch(() => {});
     assert.equal(await isOpen('orderModal'), false, 'a clean order modal closes on a backdrop click');
     await page.evaluate(() => openOrder('o3'));
     await settle(400);
     await type(page.locator('#orderForm [name="note"]'), 'backdrop');
-    await page.mouse.click(8, 460);
-    await settle();
+    await clickOrderBackdrop();
+    await page.locator('#confirmModal.open').waitFor({ timeout:3000 }).catch(() => {});
     assert.equal(await isOpen('confirmModal'), true, 'a backdrop click on an edited order must ask');
     await page.locator('#confirmCancelBtn').click();
     await settle();

@@ -67,11 +67,13 @@ scripts/test-close-guard-paths-ui.js
 scripts/test-close-guard-save-ui.js
 scripts/test-custom-select.js
 scripts/test-customer-ai-first-ui.js
+scripts/test-customer-ai-merge-ui.js
 scripts/test-customer-ai-preview-editor.js
 scripts/test-customer-ai-requirements.js
 scripts/test-customer-contact-preferences-ui.js
 scripts/test-customer-contact-preferences.js
 scripts/test-customer-email-fallback.js
+scripts/test-customer-form-validation-ui.js
 scripts/test-customer-multi-fields.js
 scripts/test-dashboard-month.js
 scripts/test-deep-review-fixes.js

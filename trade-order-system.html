@@ -1694,6 +1694,16 @@ html[data-theme="dark"] .tag-neutral {
 .paste-field-editable:hover { border-color: var(--semantic-primary); }
 .paste-field-editable:focus-visible { outline: 2px solid var(--semantic-primary); outline-offset: 2px; }
 .paste-field-editable[aria-expanded="true"] { border-color: var(--semantic-primary); color: var(--semantic-primary); }
+.paste-field-chip { display: inline-flex; align-items: stretch; max-width: 100%; min-width: 0; }
+.paste-field-chip .paste-field-pill { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.paste-field-drop { flex: none; min-width: 26px; padding: 0 7px; border: 1px solid transparent; border-left: 1px solid color-mix(in srgb, var(--gray-400) 35%, transparent); border-radius: 0 999px 999px 0; background: var(--gray-100); color: var(--gray-600); font: inherit; font-size: 14px; line-height: 1; cursor: pointer; }
+.paste-field-drop:hover { color: var(--red-600); background: var(--red-50); }
+.paste-field-drop:focus-visible { outline: 2px solid var(--semantic-primary); outline-offset: 2px; }
+.customer-paste-failure { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 6px 0; padding: 8px 10px; border: 1px solid color-mix(in srgb, var(--semantic-alert) 35%, transparent); border-radius: var(--control-radius); background: color-mix(in srgb, var(--semantic-alert) 8%, transparent); color: var(--gray-700); font-size: 12px; }
+.customer-paste-failure strong { color: var(--semantic-alert); }
+.customer-paste-failure .paste-result-actions { margin: 0; }
+.customer-paste-waiting { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.customer-paste-extra { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .customer-paste-field-editor { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--gray-200); border-radius: var(--control-radius); background: var(--gray-50); min-width: 0; }
 .customer-paste-field-editor label { color: var(--gray-800); font-size: 12px; font-weight: 600; }
 .customer-paste-field-editor input { width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid var(--gray-200); border-radius: var(--control-radius); background: var(--white); color: var(--gray-800); font: inherit; font-size: 13px; }
@@ -2297,6 +2307,12 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
 .customer-info-row { min-width: 0; display: grid; grid-template-columns: 68px minmax(0, 1fr); gap: 8px; font-size: 12px; line-height: 1.4; }
 .customer-info-row span { color: var(--gray-500); font-weight: 600; }
 .customer-info-row strong { min-width: 0; color: var(--gray-800); font-weight: 600; word-break: break-word; }
+.customer-value-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+.customer-value-line + .customer-value-line { margin-top: 4px; }
+.customer-value-text { min-width: 0; overflow-wrap: anywhere; word-break: normal; }
+.customer-value-copy { padding: 1px 8px; border: 1px solid var(--gray-200); border-radius: 999px; background: transparent; color: var(--gray-600); font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; }
+.customer-value-copy:hover { color: var(--semantic-primary); border-color: currentColor; }
+.customer-value-copy.is-copied { color: var(--semantic-paid); border-color: currentColor; }
 .customer-copy-label { width: fit-content; padding: 0; border: 0; background: transparent; color: var(--gray-500); font: inherit; font-weight: 600; text-align: left; cursor: pointer; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
 .customer-copy-label:hover { color: var(--semantic-primary); }
 .customer-copy-label:focus-visible { outline: 2px solid var(--semantic-primary); outline-offset: 3px; border-radius: 3px; }
@@ -2514,19 +2530,28 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
 .new-customer-row { display: flex; justify-content: space-between; gap: 10px; align-items: center; border: 1px solid var(--surface-border); border-radius: 14px; padding: 10px; background: var(--surface-bg); }
 .new-customer-row strong { color: var(--gray-900); }
 .new-customer-row span { color: var(--gray-500); font-size: 12px; }
-.tag-input-hint { margin-top: 4px; color: var(--gray-400); font-size: 12px; }
-.customer-multi-field { display: grid; gap: 8px; }
+.tag-input-hint { margin-top: 4px; color: var(--gray-600); font-size: 12px; }
+.customer-multi-field { display: grid; gap: 8px; align-content: start; }
+.customer-field-hint { grid-column: 1 / -1; margin-top: 2px; color: var(--gray-600); font-size: 12px; line-height: 1.45; overflow-wrap: anywhere; }
+.customer-field-hint[data-tone="error"] { color: var(--semantic-alert); font-weight: 600; }
+.customer-field-hint button { margin-left: 6px; padding: 0; border: 0; background: none; color: var(--accent, var(--orange-600)); font: inherit; font-weight: 600; cursor: pointer; text-decoration: underline; }
+[aria-invalid="true"][data-customer-multi-input], #customerForm [aria-invalid="true"] { border-color: var(--semantic-alert); }
+.customer-multi-row[data-customer-primary-row] { position: relative; }
+.customer-multi-primary-badge { justify-self: start; padding: 1px 7px; border-radius: 999px; background: var(--gray-100); color: var(--gray-600); font-size: 11px; font-weight: 600; }
+.customer-multi-remove.customer-multi-promote { width: auto; padding: 0 8px; font-size: 12px; white-space: nowrap; }
+.customer-multi-remove.customer-multi-promote:hover { color: var(--accent, var(--orange-600)); border-color: currentColor; background: var(--surface-bg); }
 .customer-multi-field-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .customer-multi-field-head label { margin: 0; }
 .customer-multi-add { padding: 3px 9px; min-height: 28px; color: var(--orange-600); background: var(--orange-50); border: 1px solid var(--gray-200); border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
 .customer-multi-add:hover { background: var(--blue-50); }
 .customer-multi-list { display: grid; gap: 7px; }
-.customer-multi-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; align-items: center; }
+.customer-multi-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 7px; align-items: center; }
 .customer-multi-row textarea { min-height: 64px; resize: vertical; }
 .customer-multi-remove { width: 32px; height: 32px; padding: 0; border: 1px solid var(--gray-200); border-radius: 8px; background: var(--surface-bg); color: var(--gray-500); cursor: pointer; font-size: 18px; line-height: 1; }
 .customer-multi-remove:hover { color: var(--red-600); border-color: var(--red-600); background: var(--red-50); }
 .customer-view-mode .customer-multi-add,
-.customer-view-mode .customer-multi-remove { display: none; }
+.customer-view-mode .customer-multi-remove,
+.customer-view-mode .customer-multi-primary-badge { display: none; }
 .shipment-editor {
   display: grid; gap: 10px; grid-column: 1 / -1; padding: 12px;
   border: 1px solid color-mix(in srgb, var(--semantic-primary) 12%, var(--gray-200));
@@ -5754,7 +5779,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.124，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.124</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.125，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.125</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -6391,6 +6416,13 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
               </form>
             </div>
             <div class="settings-card">
+              <div><strong>我方邮箱</strong><div class="muted">自己的收款邮箱、业务邮箱（Paypal、Zelle、公司邮箱）。粘贴识别和匹配客户时会排除这些邮箱，也不能存进客户档案。一行一个。</div></div>
+              <form class="settings-form" id="ownEmailsForm" novalidate>
+                <div class="field span-2"><label for="ownEmailsInput">我方邮箱</label><textarea id="ownEmailsInput" name="ownEmails" rows="3" spellcheck="false" placeholder="例如 sales@yourshop.com"></textarea></div>
+                <div class="span-2" style="display:flex;justify-content:flex-end"><button class="btn btn-primary" type="submit">保存我方邮箱</button></div>
+              </form>
+            </div>
+            <div class="settings-card">
               <div><strong>付款方式</strong><div class="muted">用于客户资料中的付款方式下拉选项。</div></div>
               <div class="tag-manager-add"><input id="settingsPaymentInput" placeholder="例如 信用证 L/C"><button class="btn" id="settingsAddPaymentBtn" type="button">添加付款方式</button></div>
               <div class="settings-list" id="settingsPaymentList"></div>
@@ -6922,7 +6954,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
         <button class="btn btn-small" id="closeCustomerModalBtn" type="button">关闭</button>
       </div>
     </div>
-    <form class="modal-body customer-modal-body" id="customerForm">
+    <form class="modal-body customer-modal-body" id="customerForm" novalidate>
       <input type="hidden" name="originalName">
       <div class="customer-detail-view" id="customerDetailView">
         <div id="customerDetailHero"></div>
@@ -6964,15 +6996,15 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
           <button class="btn btn-primary btn-small" type="button" id="customerPasteAnalyzeBtn">AI 识别</button>
           <button class="btn btn-client btn-small" type="button" id="customerPasteAiBtn">本地识别</button>
         </div>
-        <div class="paste-results" id="customerPasteResults"></div>
+        <div class="paste-results" id="customerPasteResults" aria-live="polite"></div>
       </div>
       <div class="form-grid customer-edit-form-grid">
         <div class="field"><label>客户名称</label><input name="name" required></div>
         <div class="field"><label>国家 / 地区</label><input name="country" list="countryOptions" placeholder="输入国家 / 地区筛选"></div>
-        <div class="field customer-multi-field" data-customer-multi-kind="contacts"><div class="customer-multi-field-head"><label>联系人</label><button class="customer-multi-add" type="button" data-add-customer-value="contacts">＋联系人</button></div><div class="customer-multi-list"><div class="customer-multi-row" data-customer-primary-row><input name="contact" data-customer-multi-input placeholder="联系人姓名"></div></div></div>
+        <div class="field customer-multi-field" data-customer-multi-kind="contacts"><div class="customer-multi-field-head"><label>联系人</label><button class="customer-multi-add" type="button" data-add-customer-value="contacts">＋联系人</button></div><div class="customer-multi-list"><div class="customer-multi-row" data-customer-primary-row><input name="contact" data-customer-multi-input maxlength="120" placeholder="联系人姓名"></div></div></div>
         <div class="field customer-multi-field" data-customer-multi-kind="phones"><div class="customer-multi-field-head"><label>联系电话</label><button class="customer-multi-add" type="button" data-add-customer-value="phones">＋电话</button></div><div class="customer-multi-list"><div class="customer-multi-row" data-customer-primary-row><input name="phone" data-customer-multi-input type="tel" placeholder="例如 +44 7700 900127"></div></div></div>
         <div class="field customer-multi-field" data-customer-multi-kind="emails"><div class="customer-multi-field-head"><label>邮箱</label><button class="customer-multi-add" type="button" data-add-customer-value="emails">＋邮箱</button></div><div class="customer-multi-list"><div class="customer-multi-row" data-customer-primary-row><input name="email" data-customer-multi-input type="email" placeholder="name@example.com"></div></div></div>
-        <div class="field span-2 customer-multi-field" data-customer-multi-kind="addresses"><div class="customer-multi-field-head"><label>客户地址</label><button class="customer-multi-add" type="button" data-add-customer-value="addresses">＋地址</button></div><div class="customer-multi-list"><div class="customer-multi-row" data-customer-primary-row><textarea name="address" data-customer-multi-input rows="3" placeholder="客户收货地址 / 公司地址"></textarea></div></div></div>
+        <div class="field span-2 customer-multi-field" data-customer-multi-kind="addresses"><div class="customer-multi-field-head"><label>客户地址</label><button class="customer-multi-add" type="button" data-add-customer-value="addresses">＋地址</button></div><div class="customer-multi-list"><div class="customer-multi-row" data-customer-primary-row><textarea name="address" data-customer-multi-input rows="3" maxlength="1000" placeholder="客户收货地址 / 公司地址"></textarea></div></div></div>
         <div class="customer-preference-block">
           <div class="customer-trade-preference-grid">
             <div class="field"><label>默认币种</label><select name="currency"></select></div>
@@ -7030,15 +7062,15 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
           </div>
           <span class="tag tag-green" id="combinedCustomerModeTag">新客户</span>
         </div>
-        <form class="combined-form" id="combinedCustomerForm">
+        <form class="combined-form" id="combinedCustomerForm" novalidate>
           <input type="hidden" name="originalName">
           <div class="form-grid">
             <div class="field"><label>客户名称</label><input name="name" required></div>
             <div class="field"><label>国家 / 地区</label><input name="country" list="countryOptions" placeholder="输入国家 / 地区筛选"></div>
-            <div class="field customer-multi-field" data-customer-multi-kind="contacts"><div class="customer-multi-field-head"><label>联系人</label><button class="customer-multi-add" type="button" data-add-customer-value="contacts">＋联系人</button></div><div class="customer-multi-list"><div class="customer-multi-row" data-customer-primary-row><input name="contact" data-customer-multi-input placeholder="联系人姓名"></div></div></div>
+            <div class="field customer-multi-field" data-customer-multi-kind="contacts"><div class="customer-multi-field-head"><label>联系人</label><button class="customer-multi-add" type="button" data-add-customer-value="contacts">＋联系人</button></div><div class="customer-multi-list"><div class="customer-multi-row" data-customer-primary-row><input name="contact" data-customer-multi-input maxlength="120" placeholder="联系人姓名"></div></div></div>
             <div class="field customer-multi-field" data-customer-multi-kind="phones"><div class="customer-multi-field-head"><label>联系电话</label><button class="customer-multi-add" type="button" data-add-customer-value="phones">＋电话</button></div><div class="customer-multi-list"><div class="customer-multi-row" data-customer-primary-row><input name="phone" data-customer-multi-input type="tel" placeholder="例如 +44 7700 900127"></div></div></div>
             <div class="field customer-multi-field" data-customer-multi-kind="emails"><div class="customer-multi-field-head"><label>邮箱</label><button class="customer-multi-add" type="button" data-add-customer-value="emails">＋邮箱</button></div><div class="customer-multi-list"><div class="customer-multi-row" data-customer-primary-row><input name="email" data-customer-multi-input type="email" placeholder="name@example.com"></div></div></div>
-            <div class="field span-2 customer-multi-field" data-customer-multi-kind="addresses"><div class="customer-multi-field-head"><label>客户地址</label><button class="customer-multi-add" type="button" data-add-customer-value="addresses">＋地址</button></div><div class="customer-multi-list"><div class="customer-multi-row" data-customer-primary-row><textarea name="address" data-customer-multi-input rows="3" placeholder="客户收货地址 / 公司地址"></textarea></div></div></div>
+            <div class="field span-2 customer-multi-field" data-customer-multi-kind="addresses"><div class="customer-multi-field-head"><label>客户地址</label><button class="customer-multi-add" type="button" data-add-customer-value="addresses">＋地址</button></div><div class="customer-multi-list"><div class="customer-multi-row" data-customer-primary-row><textarea name="address" data-customer-multi-input rows="3" maxlength="1000" placeholder="客户收货地址 / 公司地址"></textarea></div></div></div>
             <div class="customer-preference-block">
               <div class="customer-trade-preference-grid">
                 <div class="field"><label>默认币种</label><select name="currency"></select></div>
@@ -8675,6 +8707,18 @@ function canonicalCountry(value) {
     const [zh, ...en] = rest.split(' ');
     return plain === rest || plain === zh || plain === en.join(' ');
   }) || '';
+}
+// 客户档案里手填 / 识别出的国家：先按内置写法整个对上，再查常用别名（UK、USA、England、Deutschland、Holland……，
+// 和订单客户下拉的搜索别名同一张表），都对不上返回 ''。不做子串猜测：UK 不会变成乌克兰，US 不会变成奥地利。
+function customerCountryFromInput(value = '') {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  const canonical = canonicalCountry(text);
+  if (canonical) return canonical;
+  const plain = normalizeSearchText(text).replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  const extra = { 'u s':'美国', 'u s a':'美国', 'united states of america':'美国', 'u k':'英国', 'scotland':'英国', 'wales':'英国', 'northern ireland':'英国', 'the netherlands':'荷兰', 'czech':'捷克' };
+  const zh = extra[plain] || searchCountryAliasGroups().find(group => group.some(alias => normalizeSearchText(alias) === plain))?.[0] || '';
+  return zh ? countryDefs.find(def => def.split(' ')[1] === zh) || '' : '';
 }
 // 订单里存的国家：认得出的统一成内置写法，认不出的原样保留（显示和保存都用原文），空的才算「其他」。
 function storedCountry(value) {
@@ -10355,8 +10399,13 @@ function setModalOpenState(modalOrId, open) {
     modal.__returnFocus = active && active !== document.body && !modal.contains(active) ? active : null;
     window.requestAnimationFrame(() => {
       if (!modal.classList.contains('open') || modal.contains(document.activeElement)) return;
-      const target = modal.querySelector('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]):not(.modal-close):not([data-close]), [tabindex]:not([tabindex="-1"])')
-        || modal.querySelector('button:not([disabled]), [tabindex]:not([tabindex="-1"])');
+      // 看不见的（display:none 的「＋ 新建订单」这类）跳过，否则 focus 落空、焦点留在弹窗背后；弹窗自己指定了起始焦点就用它。
+      const visible = el => el && el.getClientRects?.().length > 0 && !el.disabled;
+      const preferred = modal.__initialFocus;
+      modal.__initialFocus = null;
+      const target = (visible(preferred) && preferred)
+        || [...modal.querySelectorAll('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]):not(.modal-close):not([data-close]), [tabindex]:not([tabindex="-1"])')].find(visible)
+        || [...modal.querySelectorAll('button:not([disabled]), [tabindex]:not([tabindex="-1"])')].find(visible);
       if (target && typeof target.focus === 'function') target.focus({ preventScroll:true });
     });
   } else if (canManageFocus && !isOpen && wasOpen) {
@@ -10422,9 +10471,11 @@ function appConfirm({
   errorEl.textContent = '';
   setModalOpenState(modal, true);
   // 默认焦点：有输入框给输入框；危险操作（红色按钮）落在安全的「取消 / 继续编辑」上，按回车或空格不会直接丢数据。
+  // defaultFocus:'alt' 落在第三个按钮上（客户识别冲突时的「只补空字段」）。
   const focusTarget = inputLabel ? input
-    : (defaultFocus === 'cancel' || (defaultFocus !== 'confirm' && danger)) && cancelText ? cancelBtn
-      : okBtn;
+    : defaultFocus === 'alt' && altText && altBtn ? altBtn
+      : (defaultFocus === 'cancel' || (defaultFocus !== 'confirm' && danger)) && cancelText ? cancelBtn
+        : okBtn;
   return new Promise(resolve => {
     const cleanup = (result, { keepOpen = false } = {}) => {
       if (appConfirmActive === cleanup) appConfirmActive = null;
@@ -10720,7 +10771,9 @@ function findCountryInText(text) {
     ['英国', ['uk', 'u.k.', 'united kingdom', 'britain', 'england', '英国']],
     ['加拿大', ['canada', '加拿大']],
     ['澳大利亚', ['australia', '澳洲', '澳大利亚']],
-    ['西班牙', ['spain', 'espana', 'españa', '西班牙']]
+    ['西班牙', ['spain', 'espana', 'españa', '西班牙']],
+    ['德国', ['deutschland']],
+    ['荷兰', ['holland']]
   ];
   // 英文国名按整词找：德语 Perücke（假发）里的 peru 不算秘鲁；中文国名没有词边界，照旧按包含找。
   const containsPart = part => /^[a-z .'-]+$/.test(part)
@@ -11014,12 +11067,23 @@ function customerAddressMatchEvidence(client = {}, pastedText = '') {
 function isAutomaticClientMatch(match) {
   return Number(match?.score || 0) >= 90;
 }
-// name：AI 认出的客户名，用它代替本地规则从原文里抽的名字来比（电话、邮箱照旧从原文里找）。
-function matchClientsFromPaste(text, { name = null } = {}) {
-  const phones = new Set(findCustomerPhonesInText(text));
-  const emails = new Set(findEmailsInText(text).map(value => value.toLowerCase()));
+// 比名字时去掉公司后缀：「Sunrise Beauty」和「Sunrise Beauty LLC」是同一家。
+function customerNameCoreTokens(value = '') {
+  const suffixes = new Set(['llc', 'l l c', 'inc', 'ltd', 'limited', 'gmbh', 'co', 'corp', 'corporation', 'company', 'plc', 'llp', 'sa', 'srl', 'bv', 'ag', 'pty']);
+  const tokens = customerNameMatchTokens(value);
+  while (tokens.length > 1 && suffixes.has(tokens[tokens.length - 1])) tokens.pop();
+  return tokens;
+}
+// name：AI 认出的客户名，用它代替本地规则从原文里抽的名字来比；phones / emails：AI 认出的号码、邮箱，和原文里找到的一起比。
+// 电话按号码比（00 等同 +、+44 (0)20 的 (0) 不算；北美带不带 1 是同一个号）；我方邮箱、付款对象邮箱不参与匹配。
+function matchClientsFromPaste(text, { name = null, phones: extraPhones = [], emails: extraEmails = [], exclude = '' } = {}) {
+  const phoneKeys = new Set([...findCustomerPhonesInText(text), ...extraPhones.map(normalizeCustomerPhoneDigits)].flatMap(customerPhoneMatchKeys));
+  const excludedEmails = typeof customerExcludedEmails === 'function' ? customerExcludedEmails(text) : new Set();
+  const emails = new Set([...findEmailsInText(text), ...extraEmails].map(value => String(value || '').toLowerCase()).filter(value => value && !excludedEmails.has(value)));
   const pastedNameTokens = customerNameMatchTokens(name === null ? findCustomerNameInText(text) : name);
-  return clientHistory().map(client => {
+  const pastedCore = customerNameCoreTokens(name === null ? findCustomerNameInText(text) : name).join(' ');
+  const excludeKey = String(exclude || '').trim().toLowerCase();
+  return clientHistory().filter(client => !excludeKey || String(client.client || '').trim().toLowerCase() !== excludeKey).map(client => {
     const name = String(client.client || '');
     const clientNameTokens = customerNameMatchTokens(name);
     const contactFields = normalizeCustomerContactFields(client);
@@ -11027,7 +11091,7 @@ function matchClientsFromPaste(text, { name = null } = {}) {
     const clientEmails = findEmailsInText([...contactFields.emails, client.paymentEmail].filter(Boolean).join('\n')).map(value => value.toLowerCase());
     let score = 0;
     let reason = '';
-    const phoneIndex = clientPhones.findIndex(phone => phones.has(phone));
+    const phoneIndex = clientPhones.findIndex(phone => customerPhoneMatchKeys(phone).some(key => phoneKeys.has(key)));
     const emailIndex = clientEmails.findIndex(email => emails.has(email));
     if (phoneIndex >= 0) {
       score = 100;
@@ -11038,6 +11102,9 @@ function matchClientsFromPaste(text, { name = null } = {}) {
     } else if (clientNameTokens.length && clientNameTokens.join(' ') === pastedNameTokens.join(' ')) {
       score = 95;
       reason = '姓名完全一致';
+    } else if (pastedCore && pastedCore.split(' ').length >= 2 && customerNameCoreTokens(name).join(' ') === pastedCore) {
+      score = 88;
+      reason = '名称一致（只差 LLC / Ltd 这类后缀）';
     } else if (pastedNameTokens.length >= 2) {
       const sortedClientTokens = [...clientNameTokens].sort();
       const sortedPastedTokens = [...pastedNameTokens].sort();
@@ -11711,7 +11778,10 @@ async function fillOrderFieldsFromPaste(fields, options = {}) {
   }
   delete fill.orderType;
   if (fill.depositAmount !== undefined) delete form.dataset.depositFromPreset;
-  Object.entries(fill).forEach(([key, value]) => { f[key].value = value; });
+  Object.entries(fill).forEach(([key, value]) => {
+    if (key === 'currency' && f[key].tagName === 'SELECT') setCurrencySelectValue(f[key], value);
+    else f[key].value = value;
+  });
   const fullType = (f.orderType.value || '定金订单') === '全款订单';
   // 全款单识别到了已付金额、却没说付款状态：按金额定「已付 / 部分已付 / 未付」，别让默认的「已付」把它改成全额。
   if (fullType && f.fullPaymentStatus && 'paidAmount' in fill && !('fullPaymentStatus' in fill)) {
@@ -12091,7 +12161,41 @@ function normalizeCustomerEmail(value = '') {
     .split(/[?#]/, 1)[0]
     .replace(/[;,，。]+$/g, '')
     .trim();
-  return text.match(/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i)?.[0] || '';
+  // 域名可以是中文等非拉丁字母（zhang@例子.中国）；不能以点开头 / 结尾，也不能有连续的点。
+  const match = text.match(/^[\p{L}\p{N}._%+-]+@[\p{L}\p{N}.-]+\.\p{L}{2,}$/iu)?.[0] || '';
+  return match && !/@\.|\.\.|\.@|^\./.test(match) ? match : '';
+}
+// 用户手填的邮箱：只做不丢内容的整理（去空格、去 mailto:、从「John Smith <john@acme.com>」里取出邮箱、全角 @ 换半角），
+// 整理后还不是完整邮箱就原样留着并给出原因，绝不写回空串（以前离开输入框就整段清空，保存时照样提示已保存）。
+function tidyCustomerEmail(value = '') {
+  const original = String(value ?? '').trim();
+  if (!original) return { value:'', error:'' };
+  const angle = original.match(/<\s*([^<>\s]+@[^<>\s]+)\s*>/)?.[1];
+  const candidate = (angle || original).replace(/＠/g, '@').replace(/^mailto:\s*/i, '').split(/[?#]/, 1)[0].replace(/[;,，。]+$/g, '').trim();
+  const normalized = normalizeCustomerEmail(candidate);
+  if (normalized) {
+    if (customerOwnEmailSet().has(normalized.toLowerCase())) return { value:normalized, error:'这是我方自己的邮箱（设置 → 客户设置 → 我方邮箱），不能存进客户档案' };
+    return { value:normalized, error:'' };
+  }
+  const at = candidate.split('@');
+  const domain = at.length === 2 ? at[1] : '';
+  const error = at.length < 2 ? '邮箱少了 @'
+    : at.length > 2 ? '邮箱里有不止一个 @，一个框只填一个邮箱'
+      : /\s/.test(candidate) ? '邮箱里不能有空格'
+        : /[,，]/.test(domain) ? '@ 后面有逗号：是不是把「.」打成了「,」？'
+          : !at[0] ? '@ 前面少了用户名'
+            : !domain.includes('.') ? '域名不完整：是不是少了 .com 之类的后缀？'
+              : /\.[^.]?$/.test(domain) ? '域名后缀不完整（.com、.co.uk 这类至少两个字母）'
+                : '邮箱格式不对，请检查';
+  return { value:candidate, error };
+}
+// 「我方邮箱」（设置 → 客户设置）：自己的收款邮箱、业务邮箱。识别、匹配客户时一律排除，也不能存进客户档案。
+function customerOwnEmailList() {
+  const raw = typeof state === 'undefined' ? null : state?.orderSettings?.ownEmails;
+  return normalizeCustomerValueList(Array.isArray(raw) ? raw : String(raw || '').split(/[\s,，;；]+/), '', normalizeCustomerEmail);
+}
+function customerOwnEmailSet() {
+  try { return new Set(customerOwnEmailList().map(value => value.toLowerCase())); } catch (_) { return new Set(); }
 }
 // "anna [at] example [dot] de" 这类防爬写法还原成正常邮箱
 function deobfuscateEmailText(text = '') {
@@ -12113,7 +12217,47 @@ function sellerSideCustomerLines(text = '') {
   return result;
 }
 function sellerSideEmails(text = '') {
-  return new Set(findEmailsInText(sellerSideCustomerLines(text).join('\n')).map(value => value.toLowerCase()));
+  const source = deobfuscateEmailText(decodePasteEntities(String(text || '')));
+  const found = new Set(findEmailsInText(sellerSideCustomerLines(text).join('\n')).map(value => value.toLowerCase()));
+  // 「send the deposit to sales@…」「pay to …」「付到这个邮箱 …」：钱是付给我方的，这个邮箱是我方的收款邮箱。
+  const email = '([A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,})';
+  [new RegExp(`\\b(?:send|sent|sending|pay|paid|paying|transfer(?:red)?|wire[sd]?|remit(?:ted)?)\\b[^\\n@]{0,40}?\\bto\\s*[:：]?\\s*${email}`, 'gi'),
+    new RegExp(`(?:付到|打到|转到|汇到|付款到|付给|转给|打款到)[^\\n@]{0,12}?${email}`, 'gi')]
+    .forEach(pattern => { for (const match of source.matchAll(pattern)) found.add(normalizeCustomerEmail(match[1]).toLowerCase()); });
+  return found;
+}
+// 客户自己更正过的邮箱：「my email is tasha@gmial.com / sorry typo!! it's tasha@gmail.com」「a@x.com not a@y.com」——前一个是写错的，不进客户档案。
+function supersededCustomerEmails(text = '') {
+  const lines = deobfuscateEmailText(decodePasteEntities(String(text || ''))).replace(/\r/g, '').split('\n');
+  const distance = (a, b) => {
+    const row = Array.from({ length:b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i += 1) {
+      let prev = row[0];
+      row[0] = i;
+      for (let j = 1; j <= b.length; j += 1) {
+        const next = Math.min(row[j] + 1, row[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+        prev = row[j];
+        row[j] = next;
+      }
+    }
+    return row[b.length];
+  };
+  const wrong = new Set();
+  const seen = [];
+  lines.forEach(line => {
+    const emails = findEmailsInText(line).map(value => value.toLowerCase());
+    for (const match of line.matchAll(/([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})\s*[,，]?\s*(?:not|instead of|不是)\s*([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/gi)) wrong.add(normalizeCustomerEmail(match[2]).toLowerCase());
+    if (emails.length && /\b(?:sorry|typo|wrong|correct(?:ion|ed)?|actually|i meant|mistake)\b|写错|打错|更正|应该是|改成/i.test(line)) {
+      emails.forEach(right => seen.forEach(earlier => { if (earlier !== right && distance(earlier, right) <= 3) wrong.add(earlier); }));
+    }
+    seen.push(...emails);
+  });
+  wrong.delete('');
+  return wrong;
+}
+// 原文里不属于客户的邮箱：我方的（签名、「our paypal」、付款对象、设置里的我方邮箱）和客户自己更正掉的。
+function customerExcludedEmails(text = '') {
+  return new Set([...sellerSideEmails(text), ...supersededCustomerEmails(text), ...customerOwnEmailSet()]);
 }
 function findEmailsInText(text) {
   return Array.from(new Set((deobfuscateEmailText(decodePasteEntities(String(text || ''))).match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/ig) || [])
@@ -12123,13 +12267,100 @@ function findEmailsInText(text) {
 function findEmailInText(text) {
   return findEmailsInText(text)[0] || '';
 }
+// 电话末尾的分机号（ext. 123 / x123 / 分机 123 / 转 123）单独拿出来：不算进号码位数，也不参与比对。
+function splitCustomerPhoneExtension(value = '') {
+  const text = String(value || '').trim();
+  const match = text.match(/^(.*?\d[\d\s().-]*?)\s*[,;]?\s*(?:ext\.?|extension|x|#|分机|转)\s*[:：.]?\s*(\d{1,6})\s*$/i);
+  return match ? { main:match[1].trim(), ext:match[2] } : { main:text, ext:'' };
+}
+// 比对用的号码：国际前缀 00 等同 +，「+44 (0)20」里的 (0) 不算，分机号不算。
 function normalizeCustomerPhoneDigits(value = '') {
-  const digits = String(value || '').replace(/\D/g, '');
+  const main = splitCustomerPhoneExtension(value).main.replace(/^(\s*\+\d{1,4})\s*\(0\)/, '$1');
+  const digits = main.replace(/\D/g, '').replace(/^00(?=[1-9])/, '');
   return digits.length >= 7 && digits.length <= 15 ? digits : '';
 }
 function normalizeCustomerPhone(value = '') {
   const text = String(value || '').trim().replace(/[;,，。]+$/g, '').replace(/[ \t]+/g, ' ');
   return normalizeCustomerPhoneDigits(text) ? text : '';
+}
+// 北美 +1 号码：带 1 的 11 位和不带 1 的 10 位是同一个号；其余按完整数字比。
+function customerPhoneMatchKeys(value = '') {
+  const digits = /^\d+$/.test(String(value)) ? String(value) : normalizeCustomerPhoneDigits(value);
+  if (!digits) return [];
+  if (digits.length === 11 && /^1[2-9]/.test(digits)) return [digits, digits.slice(1)];
+  if (digits.length === 10 && /^[2-9]/.test(digits)) return [digits, `1${digits}`];
+  return [digits];
+}
+function sameCustomerPhone(a = '', b = '') {
+  const keys = new Set(customerPhoneMatchKeys(a));
+  return customerPhoneMatchKeys(b).some(key => keys.has(key));
+}
+// 国际区号：trunk = 本地写法开头的 0 要去掉（英国 07700 900127 → +44 7700 900127）；
+// nanp = 北美编号计划，10 位本地号前面补 +1；nsn = 没有本地 0 的国家号码位数固定，位数对上才补区号。
+// 别的写法（意大利固定电话的 0 要保留、俄罗斯本地的 8 开头……）不自动改，只提示加区号。
+const customerCallingCodes = {
+  'United States':{ code:'1', nanp:true }, 'Canada':{ code:'1', nanp:true }, 'Bahamas':{ code:'1', nanp:true }, 'Barbados':{ code:'1', nanp:true },
+  'Jamaica':{ code:'1', nanp:true }, 'Trinidad and Tobago':{ code:'1', nanp:true }, 'Dominican Republic':{ code:'1', nanp:true },
+  'Antigua and Barbuda':{ code:'1', nanp:true }, 'Dominica':{ code:'1', nanp:true }, 'Grenada':{ code:'1', nanp:true },
+  'Saint Kitts and Nevis':{ code:'1', nanp:true }, 'Saint Lucia':{ code:'1', nanp:true }, 'Saint Vincent and the Grenadines':{ code:'1', nanp:true },
+  'Germany':{ code:'49', trunk:true }, 'United Kingdom':{ code:'44', trunk:true }, 'France':{ code:'33', trunk:true }, 'Netherlands':{ code:'31', trunk:true },
+  'Switzerland':{ code:'41', trunk:true }, 'Sweden':{ code:'46', trunk:true }, 'Finland':{ code:'358', trunk:true }, 'Ireland':{ code:'353', trunk:true },
+  'Austria':{ code:'43', trunk:true }, 'Belgium':{ code:'32', trunk:true }, 'Australia':{ code:'61', trunk:true }, 'New Zealand':{ code:'64', trunk:true },
+  'South Africa':{ code:'27', trunk:true }, 'Ukraine':{ code:'380', trunk:true }, 'Serbia':{ code:'381', trunk:true }, 'Croatia':{ code:'385', trunk:true },
+  'Slovenia':{ code:'386', trunk:true }, 'Slovakia':{ code:'421', trunk:true }, 'Bulgaria':{ code:'359', trunk:true }, 'Romania':{ code:'40', trunk:true },
+  'North Macedonia':{ code:'389', trunk:true }, 'Bosnia and Herzegovina':{ code:'387', trunk:true }, 'Montenegro':{ code:'382', trunk:true },
+  'Albania':{ code:'355', trunk:true }, 'Kosovo':{ code:'383', trunk:true }, 'Moldova':{ code:'373', trunk:true },
+  'Spain':{ code:'34', nsn:9 }, 'Portugal':{ code:'351', nsn:9 }, 'Poland':{ code:'48', nsn:9 }, 'Czechia':{ code:'420', nsn:9 },
+  'Norway':{ code:'47', nsn:8 }, 'Denmark':{ code:'45', nsn:8 }, 'Greece':{ code:'30', nsn:10 },
+  'Italy':{ code:'39' }, 'Mexico':{ code:'52' }, 'Brazil':{ code:'55' }, 'Chile':{ code:'56' }, 'Argentina':{ code:'54' }, 'Colombia':{ code:'57' },
+  'Peru':{ code:'51' }, 'Russia':{ code:'7' }, 'Hungary':{ code:'36' }, 'Lithuania':{ code:'370' }, 'Belarus':{ code:'375' }
+};
+function customerCountryCallingInfo(country = '') {
+  const canonical = customerCountryFromInput(country);
+  if (!canonical) return null;
+  const parts = canonical.split(' ');
+  const info = customerCallingCodes[parts.slice(2).join(' ')];
+  return info ? { ...info, zh:parts[1] || canonical } : null;
+}
+// 本地写法按客户国家补成国际格式；补不了返回 ''。
+function customerLocalPhoneToInternational(main = '', country = '') {
+  const info = customerCountryCallingInfo(country);
+  const digits = String(main || '').replace(/\D/g, '');
+  if (!info || !digits || /^\s*\+/.test(main)) return '';
+  if (info.nanp) {
+    if (digits.length === 10 && /^[2-9]/.test(digits)) return `+1 ${main.trim()}`;
+    if (digits.length === 11 && digits.startsWith('1')) return `+${main.trim()}`;
+    return '';
+  }
+  if (info.trunk && /^0[1-9]/.test(digits) && digits.length >= 8) {
+    const rest = main.trim().replace(/^\(0(\d+)\)\s*/, '$1 ').replace(/^0(?=\d)/, '').trim();
+    return `+${info.code} ${rest}`;
+  }
+  if (info.nsn && digits.length === info.nsn && !digits.startsWith('0')) return `+${info.code} ${main.trim()}`;
+  return '';
+}
+// 用户手填的电话：00 → +，去掉 +44 (0) 里的 (0)，本地写法按国家补区号；位数不对报错但原文保留，不再静默丢掉。
+function tidyCustomerPhone(value = '', country = '') {
+  const original = String(value ?? '').trim().replace(/[;,，。]+$/g, '').replace(/[ \t]+/g, ' ');
+  if (!original) return { value:'', error:'', note:'' };
+  let { main, ext } = splitCustomerPhoneExtension(original);
+  main = main.replace(/^00\s*(?=[1-9])/, '+').replace(/^(\+\d{1,4})\s*\(0\)\s*/, '$1 ');
+  const count = main.replace(/\D/g, '').length;
+  if (!count) return { value:original, error:'没有号码：这里要填数字电话号码', note:'' };
+  if (count < 7 || count > 15) return { value:original, error:`号码位数不对（${count} 位数字），请检查是不是少打或多打了；分机号写成「ext. 123」`, note:'' };
+  let note = '';
+  if (!main.startsWith('+')) {
+    const converted = customerLocalPhoneToInternational(main, country);
+    const info = customerCountryCallingInfo(country);
+    if (converted) {
+      note = `已按${info?.zh || '客户国家'}补成国际格式（原来写的是 ${original}）`;
+      main = converted;
+    } else {
+      note = '没有国际区号（+ 开头）：WhatsApp 同步按国际号码找客户，可能认不出';
+    }
+  }
+  if (/[^\d\s()+.-]/.test(main)) note = '号码里夹着文字：WhatsApp 同步只认纯号码，备注请写到「客户备注」';
+  return { value:ext ? `${main} ext. ${ext}` : main, error:'', note };
 }
 function findCustomerPhoneInText(text) {
   const value = String(text || '');
@@ -12835,8 +13066,12 @@ function analyzeCustomerPasteText(text) {
   const bestClient = isAutomaticClientMatch(clientMatches[0]) ? clientMatches[0].client : null;
   const local = localCustomerContactFields(text);
   const address = local.addresses[0] || findCustomerAddressInText(text);
-  const paymentEmail = local.paymentEmail || findCustomerPaymentEmailFieldInText(text);
-  const fallbackEmail = findEmailInText(text);
+  // 我方邮箱、付款对象邮箱、客户自己更正掉的邮箱不当成客户的。
+  const excludedEmails = customerExcludedEmails(text);
+  const customerEmail = value => Boolean(value) && !excludedEmails.has(String(value).toLowerCase());
+  local.emails = local.emails.filter(customerEmail);
+  const paymentEmail = [local.paymentEmail, findCustomerPaymentEmailFieldInText(text)].find(customerEmail) || '';
+  const fallbackEmail = findEmailsInText(text).find(customerEmail) || '';
   const extracted = {
     name: autoCapitalizeCustomerName(bestClient?.client || local.name || findCustomerNameInText(text)),
     country: localCustomerCountry(text, local.addresses) || (bestClient?.country ? normalizeCountry(bestClient.country) : ''),
@@ -12863,6 +13098,8 @@ function analyzeCustomerPasteText(text) {
   return { text, extracted, clientMatches };
 }
 const customerPasteLabels = { name:'客户', country:'国家', contact:'联系人', contacts:'联系人', phone:'电话', phones:'电话', email:'邮箱', emails:'邮箱', address:'地址', addresses:'地址', currency:'币种', productType:'产品', paymentMethod:'付款', paymentEmail:'付款邮箱', level:'等级', repurchaseCycle:'复购', tags:'标签', note:'备注' };
+// 药丸按客户表单的分区顺序排：基本资料 → 联系方式 → 收款与等级 → 跟进 → 备注（以前按对象键的顺序，付款、备注排在联系人前面）。
+const customerPasteFieldOrder = ['name', 'country', 'contacts', 'contact', 'phones', 'phone', 'emails', 'email', 'addresses', 'address', 'currency', 'paymentMethod', 'paymentEmail', 'level', 'productType', 'repurchaseCycle', 'tags', 'note'];
 function customerPasteEditableFields(fields = {}) {
   const result = {...fields};
   const normalized = normalizeCustomerContactFields(fields);
@@ -12876,11 +13113,17 @@ function customerPasteEditableFields(fields = {}) {
 }
 function customerPasteFieldLabels(fields = {}, editable = false) {
   const mirrors = {contact:'contacts',phone:'phones',email:'emails',address:'addresses'};
+  const rank = key => { const index = customerPasteFieldOrder.indexOf(key); return index < 0 ? customerPasteFieldOrder.length : index; };
   return Object.entries(fields)
     .filter(([key, value]) => (editable || key !== 'note') && value && !(mirrors[key] && fields[mirrors[key]]?.length))
+    .sort((a, b) => rank(a[0]) - rank(b[0]))
     .flatMap(([key, value]) => {
       if (!editable || !Object.hasOwn(customerPasteLabels, key)) return `<span class="paste-field-pill">${customerPasteLabels[key] || key}：${escapeAttr(Array.isArray(value) ? value.join('；') : key === 'repurchaseCycle' ? value + '天' : value)}</span>`;
-      return (Array.isArray(value) ? value : [value]).map((item,index) => `<button type="button" class="paste-field-pill paste-field-editable" data-customer-paste-edit="${key}" data-index="${index}" aria-expanded="${customerPasteEditor?.key === key && customerPasteEditor.index === index}" aria-label="修改${customerPasteLabels[key]}${Array.isArray(value) ? index + 1 : ''}：${escapeAttr(item)}">${customerPasteLabels[key]}${Array.isArray(value) && value.length > 1 ? index + 1 : ''}：${escapeAttr(key === 'repurchaseCycle' ? item + '天' : item)}</button>`);
+      return (Array.isArray(value) ? value : [value]).map((item,index) => {
+        const label = `${customerPasteLabels[key]}${Array.isArray(value) && value.length > 1 ? index + 1 : ''}`;
+        // 右边的 × 直接丢掉这一项（以前要点开、清空、再确认）。
+        return `<span class="paste-field-chip"><button type="button" class="paste-field-pill paste-field-editable" data-customer-paste-edit="${key}" data-index="${index}" aria-expanded="${customerPasteEditor?.key === key && customerPasteEditor.index === index}" aria-label="修改${customerPasteLabels[key]}${Array.isArray(value) ? index + 1 : ''}：${escapeAttr(item)}">${label}：${escapeAttr(key === 'repurchaseCycle' ? item + '天' : item)}</button><button type="button" class="paste-field-drop" data-customer-paste-drop="${key}" data-index="${index}" aria-label="丢弃${label}" title="丢弃这一项">×</button></span>`;
+      });
     })
     .join('');
 }
@@ -12904,16 +13147,21 @@ function stopCustomerPasteTimer(requestId) {
 function startCustomerPasteTimer(requestId, startedAt) {
   stopCustomerPasteTimer();
   const result = document.getElementById('customerPasteResults');
-  result.innerHTML = '<div class="paste-result-meta" data-customer-paste-timing>AI 正在识别客户资料… 已用时 <span data-customer-paste-clock>0.0</span> 秒</div>';
+  // 读秒每 0.1 秒变一次，不让读屏软件跟着念（结果区是 aria-live）。
+  result.innerHTML = '<div class="paste-result-meta customer-paste-waiting" data-customer-paste-timing>AI 正在识别客户资料… <span aria-hidden="true">已用时 <span data-customer-paste-clock>0.0</span> 秒</span><button type="button" class="btn btn-small" data-customer-paste-cancel>取消</button></div>';
   customerPasteTimer = {requestId, interval:setInterval(() => {
     const clock = result.querySelector('[data-customer-paste-clock]');
     if (clock) clock.textContent = ((performance.now() - startedAt) / 1000).toFixed(1);
   },100)};
 }
+// 预览里手改过几处（确认修改、× 丢弃、加入原文邮箱都算；编辑框开着、还没确认的也算一处）。
+function customerPasteEditCount(analysis = customerPasteAnalysis) {
+  return Number(analysis?.editCount || 0) + (customerPasteEditor ? 1 : 0);
+}
 function finishCustomerPasteEdit(confirm = false) {
   const analysis = customerPasteAnalysis;
   if (!customerPasteEditor || !analysis) return;
-  if (analysis.text !== document.getElementById('customerPasteInput').value.trim()) {
+  if (analysis.text !== document.getElementById('customerPasteInput').value.trim() && !analysis.stale) {
     invalidateCustomerPasteAnalysis();
     return;
   }
@@ -12926,9 +13174,16 @@ function finishCustomerPasteEdit(confirm = false) {
     if (key === 'paymentEmail') value = normalizeCustomerEmail(raw);
     if (raw && !value) error = ['email','emails','paymentEmail'].includes(key) ? '请输入完整邮箱地址' : '请输入有效电话号码（7–15 位数字）';
     if (kind === 'phones' && raw && !/^[+()\d\s.-]+$/.test(raw)) error = '电话号码只能包含数字、空格和 + ( ) - .';
+    if (['email','emails','paymentEmail'].includes(key) && value && customerOwnEmailSet().has(value.toLowerCase())) error = '这是我方自己的邮箱（设置 → 客户设置 → 我方邮箱），不能填进客户资料';
+    // 国家只认内置写法和常用别名：UK 是英国、US 是美国，不再按子串猜成乌克兰、奥地利。
+    // 列表外的国家（Nigeria、Oman…）按原文保留并提示，和客户表单里手填一样，不丢掉。
+    let countryOutside = false;
     if (key === 'country' && raw) {
-      value = normalizeCountry(raw);
-      if (!countryDefs.includes(value)) error = '请选择或输入系统支持的国家 / 地区';
+      value = customerCountryFromInput(raw);
+      if (!value) {
+        if (raw.length > 60 || !/\p{L}/u.test(raw)) error = `「${raw}」不像国家名：请输入国家名（例如 United Kingdom、UK、USA）`;
+        else { value = raw; countryOutside = true; }
+      }
     }
     if (['currency','productType','paymentMethod','level'].includes(key) && raw) {
       const options = Array.from(document.getElementById('customerForm').elements[key]?.options || []).map(option=>option.value);
@@ -12936,8 +13191,9 @@ function finishCustomerPasteEdit(confirm = false) {
       if (!options.includes(value)) error = '请输入客户表单中的有效选项';
     }
     if (key === 'repurchaseCycle' && raw) {
-      value = Number(raw.replace(/天$/,''));
-      if (!Number.isInteger(value) || value < 0 || value > 3650) error = '请输入 0–3650 之间的天数';
+      value = Number(raw.replace(/\s*天$/,''));
+      if (!Number.isInteger(value) || value < 0 || value > 3650) error = '请输入 0–3650 之间的天数（0 = 不提醒）';
+      else value = value ? String(value) : '';
     }
     if (error) {
       document.querySelector('[data-customer-paste-edit-error]').textContent = error;
@@ -12955,12 +13211,17 @@ function finishCustomerPasteEdit(confirm = false) {
       }
     } else if (value !== '') fields[key] = value;
     else delete fields[key];
-    if (key === 'country') { analysis.countryInferred = false; analysis.countryEvidence = ''; }
+    if (key === 'country') { analysis.countryInferred = false; analysis.countryEvidence = ''; analysis.countryOutsideList = countryOutside; }
+    analysis.editCount = Number(analysis.editCount || 0) + 1;
   }
   customerPasteEditor = null;
   renderCustomerPasteResults(analysis);
   const button = document.querySelector(`[data-customer-paste-edit="${key}"][data-index="${index}"]`);
   (button || document.querySelector('[data-customer-paste-fill]'))?.focus();
+}
+// 正在编辑的客户（编辑资料时）：识别结果里匹配到他自己不算「已有客户」。
+function customerPasteEditingName() {
+  return String(document.getElementById('customerForm')?.elements?.originalName?.value || '').trim();
 }
 function renderCustomerPasteResults(analysis) {
   const el = document.getElementById('customerPasteResults');
@@ -12969,61 +13230,143 @@ function renderCustomerPasteResults(analysis) {
     el.innerHTML = '';
     return;
   }
+  const editing = customerPasteEditingName().toLowerCase();
+  const matches = (analysis.clientMatches || []).filter(({ client }) => String(client.client || '').trim().toLowerCase() !== editing);
+  const hasFields = Object.keys(analysis.extracted).length > 0;
   const cards = [];
   const combinedPreview = combinedPasteCreatePreview(analysis.text, analysis.extracted);
   const combinedCard = combinedPastePreviewHtml(combinedPreview, 'data-customer-paste-create-customer-order');
   if (combinedCard) cards.push(combinedCard);
-  if (analysis.clientMatches.length) {
-    cards.push(...analysis.clientMatches.map(({ client, score, reason }) => `
+  if (matches.length) {
+    cards.push(...matches.map(({ client, score, reason }) => `
       <div class="paste-result-card">
         <div class="paste-result-top">
           <div>
             <div class="paste-result-title">匹配已有客户：${escapeAttr(clientDisplayName(client.client))}</div>
-            <div class="paste-result-meta">${escapeAttr(normalizeCountry(client.country) || '国家未设')} · 匹配依据：${escapeAttr(reason || '资料相似')} · 可信度 ${score}%</div>
+            <div class="paste-result-meta">${escapeAttr(storedCountry(client.country) || '国家未设')} · 匹配依据：${escapeAttr(reason || '资料相似')} · 可信度 ${score}%</div>
           </div>
           <span class="tag tag-blue">客户</span>
         </div>
         <div class="paste-result-actions">
-          <button class="btn btn-small" type="button" data-customer-paste-use="${escapeAttr(client.client)}">使用这个客户</button>
-          <button class="btn btn-primary btn-small" type="button" data-customer-paste-new-order="${escapeAttr(client.client)}">＋ 新建订单</button>
+          ${hasFields ? `<button class="btn btn-primary btn-small" type="button" data-customer-paste-merge="${escapeAttr(client.client)}">补充到 ${escapeAttr(clientDisplayName(client.client))} 的档案</button>` : ''}
+          <button class="btn btn-small" type="button" data-customer-paste-new-order="${escapeAttr(client.client)}">＋ 新建订单</button>
         </div>
+        ${hasFields ? '<div class="paste-result-meta">补充 = 打开这位客户的档案，只填空着的字段，电话、邮箱、地址追加在后面；核对后再保存。</div>' : ''}
       </div>
     `));
   }
-  if (Object.keys(analysis.extracted).length) {
+  if (hasFields) {
+    const extraEmails = (analysis.extraEmails || []).filter(value => !(analysis.extracted.emails || []).some(item => item.toLowerCase() === value.toLowerCase()));
     cards.push(`
       <div class="paste-result-card">
         <div class="paste-result-top">
           <div>
             <div class="paste-result-title">识别到客户字段</div>
-            <div class="paste-result-meta">点击字段可修改 · 填入时只补空字段，关键字段冲突会再次确认</div>
+            <div class="paste-result-meta">点击字段可修改，× 丢弃 · 填入时只补空字段，有冲突会列出来再确认</div>
           </div>
           <span class="tag tag-cyan">字段</span>
         </div>
         <div class="paste-field-list">${customerPasteFieldLabels(analysis.extracted, true)}</div>
+        ${extraEmails.length ? `<div class="paste-result-meta customer-paste-extra">原文里还有 AI 没采用的邮箱（可能是写错后更正的、或是我方的），需要时点一下加入：${extraEmails.map(value => `<button type="button" class="btn btn-small" data-customer-paste-add-email="${escapeAttr(value)}">加入 ${escapeAttr(value)}</button>`).join('')}</div>` : ''}
         ${customerPasteEditorHtml(analysis.extracted)}
         <div class="paste-result-actions">
-          <button class="btn btn-primary btn-small" type="button" data-customer-paste-fill${customerPasteEditor ? ' disabled' : ''}>填入客户信息</button>
+          <button class="btn btn-primary btn-small" type="button" data-customer-paste-fill${customerPasteEditor || analysis.stale ? ' disabled' : ''}>填入客户信息</button>
         </div>
       </div>
     `);
   }
   const elapsed = Number.isFinite(analysis.elapsedMs) ? ` · 耗时 ${(analysis.elapsedMs / 1000).toFixed(1)} 秒` : '';
+  const failure = analysis.failure;
   const notice = analysis.source === 'AI'
     ? `<div class="paste-result-meta" data-customer-paste-timing>AI 识别结果${elapsed} · 请核对后填入</div>`
-    : analysis.fallback ? `<div class="paste-result-meta" data-customer-paste-timing>AI 识别未完成${elapsed} · 已使用本地识别 · 请核对结果，可再次点击 AI 识别重试</div>` : '';
+    : analysis.fallback ? `<div class="paste-result-meta" data-customer-paste-timing>${analysis.cancelled ? '已取消 AI 识别' : 'AI 识别未完成'}${elapsed} · 已使用本地识别 · 请核对结果</div>` : '';
+  // 失败说清楚原因（没打开、没填 Key、余额不足、超时……），要改设置的给「打开 AI 设置」。
+  const failureNotice = failure ? `<div class="customer-paste-failure" role="status"><strong>${escapeAttr(failure.title)}</strong><span>${escapeAttr(failure.reason)}</span><span class="paste-result-actions">${failure.settings ? '<button class="btn btn-small" type="button" data-ai-open-settings>打开 AI 设置</button>' : ''}<button class="btn btn-small" type="button" data-ai-retry="customer">重试一次</button></span></div>` : '';
+  const staleNotice = analysis.stale ? `<div class="customer-paste-failure" role="status"><strong>原文已改动</strong><span>下面还是改动前的识别结果。</span><span class="paste-result-actions"><button class="btn btn-small btn-primary" type="button" data-customer-paste-rerun>重新识别（会丢掉 ${customerPasteEditCount(analysis)} 处手动修改）</button><button class="btn btn-small" type="button" data-customer-paste-keep>保留当前预览</button></span></div>` : '';
   const countryNotice = analysis.countryInferred
     ? `<div class="paste-result-meta">国家 / 地区为 AI 推断，请确认${analysis.countryEvidence ? ' · 依据：' + escapeAttr(analysis.countryEvidence) : ''}</div>` : '';
-  const existingNotice = existingCustomerKey(analysis.extracted.name)
+  const outsideNotice = analysis.countryOutsideList && analysis.extracted.country
+    ? `<div class="paste-result-meta">国家「${escapeAttr(analysis.extracted.country)}」不在国家列表里，填入后按原文保存</div>` : '';
+  const existingKey = existingCustomerKey(analysis.extracted.name);
+  const existingNotice = existingKey && existingKey.trim().toLowerCase() !== editing
     ? '<div class="paste-result-meta">已有同名客户，请先填入客户信息核对；不会自动使用旧档案覆盖本次修改。</div>' : '';
-  el.innerHTML = notice + countryNotice + existingNotice + (cards.join('') || '<div class="muted">暂未识别到已有客户或可填字段。</div>');
+  el.innerHTML = notice + failureNotice + staleNotice + countryNotice + outsideNotice + existingNotice + (cards.join('') || '<div class="muted">暂未识别到已有客户或可填字段。</div>');
+}
+function setCustomerPasteBusy(busy) {
+  const btn = document.getElementById('customerPasteAnalyzeBtn');
+  const localBtn = document.getElementById('customerPasteAiBtn');
+  if (btn) {
+    btn.disabled = busy;
+    btn.textContent = busy ? '识别中...' : 'AI 识别';
+    btn.setAttribute('aria-busy', busy ? 'true' : 'false');
+  }
+  if (localBtn) localBtn.disabled = busy;
+}
+// 正在跑的 AI 请求：作废时一起中断，按钮马上恢复（以前改了原文、换了客户，两个按钮要卡到旧请求结束）。
+let customerPasteRun = null;
+function abortCustomerPasteRun() {
+  const run = customerPasteRun;
+  if (!run) return null;
+  customerPasteRun = null;
+  run.controller.abort();
+  stopCustomerPasteTimer(run.requestId);
+  setCustomerPasteBusy(false);
+  return run;
 }
 function invalidateCustomerPasteAnalysis() {
   customerPasteRequestId++;
+  abortCustomerPasteRun();
   stopCustomerPasteTimer();
   customerPasteEditor = null;
   customerPasteAnalysis = null;
   renderCustomerPasteResults(null);
+}
+// 原文变了：预览里没手改过就作废；手改过就先留着，顶上问「重新识别 / 保留当前预览」（以前碰一下原文，改过的全丢）。
+function handleCustomerPasteInputChange() {
+  const analysis = customerPasteAnalysis;
+  const text = document.getElementById('customerPasteInput')?.value.trim() || '';
+  if (analysis && !customerPasteRun && customerPasteEditCount(analysis) > 0) {
+    analysis.stale = analysis.text !== text;
+    customerPasteEditor = null;
+    renderCustomerPasteResults(analysis);
+    return;
+  }
+  invalidateCustomerPasteAnalysis();
+}
+// 重新识别前：预览里手改过就先问一句，默认「保留修改」。
+async function confirmDiscardCustomerPasteEdits() {
+  const count = customerPasteEditCount();
+  if (!count) return true;
+  const result = await appConfirm({
+    title:'重新识别？',
+    sub:'客户识别',
+    message:`预览里有 ${count} 处手动修改，重新识别会丢掉这些修改。`,
+    confirmText:'重新识别',
+    cancelText:'保留修改',
+    defaultFocus:'cancel'
+  });
+  return result.confirmed;
+}
+function cancelCustomerPasteRun() {
+  const run = abortCustomerPasteRun();
+  if (!run) return;
+  customerPasteRequestId++;
+  customerPasteAnalysis = { ...run.localAnalysis, source:'local', fallback:true, cancelled:true, elapsedMs:performance.now() - run.startedAt, editCount:0 };
+  renderCustomerPasteResults(customerPasteAnalysis);
+  document.getElementById('customerPasteAnalyzeBtn')?.focus();
+}
+async function runLocalCustomerPasteAnalysis() {
+  const text = document.getElementById('customerPasteInput')?.value.trim() || '';
+  if (!text) {
+    toast('请先粘贴客户信息');
+    return;
+  }
+  if (!await confirmDiscardCustomerPasteEdits()) return;
+  invalidateCustomerPasteAnalysis();
+  customerPasteAnalysis = analyzeCustomerPasteText(text);
+  customerPasteAnalysis.extracted = customerPasteEditableFields(customerPasteAnalysis.extracted);
+  customerPasteAnalysis.editCount = 0;
+  renderCustomerPasteResults(customerPasteAnalysis);
 }
 function clearCustomerPasteAssist() {
   invalidateCustomerPasteAnalysis();
@@ -13034,32 +13377,83 @@ function clearCustomerPasteAssist() {
 }
 async function handleCustomerPasteResultClick(e) {
   const editBtn = e.target.closest('[data-customer-paste-edit]');
+  const dropBtn = e.target.closest('[data-customer-paste-drop]');
   const confirmBtn = e.target.closest('[data-customer-paste-edit-confirm]');
   const cancelBtn = e.target.closest('[data-customer-paste-edit-cancel]');
   const retryBtn = e.target.closest('[data-ai-retry="customer"]');
-  const useBtn = e.target.closest('[data-customer-paste-use]');
+  const mergeBtn = e.target.closest('[data-customer-paste-merge]');
   const newOrderBtn = e.target.closest('[data-customer-paste-new-order]');
   const fillBtn = e.target.closest('[data-customer-paste-fill]');
+  const addEmailBtn = e.target.closest('[data-customer-paste-add-email]');
   const createComboBtn = e.target.closest('[data-customer-paste-create-customer-order]');
-  if ((editBtn || confirmBtn || cancelBtn || useBtn || newOrderBtn || fillBtn || createComboBtn) && customerPasteAnalysis?.text !== document.getElementById('customerPasteInput')?.value.trim()) {
+  const input = document.getElementById('customerPasteInput');
+  if (e.target.closest('[data-customer-paste-cancel]')) { cancelCustomerPasteRun(); return; }
+  if (e.target.closest('[data-customer-paste-keep]') && customerPasteAnalysis) {
+    customerPasteAnalysis.text = input?.value.trim() || '';
+    customerPasteAnalysis.stale = false;
+    renderCustomerPasteResults(customerPasteAnalysis);
+    document.querySelector('[data-customer-paste-fill]')?.focus();
+    return;
+  }
+  if (e.target.closest('[data-customer-paste-rerun]')) { await runAiCustomerPasteAnalysis({ skipConfirm:true }); return; }
+  if (e.target.closest('[data-ai-open-settings]')) {
+    if (!await uiConfirmLeaveCustomerEdit('打开 AI 设置')) return;
+    closeCustomerModal();
+    setPage('settings');
+    document.querySelector('.settings-menu [data-settings-tab="ai"]')?.click();
+    return;
+  }
+  const acting = editBtn || dropBtn || confirmBtn || cancelBtn || mergeBtn || newOrderBtn || fillBtn || addEmailBtn || createComboBtn;
+  if (acting && customerPasteAnalysis?.stale) {
+    if (confirmBtn || cancelBtn) { finishCustomerPasteEdit(Boolean(confirmBtn)); return; }
+    toast('原文已改动：先选「重新识别」或「保留当前预览」');
+    return;
+  }
+  if (acting && customerPasteAnalysis?.text !== input?.value.trim()) {
     invalidateCustomerPasteAnalysis();
     toast('客户资料已更改，请重新识别');
     return;
   }
   if (confirmBtn || cancelBtn) { finishCustomerPasteEdit(Boolean(confirmBtn)); return; }
-  if (editBtn && customerPasteAnalysis) {
+  if ((editBtn || dropBtn) && customerPasteAnalysis) {
     if (customerPasteEditor) { toast('请先确认或取消当前修改'); document.getElementById('customerPasteEditValue')?.focus(); return; }
-    const key = editBtn.dataset.customerPasteEdit, index = Number(editBtn.dataset.index);
+    const target = editBtn || dropBtn;
+    const key = editBtn ? editBtn.dataset.customerPasteEdit : dropBtn.dataset.customerPasteDrop, index = Number(target.dataset.index);
     if (!Object.hasOwn(customerPasteLabels,key) || !Object.hasOwn(customerPasteAnalysis.extracted,key)) return;
     const value = customerPasteAnalysis.extracted[key];
     if (!Number.isInteger(index) || index < 0 || index >= (Array.isArray(value) ? value.length : 1)) return;
+    if (dropBtn) {
+      const fields = customerPasteAnalysis.extracted;
+      if (Array.isArray(value)) {
+        value.splice(index, 1);
+        const mirror = {contacts:'contact',phones:'phone',emails:'email',addresses:'address'}[key];
+        if (mirror) {
+          if (value.length) fields[mirror] = value[0];
+          else { delete fields[key]; delete fields[mirror]; }
+        } else if (!value.length) delete fields[key];
+      } else delete fields[key];
+      if (key === 'country') { customerPasteAnalysis.countryInferred = false; customerPasteAnalysis.countryOutsideList = false; }
+      customerPasteAnalysis.editCount = Number(customerPasteAnalysis.editCount || 0) + 1;
+      renderCustomerPasteResults(customerPasteAnalysis);
+      (document.querySelector(`[data-customer-paste-edit="${key}"]`) || document.querySelector('[data-customer-paste-edit]') || document.querySelector('[data-customer-paste-fill]'))?.focus();
+      return;
+    }
     customerPasteEditor = {key,index};
     renderCustomerPasteResults(customerPasteAnalysis);
     const editor = document.getElementById('customerPasteEditValue');
     editor.focus(); editor.select();
     return;
   }
-  if (customerPasteEditor && (useBtn || newOrderBtn || fillBtn || createComboBtn)) { toast('请先确认或取消当前修改'); document.getElementById('customerPasteEditValue')?.focus(); return; }
+  if (customerPasteEditor && (mergeBtn || newOrderBtn || fillBtn || createComboBtn || addEmailBtn)) { toast('请先确认或取消当前修改'); document.getElementById('customerPasteEditValue')?.focus(); return; }
+  if (addEmailBtn && customerPasteAnalysis) {
+    const fields = customerPasteAnalysis.extracted;
+    fields.emails = normalizeCustomerValueList([...(fields.emails || []), addEmailBtn.dataset.customerPasteAddEmail], '', normalizeCustomerEmail);
+    fields.email = fields.emails[0];
+    customerPasteAnalysis.editCount = Number(customerPasteAnalysis.editCount || 0) + 1;
+    renderCustomerPasteResults(customerPasteAnalysis);
+    document.querySelector('[data-customer-paste-fill]')?.focus();
+    return;
+  }
   if (retryBtn) {
     await runAiCustomerPasteAnalysis();
     return;
@@ -13087,25 +13481,40 @@ async function handleCustomerPasteResultClick(e) {
     }
     return;
   }
-  if (useBtn) {
-    const client = clientHistory().find(item => item.client === useBtn.dataset.customerPasteUse);
-    if (client) await fillCustomerFieldsFromPaste({
-      name: client.client,
-      country: normalizeCountry(client.country),
-      phone: client.phone || '',
-      currency: client.currency || 'USD',
-      paymentMethod: client.paymentMethod || '',
-      level: state.customers?.[client.client]?.level || ''
-    });
+  if (mergeBtn && customerPasteAnalysis) {
+    // 识别出的是老客户：打开他的档案（编辑），把识别结果按「只补空字段 + 电话邮箱地址追加」填进去，核对后保存。
+    const target = clientHistory().find(item => item.client === mergeBtn.dataset.customerPasteMerge)?.client;
+    if (!target) return;
+    const analysis = customerPasteAnalysis;
+    const rawText = input?.value || '';
+    if (!await uiConfirmLeaveCustomerEdit(`补充到 ${clientDisplayName(target)} 的档案`, analysis.text)) return;
+    openCustomerModal(target, { viewOnly:false });
+    // 换客户后，弹窗在下一帧把表单记成「没改过」：等它记完再填，填进去的内容才算改动、关掉时会提醒保存。
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const pasteInput = document.getElementById('customerPasteInput');
+    if (pasteInput) pasteInput.value = rawText;
+    customerPasteAnalysis = { ...analysis, editCount:analysis.editCount || 0 };
+    renderCustomerPasteResults(customerPasteAnalysis);
+    const result = await fillCustomerFieldsFromPaste(analysis.extracted, { supplementOnly:true, quiet:true });
+    toast(result?.filled?.length
+      ? `已补充到 ${clientDisplayName(target)} 的档案：${result.filled.join('、')}，核对后点保存`
+      : `${clientDisplayName(target)} 的档案里已经有这些资料，没有需要补充的`);
+    return;
   }
   if (fillBtn && customerPasteAnalysis) {
     const form = document.getElementById('customerForm'), text = customerPasteAnalysis.text;
     const onlyPaste = typeof uiPasteFillBegin === 'function' && uiPasteFillBegin(form, text);
-    await fillCustomerFieldsFromPaste(customerPasteAnalysis.extracted);
-    if (typeof uiPasteFillEnd === 'function') uiPasteFillEnd(form, text, onlyPaste);
+    const result = await fillCustomerFieldsFromPaste(customerPasteAnalysis.extracted);
+    if (result && typeof uiPasteFillEnd === 'function') uiPasteFillEnd(form, text, onlyPaste);
   }
 }
-async function fillCustomerFieldsFromPaste(fields = {}) {
+// 把识别结果填进客户表单。
+// - 空着的字段直接填；已有内容、和识别结果不一样的关键字段列出「字段：旧 → 新」，选「覆盖这些字段 / 只补空字段 / 取消」，默认焦点在「只补空字段」。
+// - 编辑已有客户时客户名不参与覆盖：改名会牵动所有订单，只在名字框下面提示，要改让用户自己改。
+// - 电话、邮箱「覆盖」= 识别到的设为主要，原来的保留在后面，不删。
+// - supplementOnly：只补空字段，不问（「补充到老客户档案」）。
+// 返回 { filled, skipped }；选「取消」返回 null。
+async function fillCustomerFieldsFromPaste(fields = {}, { supplementOnly = false, quiet = false } = {}) {
   const form = document.getElementById('customerForm');
   const settings = { ...defaultOrderSettings, ...(state.orderSettings || {}) };
   const isNewCustomer = !String(form.elements.originalName?.value || '').trim();
@@ -13120,58 +13529,118 @@ async function fillCustomerFieldsFromPaste(fields = {}) {
     if (key === 'level') return value === '自动判断';
     return false;
   };
-  const critical = ['name', 'country', 'phone', 'email', 'paymentMethod', 'paymentEmail'];
   const incomingMulti = normalizeCustomerContactFields(fields);
-  const conflicts = Object.entries({...fields, phone:incomingMulti.phone, email:incomingMulti.email}).filter(([key, value]) => {
-    const field = form.elements[key];
-    return critical.includes(key) && field && value && field.value && String(field.value) !== String(value) && !isDefaultCustomerValue(key, field.value);
-  });
-  let overwriteCritical = false;
-  if (conflicts.length) {
-    const confirmed = await appConfirm({
-      title:'覆盖客户字段？',
-      sub:'客户识别',
-      message:`客户名、国家、电话、邮箱、付款方式或付款邮箱已有内容。是否用识别结果覆盖？`,
-      confirmText:'覆盖',
-      cancelText:'只补空字段'
+  const incomingValue = key => {
+    if (key === 'phone') return incomingMulti.phone;
+    if (key === 'email') return incomingMulti.email;
+    if (key === 'country') return fields.country ? (customerCountryFromInput(fields.country) || String(fields.country).trim()) : '';
+    if (key === 'paymentMethod') return fields.paymentMethod ? normalizePaymentChannelValue(fields.paymentMethod) : '';
+    return String(fields[key] ?? '').trim();
+  };
+  const sameValue = (key, a, b) => {
+    if (key === 'phone') return sameCustomerPhone(a, b);
+    if (['email', 'paymentEmail', 'name'].includes(key)) return String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+    if (key === 'country') return (customerCountryFromInput(a) || a) === (customerCountryFromInput(b) || b);
+    return String(a) === String(b);
+  };
+  const critical = ['name', 'country', 'phone', 'email', 'paymentMethod', 'paymentEmail'];
+  const fieldLabel = { name:'客户名', country:'国家 / 地区', phone:'主电话', email:'主邮箱', paymentMethod:'付款方式', paymentEmail:'付款邮箱' };
+  const nameDiffers = !isNewCustomer && fields.name && !sameCustomerName(fields.name, form.elements.name.value);
+  const conflicts = critical.filter(key => !(key === 'name' && !isNewCustomer)).map(key => {
+    const incoming = incomingValue(key);
+    const current = String(form.elements[key]?.value || '').trim();
+    if (!incoming || !current || isDefaultCustomerValue(key, current) || sameValue(key, current, incoming)) return null;
+    return { key, current, incoming };
+  }).filter(Boolean);
+  let overwrite = false;
+  if (conflicts.length && !supplementOnly) {
+    const lines = conflicts.map(item => `${fieldLabel[item.key]}：${item.current} → ${item.incoming}`);
+    const multiNote = conflicts.some(item => item.key === 'phone' || item.key === 'email') ? '\n\n电话、邮箱选「覆盖」：识别到的设为主要，原来的保留在后面，不会删除。' : '';
+    const nameNote = nameDiffers ? `\n\n客户名不会被改：识别到的是「${fields.name}」，要改名请在「客户名称」里自己改（改名会同步所有订单）。` : '';
+    const result = await appConfirm({
+      title: isNewCustomer ? '覆盖已经填好的内容？' : `用识别结果改 ${form.elements.name.value} 的资料？`,
+      sub: '客户识别',
+      message: `下面这些已经有内容，和识别结果不一样：\n${lines.join('\n')}${multiNote}${nameNote}\n\n「只补空字段」：上面这些保持不变，只填空着的。`,
+      confirmText: '覆盖这些字段',
+      altText: '只补空字段',
+      cancelText: '取消',
+      defaultFocus: 'alt'
     });
-    overwriteCritical = confirmed.confirmed;
+    if (!result.confirmed && !result.alt) return null;
+    overwrite = result.confirmed;
   }
+  const filled = [];
+  const skipped = [];
+  const note = (list, key) => { const label = customerPasteLabels[key] || key; if (!list.includes(label)) list.push(label); };
+  let writtenTags = [];
   Object.entries(fields).forEach(([key, value]) => {
     if (value === undefined || value === null || value === '') return;
     if (Object.entries(customerMultiFieldDefs).some(([kind, def]) => key === kind || key === def.name)) return;
+    if (key === 'name' && !isNewCustomer) return;
     if (key === 'paymentMethod') {
       const field = form.elements.paymentMethod;
       const hasValue = Boolean(String(field?.value || '').trim());
-      if (hasValue && !overwriteCritical && !isDefaultCustomerValue(key, field.value)) return;
-      renderPaymentMethodSelect(normalizePaymentChannelValue(value) || '阿里巴巴');
+      const incoming = normalizePaymentChannelValue(value);
+      if (!incoming || (hasValue && sameValue(key, field.value, incoming))) return;
+      if (hasValue && !overwrite && !isDefaultCustomerValue(key, field.value)) { note(skipped, key); return; }
+      renderPaymentMethodSelect(incoming);
+      note(filled, key);
       return;
     }
     if (key === 'productType') {
       const field = form.elements.productType;
-      if (field && productTypeDefs.some(item => item.value === value) && (!String(field.value || '').trim() || overwriteCritical || isDefaultCustomerValue(key, field.value))) field.value = value;
+      if (!field || !productTypeDefs.some(item => item.value === value) || field.value === value) return;
+      if (!String(field.value || '').trim() || overwrite || isDefaultCustomerValue(key, field.value)) { field.value = value; note(filled, key); }
+      else note(skipped, key);
+      return;
+    }
+    if (key === 'tags') {
+      // 标签取并集：原来的保留，识别到的新标签加在后面；只有真写进表单的才进标签库。
+      const field = form.elements.tags;
+      const before = normalizeTags(field?.value || '');
+      const added = normalizeTags(value).filter(tag => !before.includes(tag));
+      if (!field || !added.length) return;
+      field.value = normalizeTags([...before, ...added]).join(', ');
+      writtenTags = added;
+      note(filled, key);
       return;
     }
     const field = form.elements[key];
     if (!field) return;
+    const nextValue = key === 'country' ? incomingValue('country') : String(value);
     const hasValue = Boolean(String(field.value || '').trim());
-    if (hasValue && !isDefaultCustomerValue(key, field.value) && !(critical.includes(key) && overwriteCritical)) return;
-    field.value = value;
+    if (hasValue && sameValue(key, field.value, nextValue)) return;
+    if (hasValue && !isDefaultCustomerValue(key, field.value) && !(critical.includes(key) && overwrite)) { note(skipped, key); return; }
+    if (key === 'repurchaseCycle' && field.tagName === 'SELECT' && ![...field.options].some(option => option.value === nextValue)) {
+      // 45 / 75 天这类不在预设里的周期临时补一个选项，不再填成「不提醒」。
+      const option = document.createElement('option');
+      option.value = nextValue;
+      option.textContent = `${nextValue} 天`;
+      option.dataset.customCycle = 'true';
+      field.append(option);
+    }
+    if (key === 'currency' && field.tagName === 'SELECT') setCurrencySelectValue(field, nextValue);
+    else field.value = nextValue;
+    note(filled, key);
   });
   Object.entries(customerMultiFieldDefs).forEach(([kind, def]) => {
     const values = incomingMulti[kind];
     if (!values?.length) return;
     const group = form.querySelector(`[data-customer-multi-kind="${kind}"]`);
     if (!group) return;
-    if (overwriteCritical && critical.includes(def.name)) {
+    const inputs = [...group.querySelectorAll('[data-customer-multi-input]')];
+    const identity = value => kind === 'phones' ? (normalizeCustomerPhoneDigits(value) || String(value).trim()) : (normalizeCustomerMultiValue(kind, value) || String(value).trim()).toLocaleLowerCase();
+    if (overwrite && critical.includes(def.name) && !sameValue(def.name, inputs[0]?.value || '', values[0])) {
+      // 识别到的放前面（第一条 = 主要），原来的（包括还没填完的）原样留在后面。
+      const previous = inputs.map(input => input.value).filter(value => value.trim());
+      const merged = [...values, ...previous.filter(value => !values.some(item => identity(item) === identity(value)))];
       group.querySelectorAll('[data-customer-extra-row]').forEach(row => row.remove());
-      form.elements[def.name].value = values[0];
-      values.slice(1).forEach(value => appendCustomerMultiRow(form, kind, value));
+      form.elements[def.name].value = merged[0];
+      merged.slice(1).forEach(value => { const input = appendCustomerMultiRow(form, kind, value); if (input) input.value = value; });
+      note(filled, kind);
       return;
     }
     // Keep unfinished inputs verbatim; only populate empty rows or append missing values.
-    const inputs = [...group.querySelectorAll('[data-customer-multi-input]')];
-    const identity = value => kind === 'phones' ? normalizeCustomerPhoneDigits(value) : normalizeCustomerMultiValue(kind, value).toLocaleLowerCase();
     const seen = new Set(inputs.map(input => identity(input.value)).filter(Boolean));
     values.forEach(value => {
       if (seen.has(identity(value))) return;
@@ -13179,11 +13648,18 @@ async function fillCustomerFieldsFromPaste(fields = {}) {
       if (empty) empty.value = value;
       else inputs.push(appendCustomerMultiRow(form, kind, value));
       seen.add(identity(value));
+      note(filled, kind);
     });
   });
-  if (fields.tags) syncCustomerTags(fields.tags);
+  refreshCustomerMultiPrimaryBadges(form);
+  if (nameDiffers) setCustomerFieldHint(form.elements.name, `识别到的名字是「${fields.name}」，和档案不同；没有自动改名，要改请在这里手动改（会同步所有订单）`, 'note');
+  if (writtenTags.length) syncCustomerTags(writtenTags);
   enhanceBinarySelects(form);
-  toast('客户识别内容已填入');
+  if (!quiet) {
+    const skippedText = skipped.length ? `；跳过 ${skipped.join('、')}（已有内容）` : '';
+    toast(filled.length ? `已填入：${filled.join('、')}${skippedText}` : skipped.length ? `没有空字段可填：${skipped.join('、')} 已有内容` : '识别内容和表单一致，没有需要填的');
+  }
+  return { filled, skipped };
 }
 function aiCustomerPrompt(text) {
   return `任务：从下面的客户资料或聊天记录中提取客户档案字段，输出一个 json 对象。
@@ -13229,10 +13705,21 @@ name, country, countrySource, countryEvidence, contacts, phones, emails, address
 ${text}`;
 }
 function normalizeAiCustomerFields(raw = {}, sourceText = '') {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  return normalizeAiCustomerResult(raw, sourceText).fields;
+}
+// AI 客户结果清洗。返回：
+// - fields：预览用的字段；
+// - aiFieldCount：AI 自己给出、校验通过的字段数（不算从原文找回的邮箱）——为 0 就退回本地识别；
+// - extraEmails：AI 给了邮箱时，原文里另外还有、AI 没采用的邮箱（只列出来让用户点一下再加，不自动填）；
+// - countryOutsideList：AI 给的国家不在内置列表（Nigeria、China…），按原文保留。
+function normalizeAiCustomerResult(raw = {}, sourceText = '') {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { fields:{}, aiFieldCount:0, extraEmails:[], countryOutsideList:false };
+  const listKeys = ['tags','contacts','phones','emails','addresses'];
   raw = Object.fromEntries(Object.entries(raw).flatMap(([key, value]) => {
+    // 应该是数组的字段 AI 给成了一个字符串：按换行、分号拆开（地址里本来就有逗号，不按逗号拆）。
+    if (listKeys.includes(key) && typeof value === 'string') return [[key, value.split(key === 'tags' ? /[\n;；,，、]+/ : /[\n;；|]+/).map(item => item.trim()).filter(Boolean)]];
     if (typeof value === 'string') return [[key, value.trim()]];
-    if (['tags','contacts','phones','emails','addresses'].includes(key) && Array.isArray(value)) return [[key, value.filter(item => typeof item === 'string').map(item => item.trim()).filter(Boolean)]];
+    if (listKeys.includes(key) && Array.isArray(value)) return [[key, value.filter(item => typeof item === 'string').map(item => item.trim()).filter(Boolean)]];
     if (key === 'repurchaseCycle' && typeof value === 'number' && Number.isFinite(value)) return [[key, String(value)]];
     return [];
   }));
@@ -13249,10 +13736,16 @@ function normalizeAiCustomerFields(raw = {}, sourceText = '') {
   const address = isAiAddress(addressValue) ? addressValue : '';
   const name = isOrderInfoLine(raw.name || raw.client || raw.customer || '') ? '' : (raw.name || raw.client || raw.customer || '');
   const contact = isOrderInfoLine(raw.contact || raw.contactName || '') ? '' : (raw.contact || raw.contactName || '');
+  // 国家：内置写法或常用别名（UK、USA…）；不在列表里的（Nigeria、China…）按原文保留，不再丢掉、让表单默认的「美国」留着。
+  const rawCountry = String(raw.country || '').trim();
+  const knownCountry = customerCountryFromInput(rawCountry);
+  const keepRawCountry = !knownCountry && /^[\p{L}][\p{L} .'()-]{1,59}$/u.test(rawCountry) && !/^(?:other|others|unknown|n\/?a|其他|未知)$/i.test(rawCountry);
+  // 联系人：像人名就留（「Schmidt, Anna」带逗号也算），地址、订单内容、邮箱不算。
+  const personLike = value => cleanContactValue(value, address) || (/,/.test(value) && value.length <= 120 && !/[\d@]|https?:/.test(value) && !looksLikeAddressText(value) ? value : '');
   const fields = {
     name,
-    country: raw.country && normalizeCountry(raw.country) !== '🌐 其他 Other' ? normalizeCountry(raw.country) : '',
-    contact: cleanContactValue(contact, address),
+    country: knownCountry || (keepRawCountry ? rawCountry : ''),
+    contact: personLike(contact),
     phone: normalizeCustomerPhone(raw.phone || raw.mobile || raw.tel || ''),
     email: normalizeCustomerEmail(raw.email || ''),
     address,
@@ -13266,28 +13759,38 @@ function normalizeAiCustomerFields(raw = {}, sourceText = '') {
     note: raw.note || raw.remark || ''
   };
   const multi = normalizeCustomerContactFields({...fields, ...Object.fromEntries(['contacts','phones','emails','addresses'].filter(key => raw[key]).map(key => [key,raw[key]]))});
-  multi.contacts = multi.contacts.filter(value => !isOrderInfoLine(value) && cleanContactValue(value, address));
+  multi.contacts = multi.contacts.filter(value => !isOrderInfoLine(value) && personLike(value));
   const source = decodePasteEntities(String(sourceText || ''));
   const folded = value => String(value).normalize('NFKC').toLocaleLowerCase().replace(/\s+/g,' ').trim();
-  const sellerEmails = sellerSideEmails(source);
-  const sourceEmailValues = findEmailsInText(source).filter(value => !sellerEmails.has(value.toLowerCase()));
+  // 我方的（签名、「our paypal」、付款对象、设置里的我方邮箱）和客户自己更正掉的邮箱，AI 给了也不要。
+  const excludedEmails = customerExcludedEmails(source);
+  const notExcluded = value => !excludedEmails.has(String(value).toLowerCase());
+  const sourceEmailValues = findEmailsInText(source).filter(notExcluded);
   const sourceEmails = new Set(sourceEmailValues.map(folded));
   const sourcePhones = new Set((source.match(/\+?\d(?:[ \t().-]*\d){6,14}/g) || []).map(normalizeCustomerPhoneDigits));
   const addressNumberGroups = value => String(value).replace(/\bone\b/gi,'1').match(/\d+(?:[- \t]\d+)*/g) || [];
   const sourceNumbers = new Set(addressNumberGroups(source).flatMap(group => [group.replace(/\D/g,''), ...group.match(/\d+/g)]));
+  let extraEmails = [];
   if (source) {
     if (fields.name && !folded(source).includes(folded(fields.name))) delete fields.name;
     multi.contacts = multi.contacts.filter(value => folded(source).includes(folded(value)));
     multi.phones = multi.phones.filter(value => sourcePhones.has(normalizeCustomerPhoneDigits(value)));
-    // Keep validated AI choices first, then recover literal source emails the model omitted.
-    multi.emails = normalizeCustomerValueList([
-      ...multi.emails.filter(value => sourceEmails.has(folded(value))),
-      ...sourceEmailValues.filter(value => folded(value) !== folded(fields.paymentEmail || ''))
-    ], '', normalizeCustomerEmail);
-    if (fields.paymentEmail && !sourceEmails.has(folded(fields.paymentEmail))) delete fields.paymentEmail;
+    if (fields.paymentEmail && (!sourceEmails.has(folded(fields.paymentEmail)) || !notExcluded(fields.paymentEmail))) delete fields.paymentEmail;
+    const aiEmails = multi.emails.filter(value => sourceEmails.has(folded(value)));
+    const omitted = sourceEmailValues.filter(value => folded(value) !== folded(fields.paymentEmail || '') && !aiEmails.some(item => folded(item) === folded(value)));
+    // 原文找回邮箱只在 AI 一个可用邮箱都没给时做（AI 漏掉了所有邮箱）；AI 给了，说明它有意排除了别的，多出来的只列出来让用户自己决定。
+    if (aiEmails.length || fields.paymentEmail) {
+      multi.emails = aiEmails;
+      extraEmails = aiEmails.length ? normalizeCustomerValueList(omitted, '', normalizeCustomerEmail) : [];
+      if (!aiEmails.length) multi.emails = normalizeCustomerValueList(omitted, '', normalizeCustomerEmail);
+    } else {
+      multi.emails = normalizeCustomerValueList(omitted, '', normalizeCustomerEmail);
+    }
     // 付款邮箱单独存一栏；还有别的联系邮箱时不再重复进联系邮箱（同一个邮箱既联系又付款时保留）
     const contactOnlyEmails = multi.emails.filter(value => folded(value) !== folded(fields.paymentEmail || ''));
     if (fields.paymentEmail && contactOnlyEmails.length) multi.emails = contactOnlyEmails;
+  } else {
+    multi.emails = multi.emails.filter(notExcluded);
   }
   // Compare full digits; only US/Canada evidence permits equivalence with a local ten-digit number.
   const northAmerican = fields.country === normalizeCountry('United States') || fields.country === normalizeCountry('Canada');
@@ -13299,6 +13802,20 @@ function normalizeAiCustomerFields(raw = {}, sourceText = '') {
     if (!previous || (value.startsWith('+') && !previous.startsWith('+'))) uniquePhones.set(key, value);
   });
   multi.phones = [...uniquePhones.values()];
+  // 地址开头重复了客户名 / 联系人 / Attn 行：去掉（打面单时公司名和联系人会重复出现）。
+  const leading = [fields.name, ...multi.contacts].filter(Boolean).map(value => value.toLocaleLowerCase());
+  const tidyAddress = value => {
+    let text = String(value || '');
+    for (let i = 0; i < 4; i += 1) {
+      const head = text.split(/\s*[,，\n]\s*/)[0] || '';
+      const lower = head.toLocaleLowerCase();
+      const isLead = /^(?:attn|attention)\b/i.test(head) || leading.includes(lower);
+      if (!isLead || head.length === text.length || /\d/.test(head)) break;
+      text = text.slice(head.length).replace(/^\s*[,，\n]\s*/, '');
+    }
+    return text;
+  };
+  multi.addresses = multi.addresses.map(tidyAddress).filter(Boolean);
   Object.entries({contacts:'contact',phones:'phone',emails:'email',addresses:'address'}).forEach(([kind, key]) => {
     const values = multi[kind].filter(value => kind !== 'addresses' || (isAiAddress(value) && (!source || addressNumberGroups(value).every(group => sourceNumbers.has(group.replace(/\D/g,''))))));
     delete fields[key];
@@ -13307,7 +13824,10 @@ function normalizeAiCustomerFields(raw = {}, sourceText = '') {
   Object.keys(fields).forEach(key => {
     if (fields[key] === '' || fields[key] === undefined || fields[key] === null) delete fields[key];
   });
-  return fields;
+  // AI 自己给出的字段数：从原文找回的邮箱不算，免得 AI 返回一段说明文字时也算「AI 识别完成」、本地认出的姓名电话全丢。
+  const recoveredOnly = !Object.keys(raw).some(key => ['email','emails','paymentEmail','payEmail','paypalEmail'].includes(key)) || !(Array.isArray(raw.emails) ? raw.emails : [raw.email]).some(value => sourceEmails.has(folded(normalizeCustomerEmail(value || ''))));
+  const aiFieldCount = Object.keys(fields).filter(key => !(recoveredOnly && ['email','emails'].includes(key))).filter(key => !['contact','phone','email','address'].includes(key) || !fields[`${key}s`]).length;
+  return { fields, aiFieldCount, extraEmails, countryOutsideList:Boolean(fields.country && !knownCountry) };
 }
 function aiCustomerCountryMetadata(raw = {}, fields = {}, text = '') {
   const explicitCountry = findCountryInText(text.replace(/\+\d[\d \t().-]*/g, ''));
@@ -13316,18 +13836,19 @@ function aiCustomerCountryMetadata(raw = {}, fields = {}, text = '') {
     countryEvidence: typeof raw.countryEvidence === 'string' && raw.countryEvidence.trim() && text.toLocaleLowerCase().includes(raw.countryEvidence.toLocaleLowerCase()) ? raw.countryEvidence.slice(0, 100) : ''
   };
 }
-async function requestAiCustomerAnalysis(text) {
+async function requestAiCustomerAnalysis(text, signal = null) {
   const settings = normalizeAiSettings(getAiSettings());
   if (settings.enabled !== '是') throw new Error('AI 识别未启用');
   if (!settings.baseUrl || !settings.model) throw new Error('请先在设置里填写 API Key、Base URL 和模型名称');
+  // 超时和订单识别、服务端一样是 45 秒（以前前端 30 秒就放弃，服务端还在等、照样记费用）。
   const data = await requestAiChat(settings, [
     { role: 'system', content: '你是外贸客户档案信息提取助手，熟悉海外收货地址、电话和付款信息的各种写法。你只做字段提取：严格按用户给出的字段和取值范围输出一个 JSON 对象，原文没有的信息一律省略，绝不凭常识补全或编造，不输出 Markdown、解释或代码块。' },
     { role: 'user', content: aiCustomerPrompt(text) }
-  ], { temperature: 0, timeoutMs: 30000, purpose:'customer' });
+  ], { temperature: 0, timeoutMs: 45000, purpose:'customer', signal });
   const content = data.choices?.[0]?.message?.content || data.choices?.[0]?.text || '';
   return parseAiJson(content);
 }
-async function runAiCustomerPasteAnalysis() {
+async function runAiCustomerPasteAnalysis({ skipConfirm = false } = {}) {
   const input = document.getElementById('customerPasteInput');
   const text = input?.value.trim() || '';
   if (!text) {
@@ -13335,47 +13856,61 @@ async function runAiCustomerPasteAnalysis() {
     return;
   }
   const btn = document.getElementById('customerPasteAnalyzeBtn');
-  const localBtn = document.getElementById('customerPasteAiBtn');
-  if (btn?.disabled) return;
+  if (btn?.disabled || customerPasteRun) return;
+  if (!skipConfirm && !await confirmDiscardCustomerPasteEdits()) return;
+  if (customerPasteRun || input.value.trim() !== text) return;
   const requestId = ++customerPasteRequestId;
   const startedAt = performance.now();
   const stillCurrent = () => requestId === customerPasteRequestId && input.value.trim() === text;
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = '识别中...';
-  }
-  if (localBtn) localBtn.disabled = true;
   const localAnalysis = analyzeCustomerPasteText(text);
   localAnalysis.extracted = customerPasteEditableFields(localAnalysis.extracted);
+  localAnalysis.editCount = 0;
+  const controller = new AbortController();
+  customerPasteRun = { requestId, controller, localAnalysis, startedAt };
+  setCustomerPasteBusy(true);
   customerPasteAnalysis = null;
   customerPasteEditor = null;
   startCustomerPasteTimer(requestId, startedAt);
   try {
-    const raw = await requestAiCustomerAnalysis(text);
+    const raw = await requestAiCustomerAnalysis(text, controller.signal);
     if (!stillCurrent()) return;
-    const aiFields = normalizeAiCustomerFields(raw, text);
-    if (!Object.keys(aiFields).length) throw new Error('AI 未返回可用客户字段');
+    const result = normalizeAiCustomerResult(raw, text);
+    // AI 自己没给出可用字段（返回一段说明文字、空对象、坏格式）：用本地识别，不能因为原文里有邮箱就算「AI 识别完成」。
+    if (!result.aiFieldCount) {
+      const error = new Error('AI 未返回可用客户字段');
+      error.emptyResult = true;
+      throw error;
+    }
+    const aiFields = result.fields;
+    // 用 AI 认出的名字、电话、邮箱再匹配一次老客户（以前只用本地规则抽的名字，「Sunrise Beauty」认不出「Sunrise Beauty LLC」）。
+    const clientMatches = matchClientsFromPaste(text, { name:aiFields.name || null, phones:aiFields.phones || [], emails:aiFields.emails || [] });
     customerPasteAnalysis = {
       ...localAnalysis,
+      clientMatches: clientMatches.length ? clientMatches : localAnalysis.clientMatches,
       source: 'AI',
       elapsedMs: performance.now() - startedAt,
       extracted: aiFields,
+      extraEmails: result.extraEmails,
+      countryOutsideList: result.countryOutsideList,
+      editCount: 0,
       ...aiCustomerCountryMetadata(raw, aiFields, text)
     };
     renderCustomerPasteResults(customerPasteAnalysis);
-    toast(Object.keys(aiFields).length ? '客户 AI 识别完成' : 'AI 未识别到更多客户字段');
+    toast('客户 AI 识别完成');
   } catch (e) {
-    if (!stillCurrent()) return;
-    customerPasteAnalysis = { ...localAnalysis, source:'local', fallback:true, elapsedMs:performance.now() - startedAt };
+    if (!stillCurrent() || e?.cancelled) return;
+    const failure = e?.emptyResult
+      ? { title:'AI 没有返回可用结果', reason:'下面是本地识别的结果，请核对后再填入。' }
+      : aiFailureDetail(e);
+    customerPasteAnalysis = { ...localAnalysis, source:'local', fallback:true, failure, elapsedMs:performance.now() - startedAt };
     renderCustomerPasteResults(customerPasteAnalysis);
-    toast('AI 识别未完成，已使用本地识别，请核对结果');
+    toast(`${failure.title}，已使用本地识别，请核对结果`);
   } finally {
-    stopCustomerPasteTimer(requestId);
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = 'AI 识别';
+    if (customerPasteRun?.requestId === requestId) {
+      customerPasteRun = null;
+      stopCustomerPasteTimer(requestId);
+      setCustomerPasteBusy(false);
     }
-    if (localBtn) localBtn.disabled = false;
   }
 }
 // 名字和侧栏一致（订单、客户、物流、数据与目标……），关键词带英文和拼音首字母。
@@ -13912,14 +14447,33 @@ function escapeAttr(value) {
 }
 function contactForClient(name = '') {
   const profile = state.customers?.[name] || {};
-  return cleanContactValue(profile.contact || '', profile.address || '');
+  const contact = cleanContactValue(profile.contact || '', profile.address || '');
+  if (contact) return contact;
+  // 手填的「Smith, John」这类带逗号的姓名：不像地址（没有数字、@）就照常显示。
+  const typed = String(profile.contacts?.[0] || profile.contact || '').trim();
+  return typed && typed.length <= 120 && !/[\d@]|https?:/.test(typed) && !looksLikeAddressText(typed) && typed !== String(profile.address || '').trim() ? typed : '';
 }
+// 全小写输入的首字母大写：公司后缀按惯用写法（llc → LLC、gmbh → GmbH），姓名里的 de / van / von 这类小词不在开头时保持小写，
+// mcdonald → McDonald、o'neil → O'Neil；连字符两边各自大写（k-beauty → K-Beauty）。
 function autoCapitalizeCustomerName(value = '') {
+  const suffixes = { llc:'LLC', ltd:'Ltd', 'ltd.':'Ltd.', inc:'Inc', 'inc.':'Inc.', gmbh:'GmbH', plc:'PLC', ag:'AG', bv:'BV', 'b.v.':'B.V.', srl:'SRL', 'co.':'Co.', co:'Co', corp:'Corp', 'corp.':'Corp.', llp:'LLP', 'l.l.c.':'L.L.C.', usa:'USA', uk:'UK' };
+  const particles = new Set(['de', 'la', 'le', 'del', 'della', 'der', 'den', 'van', 'von', 'da', 'das', 'dos', 'du', 'di', 'y', 'e', 'and', 'of', 'the', 'und', 'et']);
+  const capitalize = part => {
+    if (/^mc\p{Ll}{2,}/u.test(part)) return `Mc${part.charAt(2).toUpperCase()}${part.slice(3)}`;
+    if (/^o'\p{Ll}/u.test(part)) return `O'${part.charAt(2).toUpperCase()}${part.slice(3)}`;
+    return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+  };
+  let index = 0;
   return decodeCustomerNameEntities(value).replace(/\s+\+\d{1,3}\s*$/, '').replace(/\p{L}[\p{L}'.-]*/gu, word => {
+    const first = index === 0;
+    index += 1;
     if (!word) return word;
     if (/^[\p{Lu}0-9.&-]{2,}$/u.test(word)) return word;
     if (/\p{Lu}/u.test(word.slice(1)) && /\p{Ll}/u.test(word)) return word;
-    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    const lower = word.toLowerCase();
+    if (Object.hasOwn(suffixes, lower) && !first) return suffixes[lower];
+    if (particles.has(lower) && !first && word === lower) return word;
+    return lower.split('-').map(part => part ? capitalize(part) : part).join('-');
   });
 }
 function clientDisplayName(name = '') {
@@ -13936,14 +14490,16 @@ function normalizeTags(value) {
   const raw = Array.isArray(value) ? value.join(',') : String(value || '');
   return Array.from(new Set(raw.split(/[,，、\s]+/).map(t => t.trim()).filter(Boolean))).slice(0, 8);
 }
-function normalizeCustomerValueList(values = [], legacy = '', normalizer = value => String(value || '').trim()) {
+// 长度上限（联系人 120、地址 1000 字）和输入框的 maxlength 一致：保存时不会再悄悄截掉一段（以前地址 300、联系人 80 字直接截断）。
+// keyOf：判断「是不是同一项」的口径，电话按号码（+447700900127 和 +44 7700 900127 是同一个），其余按不分大小写的原文。
+function normalizeCustomerValueList(values = [], legacy = '', normalizer = value => String(value || '').trim(), keyOf = value => String(value).toLocaleLowerCase()) {
   const source = Array.isArray(values) && values.length ? values : (legacy ? [legacy] : []);
   const result = [];
   const seen = new Set();
   source.flatMap(value => Array.isArray(value) ? value : [value]).forEach(value => {
     const normalized = normalizer(value);
     if (!normalized) return;
-    const key = String(normalized).toLocaleLowerCase();
+    const key = keyOf(normalized) || String(normalized).toLocaleLowerCase();
     if (seen.has(key)) return;
     seen.add(key);
     result.push(normalized);
@@ -13953,12 +14509,12 @@ function normalizeCustomerValueList(values = [], legacy = '', normalizer = value
 function normalizeCustomerContactFields(profile = {}) {
   const splitLegacy = value => String(value || '').split(/\s*;\s*/).filter(Boolean);
   const contacts = normalizeCustomerValueList(profile.contacts, splitLegacy(profile.contact), value =>
-    decodeCustomerNameEntities(value).slice(0, 80)
+    decodeCustomerNameEntities(value).slice(0, 120)
   );
-  const phones = normalizeCustomerValueList(profile.phones, splitLegacy(profile.phone), normalizeCustomerPhone);
+  const phones = normalizeCustomerValueList(profile.phones, splitLegacy(profile.phone), normalizeCustomerPhone, normalizeCustomerPhoneDigits);
   const emails = normalizeCustomerValueList(profile.emails, splitLegacy(profile.email), normalizeCustomerEmail);
   const addresses = normalizeCustomerValueList(profile.addresses, profile.address, value =>
-    decodePasteEntities(String(value || '')).trim().replace(/[ \t]+/g, ' ').slice(0, 300)
+    decodePasteEntities(String(value || '')).trim().replace(/[ \t]+/g, ' ').slice(0, 1000)
   );
   return {
     ...profile,
@@ -14018,29 +14574,38 @@ function syncCustomerContactPreferenceFields(form, profile = {}, { isNew = false
   form.querySelectorAll('input[name="alternativeContactMethods"]').forEach(input => {
     input.checked = selected.has(input.value) && input.value !== preferences.primaryContactMethod;
     input.disabled = input.value === preferences.primaryContactMethod;
+    delete input.dataset.checkedBeforePrimary;
+    const chip = input.closest('label');
+    if (chip) chip.title = input.disabled ? '已是主要联系方式' : '';
   });
   enhanceBinarySelects(form);
 }
+// 切换主要联系方式：变成主要的那项先取消勾选，但记住它原来勾过；主要方式换走后再勾回来（以前来回切一次，勾过的备选就没了）。
 function refreshCustomerContactPreferenceChoices(form) {
   if (!form) return;
   const primary = normalizeCustomerContactMethod(form.elements.primaryContactMethod?.value || '');
   form.querySelectorAll('input[name="alternativeContactMethods"]').forEach(input => {
     const isPrimary = input.value === primary;
+    if (isPrimary && input.checked) input.dataset.checkedBeforePrimary = 'true';
     if (isPrimary) input.checked = false;
+    else if (input.dataset.checkedBeforePrimary === 'true') input.checked = true;
+    if (!isPrimary) delete input.dataset.checkedBeforePrimary;
     input.disabled = isPrimary;
+    const chip = input.closest('label');
+    if (chip) chip.title = isPrimary ? '已是主要联系方式' : '';
   });
 }
 const customerMultiFieldDefs = {
-  contacts: { name:'contact', tag:'input', type:'text', placeholder:'联系人姓名' },
+  contacts: { name:'contact', tag:'input', type:'text', placeholder:'联系人姓名', maxLength:120 },
   phones: { name:'phone', tag:'input', type:'tel', placeholder:'例如 +44 7700 900127' },
   emails: { name:'email', tag:'input', type:'email', placeholder:'name@example.com' },
-  addresses: { name:'address', tag:'textarea', placeholder:'客户收货地址 / 公司地址' }
+  addresses: { name:'address', tag:'textarea', placeholder:'客户收货地址 / 公司地址', maxLength:1000 }
 };
 function normalizeCustomerMultiValue(kind = '', value = '') {
-  if (kind === 'contacts') return decodeCustomerNameEntities(value).slice(0, 80);
+  if (kind === 'contacts') return decodeCustomerNameEntities(value).slice(0, 120);
   if (kind === 'phones') return normalizeCustomerPhone(value);
   if (kind === 'emails') return normalizeCustomerEmail(value);
-  if (kind === 'addresses') return decodePasteEntities(String(value || '')).trim().replace(/[ \t]+/g, ' ').slice(0, 300);
+  if (kind === 'addresses') return decodePasteEntities(String(value || '')).trim().replace(/[ \t]+/g, ' ').slice(0, 1000);
   return String(value || '').trim();
 }
 function appendCustomerMultiRow(form, kind, value = '') {
@@ -14056,6 +14621,7 @@ function appendCustomerMultiRow(form, kind, value = '') {
   input.placeholder = def.placeholder;
   if (def.type) input.type = def.type;
   if (def.tag === 'textarea') input.rows = 2;
+  if (def.maxLength) input.maxLength = def.maxLength;
   input.value = normalizeCustomerMultiValue(kind, value);
   const remove = document.createElement('button');
   remove.type = 'button';
@@ -14063,9 +14629,32 @@ function appendCustomerMultiRow(form, kind, value = '') {
   remove.dataset.removeCustomerValue = 'true';
   remove.setAttribute('aria-label', `删除${field.querySelector('label')?.textContent || '此项'}`);
   remove.textContent = '×';
-  row.append(input, remove);
+  // 「设为主要」：订单摘要、列表、飞书通知、WhatsApp 匹配都用第一条；和第一条对调，不用手动对调两个框的内容。
+  const promote = document.createElement('button');
+  promote.type = 'button';
+  promote.className = 'customer-multi-remove customer-multi-promote';
+  promote.dataset.promoteCustomerValue = 'true';
+  promote.textContent = '设为主要';
+  promote.setAttribute('aria-label', `把这条${field.querySelector('label')?.textContent || ''}设为主要`);
+  row.append(input, promote, remove);
   list.append(row);
+  refreshCustomerMultiPrimaryBadges(form);
   return input;
+}
+// 有不止一条时，第一条旁边标「主要」。
+function refreshCustomerMultiPrimaryBadges(form) {
+  form?.querySelectorAll('[data-customer-multi-kind]').forEach(field => {
+    const primaryRow = field.querySelector('[data-customer-primary-row]');
+    if (!primaryRow) return;
+    const many = field.querySelectorAll('[data-customer-extra-row]').length > 0;
+    let badge = primaryRow.querySelector('.customer-multi-primary-badge');
+    if (many && !badge) {
+      badge = document.createElement('span');
+      badge.className = 'customer-multi-primary-badge';
+      badge.textContent = '主要';
+      primaryRow.querySelector('[data-customer-multi-input]')?.after(badge);
+    } else if (!many) badge?.remove();
+  });
 }
 function setCustomerMultiFieldValues(form, profile = {}) {
   const normalized = normalizeCustomerContactFields(profile);
@@ -14078,6 +14667,7 @@ function setCustomerMultiFieldValues(form, profile = {}) {
     if (primary) primary.value = values[0] || '';
     values.slice(1).forEach(value => appendCustomerMultiRow(form, kind, value));
   });
+  refreshCustomerMultiPrimaryBadges(form);
 }
 function customerMultiFieldData(form) {
   const raw = {};
@@ -15267,6 +15857,9 @@ function renderSettings() {
   const levelForm = document.getElementById('levelRuleForm');
   if (levelForm) settingsFormFill(levelForm, renderLevelRuleTable);
   else renderLevelRuleTable();
+  settingsFormFill(document.getElementById('ownEmailsForm'), ownForm => {
+    ownForm.elements.ownEmails.value = customerOwnEmailList().join('\n');
+  });
   settingsFormFill(document.getElementById('copyTemplatesForm'), copyForm => {
     copyForm.elements.copyStatusTemplate.value = copyTemplate('status');
     copyForm.elements.copyDunningTemplate.value = copyTemplate('dunning');
@@ -15354,8 +15947,8 @@ function clientHistory() {
     // 没建档的客户只从订单带基本字段，订单备注不是客户备注。
     map.set(o.client, { client:o.client, country:o.country, currency:o.currency, paymentChannel:o.paymentChannel, productType:o.productType, owner:o.owner, updated:o.updated, createdAt:o.createdAt, ...(state.customers?.[o.client] || {}) });
   });
+  // 清除示例客户时示例档案已经删掉了；之后再出现同名档案（Global Importers UK…）是用户自己建的，不能按名字藏起来。
   Object.entries(state.customers || {}).forEach(([name, profile]) => {
-    if (state.demoCustomersCleared && isDemoClientName(name)) return;
     if (!map.has(name)) map.set(name, { client:name, ...profile });
   });
   return [...map.values()].sort((a, b) => a.client.localeCompare(b.client));
@@ -17848,10 +18441,14 @@ function renderCustomerDetailView(name = '', data = {}) {
   const info = document.getElementById('customerDetailInfoGrid');
   const ordersEl = document.getElementById('customerDetailOrders');
   const ordersMeta = document.getElementById('customerDetailOrdersMeta');
-  const contact = cleanContactValue(record.contact || '', record.address || '') || '未填写';
+  const contact = record.contacts?.[0] || cleanContactValue(record.contact || '', record.address || '') || '未填写';
   const renderValues = (values, fallback = '未填写') => values?.length
     ? values.map(value => escapeAttr(value)).join('<br>')
     : fallback;
+  // 电话、邮箱每一条后面一个复制按钮（点完显示「已复制」1.5 秒），有多条时第一条标「主要」。
+  const renderCopyValues = (values, label) => values?.length
+    ? values.map((value, index) => `<span class="customer-value-line"><span class="customer-value-text">${escapeAttr(value)}</span>${values.length > 1 && index === 0 ? '<span class="customer-multi-primary-badge">主要</span>' : ''}<button class="customer-value-copy" type="button" data-copy-customer-value="${escapeAttr(value)}" aria-label="复制${label} ${escapeAttr(value)}">复制</button></span>`).join('')
+    : '未填写';
   if (hero) hero.innerHTML = `
     <div class="customer-detail-hero">
       <div class="customer-detail-identity">
@@ -17868,8 +18465,8 @@ function renderCustomerDetailView(name = '', data = {}) {
       </div>
       <div class="customer-info-list">
         <div class="customer-info-row"><span>联系人</span><strong>${renderValues(record.contacts, escapeAttr(contact))}</strong></div>
-        <div class="customer-info-row"><span>联系电话</span><strong>${renderValues(record.phones)}</strong></div>
-        <div class="customer-info-row"><span>邮箱</span><strong>${renderValues(record.emails)}</strong></div>
+        <div class="customer-info-row"><span>联系电话</span><strong>${renderCopyValues(record.phones, '电话')}</strong></div>
+        <div class="customer-info-row"><span>邮箱</span><strong>${renderCopyValues(record.emails, '邮箱')}</strong></div>
         <div class="customer-info-row"><span>联系方式</span><strong>${escapeAttr(renderCustomerContactMethods(record))}</strong></div>
         <div class="customer-info-row"><button class="customer-copy-label" type="button" data-copy-customer-detail="alibabaId" title="点击复制阿里 ID">阿里 ID</button><strong>${escapeAttr(record.alibabaId || '未填写')}</strong></div>
         <div class="customer-info-row"><span>国家地区</span><strong>${escapeAttr(record.country || '未填写')}</strong></div>
@@ -17923,7 +18520,7 @@ function setCustomerModalMode(editMode = false, { isNew = false } = {}) {
   form.classList.toggle('customer-edit-mode', editMode || isNew);
   form.querySelectorAll('#customerEditWorkspace input, #customerEditWorkspace textarea, #customerEditWorkspace select').forEach(field => { field.disabled = viewOnly; });
   if (!viewOnly) refreshCustomerContactPreferenceChoices(form);
-  form.querySelectorAll('[data-add-customer-value], [data-remove-customer-value]').forEach(button => { button.disabled = viewOnly; });
+  form.querySelectorAll('[data-add-customer-value], [data-remove-customer-value], [data-promote-customer-value]').forEach(button => { button.disabled = viewOnly; });
   const headerSaveBtn = document.getElementById('customerHeaderSaveBtn');
   const detailEditBtn = document.getElementById('customerDetailEditBtn');
   const cancelBtn = document.getElementById('customerEditCancelBtn');
@@ -17941,6 +18538,7 @@ function openCustomerModal(name = '', { viewOnly = true } = {}) {
   editingCustomer = name || null;
   fillStageSelects();
   clearCustomerPasteAssist();
+  clearCustomerFieldHints(form);
   const isNew = !name;
   const fromHistory = isNew ? {} : (clientHistory().find(c => c.client === name) || {});
   const profile = isNew ? {} : (state.customers?.[name] || {});
@@ -17950,11 +18548,24 @@ function openCustomerModal(name = '', { viewOnly = true } = {}) {
   form.elements.name.value = data.client || name || '';
   form.elements.country.value = storedCountry(data.country || settings.defaultCountry);
   setCustomerMultiFieldValues(form, data);
-  form.elements.currency.value = data.currency || settings.defaultCurrency || 'USD';
+  // 列表外的币种（AED、JPY…）临时补一项，不再显示「请选择」、保存成 USD；上一位客户补的那项先拿掉。
+  const currencySelect = form.elements.currency;
+  [...currencySelect.options].forEach(option => { if (option.value && !isKnownCurrency(option.value)) option.remove(); });
+  setCurrencySelectValue(currencySelect, data.currency || settings.defaultCurrency || 'USD');
   if (form.elements.productType) form.elements.productType.value = data.productType || settings.defaultProductType || '假发';
   if (form.elements.owner) form.elements.owner.value = data.owner || settings.defaultOwner || '';
   form.elements.level.value = data.level || '自动判断';
-  renderPaymentMethodSelect(data.paymentMethod || '');
+  // 只有订单、还没建档的客户：收款方式按订单里实际用的（以前一律显示并保存成「阿里巴巴」）。
+  renderPaymentMethodSelect(data.paymentMethod || data.paymentChannel || '');
+  // 已有客户原来就没填、表单只是拿默认值顶上的几项：用户没动就保持空，不把默认值当成用户的选择写进档案和变更记录。
+  // 按档案本身判断（订单里推出来的产品类型这类只是显示用，用户没动也不写进档案）；只有订单、还没建档的客户第一次保存照常全部写入。
+  const hasProfile = !isNew && Boolean(state.customers?.[name]);
+  form._customerDefaultedFields = !hasProfile ? {} : Object.fromEntries([
+    ['country', !profile.country],
+    ['currency', !profile.currency],
+    ['productType', !profile.productType],
+    ['paymentMethod', !profile.paymentMethod]
+  ].filter(([, defaulted]) => defaulted).map(([key]) => [key, String(form.elements[key]?.value ?? '')]));
   form.elements.paymentEmail.value = data.paymentEmail || '';
   form.elements.alibabaId.value = data.alibabaId || '';
   syncCustomerContactPreferenceFields(form, data, { isNew });
@@ -17989,7 +18600,12 @@ function openCustomerModal(name = '', { viewOnly = true } = {}) {
   }
   updateCustomerSaveLabels();
   const wasOpen = document.getElementById('customerModal')?.classList.contains('open');
+  const modalEl = document.getElementById('customerModal');
+  // 起始焦点：新建 / 编辑落在「客户名称」，只读落在「编辑资料」（以前落在「＋ 新建订单」上，回车就新建订单）。
+  const focusTarget = shouldViewOnly ? document.getElementById('customerDetailEditBtn') : form.elements.name;
+  if (modalEl) modalEl.__initialFocus = focusTarget;
   setModalOpenState('customerModal', true);
+  if (wasOpen) requestAnimationFrame(() => { if (modalEl?.classList.contains('open') && focusTarget?.getClientRects().length) focusTarget.focus({ preventScroll:true }); });
   resetModalScroll('#customerModal');
   // 弹窗本来就开着、换成另一位客户或回到只读：自己重新取快照（观察器只在遮罩 class 变化时取）。
   if (wasOpen) requestAnimationFrame(() => uiFormMarkClean(form));
@@ -18032,10 +18648,6 @@ function customerChangeSummary(before, after) {
   const fields = [
     ['client', '客户名称'],
     ['country', '国家 / 地区'],
-    ['contact', '联系人'],
-    ['phone', '联系电话'],
-    ['email', '邮箱'],
-    ['address', '客户地址'],
     ['currency', '默认币种'],
     ['productType', '客户产品类型'],
     ['level', '客户等级'],
@@ -18058,6 +18670,24 @@ function customerChangeSummary(before, after) {
   const changes = fields
     .filter(([key]) => String(before[key] || '') !== String(after[key] || ''))
     .map(([key, label]) => `${label}：${formatValue(before[key])} → ${formatValue(after[key])}`);
+  // 联系人 / 电话 / 邮箱 / 地址按整组比：写清楚新增、删除了哪一条，主要的一条换了也记下（以前只比第一条，删掉第 2 个电话不留痕）。
+  const beforeMulti = normalizeCustomerContactFields(before);
+  const afterMulti = normalizeCustomerContactFields(after);
+  const multiChanges = [['contacts', '联系人'], ['phones', '电话'], ['emails', '邮箱'], ['addresses', '地址']].flatMap(([key, label]) => {
+    const keyOf = value => key === 'phones' ? (normalizeCustomerPhoneDigits(value) || value) : String(value).toLocaleLowerCase();
+    const was = beforeMulti[key] || [];
+    const now = afterMulti[key] || [];
+    const removed = was.filter(value => !now.some(item => keyOf(item) === keyOf(value)));
+    const added = now.filter(value => !was.some(item => keyOf(item) === keyOf(value)));
+    const parts = [];
+    if (added.length) parts.push(`${label}：新增 ${formatValue(added)}`);
+    if (removed.length) parts.push(`${label}：删除 ${formatValue(removed)}`);
+    if (!added.length && !removed.length && was[0] && now[0] && was[0] !== now[0]) {
+      parts.push(keyOf(was[0]) === keyOf(now[0]) ? `${label}：${formatValue(was[0])} → ${formatValue(now[0])}` : `${label}：主要改为 ${formatValue(now[0])}`);
+    }
+    return parts;
+  });
+  changes.splice(Math.min(2, changes.length), 0, ...multiChanges);
   return changes.length ? `更新：${changes.join('；')}` : '保存客户档案';
 }
 function renderCustomerHistory(history) {
@@ -18100,7 +18730,7 @@ function patchAllOrdersForCustomerRename(oldName = '', newName = '') {
   if (Array.isArray(state.trashOrders)) state.trashOrders = patchOrdersForCustomerRename(state.trashOrders, oldName, newName, customers);
   if (Array.isArray(state.deletedOrders)) state.deletedOrders = patchOrdersForCustomerRename(state.deletedOrders, oldName, newName, customers);
 }
-async function confirmDuplicateCustomerSave({ oldName = '', newName = '', emails = [], email = '' } = {}) {
+async function confirmDuplicateCustomerSave({ oldName = '', newName = '', emails = [], email = '', phones = [], paymentEmail = '' } = {}) {
   const normalizedOld = String(oldName || '').trim().toLowerCase();
   const normalizedName = String(newName || '').trim().toLowerCase();
   const normalizedEmails = normalizeCustomerValueList(emails, email, normalizeCustomerEmail).map(value => value.toLowerCase());
@@ -18115,41 +18745,65 @@ async function confirmDuplicateCustomerSave({ oldName = '', newName = '', emails
     && normalizeCustomerContactFields(profile).emails.some(value => normalizedEmails.includes(value.toLowerCase()))
     && name.trim().toLowerCase() !== normalizedOld
   ).map(([name]) => name);
+  // 和事后「客户资料提醒」同一口径再查三样：同一个电话（写法不同也算）、付款邮箱相同、名字只差标点（Alice Baker. / Alice Baker）。
+  const others = Object.entries(state.customers || {}).filter(([name]) => name.trim().toLowerCase() !== normalizedOld && name.trim().toLowerCase() !== normalizedName);
+  const phoneList = normalizeCustomerValueList(phones, '', normalizeCustomerPhone);
+  const duplicatePhones = others.filter(([, profile]) => phoneList.length
+    && normalizeCustomerContactFields(profile).phones.some(value => phoneList.some(phone => sameCustomerPhone(value, phone))))
+    .map(([name]) => name).filter(name => !duplicateEmails.includes(name));
+  const payEmail = normalizeCustomerEmail(paymentEmail).toLowerCase();
+  const duplicatePayEmails = others.filter(([, profile]) => payEmail && String(profile.paymentEmail || '').trim().toLowerCase() === payEmail)
+    .map(([name]) => name).filter(name => !duplicateEmails.includes(name) && !duplicatePhones.includes(name));
+  const looseName = normalizeCustomerDuplicateText(autoCapitalizeCustomerName(newName));
+  const duplicateLooseNames = collidingName || !looseName ? [] : Object.keys(knownCustomerNames).filter(name =>
+    name.trim().toLowerCase() !== normalizedOld && name.trim().toLowerCase() !== normalizedName
+    && normalizeCustomerDuplicateText(autoCapitalizeCustomerName(name)) === looseName);
   const messages = [];
   if (duplicateNames.length) messages.push(`客户名称已存在：${duplicateNames.join('、')}`);
   if (duplicateEmails.length) messages.push(`邮箱已被这些客户使用：${duplicateEmails.join('、')}`);
+  if (duplicatePhones.length) messages.push(`电话和这些客户相同：${duplicatePhones.join('、')}`);
+  if (duplicatePayEmails.length) messages.push(`付款邮箱和这些客户相同：${duplicatePayEmails.join('、')}`);
+  if (duplicateLooseNames.length) messages.push(`名字只差标点或空格：${duplicateLooseNames.join('、')}`);
   if (!messages.length) return true;
   if (duplicateNames.length) {
     await appConfirm({
       title: '客户名称已存在',
       sub: '已阻止覆盖客户档案',
       message: `${messages.join('\n')}\n\n请保留原名称，或到“客户资料提醒”中使用合并功能。`,
-      confirmText: '知道了'
+      confirmText: '知道了',
+      cancelText: ''
     });
     return false;
   }
+  // 默认焦点在「返回修改」：回车不会直接建出一份重复档案。
   const result = await appConfirm({
-    title: '发现重复邮箱',
+    title: duplicateEmails.length ? '发现重复邮箱' : '可能是同一位客户',
     sub: '请确认是否继续保存',
     message: `${messages.join('\n')}\n\n继续保存可能会造成客户档案重复。`,
-    confirmText: '仍然保存'
+    confirmText: '仍然保存',
+    cancelText: '返回修改',
+    defaultFocus: 'cancel'
   });
   return result.confirmed;
 }
-function buildCustomerSavePayload(data = {}, previousProfile = {}, oldName = '') {
+// keepBlank：已有客户原来没填、表单只用默认值顶上、用户也没动的字段（见 openCustomerModal），保存时仍是空。
+function buildCustomerSavePayload(data = {}, previousProfile = {}, oldName = '', { keepBlank = [] } = {}) {
   const newName = customerSaveName(data.name, oldName);
   const previousHistory = previousProfile.history || [];
-  const paymentMethod = normalizePaymentChannelValue(data.paymentMethod || previousProfile.paymentMethod || '') || '阿里巴巴';
-  const productType = productTypeDefs.some(item => item.value === data.productType) ? data.productType : (previousProfile.productType || defaultOrderSettings.defaultProductType || '假发');
+  const blank = new Set(keepBlank);
+  const paymentMethod = blank.has('paymentMethod') ? '' : (normalizePaymentChannelValue(data.paymentMethod || previousProfile.paymentMethod || '') || '阿里巴巴');
+  const productType = blank.has('productType') ? '' : (productTypeDefs.some(item => item.value === data.productType) ? data.productType : (previousProfile.productType || defaultOrderSettings.defaultProductType || '假发'));
   const tags = normalizeTags(data.tags);
   const contactFields = normalizeCustomerContactFields(data);
   const contactPreferences = normalizeCustomerContactPreferences(data.primaryContactMethod, data.alternativeContactMethods);
+  const countryFromInput = typeof customerCountryFromInput === 'function' ? customerCountryFromInput(data.country) : '';
   const nextProfile = {
     client: newName,
-    country: storedCountry(data.country),
+    country: blank.has('country') ? '' : (countryFromInput || storedCountry(data.country)),
     ...contactFields,
-    contact: cleanContactValue(contactFields.contact, contactFields.address),
-    currency: data.currency || 'USD',
+    // 联系人就是第一位联系人（「Smith, John」带逗号也照存）；以前按地址规则清洗，头部和列表显示「联系人未填写」。
+    contact: contactFields.contact,
+    currency: blank.has('currency') ? '' : (storedCurrency(data.currency || previousProfile.currency || 'USD')),
     productType,
     owner: (data.owner || previousProfile.owner || defaultOrderSettings.defaultOwner || '').trim(),
     level: data.level === '自动判断' ? '' : (data.level || ''),
@@ -18177,8 +18831,10 @@ function customerSaveSnapshot(names = [], originalNameField = null) {
   const profiles = [...new Set(names.filter(Boolean))].map(key => [key, Object.hasOwn(customers, key), customers[key]]);
   const clients = ['orders', 'trashOrders', 'deletedOrders'].map(key => [key, new Map((state[key] || []).map(order => [order.id, order.client]))]);
   const customerTags = state.customerTags;
+  const doneTasks = state.doneTasks && typeof state.doneTasks === 'object' ? { ...state.doneTasks } : state.doneTasks;
   const originalName = originalNameField?.value;
   return () => {
+    state.doneTasks = doneTasks;
     state.customers = { ...(state.customers || {}) };
     profiles.forEach(([key, had, profile]) => { if (had) state.customers[key] = profile; else delete state.customers[key]; });
     clients.forEach(([key, before]) => {
@@ -18193,12 +18849,115 @@ function commitCustomerSavePayload({ oldName = '', nextProfile, historyEntry, pr
   syncCustomerTags(nextProfile.tags || []);
   state.customers = state.customers || {};
   patchAllOrdersForCustomerRename(oldName, nextProfile.client);
-  if (oldName && oldName !== nextProfile.client) delete state.customers[oldName];
+  if (oldName && oldName !== nextProfile.client) {
+    delete state.customers[oldName];
+    // 已点「完成」的复购提醒跟着改名（键是 repurchase-客户名-日期），改名后不再重新冒出来。
+    if (state.doneTasks && typeof state.doneTasks === 'object') {
+      const prefix = `repurchase-${oldName}-`;
+      Object.keys(state.doneTasks).forEach(key => {
+        const date = key.startsWith(prefix) ? key.slice(prefix.length) : '';
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+        state.doneTasks[`repurchase-${nextProfile.client}-${date}`] = state.doneTasks[key];
+        delete state.doneTasks[key];
+      });
+    }
+  }
   state.customers[nextProfile.client] = { ...nextProfile, history: [historyEntry, ...previousHistory].slice(0, 20) };
   return nextProfile.client;
 }
+// 客户表单字段下面的应用内提示：红字（error）= 改好才能保存；灰字（note）= 提醒或已自动整理，不挡保存。
+let customerFieldHintSeq = 0;
+function setCustomerFieldHint(input, message = '', tone = 'error') {
+  const host = input?.closest?.('.customer-multi-row') || input?.closest?.('.field');
+  if (!host) return;
+  let hint = [...host.children].find(el => el.classList?.contains('customer-field-hint'));
+  if (!message) {
+    hint?.remove();
+    input.removeAttribute('aria-invalid');
+    if (input.getAttribute('aria-describedby')?.startsWith('customerFieldHint')) input.removeAttribute('aria-describedby');
+    return;
+  }
+  if (!hint) {
+    hint = document.createElement('div');
+    hint.className = 'customer-field-hint';
+    hint.id = `customerFieldHint${++customerFieldHintSeq}`;
+    host.append(hint);
+  }
+  hint.dataset.tone = tone;
+  hint.setAttribute('role', tone === 'error' ? 'alert' : 'status');
+  hint.textContent = message;
+  input.setAttribute('aria-describedby', hint.id);
+  if (tone === 'error') input.setAttribute('aria-invalid', 'true');
+  else input.removeAttribute('aria-invalid');
+}
+function clearCustomerFieldHints(form) {
+  form?.querySelectorAll('.customer-field-hint').forEach(hint => hint.remove());
+  form?.querySelectorAll('[aria-invalid]').forEach(input => input.removeAttribute('aria-invalid'));
+}
+function writeCustomerFieldValue(input, value) {
+  if (input.value === value) return;
+  input.value = value;
+  input.dispatchEvent(new Event('change', { bubbles:true }));
+}
+function isCustomerEmailInput(input) {
+  return Boolean(input?.matches?.('input[type="email"], [data-customer-multi-kind="emails"] [data-customer-multi-input]'));
+}
+function isCustomerPhoneInput(input) {
+  return Boolean(input?.matches?.('[data-customer-multi-kind="phones"] [data-customer-multi-input]'));
+}
+// 返回 true = 可以保存。
+function checkCustomerEmailInput(input) {
+  const result = tidyCustomerEmail(input.value);
+  writeCustomerFieldValue(input, result.value);
+  setCustomerFieldHint(input, result.error, 'error');
+  return !result.error;
+}
+function checkCustomerPhoneInput(input) {
+  const form = input.form || input.closest('form');
+  const result = tidyCustomerPhone(input.value, form?.elements?.country?.value || '');
+  if (!result.error) writeCustomerFieldValue(input, result.value);
+  let note = result.note;
+  if (!result.error && result.value) {
+    const group = input.closest('[data-customer-multi-kind="phones"]');
+    const inputs = [...(group?.querySelectorAll('[data-customer-multi-input]') || [])];
+    const same = inputs.slice(0, inputs.indexOf(input)).find(other => other.value.trim() && normalizeCustomerPhoneDigits(other.value) === normalizeCustomerPhoneDigits(result.value));
+    if (same) note = `和上面的 ${same.value.trim()} 是同一个号码，保存时只留一条`;
+  }
+  setCustomerFieldHint(input, result.error || note, result.error ? 'error' : 'note');
+  return !result.error;
+}
+function checkCustomerCountryInput(input) {
+  const raw = String(input.value || '').trim();
+  const canonical = customerCountryFromInput(raw);
+  if (canonical) writeCustomerFieldValue(input, canonical);
+  setCustomerFieldHint(input, raw && !canonical ? `「${raw}」不在国家列表里，会按原文保存；选列表里的写法，订单筛选和统计才不会分成两项` : '', 'note');
+  return true;
+}
+// 保存前把整张客户表单检查一遍：国家先规范（电话补区号要用），再查邮箱、电话、名称。有红字就停在第一个出错的框上。
+function validateCustomerForm(form) {
+  let first = null;
+  const mark = (input, ok) => { if (!ok && !first) first = input; };
+  if (form.elements.country) checkCustomerCountryInput(form.elements.country);
+  form.querySelectorAll('[data-customer-multi-kind="emails"] [data-customer-multi-input], input[name="paymentEmail"]').forEach(input => mark(input, checkCustomerEmailInput(input)));
+  form.querySelectorAll('[data-customer-multi-kind="phones"] [data-customer-multi-input]').forEach(input => mark(input, checkCustomerPhoneInput(input)));
+  const nameInput = form.elements.name;
+  if (nameInput) {
+    const empty = !String(nameInput.value || '').trim();
+    if (empty) nameInput.value = '';
+    setCustomerFieldHint(nameInput, empty ? '请填写客户名称' : '', 'error');
+    if (empty) first = nameInput;
+  }
+  if (!first) return true;
+  first.scrollIntoView?.({ block:'center', behavior:'auto' });
+  first.focus({ preventScroll:true });
+  const field = first.closest('.field');
+  if (field) { field.classList.remove('ui-err'); void field.offsetWidth; field.classList.add('ui-err'); setTimeout(() => field.classList.remove('ui-err'), 450); }
+  // 不弹提示条：提示条落在弹窗右下角，正好盖住「保存客户」按钮，改完再点会点到提示条上。红字 + 焦点 + 抖动已经说明了。
+  return false;
+}
 async function saveCustomer(form) {
   if (form.dataset.saving || !canSubmitStoredData()) return;
+  if (!validateCustomerForm(form)) return;
   form.dataset.saving = 'true';
   try {
   const data = { ...Object.fromEntries(new FormData(form).entries()), ...customerMultiFieldData(form), ...customerContactPreferenceData(form) };
@@ -18207,10 +18966,12 @@ async function saveCustomer(form) {
   if (form.elements.name) form.elements.name.value = newName;
   if (!newName) return;
   state.customers = state.customers || {};
-  const duplicateOk = await confirmDuplicateCustomerSave({ oldName, newName, emails: data.emails });
+  const duplicateOk = await confirmDuplicateCustomerSave({ oldName, newName, emails: data.emails, phones: data.phones, paymentEmail: data.paymentEmail });
   if (!duplicateOk) return;
   const previousProfile = state.customers[oldName] || (!oldName ? state.customers[newName] : {}) || {};
-  const payload = buildCustomerSavePayload(data, previousProfile, oldName);
+  const defaulted = oldName ? (form._customerDefaultedFields || {}) : {};
+  const keepBlank = Object.keys(defaulted).filter(key => String(form.elements[key]?.value ?? '') === defaulted[key] && !String(previousProfile[key] || '').trim());
+  const payload = buildCustomerSavePayload(data, previousProfile, oldName, { keepBlank });
   const undo = typeof customerSaveSnapshot === 'function' ? customerSaveSnapshot([oldName, payload.newName], form.elements.originalName) : null;
   commitCustomerSavePayload({ oldName, ...payload });
   if (form.elements.originalName) form.elements.originalName.value = payload.newName;
@@ -18570,8 +19331,10 @@ function setCustomerDefaultField(field, value, defaultValue = '', previousAutofi
   const previous = String(previousAutofill || '').trim();
   const fromPrevious = Boolean(previous) && current === previous;
   if (current && current !== String(defaultValue || '').trim() && !fromPrevious) return;
-  if (value) field.value = value;
-  else if (fromPrevious && defaultValue) field.value = defaultValue;
+  // 币种下拉：客户的币种不在内置列表里（AED / JPY）时补一项，不然赋值落空，新订单显示「请选择」、保存成 USD。
+  const assign = next => (field.tagName === 'SELECT' && field.name === 'currency' && typeof setCurrencySelectValue === 'function' ? setCurrencySelectValue(field, next) : (field.value = next));
+  if (value) assign(value);
+  else if (fromPrevious && defaultValue) assign(defaultValue);
 }
 // 选中一位客户时会自动带入的值（和 fillClientFromHistory 用同一套规则），记下来，换客户时才认得出哪些是带入的。
 function clientAutofillValues(data = {}) {
@@ -19534,7 +20297,8 @@ async function saveCombinedCustomerOrder() {
   if (orderForm.dataset.saving || !canSubmitStoredData()) return;
   orderForm.dataset.saving = 'true';
   try {
-  if (!customerForm.reportValidity() || !orderForm.reportValidity()) return;
+  // 客户这一栏和客户弹窗同一套检查：邮箱、电话格式不对给红字，不再静默丢掉。
+  if (!validateCustomerForm(customerForm) || !orderForm.reportValidity()) return;
   const customerData = { ...Object.fromEntries(new FormData(customerForm).entries()), ...customerMultiFieldData(customerForm), ...customerContactPreferenceData(customerForm) };
   const orderData = { ...Object.fromEntries(new FormData(orderForm).entries()), shipments:orderShipmentsFromForm(orderForm) };
   const oldName = customerData.originalName || '';
@@ -19547,7 +20311,7 @@ async function saveCombinedCustomerOrder() {
   // Check the order number before the customer is written into state.
   if (rejectDuplicateOrderNum(orderForm, { num:String(orderData.num || '').trim(), id:orderForm.dataset.pendingOrderId || '' })) return;
   if (!await confirmOrderPaymentOverflow(orderForm)) return;
-  const duplicateOk = await confirmDuplicateCustomerSave({ oldName, newName, emails: customerData.emails });
+  const duplicateOk = await confirmDuplicateCustomerSave({ oldName, newName, emails: customerData.emails, phones: customerData.phones, paymentEmail: customerData.paymentEmail });
   if (!duplicateOk) return;
   const previousProfile = state.customers?.[oldName] || (!oldName ? state.customers?.[newName] : {}) || {};
   const customerPayload = buildCustomerSavePayload({ ...customerData, name: newName }, previousProfile, oldName);
@@ -23240,9 +24004,44 @@ document.querySelectorAll('#orderForm, #combinedOrderForm').forEach(form => {
   });
 });
 document.getElementById('customerForm').addEventListener('submit', e => { e.preventDefault(); saveCustomer(e.currentTarget); });
+// 客户表单里单行框按回车不再直接保存关闭（标签框打完 VIP 一回车整张档案就保存了）：回车跳到下一个框；
+// ⌘/Ctrl + 回车、⌘/Ctrl + S 保存。输入法组字中的回车不管。
+document.getElementById('customerForm').addEventListener('keydown', e => {
+  const form = e.currentTarget;
+  if (isImeKeyEvent(e) || form.classList.contains('customer-view-mode')) return;
+  const saveCombo = (e.metaKey || e.ctrlKey) && !e.altKey && (e.key === 'Enter' || e.key.toLowerCase() === 's');
+  if (saveCombo) {
+    e.preventDefault();
+    e.stopPropagation();
+    form.requestSubmit();
+    return;
+  }
+  const target = e.target;
+  if (e.key !== 'Enter' || e.shiftKey || e.altKey || target.tagName !== 'INPUT' || ['checkbox', 'radio', 'button', 'submit'].includes(target.type)) return;
+  if (target.closest('.client-picker, .paste-results')) return;
+  e.preventDefault();
+  if (target.name === 'tags') writeCustomerFieldValue(target, normalizeTags(target.value).join(', '));
+  const fields = [...form.querySelectorAll('#customerEditWorkspace input:not([type="hidden"]):not([disabled]), #customerEditWorkspace select:not([disabled]), #customerEditWorkspace textarea:not([disabled])')]
+    .filter(el => el.getClientRects().length && !el.closest('.paste-assist'));
+  const next = fields[fields.indexOf(target) + 1];
+  (next || document.getElementById('customerHeaderSaveBtn'))?.focus();
+});
+// 主要联系方式缺对应资料时（选了 WhatsApp 却没有电话……）在下面提醒一句，不挡保存。
+function refreshCustomerContactChannelHint(form) {
+  const select = form?.elements?.primaryContactMethod;
+  if (!select) return;
+  const method = normalizeCustomerContactMethod(select.value);
+  const multi = customerMultiFieldData(form);
+  const missing = (method === 'WhatsApp' || method === 'iMessage') && !multi.phones.length ? `还没填电话：${method} 要用客户的手机号`
+    : method === '邮件' && !multi.emails.length ? '还没填邮箱：邮件联系不上这位客户'
+      : method === '阿里巴巴' && !String(form.elements.alibabaId?.value || '').trim() ? '还没填阿里 ID'
+        : '';
+  setCustomerFieldHint(select, missing, 'note');
+}
 document.addEventListener('change', e => {
   if (!e.target.matches?.('select[name="primaryContactMethod"]')) return;
   refreshCustomerContactPreferenceChoices(e.target.form);
+  refreshCustomerContactChannelHint(e.target.form);
 });
 document.addEventListener('click', e => {
   const addButton = e.target.closest('[data-add-customer-value]');
@@ -23252,20 +24051,56 @@ document.addEventListener('click', e => {
     input?.focus();
     return;
   }
+  const promoteButton = e.target.closest('[data-promote-customer-value]');
+  if (promoteButton) {
+    const row = promoteButton.closest('[data-customer-extra-row]');
+    const field = row?.closest('[data-customer-multi-kind]');
+    const primary = field?.querySelector('[data-customer-primary-row] [data-customer-multi-input]');
+    const input = row?.querySelector('[data-customer-multi-input]');
+    if (!primary || !input) return;
+    [primary.value, input.value] = [input.value, primary.value];
+    [primary, input].forEach(el => { setCustomerFieldHint(el, ''); el.dispatchEvent(new Event('input', { bubbles:true })); });
+    primary.focus();
+    return;
+  }
   const removeButton = e.target.closest('[data-remove-customer-value]');
-  if (removeButton) removeButton.closest('[data-customer-extra-row]')?.remove();
+  if (removeButton) {
+    // 删掉一行后焦点放到上一行的输入框，键盘用户不会被甩回弹窗开头。
+    const row = removeButton.closest('[data-customer-extra-row]');
+    const field = row?.closest('[data-customer-multi-kind]');
+    const previous = row?.previousElementSibling?.querySelector('[data-customer-multi-input]');
+    row?.remove();
+    if (field) {
+      refreshCustomerMultiPrimaryBadges(field.closest('form'));
+      (previous || field.querySelector('[data-add-customer-value]'))?.focus();
+      field.closest('form')?.dispatchEvent(new Event('input', { bubbles:true }));
+    }
+  }
 });
 document.getElementById('closeCustomerModalBtn').addEventListener('click', () => uiCloseCustomerGuarded());
 document.getElementById('customerDetailEditBtn').addEventListener('click', () => {
   setCustomerModalMode(true);
   document.getElementById('customerModalSub').textContent = '编辑客户档案';
   resetModalScroll('#customerModal');
+  // 「编辑资料」按钮自己被藏起来了：焦点交给客户名称，不掉到页面上。
+  document.getElementById('customerForm')?.elements.name?.focus({ preventScroll:true });
 });
 document.getElementById('customerEditCancelBtn').addEventListener('click', () => uiCancelCustomerEditGuarded());
 document.getElementById('customerNewOrderBtn').addEventListener('click', () => openNewOrderForCustomer(editingCustomer));
 document.getElementById('customerModal').addEventListener('click', async e => {
   if (e.target.id === 'customerModal') {
     uiCloseCustomerGuarded();
+    return;
+  }
+  const valueCopyBtn = e.target.closest('[data-copy-customer-value]');
+  if (valueCopyBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!await copyText(valueCopyBtn.dataset.copyCustomerValue, '已复制')) return;
+    clearTimeout(valueCopyBtn._resetTimer);
+    valueCopyBtn.classList.add('is-copied');
+    valueCopyBtn.textContent = '已复制';
+    valueCopyBtn._resetTimer = setTimeout(() => { valueCopyBtn.classList.remove('is-copied'); valueCopyBtn.textContent = '复制'; }, 1500);
     return;
   }
   const detailCopyBtn = e.target.closest('[data-copy-customer-detail]');
@@ -23320,20 +24155,9 @@ document.getElementById('customerHistoryList')?.addEventListener('click', e => {
   renderCustomerHistory(state.customers?.[editingCustomer]?.history || []);
 });
 document.getElementById('customerPasteClearBtn').addEventListener('click', clearCustomerPasteAssist);
-document.getElementById('customerPasteInput').addEventListener('input', invalidateCustomerPasteAnalysis);
-document.getElementById('customerPasteAiBtn').addEventListener('click', () => {
-  const input = document.getElementById('customerPasteInput');
-  const text = input?.value.trim() || '';
-  if (!text) {
-    toast('请先粘贴客户信息');
-    return;
-  }
-  invalidateCustomerPasteAnalysis();
-  customerPasteAnalysis = analyzeCustomerPasteText(text);
-  customerPasteAnalysis.extracted = customerPasteEditableFields(customerPasteAnalysis.extracted);
-  renderCustomerPasteResults(customerPasteAnalysis);
-});
-document.getElementById('customerPasteAnalyzeBtn').addEventListener('click', runAiCustomerPasteAnalysis);
+document.getElementById('customerPasteInput').addEventListener('input', handleCustomerPasteInputChange);
+document.getElementById('customerPasteAiBtn').addEventListener('click', () => runLocalCustomerPasteAnalysis());
+document.getElementById('customerPasteAnalyzeBtn').addEventListener('click', () => runAiCustomerPasteAnalysis());
 document.getElementById('customerPasteResults').addEventListener('click', handleCustomerPasteResultClick);
 document.getElementById('customerPasteResults').addEventListener('keydown', e => {
   if (e.target.id !== 'customerPasteEditValue') return;
@@ -23358,13 +24182,17 @@ document.addEventListener('blur', e => {
     input.dispatchEvent(new Event('change', { bubbles: true }));
   }
 }, true);
+// 客户表单（客户弹窗、新客户 + 订单）离开邮箱 / 电话 / 国家框时就地检查：只做不丢内容的整理，有问题在框下面写原因。
 document.addEventListener('blur', e => {
   const input = e.target;
-  if (!input?.matches?.('input[type="email"], [data-customer-multi-kind="emails"] [data-customer-multi-input]')) return;
-  const nextValue = normalizeCustomerEmail(input.value);
-  if (input.value !== nextValue) {
-    input.value = nextValue;
-    input.dispatchEvent(new Event('change', { bubbles:true }));
+  if (!input?.closest?.('#customerForm, #combinedCustomerForm') || input.disabled) return;
+  if (isCustomerEmailInput(input)) checkCustomerEmailInput(input);
+  else if (isCustomerPhoneInput(input)) checkCustomerPhoneInput(input);
+  else if (input.matches('input[name="country"]')) checkCustomerCountryInput(input);
+  else if (input.matches('input[name="name"]') && input.value.trim()) setCustomerFieldHint(input, '');
+  if (input.matches('[data-customer-multi-input], input[name="alibabaId"]')) {
+    const form = input.closest('form');
+    if (form?.querySelector('.customer-primary-contact-field .customer-field-hint')) refreshCustomerContactChannelHint(form);
   }
 }, true);
 document.getElementById('customerSearch').addEventListener('input', debouncedRender);
@@ -23445,6 +24273,30 @@ document.getElementById('orderSettingsForm').addEventListener('submit', e => {
   };
   render();
   toast('订单设置已保存');
+});
+document.getElementById('ownEmailsForm')?.addEventListener('submit', e => {
+  e.preventDefault();
+  const form = e.currentTarget;
+  const textarea = form.elements.ownEmails;
+  const lines = String(textarea.value || '').split(/[\n,，;；]+/).map(line => line.trim()).filter(Boolean);
+  const bad = lines.filter(line => !normalizeCustomerEmail(tidyCustomerEmail(line).value));
+  if (bad.length) {
+    setCustomerFieldHint(textarea, `这几行不是完整邮箱：${bad.join('、')}`, 'error');
+    textarea.focus();
+    return;
+  }
+  const list = normalizeCustomerValueList(lines.map(line => tidyCustomerEmail(line).value), '', normalizeCustomerEmail);
+  state.orderSettings = { ...defaultOrderSettings, ...(state.orderSettings || {}), ownEmails:list };
+  // 已经存进客户档案的我方邮箱：列出来，让用户到档案里删掉（不自动改档案）。
+  const own = new Set(list.map(value => value.toLowerCase()));
+  const polluted = Object.entries(state.customers || {}).filter(([, profile]) => {
+    const fields = normalizeCustomerContactFields(profile);
+    return [...fields.emails, profile.paymentEmail].some(value => own.has(String(value || '').toLowerCase()));
+  }).map(([name]) => name);
+  setCustomerFieldHint(textarea, polluted.length ? `这些客户的档案里存着我方邮箱，请到档案里删掉：${polluted.join('、')}` : '', 'note');
+  settingsFormRefill(form);
+  render();
+  toast(list.length ? `已保存 ${list.length} 个我方邮箱` : '已清空我方邮箱');
 });
 document.getElementById('copyTemplatesForm')?.addEventListener('submit', e => {
   e.preventDefault();
@@ -24294,6 +25146,19 @@ function uiLayoutToasts() {
   items.forEach((el, i) => { el.style.setProperty('--i', String(i)); el.classList.toggle('is-hidden', i > 2); });
   stack.classList.toggle('show', items.length > 0);
   stack.classList.toggle('above-foot', !!document.querySelector('.modal-backdrop.open'));
+  // 居中的弹窗（客户档案、订单）底部离窗口边还有一段，固定抬高 96px 不够，提示条正好盖住「保存」：
+  // 按最上层弹窗底部按钮条的实际位置再抬高，提示条落在按钮上方。
+  stack.style.bottom = '';
+  const modal = [...document.querySelectorAll('.modal-backdrop.open')].pop();
+  const foot = items.length ? modal?.querySelector('.modal-foot') : null;
+  if (foot) {
+    const footRect = foot.getBoundingClientRect();
+    const stackRect = stack.getBoundingClientRect();
+    const cssBottom = parseFloat(getComputedStyle(stack).bottom) || 0;
+    const needed = window.innerHeight - footRect.top + 12;
+    const sameColumn = footRect.width > 0 && footRect.right > stackRect.left && footRect.left < stackRect.right;
+    if (sameColumn && needed > cssBottom && footRect.top > 160) stack.style.bottom = `${Math.round(needed)}px`;
+  }
 }
 // 状态变形按钮：转圈 + 进行中 → 对勾 / 叉 + 结果；宽度跟着文字弹簧变化。
 function uiMorph(btn, mode, text) {
@@ -24955,9 +25820,17 @@ function uiStepNavSetup(modalId, formId) {
     });
   }).observe(form, { childList:true, subtree:true, attributes:true, attributeFilter:['class', 'style', 'hidden'] });
   const backdrop = document.getElementById(modalId);
-  new MutationObserver(() => {
-    if (backdrop.classList.contains('open')) requestAnimationFrame(() => { uiStepNavBuild(form); uiFormMarkClean(form); });
-  }).observe(backdrop, { attributes:true, attributeFilter:['class'] });
+  new MutationObserver(records => {
+    // 只在「从关到开」的那一下记「干净」。以前弹窗开着时 class 有任何变化（上一次关闭动画的收尾类名晚到）都重记一次，
+    // 刚打开就打的字被当成原样，关闭时不再提示、直接丢掉。
+    // 打开时立刻按刚填好的内容记一次（这个回调在打开它的那段代码跑完后才执行），下一帧再记一次：
+    // 以前只在下一帧记，机器忙、下一帧还没到时按 Esc，比的是上一次打开时的内容，没改也问「放弃修改？」。
+    const opened = backdrop.classList.contains('open') && records.some(record => !/(^|\s)open(\s|$)/.test(record.oldValue || ''));
+    if (opened) {
+      uiFormMarkClean(form);
+      requestAnimationFrame(() => { uiStepNavBuild(form); uiFormMarkClean(form); });
+    }
+  }).observe(backdrop, { attributes:true, attributeFilter:['class'], attributeOldValue:true });
 }
 function uiStepNavBuild(form) {
   const cfg = uiStepNavConfig(form);

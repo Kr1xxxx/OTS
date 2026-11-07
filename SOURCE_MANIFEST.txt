@@ -56,6 +56,7 @@ scripts/test-backup-settings.js
 scripts/test-board-layout.js
 scripts/test-business-analysis.js
 scripts/test-calendar-analysis-ui.js
+scripts/test-client-picker-fixes-ui.js
 scripts/test-client-picker-open-profile.js
 scripts/test-client-picker-search.js
 scripts/test-custom-select.js
@@ -92,7 +93,9 @@ scripts/test-multi-shipments.js
 scripts/test-new-order-stage.js
 scripts/test-order-list-page.js
 scripts/test-order-modal-history.js
+scripts/test-order-num-duplicates-ui.js
 scripts/test-order-number.js
+scripts/test-order-payment-input-ui.js
 scripts/test-order-recognition.js
 scripts/test-quick-actions-ui.js
 scripts/test-refresh-backup-pagination.js

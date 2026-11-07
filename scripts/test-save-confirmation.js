@@ -18,7 +18,7 @@ async function scenario(readOnly, saveOK) {
   let resolveSave;
   const pending = new Promise(resolve => { resolveSave = resolve; });
   const ctx = vm.createContext({
-    state:{customers:{},orders:[]}, macDataLoaded:true, macStorageReadOnly:readOnly,
+    state:{customers:{},orders:[]}, macDataLoaded:true, macStorageReadOnly:readOnly, macStorageConflict:false,
     isMacAppMode:()=>true, macSaveLastError:'test disk failure', editingId:null,
     FormData:class { entries() { return [['name','Test Buyer'],['originalName',''],['client','Test Buyer']]; } },
     customerMultiFieldData:()=>({}), customerContactPreferenceData:()=>({}), autoCapitalizeCustomerName:x=>x, customerSaveName:x=>String(x||'').trim(),
@@ -30,7 +30,8 @@ async function scenario(readOnly, saveOK) {
     orderShipmentsFromForm:()=>[], orderAttachmentsFromForm:()=>[],
     buildOrderFromFormData:(data,{existing})=>({id:existing?.id || 'order-'+(++ctx.sequence),client:'Test Buyer'}),
     sequence:0, shouldRequestOrderNotification:()=>false, normalizeFeishuNotification:x=>x,
-    closeOrder:()=>events.push('closed'), completeOrderNotification:()=>events.push('notified'), rejectDuplicateOrderNum:()=>false
+    closeOrder:()=>events.push('closed'), completeOrderNotification:()=>events.push('notified'), rejectDuplicateOrderNum:()=>false,
+    confirmOrderPaymentOverflow:async()=>true, orderStageSaveNote:()=>'', syncOrderFormAfterCustomerSave:()=>{}
   });
   for (const name of ['canSubmitStoredData','persistFormState']) {
     if (html.includes(`function ${name}(`)) vm.runInContext(extract(name),ctx);

@@ -48,8 +48,13 @@ const { chromium } = require('playwright');
     await openBtn.waitFor({state:'visible'});
     await openBtn.click();
     await page.waitForFunction(()=>document.getElementById('customerModal')?.classList.contains('open'), null, {timeout:3000});
-    assert.equal(await page.locator('#orderModal').evaluate(n=>n.classList.contains('open')),false,'订单弹窗应关闭');
+    // 档案叠在订单弹窗上面打开：订单弹窗不能关（以前不问一声就关掉，填了一半的内容全丢）。
+    assert.equal(await page.locator('#orderModal').evaluate(n=>n.classList.contains('open')),true,'订单弹窗不能被关掉');
     assert.match(await page.locator('#customerModal').innerText(),/Quesia H/,'应打开 Quesia H 的客户资料');
+    await page.locator('#closeCustomerModalBtn').click();
+    await page.waitForFunction(()=>!document.getElementById('customerModal').classList.contains('open'));
+    assert.equal(await page.locator('#orderModal').evaluate(n=>n.classList.contains('open')),true,'关掉档案后回到原来的订单');
+    assert.equal(await input.inputValue(),'Quesia','订单表单内容保留');
     assert.deepEqual(errors,[]);
     console.log('client picker open-profile ok');
   } finally { await browser.close(); }

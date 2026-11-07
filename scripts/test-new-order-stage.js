@@ -23,6 +23,7 @@ function extractFunction(name) {
 
 const context = vm.createContext({
   Date,
+  roundMoneyValue(value) { return Math.round((Number(value) || 0) * 100) / 100; },
   state:{ orderSettings:{}, orders:[] },
   existingCustomerKey() { return ''; },
   defaultOrderSettings:{ defaultPaymentChannel:'Paypal', defaultOwner:'Kris' },
@@ -52,14 +53,17 @@ const context = vm.createContext({
   applyOrderStageInvariants() {},
   orderChangeSummary() { return []; }
 });
+vm.runInContext(extractFunction('normalizeOrderNum'), context);
 vm.runInContext(extractFunction('inferNewOrderStage'), context);
+vm.runInContext(extractFunction('resolveOrderSaveStage'), context);
 vm.runInContext(extractFunction('normalizeOrderShipments'), context);
 vm.runInContext(extractFunction('buildOrderFromFormData'), context);
 
-function build(data, existing = null) {
+function build(data, existing = null, stageTouched = null) {
   context.testData = data;
   context.testExisting = existing;
-  return JSON.parse(JSON.stringify(vm.runInContext('buildOrderFromFormData(testData, { existing:testExisting, isDraft:false })', context)));
+  context.testTouched = stageTouched;
+  return JSON.parse(JSON.stringify(vm.runInContext('buildOrderFromFormData(testData, { existing:testExisting, isDraft:false, stageTouched:testTouched })', context)));
 }
 
 const base = {
@@ -77,12 +81,28 @@ assert.equal(build({ ...base, orderType:'定金订单', stage:'balance', trackin
 assert.equal(build({ ...base, orderType:'定金订单', stage:'balance' }).stage, 'balance', '手动选择的非报价阶段必须保留');
 assert.equal(build({ ...base, orderType:'全款订单', paidAmount:1000, stage:'balance' }).stage, 'balance', '手动阶段必须优先于全额付款判断');
 assert.equal(
-  build({ ...base, orderType:'定金订单', stage:'quote' }, { id:'o-existing', logs:[], stage:'quote' }).stage,
+  build({ ...base, orderType:'定金订单', stage:'quote' }, { id:'o-existing', logs:[], stage:'quote', orderType:'定金订单', amount:1000, paidAmount:0 }).stage,
   'quote',
-  '编辑已有订单时不能根据订单类型自动改阶段'
+  '编辑已有订单只改别的字段（收款没动）时阶段不动'
 );
+// 编辑弹窗登记收款时和详情抽屉一样按收款推进：没收定金 = 报价，收到定金 = 尾款，付清 = 生产中。
+const existingQuote = { id:'o-existing', logs:[], stage:'quote', orderType:'定金订单', amount:1000, paidAmount:0 };
+assert.equal(build({ ...base, orderType:'定金订单', paidAmount:300 }, existingQuote).stage, 'balance', '编辑弹窗填了已收定金应进入尾款');
+assert.equal(build({ ...base, orderType:'定金订单', paidAmount:1000 }, existingQuote).stage, 'production', '编辑弹窗一次收齐应进入生产中');
+const existingFullQuote = { ...existingQuote, orderType:'全款订单' };
+assert.equal(build({ ...base, orderType:'全款订单', paidAmount:1000 }, existingFullQuote).stage, 'production', '全款单在编辑弹窗改成已付应进入生产中');
+const existingBalance = { ...existingQuote, stage:'balance', paidAmount:300 };
+assert.equal(build({ ...base, orderType:'定金订单', stage:'balance', paidAmount:300, note:'只改备注' }, existingBalance).stage, 'balance', '只改备注时尾款单不动');
+assert.equal(build({ ...base, orderType:'定金订单', stage:'balance', paidAmount:1000 }, existingBalance).stage, 'production', '尾款收齐应进入生产中');
+assert.equal(build({ ...base, orderType:'定金订单', stage:'quote', paidAmount:300 }, existingQuote, true).stage, 'quote', '用户手动选过阶段时照用户选的');
+assert.equal(build({ ...base, orderType:'定金订单', stage:'production', paidAmount:300 }, existingQuote).stage, 'production', '阶段改成了别的（不知道是否手动）时照选的');
+const existingProduction = { ...existingQuote, stage:'production', orderType:'全款订单', paidAmount:1000 };
+assert.equal(build({ ...base, orderType:'全款订单', stage:'production', paidAmount:0 }, existingProduction).stage, 'production', '生产中及以后的订单改收款不会被自动退回');
+assert.equal(build({ ...base, orderType:'定金订单', paidAmount:300 }, { ...existingQuote, isDraft:true }).stage, 'balance', '草稿转正式单按收款推断');
+assert.equal(build({ ...base, amount:-100, orderType:'定金订单' }).amount, 0, '负数金额（草稿不经过浏览器校验）收成 0');
+assert.equal(build({ ...base, amount:'1000.005', orderType:'定金订单' }).amount, 1000.01, '金额只留两位小数');
 
-console.log('New order stage tests passed: payment, order type, tracking, manual stage, and edit precedence verified.');
+console.log('New order stage tests passed: payment, order type, tracking, manual stage, edit-modal payment advance (same as drawer), and amount sanitizing verified.');
 
 vm.runInContext(extractFunction('migrateDepositStage'), context);
 const migrate = order => { context.testOrder = order; return vm.runInContext('migrateDepositStage(testOrder)', context); };

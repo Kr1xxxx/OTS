@@ -948,6 +948,10 @@ html[data-theme="dark"] .segment-option.active {
   background: var(--surface-raised); scrollbar-width: none;
 }
 .client-letter-filter::-webkit-scrollbar { display: none; }
+/* 放不下的字母藏在右边时，边缘渐隐提示还能横着滚（滚轮在字母栏上会横向滚动） */
+.client-letter-filter.has-more { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
+.client-letter-filter.has-before { -webkit-mask-image: linear-gradient(to right, transparent, #000 28px); mask-image: linear-gradient(to right, transparent, #000 28px); }
+.client-letter-filter.has-before.has-more { -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); }
 .client-letter-btn {
   flex: 0 0 auto; min-width: 28px; height: 24px; border: 1px solid var(--gray-200); border-radius: 999px;
   background: var(--gray-50); color: var(--gray-600); font-size: 11px; font-weight: 600;
@@ -972,12 +976,20 @@ html[data-theme="dark"] .segment-option.active {
   flex: 0 0 auto; max-width: 58px; padding: 2px 6px; border-radius: 999px;
   background: var(--gray-100); color: var(--gray-600); font-size: 11px; font-weight: 600; white-space: nowrap;
 }
-.client-level-a { background: color-mix(in srgb, #6aa4ff 17%, var(--white)); color: #2563eb; }
+.client-level-a { background: color-mix(in srgb, #6aa4ff 17%, var(--white)); color: #1d4ed8; }
 .client-level-b { background: color-mix(in srgb, #10b981 14%, var(--white)); color: #047857; }
 .client-level-c { background: color-mix(in srgb, #b7c6d9 28%, var(--white)); color: #52677f; }
-.client-name-level-a { color: #4f8cff; }
-.client-name-level-b { color: #10a673; }
-.client-name-level-c { color: #7b91ad; }
+/* 名字是 13px 正文，白底上要到 4.5:1：和胶囊文字同一档深色（以前 #4f8cff / #10a673 / #7b91ad 只有 3.1–3.2:1） */
+.client-name-level-a { color: #2563eb; }
+.client-name-level-b { color: #047857; }
+.client-name-level-c { color: #52677f; }
+/* 深色模式：--white 是深灰，浅色模式的深色字压在深底上几乎看不见（C 级只有 1.5:1），换成浅色字 + 透明色底 */
+html[data-theme="dark"] .client-level-a { background: color-mix(in srgb, #6aa4ff 22%, transparent); color: #a5c8ff; }
+html[data-theme="dark"] .client-level-b { background: color-mix(in srgb, #10b981 22%, transparent); color: #6ee7b7; }
+html[data-theme="dark"] .client-level-c { background: color-mix(in srgb, #b7c6d9 20%, transparent); color: #d5dfeb; }
+html[data-theme="dark"] .client-name-level-a { color: #8fb8ff; }
+html[data-theme="dark"] .client-name-level-b { color: #5fd7a8; }
+html[data-theme="dark"] .client-name-level-c { color: #b6c4d6; }
 .client-open-btn {
   width: 26px; height: 26px; border: 1px solid var(--gray-200); border-radius: 7px;
   background: var(--white); color: var(--blue-600); font-weight: 600; display: grid; place-items: center;
@@ -1070,7 +1082,14 @@ html[data-theme="dark"] .deposit-combo select option { color: #f5f5f5; backgroun
 .deposit-only-field.is-hidden,
 .deposit-payment-amount-field.is-hidden,
 .full-payment-status-field.is-hidden { display: none !important; }
-.payment-compact-row.full-paid { grid-template-columns: minmax(0, 1fr); }
+/* 全款订单只有付款状态（选「部分已付」时再加已收金额框）：仍按两列排，状态不拉满整行。 */
+.payment-compact-row.full-paid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.payment-compact-row.full-paid .full-payment-status-field { order: -1; }
+/* 金额区字段下的小字：定金占比、已付 / 定金超额提醒、保存后会进哪个阶段。 */
+.field-hint { margin-top: 6px; font-size: 12px; line-height: 1.45; color: var(--gray-600); }
+.field-hint[hidden] { display: none; }
+.field-hint.is-warn { color: var(--red-600); font-weight: 600; }
+.field-warn > input, .field-warn .deposit-combo { border-color: color-mix(in srgb, var(--red-600) 55%, var(--gray-200)); }
 .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--blue-500); box-shadow: 0 0 0 3px var(--blue-100); }
 .amount-combo input:focus, .amount-combo select:focus, .deposit-combo input:focus, .deposit-combo select:focus { box-shadow: none; }
 .logistics-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
@@ -1698,8 +1717,9 @@ html[data-theme="dark"] .tag-neutral {
   width: 1px;
   background: var(--gray-200);
 }
+/* 已付款和定金单独占一整行：以前挤在半列里，定金框的金额只剩 40px，300 显示成「30」。 */
 .payment-compact-row {
-  grid-column: auto;
+  grid-column: 1 / -1;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
@@ -5083,6 +5103,7 @@ html[data-theme][data-modal-style="c"] .order-form .order-section-sub { margin:0
 html[data-theme][data-modal-style="c"] .order-form :is(.order-section-grid, .payment-grid, .deadline-grid, .payment-compact-row) { grid-template-columns:minmax(0,1fr); gap:8px; }
 html[data-theme][data-modal-style="c"] .order-form .payment-grid::before { display:none; }
 html[data-theme][data-modal-style="c"] .order-form :is(.order-section-grid, .payment-grid, .deadline-grid, .payment-compact-row, .order-section) > .field { display:grid; grid-template-columns:132px minmax(0,1fr); align-items:center; gap:16px; }
+html[data-theme][data-modal-style="c"] .order-form .field > .field-hint { grid-column:2; margin-top:-10px; }
 html[data-theme][data-modal-style="c"] .order-form .field > label { margin:0; color:var(--gray-600); font-size:13px; }
 html[data-theme][data-modal-style="c"] .order-form .field:has(> textarea) { align-items:start; }
 html[data-theme][data-modal-style="c"] .order-form .field:has(> textarea) > label { padding-top:10px; }
@@ -5663,7 +5684,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.117，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.117</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.118，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.118</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -6600,7 +6621,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
         <div class="field"><label>订单类型</label><select name="orderType"></select></div>
         <div class="payment-compact-row">
           <div class="field deposit-payment-amount-field"><label>已付款金额</label><input name="paidAmount" type="number" min="0" step="0.01" placeholder="0" autocomplete="off" inputmode="decimal"></div>
-          <div class="field full-payment-status-field"><label>付款状态</label><select name="fullPaymentStatus"><option value="已付">已付</option><option value="未付">未付</option></select></div>
+          <div class="field full-payment-status-field"><label>付款状态</label><select name="fullPaymentStatus"><option value="已付">已付</option><option value="部分">部分已付</option><option value="未付">未付</option></select></div>
           <div class="field deposit-only-field">
             <label>定金</label>
             <div class="deposit-combo">
@@ -6623,7 +6644,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
         </div>
         <div class="order-section-grid">
         <div class="field"><label>产品类型</label><select name="productType"></select></div>
-        <div class="field"><label>当前阶段</label><select name="stage"></select></div>
+        <div class="field"><label>当前阶段</label><select name="stage"></select><div class="field-hint" data-stage-hint hidden></div></div>
         </div>
       </section>
       <div class="order-more-toggle"><button class="btn btn-small" type="button" data-order-more>展开更多：附件、交期、物流、备注</button></div>
@@ -6984,7 +7005,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
             <div class="field"><label>订单类型</label><select name="orderType"></select></div>
             <div class="field"><label>产品类型</label><select name="productType"></select></div>
             <div class="field deposit-payment-amount-field"><label>已付款金额</label><input name="paidAmount" type="number" min="0" step="0.01" placeholder="0" autocomplete="off" inputmode="decimal"></div>
-            <div class="field full-payment-status-field"><label>付款状态</label><select name="fullPaymentStatus"><option value="已付">已付</option><option value="未付">未付</option></select></div>
+            <div class="field full-payment-status-field"><label>付款状态</label><select name="fullPaymentStatus"><option value="已付">已付</option><option value="部分">部分已付</option><option value="未付">未付</option></select></div>
             <div class="field deposit-only-field">
               <label>定金</label>
               <div class="deposit-combo">
@@ -6994,7 +7015,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
                 <input name="depositPercent" type="hidden">
               </div>
             </div>
-            <div class="field"><label>当前阶段</label><select name="stage"></select></div>
+            <div class="field"><label>当前阶段</label><select name="stage"></select><div class="field-hint" data-stage-hint hidden></div></div>
             <div class="field"><label>加急订单</label><select name="urgentOrder"><option value="否">否</option><option value="是">是</option></select></div>
             <div class="field"><label>客户要求收到日期</label><input name="customerRequiredDate" type="date"></div>
             <div class="field"><label>最晚发出日期</label><input name="latestShipDate" type="date"></div>
@@ -7774,9 +7795,16 @@ function saveDashboardAmountMonth(value) {
 function loadState() {
   return normalizeState({ orders: demoOrders, doneTasks: {} });
 }
+// 另一个窗口（或另一台设备）先保存过：本窗口切成只读，提示语要说清楚是冲突，不是「连接问题」，也别叫人「重试」。
+let macStorageConflict = false;
+const macConflictReadOnlyText = '另一个窗口刚保存过数据，本窗口已切换为只读，这次修改没有存进数据库。';
 function canSubmitStoredData() {
   if (isMacAppMode() && (!macDataLoaded || macStorageReadOnly)) {
-    toast('当前数据库不可写，未提交修改。请先恢复数据库连接。');
+    if (macStorageConflict) {
+      if (!promptMacStorageConflict()) toast(macConflictReadOnlyText, { tone:'error', desc:'可在设置里导出这次的修改，再重新加载最新数据' });
+    } else {
+      toast('当前数据库不可写，未提交修改。请先恢复数据库连接。', { tone:'error' });
+    }
     return false;
   }
   return true;
@@ -7787,10 +7815,13 @@ async function persistFormState(...forms) {
   forms.forEach(form => { form.inert = true; });
   try {
     const saved = isMacAppMode() ? await flushPendingSave() : await saveState();
-    if (!saved) toast('尚未保存到数据库，输入已保留，请重试。');
+    // 版本冲突由弹出的确认框说明并给出「导出 / 重新加载」，这里不再叫人「重试」（重试也存不进去）。
+    if (!saved && !macStorageConflict) {
+      toast(macStorageReadOnly ? '数据库处于只读保护，这次修改没有保存。请先到设置里重新加载数据库。' : '尚未保存到数据库，输入已保留，请重试。', { tone:'error' });
+    }
     return saved;
   } catch (_) {
-    toast('保存失败，输入已保留，请重试。');
+    toast('保存失败，输入已保留，请重试。', { tone:'error' });
     return false;
   } finally { forms.forEach((form,index) => { form.inert = previous[index]; }); }
 }
@@ -7800,7 +7831,7 @@ function saveState() {
     // 只读保护下（读库失败、版本冲突）改动只留在这一屏、没有写进数据库：要说出来，别让人以为已经保存了。
     if (isMacAppMode() && macStorageReadOnly && Date.now() - readOnlySaveToastAt > 5000) {
       readOnlySaveToastAt = Date.now();
-      toast('数据库处于只读保护，这次修改没有保存。请先到设置里重新加载数据库。', { tone:'error' });
+      toast(macStorageConflict ? macConflictReadOnlyText : '数据库处于只读保护，这次修改没有保存。请先到设置里重新加载数据库。', { tone:'error' });
     }
     return Promise.resolve(false);
   }
@@ -7848,10 +7879,41 @@ function showMacStorageConflictActions() {
   const panel = document.getElementById('macStorageConflictActions');
   if (panel) panel.hidden = false;
 }
-document.getElementById('macConflictExportBtn')?.addEventListener('click', () => {
-  download(`trade-order-unsaved-${Date.now()}.json`, JSON.stringify(dataFilePayload(state), null, 2));
-});
+function exportUnsavedMacState() {
+  return download(`trade-order-unsaved-${Date.now()}.json`, JSON.stringify(dataFilePayload(state), null, 2));
+}
+document.getElementById('macConflictExportBtn')?.addEventListener('click', () => exportUnsavedMacState());
 document.getElementById('macConflictReloadBtn')?.addEventListener('click', () => window.location.reload());
+// 版本冲突当场弹页面内确认框，把「导出这次的修改」「重新加载」放到眼前（以前只在设置页里）。
+// 取消 / Esc / × 都只是先关掉，不会重新加载丢掉修改；设置页里的两个按钮一直都在。
+// 返回是否弹出了确认框：已有别的确认框开着时不抢，由调用方改用 toast 提示。
+let macConflictPromptOpen = false;
+function promptMacStorageConflict() {
+  if (macConflictPromptOpen) return true;
+  if (document.getElementById('confirmModal')?.classList.contains('open')) return false;
+  macConflictPromptOpen = true;
+  (async () => {
+    try {
+      const choice = await appConfirm({
+        title: '另一个窗口刚保存过数据',
+        sub: '本窗口已切换为只读',
+        message: '为了不覆盖那边的修改，本窗口这次的修改没有存进数据库。\n\n建议先「导出这次的修改」留一份文件，再重新加载最新数据，把需要的修改重新录入。',
+        confirmText: '导出这次的修改',
+        cancelText: '稍后处理'
+      });
+      if (!choice.confirmed || !await exportUnsavedMacState()) return;
+      const reload = await appConfirm({
+        title: '已导出这次的修改',
+        sub: '文件在「下载」文件夹',
+        message: '现在重新加载最新数据吗？重新加载后，本窗口没保存的内容会以数据库里的为准。',
+        confirmText: '重新加载',
+        cancelText: '稍后'
+      });
+      if (reload.confirmed) window.location.reload();
+    } finally { macConflictPromptOpen = false; }
+  })();
+  return true;
+}
 function pendingSaveStatus() {
   return {
     mode: isMacAppMode() ? 'mac' : 'browser',
@@ -7903,8 +7965,12 @@ async function runMacSaveQueue() {
           const latestRevision = Number(result.revision ?? result.currentRevision);
           if (Number.isFinite(latestRevision)) macStorageRevision = latestRevision;
           macStorageReadOnly = true;
+          macStorageConflict = true;
           showMacStorageConflictActions();
-          throw new Error(result.message || '数据版本冲突，已切换为只读，可在设置中导出未保存的修改并重新加载');
+          // 服务端回的是英文原文（state revision conflict），给人看的固定用中文。
+          const error = new Error(macConflictReadOnlyText);
+          error.conflict = true;
+          throw error;
         }
         if (!res.ok || result.ok === false) {
           const error = new Error(result.message || `保存失败 HTTP ${res.status}`);
@@ -7918,16 +7984,20 @@ async function runMacSaveQueue() {
         macPersistedStateJson = snapshotJson;
         const feedback = backupSaveFeedback(result.backup, macBackupWarning);
         if (result.backup?.ok === true && !result.backup.skipped && macBackupSummary) renderBackupInfo({ ...macBackupSummary, lastBackupAt:Date.now(), sqliteCount:Number(macBackupSummary.sqliteCount || 0) + 1 });
-        if (feedback.warning && !macBackupWarning) toast(feedback.message);
+        if (feedback.warning && !macBackupWarning) toast(feedback.message, { tone:'warn' });
         macBackupWarning = feedback.message;
         setMacStorageStatus(result.storageMode || 'sqlite', feedback.warning ? 'warning' : 'saved', feedback.message || `数据库已保存 · 版本 ${macStorageRevision} · ${new Date().toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}`);
       } catch (error) {
         macSaveLastError = error.message || '数据库保存失败';
         setMacStorageStatus('sqlite', 'error', macSaveLastError);
         if (typeof uiNotifLogEvent === 'function') uiNotifLogEvent({ id:`save-${normalizeDate(new Date().toISOString())}-${macSaveLastError}`, kind:'error', title:'数据保存失败', sub:macSaveLastError, pill:'保存' });
-        if (Date.now() - macSaveErrorToastAt > 10000 || error.rejected) {
+        if (error.conflict) {
           macSaveErrorToastAt = Date.now();
-          toast(macStorageReadOnly || error.rejected ? `数据库没有保存：${macSaveLastError}` : '数据库保存失败，正在自动重试，请先不要关闭软件', error.rejected ? { tone:'error' } : undefined);
+          if (!promptMacStorageConflict()) toast(macSaveLastError, { tone:'error', desc:'可在设置里导出这次的修改，再重新加载最新数据' });
+        } else if (Date.now() - macSaveErrorToastAt > 10000 || error.rejected) {
+          macSaveErrorToastAt = Date.now();
+          // 失败提示不能用默认的绿色对勾：被拒绝 / 只读是红色，自动重试中是黄色。
+          toast(macStorageReadOnly || error.rejected ? `数据库没有保存：${macSaveLastError}` : '数据库保存失败，正在自动重试，请先不要关闭软件', { tone:macStorageReadOnly || error.rejected ? 'error' : 'warn' });
         }
         // 网络抖动或服务端短暂出错时自动重试，别让修改一直停在内存里；数据本身被拒绝时等下一次修改再存。
         if (!macStorageReadOnly && !error.rejected) window.setTimeout(() => { if (!macStorageReadOnly && macSaveCompletedVersion < macSaveRequestedVersion) scheduleMacSave(); }, 3000);
@@ -8035,7 +8105,7 @@ async function loadMacAppState() {
     macStorageReadOnly = true;
     macSaveLastError = e.message || '数据库读取失败';
     setMacStorageStatus('sqlite', 'error', e.message || '数据库读取失败');
-    toast('数据库读取失败，当前已进入只读保护，绝不会覆盖本机数据');
+    toast('数据库读取失败，当前已进入只读保护，绝不会覆盖本机数据', { tone:'error' });
   }
   render();
   if (typeof shouldScrollTopAfterRefresh !== 'undefined' && shouldScrollTopAfterRefresh) {
@@ -8191,6 +8261,8 @@ function normalizeOrderSettings(raw = {}) {
   const settings = { ...defaultOrderSettings, ...(raw || {}) };
   if (!raw?.productDefaultRevision) settings.defaultProductType = '睫毛';
   settings.productDefaultRevision = 1;
+  // 设置页只给 2 / 3 / 4 位；导入的旧数据里别的值会让生成器每次给出同一个号。
+  settings.serialDigits = [2, 3, 4].includes(Number(settings.serialDigits)) ? Number(settings.serialDigits) : 2;
   settings.defaultPaymentChannel = paymentChannelDefs.some(item => item.value === settings.defaultPaymentChannel)
     ? settings.defaultPaymentChannel
     : defaultOrderSettings.defaultPaymentChannel;
@@ -9734,8 +9806,11 @@ function depositPresetOptions(amountValue, currencyValue = 'USD') {
     return { percent, amount:selection.depositAmount, label };
   });
 }
+// 没传 tone 时 uiToast 一律当成功（绿色对勾）。说失败 / 没保存的提示兜底改成红色，免得以后新加的失败提示又漏传。
+const toastFailurePattern = /失败|没有保存|未保存|尚未保存|尚未写入|不可写|未提交|只读保护/;
 function toast(text, options) {
-  uiToast(text, options);
+  const tone = options?.tone || (toastFailurePattern.test(String(text || '')) ? 'error' : '');
+  uiToast(text, tone ? { ...options, tone } : options);
 }
 function copyTemplate(kind = 'status') {
   const own = kind === 'dunning' ? state?.orderSettings?.copyDunningTemplate : state?.orderSettings?.copyStatusTemplate;
@@ -10285,11 +10360,16 @@ function findTrackingInText(text) {
     .filter(item => item.score > 0)
     .sort((a, b) => b.score - a.score)[0]?.number || '';
 }
+// 粘贴内容里出现的完整订单号才算命中：规范化后等值比较，前后不能紧挨字母数字（「K261107010」不会命中 K26110701），
+// 空号的单直接跳过（以前任何粘贴都会命中它）。不再只认 SO 前缀。
 function matchOrdersFromPaste(text) {
-  const lower = normalizeSearchText(text);
-  const explicitNums = new Set((text.match(/\bSO\d{6,12}\b/gi) || []).map(v => v.toUpperCase()));
+  const haystack = String(text || '').normalize('NFKC').replace(/[\u00AD\u200B-\u200D\u2060\uFEFF]/g, '').toUpperCase();
+  const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return state.orders
-    .filter(o => explicitNums.has(String(o.num || '').toUpperCase()) || lower.includes(String(o.num || '').toLowerCase()))
+    .filter(o => {
+      const num = normalizeOrderNum(o.num);
+      return num.length >= 3 && new RegExp(`(?<![A-Z0-9])${escape(num)}(?![A-Z0-9])`).test(haystack);
+    })
     .slice(0, 5);
 }
 function decodePasteEntities(value = '') {
@@ -10859,13 +10939,29 @@ async function fillOrderFieldsFromPaste(fields, options = {}) {
     });
     overwriteCritical = confirmed.confirmed;
   }
+  // 识别出的订单类型先切过去（走切换类型的规则），再填金额：否则全款模式自动算出的已付 / 定金还留在框里。
+  const currentType = form.elements.orderType?.value || '定金订单';
+  if (normalizedFields.orderType && normalizedFields.orderType !== currentType && form.elements.orderType) {
+    form.elements.orderType.value = normalizedFields.orderType;
+    applyOrderTypeSwitch(form, currentType, normalizedFields.orderType, { keepPaid:Boolean(savedOrderForPaymentForm(form)) });
+  }
+  // 全款模式下隐藏的已付、定金、比例是按付款状态自动算的，不算「已有内容」，识别结果直接填进去。
+  if (normalizedFields.depositAmount !== undefined && normalizedFields.depositAmount !== '') delete form.dataset.depositFromPreset;
+  const fullType = (form.elements.orderType?.value || '定金订单') === '全款订单';
+  const derivedKeys = new Set(fullType
+    ? ['depositAmount', 'depositPercent', ...(form.elements.fullPaymentStatus?.value === '部分' ? [] : ['paidAmount'])]
+    : ['depositPercent']);
   Object.entries(normalizedFields).forEach(([key, value]) => {
     const field = form.elements[key];
     if (!field || value === undefined || value === null || value === '') return;
-    const hasValue = Boolean(String(field.value || '').trim());
+    const hasValue = !derivedKeys.has(key) && Boolean(String(field.value || '').trim());
     if (hasValue && !forceKeys.has(key) && !(critical.includes(key) && overwriteCritical)) return;
     field.value = value;
   });
+  // 全款单识别到了已付金额、却没说付款状态：按金额定「已付 / 部分已付 / 未付」，别让默认的「已付」把它改成全额。
+  if (fullType && form.elements.fullPaymentStatus && normalizedFields.paidAmount !== undefined && normalizedFields.paidAmount !== '' && !normalizedFields.fullPaymentStatus) {
+    form.elements.fullPaymentStatus.value = fullPaymentStatusFor(form.elements.amount?.value, normalizedFields.paidAmount);
+  }
   syncCarrierFromTracking(form);
   syncDepositFields(form, 'amount');
   updateOrderModalSummary();
@@ -13282,6 +13378,9 @@ function customerRoadmapEvents(name = '', history = []) {
 function orderChangeSummary(before, after) {
   if (!before) return ['新建订单'];
   const fields = [
+    // 改号 / 换客户最容易和已经发出去的单据对不上，要写进操作记录。
+    ['num', '订单号'],
+    ['client', '客户'],
     ['stage', '阶段', v => stageDef(normalizeStage(v)).name],
     ['amount', '订单金额'],
     ['paidAmount', '已付款金额'],
@@ -14176,17 +14275,17 @@ function renderClientMenu(picker, filter = '') {
   input.setAttribute('aria-expanded', String(menu.classList.contains('open')));
   input.removeAttribute('aria-activedescendant');
   picker.dataset.activeIndex = '-1';
-  const needle = normalizeSearchText(filter);
-  const countryQuery = searchCountryAliasGroups().some(group => group.some(alias => normalizeSearchText(alias) === needle));
-  const matched = clientHistory().filter(o => {
-    if (!needle) return true;
-    if (countryQuery) return searchTextMatchDetail(o.country, needle).direct;
-    return normalizeSearchText(o.client).includes(needle)
-      || searchTextMatches(`${o.client} ${o.country || ''}`, needle);
-  });
-  const letters = Array.from(new Set(matched.map(o => clientInitial(o.client)))).sort((a, b) => a.localeCompare(b));
+  const entries = clientPickerEntries();
+  const matched = clientPickerMatches(filter, entries);
+  const letters = Array.from(new Set(matched.map(item => clientInitial(item.client.client)))).sort((a, b) => a.localeCompare(b));
   const activeLetter = picker.dataset.clientLetter || 'all';
-  const clients = matched.filter(o => activeLetter === 'all' || clientInitial(o.client) === activeLetter);
+  const clients = matched.filter(item => activeLetter === 'all' || clientInitial(item.client.client) === activeLetter);
+  const typed = String(filter || '').trim();
+  const empty = !entries.length
+    ? '<div class="client-menu-empty"><strong>还没有客户</strong>直接输入客户名字，保存订单时会按新客户记录</div>'
+    : typed && !matched.length
+      ? `<div class="client-menu-empty"><strong>没有找到“${escapeAttr(typed)}”</strong>按 Enter 保留这个名字，保存订单时会按新客户记录</div>`
+      : '<div class="client-menu-empty"><strong>这个字母下没有匹配的客户</strong>点「全部」看所有结果</div>';
   const letterBar = `<div class="client-menu-head">
     <div class="client-menu-heading"><strong>选择客户</strong><span>${clients.length} 位${filter ? '匹配客户' : '客户'}</span></div>
     <div class="client-letter-filter">
@@ -14194,20 +14293,102 @@ function renderClientMenu(picker, filter = '') {
       ${letters.map(letter => `<button class="client-letter-btn ${activeLetter === letter ? 'active' : ''}" type="button" data-client-letter="${escapeAttr(letter)}">${escapeAttr(letter)}</button>`).join('')}
     </div></div>
   `;
-  menu.innerHTML = letterBar + (clients.length ? clients.map((o, index) => {
+  // 选中统一由 document 上的 pointerdown（捕获阶段）和 click 处理，行内不再挂 onpointerdown / onmousedown / onclick
+  // （以前一次选择挂了五条路径）。名字和 ↗ 带 title：超长名字悬停能看全，↗ 说明会叠在订单上打开、不会关掉订单。
+  menu.innerHTML = letterBar + (clients.length ? clients.map(({ client:o, hit }, index) => {
     const level = customerLevelLabelForItem(o);
     const shortLevel = customerLevelShortLabel(level);
+    const displayName = clientDisplayName(o.client);
+    const detail = [hit, o.country || '国家未设', clientPaymentLabel(o)].filter(Boolean).join(' · ');
     return `
     <div class="client-option" id="${menu.id}-option-${index}" role="option" aria-selected="${o.client === input.value.trim()}" data-client="${escapeAttr(o.client)}">
-      <button class="client-option-main" type="button" data-select-client="${escapeAttr(o.client)}" onpointerdown="selectClientFromMenu(this, this.dataset.selectClient); return false;" onmousedown="selectClientFromMenu(this, this.dataset.selectClient); return false;" onclick="selectClientFromMenu(this, this.dataset.selectClient); return false;">
-        <strong class="${customerLevelNameClass(level)}">${escapeAttr(clientDisplayName(o.client))}</strong>
+      <button class="client-option-main" type="button" data-select-client="${escapeAttr(o.client)}">
+        <strong class="${customerLevelNameClass(level)}" title="${escapeAttr(displayName)}">${escapeAttr(displayName)}</strong>
         <span class="client-level ${customerLevelPillClass(level)}">${escapeAttr(shortLevel)}</span>
-        <small>${escapeAttr(o.country || '国家未设')} · ${escapeAttr(clientPaymentLabel(o))}</small>
+        <small title="${escapeAttr(detail)}">${escapeAttr(detail)}</small>
       </button>
-      <button class="client-open-btn" type="button" data-open-client="${escapeAttr(o.client)}" aria-label="打开客户资料">↗</button>
+      <button class="client-open-btn" type="button" data-open-client="${escapeAttr(o.client)}" aria-label="打开客户档案" title="打开客户档案（叠在订单上面，关掉后回到这张订单）">↗</button>
     </div>
-  `; }).join('') : '<div class="client-menu-empty"><strong>暂无匹配客户</strong>可以输入客户姓名或国家继续查找</div>') + '<div class="client-menu-foot">↑ ↓ 选择 · Enter 确认 · Esc 收起</div>';
+  `; }).join('') : empty) + '<div class="client-menu-foot">↑ ↓ 选择 · Enter 确认 · Esc 收起</div>';
   if (menu.classList.contains('open')) positionClientMenu(picker);
+}
+// 选择器里的客户行：clientHistory() 再去掉两类假客户。
+// - 只差大小写的旧订单写法（档案叫 Alice Baker、旧订单写 alice baker）并进有档案的那一行，不再出现两行一样的名字；
+//   两种写法各有一份档案时（alice / Alice 是两位客户）照旧各留一行。
+// - 存草稿时客户留空生成的「未命名草稿」不是客户。
+function clientPickerEntries() {
+  const customers = state.customers || {};
+  const result = [];
+  const byKey = new Map();
+  clientHistory().forEach(row => {
+    const hasProfile = Object.hasOwn(customers, row.client);
+    if (row.client === '未命名草稿' && !hasProfile) return;
+    const key = String(row.client || '').trim().toLowerCase();
+    const seen = byKey.get(key);
+    if (!seen) {
+      byKey.set(key, { hasProfile, index:result.push(row) - 1 });
+      return;
+    }
+    if (seen.hasProfile && hasProfile) result.push(row);
+    else if (!seen.hasProfile && hasProfile) {
+      result[seen.index] = row;
+      seen.hasProfile = true;
+    }
+  });
+  return result;
+}
+// 名字和国家都没命中时，再看联系人、邮箱、电话、付款邮箱、阿里 ID：命中了在第二行注明是哪一项。
+function clientPickerContactHit(client, query) {
+  const needle = normalizeSearchText(query);
+  if (needle.length < 2) return '';
+  const digits = String(query || '').replace(/\D/g, '');
+  const numeric = /^[\d\s+().-]+$/.test(String(query || '').trim()) && digits.length >= 3;
+  const fields = [
+    ['联系人', [...(client.contacts || []), client.contact]],
+    ['邮箱', [...(client.emails || []), client.email]],
+    ['付款邮箱', [client.paymentEmail]],
+    ['电话', [...(client.phones || []), client.phone]],
+    ['阿里 ID', [client.alibabaId]]
+  ];
+  for (const [label, values] of fields) {
+    for (const value of values) {
+      const text = String(value || '').trim();
+      if (!text) continue;
+      if (normalizeSearchText(text).includes(needle) || (label === '电话' && numeric && text.replace(/\D/g, '').includes(digits))) return `${label} ${text}`;
+    }
+  }
+  return '';
+}
+function clientPickerMatches(filter = '', entries = clientPickerEntries()) {
+  const needle = normalizeSearchText(filter);
+  if (!needle) return entries.map(client => ({ client, hit:'' }));
+  // 「Al」「Ca」「Bo」「holland」既是国家别名，也可能是名字开头：以前只按国家筛，找 Alice 输入 Al 是空的。
+  // 现在名字里有以它开头的词就排在前面，后面再列这个国家的客户。
+  const countryQuery = searchCountryAliasGroups().some(group => group.some(alias => normalizeSearchText(alias) === needle));
+  const first = [];
+  const rest = [];
+  entries.forEach(client => {
+    const name = normalizeSearchText(client.client);
+    if (countryQuery) {
+      if (name.split(/[^\p{L}\p{N}]+/u).some(word => word.startsWith(needle))) first.push({ client, hit:'' });
+      else if (searchTextMatchDetail(client.country, needle).direct) rest.push({ client, hit:'' });
+      return;
+    }
+    if (name.includes(needle) || searchTextMatches(`${client.client} ${client.country || ''}`, needle)) {
+      first.push({ client, hit:'' });
+      return;
+    }
+    const hit = clientPickerContactHit(client, filter);
+    if (hit) rest.push({ client, hit });
+  });
+  return [...first, ...rest];
+}
+// 字母栏放不下时：两侧渐隐提示还有，竖向滚轮也能让它横着滚（以前鼠标用户点不到 I 以后的字母）。
+function syncClientLetterBar(menu) {
+  const bar = menu?.querySelector('.client-letter-filter');
+  if (!bar) return;
+  bar.classList.toggle('has-more', bar.scrollLeft + bar.clientWidth < bar.scrollWidth - 1);
+  bar.classList.toggle('has-before', bar.scrollLeft > 1);
 }
 function positionClientMenu(picker) {
   const menu = picker.querySelector('.client-menu');
@@ -14215,6 +14396,7 @@ function positionClientMenu(picker) {
   if (!menu?.classList.contains('open') || !input) return;
   positionFloatingMenu(menu, input, { maxHeight:420 });
   picker._clientMenuAnchor = input.getBoundingClientRect();
+  syncClientLetterBar(menu);
 }
 function setActiveClientOption(picker, index) {
   const menu = picker.querySelector('.client-menu');
@@ -14231,11 +14413,15 @@ function setActiveClientOption(picker, index) {
   if (rect.top < top) menu.scrollTop -= top - rect.top;
   else if (rect.bottom > bottom) menu.scrollTop += rect.bottom - bottom;
 }
-function openClientMenu(input) {
+// typing=false（聚焦、点 ▾）时，输入框里如果正好是一位已选中的客户，列出全部客户并把他高亮、滚到可见处，
+// 想换人不用先清空输入框；开始打字后才按输入过滤。
+function openClientMenu(input, { typing = false } = {}) {
   const picker = input.closest('.client-picker');
   if (activeClientPicker && activeClientPicker !== picker) closeClientMenus();
   closeAppSelectMenu();
-  renderClientMenu(picker, input.value);
+  const current = String(input.value || '').trim().toLowerCase();
+  const showAll = !typing && current && clientPickerEntries().some(item => item.client.toLowerCase() === current);
+  renderClientMenu(picker, showAll ? '' : input.value);
   const menu = picker.querySelector('.client-menu');
   menu.classList.add('open');
   activeClientPicker = picker;
@@ -14243,6 +14429,11 @@ function openClientMenu(input) {
   picker.querySelector('.client-trigger')?.setAttribute('aria-expanded', 'true');
   positionClientMenu(picker);
   resetScrollNode(menu, 'auto');
+  if (showAll) {
+    const options = [...menu.querySelectorAll('.client-option[data-client]')];
+    const index = options.findIndex(option => option.dataset.client.toLowerCase() === current);
+    if (index >= 0) setActiveClientOption(picker, index);
+  }
   requestAnimationFrame(() => { if (activeClientPicker === picker) positionClientMenu(picker); });
 }
 function closeClientMenus() {
@@ -14253,6 +14444,8 @@ function closeClientMenus() {
     input?.setAttribute('aria-expanded', 'false');
     input?.removeAttribute('aria-activedescendant');
     picker?.querySelector('.client-trigger')?.setAttribute('aria-expanded', 'false');
+    // 收起时字母筛选回到「全部」：以前点过 B 再打开，只剩 B 开头的两位，像是客户丢了。
+    if (picker) picker.dataset.clientLetter = 'all';
   });
   activeClientPicker = null;
 }
@@ -14263,8 +14456,8 @@ function selectClientFromMenu(source, clientName = '') {
   if (!picker || !input || !clean) return false;
   input.value = clean;
   input.dispatchEvent(new Event('input', { bubbles: true }));
+  // 订单表单的 change 监听会带入客户资料，这里不再直接再调一次（以前一次选择带入两遍）。
   input.dispatchEvent(new Event('change', { bubbles: true }));
-  if (input.form) fillClientFromHistory(input.form);
   closeClientMenus();
   return true;
 }
@@ -14305,7 +14498,8 @@ function closeBoardCardSettings() {
   resetModalScroll(modal);
 }
 function clientInitial(name = '') {
-  const first = String(name || '').trim().charAt(0).toUpperCase();
+  // 先去掉重音：Émilie 归到 E，不再归到「#」。
+  const first = String(name || '').trim().normalize('NFD').charAt(0).toUpperCase();
   return /^[A-Z]$/.test(first) ? first : '#';
 }
 function renderSelectSegment(selectId, segmentId, labels = {}) {
@@ -14335,6 +14529,17 @@ function renderSegmentControls() {
 function jumpToCustomerProfile(name) {
   if (!name) return;
   closeClientMenus();
+  // 从订单弹窗的客户下拉点 ↗：档案叠在订单弹窗上面打开，不关订单、不切页面。以前直接 closeOrder()，
+  // 不问一声就把填了一半的新订单 / 编辑中的改动连同刚上传的附件一起丢掉，关掉档案也回不去。
+  const orderModal = document.getElementById('orderModal');
+  if (orderModal?.classList.contains('open')) {
+    openCustomerModal(name, { viewOnly:true });
+    const customerModal = document.getElementById('customerModal');
+    // 关掉档案后焦点回到 ▾，而不是客户输入框（聚焦输入框会把下拉又弹出来）。
+    const trigger = orderModal.querySelector('.client-trigger');
+    if (customerModal && trigger) customerModal.__returnFocus = trigger;
+    return;
+  }
   closeOrder();
   setPage('customers');
   const search = document.getElementById('customerSearch');
@@ -16471,6 +16676,7 @@ function closeCustomerModal(clearPending = true) {
 async function openNewOrderForCustomer(name = '') {
   const clean = String(name || editingCustomer || '').trim();
   if (!clean) return;
+  if (!await leaveOrderUnderCustomerModal('新建订单')) return;
   closeCustomerModal();
   openOrder('');
   await fillOrderFieldsFromPaste(clientFieldsForPaste(clean), {
@@ -16478,6 +16684,7 @@ async function openNewOrderForCustomer(name = '') {
     forceKeys:['client', 'country', 'currency', 'paymentChannel', 'productType']
   });
   renderOrderClientAutofillSummary(customerDataForName(clean));
+  document.getElementById('orderForm')._clientAutofill = clientAutofillValues(customerDataForName(clean));
   document.getElementById('modalTitle').textContent = `给 ${clientDisplayName(clean)} 新建订单`;
   if (typeof uiFormMarkClean === 'function') uiFormMarkClean(document.getElementById('orderForm'));
 }
@@ -16652,9 +16859,31 @@ async function saveCustomer(form) {
   delete form.dataset.saving;
   closeCustomerModal(false);
   render();
+  syncOrderFormAfterCustomerSave(oldName, payload.newName);
   if (openPendingCombinedOrder(payload.newName, payload.nextProfile)) return;
   toast('客户档案已保存');
   } finally { delete form.dataset.saving; }
+}
+// 档案是叠在订单弹窗上改的（从客户下拉点 ↗ 打开）：下面订单里的客户名跟着改名，摘要（地址、永久备注）刷新成刚保存的。
+function syncOrderFormAfterCustomerSave(oldName = '', newName = '') {
+  const form = document.getElementById('orderForm');
+  if (!form || !document.getElementById('orderModal')?.classList.contains('open')) return;
+  const field = form.elements.client;
+  if (oldName && newName && oldName !== newName && sameCustomerName(field.value, oldName)) field.value = newName;
+  if (sameCustomerName(field.value, newName)) renderOrderClientAutofillSummary(customerDataForName(field.value));
+}
+// 客户档案叠在订单弹窗上时，要离开下面这张订单（给客户新建另一张 / 查看别的订单）：先确认没保存的改动，再关掉订单弹窗。
+async function leaveOrderUnderCustomerModal(sub) {
+  const orderModal = document.getElementById('orderModal');
+  if (!orderModal?.classList.contains('open')) return true;
+  const form = document.getElementById('orderForm');
+  if (form?.dataset.uploading || form?.dataset.deletingAttachment) {
+    toast('附件正在处理，请完成后再离开这张订单');
+    return false;
+  }
+  if (uiFormDirty(form) && !await uiConfirmDiscard(form, sub)) return false;
+  closeOrder();
+  return !orderModal.classList.contains('open');
 }
 function existingCustomerKey(name = '') {
   const clean = String(name || '').trim().toLowerCase();
@@ -16706,8 +16935,7 @@ function fillOrderFieldsForCombinedReview(fields = {}) {
     field.value = value;
   });
   if (form.elements.fullPaymentStatus && fullFields.orderType === '全款订单' && fullFields.paidAmount !== '') {
-    const total = Number(fullFields.amount || form.elements.amount?.value || 0);
-    form.elements.fullPaymentStatus.value = total > 0 && Number(fullFields.paidAmount || 0) >= total ? '已付' : '未付';
+    form.elements.fullPaymentStatus.value = fullPaymentStatusFor(fullFields.amount || form.elements.amount?.value, fullFields.paidAmount);
   }
   syncCarrierFromTracking(form);
   syncStageOptionsForForm(form);
@@ -16796,11 +17024,13 @@ function fillCombinedOrderForm(fields = {}, customerFields = {}) {
   setCombinedField(form, 'depositPercent', defaults.depositPercent);
   if (form.elements.fullPaymentStatus) {
     const hasExplicitPaidAmount = fields.paidAmount !== undefined && fields.paidAmount !== null && fields.paidAmount !== '';
-    const total = Number(fields.amount || form.elements.amount?.value || 0);
     form.elements.fullPaymentStatus.value = defaults.orderType === '全款订单' && hasExplicitPaidAmount
-      ? (total > 0 && Number(fields.paidAmount || 0) >= total ? '已付' : '未付')
+      ? fullPaymentStatusFor(fields.amount || form.elements.amount?.value, fields.paidAmount)
       : '已付';
   }
+  form._paymentStash = null;
+  delete form.dataset.stageTouched;
+  delete form.dataset.depositFromPreset;
   syncCarrierFromTracking(form);
   setOrderShipmentFields(form, fields);
   syncStageOptionsForForm(form);
@@ -16960,10 +17190,27 @@ function preferredOrderPaymentChannel(clientName = '', current = '', fallback = 
   if (customerPayment && isSystemDefault) return customerPayment;
   return currentPayment || customerPayment || fallbackPayment;
 }
-function setCustomerDefaultField(field, value, defaultValue = '') {
-  if (!field || !value) return;
+// 字段为空、等于系统默认值、或等于上一个客户自动带入的值时，才换成这位客户的值；用户自己改过的值不动。
+// 新客户没有这一项、而字段里还是上一个客户带入的值时，退回系统默认，不能沿用上一个客户的国家 / 币种 / 收款方式。
+function setCustomerDefaultField(field, value, defaultValue = '', previousAutofill = '') {
+  if (!field) return;
   const current = String(field.value || '').trim();
-  if (!current || current === String(defaultValue || '').trim()) field.value = value;
+  const previous = String(previousAutofill || '').trim();
+  const fromPrevious = Boolean(previous) && current === previous;
+  if (current && current !== String(defaultValue || '').trim() && !fromPrevious) return;
+  if (value) field.value = value;
+  else if (fromPrevious && defaultValue) field.value = defaultValue;
+}
+// 选中一位客户时会自动带入的值（和 fillClientFromHistory 用同一套规则），记下来，换客户时才认得出哪些是带入的。
+function clientAutofillValues(data = {}) {
+  if (!data.client) return null;
+  const product = productTypeDefs.some(item => item.value === data.productType) ? data.productType : '';
+  return {
+    country: data.country ? normalizeCountry(data.country) : '',
+    currency: data.currency || '',
+    paymentChannel: customerDefaultPaymentForName(data.client),
+    productType: product
+  };
 }
 function renderOrderClientAutofillSummary(data = {}) {
   const el = document.getElementById('orderClientAutofillSummary');
@@ -16985,26 +17232,34 @@ function renderOrderClientAutofillSummary(data = {}) {
 }
 function fillClientFromHistory(form) {
   const fields = form.elements;
+  // 订单表单里有 name="id" 的隐藏域，form.id 拿到的是那个 input，不是 "orderForm"：以前摘要和永久备注因此从不显示。
+  const isOrderForm = form.getAttribute('id') === 'orderForm';
   const settings = { ...defaultOrderSettings, ...(state.orderSettings || {}) };
   const data = customerDataForName(fields.client.value);
   if (!data.client) {
-    if (form.id === 'orderForm') renderOrderClientAutofillSummary();
+    if (isOrderForm) renderOrderClientAutofillSummary();
     return;
   }
-  setCustomerDefaultField(fields.country, data.country ? normalizeCountry(data.country) : '', settings.defaultCountry);
-  setCustomerDefaultField(fields.currency, data.currency || '', settings.defaultCurrency);
+  const previous = form._clientAutofill || {};
+  const next = clientAutofillValues(data);
+  const currencyBefore = fields.currency?.value;
+  setCustomerDefaultField(fields.country, next.country, settings.defaultCountry, previous.country);
+  setCustomerDefaultField(fields.currency, next.currency, settings.defaultCurrency, previous.currency);
   if (fields.owner && data.owner && !fields.owner.value.trim()) fields.owner.value = data.owner;
   if (fields.paymentChannel) {
-    const payment = preferredOrderPaymentChannel(data.client, fields.paymentChannel.value, settings.defaultPaymentChannel);
-    setCustomerDefaultField(fields.paymentChannel, payment, settings.defaultPaymentChannel);
+    // 字段里还是上一个客户带入的收款方式时，当成没选过，按这位客户重新带。
+    const current = normalizePaymentChannelValue(fields.paymentChannel.value);
+    const fromPrevious = Boolean(previous.paymentChannel) && current === previous.paymentChannel;
+    const payment = preferredOrderPaymentChannel(data.client, fromPrevious ? '' : fields.paymentChannel.value, settings.defaultPaymentChannel);
+    setCustomerDefaultField(fields.paymentChannel, payment, settings.defaultPaymentChannel, previous.paymentChannel);
   }
-  if (fields.productType) {
-    const product = productTypeDefs.some(item => item.value === data.productType) ? data.productType : '';
-    setCustomerDefaultField(fields.productType, product, settings.defaultProductType);
-  }
+  if (fields.productType) setCustomerDefaultField(fields.productType, next.productType, settings.defaultProductType, previous.productType);
+  form._clientAutofill = next;
   enhanceBinarySelects(form);
-  if (form.id === 'orderForm') renderOrderClientAutofillSummary(data);
-  if (form.id === 'orderForm') updateOrderModalSummary();
+  // 币种是代码改的，不会触发 change：定金比例里的币种标签要手动跟上。
+  if (fields.currency && fields.currency.value !== currencyBefore) syncDepositPresetControl(form);
+  if (isOrderForm) renderOrderClientAutofillSummary(data);
+  if (isOrderForm) updateOrderModalSummary();
 }
 function applyOrderDefaults(form) {
   const settings = { ...defaultOrderSettings, ...(state.orderSettings || {}) };
@@ -17025,11 +17280,13 @@ function applyOrderDefaults(form) {
 function updateDepositFieldVisibility(form) {
   if (!form?.elements?.orderType) return;
   const showDepositFields = form.elements.orderType.value === '定金订单';
+  // 全款订单选「部分已付」时也要能填已收金额（历史数据、导入数据里有全款单只收了一部分）。
+  const showPaidAmount = showDepositFields || form.elements.fullPaymentStatus?.value === '部分';
   form.querySelectorAll('.deposit-only-field').forEach(field => {
     field.classList.toggle('is-hidden', !showDepositFields);
   });
   form.querySelectorAll('.deposit-payment-amount-field').forEach(field => {
-    field.classList.toggle('is-hidden', !showDepositFields);
+    field.classList.toggle('is-hidden', !showPaidAmount);
   });
   form.querySelectorAll('.full-payment-status-field').forEach(field => {
     field.classList.toggle('is-hidden', showDepositFields);
@@ -17037,6 +17294,13 @@ function updateDepositFieldVisibility(form) {
   form.querySelectorAll('.payment-compact-row').forEach(row => {
     row.classList.toggle('full-paid', !showDepositFields);
   });
+}
+// 全款订单的付款状态：收齐 = 已付，收了一部分 = 部分（显示已收金额框），没收 = 未付。
+function fullPaymentStatusFor(amountValue, paidValue) {
+  const amount = Number(amountValue || 0);
+  const paid = Number(paidValue || 0);
+  if (amount > 0 && paid >= amount) return '已付';
+  return paid > 0 ? '部分' : '未付';
 }
 function syncDepositPresetControl(form) {
   const select = form?.elements?.depositPreset;
@@ -17057,6 +17321,8 @@ function applyDepositPreset(form, percentValue) {
   const selection = depositPresetSelection(form.elements.amount?.value, percentValue);
   form.elements.depositAmount.value = selection.depositAmount || '';
   form.elements.depositPercent.value = selection.depositPercent;
+  // 选的是比例：之后改订单金额时定金按这个比例跟着变（以前定金不动，比例悄悄从 30% 变成 15%）。
+  form.dataset.depositFromPreset = 'true';
   syncDepositFields(form, 'percent');
 }
 function syncDepositFields(form, source = 'amount') {
@@ -17064,35 +17330,173 @@ function syncDepositFields(form, source = 'amount') {
   updateDepositFieldVisibility(form);
   const amount = Number(form.elements.amount.value || 0);
   const type = form.elements.orderType.value || '定金订单';
+  form.dataset.paymentType = type;
   if (type === '全款订单') {
+    // 全款订单的定金、比例是隐藏的派生值；已付款只有「已付 / 未付」时由付款状态决定，「部分已付」时是用户填的，不动。
     form.elements.depositAmount.value = amount || '';
     form.elements.depositPercent.value = amount ? 100 : '';
     const paymentStatus = form.elements.fullPaymentStatus?.value || '已付';
-    form.elements.paidAmount.value = paymentStatus === '已付' && amount > 0 ? amount : '';
+    if (paymentStatus === '已付') form.elements.paidAmount.value = amount > 0 ? amount : '';
+    else if (paymentStatus === '未付') form.elements.paidAmount.value = '';
+    else if (source === 'payment-status' && amount > 0 && Number(form.elements.paidAmount.value || 0) >= amount) form.elements.paidAmount.value = '';
     syncDepositPresetControl(form);
+    syncPaymentHints(form);
     return;
   }
-  if (source === 'order-type') {
-    form.elements.paidAmount.value = '';
-    form.elements.depositAmount.value = '';
-    form.elements.depositPercent.value = '';
-  }
+  // 切换订单类型时清空 / 恢复已付和定金由 applyOrderTypeSwitch 负责，这里只同步比例和提示。
   let depositAmount = Number(form.elements.depositAmount.value || 0);
-  if (source === 'percent') {
+  const presetPercent = Number(form.elements.depositPercent.value || 0);
+  if (source === 'amount' && form.dataset.depositFromPreset === 'true' && presetPercent > 0) {
+    depositAmount = amount ? roundMoneyValue(amount * presetPercent / 100) : 0;
+    form.elements.depositAmount.value = depositAmount || '';
+  } else if (source === 'percent') {
     const percent = Number(form.elements.depositPercent.value || 0);
     depositAmount = amount && percent ? roundMoneyValue(amount * percent / 100) : 0;
     form.elements.depositAmount.value = depositAmount || '';
   } else if (source === 'deposit' || source === 'amount') {
     form.elements.depositPercent.value = amount && depositAmount ? depositPercent(amount, depositAmount) : '';
   }
-  const paid = Math.min(amount, Math.max(0, Number(form.elements.paidAmount.value || 0)));
-  form.elements.paidAmount.value = paid || '';
+  // 已付款金额不在这里改写：以前每敲一个键就按订单金额夹一次，改金额时中间值「1」把已付 300 截成 1，
+  // 「370.」被写回「370」吞掉小数点，最后变成全款付清。超过订单金额只在框下提示，保存时再确认。
   syncDepositPresetControl(form);
+  syncPaymentHints(form);
+}
+// 金额区的提示：已付 / 定金超过订单金额时标红提醒（不改用户正在输入的数）；定金下面写出占订单金额的比例。
+function setPaymentFieldHint(input, text = '', warn = false) {
+  const field = input?.closest('.field');
+  if (!field) return;
+  let hint = field.querySelector(':scope > .field-hint[data-payment-hint]');
+  if (!text) {
+    hint?.remove();
+    field.classList.remove('field-warn');
+    return;
+  }
+  if (!hint) {
+    hint = document.createElement('div');
+    hint.className = 'field-hint';
+    hint.dataset.paymentHint = 'true';
+    field.append(hint);
+  }
+  hint.textContent = text;
+  hint.classList.toggle('is-warn', warn);
+  field.classList.toggle('field-warn', warn);
+}
+function syncPaymentHints(form) {
+  const f = form?.elements;
+  if (!f?.amount || !f.paidAmount) return;
+  const amount = Math.max(0, Number(f.amount.value || 0));
+  const currency = String(f.currency?.value || 'USD').trim().toUpperCase() || 'USD';
+  const type = f.orderType?.value || '定金订单';
+  const paidTyped = type === '定金订单' || f.fullPaymentStatus?.value === '部分';
+  const paid = Number(f.paidAmount.value || 0);
+  setPaymentFieldHint(f.paidAmount, paidTyped && amount > 0 && paid > amount
+    ? `已付款超过订单金额 ${money(amount, currency)}` : '', true);
+  if (f.depositAmount) {
+    const deposit = Number(f.depositAmount.value || 0);
+    let depositText = '';
+    let depositWarn = false;
+    if (type === '定金订单' && amount > 0 && deposit > 0) {
+      depositWarn = deposit > amount;
+      depositText = depositWarn ? `定金超过订单金额 ${money(amount, currency)}` : `占订单金额 ${depositPercent(amount, deposit)}%`;
+    }
+    setPaymentFieldHint(f.depositAmount, depositText, depositWarn);
+  }
+  syncOrderStageHint(form);
+}
+// 订单类型切换：离开一种类型时把它的收款值（已付、定金、比例、付款状态、阶段）记在表单上，切回来原样恢复。
+// 以前误点一下「全款订单」再点回「定金订单」，已付和定金全被清空，尾款单还被换成了生产中。
+function applyOrderTypeSwitch(form, fromType, toType, { keepPaid = false } = {}) {
+  const f = form?.elements;
+  if (!f?.paidAmount || !f.orderType) return;
+  const stash = form._paymentStash || (form._paymentStash = {});
+  stash[fromType] = {
+    paidAmount:f.paidAmount.value,
+    depositAmount:f.depositAmount?.value || '',
+    depositPercent:f.depositPercent?.value || '',
+    fullPaymentStatus:f.fullPaymentStatus?.value || '',
+    stage:f.stage?.value || ''
+  };
+  const back = stash[toType];
+  const amount = Number(f.amount?.value || 0);
+  let stage = f.stage?.value || 'quote';
+  if (back) {
+    f.paidAmount.value = back.paidAmount;
+    if (f.depositAmount) f.depositAmount.value = back.depositAmount;
+    if (f.depositPercent) f.depositPercent.value = back.depositPercent;
+    if (f.fullPaymentStatus && back.fullPaymentStatus) f.fullPaymentStatus.value = back.fullPaymentStatus;
+    if (back.stage) stage = back.stage;
+  } else if (toType === '全款订单') {
+    // 带着已收的钱切到全款：收齐了算「已付」，没收齐算「部分已付」，金额原样保留。
+    const paid = Number(f.paidAmount.value || 0);
+    if (paid > 0 && f.fullPaymentStatus) f.fullPaymentStatus.value = amount > 0 && paid >= amount ? '已付' : '部分';
+  } else {
+    // 切到定金：全款时自动算出的 100% 定金不带过来；已付款只在是真收过的钱时保留（已保存订单的已收金额、手填的部分已付）。
+    if (!keepPaid && f.fullPaymentStatus?.value !== '部分') f.paidAmount.value = '';
+    delete form.dataset.depositFromPreset;
+    if (f.depositAmount) f.depositAmount.value = '';
+    if (f.depositPercent) f.depositPercent.value = '';
+  }
+  // 全款订单没有「尾款」阶段：按收款重新判断（收齐进生产中，没收齐回报价），不再一律换成生产中。
+  if (toType === '全款订单' && stage === 'balance') {
+    const status = f.fullPaymentStatus?.value || '已付';
+    const paid = status === '已付' ? amount : (status === '未付' ? 0 : Number(f.paidAmount.value || 0));
+    stage = inferNewOrderStage({ selectedStage:'quote', orderType:toType, amount, paidAmount:paid, trackingNumber:'' });
+  }
+  if (f.stage) renderStageSelect(f.stage, stage, toType);
+  syncDepositFields(form, 'type-switch');
+}
+// 表单对应的已保存订单（不含草稿）：切换订单类型时，这种单上的已付款是真收到的钱。
+function savedOrderForPaymentForm(form) {
+  const id = form?.getAttribute('id') === 'orderForm' ? (editingId || form.dataset.pendingOrderId) : form?.dataset.pendingOrderId;
+  const order = id ? state.orders.find(o => o.id === id) : null;
+  return order && !order.isDraft ? order : null;
+}
+async function handleOrderTypeChange(form) {
+  const f = form.elements;
+  const toType = f.orderType.value || '定金订单';
+  const fromType = form.dataset.paymentType || toType;
+  if (fromType === toType) {
+    syncStageOptionsForForm(form);
+    syncDepositFields(form, 'amount');
+    return;
+  }
+  const saved = savedOrderForPaymentForm(form);
+  const paid = Number(f.paidAmount.value || 0);
+  // 已保存的订单收过钱，又要改成另一种类型：先说清楚会怎样（切回原来的类型是恢复，不用问）。
+  // 详情抽屉保存时是代码在隐藏的表单里改类型，用户已经在抽屉里选好了，不再弹框（弹了也会和保存交错）。
+  const formVisible = form.closest('.modal-backdrop')?.classList.contains('open');
+  if (formVisible && saved && paid > 0 && toType !== (saved.orderType || '定金订单')) {
+    const amount = Number(f.amount.value || 0);
+    const currency = f.currency?.value || 'USD';
+    const toFull = toType === '全款订单';
+    const stageAfter = toFull && normalizeStage(f.stage?.value) === 'balance'
+      ? inferNewOrderStage({ selectedStage:'quote', orderType:toType, amount, paidAmount:paid, trackingNumber:'' })
+      : '';
+    const message = toFull
+      ? `这张单已收 ${money(paid, currency)}（订单金额 ${money(amount, currency)}）。改成全款订单后已收金额保留，付款状态显示「${amount > 0 && paid >= amount ? '已付' : '部分已付'}」${stageAfter ? `；全款订单没有「尾款」阶段，阶段改为「${stageDef(stageAfter).name}」` : ''}。再点回「定金订单」会恢复原来的定金和阶段。`
+      : `这张单已收 ${money(paid, currency)}。改成定金订单后已收金额保留，定金需要重新填写。再点回「全款订单」会恢复原样。`;
+    const result = await appConfirm({
+      title:`改成${toType}？`,
+      sub:'订单类型',
+      message,
+      confirmText:`改成${toType}`,
+      cancelText:'不改'
+    });
+    if (!result.confirmed) {
+      f.orderType.value = fromType;
+      enhanceBinarySelects(form);
+      syncOrderStageHint(form);
+      return;
+    }
+  }
+  applyOrderTypeSwitch(form, fromType, toType, { keepPaid:Boolean(saved) });
+  enhanceBinarySelects(form);
 }
 function updateOrderModalSummary() {
   const form = document.getElementById('orderForm');
   const fields = form.elements;
-  const modalStage = stageDef(normalizeStage(fields.stage.value));
+  // 头部标签显示保存后真正的阶段：新单默认「全款 + 已付」时阶段框还是报价，保存却进生产中，以前标签也写报价。
+  const modalStage = stageDef(orderFormSaveStage(form)?.stage || normalizeStage(fields.stage.value));
   const modalProduct = productTypeDef(fields.productType.value);
   const modalPayment = paymentChannelDef(fields.paymentChannel.value);
   document.getElementById('modalSummary').innerHTML = `
@@ -17180,10 +17584,13 @@ function openOrder(id) {
   fields.amount.value = order.amount;
   fields.paidAmount.value = order.paidAmount || '';
   if (fields.fullPaymentStatus) {
-    fields.fullPaymentStatus.value = id
-      ? (Number(order.amount || 0) > 0 && Number(order.paidAmount || 0) >= Number(order.amount || 0) ? '已付' : '未付')
-      : '已付';
+    // 全款单只收了一部分（历史 / 导入数据）时回显「部分已付」，不能当成未付在保存时把已收金额清零。
+    fields.fullPaymentStatus.value = id ? fullPaymentStatusFor(order.amount, order.paidAmount) : '已付';
   }
+  // 换了一张单：上一张单切换订单类型时记下的收款值、手动改阶段的标记都不能带过来。
+  form._paymentStash = null;
+  delete form.dataset.stageTouched;
+  delete form.dataset.depositFromPreset;
   fields.currency.value = order.currency || 'USD';
   if (fields.orderMonth) fields.orderMonth.value = normalizeMonth(order.orderMonth || order.updated);
   fields.productType.value = order.productType || '假发';
@@ -17212,6 +17619,8 @@ function openOrder(id) {
   syncDepositFields(form, 'amount');
   enhanceBinarySelects(form);
   renderOrderClientAutofillSummary(order.client ? customerDataForName(order.client) : {});
+  // 这张单客户的默认值记下来：换客户时，和老客户默认值一样的国家 / 币种 / 收款方式会跟着换。
+  form._clientAutofill = order.client ? clientAutofillValues(customerDataForName(order.client)) : null;
   if (!id) syncCarrierFromTracking(form);
   document.getElementById('modalNum').textContent = order.num || '新建订单';
   document.getElementById('modalTitle').textContent = order.client || '新建订单';
@@ -17253,43 +17662,94 @@ function closeOrder({ cleanupTemp = true } = {}) {
   setModalOpenState(modal, false);
   resetModalScroll(modal);
 }
+// 订单号的比较和保存都用这个写法：全角转半角（NFKC）、去掉所有空白和零宽字符（从聊天里复制常带）、字母转大写。
+// k26110701、Ｋ26110701、「K261107 01」和 K26110701 是同一个号；手工号里的 - / 等符号原样保留。
+function normalizeOrderNum(value) {
+  return String(value ?? '').normalize('NFKC').replace(/[\s\u00AD\u200B-\u200D\u2060\uFEFF]/g, '').toUpperCase();
+}
 function nextOrderNum() {
   const d = new Date();
   const settings = { ...defaultOrderSettings, ...(state.orderSettings || {}) };
   const prefix = String(settings.orderPrefix || 'K').trim().toUpperCase().replace(/[^A-Z0-9]/g, '') || 'K';
-  const digits = Math.max(2, Math.min(4, Number(settings.serialDigits || 2)));
+  // 导入的旧数据里位数可能不是数字：那样正则会变成 \d{NaN,}，每次都生成同一个号。
+  const digits = [2, 3, 4].includes(Number(settings.serialDigits)) ? Number(settings.serialDigits) : 2;
   const date = `${String(d.getFullYear()).slice(2)}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
-  const pattern = new RegExp(`^${prefix}${date}(\\d{${digits},})$`);
+  // 流水号按 2～6 位数字读，和当前位数设置无关：当天把位数从 2 改成 3 时接着 K26110702 排成 K261107003，不会倒回 001；
+  // 手工录入的超长号（K26110799999999999999999）不参与，否则 Number 丢精度，会连续两次生成同一个号。
+  const pattern = new RegExp(`^${prefix}${date}(\\d{2,6})$`);
   // Trashed and deleted orders still own their numbers in SQLite, so skip them too.
+  const taken = new Set();
   const dailyNums = [...(state.orders || []), ...(state.trashOrders || []), ...(state.deletedOrders || [])]
-    .map(o => String(o.num || '').match(pattern)?.[1])
+    .map(o => {
+      const num = normalizeOrderNum(o.num);
+      if (num) taken.add(num);
+      return num.match(pattern)?.[1];
+    })
     .filter(Boolean)
     .map(Number);
-  const next = Math.max(0, ...dailyNums) + 1;
-  return `${prefix}${date}${String(next).padStart(digits,'0')}`;
+  let next = Math.max(0, ...dailyNums) + 1;
+  let candidate = `${prefix}${date}${String(next).padStart(digits,'0')}`;
+  while (taken.has(candidate)) candidate = `${prefix}${date}${String(++next).padStart(digits,'0')}`;
+  return candidate;
 }
 // The database keeps order numbers unique across 订单 / 回收站 / 已删除. A repeated number used to be put into
 // state first; the save then failed on the server and every later edit stayed unsaved behind it.
+// 比较用规范化后的号：大小写、全角、空格不同的「同号」也算重复。
 function orderNumOwner(num, selfId = '') {
-  const text = String(num || '').trim();
+  const text = normalizeOrderNum(num);
   if (!text) return null;
   const buckets = [['orders', ''], ['trashOrders', '回收站里'], ['deletedOrders', '已删除订单里']];
   for (const [key, where] of buckets) {
-    const hit = (state[key] || []).find(o => o.id !== selfId && String(o.num || '').trim() === text);
+    const hit = (state[key] || []).find(o => o.id !== selfId && normalizeOrderNum(o.num) === text);
     if (hit) return { order:hit, where };
   }
   return null;
 }
+// 这张单原来的号（编辑已有订单 / 上次没存成功的新单）。号没改就不查重：库里旧数据可能已有只差大小写的两张单，
+// 不能因为这个连别的字段都改不了。
+function orderNumUnchanged(num, selfId = '') {
+  if (!selfId) return false;
+  const self = [...(state.orders || []), ...(state.trashOrders || []), ...(state.deletedOrders || [])].find(o => o.id === selfId);
+  return Boolean(self) && normalizeOrderNum(self.num) === normalizeOrderNum(num);
+}
+function orderNumConflictText(num, selfId = '') {
+  if (orderNumUnchanged(num, selfId)) return '';
+  const owner = orderNumOwner(num, selfId);
+  if (!owner) return '';
+  const same = String(owner.order.num || '') === String(num || '').trim();
+  return `订单号 ${normalizeOrderNum(num)} 已被${owner.where}「${clientDisplayName(owner.order.client) || '另一张订单'}」的订单使用${same ? '' : `（那张单写作 ${owner.order.num}，只差大小写、全角或空格）`}，请换一个`;
+}
+function markOrderNumField(field, invalid) {
+  const wrap = field?.closest('.field');
+  if (!wrap) return;
+  wrap.classList.remove('ui-err');
+  if (!invalid) return;
+  void wrap.offsetWidth;
+  wrap.classList.add('ui-err');
+}
 function rejectDuplicateOrderNum(form, order) {
-  const owner = orderNumOwner(order.num, order.id);
-  if (!owner) return false;
+  const message = orderNumConflictText(order.num, order.id);
+  if (!message) return false;
   const field = form?.elements?.num;
   if (field) {
+    markOrderNumField(field, true);
     field.focus();
     field.select?.();
   }
-  toast(`订单号 ${order.num} 已被${owner.where}「${clientDisplayName(owner.order.client) || '另一张订单'}」的订单使用，请换一个`, { tone:'error' });
+  toast(message, { tone:'error' });
   return true;
+}
+// 订单号输入框离开时就规范化并查重，不用等到点保存；标题上的号跟着输入走。
+function checkOrderNumField(field) {
+  const form = field?.form;
+  if (!form) return;
+  const typed = String(field.value || '');
+  const normalized = normalizeOrderNum(typed);
+  if (normalized && normalized !== typed) field.value = normalized;
+  const selfId = form.getAttribute('id') === 'orderForm' ? (editingId || form.dataset.pendingOrderId || '') : (form.dataset.pendingOrderId || '');
+  const message = normalized ? orderNumConflictText(normalized, selfId) : '';
+  markOrderNumField(field, Boolean(message));
+  if (message) toast(message, { tone:'error' });
 }
 function inferNewOrderStage({ selectedStage, orderType, amount, paidAmount, trackingNumber } = {}) {
   const stage = normalizeStage(selectedStage);
@@ -17302,7 +17762,56 @@ function inferNewOrderStage({ selectedStage, orderType, amount, paidAmount, trac
   if (orderType === '定金订单' && paid > 0) return 'balance';
   return 'quote';
 }
-function buildOrderFromFormData(data = {}, { existing = null, isDraft = false } = {}) {
+// 保存时用哪个阶段。新建 / 草稿转正：按收款推断（没收定金 = 报价，收到定金 = 尾款，付清 = 生产中）。
+// 编辑已有订单：收款（已付、金额、订单类型）改了、阶段没手动动过、原来在报价或尾款，才按收款推进，和详情抽屉一样；
+// 只改备注等其它字段时阶段不动。stageTouched 不知道时（null），按选中的阶段和原阶段是否相同来判断。
+function resolveOrderSaveStage({ existing = null, isDraft = false, selectedStage, orderType, amount, paidAmount, trackingNumber, stageTouched = null } = {}) {
+  const selected = normalizeStage(selectedStage);
+  if (isDraft) return selected;
+  if (!existing || existing.isDraft) return inferNewOrderStage({ selectedStage:selected, orderType, amount, paidAmount, trackingNumber });
+  const before = normalizeStage(existing.stage);
+  const touched = stageTouched === null ? selected !== before : Boolean(stageTouched);
+  if (touched || !['quote', 'balance'].includes(before)) return selected;
+  const amountBefore = Math.max(0, Number(existing.amount || 0));
+  const paidBefore = Math.min(amountBefore, Math.max(0, Number(existing.paidAmount || 0)));
+  const paymentTouched = roundMoneyValue(paidAmount) !== roundMoneyValue(paidBefore)
+    || roundMoneyValue(amount) !== roundMoneyValue(amountBefore)
+    || (orderType || '定金订单') !== (existing.orderType || '定金订单');
+  if (!paymentTouched) return selected;
+  return inferNewOrderStage({ selectedStage:'quote', orderType, amount, paidAmount, trackingNumber:'' });
+}
+// 表单现在保存的话会落到哪个阶段（弹窗头部标签和「当前阶段」下的提示用），和 buildOrderFromFormData 同一套规则。
+function orderFormSaveStage(form) {
+  const f = form?.elements;
+  if (!f?.stage || !f.amount) return null;
+  const existingId = form.getAttribute('id') === 'orderForm' ? (editingId || form.dataset.pendingOrderId) : form.dataset.pendingOrderId;
+  const existing = existingId ? state.orders.find(o => o.id === existingId) || null : null;
+  const amount = Number(f.amount.value || 0);
+  const orderType = f.orderType?.value || '定金订单';
+  const selected = normalizeStage(f.stage.value);
+  const payment = normalizeOrderPaymentInput({
+    paidAmount:f.paidAmount?.value,
+    depositAmount:f.depositAmount?.value,
+    depositPercent:f.depositPercent?.value
+  }, amount, orderType, selected);
+  const tracking = cleanTracking(f.trackingNumber?.value || '');
+  const stage = resolveOrderSaveStage({
+    existing, isDraft:false, selectedStage:selected, orderType, amount,
+    paidAmount:payment.paidAmount, trackingNumber:tracking, stageTouched:form.dataset.stageTouched === 'true'
+  });
+  return { selected, stage, byTracking:stage === 'shipment' && Boolean(tracking) && selected !== 'shipment' };
+}
+function syncOrderStageHint(form) {
+  const hint = form?.querySelector?.('[data-stage-hint]');
+  const preview = orderFormSaveStage(form);
+  if (hint) {
+    const show = Boolean(preview) && preview.stage !== preview.selected;
+    hint.hidden = !show;
+    hint.textContent = show ? `保存后会按${preview.byTracking ? '物流单号' : '收款'}自动放到「${stageDef(preview.stage).name}」` : '';
+  }
+  if (form?.getAttribute?.('id') === 'orderForm') updateOrderModalSummary();
+}
+function buildOrderFromFormData(data = {}, { existing = null, isDraft = false, stageTouched = null } = {}) {
   let shipments = normalizeOrderShipments({
     shipments:data.shipments,
     trackingNumber:data.trackingNumber,
@@ -17315,20 +17824,22 @@ function buildOrderFromFormData(data = {}, { existing = null, isDraft = false } 
   const cleanNumber = primaryShipment?.trackingNumber || '';
   const carrierHint = carrierHintFromTrackingText(data.trackingNumber);
   const detectedCarrier = cleanNumber ? detectCarrier(data.trackingNumber) : data.carrier;
-  const amount = Number(data.amount || 0);
+  // 草稿不经过浏览器的 min=0 / step=0.01 校验：负数、三位小数在这里收住，看板上不再出现「$-100」。
+  const amount = Math.max(0, roundMoneyValue(data.amount));
   const orderType = data.orderType || '定金订单';
   const selectedStage = normalizeStage(data.stage);
   const enteredPaymentValues = normalizeOrderPaymentInput(data, amount, orderType, selectedStage);
-  // 草稿转正式单时阶段也按收款推断，和新建一样。
-  const stageValue = (!existing || existing.isDraft) && !isDraft
-    ? inferNewOrderStage({
-        selectedStage,
-        orderType,
-        amount,
-        paidAmount: enteredPaymentValues.paidAmount,
-        trackingNumber: cleanNumber
-      })
-    : selectedStage;
+  // 草稿转正式单时阶段也按收款推断，和新建一样；编辑已有订单时登记了收款也会推进（见 resolveOrderSaveStage）。
+  const stageValue = resolveOrderSaveStage({
+    existing,
+    isDraft,
+    selectedStage,
+    orderType,
+    amount,
+    paidAmount: enteredPaymentValues.paidAmount,
+    trackingNumber: cleanNumber,
+    stageTouched
+  });
   if (['shipment','done'].includes(stageValue)) {
     const previousShipments = existing ? normalizeOrderShipments(existing) : [];
     shipments = shipments.map(shipment => {
@@ -17352,9 +17863,11 @@ function buildOrderFromFormData(data = {}, { existing = null, isDraft = false } 
   // customer's channel on each save (profiles without one default to 阿里巴巴).
   const paymentChannel = normalizePaymentChannelValue(data.paymentChannel)
     || preferredOrderPaymentChannel(clientName, '', state.orderSettings?.defaultPaymentChannel || defaultOrderSettings.defaultPaymentChannel || 'Paypal');
+  // 号没改（只差大小写 / 空格）就保留原写法，免得撞上库里只差大小写的另一张旧单；新填或改过的号存规范化后的写法。
+  const typedNum = normalizeOrderNum(data.num);
   const order = {
     id: existing ? existing.id : 'o' + Date.now(),
-    num: String(data.num || '').trim() || nextOrderNum(),
+    num: existing?.num && typedNum && normalizeOrderNum(existing.num) === typedNum ? existing.num : (typedNum || nextOrderNum()),
     client: clientName,
     country: data.country || '',
     createdAt: data.createdAt || normalizeDate(nowText()),
@@ -17395,6 +17908,38 @@ function buildOrderFromFormData(data = {}, { existing = null, isDraft = false } 
   });
   return order;
 }
+// 已付款 / 定金超过订单金额时，保存前先问一句：确认后按订单金额记，不再悄悄截断；选「回去修改」就停在那个框上。
+async function confirmOrderPaymentOverflow(form) {
+  const f = form?.elements;
+  if (!f?.amount || !f.paidAmount) return true;
+  const amount = Math.max(0, Number(f.amount.value || 0));
+  const currency = f.currency?.value || 'USD';
+  const type = f.orderType?.value || '定金订单';
+  const over = [];
+  const paid = Number(f.paidAmount.value || 0);
+  if ((type === '定金订单' || f.fullPaymentStatus?.value === '部分') && paid > amount) over.push({ field:f.paidAmount, label:'已付款', value:paid });
+  const deposit = Number(f.depositAmount?.value || 0);
+  if (type === '定金订单' && deposit > amount) over.push({ field:f.depositAmount, label:'定金', value:deposit });
+  if (!over.length) return true;
+  const result = await appConfirm({
+    title:`${over.map(item => item.label).join('和')}超过订单金额`,
+    sub:'保存订单',
+    message:`订单金额是 ${money(amount, currency)}，${over.map(item => `${item.label}填的是 ${money(item.value, currency)}`).join('，')}。继续保存会按订单金额记为 ${money(amount, currency)}。`,
+    confirmText:'按订单金额保存',
+    cancelText:'回去修改'
+  });
+  if (result.confirmed) return true;
+  const wrap = over[0].field.closest('.field');
+  if (wrap) { wrap.classList.remove('ui-err'); void wrap.offsetWidth; wrap.classList.add('ui-err'); }
+  over[0].field.focus();
+  over[0].field.select?.();
+  return false;
+}
+// 保存成功的提示里写出阶段：按收款自动换了阶段时，用户要知道这张单去了哪一列。
+function orderStageSaveNote(order, selectedStage) {
+  if (!order || order.isDraft || normalizeStage(order.stage) === normalizeStage(selectedStage)) return '';
+  return `，已按${normalizeStage(order.stage) === 'shipment' && cleanTracking(order.trackingNumber) ? '物流单号' : '收款'}放到「${stageDef(order.stage).name}」`;
+}
 async function saveCombinedCustomerOrder() {
   const customerForm = document.getElementById('combinedCustomerForm');
   const orderForm = document.getElementById('combinedOrderForm');
@@ -17414,6 +17959,7 @@ async function saveCombinedCustomerOrder() {
   }
   // Check the order number before the customer is written into state.
   if (rejectDuplicateOrderNum(orderForm, { num:String(orderData.num || '').trim(), id:orderForm.dataset.pendingOrderId || '' })) return;
+  if (!await confirmOrderPaymentOverflow(orderForm)) return;
   const duplicateOk = await confirmDuplicateCustomerSave({ oldName, newName, emails: customerData.emails });
   if (!duplicateOk) return;
   const previousProfile = state.customers?.[oldName] || (!oldName ? state.customers?.[newName] : {}) || {};
@@ -17432,7 +17978,7 @@ async function saveCombinedCustomerOrder() {
     attachments: []
   };
   const pendingOrder = state.orders.find(o => o.id === orderForm.dataset.pendingOrderId);
-  const order = buildOrderFromFormData(finalOrderData, { existing: pendingOrder || null, isDraft: false });
+  const order = buildOrderFromFormData(finalOrderData, { existing: pendingOrder || null, isDraft: false, stageTouched: orderForm.dataset.stageTouched === 'true' });
   if (rejectDuplicateOrderNum(orderForm, order)) return;
   const notificationRequested = shouldRequestOrderNotification(null, false, orderData.sendFeishuNotification === 'on');
   if (typeof rememberFeishuChoice === 'function') rememberFeishuChoice(orderData.sendFeishuNotification === 'on');
@@ -17444,7 +17990,7 @@ async function saveCombinedCustomerOrder() {
   delete orderForm.dataset.saving;
   closeCombinedCustomerOrderModal();
   render();
-  await completeOrderNotification(order.id, notificationRequested, '客户和订单已保存');
+  await completeOrderNotification(order.id, notificationRequested, `客户和订单已保存${orderStageSaveNote(order, orderData.stage)}`);
   } finally { delete orderForm.dataset.saving; }
 }
 async function upsertOrder(form, options = {}) {
@@ -17465,7 +18011,8 @@ async function upsertOrder(form, options = {}) {
     toast('请填写客户名称', { tone:'error' });
     return;
   }
-  const order = buildOrderFromFormData({ ...data, attachments: orderAttachmentsFromForm(form) }, { existing, isDraft });
+  if (!await confirmOrderPaymentOverflow(form)) return;
+  const order = buildOrderFromFormData({ ...data, attachments: orderAttachmentsFromForm(form) }, { existing, isDraft, stageTouched: form.dataset.stageTouched === 'true' });
   if (rejectDuplicateOrderNum(form, order)) return;
   if (!existing) form.dataset.pendingNewOrder = 'true';
   const notificationRequested = shouldRequestOrderNotification(form.dataset.pendingNewOrder ? null : existing, isDraft, data.sendFeishuNotification === 'on');
@@ -17480,7 +18027,7 @@ async function upsertOrder(form, options = {}) {
   delete form.dataset.saving;
   closeOrder({ cleanupTemp: false });
   render();
-  const successText = isDraft ? '订单草稿已保存' : (isEdit ? '订单已保存' : '订单已创建');
+  const successText = `${isDraft ? '订单草稿已保存' : (isEdit ? '订单已保存' : '订单已创建')}${orderStageSaveNote(order, data.stage)}`;
   if (isDraft || !notificationRequested) toast(successText);
   else await completeOrderNotification(order.id, true, successText);
   } finally { delete form.dataset.saving; }
@@ -17498,7 +18045,8 @@ function duplicateOrder() {
     ...src,
     id:'o' + Date.now(),
     num: nextOrderNum(),
-    client: src.client + ' 复制',
+    // 客户名保持原样：以前写成「X 复制」，客户列表里就多出一个假客户。来源写在操作记录里。
+    client: src.client,
     createdAt: normalizeDate(nowText()),
     orderMonth: normalizeMonth(nowText()),
     shipments: [],
@@ -17523,7 +18071,9 @@ function duplicateOrder() {
   state.orders.unshift(copy);
   closeOrder();
   render();
-  toast('已复制为新订单');
+  // 直接打开复制出来的新单：号码、金额当场就能看到、能改。
+  openOrder(copy.id);
+  toast(`已复制为新订单 ${copy.num}`, { desc:'可以直接改号码、金额后保存' });
 }
 async function softDeleteOrder(id, { closeModal = false } = {}) {
   if (!id) return false;
@@ -17776,6 +18326,17 @@ function unpackDataFile(raw) {
   }
   return next;
 }
+// 规范化后相同、写法不同的订单号分组，例如 [['K26110701', 'k26110701']]。
+function similarOrderNumGroups(orders = []) {
+  const groups = new Map();
+  orders.forEach(order => {
+    const key = normalizeOrderNum(order?.num);
+    if (!key) return;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(order);
+  });
+  return [...groups.values()].filter(list => list.length > 1);
+}
 function dataSummaryText(data) {
   return [
     `订单：${data.orders.length} 个`,
@@ -17789,10 +18350,15 @@ async function previewImportDataFile(file) {
   if (!file || !canSubmitStoredData()) return;
   try {
     const data = unpackDataFile(await readJsonFile(file));
+    // 只差大小写 / 全角 / 空格的号数据库存得下，不拦导入（自己的旧备份要能恢复），但预览里要说出来。
+    const similar = similarOrderNumGroups([...data.orders, ...data.trashOrders, ...data.deletedOrders]);
+    const similarText = similar.length
+      ? `\n\n注意：有 ${similar.length} 组订单号只差大小写、全角或空格（${similar.slice(0, 3).map(list => list.map(o => o.num).join(' / ')).join('；')}${similar.length > 3 ? ' 等' : ''}），导入后建议改掉其中一个。`
+      : '';
     const confirmed = await appConfirm({
       title: '导入数据文件',
       sub: '导入前预览',
-      message: `${dataSummaryText(data)}\n\n确认后会覆盖当前本地数据。`,
+      message: `${dataSummaryText(data)}${similarText}\n\n确认后会覆盖当前本地数据。`,
       confirmText: '确认导入',
       danger: true
     });
@@ -17913,16 +18479,19 @@ async function macOpenDataFolder(btn) {
 }
 function runDataHealthCheck() {
   const allOrders = [...(state.orders || []), ...(state.trashOrders || []), ...(state.deletedOrders || [])];
-  const nums = new Map();
-  allOrders.forEach(order => { if (String(order.num || '')) nums.set(order.num, (nums.get(order.num) || 0) + 1); });
-  const duplicateNums = Array.from(nums).filter(([, count]) => count > 1).map(([num]) => num);
+  // 按规范化后的号分组：k26110701 和 K26110701 也算重复。每组写清楚号码、客户、在哪（订单 / 回收站 / 已删除）。
+  const where = order => (state.trashOrders || []).includes(order) ? '回收站' : (state.deletedOrders || []).includes(order) ? '已删除' : '订单';
+  const duplicateNums = similarOrderNumGroups(allOrders)
+    .map(list => list.map(order => `${order.num}（${clientDisplayName(order.client) || '未填客户'} · ${where(order)}）`).join(' / '));
+  const emptyNums = allOrders.filter(order => !normalizeOrderNum(order.num)).length;
   const ids = new Map();
   allOrders.forEach(order => ids.set(order.id, (ids.get(order.id) || 0) + 1));
   const duplicateIds = Array.from(ids).filter(([id, count]) => !id || count > 1).length;
   const missingClient = allOrders.filter(order => !String(order.client || '').trim()).length;
   const invalidAmount = allOrders.filter(order => Number(order.amount || 0) < 0 || !Number.isFinite(Number(order.amount || 0))).length;
   const messages = [];
-  if (duplicateNums.length) messages.push(`重复订单号：${duplicateNums.join('、')}`);
+  if (duplicateNums.length) messages.push(`重复订单号（含只差大小写、全角或空格的）：\n${duplicateNums.map(line => `· ${line}`).join('\n')}`);
+  if (emptyNums) messages.push(`订单号为空：${emptyNums} 个`);
   if (duplicateIds) messages.push(`订单 ID 缺失或重复：${duplicateIds} 个`);
   if (missingClient) messages.push(`缺少客户名称：${missingClient} 个`);
   if (invalidAmount) messages.push(`异常金额：${invalidAmount} 个`);
@@ -17930,7 +18499,9 @@ function runDataHealthCheck() {
     title: '数据健康检查',
     sub: messages.length ? '发现需要关注的项目' : '检查通过',
     message: messages.length ? messages.join('\n') : '当前订单号、客户名称和金额字段没有发现明显异常。',
-    confirmText: '知道了'
+    confirmText: '知道了',
+    // 纯信息，只留一个「知道了」。
+    cancelText: ''
   });
 }
 // 导出文件，返回是否成功。浏览器里走普通下载；Mac App 的 WebKit 会拦下 blob 下载（以前点了导出只提示「已导出」，
@@ -20731,15 +21302,29 @@ document.querySelectorAll('#orderForm, #combinedOrderForm').forEach(form => {
   if (!form?.elements?.amount) return;
   form.elements.amount.addEventListener('input', () => syncDepositFields(form, 'amount'));
   form.elements.paidAmount.addEventListener('input', () => syncDepositFields(form, 'paid'));
-  form.elements.fullPaymentStatus?.addEventListener('change', () => syncDepositFields(form, 'payment-status'));
-  form.elements.depositAmount.addEventListener('input', () => syncDepositFields(form, 'deposit'));
-  form.elements.depositPreset?.addEventListener('change', event => applyDepositPreset(form, event.currentTarget.value));
-  form.elements.currency?.addEventListener('change', () => syncDepositPresetControl(form));
-  form.elements.orderType.addEventListener('change', () => {
-    syncStageOptionsForForm(form);
-    syncDepositFields(form, 'order-type');
-    if (form.id === 'orderForm') updateOrderModalSummary();
+  form.elements.fullPaymentStatus?.addEventListener('change', () => {
+    syncDepositFields(form, 'payment-status');
+    // 选「部分已付」就把光标放进已收金额框，直接填。
+    if (form.elements.fullPaymentStatus.value === '部分' && !form.elements.paidAmount.value && form.closest('.modal-backdrop')?.classList.contains('open')) {
+      requestAnimationFrame(() => form.elements.paidAmount.focus());
+    }
   });
+  form.elements.depositAmount.addEventListener('input', () => {
+    delete form.dataset.depositFromPreset;
+    syncDepositFields(form, 'deposit');
+  });
+  form.elements.depositPreset?.addEventListener('change', event => applyDepositPreset(form, event.currentTarget.value));
+  form.elements.currency?.addEventListener('change', () => {
+    syncDepositPresetControl(form);
+    syncPaymentHints(form);
+  });
+  form.elements.orderType.addEventListener('change', () => handleOrderTypeChange(form));
+  // 用户自己选过阶段：保存时照用户选的来，不再按收款推进。
+  form.elements.stage?.addEventListener('change', () => {
+    form.dataset.stageTouched = 'true';
+    syncOrderStageHint(form);
+  });
+  form.elements.trackingNumber?.addEventListener('input', () => syncOrderStageHint(form));
 });
 document.getElementById('customerForm').addEventListener('submit', e => { e.preventDefault(); saveCustomer(e.currentTarget); });
 document.addEventListener('change', e => {
@@ -21069,11 +21654,30 @@ document.getElementById('testAiConnectionBtn')?.addEventListener('click', async 
   }
 });
 document.querySelector('#orderForm input[name="client"]').addEventListener('change', e => fillClientFromHistory(e.target.form));
+document.querySelectorAll('#orderForm input[name="num"], #combinedOrderForm input[name="num"]').forEach(field => {
+  field.addEventListener('change', () => checkOrderNumField(field));
+  field.addEventListener('input', () => {
+    markOrderNumField(field, false);
+    // 标题上的号跟着输入走，别让人以为存的是打开弹窗时预填的那个号。
+    if (field.form?.getAttribute('id') === 'orderForm') document.getElementById('modalNum').textContent = normalizeOrderNum(field.value) || '新建订单';
+  });
+});
 document.querySelectorAll('.client-picker input[name="client"]').forEach(input => {
   input.addEventListener('focus', () => openClientMenu(input));
-  input.addEventListener('input', () => {
+  // 已经聚焦（刚选完客户）再点输入框不会触发 focus：菜单收着时点一下也要打开。
+  input.addEventListener('click', () => {
+    if (!input.closest('.client-picker').querySelector('.client-menu').classList.contains('open')) openClientMenu(input);
+  });
+  input.addEventListener('input', e => {
+    // 输入法组字中途（wang xiao）不重画列表，免得闪成「没有找到」；上屏后 compositionend 再画。
+    if (e.isComposing) return;
     input.closest('.client-picker').dataset.clientLetter = 'all';
-    openClientMenu(input);
+    openClientMenu(input, { typing:true });
+  });
+  input.addEventListener('compositionend', () => {
+    if (document.activeElement !== input) return;
+    input.closest('.client-picker').dataset.clientLetter = 'all';
+    openClientMenu(input, { typing:true });
   });
   const picker = input.closest('.client-picker');
   picker.addEventListener('focusout', e => {
@@ -21092,9 +21696,24 @@ document.querySelectorAll('.client-picker input[name="client"]').forEach(input =
     if (e.target !== input) return;
     if (e.key === 'Enter' && menu.classList.contains('open')) {
       e.preventDefault();
-      const options = menu.querySelectorAll('.client-option[data-client]');
+      const options = [...menu.querySelectorAll('.client-option[data-client]')];
       const selected = options[Number(picker.dataset.activeIndex)];
-      if (selected) selectClientFromMenu(selected, selected.dataset.client);
+      if (selected) {
+        selectClientFromMenu(selected, selected.dataset.client);
+        return;
+      }
+      // 没用方向键高亮时：只剩一位、或名字和输入完全一样就直接选中；没有匹配就收起菜单、保留输入当新客户名；
+      // 有好几位就先高亮第一位，再按一次 Enter 确认。
+      const typed = input.value.trim().toLowerCase();
+      const exact = options.find(option => option.dataset.client.toLowerCase() === typed);
+      if (typed && (exact || options.length === 1)) {
+        const target = exact || options[0];
+        selectClientFromMenu(target, target.dataset.client);
+      } else if (!options.length) {
+        closeClientMenus();
+      } else {
+        setActiveClientOption(picker, 0);
+      }
       return;
     }
     if (['ArrowDown','ArrowUp'].includes(e.key)) {
@@ -21121,8 +21740,21 @@ document.querySelectorAll('.client-trigger').forEach(btn => {
 document.addEventListener('mousedown', e => {
   if (e.target.closest?.('.client-menu, .client-trigger')) e.preventDefault();
 }, true);
+// 字母栏横向放不下：鼠标竖向滚轮在字母栏上改成横着滚，滚动时更新两侧的渐隐提示。
+document.addEventListener('wheel', e => {
+  const bar = e.target.closest?.('.client-letter-filter');
+  if (!bar || bar.scrollWidth <= bar.clientWidth || Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+  e.preventDefault();
+  bar.scrollLeft += e.deltaY;
+  syncClientLetterBar(bar.closest('.client-menu'));
+}, { passive:false });
+document.addEventListener('scroll', e => {
+  if (e.target?.classList?.contains('client-letter-filter')) syncClientLetterBar(e.target.closest('.client-menu'));
+}, true);
+// 注意：.client-picker 自己也带 data-client-letter（记当前字母筛选），所以只能按按钮匹配，
+// 否则菜单里任何地方按下都会被当成「点了字母」，这里的选中从不生效（以前全靠行内 onpointerdown 兜着）。
 document.addEventListener('pointerdown', e => {
-  if (e.target.closest('[data-open-client], [data-client-letter]')) return;
+  if (e.target.closest('[data-open-client], button[data-client-letter]')) return;
   const target = e.target.closest('[data-select-client], .client-option[data-client]');
   const clientName = target?.dataset.selectClient || target?.dataset.client || '';
   if (!clientName) return;
@@ -21135,8 +21767,12 @@ document.addEventListener('click', e => {
   if (roadmapOrderBtn) {
     e.preventDefault();
     e.stopPropagation();
-    if (roadmapOrderBtn.closest('#customerModal')) closeCustomerModal();
-    openOrderDetail(roadmapOrderBtn.dataset.roadmapOrderId);
+    (async () => {
+      const fromCustomer = roadmapOrderBtn.closest('#customerModal');
+      if (fromCustomer && !await leaveOrderUnderCustomerModal('查看订单')) return;
+      if (fromCustomer) closeCustomerModal();
+      openOrderDetail(roadmapOrderBtn.dataset.roadmapOrderId);
+    })();
     return;
   }
   const openClientBtn = e.target.closest('[data-open-client]');
@@ -21146,7 +21782,7 @@ document.addEventListener('click', e => {
     jumpToCustomerProfile(openClientBtn.dataset.openClient);
     return;
   }
-  const letterBtn = e.target.closest('[data-client-letter]');
+  const letterBtn = e.target.closest('button[data-client-letter]');
   if (letterBtn) {
     e.preventDefault();
     e.stopPropagation();
@@ -21408,7 +22044,12 @@ document.getElementById('deletedOrderList').addEventListener('hold-confirm', e =
   if (purgeBtn) purgeOrder(purgeBtn.dataset.purgeOrder);
 });
 document.getElementById('deleteOrderBtn').addEventListener('hold-confirm', deleteOrder);
-document.getElementById('duplicateBtn').addEventListener('click', duplicateOrder);
+// 复制的是已保存的那一版：弹窗里还没保存的改动会随弹窗关掉，先问一句。
+document.getElementById('duplicateBtn').addEventListener('click', async () => {
+  const form = document.getElementById('orderForm');
+  if (uiFormDirty(form) && !await uiConfirmDiscard(form, '复制订单')) return;
+  duplicateOrder();
+});
 document.getElementById('topNewCustomerBtn').addEventListener('click', () => openCustomerModal());
 // 导出成功才把按钮换成「已导出」（Mac App 里要等本地服务写完文件）。
 document.getElementById('dataExportCsvBtn').addEventListener('click', async e => {
@@ -22685,8 +23326,12 @@ async function uiDetailSave() {
   if (values.paidAmount !== undefined) {
     const amount = Number(values.amount ?? order.amount ?? 0);
     const paid = Number(values.paidAmount || 0);
-    if ((values.orderType || order.orderType) === '全款订单') uiDetailSetFormValue(form, 'fullPaymentStatus', amount > 0 && paid >= amount ? '已付' : '未付');
-    else uiDetailSetFormValue(form, 'paidAmount', values.paidAmount);
+    // 全款单只收了一部分：付款状态放「部分已付」并带上金额。以前映射成「未付」，输入 500 保存后已收变成 0。
+    if ((values.orderType || order.orderType) === '全款订单') {
+      const status = fullPaymentStatusFor(amount, paid);
+      uiDetailSetFormValue(form, 'fullPaymentStatus', status);
+      if (status === '部分') uiDetailSetFormValue(form, 'paidAmount', values.paidAmount);
+    } else uiDetailSetFormValue(form, 'paidAmount', values.paidAmount);
   }
   // 改了收款的话，报价 / 尾款阶段的订单按收款情况推进：没收定金留在报价，收到定金进尾款，付清进生产中（和新建订单一样）。
   // 只改备注等其它字段时阶段不动，避免手动拖到尾款的订单被悄悄退回。

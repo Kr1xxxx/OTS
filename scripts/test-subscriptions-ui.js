@@ -82,7 +82,7 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     await page.waitForFunction(() => document.getElementById('subsHeroMonthly')?.getAttribute('aria-label') === '168.98');
     assert.equal(await page.locator('#subsHeroMonthly .subs-wh').count(), 5, 'every digit of 168.98 is a rolling strip');
     assert.equal(await page.locator('#subsHeroYear').innerText(), '一年约 ¥2,028 · 美元按 7.1 折算');
-    assert.match(await page.locator('#subsHeroSide').innerText(), /3 项续费[\s\S]*3 项自动续费 · 0 项已取消[\s\S]*未来 30 天要付 ¥211\.00 · 2 笔[\s\S]*2 项快到续费日/);
+    assert.match(await page.locator('#subsHeroSide').innerText(), /3 项续费[\s\S]*3 项续费中 · 0 项不再续费[\s\S]*未来 30 天要付 ¥211\.00 · 2 笔[\s\S]*2 项快到续费日/);
 
     // Category filter with a sliding highlight, and in-page search.
     await page.locator('[data-sub-filter="AI"]').click();
@@ -133,7 +133,7 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     await drawer.locator('.subs-dh .subs-pill.amber').waitFor();
     assert.match(await drawer.locator('.subs-card').first().innerText(), /有效期至\s*2026-05-18\s*61天后到期，不再扣费/);
     assert.equal(store.list().items.find(item => item.name === '1Password').endsOn, '2026-05-18');
-    assert.match(await page.locator('#subsHeroSide').innerText(), /2 项自动续费 · 1 项已取消/);
+    assert.match(await page.locator('#subsHeroSide').innerText(), /2 项续费中 · 1 项不再续费/);
     assert.equal(await rows.filter({ hasText:'1Password' }).locator('.subs-pill').innerText(), '61天后到期');
     const cancelToast = toasts.filter({ hasText:'1Password 已停止续费' });
     assert.match(await cancelToast.innerText(), /2026-05-18 到期后不再扣费/);
@@ -270,6 +270,23 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     assert.equal(await modal.locator('#subscriptionName').inputValue(), 'Claude Pro');
     assert.equal(await page.locator('#subscriptionEditTitle').innerText(), '编辑续费项');
     assert.equal(await modal.locator('#subscriptionSaveBtn').innerText(), '保存');
+    // Typed changes are not thrown away silently: Escape asks, 继续编辑 keeps them, 放弃修改 closes.
+    await modal.locator('#subscriptionName').fill('Claude Max');
+    await page.keyboard.press('Escape');
+    await page.locator('#confirmModal.open').waitFor();
+    assert.match(await page.locator('#confirmTitle').innerText(), /放弃未保存的修改/);
+    await page.locator('#confirmCancelBtn').click();
+    assert.equal(await modal.getAttribute('aria-hidden'), 'false');
+    assert.equal(await modal.locator('#subscriptionName').inputValue(), 'Claude Max');
+    await modal.locator('#subscriptionEditCancelBtn').click();
+    await page.locator('#confirmModal.open').waitFor();
+    await page.locator('#confirmOkBtn').click();
+    await page.waitForFunction(() => !document.getElementById('subscriptionEditModal').classList.contains('open'));
+    assert.equal(store.list().items.some(item => item.name === 'Claude Max'), false);
+    await drawer.locator('[data-sub-action="edit"]').click();
+    await modal.locator('#subscriptionName').waitFor({ state:'visible' });
+    assert.equal(await modal.locator('#subscriptionName').inputValue(), 'Claude Pro');
+    // Untouched: Escape closes right away.
     await page.keyboard.press('Escape');
     assert.equal(await modal.getAttribute('aria-hidden'), 'true');
     assert.equal(await drawer.getAttribute('aria-hidden'), 'false');
@@ -330,8 +347,13 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     assert.equal(await expiredApp.page.locator('#subscriptionStart').inputValue(), '2026-03-18');
     await expiredApp.page.locator('#subscriptionSaveBtn').click();
     await expiredApp.page.waitForFunction(() => !document.getElementById('subscriptionEditModal').classList.contains('open'));
-    const renewed = expiredStore.list().items[0];
-    assert.deepEqual({ status:renewed.status, endsOn:renewed.endsOn, startDate:renewed.startDate }, { status:'active', endsOn:'', startDate:'2026-03-18' });
+    // Re-subscribing adds a new record; the expired one stays so its past charges keep counting in 历史 / 分析.
+    const [oldNotion, renewed] = expiredStore.list().items;
+    assert.equal(expiredStore.list().items.length, 2);
+    assert.deepEqual({ status:oldNotion.status, startDate:oldNotion.startDate, endsOn:oldNotion.endsOn }, { status:'cancelled', startDate:'2025-12-05', endsOn:'2026-02-05' });
+    assert.notEqual(renewed.id, oldNotion.id);
+    assert.deepEqual({ status:renewed.status, endsOn:renewed.endsOn, startDate:renewed.startDate, amount:renewed.amount, priceChanges:renewed.priceChanges }, { status:'active', endsOn:'', startDate:'2026-03-18', amount:10, priceChanges:[] });
+    await expiredApp.page.locator('.toast-item', { hasText:'Notion 已重新续费' }).waitFor();
     assert.deepEqual(expiredCounters.errors, []);
     await expiredApp.context.close();
 

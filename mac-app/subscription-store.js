@@ -59,7 +59,8 @@ function cleanPriceChanges(value) {
 }
 function cleanItem(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) fail('续费内容无效');
-  const amount = Number(input.amount);
+  // Checked after rounding to cents: 0.004 would otherwise pass here and then hit the table's CHECK(amount > 0).
+  const amount = Math.round(Number(input.amount) * 100) / 100;
   if (!Number.isFinite(amount) || amount <= 0 || amount > 10000000) fail('金额无效');
   const status = oneOf(input.status ?? 'active', statuses, '状态');
   const extra = input.extra ?? {};
@@ -76,14 +77,15 @@ function cleanItem(input) {
     id,
     name:bounded(input.name, '名称', 80),
     note:bounded(input.note, '备注', 200, false),
-    amount:Math.round(amount * 100) / 100,
+    amount,
     currency:oneOf(input.currency, currencies, '币种'),
     cycleUnit:cycle.unit,
     cycleCount:cycle.count,
     paymentMethod:bounded(input.paymentMethod, '付款方式', 40, false),
     startDate:isoDate(input.startDate, '开始日期'),
     // Any short label: a custom type deleted later stays on the records that used it.
-    category:legacyCategories[input.category] || bounded(input.category, '类型', 20),
+    // Own keys only: a type named 「constructor」 must not read Object.prototype.
+    category:Object.hasOwn(legacyCategories, input.category) ? legacyCategories[input.category] : bounded(input.category, '类型', 20),
     provider:bounded(input.provider, '服务商', 40, false),
     // Off for things renewed by hand, such as most domains; those are reminded earlier.
     autoRenew:input.autoRenew !== false,
@@ -220,6 +222,8 @@ function createSubscriptionStore(db) {
       const customCategories = [];
       categoriesIn.forEach(entry => {
         const category = bounded(entry, '类型', 20);
+        // An old type name is stored as its new one, so offering it as a custom type would never stick.
+        if (Object.hasOwn(legacyCategories, category)) return;
         if (!customCategories.includes(category) && !categories.includes(category)) customCategories.push(category);
       });
       writeSetting('options', JSON.stringify({ customCycles, customPaymentMethods, customCategories }));

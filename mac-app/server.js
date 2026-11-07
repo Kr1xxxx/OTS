@@ -1362,9 +1362,12 @@ function createBackup(force = false) {
   return { ok:true, file:backupFile, attachmentsDir:backupFile + '.attachments', attachmentCount };
 }
 
+// Created once per open database: creating it runs the table setup and the legacy-type migration.
+let subscriptionStoreCache = null;
 function subscriptionStore() {
   if (!database || storageMode !== 'sqlite') throw httpError(503, '续费数据库暂不可用');
-  return createSubscriptionStore(database);
+  if (subscriptionStoreCache?.db !== database) subscriptionStoreCache = { db:database, store:createSubscriptionStore(database) };
+  return subscriptionStoreCache.store;
 }
 
 function automaticBackup() {

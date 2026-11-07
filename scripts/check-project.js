@@ -62,6 +62,14 @@ assert.equal(require(path.join(root, 'package.json')).version, `${expectedVersio
 const html = fs.readFileSync(path.join(root, 'trade-order-system.html'), 'utf8');
 assert.match(html, new RegExp(`class="app-version"[^>]*>V${escapeRegExp(expectedVersion)}<`), 'visible HTML version differs from VERSION');
 
+// 每个没有兜底值的 var(--x) 都要有定义：用了未定义的变量，整条样式规则失效（全局搜索的选中高亮就这样丢过）。
+const definedCssVars = new Set([
+  ...[...html.matchAll(/(--[\w-]+)\s*:/g)].map(match => match[1]),
+  ...[...html.matchAll(/setProperty\(\s*['"](--[\w-]+)['"]/g)].map(match => match[1])
+]);
+const undefinedCssVars = [...new Set([...html.matchAll(/var\(\s*(--[\w-]+)\s*\)/g)].map(match => match[1]).filter(name => !definedCssVars.has(name)))];
+assert.deepEqual(undefinedCssVars, [], `CSS variables used without a definition: ${undefinedCssVars.join(', ')}`);
+
 const secretPatterns = [
   /API Key\s+[A-Za-z0-9_-]{12,}/i,
   /API Secret\s+[A-Za-z0-9_-]{12,}/i,

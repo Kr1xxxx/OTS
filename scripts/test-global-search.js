@@ -27,6 +27,9 @@ const context = vm.createContext({ console });
 [
   'normalizeSearchText',
   'searchCountryAliasGroups',
+  'searchCountryAliasTable',
+  'searchHasCjk',
+  'searchAmountValue',
   'searchTextDocument',
   'boundedDamerauLevenshtein',
   'searchWordFuzzyMatch',
@@ -73,6 +76,27 @@ for (const [name, haystack, query, expected] of compatibilityCases) {
 const exactScore = evaluate(`globalSearchScore('Evan Sampleton', 'Evan Sampleton London', globalSearchTokens('Evan Sampleton'))`);
 const fuzzyScore = evaluate(`globalSearchScore('Evan Sampleton', 'Evan Sampleton London', globalSearchTokens('Evan Sampletno'))`);
 assert.ok(exactScore > fuzzyScore, 'exact title match must outrank fuzzy title match');
+
+// 逐字输入邮箱、带横杠的单号：每一步都要有结果（以前拆词再拼回去，打到一半是 0）。
+const emailHaystack = 'Acme Beauty LLC john.doe@acme-beauty.com +44 7700 900127';
+const email = 'john.doe@acme-beauty.com';
+for (let length = 3; length <= email.length; length += 1) {
+  assert.ok(evaluate(`globalSearchScore('Acme Beauty LLC', ${JSON.stringify(emailHaystack)}, ${JSON.stringify(email.slice(0, length))})`) >= 0, `partial email ${email.slice(0, length)}`);
+}
+const orderNum = 'SO-2024-0105';
+for (let length = 2; length <= orderNum.length; length += 1) {
+  assert.ok(evaluate(`globalSearchScore('SO-2024-0105 Acme', 'SO-2024-0105 Acme Beauty 1022.5', ${JSON.stringify(orderNum.slice(0, length))})`) >= 0, `partial order number ${orderNum.slice(0, length)}`);
+}
+// 中文短词、英文前缀、小数金额、本地写法电话。
+assert.ok(evaluate(`globalSearchScore('张三美发用品', '张三美发用品 广州', '张三')`) >= 0, 'two Chinese characters');
+assert.ok(evaluate(`globalSearchScore('Johnny Salon', 'Johnny Salon', 'Jo')`) >= 0, 'two-letter prefix');
+assert.ok(evaluate(`globalSearchScore('SO-2024-0105', 'SO-2024-0105 USD 1022.5', '1022.50')`) >= 0, 'amount with trailing zero');
+assert.ok(evaluate(`globalSearchScore('SO-2024-0105', 'SO-2024-0105 USD 1022.5', '1,022.50')`) >= 0, 'amount with grouping and decimals');
+assert.equal(evaluate(`globalSearchScore('SO-2024-0105', 'SO-2024-0105 USD 1022.5', '1022.60')`), -1, 'different decimals do not match');
+assert.ok(evaluate(`globalSearchScore('Acme', ${JSON.stringify(emailHaystack)}, '07700900127')`) >= 0, 'local UK phone format');
+assert.ok(evaluate(`globalSearchScore('Acme', 'Acme 07700 900127', '+44 7700 900127')`) >= 0, 'international format against a local number');
+// 标题打分用原始查询：完全相同 > 开头相同 > 包含。
+assert.ok(evaluate(`globalSearchScore('订单', '订单 dd', '订单')`) > evaluate(`globalSearchScore('已删除订单', '已删除订单', '订单')`), 'exact page title wins');
 
 context.sampleResults = [
   ...Array.from({ length:8 }, (_, index) => ({ group:'客户', id:`c${index}`, score:100 - index })),

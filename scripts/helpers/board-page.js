@@ -16,8 +16,8 @@ async function launchBrowser() {
   catch (_) { return chromium.launch({ headless:true, executablePath:'/opt/pw-browsers/chromium' }); }
 }
 
-// data: the stored app data (orders, doneTasks, …). Returns { page, store, errors, dialogs }.
-async function openBoard(browser, data, { width = 1440, height = 920, theme = 'light', port = 47990 } = {}) {
+// data: the stored app data (orders, doneTasks, …). ecbRates: what /api/ecb-rates returns. Returns { page, store, errors, dialogs }.
+async function openBoard(browser, data, { width = 1440, height = 920, theme = 'light', port = 47990, ecbRates = [] } = {}) {
   const context = await browser.newContext({ viewport:{ width, height } });
   await context.addInitScript(t => {
     try {
@@ -38,7 +38,7 @@ async function openBoard(browser, data, { width = 1440, height = 920, theme = 'l
     let response = { ok:true };
     if (pathname === '/api/data') response = store.current;
     if (pathname === '/api/health') response = { ok:true, storageMode:'sqlite', counts:{ orders:(data.orders || []).length }, backups:{ sqliteCount:0 } };
-    if (pathname === '/api/ecb-rates') response = { ok:true, rates:[] };
+    if (pathname === '/api/ecb-rates') response = { ok:true, rates:ecbRates };
     if (pathname === '/api/track') response = { ok:false, status:'待 API 查询', message:'offline' };
     if (pathname === '/api/save') {
       const body = route.request().postDataJSON();

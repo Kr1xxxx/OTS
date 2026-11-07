@@ -98,6 +98,7 @@ vm.runInContext(html.match(/^const customerPasteLabels = .*;$/m)[0], context);
   'hasPhoneSignalText',
   'trackingCandidatesFromLine',
   'findTrackingInText',
+  'normalizeOrderNum',
   'matchOrdersFromPaste',
   'decodePasteEntities',
   'decodeCustomerNameEntities',
@@ -636,8 +637,10 @@ assert.equal(vm.runInContext(`normalizeOrderPaymentChannel('TT')`, context), 'TT
 assert.equal(vm.runInContext(`normalizeOrderPaymentChannel('')`, context), 'Paypal');
 assert.deepEqual(
   evaluateJson(`normalizeOrderSettings({ defaultPaymentChannel:'TT', defaultOrderType:'定金订单' })`),
-  { defaultProductType: '睫毛', defaultPaymentChannel: 'TT', defaultOrderType: '定金订单', productDefaultRevision:1 }
+  { defaultProductType: '睫毛', defaultPaymentChannel: 'TT', defaultOrderType: '定金订单', productDefaultRevision:1, serialDigits:2 }
 );
+assert.equal(evaluateJson(`normalizeOrderSettings({ serialDigits:'abc' })`).serialDigits, 2, '导入的旧数据里流水号位数不是 2/3/4 时回到 2 位');
+assert.equal(evaluateJson(`normalizeOrderSettings({ serialDigits:'3' })`).serialDigits, 3);
 
 assert.equal(vm.runInContext(`isMacAppMode()`, context), true);
 context.location.port = '61234';

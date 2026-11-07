@@ -44,6 +44,7 @@ const context = vm.createContext({
   nextOrderNum: () => 'SO-COPY',
   nowText: () => '2026-08-18 18:00',
   closeOrder() {},
+  openOrder() {},
   render() {},
   toast() {}
 });

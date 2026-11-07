@@ -56,7 +56,13 @@ const { chromium } = require('playwright');
     assert.deepEqual(await choices.evaluateAll(nodes=>nodes.map(n=>n.dataset.selectClient)),['Carol Smith'],'Country search resets old letter filter');
     await input.press('Tab');
     assert.equal(await page.locator('#orderForm [name="country"]').inputValue(),'🇺🇸 美国 United States','Search text must not overwrite country before customer selection');
+    // Tab 把焦点交给 ▾（还在选择器里），菜单仍开着；▾ 是开关：点一下收起、再点一下打开。
+    const menuOpen = () => page.locator('#orderForm .client-menu').evaluate(el => el.classList.contains('open'));
+    assert.equal(await menuOpen(), true);
     await page.locator('#orderForm .client-trigger').click();
+    assert.equal(await menuOpen(), false, '▾ closes the open menu (the picker\'s own data-client-letter used to reopen it)');
+    await page.locator('#orderForm .client-trigger').click();
+    assert.equal(await menuOpen(), true);
     await choices.first().click();
     assert.equal(await input.inputValue(),'Carol Smith','Selection must insert customer name, not country query');
     assert.equal(await page.locator('#orderForm [name="country"]').inputValue(),'🇬🇧 英国 United Kingdom');

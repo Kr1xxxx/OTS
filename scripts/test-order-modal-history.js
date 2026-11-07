@@ -80,6 +80,8 @@ const context = vm.createContext({
   syncDepositFields() {},
   enhanceBinarySelects() {},
   customerDataForName() { return {}; },
+  clientAutofillValues() { return null; },
+  fullPaymentStatusFor() { return '未付'; },
   renderOrderClientAutofillSummary() {},
   setOrderShipmentFields() {},
   syncCarrierFromTracking() {},

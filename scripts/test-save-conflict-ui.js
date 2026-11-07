@@ -31,9 +31,38 @@ const { chromium } = require('playwright');
     assert.equal(await panel.isVisible(),false,'conflict actions must stay hidden until a conflict');
 
     conflict = true;
+    const dialogs = [];
+    page.on('dialog', dialog => { dialogs.push(dialog.message()); dialog.dismiss(); });
     await page.evaluate(()=>{state.customers['Conflict Buyer'] = {name:'Conflict Buyer'}; return window.flushPendingSave();});
     assert.equal(await page.evaluate(()=>window.pendingSaveStatus().readOnly),true,'conflict must switch to read-only');
     assert.equal(await panel.isVisible(),true,'conflict must show reload and export actions');
+    // 冲突当场弹页面内确认框（不是 window.confirm），说中文，把「导出这次的修改」放到眼前；服务端的英文原文不给人看。
+    await page.waitForFunction(()=>document.getElementById('confirmModal').classList.contains('open'));
+    assert.equal(await page.locator('#confirmTitle').innerText(),'另一个窗口刚保存过数据');
+    assert.equal(await page.locator('#confirmOkBtn').innerText(),'导出这次的修改');
+    const visibleText = await page.evaluate(()=>document.getElementById('confirmModal').innerText + document.getElementById('toast').innerText + document.getElementById('macStorageStatusText').innerText);
+    assert.doesNotMatch(visibleText,/state revision conflict/,'English server message leaked to the UI');
+    assert.doesNotMatch(await page.locator('#toast').innerText(),/请重试/,'a conflict must not ask to retry');
+    // 「稍后处理」只关掉确认框，不重新加载、不丢修改。
+    const loadsBeforeLater = loads;
+    await page.locator('#confirmCancelBtn').click();
+    await page.waitForFunction(()=>!document.getElementById('confirmModal').classList.contains('open'));
+    assert.equal(loads,loadsBeforeLater,'「稍后处理」 must not reload');
+    // 只读时再保存：说清楚是另一个窗口保存过，而不是「数据库连接」问题，并再次给出导出入口。
+    assert.equal(await page.evaluate(()=>canSubmitStoredData()),false);
+    await page.waitForFunction(()=>document.getElementById('confirmModal').classList.contains('open'));
+    assert.doesNotMatch(await page.locator('#toast').innerText(),/恢复数据库连接/);
+    // 确认框里直接导出：导出成功后再问要不要重新加载，选「稍后」不重新加载。
+    await page.locator('#confirmOkBtn').click();
+    await page.waitForFunction(()=>document.getElementById('confirmTitle').textContent === '已导出这次的修改');
+    assert.ok(JSON.parse(exportRequest.text).data.customers['Conflict Buyer'],'dialog export must contain the unsaved local change');
+    exportRequest = null;
+    await page.locator('#confirmCancelBtn').click();
+    await page.waitForFunction(()=>!document.getElementById('confirmModal').classList.contains('open'));
+    assert.equal(loads,loadsBeforeLater,'「稍后」 must not reload');
+    // 失败提示不能是绿色对勾。
+    assert.equal(await page.evaluate(()=>[...document.querySelectorAll('#toast .toast-item.is-success')].filter(item=>/保存|只读|冲突/.test(item.textContent)).length),0,'save failure toasts must not use the success style');
+    assert.deepEqual(dialogs,[],'native dialogs are not allowed');
 
     // Mac App 的 WebKit 不处理 blob 下载，导出交给本地服务写进「下载」文件夹。
     await page.locator('#macConflictExportBtn').click();

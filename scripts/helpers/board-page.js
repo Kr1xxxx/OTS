@@ -109,11 +109,29 @@ const h = {
   },
   clearToasts: page => page.evaluate(() => document.querySelectorAll('#toast .toast-item').forEach(el => el.remove())),
   flush: page => page.evaluate(() => window.flushPendingSave?.()),
+  // 等元素停稳：它自己、它里面、它的祖先上没有在跑的（有尽头的）动画——卡片入场上浮、悬停弹簧、菜单弹出的缩放。
+  // 动画中途量到的位置，等鼠标过去时已经变了（macOS CI 机器快、慢都会碰上）。
+  settle: (page, selector) => page.locator(selector).first().evaluate(el => new Promise(resolve => {
+    const moving = () => document.getAnimations().some(a => a.playState === 'running' && a.effect?.getComputedTiming?.().endTime !== Infinity && a.effect.target instanceof Element && (a.effect.target.contains(el) || el.contains(a.effect.target)));
+    const check = () => (el.isConnected && moving() ? requestAnimationFrame(check) : resolve());
+    check();
+  })),
+  // 元素中心点：滚进视野、等停稳再量。中途元素被重新渲染换掉（render() 重画看板）就重新找一次再量；
+  // 元素真的没了（菜单被关掉）照样报错，不掩盖问题。
   center: async (page, selector) => {
     const locator = page.locator(selector).first();
-    await locator.scrollIntoViewIfNeeded();
-    const box = await locator.boundingBox();
-    return { x:box.x + box.width / 2, y:box.y + box.height / 2, box };
+    for (let attempt = 1; ; attempt++) {
+      try {
+        await locator.waitFor({ state:'visible' });
+        await locator.scrollIntoViewIfNeeded();
+        await h.settle(page, selector);
+        const box = await locator.boundingBox();
+        if (!box) throw new Error(`${selector} is not attached to the DOM`);
+        return { x:box.x + box.width / 2, y:box.y + box.height / 2, box };
+      } catch (error) {
+        if (attempt >= 3 || !/not attached|detached/i.test(error.message)) throw error;
+      }
+    }
   },
   columnPoint: async (page, stage) => {
     const box = await page.locator(`#pipeline .board-column[data-stage="${stage}"]`).boundingBox();
@@ -132,10 +150,12 @@ const h = {
     await page.mouse.up();
     await page.waitForFunction(() => !document.querySelector('#pipeline .dragging, #pipeline .drag-over, #pipeline .drag-invalid'));
   },
+  // 右键卡片：等菜单是这张卡的、弹出动画停下，之后量菜单里的按钮位置才准。
   async rightClick(page, id) {
     const point = await h.center(page, `#pipeline .board-card[data-id="${id}"]`);
     await page.mouse.click(point.x, point.y, { button:'right' });
-    await page.waitForSelector('.board-menu');
+    await page.waitForFunction(id => document.querySelector('.board-menu')?.dataset.orderId === id, id);
+    await h.settle(page, '.board-menu');
     return point;
   },
   // 等到页面里的时钟走过 ms 毫秒（证明某件事「没有」发生时用；比固定 sleep 少等、不受测试机快慢影响）。

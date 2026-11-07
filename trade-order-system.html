@@ -22458,7 +22458,12 @@ const debouncedFullSearchRender = debounce(renderFullSearchResults);
 const searchInput = document.getElementById('searchInput');
 const globalSearchPanel = document.getElementById('globalSearchPanel');
 // 输入加 100ms 防抖（以前每个按键同步重算全部客户和订单），输入法组字期间不算。
-const debouncedGlobalSearchRender = debounce(() => renderGlobalSearchPanel({ forceOpen:true }), 100);
+// 防抖到点时面板已经按当前输入算过了（这 100ms 里按了 ↑↓ / Enter，syncGlobalSearchPanel 先算了一次），就不再重画：
+// 以前照样重画，刚用 ↑↓ 选中的那条被清掉（机器慢、防抖晚到时偶发）。
+const debouncedGlobalSearchRender = debounce(() => {
+  if (globalSearchPanel.classList.contains('open') && globalSearchRenderedQuery === searchInput.value.trim()) return;
+  renderGlobalSearchPanel({ forceOpen:true });
+}, 100);
 searchInput.addEventListener('focus', () => renderGlobalSearchPanel({ forceOpen:true }));
 bindSearchInput(searchInput, debouncedGlobalSearchRender);
 // 按键时面板还停在防抖之前的查询：先按当前输入算一次，↑↓ / Enter 指向的就是看得到的结果。
@@ -25303,7 +25308,15 @@ function uiTrackingQuickCard(id) {
     if (e.key === 'Enter') { e.preventDefault(); save(); }
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); uiTrackingQuickCardClose(id); }
   });
-  setTimeout(() => input.focus({ preventScroll:true }), 60);
+  // 晚 60ms 再把焦点给运单号输入框（等小卡弹入）。这 60ms 里用户已经去做别的了（右键别的卡片打开了菜单、点开了弹窗、
+  // 焦点换了地方），就不抢焦点：以前照样抢，focusin 把刚打开的看板右键菜单关掉，按到一半的「按住删除」落了空（macOS CI 上偶发）。
+  const focusBefore = document.activeElement;
+  setTimeout(() => {
+    if (!card.isConnected || card.classList.contains('leaving')) return;
+    if (document.activeElement !== focusBefore && document.activeElement !== document.body) return;
+    if (document.querySelector('.board-menu')) return;
+    input.focus({ preventScroll:true });
+  }, 60);
 }
 // Esc 关最上面那一层：确认框 → 客户弹窗 → 详情抽屉 → 订单弹窗（续费页的弹窗有自己的处理）。
 // 用捕获阶段抢在通知面板、看板菜单等处理器前面看状态；自带 Esc 行为的输入框不碰。

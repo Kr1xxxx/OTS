@@ -121,6 +121,15 @@ async function pressMenuDelete(page, id) {
     await h.rightClick(page, 'a4');
     await page.locator('.board-menu [data-board-menu="advance"]').click();
     await page.waitForSelector('#trackingQuickCard[data-order-id="a4"]');
+    // 小卡弹出后 60ms 才把焦点给运单号框：这之前已经右键打开了菜单，就不能再抢焦点把菜单关掉（以前 focusin 关菜单，macOS CI 偶发）。
+    //    小卡重新弹一次（和进已发货时同一个函数），紧接着打开菜单，时序固定，不看机器快慢。
+    assert.equal(await page.evaluate(() => {
+      uiTrackingQuickCard('a4');
+      uiOpenBoardMenu(document.querySelector('#pipeline .board-card[data-id="a4"]'), { x:200, y:200 });
+      return new Promise(resolve => setTimeout(() => resolve(!!document.querySelector('.board-menu') && document.activeElement !== document.querySelector('#trackingQuickCard input')), 200));
+    }), true, '运单号小卡迟到的自动聚焦不能关掉刚打开的右键菜单');
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !document.querySelector('.board-menu'));
     await pressMenuDelete(page, 'a4');
     await page.waitForFunction(() => !state.orders.some(o => o.id === 'a4'));
     await page.mouse.up();

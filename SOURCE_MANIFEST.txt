@@ -85,6 +85,7 @@ scripts/test-feishu-order-notification.js
 scripts/test-feishu-order-ui.js
 scripts/test-feishu-settings.js
 scripts/test-follow-reminder.js
+scripts/test-followup-tasks-ui.js
 scripts/test-form-chips-ui.js
 scripts/test-full-payment-status.js
 scripts/test-global-search-ui.js

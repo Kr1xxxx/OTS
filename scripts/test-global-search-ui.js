@@ -76,6 +76,14 @@ const mod = process.platform === 'darwin' ? 'Meta' : 'Control';
     await page.keyboard.press('ArrowUp');
     const count = (await results()).length;
     await page.waitForFunction(last => globalSearchActiveIndex === last, count - 1);
+    // 刚打完字就按方向键：100ms 防抖晚到时不能把选中的那条清掉。
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type('e');
+    await page.keyboard.press('ArrowUp');
+    const pickedAt = await page.evaluate(() => ({ index:globalSearchActiveIndex, t:performance.now() }));
+    await page.waitForFunction(t => performance.now() > t + 250, pickedAt.t);
+    assert.equal(await page.evaluate(() => globalSearchActiveIndex), pickedAt.index, '防抖晚到不能清掉刚用方向键选中的那条');
+    assert.ok(pickedAt.index >= 0, '方向键选中了一条');
 
     // 3. 运单号（有物流查询记录）→ 打开订单的物流页签，不是物流抽屉。
     await typeQuery('1Z999AA10123456784');
@@ -128,6 +136,8 @@ const mod = process.platform === 'darwin' ? 'Meta' : 'Control';
     await page.keyboard.press(`${mod}+k`);
     await page.waitForFunction(() => document.getElementById('notifPanel').hidden && document.activeElement?.id === 'searchInput');
     await typeQuery('Elite');
+    // 面板弹出动画停下再量：动画中途量到的位置和最后不一样。
+    await page.waitForFunction(() => !document.getElementById('globalSearchPanel').getAnimations({ subtree:true }).some(a => a.playState === 'running' && a.effect?.getComputedTiming?.().endTime !== Infinity));
     const box = await page.locator('#global-search-result-0').boundingBox();
     const hit = await page.evaluate(p => document.elementFromPoint(p.x, p.y)?.closest('.global-search-result')?.id || '', { x:box.x + box.width / 2, y:box.y + box.height / 2 });
     assert.equal(hit, 'global-search-result-0', 'nothing covers the search results');

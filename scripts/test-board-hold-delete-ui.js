@@ -15,7 +15,9 @@ const orders = [
   { ...base, id:'o1-import-10', num:'K206', client:'Import Ten', amount:100, paidAmount:0, orderType:'全款订单', stage:'quote', updated:`${day(1)} 09:06` }
 ];
 const trashOrders = [{ ...base, id:'t1', num:'K299', client:'Old Trash', amount:50, paidAmount:0, orderType:'全款订单', stage:'quote', trashedAt:`${day(1)} 08:00`, updated:`${day(1)} 08:00` }];
-const doneTasks = { 'follow-o1-import-1-2026-01-01':true, 'follow-o1-import-10-2026-01-01':true };
+// 「已处理」记录：{ at:处理时间, until:哪天再提醒 }（until 远在以后，加载时不会当成过期清掉）。
+const doneRecord = { at:`${day(1)} 10:00`, until:'2999-01-01' };
+const doneTasks = { 'follow-o1-import-1':doneRecord, 'follow-o1-import-10':doneRecord };
 
 const inOrders = (page, id) => page.evaluate(id => state.orders.some(o => o.id === id), id);
 
@@ -89,7 +91,7 @@ async function pressMenuDelete(page, id) {
     assert.equal(await h.deleted(page, 'o1-import-1'), true);
     await h.waitToast(page, '已删除 K205 Import One');
     let marks = await page.evaluate(() => Object.keys(state.doneTasks));
-    assert.deepEqual(marks, ['follow-o1-import-10-2026-01-01'], '只清这张单的「已处理」标记，id 是它前缀的单不受影响');
+    assert.deepEqual(marks, ['follow-o1-import-10'], '只清这张单的「已处理」标记，id 是它前缀的单不受影响');
     await h.flush(page);
     assert(store.current.data.deletedOrders.some(o => o.id === 'o1-import-1'), '删除已保存');
     await h.clickUndo(page, '已删除 K205 Import One');
@@ -97,8 +99,8 @@ async function pressMenuDelete(page, id) {
     const restored = await h.order(page, 'o1-import-1');
     assert.equal(restored.updated, before.updated, '恢复后保留原来的「最近更新」，卡片回到原位置');
     assert.equal(restored.deletedDoneTasks, undefined);
-    marks = await page.evaluate(() => Object.keys(state.doneTasks).sort());
-    assert.deepEqual(marks, ['follow-o1-import-1-2026-01-01', 'follow-o1-import-10-2026-01-01'], '撤销删除后「已处理」标记放回去');
+    marks = await page.evaluate(() => JSON.parse(JSON.stringify(state.doneTasks)));
+    assert.deepEqual(marks, doneTasks, '撤销删除后「已处理」标记连同处理时间、再提醒日期原样放回去');
     await h.waitToast(page, '已恢复 K205 Import One');
 
     // 7. 详情抽屉里按住删除时按 Esc：抽屉关掉，订单不删。
@@ -119,6 +121,15 @@ async function pressMenuDelete(page, id) {
     await h.rightClick(page, 'a4');
     await page.locator('.board-menu [data-board-menu="advance"]').click();
     await page.waitForSelector('#trackingQuickCard[data-order-id="a4"]');
+    // 小卡弹出后 60ms 才把焦点给运单号框：这之前已经右键打开了菜单，就不能再抢焦点把菜单关掉（以前 focusin 关菜单，macOS CI 偶发）。
+    //    小卡重新弹一次（和进已发货时同一个函数），紧接着打开菜单，时序固定，不看机器快慢。
+    assert.equal(await page.evaluate(() => {
+      uiTrackingQuickCard('a4');
+      uiOpenBoardMenu(document.querySelector('#pipeline .board-card[data-id="a4"]'), { x:200, y:200 });
+      return new Promise(resolve => setTimeout(() => resolve(!!document.querySelector('.board-menu') && document.activeElement !== document.querySelector('#trackingQuickCard input')), 200));
+    }), true, '运单号小卡迟到的自动聚焦不能关掉刚打开的右键菜单');
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !document.querySelector('.board-menu'));
     await pressMenuDelete(page, 'a4');
     await page.waitForFunction(() => !state.orders.some(o => o.id === 'a4'));
     await page.mouse.up();

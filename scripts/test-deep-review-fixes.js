@@ -103,7 +103,9 @@ async function pageTests() {
     // A copied order is a fresh unshipped order; tracking updates must not land on the copy.
     const copy = await page.evaluate(() => { editingId = 'o-ship'; duplicateOrder(); return state.orders[0]; });
     assert.equal(copy.client, 'Acme Ltd 复制');
-    assert.deepEqual([copy.trackingNumber, copy.shipments.length, copy.logisticsStatus, copy.attachments.length, copy.stage], ['', 0, '未发货', 0, 'production']);
+    assert.deepEqual([copy.trackingNumber, copy.shipments.length, copy.logisticsStatus, copy.attachments.length, copy.stage], ['', 0, '未发货', 0, 'quote']);
+    // No money has been received for the copy yet, and the old deadlines / urgent flag do not carry over.
+    assert.deepEqual([copy.paidAmount, copy.urgentOrder, copy.customerRequiredDate, copy.latestShipDate], [0, false, '', '']);
     assert.equal(await page.evaluate(() => state.orders.find(o => o.id === 'o-ship').shipments.length), 1, 'copy shares the shipments array with the original');
 
     // A draft saved as a formal order infers its stage from the payment like a new order would.
@@ -238,7 +240,7 @@ async function serverTests() {
     await start();
     let status = await health();
     assert.equal(status.storageMode, 'error');
-    assert.match(String(status.storageError || ''), /UNIQUE|orders\.num/, `first launch should report the migration error, got ${status.storageError}`);
+    assert.match(String(status.storageError || ''), /UNIQUE|orders\.num|订单号 K1 重复/, `first launch should report the migration error, got ${status.storageError}`);
     await stop();
     assert.ok(!fs.existsSync(path.join(testDir, 'trade-order-system.sqlite')), 'failed migration left a database behind');
     legacy.data.orders[1].num = 'K2';

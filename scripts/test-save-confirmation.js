@@ -21,7 +21,7 @@ async function scenario(readOnly, saveOK) {
     state:{customers:{},orders:[]}, macDataLoaded:true, macStorageReadOnly:readOnly,
     isMacAppMode:()=>true, macSaveLastError:'test disk failure', editingId:null,
     FormData:class { entries() { return [['name','Test Buyer'],['originalName',''],['client','Test Buyer']]; } },
-    customerMultiFieldData:()=>({}), customerContactPreferenceData:()=>({}), autoCapitalizeCustomerName:x=>x,
+    customerMultiFieldData:()=>({}), customerContactPreferenceData:()=>({}), autoCapitalizeCustomerName:x=>x, customerSaveName:x=>String(x||'').trim(),
     confirmDuplicateCustomerSave:async()=>true,
     buildCustomerSavePayload:()=>({newName:'Test Buyer',nextProfile:{client:'Test Buyer'}}),
     commitCustomerSavePayload:()=>events.push('mutated'),
@@ -30,7 +30,7 @@ async function scenario(readOnly, saveOK) {
     orderShipmentsFromForm:()=>[], orderAttachmentsFromForm:()=>[],
     buildOrderFromFormData:(data,{existing})=>({id:existing?.id || 'order-'+(++ctx.sequence),client:'Test Buyer'}),
     sequence:0, shouldRequestOrderNotification:()=>false, normalizeFeishuNotification:x=>x,
-    closeOrder:()=>events.push('closed'), completeOrderNotification:()=>events.push('notified')
+    closeOrder:()=>events.push('closed'), completeOrderNotification:()=>events.push('notified'), rejectDuplicateOrderNum:()=>false
   });
   for (const name of ['canSubmitStoredData','persistFormState']) {
     if (html.includes(`function ${name}(`)) vm.runInContext(extract(name),ctx);

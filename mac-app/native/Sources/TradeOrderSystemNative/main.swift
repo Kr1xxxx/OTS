@@ -568,9 +568,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         let session = URLSession(configuration: config)
         session.dataTask(with: request) { data, response, error in
             defer { semaphore.signal() }
+            // 数据库出错时服务端回 500，但正文里带着 storageError：照样读出来，让用户看到真正的原因。
             guard error == nil,
-                  let http = response as? HTTPURLResponse,
-                  (200...299).contains(http.statusCode),
+                  response is HTTPURLResponse,
                   let data,
                   let body = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
                 result.set(healthy: false, message: error?.localizedDescription ?? "健康检查未返回有效 JSON")
@@ -640,10 +640,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         }
 
         let script = """
-        if (typeof window.flushPendingSave !== 'function') {
+        const flush = window.otsFlushBeforeQuit || window.flushPendingSave;
+        if (typeof flush !== 'function') {
           throw new Error('页面未提供关闭前保存接口');
         }
-        const saved = await window.flushPendingSave();
+        const saved = await flush();
         return saved !== false;
         """
         Task { @MainActor [weak self] in

@@ -4863,6 +4863,8 @@ html[data-theme] .ui-flash { animation:uiFlashIn .6s var(--ease); }
 @media (max-width: 820px) { html[data-theme] .detail-edit-grid { grid-template-columns:minmax(0,1fr); } }
 /* 退出提醒等原生弹窗借用的确认框：多行说明 */
 html[data-theme] #confirmModal [hidden] { display:none !important; }
+/* 确认框永远在最上层：续费弹窗等写在它后面的弹窗同为 z-index 50（窄屏为 120），以前会盖住确认框，按钮点不到。 */
+#confirmModal { z-index:130; }
 html[data-theme] #confirmMessage { white-space:pre-line; max-height:min(46vh, 360px); overflow:auto; }
 /* 数据与目标 · 金额统计：筛选在卡片外，五张数字卡，柱状图 + 结构环形图，三张明细卡，时间汇总表 */
 html[data-theme] .amount-report { display:flex; flex-direction:column; gap:16px; }
@@ -5661,7 +5663,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.116，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.116</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.117，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.117</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -7723,7 +7725,22 @@ let orderListQuickFilter = 'all';
 let orderListCurrentPage = 1;
 const orderListPageSize = 50;
 let customerRoadmapFilter = 'all';
-let snoozedTasks = new Set();
+// 「稍后」= 暂缓到明天：记下是哪天暂缓的，第二天自动回到待办（软件连开好几天也一样）。
+const snoozedTasks = {
+  days: new Map(),
+  today() { return nowText().slice(0, 10); },
+  add(id) { this.days.set(id, this.today()); },
+  has(id) {
+    const day = this.days.get(id);
+    if (day && day !== this.today()) this.days.delete(id);
+    return this.days.get(id) === this.today();
+  },
+  get size() {
+    const today = this.today();
+    for (const [id, day] of this.days) if (day !== today) this.days.delete(id);
+    return this.days.size;
+  }
+};
 let amountStatMode = 'totalUsd';
 const dashboardAmountMonthKey = 'trade-order-dashboard-amount-month';
 const dashboardAmountMonthAutoKey = 'trade-order-dashboard-amount-month-auto';
@@ -7777,8 +7794,16 @@ async function persistFormState(...forms) {
     return false;
   } finally { forms.forEach((form,index) => { form.inert = previous[index]; }); }
 }
+let readOnlySaveToastAt = 0;
 function saveState() {
-  if (!isMacAppMode() || !macDataLoaded || macStorageReadOnly) return Promise.resolve(false);
+  if (!isMacAppMode() || !macDataLoaded || macStorageReadOnly) {
+    // 只读保护下（读库失败、版本冲突）改动只留在这一屏、没有写进数据库：要说出来，别让人以为已经保存了。
+    if (isMacAppMode() && macStorageReadOnly && Date.now() - readOnlySaveToastAt > 5000) {
+      readOnlySaveToastAt = Date.now();
+      toast('数据库处于只读保护，这次修改没有保存。请先到设置里重新加载数据库。', { tone:'error' });
+    }
+    return Promise.resolve(false);
+  }
   return syncStateToMacApp();
 }
 let macSaveTimer = 0;
@@ -7881,7 +7906,12 @@ async function runMacSaveQueue() {
           showMacStorageConflictActions();
           throw new Error(result.message || '数据版本冲突，已切换为只读，可在设置中导出未保存的修改并重新加载');
         }
-        if (!res.ok || result.ok === false) throw new Error(result.message || `保存失败 HTTP ${res.status}`);
+        if (!res.ok || result.ok === false) {
+          const error = new Error(result.message || `保存失败 HTTP ${res.status}`);
+          // 4xx = the data itself was refused (e.g. a repeated order number): retrying the same data cannot help.
+          error.rejected = res.status >= 400 && res.status < 500 && ![408, 429].includes(res.status);
+          throw error;
+        }
         const savedRevision = Number(result.revision);
         macStorageRevision = Number.isFinite(savedRevision) ? savedRevision : macStorageRevision + 1;
         macSaveCompletedVersion = targetVersion;
@@ -7895,12 +7925,12 @@ async function runMacSaveQueue() {
         macSaveLastError = error.message || '数据库保存失败';
         setMacStorageStatus('sqlite', 'error', macSaveLastError);
         if (typeof uiNotifLogEvent === 'function') uiNotifLogEvent({ id:`save-${normalizeDate(new Date().toISOString())}-${macSaveLastError}`, kind:'error', title:'数据保存失败', sub:macSaveLastError, pill:'保存' });
-        if (Date.now() - macSaveErrorToastAt > 10000) {
+        if (Date.now() - macSaveErrorToastAt > 10000 || error.rejected) {
           macSaveErrorToastAt = Date.now();
-          toast(macStorageReadOnly ? macSaveLastError : '数据库保存失败，正在自动重试，请先不要关闭软件');
+          toast(macStorageReadOnly || error.rejected ? `数据库没有保存：${macSaveLastError}` : '数据库保存失败，正在自动重试，请先不要关闭软件', error.rejected ? { tone:'error' } : undefined);
         }
-        // 网络抖动或服务端短暂出错时自动重试，别让修改一直停在内存里。
-        if (!macStorageReadOnly) window.setTimeout(() => { if (!macStorageReadOnly && macSaveCompletedVersion < macSaveRequestedVersion) scheduleMacSave(); }, 3000);
+        // 网络抖动或服务端短暂出错时自动重试，别让修改一直停在内存里；数据本身被拒绝时等下一次修改再存。
+        if (!macStorageReadOnly && !error.rejected) window.setTimeout(() => { if (!macStorageReadOnly && macSaveCompletedVersion < macSaveRequestedVersion) scheduleMacSave(); }, 3000);
         return false;
       } finally {
         macSaveInFlight = false;
@@ -7932,6 +7962,9 @@ async function flushPendingSave() {
   return Boolean(ok && !macSaveLastError && macSaveCompletedVersion >= macSaveRequestedVersion);
 }
 window.flushPendingSave = flushPendingSave;
+// Mac 壳在退出、安装更新前调用这一个：数据库根本没读进来（读库失败）时内存里没有用户数据可保存，
+// 别因此拦住更新——新版本可能正是修复。页面内部的保存仍直接调用 flushPendingSave()。
+window.otsFlushBeforeQuit = async () => (isMacAppMode() && !macDataLoaded ? true : flushPendingSave());
 function macStateEnvelope(payload = {}) {
   const source = payload && payload.state !== undefined
     ? payload.state
@@ -8300,10 +8333,23 @@ function normalizeState(raw) {
         events: normalizeTrackingEvents(item.events || [])
       }))
       : [],
-    doneTasks: raw.doneTasks || {},
+    doneTasks: migrateDoneTaskKeys(raw.doneTasks || {}, rawOrders),
     demoCleared: raw.demoCleared === true,
     demoCustomersCleared: raw.demoCustomersCleared === true
   };
+}
+// 收款提醒以前只按订单记「完成」，点一次就永远不再提醒；现在按已收金额和更新时间记。老的完成记录换成当前这一版的键，
+// 已经点过完成的提醒不会因为升级一下子全冒出来，之后订单有变化再重新提醒。
+function migrateDoneTaskKeys(doneTasks, orders = []) {
+  const done = { ...doneTasks };
+  orders.forEach(raw => {
+    const legacy = `payment-${raw?.id}`;
+    if (done[legacy] !== true) return;
+    const order = normalizeActiveOrder(raw);
+    done[`payment-${order.id}-${orderPaidValue(order)}-${order.updated || ''}`] = true;
+    delete done[legacy];
+  });
+  return done;
 }
 function normalizeCountry(value) {
   const text = String(value || '').trim();
@@ -8695,15 +8741,18 @@ function buildTaskItems({ includeDone = false, includeSnoozed = false } = {}) {
   const today = normalizeDate(new Date().toISOString());
   const orderTasks = state.orders.flatMap(o => {
     const reminders = [];
+    // Drafts and finished orders need nothing more; a shipped order only still needs its parcel watched.
+    if (o.isDraft || o.stage === 'done') return reminders;
+    const settled = isSettledStage(o.stage);
     const due = orderDueValue(o);
     const latestDays = daysUntil(o.latestShipDate);
     const fallbackDate = today;
     const logisticsRisk = logisticsRiskTask(o, fallbackDate);
     const followReminder = orderFollowReminder(o, today);
     if (logisticsRisk) reminders.push(logisticsRisk);
-    if (o.urgentOrder) reminders.push({ id:`urgent-${o.id}`, orderId:o.id, client:o.client, date:o.customerRequiredDate || o.latestShipDate || fallbackDate, type:'urgent', title:o.client, reason:`加急订单：${o.note || '等待处理'}`, detail:`${o.num} · ${stageDef(o.stage).name}`, value:o.customerRequiredDate ? `要求 ${o.customerRequiredDate}` : '加急', tag:'加急', tagClass:'tag-orange', priority:1 });
-    if (o.latestShipDate && latestDays <= 3 && o.stage !== 'shipment') reminders.push({ id:`ship-${o.id}`, orderId:o.id, client:o.client, date:o.latestShipDate, type:'logistics', title:o.client, reason:`最晚发出日期 ${o.latestShipDate}`, detail:`${latestDays < 0 ? '已逾期' + Math.abs(latestDays) + '天' : latestDays + '天内'} · ${o.num}`, value:'发货', tag:'物流', tagClass:'tag-orange', priority:0 });
-    if (due > 0 && o.stage === 'balance') reminders.push({ id:`payment-${o.id}`, orderId:o.id, client:o.client, date:fallbackDate, type:'payment', title:o.client, reason:`待收款 ${money(due, o.currency)}`, detail:`${o.num} · ${stageDef(o.stage).name}`, value:money(due, o.currency), tag:'收款', tagClass:'tag-green', priority:2 });
+    if (o.urgentOrder && !settled) reminders.push({ id:`urgent-${o.id}`, orderId:o.id, client:o.client, date:o.customerRequiredDate || o.latestShipDate || fallbackDate, type:'urgent', title:o.client, reason:`加急订单：${o.note || '等待处理'}`, detail:`${o.num} · ${stageDef(o.stage).name}`, value:o.customerRequiredDate ? `要求 ${o.customerRequiredDate}` : '加急', tag:'加急', tagClass:'tag-orange', priority:1 });
+    if (o.latestShipDate && latestDays <= 3 && !settled) reminders.push({ id:`ship-${o.id}`, orderId:o.id, client:o.client, date:o.latestShipDate, type:'logistics', title:o.client, reason:`最晚发出日期 ${o.latestShipDate}`, detail:`${latestDays < 0 ? '已逾期' + Math.abs(latestDays) + '天' : latestDays + '天内'} · ${o.num}`, value:'发货', tag:'物流', tagClass:'tag-orange', priority:0 });
+    if (due > 0 && o.stage === 'balance') reminders.push({ id:`payment-${o.id}`, doneKey:`payment-${o.id}-${orderPaidValue(o)}-${o.updated || ''}`, orderId:o.id, client:o.client, date:fallbackDate, type:'payment', title:o.client, reason:`待收款 ${money(due, o.currency)}`, detail:`${o.num} · ${stageDef(o.stage).name}`, value:money(due, o.currency), tag:'收款', tagClass:'tag-green', priority:2 });
     if (followReminder) reminders.push(followReminder);
     return reminders;
   });
@@ -8712,7 +8761,10 @@ function buildTaskItems({ includeDone = false, includeSnoozed = false } = {}) {
       const profile = state.customers?.[c.client] || {};
       const latest = state.orders.filter(o => o.client === c.client).sort((a, b) => parseDate(b.updated) - parseDate(a.updated))[0] || c;
       // 复购周期从上一单发货日起算（没有发货日再退回最后更新时间），不是从最后一次改单算。
-      const nextDate = profile.nextFollow || (profile.repurchaseCycle ? addDays(latest.shippedAt || latest.updated || latest.createdAt, profile.repurchaseCycle) : '');
+      // 推迟 sets nextFollow; a newer order moves the cycle date past it, so the later of the two wins
+      // (taking nextFollow alone pinned the reminder to an old date that, once ticked, never fired again).
+      const cycleDate = profile.repurchaseCycle ? addDays(latest.shippedAt || latest.updated || latest.createdAt, profile.repurchaseCycle) : '';
+      const nextDate = [profile.nextFollow, cycleDate].filter(Boolean).sort().pop() || '';
       return { c, profile, latest, nextDate };
     })
     .filter(item => isDueDate(item.nextDate))
@@ -8736,6 +8788,7 @@ function logisticsRiskTask(order, fallbackDate) {
   if (staleDays <= 3) return null;
   return {
     id:`logistics-risk-${order.id}`,
+    doneKey:`logistics-risk-${order.id}-${statusDate || ''}`,
     orderId: order.id,
     client: order.client,
     date: fallbackDate,
@@ -9217,6 +9270,8 @@ function applyStagePaymentInvariant(order = {}, stage = order.stage, logReason =
   const amount = orderAmountValue(order);
   const previous = Math.max(0, Number(order.paidAmount || 0));
   if (previous === amount) return false;
+  // Remember what was really received, so moving the order back before 已发货 can undo this assumption.
+  order.paidBeforeSettle = previous;
   order.paidAmount = amount;
   order.logs = [{
     time:nowText(),
@@ -10095,27 +10150,31 @@ function findCountryInText(text) {
   return '';
 }
 function findCurrencyInText(text) {
-  const lower = normalizeSearchText(text);
-  if (/(usd|us\$|\$|美元|美金|美刀)/i.test(text)) return 'USD';
-  if (/(eur|€|欧元)/i.test(text)) return 'EUR';
-  if (/(gbp|£|英镑)/i.test(text)) return 'GBP';
-  if (/(cny|rmb|人民币|¥)/i.test(text)) return 'CNY';
-  if (/(aud|a\$|澳元)/i.test(text)) return 'AUD';
-  if (/(cad|c\$|加元)/i.test(text)) return 'CAD';
-  const found = currencyDefs.find(c => lower.includes(c.code.toLowerCase()));
-  return found?.code || '';
+  const source = String(text || '');
+  // 货币代码要整词匹配：Audrey / Claude / Academy / Fleur 里的 aud / cad / eur 不算；A$ / C$ 要先于 $ 判断。
+  const code = word => new RegExp(`(?<![a-z])(?:${word})(?![a-z])`, 'i');
+  if (/(?<![a-z])(?:au|a)\$|澳元/i.test(source) || code('aud').test(source)) return 'AUD';
+  if (/(?<![a-z])(?:ca|c)\$|加元|加币/i.test(source) || code('cad').test(source)) return 'CAD';
+  if (/(?<![a-z])us\$|\$|美元|美金|美刀/i.test(source) || code('usd').test(source)) return 'USD';
+  if (/€|欧元/.test(source) || code('eur|euro|euros').test(source)) return 'EUR';
+  if (/£|英镑/.test(source) || code('gbp').test(source)) return 'GBP';
+  if (/人民币|¥/.test(source) || code('cny|rmb').test(source)) return 'CNY';
+  return currencyDefs.find(c => code(c.code.toLowerCase()).test(source))?.code || '';
 }
 function findAmountInText(text) {
   const source = String(text || '');
+  // 金额只在同一行里找：千分位用逗号或单个空格（1,280 / 1 280），不能把下一行的数量、电话拼进来。
+  const num = '(?<![\\d.,])(\\d{1,3}(?:[, ]\\d{3})+(?:\\.\\d+)?|\\d+(?:\\.\\d+)?)(?![\\d])';
+  const usd = '(?:(?<![a-z])USD|US\\$|(?<![a-z])\\$|美元|美金|美刀)';
   const patterns = [
-    { pattern: /(?:total|总计|合计|订单总额|总金额|订单金额)[:：\s]*(?:USD|US\$|\$|美元|美金|美刀)?\s*([0-9][0-9,\s]*(?:\.\d+)?)/ig, allowShippingLine:true },
-    { pattern: /(?:金额)[:：\s]*(?:USD|US\$|\$|美元|美金|美刀)?\s*([0-9][0-9,\s]*(?:\.\d+)?)/ig },
-    { pattern: /([0-9][0-9,\s]*(?:\.\d+)?)\s*(?:USD|US\$|\$|美元|美金|美刀)/ig },
-    { pattern: /(?:USD|US\$|\$|美元|美金|美刀)\s*([0-9][0-9,\s]*(?:\.\d+)?)/ig },
-    { pattern: /(?:EUR|€|欧元)\s*([0-9][0-9,\s]*(?:\.\d+)?)/ig },
-    { pattern: /(?:GBP|£|英镑)\s*([0-9][0-9,\s]*(?:\.\d+)?)/ig },
-    { pattern: /(?:CNY|RMB|人民币|¥)\s*([0-9][0-9,\s]*(?:\.\d+)?)/ig },
-    { pattern: /(?:阿里(?:巴巴)?|alibaba|paypal|西联|western(?:\s+union)?|zelle|信用卡|credit\s*card|visa|mastercard|t\/t|\btt\b)\s*[:：=]?\s*([0-9][0-9,]*(?:\.\d+)?)(?!\d)/ig }
+    { pattern: new RegExp(`(?:total|总计|合计|订单总额|总金额|订单金额)[:：\\t ]*${usd}?[\\t ]*${num}`, 'ig'), allowShippingLine:true },
+    { pattern: new RegExp(`(?:金额)[:：\\t ]*${usd}?[\\t ]*${num}`, 'ig') },
+    { pattern: new RegExp(`${num}[\\t ]*${usd}`, 'ig') },
+    { pattern: new RegExp(`${usd}[\\t ]*${num}`, 'ig') },
+    { pattern: new RegExp(`(?:(?<![a-z])EUR|€|欧元)[\\t ]*${num}`, 'ig') },
+    { pattern: new RegExp(`(?:(?<![a-z])GBP|£|英镑)[\\t ]*${num}`, 'ig') },
+    { pattern: new RegExp(`(?:(?<![a-z])(?:CNY|RMB)|人民币|¥)[\\t ]*${num}`, 'ig') },
+    { pattern: /(?:阿里(?:巴巴)?|alibaba|paypal|西联|western(?:\s+union)?|zelle|信用卡|credit\s*card|visa|mastercard|t\/t|\btt\b)[\t ]*[:：=]?[\t ]*([0-9][0-9,]*(?:\.\d+)?)(?!\d)/ig }
   ];
   for (const { pattern, allowShippingLine = false } of patterns) {
     for (const match of source.matchAll(pattern)) {
@@ -10182,14 +10241,15 @@ function hasTrackingSignalText(value = '') {
   return /物流|运单|快递|快运|单号|承运|tracking|track(?:ing)?\s*(?:no\.?|number|#)?|waybill|awb|shipment|fed\s*ex|fedex|\bdhl\b|\bups\b|united\s+parcel\s+service|\b1Z(?:[ \t.-]?[A-Z0-9]){16}\b|\bT(?:[ \t.-]?\d){10}\b/i.test(String(value || ''));
 }
 function hasPhoneSignalText(value = '') {
-  return /电话|手机|手机号|联系电话|号码|tel|phone|mobile|whats\s*app|whatsapp|contact\s*(?:no\.?|number|phone)?/i.test(String(value || ''));
+  return /电话|手机|手机号|联系电话|号码|tel|phone|mobile|whats\s*app|whatsapp|contact\s*(?:no\.?|number|phone)?|\bmy\s+(?:number|no\.?|cell)\b|\bcall\s+me\b/i.test(String(value || ''));
 }
 function trackingCandidatesFromLine(line = '') {
   const text = String(line || '').toUpperCase();
   const rawCandidates = [
     ...(text.match(/\b1Z(?:[ \t.-]?[A-Z0-9]){16}\b/g) || []),
     ...(text.match(/\bT(?:[ \t.-]?\d){10}\b/g) || []),
-    ...(text.match(/(?:\d[ \t.-]*){9,12}/g) || [])
+    // 前后紧挨着数字或字母的不算：订单号 K2611070101、18 位阿里订单号不能被切出一段当成运单号。
+    ...(text.match(/(?<![\dA-Z])\d(?:[ \t.-]?\d){8,11}(?![\dA-Z])/g) || [])
   ];
   return rawCandidates
     .map(raw => ({ raw, clean: cleanTracking(raw) }))
@@ -10214,6 +10274,8 @@ function findTrackingInText(text) {
       if (lineTrackingSignal) score += 80;
       if (carrierHintFromTrackingText(context)) score += 35;
       if (linePhoneSignal && !lineTrackingSignal) score -= 100;
+      // 这一行自己写着电话、却没写物流字样：上一行提到 DHL 也不能把电话当运单号。
+      else if (hasPhoneSignalText(line) && !hasTrackingSignalText(line)) score -= 150;
       if (/\b[A-Z]{2}\s+\d{5}(?:-\d{4})?\b/i.test(context)) score -= 25;
       if (/^\+?\d[\d \t().-]{8,}$/.test(line) && !lineTrackingSignal) score -= 80;
       scored.push({ number: item.clean, score });
@@ -10856,10 +10918,15 @@ async function requestAiChat(settings, messages, { temperature = 0, testOnly = f
 }
 function parseAiJson(text) {
   const raw = String(text || '').trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/i, '').trim();
-  try { return JSON.parse(raw); } catch (e) {}
-  const match = raw.match(/\{[\s\S]*\}/);
-  if (!match) return {};
-  try { return JSON.parse(match[0]); } catch (e) { return {}; }
+  // 模型偶尔回 null、数组或一个字符串：后面都按字段对象读，不是对象就当没识别到。
+  const asObject = value => (value && typeof value === 'object' && !Array.isArray(value) ? value : (Array.isArray(value) && value[0] && typeof value[0] === 'object' ? value[0] : {}));
+  try { return asObject(JSON.parse(raw)); } catch (e) {}
+  // 模型在 JSON 前后加了说明文字：先找 ``` 代码块，再试最大的 {…}，最后试最小的 {…}。
+  const candidates = [raw.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1], raw.match(/\{[\s\S]*\}/)?.[0], raw.match(/\{[\s\S]*?\}/)?.[0]];
+  for (const candidate of candidates.filter(Boolean)) {
+    try { return asObject(JSON.parse(candidate)); } catch (e) {}
+  }
+  return {};
 }
 function normalizeAiStage(value) {
   const text = String(value || '').toLowerCase();
@@ -10870,12 +10937,24 @@ function normalizeAiStage(value) {
   if (text.includes('发货') || text.includes('物流') || text === 'shipment') return 'shipment';
   return stageDefs.some(s => s.key === text) ? text : '';
 }
+// AI 回的金额可能是 1,280.00、1.280,00（欧洲写法）或带货币符号：最后出现的 . 或 , 后面跟 1-2 位才当小数点。
+function aiMoneyNumber(value) {
+  if (typeof value === 'number') return value;
+  const text = String(value ?? '').replace(/[^\d.,-]/g, '');
+  if (!text) return NaN;
+  const lastSep = Math.max(text.lastIndexOf('.'), text.lastIndexOf(','));
+  const decimals = lastSep >= 0 ? text.length - lastSep - 1 : 0;
+  if (lastSep >= 0 && decimals >= 1 && decimals <= 2) {
+    return Number(`${text.slice(0, lastSep).replace(/[.,]/g, '')}.${text.slice(lastSep + 1)}`);
+  }
+  return Number(text.replace(/[.,]/g, ''));
+}
 function normalizeAiExtractedFields(raw = {}) {
-  const amount = raw.amount === undefined || raw.amount === null ? '' : Number(String(raw.amount).replace(/[,\s]/g, ''));
+  const amount = raw.amount === undefined || raw.amount === null ? '' : aiMoneyNumber(raw.amount);
   const depositPercentValue = raw.depositPercent === undefined || raw.depositPercent === null ? '' : Number(raw.depositPercent);
   const explicitPaidAmount = raw.paidAmount === undefined || raw.paidAmount === null || raw.paidAmount === ''
     ? ''
-    : Number(String(raw.paidAmount).replace(/[,\s]/g, ''));
+    : aiMoneyNumber(raw.paidAmount);
   const trackingNumber = cleanTracking(raw.trackingNumber || raw.tracking || '');
   const currency = String(raw.currency || '').toUpperCase();
   const carrier = String(raw.carrier || '').toLowerCase();
@@ -10977,6 +11056,7 @@ async function requestAiPasteAnalysis(text, localAnalysis, { testOnly = false, s
   const content = data.choices?.[0]?.message?.content || data.choices?.[0]?.text || '';
   return testOnly ? data : parseAiJson(content);
 }
+let aiPasteRunSeq = 0;
 async function runAiPasteAnalysis() {
   const input = document.getElementById('pasteAssistInput');
   const text = input?.value.trim() || '';
@@ -10992,8 +11072,12 @@ async function runAiPasteAnalysis() {
   const localAnalysis = analyzePasteText(text);
   pasteAssistAnalysis = localAnalysis;
   renderPasteAssistResults(localAnalysis);
+  const seq = ++aiPasteRunSeq;
+  // AI 回来得慢：期间关掉弹窗、换了一单或改了粘贴内容，就别把旧结果填进现在这张单。
+  const stale = () => seq !== aiPasteRunSeq || (document.getElementById('pasteAssistInput')?.value.trim() || '') !== text;
   try {
     const raw = await requestAiPasteAnalysis(text, localAnalysis);
+    if (stale()) return;
     const aiFields = normalizeAiExtractedFields(raw);
     pasteAssistAnalysis = {
       ...localAnalysis,
@@ -11003,6 +11087,7 @@ async function runAiPasteAnalysis() {
     renderPasteAssistResults(pasteAssistAnalysis);
     toast(Object.keys(aiFields).length ? 'AI 识别完成' : 'AI 未识别到更多字段');
   } catch (e) {
+    if (stale()) return;
     renderAiFailure('pasteAssistResults', e, 'order');
     toast(friendlyAiErrorMessage(e));
   } finally {
@@ -12419,7 +12504,10 @@ function renderGlobalSearchPanel({ forceOpen = false } = {}) {
   if (!input || !panel) return;
   const query = input.value.trim();
   allGlobalSearchResults = buildGlobalSearchResults(query);
-  currentGlobalSearchResults = limitGlobalSearchResultsByGroup(allGlobalSearchResults, 5);
+  const limitedResults = limitGlobalSearchResultsByGroup(allGlobalSearchResults, 5);
+  // 面板按分组显示，↑↓ 的顺序也要按分组排，否则方向键高亮的和 Enter 打开的不是同一条。
+  const groupOrder = [...new Set(limitedResults.map(item => item.group))];
+  currentGlobalSearchResults = groupOrder.flatMap(group => limitedResults.filter(item => item.group === group));
   const resultCounts = globalSearchGroupCounts(allGlobalSearchResults);
   globalSearchActiveIndex = -1;
   const grouped = currentGlobalSearchResults.reduce((map, item, index) => {
@@ -12460,7 +12548,7 @@ function closeGlobalSearchPanel() {
 function setGlobalSearchActive(index) {
   if (!currentGlobalSearchResults.length) return;
   globalSearchActiveIndex = (index + currentGlobalSearchResults.length) % currentGlobalSearchResults.length;
-  document.querySelectorAll('[data-global-search-index]').forEach((el, itemIndex) => el.classList.toggle('active', itemIndex === globalSearchActiveIndex));
+  document.querySelectorAll('[data-global-search-index]').forEach(el => el.classList.toggle('active', Number(el.dataset.globalSearchIndex) === globalSearchActiveIndex));
   const active = document.getElementById(`global-search-result-${globalSearchActiveIndex}`);
   if (active) {
     document.getElementById('searchInput')?.setAttribute('aria-activedescendant', active.id);
@@ -12480,7 +12568,7 @@ function activateGlobalSearchItem(item) {
     openCustomerModal(item.id, { viewOnly:true });
   }
   if (item.type === 'order') {
-    setPage(item.source === 'deleted' ? 'deleted' : 'orders');
+    setPage(item.source === 'deleted' ? 'deleted' : 'order-list');
     openOrderDetail(item.id);
   }
   if (item.type === 'tracking') {
@@ -12955,8 +13043,12 @@ function renderLevelIcon(level = '') {
   const letter = String(level).trim().charAt(0).toUpperCase();
   return `<span class="level-icon ${levelIconDef(level)}" aria-label="${escapeAttr(tip)}" data-level-tooltip="${escapeAttr(tip)}" data-level-letter="${escapeAttr(letter)}"></span>`;
 }
+// 自动等级按「成交」算：还在报价、没收到钱的单不算进累计成交额和成交次数（规则写的是“成交额累计”）。
+function customerDealOrders(orders = []) {
+  return orders.filter(isRevenueOrder);
+}
 function customerLevelForName(name = '') {
-  const orders = state.orders.filter(o => o.client === name && !o.isDraft && orderAmountValue(o) > 0);
+  const orders = customerDealOrders(state.orders.filter(o => o.client === name && !o.isDraft && orderAmountValue(o) > 0));
   const total = usdTotal(orders);
   const paid = usdPaidTotal(orders);
   const profile = state.customers?.[name] || {};
@@ -13206,6 +13298,8 @@ function orderChangeSummary(before, after) {
     ['note', '备注']
   ];
   return fields
+    // Without a tracking number the carrier is only a placeholder (auto vs a guessed DHL): not a real change.
+    .filter(([key]) => !(key === 'carrier' && !cleanTracking(before.trackingNumber) && !cleanTracking(after.trackingNumber)))
     .filter(([key]) => key === 'attachments' ? JSON.stringify(before[key] || []) !== JSON.stringify(after[key] || []) : String(before[key] ?? '') !== String(after[key] ?? ''))
     .map(([key, label, format]) => {
       const from = format ? format(before[key]) : before[key];
@@ -13249,6 +13343,11 @@ async function confirmAttachmentDelete(item = {}) {
   });
   return result.confirmed;
 }
+// 附件链接只放行本机附件、http(s) 和图片 data:/blob: 地址：导入的数据里如果有 javascript: 之类的链接，点了会在软件里执行代码。
+function safeAttachmentHref(value = '') {
+  const url = String(value || '').trim();
+  return /^(?:https?:\/\/|\/attachments\/|data:image\/|blob:)/i.test(url) ? url : '';
+}
 function renderOrderAttachments(list = []) {
   const form = document.getElementById('orderForm');
   if (form?.elements.attachmentsJson) form.elements.attachmentsJson.value = JSON.stringify(list);
@@ -13268,7 +13367,7 @@ function renderOrderAttachments(list = []) {
         <div class="attachment-name">${escapeAttr(item.name || item.type || '未命名凭证')}</div>
         <div class="muted">${escapeAttr(item.type || '其他')} · ${escapeAttr(item.time || '')}${item.size ? ` · ${formatBytes(item.size)}` : ''}${item.optimizer ? ` · ${escapeAttr(item.optimizer)}` : ''}${item.temporary ? ' · 待保存' : ''}</div>
       </div>
-      ${item.fileUrl || item.link ? `<a class="attachment-link" href="${escapeAttr(item.fileUrl || item.link)}" target="_blank" rel="noopener">${escapeAttr(item.fileUrl ? '查看图片' : item.link)}</a>` : '<span class="muted">无链接</span>'}
+      ${safeAttachmentHref(item.fileUrl || item.link) ? `<a class="attachment-link" href="${escapeAttr(safeAttachmentHref(item.fileUrl || item.link))}" target="_blank" rel="noopener">${escapeAttr(item.fileUrl ? '查看图片' : item.link)}</a>` : (item.link ? `<span class="muted">${escapeAttr(item.link)}</span>` : '<span class="muted">无链接</span>')}
       ${item.fileUrl ? `<button class="btn btn-small" type="button" data-open-attachment-folder="${escapeAttr(item.fileUrl)}">文件夹</button>` : ''}
       <button class="attachment-remove" type="button" data-remove-attachment="${index}">×</button>
     </div>
@@ -13610,7 +13709,7 @@ function openAttachmentPreview({ image = '', source = '', folder = '', name = '�
   img.src = image;
   if (img.complete) fitAttachmentPreviewImage();
   title.textContent = name || '图片附件';
-  link.href = source || image;
+  link.href = safeAttachmentHref(source) || safeAttachmentHref(image) || '#';
   setModalOpenState(modal, true);
   updateAttachmentPreviewZoom();
 }
@@ -13940,6 +14039,14 @@ function renderSettingsList(elId, list, type) {
     <span class="settings-chip">${escapeAttr(item)}<button type="button" data-settings-remove="${type}" data-value="${escapeAttr(item)}">×</button></span>
   `).join('');
 }
+// 设置页任何一次 render 都会重填所有设置表单：某个表单里有还没保存的输入时先不动它，
+// 免得在别的卡片点了保存、加了标签，这里刚改的文案 / 门槛 / Key 被冲掉。保存或恢复默认时用 settingsFormRefill 强制重填。
+function settingsFormFill(form, fill) {
+  if (!form || uiFormDirty(form)) return;
+  fill(form);
+  uiFormMarkClean(form);
+}
+function settingsFormRefill(form) { if (form) delete form._cleanFingerprint; }
 function renderSettings() {
   renderAiUsage();
   state.customerLevels = normalizeCustomerLevels(state.customerLevels || defaultCustomerLevels);
@@ -13959,14 +14066,14 @@ function renderSettings() {
   renderSettingsList('settingsLevelList', state.customerLevels, 'customerLevels');
   renderSettingsList('settingsPaymentList', state.paymentMethods, 'paymentMethods');
   state.customerLevelRules = normalizeCustomerLevelRules(state.customerLevelRules);
-  renderLevelRuleTable();
-  const copyForm = document.getElementById('copyTemplatesForm');
-  if (copyForm) {
+  const levelForm = document.getElementById('levelRuleForm');
+  if (levelForm) settingsFormFill(levelForm, renderLevelRuleTable);
+  else renderLevelRuleTable();
+  settingsFormFill(document.getElementById('copyTemplatesForm'), copyForm => {
     copyForm.elements.copyStatusTemplate.value = copyTemplate('status');
     copyForm.elements.copyDunningTemplate.value = copyTemplate('dunning');
-  }
-  const form = document.getElementById('orderSettingsForm');
-  if (form) {
+  });
+  settingsFormFill(document.getElementById('orderSettingsForm'), form => {
     form.elements.orderPrefix.value = state.orderSettings.orderPrefix || 'K';
     form.elements.serialDigits.value = String(state.orderSettings.serialDigits || 2);
     form.elements.defaultCurrency.value = state.orderSettings.defaultCurrency || 'USD';
@@ -13979,9 +14086,11 @@ function renderSettings() {
     form.elements.defaultCarrier.value = state.orderSettings.defaultCarrier || defaultOrderSettings.defaultCarrier;
     form.elements.defaultUrgentOrder.value = state.orderSettings.defaultUrgentOrder || defaultOrderSettings.defaultUrgentOrder;
     if (form.elements.defaultNext) form.elements.defaultNext.value = state.orderSettings.defaultNext || '';
-  }
+  });
   const aiForm = document.getElementById('aiSettingsForm');
-  if (aiForm) {
+  const aiStatus = document.getElementById('aiSettingsStatus');
+  if (aiStatus) { const ai = getAiSettings(); aiStatus.textContent = `${ai.lastTestStatus || '尚未测试连接'}${ai.lastTestAt ? ` · ${ai.lastTestAt}` : ''}`; }
+  settingsFormFill(aiForm, aiForm => {
     const ai = getAiSettings();
     aiForm.elements.enabled.value = ai.enabled;
     aiForm.elements.provider.value = 'custom';
@@ -13989,23 +14098,23 @@ function renderSettings() {
     aiForm.elements.model.value = ai.model;
     aiForm.elements.apiKey.value = '';
     aiForm.elements.apiKey.placeholder = savedSecretPlaceholder(ai.apiKeySaved, ai.apiKeyMask, '只保存在本机，不随数据文件导出');
-    const status = document.getElementById('aiSettingsStatus');
-    if (status) status.textContent = `${ai.lastTestStatus || '尚未测试连接'}${ai.lastTestAt ? ` · ${ai.lastTestAt}` : ''}`;
-  }
+  });
   const trackingForm = document.getElementById('trackingApiSettingsForm');
   if (trackingForm) {
     const tracking = getTrackingApiSettings();
-    trackingForm.elements.dhlApiEnabled.value = tracking.dhlApiEnabled;
-    trackingForm.elements.autoDhlUpdate.value = tracking.autoDhlUpdate;
-    trackingForm.elements.dhlApiKey.value = '';
-    trackingForm.elements.dhlApiKey.placeholder = savedSecretPlaceholder(tracking.dhlApiKeySaved, tracking.dhlApiKeyMask, '保存在本机 Mac App 数据目录，不写入分享文件');
-    trackingForm.elements.autoRunTimes.value = tracking.autoRunTimes;
-    trackingForm.elements.fedexApiEnabled.value = tracking.fedexApiEnabled;
-    trackingForm.elements.fedexEnv.value = tracking.fedexEnv;
-    trackingForm.elements.fedexApiKey.value = '';
-    trackingForm.elements.fedexApiSecret.value = '';
-    trackingForm.elements.fedexApiKey.placeholder = savedSecretPlaceholder(tracking.fedexApiKeySaved, tracking.fedexApiKeyMask, '保存到本机 Mac App 数据目录');
-    trackingForm.elements.fedexApiSecret.placeholder = savedSecretPlaceholder(tracking.fedexApiSecretSaved, tracking.fedexApiSecretMask, '保存到本机 Mac App 数据目录');
+    settingsFormFill(trackingForm, trackingForm => {
+      trackingForm.elements.dhlApiEnabled.value = tracking.dhlApiEnabled;
+      trackingForm.elements.autoDhlUpdate.value = tracking.autoDhlUpdate;
+      trackingForm.elements.dhlApiKey.value = '';
+      trackingForm.elements.dhlApiKey.placeholder = savedSecretPlaceholder(tracking.dhlApiKeySaved, tracking.dhlApiKeyMask, '保存在本机 Mac App 数据目录，不写入分享文件');
+      trackingForm.elements.autoRunTimes.value = tracking.autoRunTimes;
+      trackingForm.elements.fedexApiEnabled.value = tracking.fedexApiEnabled;
+      trackingForm.elements.fedexEnv.value = tracking.fedexEnv;
+      trackingForm.elements.fedexApiKey.value = '';
+      trackingForm.elements.fedexApiSecret.value = '';
+      trackingForm.elements.fedexApiKey.placeholder = savedSecretPlaceholder(tracking.fedexApiKeySaved, tracking.fedexApiKeyMask, '保存到本机 Mac App 数据目录');
+      trackingForm.elements.fedexApiSecret.placeholder = savedSecretPlaceholder(tracking.fedexApiSecretSaved, tracking.fedexApiSecretMask, '保存到本机 Mac App 数据目录');
+    });
     const lastChecked = document.getElementById('trackingApiLastChecked');
     const dhlStatus = document.getElementById('trackingApiDhlStatus');
     const fedexStatus = document.getElementById('trackingApiFedexStatus');
@@ -15303,8 +15412,12 @@ function checkUpsAutoCompletion() {
 }
 function applyTrackingResultToOrder(clean, result) {
   if (!result.ok || !result.status) return;
-  const order = state.orders.find(o => normalizeOrderShipments(o).some(shipment => shipment.trackingNumber === clean));
-  if (!order) return;
+  // Consolidated parcels: several orders can share one tracking number, and every one of them gets the result.
+  state.orders
+    .filter(o => normalizeOrderShipments(o).some(shipment => shipment.trackingNumber === clean))
+    .forEach(order => applyTrackingResultToOneOrder(order, clean, result));
+}
+function applyTrackingResultToOneOrder(order, clean, result) {
   const oldStage = normalizeStage(order.stage);
   const oldStatus = normalizeTrackingStatus(normalizeOrderShipments(order).find(shipment => shipment.trackingNumber === clean)?.status || order.logisticsStatus) || '';
   const updatedAt = formatApiTime(result.updatedAt || result.checkedAt || nowText());
@@ -15316,7 +15429,9 @@ function applyTrackingResultToOrder(clean, result) {
   order.carrier = primary?.carrier || 'auto';
   order.logisticsStatus = primary?.status || result.status;
   order.logisticsUpdated = primary?.updated || updatedAt;
-  if (order.shipments.length && order.shipments.every(shipment => normalizeTrackingStatus(shipment.status) === '已签收') && oldStage !== 'done') {
+  // Only a shipped order completes on delivery. A 报价 / 尾款 / 生产中 order that already has a tracking number
+  // (a sample, or a parcel sent before the balance arrived) must not be marked fully paid by the carrier.
+  if (order.shipments.length && order.shipments.every(shipment => normalizeTrackingStatus(shipment.status) === '已签收') && oldStage === 'shipment') {
     order.stage = 'done';
     applyStagePaymentInvariant(order, 'done');
     order.logs = [{ time:nowText(), text:'物流已签收，订单自动移动到已完成' }, ...(order.logs || [])];
@@ -15343,6 +15458,9 @@ async function refreshTrackingOnce(clean, carrier, button) {
   renderLogistics();
   renderPriceHistory(lookup?.id || '');
   renderTasks();
+  // 签收会把订单移到已完成：侧边栏「物流」的数字、通知也要跟着变。
+  uiNavCounts();
+  uiRenderNotifs();
   toast(result.ok ? '物流状态已同步' : (result.message || '已记录本次查询'));
 }
 function dhlAutoRunSlots(settings = getTrackingApiSettings()) {
@@ -15364,14 +15482,16 @@ function nextTrackingAutoSlot(settings = getTrackingApiSettings()) {
   });
   return next || `明天 ${slots[0]}`;
 }
-function trackingAutoUpdateOrders() {
-  return state.orders.filter(order => {
-    const clean = cleanTracking(order.trackingNumber);
-    if (!clean) return false;
-    const carrier = carrierName(order.carrier === 'auto' ? detectCarrier(clean) : order.carrier);
-    if (order.logisticsStatus === '已签收') return false;
-    return carrier === 'DHL' || carrier === 'FedEx';
-  });
+// Every undelivered DHL / FedEx parcel, once per tracking number (an order's second parcel used to be skipped,
+// so the order never reached 「全部签收」).
+function trackingAutoUpdateTargets(settings = getTrackingApiSettings()) {
+  const targets = new Map();
+  state.orders.forEach(order => normalizeOrderShipments(order).forEach(shipment => {
+    if (normalizeTrackingStatus(shipment.status) === '已签收' || targets.has(shipment.trackingNumber)) return;
+    const carrier = carrierName(shipment.carrier === 'auto' ? detectCarrier(shipment.trackingNumber) : shipment.carrier);
+    if ((carrier === 'DHL' && settings.dhlApiEnabled === '是') || (carrier === 'FedEx' && settings.fedexApiEnabled === '是')) targets.set(shipment.trackingNumber, carrier);
+  }));
+  return [...targets].map(([clean, carrier]) => ({ clean, carrier }));
 }
 async function runTrackingAutoUpdate(reason = 'manual') {
   const settings = getTrackingApiSettings();
@@ -15380,10 +15500,7 @@ async function runTrackingAutoUpdate(reason = 'manual') {
     return;
   }
   if (dhlAutoUpdateRunning) return;
-  const targets = trackingAutoUpdateOrders().filter(order => {
-    const carrier = carrierName(order.carrier === 'auto' ? detectCarrier(order.trackingNumber) : order.carrier);
-    return (carrier === 'DHL' && settings.dhlApiEnabled === '是') || (carrier === 'FedEx' && settings.fedexApiEnabled === '是');
-  });
+  const targets = trackingAutoUpdateTargets(settings);
   if (!targets.length) {
     toast('没有需要更新的物流订单');
     return;
@@ -15391,17 +15508,20 @@ async function runTrackingAutoUpdate(reason = 'manual') {
   dhlAutoUpdateRunning = true;
   let okCount = 0;
   let failCount = 0;
-  for (const order of targets) {
-    const clean = cleanTracking(order.trackingNumber);
-    const carrier = carrierName(order.carrier === 'auto' ? detectCarrier(clean) : order.carrier);
-    const result = await queryTrackingStatus(clean, carrier);
-    if (result.ok) {
-      applyTrackingResultToOrder(clean, result);
-      okCount += 1;
-    } else {
-      failCount += 1;
+  try {
+    for (const { clean, carrier } of targets) {
+      let result;
+      try { result = await queryTrackingStatus(clean, carrier); } catch (error) { result = { ok:false, message:error?.message || '查询失败' }; }
+      if (result.ok) {
+        applyTrackingResultToOrder(clean, result);
+        okCount += 1;
+      } else {
+        failCount += 1;
+      }
+      addTrackingLookup(clean, carrier, result);
     }
-    addTrackingLookup(clean, carrier, result);
+  } finally {
+    dhlAutoUpdateRunning = false;
   }
   const nextSettings = {
     ...getTrackingApiSettings(),
@@ -15415,7 +15535,6 @@ async function runTrackingAutoUpdate(reason = 'manual') {
   saveState();
   renderTrackingApiMiniStatus();
   render();
-  dhlAutoUpdateRunning = false;
   toast(nextSettings.lastStatus);
 }
 function checkDhlAutoUpdateSchedule() {
@@ -15424,7 +15543,8 @@ function checkDhlAutoUpdateSchedule() {
   const slots = dhlAutoRunSlots(settings);
   if (!slots.length) return;
   const now = new Date();
-  const today = now.toISOString().slice(0, 10);
+  // Local date, like the local HH:MM slots (the UTC date ran early-morning slots twice one day and skipped them the next).
+  const today = nowText().slice(0, 10);
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   const due = slots
     .map(slot => {
@@ -15436,6 +15556,8 @@ function checkDhlAutoUpdateSchedule() {
   if (!due) return;
   const slotId = `${today}-${due.slot}`;
   if (settings.lastAutoRunSlot === slotId) return;
+  // Like the UPS rule: wait while an edit form is open, or saving that stale form would undo the update.
+  if (document.querySelector('.modal-backdrop.open')) return;
   saveTrackingApiSettings({ ...settings, lastAutoRunSlot: slotId });
   runTrackingAutoUpdate('auto');
 }
@@ -15680,6 +15802,8 @@ async function renderTrackingLookup() {
   renderPriceHistory();
   renderLogistics();
   renderTasks();
+  uiNavCounts();
+  uiRenderNotifs();
   result.classList.add('show');
   result.innerHTML = `
     <div><strong>查询完成：${results.length} 个物流单</strong></div>
@@ -15827,6 +15951,8 @@ function handleTaskAction(actionName, row) {
     return;
   }
   if (actionName === 'open') {
+    // 日历抽屉在订单详情后面写，同为一层：不先关掉它，详情会开在抽屉底下看不见。
+    if (document.getElementById('calendarTaskDrawer')?.classList.contains('open')) closeCalendarTaskDrawer();
     if (row.dataset.orderId) {
       const task = buildTaskItems({ includeDone:true, includeSnoozed:true }).find(item => item.id === id);
       openOrderDetail(row.dataset.orderId, { tab:taskDetailTab(task || {}) });
@@ -16002,7 +16128,8 @@ function customerWorkspaceRecord(client = {}) {
   const sortedOrders = orders.slice().sort((a, b) => parseDate(b.updated || b.createdAt) - parseDate(a.updated || a.createdAt));
   const latestOrder = sortedOrders[0];
   const profile = state.customers?.[name] || {};
-  const level = !profile.level || profile.level === '自动判断' ? autoCustomerLevel(total, orders.length, paid) : profile.level;
+  const deals = customerDealOrders(orders);
+  const level = !profile.level || profile.level === '自动判断' ? autoCustomerLevel(usdTotal(deals), deals.length, usdPaidTotal(deals)) : profile.level;
   const latestSource = latestOrder || client;
   const latestOrderDate = latestOrder ? normalizeDate(latestOrder.createdAt || latestOrder.updated) : '-';
   const tags = normalizeTags(profile.tags || profile.tag || level);
@@ -16395,26 +16522,36 @@ function renderCustomerHistory(history) {
   fitSegmentControl(document.getElementById('customerRoadmapFilter'));
 }
 function customerNameCollision(customers = {}, oldName = '', newName = '') {
-  const oldKey = String(oldName || '').trim().toLowerCase();
-  const nextKey = String(newName || '').trim().toLowerCase();
-  if (!nextKey) return '';
-  return Object.keys(customers || {}).find(name => {
-    const key = name.trim().toLowerCase();
-    return key === nextKey && key !== oldKey;
-  }) || '';
+  const oldExact = String(oldName || '').trim();
+  const nextExact = String(newName || '').trim();
+  const nextKey = nextExact.toLowerCase();
+  // 名字没改就不算撞名；改了名，只要另一位客户（大小写不同也算，比如 alice / Alice）已经叫这个名字，就是撞名。
+  if (!nextKey || nextExact === oldExact) return '';
+  return Object.keys(customers || {}).find(name => name.trim().toLowerCase() === nextKey && name.trim() !== oldExact) || '';
+}
+// 保存时的客户名：照常自动首字母大写，但结果要是正好撞上另一位只差大小写的已有客户，就保留输入原样，免得两份档案被并成一份。
+function customerSaveName(rawName = '', oldName = '') {
+  const capitalized = autoCapitalizeCustomerName(rawName);
+  const typed = String(rawName || '').trim();
+  if (!typed || capitalized === typed || capitalized === oldName) return capitalized;
+  return Object.hasOwn(state.customers || {}, capitalized) ? typed : capitalized;
 }
 function sameCustomerName(a = '', b = '') {
   return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
 }
-function patchOrdersForCustomerRename(orders = [], oldName = '', newName = '') {
+function patchOrdersForCustomerRename(orders = [], oldName = '', newName = '', customers = {}) {
   if (!oldName || oldName === newName) return orders.slice();
-  return orders.map(order => sameCustomerName(order.client, oldName) ? { ...order, client:newName } : order);
+  // 大小写不同的旧订单也跟着改名，但如果那个写法本身就是另一位客户（alice / Alice 两份档案），不能把他的订单一起搬走。
+  const separateProfile = client => Object.hasOwn(customers || {}, oldName) && Object.hasOwn(customers || {}, client);
+  const belongs = client => client === oldName || (sameCustomerName(client, oldName) && !separateProfile(client));
+  return orders.map(order => belongs(order.client) ? { ...order, client:newName } : order);
 }
 // 改名 / 合并要连垃圾箱和已删除订单一起改，恢复时才不会冒出旧客户名。
 function patchAllOrdersForCustomerRename(oldName = '', newName = '') {
-  state.orders = patchOrdersForCustomerRename(state.orders, oldName, newName);
-  if (Array.isArray(state.trashOrders)) state.trashOrders = patchOrdersForCustomerRename(state.trashOrders, oldName, newName);
-  if (Array.isArray(state.deletedOrders)) state.deletedOrders = patchOrdersForCustomerRename(state.deletedOrders, oldName, newName);
+  const customers = state.customers || {};
+  state.orders = patchOrdersForCustomerRename(state.orders, oldName, newName, customers);
+  if (Array.isArray(state.trashOrders)) state.trashOrders = patchOrdersForCustomerRename(state.trashOrders, oldName, newName, customers);
+  if (Array.isArray(state.deletedOrders)) state.deletedOrders = patchOrdersForCustomerRename(state.deletedOrders, oldName, newName, customers);
 }
 async function confirmDuplicateCustomerSave({ oldName = '', newName = '', emails = [], email = '' } = {}) {
   const normalizedOld = String(oldName || '').trim().toLowerCase();
@@ -16453,7 +16590,7 @@ async function confirmDuplicateCustomerSave({ oldName = '', newName = '', emails
   return result.confirmed;
 }
 function buildCustomerSavePayload(data = {}, previousProfile = {}, oldName = '') {
-  const newName = autoCapitalizeCustomerName(data.name);
+  const newName = customerSaveName(data.name, oldName);
   const previousHistory = previousProfile.history || [];
   const paymentMethod = normalizePaymentChannelValue(data.paymentMethod || previousProfile.paymentMethod || '') || '阿里巴巴';
   const productType = productTypeDefs.some(item => item.value === data.productType) ? data.productType : (previousProfile.productType || defaultOrderSettings.defaultProductType || '假发');
@@ -16501,7 +16638,7 @@ async function saveCustomer(form) {
   try {
   const data = { ...Object.fromEntries(new FormData(form).entries()), ...customerMultiFieldData(form), ...customerContactPreferenceData(form) };
   const oldName = data.originalName;
-  const newName = autoCapitalizeCustomerName(data.name);
+  const newName = customerSaveName(data.name, oldName);
   if (form.elements.name) form.elements.name.value = newName;
   if (!newName) return;
   state.customers = state.customers || {};
@@ -16683,6 +16820,14 @@ function openCombinedCustomerOrderModal(preview = {}) {
   if (notificationCheckbox) notificationCheckbox.checked = typeof feishuDefaultChecked !== 'function' || feishuDefaultChecked();
   setModalOpenState(modal, true);
   resetModalScroll(modal);
+  uiFormMarkClean(document.getElementById('combinedCustomerForm'));
+  uiFormMarkClean(document.getElementById('combinedOrderForm'));
+}
+async function uiCloseCombinedGuarded() {
+  const modal = document.getElementById('combinedCustomerOrderModal');
+  const dirty = ['combinedCustomerForm', 'combinedOrderForm'].some(id => uiFormDirty(document.getElementById(id)));
+  if (dirty && !await uiConfirmDiscard(modal, '关闭客户和订单')) return;
+  closeCombinedCustomerOrderModal();
 }
 function closeCombinedCustomerOrderModal() {
   if (document.getElementById('combinedOrderForm')?.dataset.saving) return;
@@ -17123,6 +17268,29 @@ function nextOrderNum() {
   const next = Math.max(0, ...dailyNums) + 1;
   return `${prefix}${date}${String(next).padStart(digits,'0')}`;
 }
+// The database keeps order numbers unique across 订单 / 回收站 / 已删除. A repeated number used to be put into
+// state first; the save then failed on the server and every later edit stayed unsaved behind it.
+function orderNumOwner(num, selfId = '') {
+  const text = String(num || '').trim();
+  if (!text) return null;
+  const buckets = [['orders', ''], ['trashOrders', '回收站里'], ['deletedOrders', '已删除订单里']];
+  for (const [key, where] of buckets) {
+    const hit = (state[key] || []).find(o => o.id !== selfId && String(o.num || '').trim() === text);
+    if (hit) return { order:hit, where };
+  }
+  return null;
+}
+function rejectDuplicateOrderNum(form, order) {
+  const owner = orderNumOwner(order.num, order.id);
+  if (!owner) return false;
+  const field = form?.elements?.num;
+  if (field) {
+    field.focus();
+    field.select?.();
+  }
+  toast(`订单号 ${order.num} 已被${owner.where}「${clientDisplayName(owner.order.client) || '另一张订单'}」的订单使用，请换一个`, { tone:'error' });
+  return true;
+}
 function inferNewOrderStage({ selectedStage, orderType, amount, paidAmount, trackingNumber } = {}) {
   const stage = normalizeStage(selectedStage);
   if (stage === 'done') return stage;
@@ -17179,7 +17347,11 @@ function buildOrderFromFormData(data = {}, { existing = null, isDraft = false } 
   // 客户名大小写 / 空格不同时归到已有档案，别拆成两个客户。
   const typedClient = autoCapitalizeCustomerName(data.client);
   const clientName = (typedClient && (existingCustomerKey(typedClient) || state.orders.find(o => String(o.client || '').trim().toLowerCase() === typedClient.toLowerCase())?.client)) || typedClient || (isDraft ? '未命名草稿' : '');
-  const paymentChannel = preferredOrderPaymentChannel(clientName, data.paymentChannel, state.orderSettings?.defaultPaymentChannel || defaultOrderSettings.defaultPaymentChannel || 'Paypal');
+  // The form already took the customer's default when the client was picked (fillClientFromHistory), so what
+  // the form shows is what the user chose. Re-applying the default here turned every Paypal order into the
+  // customer's channel on each save (profiles without one default to 阿里巴巴).
+  const paymentChannel = normalizePaymentChannelValue(data.paymentChannel)
+    || preferredOrderPaymentChannel(clientName, '', state.orderSettings?.defaultPaymentChannel || defaultOrderSettings.defaultPaymentChannel || 'Paypal');
   const order = {
     id: existing ? existing.id : 'o' + Date.now(),
     num: String(data.num || '').trim() || nextOrderNum(),
@@ -17234,12 +17406,14 @@ async function saveCombinedCustomerOrder() {
   const customerData = { ...Object.fromEntries(new FormData(customerForm).entries()), ...customerMultiFieldData(customerForm), ...customerContactPreferenceData(customerForm) };
   const orderData = { ...Object.fromEntries(new FormData(orderForm).entries()), shipments:orderShipmentsFromForm(orderForm) };
   const oldName = customerData.originalName || '';
-  const newName = autoCapitalizeCustomerName(customerData.name);
+  const newName = customerSaveName(customerData.name, oldName);
   if (customerForm.elements.name) customerForm.elements.name.value = newName;
   if (!newName) {
     toast('请填写客户名称');
     return;
   }
+  // Check the order number before the customer is written into state.
+  if (rejectDuplicateOrderNum(orderForm, { num:String(orderData.num || '').trim(), id:orderForm.dataset.pendingOrderId || '' })) return;
   const duplicateOk = await confirmDuplicateCustomerSave({ oldName, newName, emails: customerData.emails });
   if (!duplicateOk) return;
   const previousProfile = state.customers?.[oldName] || (!oldName ? state.customers?.[newName] : {}) || {};
@@ -17250,14 +17424,16 @@ async function saveCombinedCustomerOrder() {
   const finalOrderData = {
     ...orderData,
     client: finalCustomer.client,
-    country: finalCustomer.country || orderData.country || '',
-    currency: finalCustomer.currency || orderData.currency || 'USD',
-    paymentChannel: finalCustomer.paymentMethod || orderData.paymentChannel || 'Paypal',
-    productType: finalCustomer.productType || orderData.productType || '假发',
+    // The order column is what the user sees for this order; the customer column only fills gaps.
+    country: orderData.country || finalCustomer.country || '',
+    currency: orderData.currency || finalCustomer.currency || 'USD',
+    paymentChannel: orderData.paymentChannel || finalCustomer.paymentMethod || 'Paypal',
+    productType: orderData.productType || finalCustomer.productType || '假发',
     attachments: []
   };
   const pendingOrder = state.orders.find(o => o.id === orderForm.dataset.pendingOrderId);
   const order = buildOrderFromFormData(finalOrderData, { existing: pendingOrder || null, isDraft: false });
+  if (rejectDuplicateOrderNum(orderForm, order)) return;
   const notificationRequested = shouldRequestOrderNotification(null, false, orderData.sendFeishuNotification === 'on');
   if (typeof rememberFeishuChoice === 'function') rememberFeishuChoice(orderData.sendFeishuNotification === 'on');
   order.feishuNotification = normalizeFeishuNotification({ requested:notificationRequested, status:notificationRequested ? 'sending' : 'skipped' });
@@ -17283,7 +17459,14 @@ async function upsertOrder(form, options = {}) {
   const isEdit = !!editingId;
   const isDraft = !!options.draft;
   const existing = state.orders.find(o => o.id === (editingId || form.dataset.pendingOrderId)) || null;
+  // 只填空格能骗过「必填」：正式订单的客户名去掉空格后不能是空的。
+  if (!isDraft && !String(data.client || '').trim()) {
+    form.elements.client?.focus();
+    toast('请填写客户名称', { tone:'error' });
+    return;
+  }
   const order = buildOrderFromFormData({ ...data, attachments: orderAttachmentsFromForm(form) }, { existing, isDraft });
+  if (rejectDuplicateOrderNum(form, order)) return;
   if (!existing) form.dataset.pendingNewOrder = 'true';
   const notificationRequested = shouldRequestOrderNotification(form.dataset.pendingNewOrder ? null : existing, isDraft, data.sendFeishuNotification === 'on');
   if (!isDraft && (!existing || existing.isDraft || form.dataset.pendingNewOrder) && typeof rememberFeishuChoice === 'function') rememberFeishuChoice(data.sendFeishuNotification === 'on');
@@ -17325,7 +17508,14 @@ function duplicateOrder() {
     logisticsUpdated: '',
     shippedAt: '',
     attachments: [],
-    stage: isSettledStage(src.stage) ? 'production' : src.stage,
+    // A new order has received no money yet: copying the paid amount counted the same payment twice
+    // (a paid 已完成 order came back as a fully paid 生产中 order). Deadlines and the urgent flag belong to the old order.
+    paidAmount: 0,
+    stage: 'quote',
+    urgentOrder: false,
+    customerRequiredDate: '',
+    latestShipDate: '',
+    next: '',
     updated: nowText(),
     feishuNotification: normalizeFeishuNotification({ requested:false, status:'skipped' }),
     logs:[{ time:nowText(), text:`由订单 ${src.num || ''} 复制生成` }]
@@ -17391,6 +17581,12 @@ function moveOrderToStage(id, stage) {
     delete order.trashedAt;
     state.orders.unshift(order);
   }
+  // 全款订单 has no 尾款 stage (the editor does not offer it); a drop there would leave a state the form cannot show.
+  if (normalized === 'balance' && order.orderType === '全款订单') {
+    if (fromTrash) { state.orders = state.orders.filter(o => o.id !== id); state.trashOrders = [order, ...(state.trashOrders || [])]; }
+    toast('全款订单没有尾款阶段，请移到生产中或报价');
+    return;
+  }
   if (!fromTrash && order.stage === normalized) {
     if (applyOrderStageInvariants(order, normalized)) {
       order.updated = nowText();
@@ -17401,8 +17597,9 @@ function moveOrderToStage(id, stage) {
   }
   order.stage = normalized;
   applyOrderStageInvariants(order, normalized);
+  const extraLog = fromTrash ? '' : adjustPaymentForManualMove(order, previousStage, normalized);
   order.updated = nowText();
-  order.logs = [{ time:nowText(), text: fromTrash ? `订单从垃圾箱恢复到 ${stageDef(normalized).name}` : `订单阶段从 ${oldStage} 调整为 ${stageDef(normalized).name}` }, ...(order.logs || [])];
+  order.logs = [{ time:nowText(), text: (fromTrash ? `订单从垃圾箱恢复到 ${stageDef(normalized).name}` : `订单阶段从 ${oldStage} 调整为 ${stageDef(normalized).name}`) + extraLog }, ...(order.logs || [])];
   render();
   if (detailOrderId === id && document.getElementById('orderDetailDrawer')?.classList.contains('open')) openOrderDetail(id);
   const after = stageMoveSnapshot(order);
@@ -17410,9 +17607,36 @@ function moveOrderToStage(id, stage) {
   if (normalized === 'done' && normalizeStage(previousStage) !== 'done' && typeof uiConfetti === 'function') uiConfetti(...uiLastPointer());
   if (normalized === 'shipment' && !cleanTracking(order.trackingNumber) && typeof uiTrackingQuickCard === 'function') uiTrackingQuickCard(id);
 }
+// Dragging / quick-advancing follows the deposit rule (收到定金 = 尾款, 付清 = 生产中):
+// - 报价 → 尾款 with nothing received records the planned deposit as received;
+// - leaving 已发货 / 已完成 for 尾款 / 报价 gives back the 「尾款视为已收齐」 assumption made on the way in,
+//   and an order without any tracking number is no longer marked as shipped (a stale ship date later fed the UPS 5-day rule).
+function adjustPaymentForManualMove(order, fromStage, toStage) {
+  const from = normalizeStage(fromStage);
+  const amount = orderAmountValue(order);
+  let text = '';
+  if (from === 'quote' && toStage === 'balance' && Number(order.paidAmount || 0) <= 0 && Number(order.depositAmount || 0) > 0) {
+    order.paidAmount = Math.min(amount, Number(order.depositAmount));
+    text = `，定金按预付 ${money(order.paidAmount, order.currency || 'USD')} 记为已收`;
+  }
+  if (isSettledStage(from) && !isSettledStage(toStage)) {
+    const before = Number(order.paidBeforeSettle);
+    if (['quote', 'balance'].includes(toStage) && Number.isFinite(before) && before < Number(order.paidAmount || 0)) {
+      order.paidAmount = Math.max(0, before);
+      text = `，已付款恢复为 ${money(order.paidAmount, order.currency || 'USD')}`;
+    }
+    delete order.paidBeforeSettle;
+    if (!normalizeOrderShipments(order).length) {
+      order.shippedAt = '';
+      order.logisticsStatus = '未发货';
+      order.logisticsUpdated = '';
+    }
+  }
+  return text;
+}
 // 进入已发货 / 已完成会顺带把尾款记为收齐、补发货状态；撤销时这些一起还原，不只改回阶段。
 function stageMoveSnapshot(order = {}) {
-  return { stage:order.stage, paidAmount:order.paidAmount, logisticsStatus:order.logisticsStatus, shippedAt:order.shippedAt, logisticsUpdated:order.logisticsUpdated, shipments:order.shipments };
+  return { stage:order.stage, paidAmount:order.paidAmount, paidBeforeSettle:order.paidBeforeSettle, logisticsStatus:order.logisticsStatus, shippedAt:order.shippedAt, logisticsUpdated:order.logisticsUpdated, shipments:order.shipments };
 }
 function undoOrderStageMove(id, before, after) {
   const order = state.orders.find(o => o.id === id);
@@ -17501,7 +17725,12 @@ function exportCsv(month = 'all') {
   const header = ['订单号','客户','国家','创建日期','订单月份','金额','已付款','币种','产品类型','收款方式','订单类型','草稿','加急订单','客户要求收到日期','最晚发出日期','阶段','附件数量','备注','更新时间'];
   const list = ordersByMonth(month);
   const rows = list.map(o => [o.num,o.client,o.country,normalizeDate(o.createdAt || o.updated),normalizeMonth(o.orderMonth || o.updated),o.amount,orderPaidValue(o),o.currency || 'USD',o.productType || '',o.paymentChannel || '',o.orderType || '',o.isDraft ? '是' : '否',o.urgentOrder ? '是' : '否',o.customerRequiredDate || '',o.latestShipDate || '',stageDef(o.stage).name,(o.attachments || []).length,o.note,o.updated]);
-  return download(`trade-orders-${month}.csv`, '\ufeff' + [header, ...rows].map(row => row.map(v => `"${String(v ?? '').replaceAll('"','""')}"`).join(',')).join('\n'));
+  // 客户写的文字以 = + - @ 开头时，Excel / Numbers 会当公式执行：前面加 ' 让它只当文字。
+  const cell = v => {
+    const text = String(v ?? '');
+    return `"${(typeof v === 'string' && /^[=+\-@\t\r]/.test(text) ? `'${text}` : text).replaceAll('"','""')}"`;
+  };
+  return download(`trade-orders-${month}.csv`, '\ufeff' + [header, ...rows].map(row => row.map(cell).join(',')).join('\n'));
 }
 function exportJson(month = 'all') {
   const data = month === 'all' ? state : { ...state, orders: ordersByMonth(month) };
@@ -17531,7 +17760,21 @@ function readJsonFile(file) {
 function unpackDataFile(raw) {
   const data = raw && raw.data && Array.isArray(raw.data.orders) ? raw.data : raw;
   if (!data || !Array.isArray(data.orders)) throw new Error('missing orders');
-  return normalizeState(data);
+  const next = normalizeState(data);
+  // The database refuses orders without an id and repeated ids or numbers; catch that here instead of
+  // reporting 「已导入」 and then failing every save.
+  const ids = new Set();
+  const nums = new Map();
+  let seq = 0;
+  for (const order of [...next.orders, ...next.trashOrders, ...next.deletedOrders]) {
+    if (!String(order.id || '').trim()) order.id = `o${Date.now()}-import-${++seq}`;
+    if (ids.has(order.id)) throw new Error(`文件里有重复的订单 ID：${order.id}`);
+    ids.add(order.id);
+    const num = String(order.num || '');
+    if (num && nums.has(num)) throw new Error(`文件里订单号 ${num} 出现了不止一次`);
+    if (num) nums.set(num, order.id);
+  }
+  return next;
 }
 function dataSummaryText(data) {
   return [
@@ -17543,7 +17786,7 @@ function dataSummaryText(data) {
   ].join('\n');
 }
 async function previewImportDataFile(file) {
-  if (!file) return;
+  if (!file || !canSubmitStoredData()) return;
   try {
     const data = unpackDataFile(await readJsonFile(file));
     const confirmed = await appConfirm({
@@ -17553,14 +17796,20 @@ async function previewImportDataFile(file) {
       confirmText: '确认导入',
       danger: true
     });
-    if (!confirmed.confirmed) return;
+    if (!confirmed.confirmed || !canSubmitStoredData()) return;
     state = data;
-    if (isMacAppMode()) syncStateToMacApp();
-    else safeStorage.setItem(storeKey, JSON.stringify(state));
+    if (isMacAppMode()) {
+      render();
+      // Only report success once the database has the imported data.
+      const saved = await flushPendingSave();
+      toast(saved ? '数据文件已导入' : '已载入导入的数据，但还没存进数据库，请看保存状态', saved ? undefined : { tone:'error' });
+      return;
+    }
+    safeStorage.setItem(storeKey, JSON.stringify(state));
     render();
     toast('数据文件已导入');
   } catch (e) {
-    toast('导入失败，请选择正确的 JSON 数据文件');
+    toast(e instanceof SyntaxError || e.message === 'missing orders' ? '导入失败，请选择正确的 JSON 数据文件' : `导入失败：${e.message}`, { tone:'error' });
   }
 }
 function importJson(file) {
@@ -17665,12 +17914,16 @@ async function macOpenDataFolder(btn) {
 function runDataHealthCheck() {
   const allOrders = [...(state.orders || []), ...(state.trashOrders || []), ...(state.deletedOrders || [])];
   const nums = new Map();
-  allOrders.forEach(order => nums.set(order.num, (nums.get(order.num) || 0) + 1));
+  allOrders.forEach(order => { if (String(order.num || '')) nums.set(order.num, (nums.get(order.num) || 0) + 1); });
   const duplicateNums = Array.from(nums).filter(([, count]) => count > 1).map(([num]) => num);
+  const ids = new Map();
+  allOrders.forEach(order => ids.set(order.id, (ids.get(order.id) || 0) + 1));
+  const duplicateIds = Array.from(ids).filter(([id, count]) => !id || count > 1).length;
   const missingClient = allOrders.filter(order => !String(order.client || '').trim()).length;
   const invalidAmount = allOrders.filter(order => Number(order.amount || 0) < 0 || !Number.isFinite(Number(order.amount || 0))).length;
   const messages = [];
   if (duplicateNums.length) messages.push(`重复订单号：${duplicateNums.join('、')}`);
+  if (duplicateIds) messages.push(`订单 ID 缺失或重复：${duplicateIds} 个`);
   if (missingClient) messages.push(`缺少客户名称：${missingClient} 个`);
   if (invalidAmount) messages.push(`异常金额：${invalidAmount} 个`);
   appConfirm({
@@ -17735,6 +17988,7 @@ let subscriptionFilter = 'all';
 let subscriptionQuery = '';
 let subscriptionDetailId = '';
 let subscriptionDraft = null;
+let subscriptionDraftClean = '';
 let subscriptionReturnFocus = null;
 let subscriptionRateEditing = false;
 let subscriptionHeroValue = 0;
@@ -17756,7 +18010,12 @@ function subscriptionTypeHtml(type) {
   return `<span class="subs-type" style="--tc:var(${subscriptionTypeVar(type)})">${subscriptionIcon(subscriptionTypeIcons[type] || 'tag')}${escapeAttr(type)}</span>`;
 }
 function subscriptionRemindWindow(item) {
-  return item.autoRenew === false ? subscriptionRemindDays.manual : subscriptionRemindDays.auto;
+  // A window as long as the cycle itself would remind every single day (manual monthly = 30 days,
+  // weekly auto = 7 days), so it is capped at a quarter of the cycle; cycles under 4 days get none.
+  const base = item.autoRenew === false ? subscriptionRemindDays.manual : subscriptionRemindDays.auto;
+  const { unit, count } = subscriptionCycle(item);
+  const cycleDays = unit === 'day' ? count : count * 28;
+  return cycleDays < 4 ? -1 : Math.min(base, Math.floor(cycleDays / 4));
 }
 function subscriptionLocalDate(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -17850,7 +18109,10 @@ function subscriptionSchedule(item, today, rate) {
   const priceDate = hasNext ? dueDate : chargeOn(Math.max(0, Math.min(boundIndex, lastIndex)));
   const cycleAmount = subscriptionPriceAt(item, priceDate);
   const cycleCny = subscriptionToCny(item, cycleAmount, rate);
-  const monthlyCny = unit === 'day' ? cycleCny * 365 / 12 / count : cycleCny / count;
+  // 每月 / 一年约 follow the recurring price; a one-off price on the next period is not the new normal.
+  const recurringAmount = subscriptionPriceAt({ ...item, priceChanges:subscriptionPriceChanges(item).filter(change => !change.once) }, priceDate);
+  const recurringCny = subscriptionToCny(item, recurringAmount, rate);
+  const monthlyCny = unit === 'day' ? recurringCny * 365 / 12 / count : recurringCny / count;
   const base = { cycleAmount, cycleCny, monthlyCny, yearlyCny:monthlyCny * 12, charges, spent, spentCny:subscriptionToCny(item, spent, rate), stopOn:item.stopOn || '' };
   if (cancelled || !hasNext) {
     // Cancelled: usable until its end date. Planned stop: counted up to the stop date, then off.
@@ -17924,7 +18186,7 @@ function subscriptionInitial(name) {
 function subscriptionWhen(schedule, item = {}) {
   // Countdown to the next renewal: red within 3 days, amber inside the reminder window.
   if (schedule.state === 'expired') return { cls:'', text:'已到期' };
-  if (schedule.state === 'ending') return { cls:'amber', text:schedule.daysLeft === 1 ? '明天到期' : `${schedule.daysLeft}天后到期` };
+  if (schedule.state === 'ending') return { cls:'amber', text:schedule.daysLeft <= 0 ? '今天到期' : schedule.daysLeft === 1 ? '明天到期' : `${schedule.daysLeft}天后到期` };
   const verb = item.autoRenew === false ? '到期' : '扣费';
   const days = schedule.daysLeft;
   const cls = days === 0 ? 'red solid' : days <= 3 ? 'red' : days <= subscriptionRemindWindow(item) ? 'amber' : 'line';
@@ -18119,7 +18381,7 @@ function renderSubscriptionHero(summary, rate, roll) {
     </div>
     <div class="subs-hr" id="subsHeroSide">
       <span class="subs-pill">${subscriptionIcon('check')}${summary.total} 项续费</span>
-      <span class="subs-hl">${summary.active} 项自动续费 · ${summary.cancelled} 项已取消</span>
+      <span class="subs-hl">${summary.active} 项续费中 · ${summary.cancelled} 项不再续费</span>
       <span class="subs-hl">未来 30 天要付 ${subscriptionMoney(summary.upcomingCny)} · ${summary.upcoming.length} 笔</span>
       ${summary.dueSoon ? `<span class="subs-hl">${summary.dueSoon} 项快到续费日</span>` : ''}
     </div>`;
@@ -18651,7 +18913,7 @@ function renderSubscriptionAnalysisPage({ entering = false } = {}) {
         <header><div><h3>最贵的 ${data.top.length} 项</h3><p>按月均花费排，点一项看详情</p></div></header>
         <div class="subs-tops">${data.top.length ? data.top.map(({ item, monthlyCny, cycleAmount }, i) => `<button class="subs-top" type="button" data-subs-go-detail="${escapeAttr(item.id)}" style="--i:${i}">
           ${subscriptionIconHtml(item)}<span class="subs-top-n"><b>${escapeAttr(item.name)}</b><small>${escapeAttr(subscriptionCycleLabel(item))} ${subscriptionMoney(cycleAmount, item.currency)}</small></span>
-          <span class="subs-top-v"><b>${subscriptionMoney(monthlyCny)}</b><small>每月 · 占 ${(monthlyCny / data.monthlyCny * 100).toFixed(0)}%</small></span></button>`).join('') : '<div class="subs-an-none">还没有自动续费的项目</div>'}</div>
+          <span class="subs-top-v"><b>${subscriptionMoney(monthlyCny)}</b><small>每月 · 占 ${data.monthlyCny > 0 ? (monthlyCny / data.monthlyCny * 100).toFixed(0) : 0}%</small></span></button>`).join('') : '<div class="subs-an-none">还没有自动续费的项目</div>'}</div>
       </section>
     </div>`;
   box.querySelectorAll('.arc-metric-v').forEach(el => arcCount(el, Number(el.dataset.target), value => subscriptionMoney(value), 900));
@@ -18963,7 +19225,7 @@ function renderSubscriptionDetail({ entering = false } = {}) {
   const when = subscriptionWhen(schedule, item);
   const first = {
     active:[manual ? '到期日' : '下次扣费', schedule.nextCharge, manual ? `${when.text}，记得手动续费` : when.text],
-    ending:planned ? ['预计停止', schedule.paidThrough, `${schedule.daysLeft}天后停止，不再扣费`] : ['有效期至', schedule.paidThrough, `${schedule.daysLeft}天后到期，不再扣费`],
+    ending:planned ? ['预计停止', schedule.paidThrough, `${schedule.daysLeft <= 0 ? '今天' : `${schedule.daysLeft}天后`}停止，不再扣费`] : ['有效期至', schedule.paidThrough, `${schedule.daysLeft <= 0 ? '今天' : `${schedule.daysLeft}天后`}到期，不再扣费`],
     expired:[planned ? '已停止' : '已到期', schedule.paidThrough, '已停止扣费']
   }[schedule.state];
   const kv = [
@@ -19136,10 +19398,6 @@ function clearSubscriptionStop() {
   saveSubscriptionChange(item, { ...item, stopOn:'' }, saved => `${saved.name} 已取消预计停止，继续按周期扣费`);
 }
 let subscriptionPriceDraft = null;
-function subscriptionPriceWithout(item, date) {
-  // The price this period would have with no change entered on its own date.
-  return subscriptionPriceAt({ ...item, priceChanges:subscriptionPriceChanges(item).filter(change => change.from !== date) }, date);
-}
 function openSubscriptionPriceEditor(date) {
   const item = findSubscription(subscriptionDetailId);
   if (!item) return;
@@ -19187,15 +19445,23 @@ function showSubscriptionPriceError(message) {
 }
 function subscriptionWithPrice(item, date, amount, scope) {
   const today = subscriptionLocalDate();
-  let changes = subscriptionPriceChanges(item).filter(change => change.from !== date);
-  if (scope === 'reset') return { ...item, priceChanges:changes };
+  const all = subscriptionPriceChanges(item);
+  let changes = all.filter(change => change.from !== date);
+  if (scope === 'reset') {
+    // 恢复原价 drops this period's one-off price first; only a period without one loses its onward change.
+    const hasOnce = all.some(change => change.once && change.from === date);
+    return { ...item, priceChanges:hasOnce ? all.filter(change => !(change.once && change.from === date)) : changes };
+  }
   if (scope === 'once') {
-    if (amount !== subscriptionPriceWithout(item, date)) changes.push({ from:date, amount, once:true });
-    return { ...item, priceChanges:changes };
+    // Only this period: a price rise that starts on this date keeps applying to the later periods.
+    const kept = all.filter(change => !(change.once && change.from === date));
+    if (amount !== subscriptionPriceAt({ ...item, priceChanges:kept }, date)) kept.push({ from:date, amount, once:true });
+    return { ...item, priceChanges:kept };
   }
   // From this period on: later price changes are replaced; one-off amounts already paid stay.
   changes = changes.filter(change => change.from < date || (change.once && change.from <= today));
-  if (subscriptionChargeIndex(item, date) === 0) return { ...item, amount, priceChanges:changes };
+  // The base price must stay above 0 (the server rejects 0), so a free first period is stored as a change.
+  if (subscriptionChargeIndex(item, date) === 0 && amount > 0) return { ...item, amount, priceChanges:changes };
   if (amount !== subscriptionPriceAt({ ...item, priceChanges:changes }, date)) changes.push({ from:date, amount, once:false });
   return { ...item, priceChanges:changes };
 }
@@ -19248,8 +19514,19 @@ function openSubscriptionEditor(id = '', { resubscribe = false } = {}) {
     category:subscriptionCategories[0], color:subscriptionColors[0][0], status:'active', endsOn:'', stopOn:'', priceChanges:[]
   };
   subscriptionDraft.stopCustom = false;
-  // Re-subscribing starts a fresh billing cycle from today; the user can still change the date.
-  if (existing && resubscribe) Object.assign(subscriptionDraft, { status:'active', endsOn:'', stopOn:'', startDate:subscriptionLocalDate() });
+  // Re-subscribing starts a fresh billing cycle from today as a NEW record: the expired one stays as it is,
+  // so its past charges keep counting in 历史 / 累计已付 / 分析. The price starts at the last recurring price paid.
+  if (existing && resubscribe) {
+    const today = subscriptionLocalDate();
+    const paid = subscriptionSchedule(existing, today, subscriptionState.usdCnyRate).charges;
+    const lastCharge = subscriptionChargeDate(existing, Math.max(0, paid - 1));
+    const recurring = subscriptionPriceChanges(existing).filter(change => !change.once);
+    Object.assign(subscriptionDraft, {
+      id:'', createdAt:undefined, updatedAt:undefined, status:'active', endsOn:'', stopOn:'', startDate:today, priceChanges:[],
+      amount:String(subscriptionPriceAt({ ...existing, priceChanges:recurring }, lastCharge)), resubscribeOf:existing.id
+    });
+  }
+  subscriptionDraftClean = JSON.stringify(subscriptionDraft);
   if (!document.getElementById('subscriptionDrawer').classList.contains('open')) subscriptionReturnFocus = document.activeElement;
   const form = document.getElementById('subscriptionEditForm');
   form.elements.subName.value = subscriptionDraft.name;
@@ -19273,9 +19550,17 @@ function openSubscriptionEditor(id = '', { resubscribe = false } = {}) {
   setModalOpenState('subscriptionEditModal', true);
   setTimeout(() => form.elements.subName.focus({ preventScroll:true }), 60);
 }
+// Esc, the backdrop, × and 取消 ask first when something was typed, like the order and customer dialogs.
+async function closeSubscriptionEditorGuarded() {
+  const modal = document.getElementById('subscriptionEditModal');
+  if (subscriptionDraft && !subscriptionBusy && JSON.stringify(subscriptionDraft) !== subscriptionDraftClean
+    && !await uiConfirmDiscard(modal, subscriptionDraft.id ? '关闭编辑' : '关闭新增')) return;
+  if (modal.classList.contains('open')) closeSubscriptionEditor();
+}
 function closeSubscriptionEditor({ restoreFocus = true } = {}) {
   setModalOpenState('subscriptionEditModal', false);
   subscriptionDraft = null;
+  subscriptionDraftClean = '';
   if (!restoreFocus) return;
   const drawerButton = document.querySelector('#subscriptionDrawer.open [data-sub-action="edit"]');
   (drawerButton || (subscriptionReturnFocus?.isConnected ? subscriptionReturnFocus : null))?.focus({ preventScroll:true });
@@ -19292,9 +19577,10 @@ function syncSubscriptionEditorControls() {
     button.setAttribute('aria-pressed', String(button.dataset.subColor === subscriptionDraft.color));
   });
   document.getElementById('subscriptionCurrencySymbol').textContent = subscriptionDraft.currency === 'USD' ? '$' : '¥';
+  const remindDays = subscriptionRemindWindow(subscriptionDraft);
   document.getElementById('subscriptionAutoRenewText').innerHTML = subscriptionDraft.autoRenew
-    ? `自动续费 <small>到期自动扣费，提前 ${subscriptionRemindDays.auto} 天提醒</small>`
-    : `手动续费 <small>到期前 ${subscriptionRemindDays.manual} 天开始提醒</small>`;
+    ? `自动续费 <small>到期自动扣费，${remindDays < 0 ? '周期太短不提醒' : `提前 ${remindDays} 天提醒`}</small>`
+    : `手动续费 <small>${remindDays < 0 ? '周期太短，不提醒' : `到期前 ${remindDays} 天开始提醒`}</small>`;
   renderSubscriptionOptions();
 }
 function subscriptionCycleFields(item) {
@@ -19394,7 +19680,8 @@ async function addSubscriptionOption(kind) {
   } else if (kind === 'category') {
     picked = input.value.trim();
     if (!picked) return fail('请填写类型名称');
-    if (!subscriptionTypes().includes(picked)) next = { customCategories:[...subscriptionState.customCategories, picked] };
+    // Compare with the saved list only: a deleted custom type that some record still uses must be saved back.
+    if (!subscriptionCategories.includes(picked) && !subscriptionState.customCategories.includes(picked)) next = { customCategories:[...subscriptionState.customCategories, picked] };
   } else {
     picked = input.value.trim();
     if (!picked) return fail('请填写付款方式');
@@ -19473,8 +19760,8 @@ function renderSubscriptionPreview() {
 }
 function subscriptionDraftError(draft) {
   if (!String(draft.name || '').trim()) return { field:'subName', message:'请填写名称' };
-  const amount = Number(draft.amount);
-  if (!(amount > 0 && amount <= 10000000)) return { field:'subAmount', message:'请填写大于 0 的金额' };
+  const amount = Math.round(Number(draft.amount) * 100) / 100;
+  if (!(amount >= 0.01 && amount <= 10000000)) return { field:'subAmount', message:'请填写大于 0 的金额' };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(draft.startDate || '')) return { field:'subStart', message:'请选择开始日期' };
   if (draft.stopCustom && !draft.stopOn) return { field:'subStopOn', message:'请选择预计停止日期' };
   if (draft.stopOn && draft.stopOn < draft.startDate) return { field:'subStopOn', message:'预计停止时间不能早于开始日期' };
@@ -19498,6 +19785,24 @@ function setSubscriptionSaveState(stateName) {
   button.setAttribute('aria-busy', String(stateName === 'saving'));
   button.innerHTML = `<span class="lbl${stateName === 'idle' ? '' : ' in'}">${icon}${label}</span>`;
 }
+// Per-period prices are keyed by charge date. When the start date or the cycle changes, move each one to the
+// same period number on the new schedule instead of letting it silently match nothing.
+function subscriptionRemapPriceChanges(before, after) {
+  const changes = subscriptionPriceChanges(after);
+  if (!before || !changes.length) return changes;
+  const same = before.startDate === after.startDate && subscriptionCycleKey(subscriptionCycle(before)) === subscriptionCycleKey(subscriptionCycle(after));
+  if (same) return changes;
+  const moved = new Map();
+  changes.forEach(change => {
+    let index = subscriptionChargeIndex(before, change.from);
+    const onCharge = index >= 0 && subscriptionChargeDate(before, index) === change.from;
+    if (change.once && !onCharge) return;
+    if (!onCharge) index += 1;
+    const from = subscriptionChargeDate(after, Math.max(0, index));
+    moved.set(`${from}:${change.once}`, { ...change, from });
+  });
+  return [...moved.values()].sort((a, b) => a.from.localeCompare(b.from));
+}
 async function saveSubscriptionDraft(event) {
   event.preventDefault();
   const draft = subscriptionDraft;
@@ -19518,7 +19823,8 @@ async function saveSubscriptionDraft(event) {
   let item;
   try {
     ({ item } = await subscriptionRequest('/api/subscriptions/save', {
-      item:{ ...draft, stopCustom:undefined, name:draft.name.trim(), note:draft.note.trim(), amount:Number(draft.amount), ...subscriptionCycleFields(draft), paymentMethod:draft.paymentMethod || '', provider:draft.provider.trim() }
+      item:{ ...draft, stopCustom:undefined, resubscribeOf:undefined, name:draft.name.trim(), note:draft.note.trim(), amount:Number(draft.amount), ...subscriptionCycleFields(draft), paymentMethod:draft.paymentMethod || '', provider:draft.provider.trim(),
+        priceChanges:subscriptionRemapPriceChanges(draft.id ? findSubscription(draft.id) : null, draft) }
     }));
   } catch (error) {
     subscriptionBusy = false;
@@ -19535,7 +19841,7 @@ async function saveSubscriptionDraft(event) {
   renderSubscriptionsPage();
   flashSubscriptionRow(item.id);
   openSubscriptionDetail(item.id);
-  subscriptionToast(isNew ? `${item.name} 已添加` : `${item.name} 已保存`);
+  subscriptionToast(draft.resubscribeOf ? `${item.name} 已重新续费` : isNew ? `${item.name} 已添加` : `${item.name} 已保存`);
 }
 document.getElementById('subscriptionColors').innerHTML = subscriptionColors
   .map(([color, name]) => `<button type="button" data-sub-color="${color}" style="--c:${color}" aria-label="${name}" aria-pressed="false"></button>`).join('');
@@ -19627,7 +19933,7 @@ document.addEventListener('keyup', event => {
   if (event.key === ' ' || event.key === 'Enter') endSubscriptionHold();
 });
 document.getElementById('subscriptionEditModal').addEventListener('click', event => {
-  if (event.target.id === 'subscriptionEditModal' || event.target.closest('#subscriptionEditCloseBtn, #subscriptionEditCancelBtn')) closeSubscriptionEditor();
+  if (event.target.id === 'subscriptionEditModal' || event.target.closest('#subscriptionEditCloseBtn, #subscriptionEditCancelBtn')) closeSubscriptionEditorGuarded();
 });
 document.getElementById('subscriptionEditForm').addEventListener('submit', saveSubscriptionDraft);
 document.getElementById('subscriptionEditForm').addEventListener('keydown', event => {
@@ -19721,7 +20027,7 @@ document.addEventListener('keydown', event => {
     closeSubscriptionPriceEditor();
   } else if (document.getElementById('subscriptionEditModal').classList.contains('open')) {
     event.preventDefault();
-    closeSubscriptionEditor();
+    closeSubscriptionEditorGuarded();
   } else if (document.getElementById('subscriptionDrawer').classList.contains('open')) {
     event.preventDefault();
     closeSubscriptionDetail();
@@ -20061,7 +20367,7 @@ document.getElementById('priceHistoryList')?.addEventListener('click', e => {
     const item = findTrackingLookup(editBtn.dataset.editLookupName);
     if (!item) return;
     const row = editBtn.closest('.price-history-row');
-    const area = row?.querySelector('.recent-tracking-inline-actions');
+    const area = row?.querySelector('.recent-tracking-actions');
     if (!area) return;
     area.innerHTML = `
       <div class="recent-tracking-edit">
@@ -20082,6 +20388,19 @@ document.getElementById('priceHistoryList')?.addEventListener('click', e => {
     return;
   }
   if (e.target.closest('[data-cancel-lookup-name]')) {
+    e.preventDefault();
+    e.stopPropagation();
+    renderPriceHistory();
+  }
+});
+// 物流记录「编辑名称」：Enter 保存、Esc 取消（中文输入法选字时的 Enter/Esc 不算）。
+document.getElementById('priceHistoryList')?.addEventListener('keydown', e => {
+  const input = e.target.closest?.('[data-lookup-name-input]');
+  if (!input || isImeKeyEvent(e)) return;
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    renameTrackingLookup(input.dataset.lookupNameInput, input.value || '');
+  } else if (e.key === 'Escape') {
     e.preventDefault();
     e.stopPropagation();
     renderPriceHistory();
@@ -20489,8 +20808,8 @@ document.getElementById('customerModal').addEventListener('click', async e => {
   }
 });
 document.getElementById('combinedSaveBtn')?.addEventListener('click', saveCombinedCustomerOrder);
-document.getElementById('combinedCloseBtn')?.addEventListener('click', closeCombinedCustomerOrderModal);
-document.getElementById('combinedCustomerOrderModal')?.addEventListener('click', e => { if (e.target.id === 'combinedCustomerOrderModal') closeCombinedCustomerOrderModal(); });
+document.getElementById('combinedCloseBtn')?.addEventListener('click', () => uiCloseCombinedGuarded());
+document.getElementById('combinedCustomerOrderModal')?.addEventListener('click', e => { if (e.target.id === 'combinedCustomerOrderModal') uiCloseCombinedGuarded(); });
 document.getElementById('customerHistoryList')?.addEventListener('click', e => {
   const btn = e.target.closest('[data-customer-roadmap-filter]');
   if (!btn) return;
@@ -20596,6 +20915,7 @@ document.querySelector('.settings-content').addEventListener('click', e => {
 document.getElementById('orderSettingsForm').addEventListener('submit', e => {
   e.preventDefault();
   const data = Object.fromEntries(new FormData(e.currentTarget).entries());
+  settingsFormRefill(e.currentTarget);
   state.orderSettings = {
     orderPrefix: (data.orderPrefix || 'K').trim().toUpperCase().replace(/[^A-Z0-9]/g, '') || 'K',
     serialDigits: Number(data.serialDigits || 2),
@@ -20623,6 +20943,7 @@ document.getElementById('copyTemplatesForm')?.addEventListener('submit', e => {
   state.orderSettings = { ...defaultOrderSettings, ...(state.orderSettings || {}) };
   state.orderSettings.copyStatusTemplate = String(data.copyStatusTemplate || '').trim() === defaultCopyTemplates.status ? '' : String(data.copyStatusTemplate || '').trim();
   state.orderSettings.copyDunningTemplate = String(data.copyDunningTemplate || '').trim() === defaultCopyTemplates.dunning ? '' : String(data.copyDunningTemplate || '').trim();
+  settingsFormRefill(e.currentTarget);
   render();
   toast('文案已保存');
 });
@@ -20644,11 +20965,13 @@ document.getElementById('levelRuleForm')?.addEventListener('submit', e => {
   }
   if (!(next.A > next.B && next.B > next.C && next.C > next.D)) { toast('门槛要从 A 到 D 依次递减，比如 20000 > 10000 > 3000 > 1000'); return; }
   state.customerLevelRules = next;
+  settingsFormRefill(e.currentTarget);
   render();
   toast('等级规则已保存，客户已按新门槛重新分级');
 });
 document.getElementById('levelRuleResetBtn')?.addEventListener('click', () => {
   state.customerLevelRules = { ...defaultCustomerLevelRules };
+  settingsFormRefill(document.getElementById('levelRuleForm'));
   render();
   toast('等级门槛已恢复默认');
 });
@@ -20684,6 +21007,7 @@ document.getElementById('aiSettingsForm')?.addEventListener('submit', e => {
     saveAiSettings(macSaved || nextSettings);
     aiUsageSelection = null;
     refreshAiUsage(1);
+    settingsFormRefill(document.getElementById('aiSettingsForm'));
     renderSettings();
     renderApiStatusLights();
     toast('AI 设置已保存');
@@ -20706,6 +21030,7 @@ document.getElementById('trackingApiSettingsForm')?.addEventListener('submit', a
   };
   const macSaved = await saveMacTrackingSettings(nextSettings);
   saveTrackingApiSettings(macSaved || nextSettings);
+  settingsFormRefill(document.getElementById('trackingApiSettingsForm'));
   renderSettings();
   toast('物流追踪设置已保存');
 });
@@ -20739,6 +21064,7 @@ document.getElementById('testAiConnectionBtn')?.addEventListener('click', async 
   } finally {
     btn.disabled = false;
     btn.textContent = '测试连接';
+    settingsFormRefill(form);
     renderSettings();
   }
 });
@@ -22074,11 +22400,14 @@ function uiTrackingQuickCard(id) {
     if (!value) { uiTrackingQuickCardClose(id); return; }
     if (!cleanTracking(value)) { input.classList.remove('ui-err'); void input.offsetWidth; input.classList.add('ui-err'); toast('运单号格式不对'); return; }
     if (!current) { uiTrackingQuickCardClose(id); return; }
-    const shipment = normalizeOrderShipments({ trackingNumber:value, carrier:'auto', logisticsStatus:'已发货', shippedAt:current.shippedAt, stage:'shipment' })[0];
+    if (current.stage !== 'shipment') { uiTrackingQuickCardClose(id); toast('这张订单已不在「已发货」，运单号请在订单详情里补'); return; }
+    const shipment = normalizeOrderShipments({ trackingNumber:value, carrier:'auto', logisticsStatus:'已发货', shippedAt:current.shippedAt || normalizeDate(nowText()), stage:'shipment' })[0];
     if (!shipment) { toast('运单号格式不对'); return; }
-    current.shipments = [shipment];
-    current.trackingNumber = shipment.trackingNumber;
-    current.carrier = shipment.carrier;
+    // Keep parcels added meanwhile (detail drawer, another window); the card only adds one.
+    const existingParcels = normalizeOrderShipments(current).filter(item => item.trackingNumber !== shipment.trackingNumber);
+    current.shipments = [...existingParcels, shipment];
+    current.trackingNumber = current.shipments[0].trackingNumber;
+    current.carrier = current.shipments[0].carrier;
     if (!current.logisticsStatus || current.logisticsStatus === '未发货') current.logisticsStatus = '已发货';
     current.logisticsUpdated = nowText();
     current.updated = nowText();
@@ -22105,11 +22434,25 @@ document.addEventListener('keydown', e => {
   if (typeof activeAppSelect !== 'undefined' && activeAppSelect) return;
   if (document.getElementById('detailCopyMenu')?.hidden === false) { e.preventDefault(); uiCopyMenuToggle(false); document.getElementById('detailCopyTextBtn')?.focus(); return; }
   if (document.querySelector('.client-menu.open, .board-menu') || document.getElementById('notifPanel')?.hidden === false) return;
-  const isOpen = id => document.getElementById(id)?.classList.contains('open');
-  if (isOpen('confirmModal')) { e.preventDefault(); document.getElementById('confirmCancelBtn')?.click(); return; }
-  if (isOpen('customerModal')) { e.preventDefault(); uiCloseCustomerGuarded(); return; }
-  if (isOpen('orderDetailDrawer')) { e.preventDefault(); uiCloseDetailGuarded(); return; }
-  if (isOpen('orderModal')) { e.preventDefault(); uiCloseOrderGuarded(); }
+  // Close the layer that is really on top. Layers share z-index 50, so the later one in the page wins
+  // (the confirm box sits above all of them). Esc used to close the order detail hidden under an image
+  // preview or a calendar drawer opened on top of it.
+  const layers = [...document.querySelectorAll('.modal-backdrop.open')];
+  const top = layers.find(el => el.id === 'confirmModal') || layers[layers.length - 1];
+  const close = {
+    confirmModal:() => document.getElementById('confirmCancelBtn')?.click(),
+    attachmentPreviewModal:() => closeAttachmentPreview(),
+    customerModal:() => uiCloseCustomerGuarded(),
+    combinedCustomerOrderModal:() => uiCloseCombinedGuarded(),
+    boardCardSettingsModal:() => closeBoardCardSettings(),
+    trackingDetailDrawer:() => closeTrackingDetail(),
+    calendarTaskDrawer:() => closeCalendarTaskDrawer(),
+    orderDetailDrawer:() => uiCloseDetailGuarded(),
+    orderModal:() => uiCloseOrderGuarded()
+  }[top?.id];
+  if (!close) return;
+  e.preventDefault();
+  close();
 }, true);
 // 新版 UI：工作台数字卡的趋势线、环比、待办分类和目标进度条（数据仍由 renderStats 计算）。
 function uiMonthShift(month, delta) {
@@ -22295,9 +22638,16 @@ function uiDetailEditValues() {
 function uiDetailSetFormValue(form, name, value) {
   const field = form.elements[name];
   if (!field || value === undefined) return;
-  if (field.type === 'checkbox') field.checked = !!value;
-  else if (typeof value === 'boolean' && field.tagName === 'SELECT') field.value = value ? '是' : '否';
-  else field.value = value;
+  // Only a real change fires input/change. The 订单类型 / 金额 listeners reset the deposit and paid fields,
+  // so re-setting an unchanged value used to wipe the deposit of every 定金订单 saved from the drawer.
+  if (field.type === 'checkbox') {
+    if (field.checked === !!value) return;
+    field.checked = !!value;
+  } else {
+    const next = typeof value === 'boolean' && field.tagName === 'SELECT' ? (value ? '是' : '否') : String(value);
+    if (String(field.value) === next) return;
+    field.value = next;
+  }
   field.dispatchEvent(new Event('input', { bubbles:true }));
   field.dispatchEvent(new Event('change', { bubbles:true }));
 }
@@ -22314,6 +22664,15 @@ async function uiDetailSave() {
     if (wrap) { wrap.classList.remove('ui-err'); void wrap.offsetWidth; wrap.classList.add('ui-err'); }
     field?.focus();
     toast('请填写客户名称');
+    return;
+  }
+  // 抽屉也不经过表单的 min=0 / required 校验：金额清空或填负数时拦下，不能存成 0 或负数订单。
+  if (values.amount !== undefined && (String(values.amount).trim() === '' || !Number.isFinite(Number(values.amount)) || Number(values.amount) < 0)) {
+    const field = document.querySelector('#orderDetailBody [data-dedit="amount"]');
+    const wrap = field?.closest('.field');
+    if (wrap) { wrap.classList.remove('ui-err'); void wrap.offsetWidth; wrap.classList.add('ui-err'); }
+    field?.focus();
+    toast('订单金额要填 0 或以上的数字', { tone:'error' });
     return;
   }
   const orderModal = document.getElementById('orderModal');

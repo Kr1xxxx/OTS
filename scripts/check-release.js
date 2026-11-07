@@ -37,7 +37,8 @@ assertFilesEqual(path.join(root, 'trade-order-data.json'), path.join(resources, 
 const plistVersion = execFileSync('/usr/libexec/PlistBuddy', ['-c', 'Print :CFBundleShortVersionString', plist], { encoding: 'utf8' }).trim();
 const buildVersion = execFileSync('/usr/libexec/PlistBuddy', ['-c', 'Print :CFBundleVersion', plist], { encoding: 'utf8' }).trim();
 assert.equal(plistVersion, expectedVersion, 'Info.plist app version differs from VERSION');
-assert.equal(buildVersion, expectedVersion.replaceAll('.', ''), 'Info.plist build version differs from VERSION');
+const [expectedMajor, expectedMinor] = expectedVersion.split('.').map(Number);
+assert.equal(buildVersion, String(expectedMajor * 10000 + expectedMinor), 'Info.plist build version differs from VERSION (major * 10000 + minor)');
 const feishuSettingsVersion = execFileSync('/usr/libexec/PlistBuddy', ['-c', 'Print :OTSFeishuSettingsVersion', plist], { encoding:'utf8' }).trim();
 assert.equal(feishuSettingsVersion, '1', 'App must retain external Feishu configuration support');
 

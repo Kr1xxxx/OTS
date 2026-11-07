@@ -13,7 +13,8 @@ EXECUTABLE="$MACOS/TradeOrderSystem"
 NODE_RUNTIME="$RESOURCES/node-runtime"
 ICONSET="$STAGING_ROOT/AppIcon.iconset"
 APP_VERSION="$(tr -d '[:space:]' < "$ROOT/VERSION")"
-BUILD_VERSION="${APP_VERSION//./}"
+# 构建号要随版本单调递增：3.117 → 30117；直接去掉点号的话 4.0 → 40 会比 3117 还小。
+BUILD_VERSION="$(( ${APP_VERSION%%.*} * 10000 + ${APP_VERSION#*.} ))"
 CODE_SIGN_IDENTITY="${TRADE_CODE_SIGN_IDENTITY:--}"
 cleanup() { rm -rf "$STAGING_ROOT"; }
 trap cleanup EXIT

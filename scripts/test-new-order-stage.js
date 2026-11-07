@@ -57,6 +57,9 @@ vm.runInContext(extractFunction('normalizeOrderNum'), context);
 vm.runInContext(extractFunction('inferNewOrderStage'), context);
 vm.runInContext(extractFunction('resolveOrderSaveStage'), context);
 vm.runInContext(extractFunction('normalizeOrderShipments'), context);
+vm.runInContext(extractFunction('aggregateShipmentStatus'), context);
+vm.runInContext(extractFunction('latestShipmentUpdate'), context);
+vm.runInContext(extractFunction('orderShipmentSignature'), context);
 vm.runInContext(extractFunction('buildOrderFromFormData'), context);
 
 function build(data, existing = null, stageTouched = null) {

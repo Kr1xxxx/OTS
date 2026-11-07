@@ -2035,16 +2035,34 @@ function detectCarrier(number) {
   return 'DHL';
 }
 
-function logisticsStatusFromDhl(shipment) {
-  const status = [shipment?.status?.statusCode, shipment?.status?.description, shipment?.status?.status].filter(Boolean).join(' ');
-  const text = String(status).toLowerCase();
+// 订单里的包裹状态只认 6 个标准值（未发货 / 已发货 / 运输中 / 派送中 / 已签收 / 异常）。承运商的原文另放在 rawStatus，
+// 认不出时回空状态（前端不改原来的状态）。以前认不出就把原文当状态返回，前端刷新后一律变成「已发货」，异常件丢了异常标记。
+// 和 trade-order-system.html 的 normalizeTrackingStatus 同一套规则。
+function standardLogisticsStatus(value = '') {
+  const text = String(value || '').toLowerCase();
+  if (!text) return '';
   // 「not delivered / undeliverable / delivery attempted」也含 delivered / delivery，要先判成异常。
-  if (/not\s+delivered|undeliver|delivery\s+(?:attempt|failed|exception)|未签收|派送失败/.test(text)) return '异常';
-  if (text.includes('delivered') || text.includes('签收')) return '已签收';
-  if (text.includes('out for delivery') || text.includes('派送')) return '派送中';
-  if (text.includes('transit') || text.includes('运输')) return '运输中';
-  if (text.includes('exception') || text.includes('failed') || text.includes('returned')) return '异常';
-  return shipment?.status?.description || '已发货';
+  if (/not\s+delivered|undeliver|delivery\s+(?:attempt|failed|exception)|attempted\s+delivery|未签收|派送失败/.test(text)) return '异常';
+  if (/已签收|签收成功|delivered/.test(text)) return '已签收';
+  if (/派送中|正在派送|out for delivery|vehicle for delivery|with delivery courier|ready for pickup|available for pickup|hold(?:ing)? at (?:fedex )?location|held at (?:fedex )?location/.test(text)) return '派送中';
+  if (/异常|失败|退回|滞留|扣件|exception|failed|expired|returned|on hold|held|clearance delay|customs delay|cancel/.test(text)) return '异常';
+  if (/运输中|转运中|在途中|in transit|transit|arrived|departed|processed|at local|at destination/.test(text)) return '运输中';
+  if (/已发货|已揽收|信息已收到|shipment information received|info received|label created|picked up|pre-transit/.test(text)) return '已发货';
+  return '';
+}
+
+function logisticsStatusFromDhl(shipment) {
+  const code = String(shipment?.status?.statusCode || '').toLowerCase();
+  const text = [shipment?.status?.description, shipment?.status?.status].filter(Boolean).join(' ');
+  const fromText = standardLogisticsStatus(text);
+  // 文字明确说没送到 / 扣件时以文字为准（statusCode 可能还是 transit）。
+  if (fromText === '异常') return '异常';
+  if (code === 'failure') return '异常';
+  if (code === 'delivered') return '已签收';
+  if (fromText) return fromText;
+  if (code === 'transit') return '运输中';
+  if (code === 'pre-transit') return '已发货';
+  return '';
 }
 
 function formatApiTime(value) {
@@ -2097,12 +2115,14 @@ async function queryDhlTracking(number) {
   const shipment = data.shipments?.[0];
   if (!shipment) throw new Error('DHL 未返回物流记录');
   const status = logisticsStatusFromDhl(shipment);
+  const rawStatus = String(shipment?.status?.description || shipment?.status?.status || shipment?.status?.statusCode || '').trim();
   const checkedAt = new Date().toISOString();
-  const message = `DHL API 已同步：${status}`;
+  const message = `DHL API 已同步：${status || `状态未识别（${rawStatus || '无描述'}）`}`;
   writeTrackingSettings({ lastCheckedAt: checkedAt, lastStatus: message, ...trackingCarrierStatusPatch('DHL', message, checkedAt) });
   return {
     ok: true,
     status,
+    rawStatus,
     updatedAt: shipment.status?.timestamp || new Date().toISOString(),
     events: dhlTrackingEvents(shipment),
     rawCarrier: 'DHL',
@@ -2135,13 +2155,24 @@ async function fedexTokenWithCredentials(settings = readTrackingSettings(), apiK
   return JSON.parse(text).access_token || '';
 }
 
+// FedEx 按状态代码映射，代码认不出再看文字；都认不出回空状态（前端不改原来的状态），原文另放 rawStatus。
+const fedexStatusCodes = {
+  OC:'已发货', PU:'已发货', PX:'已发货',
+  IT:'运输中', AR:'运输中', DP:'运输中', IN:'运输中', AF:'运输中', CC:'运输中', CP:'运输中', EA:'运输中', ED:'运输中', EO:'运输中', EP:'运输中', FD:'运输中', LO:'运输中', OF:'运输中', PF:'运输中', PL:'运输中', PM:'运输中', SF:'运输中', TR:'运输中',
+  OD:'派送中', HL:'派送中', HP:'派送中',
+  DL:'已签收',
+  DE:'异常', SE:'异常', CA:'异常', RS:'异常', DY:'异常', CD:'异常'
+};
 function logisticsStatusFromFedEx(track) {
   const detail = track?.latestStatusDetail || {};
-  const code = String(detail.code || detail.statusByLocale || '').toLowerCase();
-  if (code.includes('delivered') || code === 'dl') return '已签收';
-  if (code.includes('delivery')) return '派送中';
-  if (code.includes('transit') || code === 'it') return '运输中';
-  return detail.statusByLocale || '已发货';
+  const text = [detail.statusByLocale, detail.description].filter(Boolean).join(' ');
+  const fromText = standardLogisticsStatus(text);
+  if (fromText === '异常') return '异常';
+  const code = String(detail.code || detail.derivedCode || '').toUpperCase();
+  if (fedexStatusCodes[code]) return fedexStatusCodes[code];
+  const derived = String(detail.derivedCode || '').toUpperCase();
+  if (fedexStatusCodes[derived]) return fedexStatusCodes[derived];
+  return fromText;
 }
 
 function fedexLocation(place = {}) {
@@ -2228,12 +2259,14 @@ async function queryFedExTracking(number) {
   // 单号查不到时 FedEx 也回 200，只在 trackResults[0].error 里写原因：不能当成「已发货」。
   if (track.error && !track.latestStatusDetail) throw new Error(`FedEx 查不到这个单号：${track.error.message || track.error.code || '未知原因'}`);
   const status = logisticsStatusFromFedEx(track);
+  const rawStatus = String(track.latestStatusDetail?.statusByLocale || track.latestStatusDetail?.description || track.latestStatusDetail?.code || '').trim();
   const checkedAt = new Date().toISOString();
-  const message = `FedEx API 已同步：${status}`;
+  const message = `FedEx API 已同步：${status || `状态未识别（${rawStatus || '无描述'}）`}`;
   writeTrackingSettings({ lastCheckedAt: checkedAt, lastStatus: message, ...trackingCarrierStatusPatch('FedEx', message, checkedAt) });
   return {
     ok: true,
     status,
+    rawStatus,
     updatedAt: track.dateAndTimes?.[0]?.dateTime || new Date().toISOString(),
     events: fedexTrackingEvents(track),
     rawCarrier: 'FedEx',

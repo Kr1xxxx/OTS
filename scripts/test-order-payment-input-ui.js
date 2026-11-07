@@ -242,16 +242,25 @@ const PASTE_FORCE_KEYS = ['createdAt', 'currency', 'paymentChannel', 'productTyp
     await clickSave();
     await waitSaved();
     assert.deepEqual(await order('o-toggle'), { stage:'balance', amount:1000, paidAmount:300, depositAmount:300, depositPercent:30, orderType:'定金订单' });
-    // 详情抽屉里改订单类型：用户已在抽屉里选好，不再弹确认框；已收 300 保留为全款的部分已付，阶段按收款回到报价。
+    // 详情抽屉里改订单类型且已收过钱：和订单弹窗一样先用页面内确认框说明（V3.121，审查 06 P2-2）。
+    // 选「不改」什么都不存；确认后已收 300 保留为全款的部分已付，阶段按收款回到报价，toast 说明放到了哪个阶段。
     await page.evaluate(() => openOrderDetail('o-toggle', { tab:'payment' }));
     await page.locator('#orderDetailBody [data-dedit="orderType"]').evaluate(select => {
       select.value = '全款订单';
       select.dispatchEvent(new Event('change', { bubbles:true }));
     });
     await page.locator('#detailSaveBtn').click();
+    await page.waitForFunction(() => document.getElementById('confirmModal').classList.contains('open'));
+    assert.equal(await page.locator('#confirmTitle').innerText(), '改成全款订单？');
+    assert.match(await page.locator('#confirmMessage').innerText(), /已收 \$300 USD.*阶段改为「报价」/s);
+    await page.locator('#confirmCancelBtn').click();
+    await page.waitForFunction(() => !document.getElementById('confirmModal').classList.contains('open'));
+    assert.equal((await order('o-toggle')).orderType, '定金订单', '「不改」 saves nothing');
+    await page.locator('#detailSaveBtn').click();
+    await page.waitForFunction(() => document.getElementById('confirmModal').classList.contains('open'));
+    await page.locator('#confirmOkBtn').click();
     await page.waitForFunction(() => state.orders.find(o => o.id === 'o-toggle').orderType === '全款订单');
     await page.waitForFunction(() => { const s = window.pendingSaveStatus(); return !s.pending && !s.saving; });
-    assert.equal(await confirmOpen(), false, 'the drawer save does not pop the type-change confirm');
     assert.deepEqual(await order('o-toggle'), { stage:'quote', amount:1000, paidAmount:300, depositAmount:1000, depositPercent:100, orderType:'全款订单' });
     await page.evaluate(() => closeOrderDetail());
 

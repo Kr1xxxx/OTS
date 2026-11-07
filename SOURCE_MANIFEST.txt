@@ -73,6 +73,7 @@ scripts/test-dashboard-month.js
 scripts/test-deep-review-fixes.js
 scripts/test-deepseek-openrouter.js
 scripts/test-deposit-picker.js
+scripts/test-detail-drawer-draft-ui.js
 scripts/test-detail-drawer-ui.js
 scripts/test-ecb-exchange.js
 scripts/test-events-copy-levels-ui.js
@@ -107,6 +108,7 @@ scripts/test-save-conflict-ui.js
 scripts/test-save-ui.js
 scripts/test-server-security.js
 scripts/test-settings-sidebar-ui.js
+scripts/test-shipments-partial-ui.js
 scripts/test-sqlite-storage.js
 scripts/test-stage-undo-ui.js
 scripts/test-subscription-analysis-ui.js
@@ -117,6 +119,7 @@ scripts/test-subscriptions-ui.js
 scripts/test-summary-amounts-ui.js
 scripts/test-tinypng-compression.js
 scripts/test-tracking-api.js
+scripts/test-tracking-status-mapping.js
 scripts/test-ui-zoom-ui.js
 scripts/test-ups-auto-completion.js
 scripts/test-version-update-tooltip.js

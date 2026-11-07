@@ -58,7 +58,7 @@ b6d0fb0b5fe1b3742c969704a9013c06ed9bcfd5af6c0ba3c5133d01718263db  scripts/test-c
 fa1ea3410358cfabae248c8e66d7f7b4e1ce927340a161da5952e26003e47cb1  scripts/test-client-picker-fixes-ui.js
 5a41559e32923a791c0ada039496c8d6e389e11fcc9d61ebd63584e3071a5ff7  scripts/test-client-picker-open-profile.js
 08f9b4a436882f603cb22f546dab0fa0a2c98a3c86286d9fb4e4d2af85d0d5ff  scripts/test-client-picker-search.js
-8ca85172d769ef3747ec2974c06f6ee5e80e29b9e5a5b570a44d0352d0415c4d  scripts/test-close-guard-paths-ui.js
+14945f5a83c63e1431b33c78e61293944c7a9fc5d0f4ec86cad70ed3e9fb8309  scripts/test-close-guard-paths-ui.js
 2928edfe92d9eecbf2d00e2dd8d3dc9722198b7b81467f86295f25c996ff6f26  scripts/test-close-guard-save-ui.js
 777ac30bf342e1ed89b9e5fa92c7487d58f0836b15728824fcc6aef1be559519  scripts/test-custom-select.js
 a561ddfceecbac917fcda765ed92e245ccf763b7d5ca0dcdb8318ea25142ffd6  scripts/test-customer-ai-first-ui.js

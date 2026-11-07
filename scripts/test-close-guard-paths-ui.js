@@ -255,7 +255,8 @@ async function launch() {
     // Typing the same customer in another case still is an edit, but keeps the order's payment method.
     const client = page.locator('#orderForm [name="client"]');
     await client.click();
-    await page.keyboard.press('Home');
+    // macOS 上 Home 不会把光标移到行首，直接设好光标位置。
+    await client.evaluate(el => el.setSelectionRange(0, 0));
     await page.keyboard.press('Delete');
     await page.keyboard.type('A', { delay:5 });
     await page.keyboard.press('Escape');

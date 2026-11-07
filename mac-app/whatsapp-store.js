@@ -121,9 +121,18 @@ function createWhatsAppStore(db) {
     }
   };
 }
-function renameWhatsAppCustomer(db, from, to) {
+// chats: only these conversations ([{ account, chatId }]); without it every chat of `from` moves.
+// Returns the conversations that moved, so a later undo can move exactly those back.
+function moveWhatsAppChats(db, from, to, chats = null) {
   // The table is created lazily by the first WhatsApp request.
-  if (!db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'whatsapp_conversations'").get()) return 0;
-  return Number(db.prepare('UPDATE whatsapp_conversations SET customer = ? WHERE customer = ?').run(to, from).changes);
+  if (!db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'whatsapp_conversations'").get()) return [];
+  const rows = db.prepare('SELECT account, chat_id AS chatId FROM whatsapp_conversations WHERE customer = ?').all(from)
+    .filter(row => !Array.isArray(chats) || chats.some(chat => chat && chat.account === row.account && chat.chatId === row.chatId));
+  const update = db.prepare('UPDATE whatsapp_conversations SET customer = ? WHERE customer = ? AND account = ? AND chat_id = ?');
+  rows.forEach(row => update.run(to, from, row.account, row.chatId));
+  return rows.map(row => ({ account:row.account, chatId:row.chatId }));
 }
-module.exports = { createWhatsAppStore, phoneKey, renameWhatsAppCustomer };
+function renameWhatsAppCustomer(db, from, to) {
+  return moveWhatsAppChats(db, from, to).length;
+}
+module.exports = { createWhatsAppStore, phoneKey, renameWhatsAppCustomer, moveWhatsAppChats };

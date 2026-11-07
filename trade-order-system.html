@@ -2239,7 +2239,7 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
 }
 .customer-duplicate-main { min-width: 0; display: grid; gap: 3px; }
 .customer-duplicate-main strong { color: var(--gray-900); }
-.customer-duplicate-main small { color: var(--gray-500); }
+.customer-duplicate-main small { color: var(--gray-600); }
 .customer-duplicate-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .customer-modal-shell { width: min(1120px, 100%); }
 .customer-modal-body { padding: 14px 16px 16px; gap: 12px; }
@@ -4643,7 +4643,7 @@ html[data-theme] .customer-toolbar .customer-toolbar-new:hover { background:colo
 html[data-theme] .customer-duplicate-alerts { grid-template-columns:minmax(0,1fr); gap:8px; margin:0; padding:14px 18px; border:1px solid color-mix(in srgb, var(--s-amber) 30%, transparent); border-radius:22px; background:color-mix(in srgb, var(--s-amber) 12%, var(--surface-bg)); }
 html[data-theme] .customer-duplicate-head { justify-content:flex-start; gap:10px; }
 html[data-theme] .customer-duplicate-title { font-size:13.5px; }
-html[data-theme] .customer-duplicate-count { color:var(--s-amber); font-size:12.5px; font-weight:500; }
+html[data-theme] .customer-duplicate-count { color:var(--gray-600); font-size:12.5px; font-weight:500; }
 html[data-theme] .customer-duplicate-row { padding:0; border:0; background:transparent; }
 html[data-theme] .customer-duplicate-main strong { font-weight:500; font-size:13px; }
 html[data-theme] .customer-duplicate-actions .btn { border-radius:999px; }
@@ -5779,7 +5779,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.125，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.125</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.126，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.126</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -5811,6 +5811,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
 
   <main class="content">
     <datalist id="countryOptions"></datalist>
+    <datalist id="customerMergeTargetOptions"></datalist>
     <section class="page active" id="page-dashboard">
       <section class="stats" id="dashboard">
         <div class="stat"><div class="stat-label">进行中订单</div><div class="stat-value" id="statActive">0</div><div class="stat-sub" id="statActiveSub">未完成的客户订单</div></div>
@@ -6947,6 +6948,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
         <div class="muted" id="customerModalDesc">客户主档，订单、物流和复购提醒都会引用这里</div>
       </div>
       <div class="modal-head-actions">
+        <button class="btn btn-danger btn-small" id="customerDeleteBtn" type="button" style="display:none" title="没有订单的客户可以删除；有订单的可以合并到其他客户">删除客户</button>
         <button class="btn btn-client btn-small" id="customerNewOrderBtn" type="button" style="display:none">＋ 新建订单</button>
         <button class="btn btn-primary btn-small" id="customerDetailEditBtn" type="button" style="display:none">编辑资料</button>
         <button class="btn btn-small" id="customerEditCancelBtn" type="button" style="display:none">取消编辑</button>
@@ -7986,6 +7988,31 @@ let macPersistedStateJson = '';
 let macSaveLastError = '';
 let macSaveInFlight = false;
 let macBackupWarning = '';
+// 合并 / 删除客户要明确告诉服务端（WhatsApp 聊天跟着合并走、删除的客户不被猜成改名）：跟着下一次保存一起发。
+let macPendingCustomerOps = [];
+let customerStorageOpSeq = 0;
+function queueCustomerStorageOp(op = {}) {
+  const entry = { ...op, id:`cop-${Date.now()}-${++customerStorageOpSeq}`, state:'pending', chats:null };
+  if (isMacAppMode()) macPendingCustomerOps.push(entry);
+  return entry;
+}
+// 撤销：还没发出去就直接从队列拿掉；已经发出去的合并，只把那次真正搬过去的聊天搬回来（目标客户自己原有的聊天不动）。
+function revertCustomerStorageOp(op) {
+  if (!op || !isMacAppMode()) return;
+  const index = macPendingCustomerOps.indexOf(op);
+  if (index >= 0) {
+    macPendingCustomerOps.splice(index, 1);
+    op.state = 'cancelled';
+    return;
+  }
+  if (op.kind === 'move') macPendingCustomerOps.push({ kind:'move', from:op.to, to:op.from, reverseOf:op, id:`${op.id}-undo`, state:'pending', chats:null });
+}
+function customerStorageOpsPayload(ops = []) {
+  const live = ops.filter(op => !(op.reverseOf && ops.includes(op.reverseOf)) && !ops.some(other => other.reverseOf === op));
+  const moves = live.filter(op => op.kind === 'move').map(op => ({ id:op.id, from:op.from, to:op.to, ...(op.reverseOf ? { chats:op.reverseOf.chats || [] } : {}) }));
+  const deletes = live.filter(op => op.kind === 'delete').map(op => op.name);
+  return { ...(moves.length ? { customerMoves:moves } : {}), ...(deletes.length ? { customerDeletes:deletes } : {}) };
+}
 function backupSaveFeedback(backup, previousWarning = '') {
   const failure = backup?.missingAttachments || /附件文件缺失/.test(String(backup?.message || '')) ? backup.message : '请在设置中重试备份';
   const message = backup?.ok === false ? `数据已保存，自动备份失败：${failure}` : backup?.ok === true && !backup.skipped ? '' : previousWarning;
@@ -8090,6 +8117,7 @@ async function runMacSaveQueue() {
       const targetVersion = macSaveRequestedVersion;
       const snapshotJson = macQueuedStateJson;
       const snapshot = JSON.parse(snapshotJson);
+      const customerOps = macPendingCustomerOps.splice(0);
       macSaveInFlight = true;
       macSaveLastError = '';
       setMacStorageStatus('sqlite', 'saving');
@@ -8097,7 +8125,7 @@ async function runMacSaveQueue() {
         const res = await apiFetch('/api/save', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ state: dataFilePayload(snapshot), baseRevision: macStorageRevision })
+          body: JSON.stringify({ state: dataFilePayload(snapshot), baseRevision: macStorageRevision, ...customerStorageOpsPayload(customerOps) })
         });
         const result = await res.json().catch(() => ({}));
         if (res.status === 409) {
@@ -8121,12 +8149,18 @@ async function runMacSaveQueue() {
         macStorageRevision = Number.isFinite(savedRevision) ? savedRevision : macStorageRevision + 1;
         macSaveCompletedVersion = targetVersion;
         macPersistedStateJson = snapshotJson;
+        customerOps.forEach(op => {
+          op.state = 'done';
+          op.chats = (result.movedChats || []).find(item => item.id === op.id)?.chats || [];
+        });
         const feedback = backupSaveFeedback(result.backup, macBackupWarning);
         if (result.backup?.ok === true && !result.backup.skipped && macBackupSummary) renderBackupInfo({ ...macBackupSummary, lastBackupAt:Date.now(), sqliteCount:Number(macBackupSummary.sqliteCount || 0) + 1 });
         if (feedback.warning && !macBackupWarning) toast(feedback.message, { tone:'warn' });
         macBackupWarning = feedback.message;
         setMacStorageStatus(result.storageMode || 'sqlite', feedback.warning ? 'warning' : 'saved', feedback.message || `数据库已保存 · 版本 ${macStorageRevision} · ${new Date().toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}`);
       } catch (error) {
+        // 这次没存进去：合并 / 删除的说明放回队列，跟着下一次保存再发。
+        macPendingCustomerOps.unshift(...customerOps.filter(op => op.state === 'pending'));
         macSaveLastError = error.message || '数据库保存失败';
         setMacStorageStatus('sqlite', 'error', macSaveLastError);
         if (typeof uiNotifLogEvent === 'function') uiNotifLogEvent({ id:`save-${normalizeDate(new Date().toISOString())}-${macSaveLastError}`, kind:'error', title:'数据保存失败', sub:macSaveLastError, pill:'保存' });
@@ -8641,6 +8675,8 @@ function normalizeState(raw) {
       : [],
     doneTasks: migrateDoneTaskKeys(raw.doneTasks || {}, rawOrders, raw.customers || {}),
     snoozedTasks: normalizeSnoozedTasks(raw.snoozedTasks),
+    // 客户资料提醒里点过「不是同一人」的两位客户（名字排序后用 \u0000 拼接）。
+    customerDuplicateIgnores: Array.isArray(raw.customerDuplicateIgnores) ? raw.customerDuplicateIgnores.filter(key => typeof key === 'string' && key.includes('\u0000')) : [],
     demoCleared: raw.demoCleared === true,
     demoCustomersCleared: raw.demoCustomersCleared === true
   };
@@ -11080,26 +11116,51 @@ function matchClientsFromPaste(text, { name = null, phones: extraPhones = [], em
   const phoneKeys = new Set([...findCustomerPhonesInText(text), ...extraPhones.map(normalizeCustomerPhoneDigits)].flatMap(customerPhoneMatchKeys));
   const excludedEmails = typeof customerExcludedEmails === 'function' ? customerExcludedEmails(text) : new Set();
   const emails = new Set([...findEmailsInText(text), ...extraEmails].map(value => String(value || '').toLowerCase()).filter(value => value && !excludedEmails.has(value)));
-  const pastedNameTokens = customerNameMatchTokens(name === null ? findCustomerNameInText(text) : name);
-  const pastedCore = customerNameCoreTokens(name === null ? findCustomerNameInText(text) : name).join(' ');
+  const pastedName = String((name === null ? findCustomerNameInText(text) : name) || '').trim();
+  // 判断「电话 / 邮箱对上了、名字却对不上」只用原文写明的名字（Name: … / it's …）或 AI 给的名字，猜出来的名字不算。
+  const statedName = String((name === null ? explicitCustomerNameInText(text) : name) || '').trim();
+  const statedNameTokens = customerNameMatchTokens(statedName);
+  const pastedNameTokens = customerNameMatchTokens(pastedName);
+  const pastedCore = customerNameCoreTokens(pastedName).join(' ');
   const excludeKey = String(exclude || '').trim().toLowerCase();
-  return clientHistory().filter(client => !excludeKey || String(client.client || '').trim().toLowerCase() !== excludeKey).map(client => {
+  const matches = clientHistory().filter(client => !excludeKey || String(client.client || '').trim().toLowerCase() !== excludeKey).map(client => {
     const name = String(client.client || '');
     const clientNameTokens = customerNameMatchTokens(name);
     const contactFields = normalizeCustomerContactFields(client);
     const clientPhones = [...contactFields.phones, client.mobile, client.tel].flatMap(splitCustomerPhoneValues).filter((value, index, list) => list.indexOf(value) === index);
-    const clientEmails = findEmailsInText([...contactFields.emails, client.paymentEmail].filter(Boolean).join('\n')).map(value => value.toLowerCase());
+    // 名字本身就是邮箱（询盘只有邮箱时直接拿它当客户名）：也当成这位客户的一个邮箱比对。
+    const clientEmails = findEmailsInText([...contactFields.emails, client.paymentEmail, normalizeCustomerEmail(name)].filter(Boolean).join('\n')).map(value => value.toLowerCase());
     let score = 0;
     let reason = '';
     const phoneIndex = clientPhones.findIndex(phone => customerPhoneMatchKeys(phone).some(key => phoneKeys.has(key)));
     const emailIndex = clientEmails.findIndex(email => emails.has(email));
+    let contactEvidence = '';
+    let nameLevel = 0;
+    if (clientNameTokens.length && [pastedNameTokens, statedNameTokens].some(tokens => clientNameTokens.join(' ') === tokens.join(' '))) nameLevel = 2;
+    else if ([pastedCore, customerNameCoreTokens(statedName).join(' ')].some(core => core && customerNameCoreTokens(name).join(' ') === core)) nameLevel = 2;
     if (phoneIndex >= 0) {
       score = 100;
+      contactEvidence = '电话';
       reason = phoneIndex > 0 ? `第${phoneIndex + 1}个电话号码一致` : '电话号码一致';
     } else if (emailIndex >= 0) {
       score = 100;
+      contactEvidence = '邮箱';
       reason = emailIndex > 0 ? `第${emailIndex + 1}个邮箱一致` : '邮箱一致';
-    } else if (clientNameTokens.length && clientNameTokens.join(' ') === pastedNameTokens.join(' ')) {
+    }
+    // 电话 / 邮箱一致，但原文写明的名字和这位客户（名字、联系人）一个词都对不上：可能是共用邮箱、代付、代收，不自动带出，让人确认。
+    if (contactEvidence && statedNameTokens.length && !nameLevel) {
+      const own = new Set([...clientNameTokens, ...contactFields.contacts.flatMap(customerNameMatchTokens)]);
+      const overlap = statedNameTokens.some(token => token.length >= 2 && own.has(token)) || customerNameTokensFuzzyMatch(clientNameTokens, statedNameTokens);
+      if (overlap) nameLevel = 1;
+      else {
+        score = 85;
+        reason = `${reason}，但原文名字是 ${statedName}，需确认`;
+      }
+    }
+    if (contactEvidence) {
+      return { client, score, reason, contactEvidence, nameLevel };
+    }
+    if (clientNameTokens.length && clientNameTokens.join(' ') === pastedNameTokens.join(' ')) {
       score = 95;
       reason = '姓名完全一致';
     } else if (pastedCore && pastedCore.split(' ').length >= 2 && customerNameCoreTokens(name).join(' ') === pastedCore) {
@@ -11126,10 +11187,23 @@ function matchClientsFromPaste(text, { name = null, phones: extraPhones = [], em
       }
       if (score < 90 && /姓名相似/.test(reason) && !/需确认$/.test(reason)) reason += '，需确认';
     }
-    return { client, score, reason };
+    return { client, score, reason, contactEvidence, nameLevel };
   }).filter(item => item.score >= 80)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
+    .sort((a, b) => b.score - a.score);
+  // 同一个电话 / 邮箱命中了好几位客户（还没合并的重复档案、同一个代理、一个付款账号替几家店付款）：
+  // 原文名字和其中一位完全一致就认这一位；否则一位都不自动带出，全部列出来让人选。
+  const sure = matches.filter(item => item.score >= 100 && item.contactEvidence);
+  if (sure.length > 1) {
+    const exact = sure.filter(item => item.nameLevel === 2);
+    const keep = exact.length === 1 ? exact[0] : null;
+    sure.forEach(item => {
+      if (item === keep) return;
+      item.score = 89;
+      item.reason = `${item.reason}（这个${item.contactEvidence}有 ${sure.length} 位客户在用，需确认）`;
+    });
+    matches.sort((a, b) => b.score - a.score);
+  }
+  return matches.slice(0, 5).map(({ client, score, reason }) => ({ client, score, reason }));
 }
 function findExplicitNoteInText(text, scope = 'any') {
   const labelPattern = scope === 'order'
@@ -12007,13 +12081,23 @@ async function requestAiPasteAnalysis(text, localAnalysis, { testOnly = false, s
   return testOnly ? data : parseAiJson(content);
 }
 // 两份客户匹配（本地抽的名字 / AI 认出的名字）合在一起：同一位客户取高分。
+// 同一位客户取分数高的；但后面的列表（按 AI 认出的客户名重新比对）说「电话 / 邮箱一样、名字对不上」或「好几位客户共用」时以它为准，
+// 不能让本地按猜出来的名字算出的 100 分把它盖过去。
 function mergePasteClientMatches(...lists) {
   const byName = new Map();
-  lists.flat().filter(Boolean).forEach(match => {
-    const key = match.client?.client;
-    if (!key) return;
-    const prev = byName.get(key);
-    if (!prev || match.score > prev.score) byName.set(key, match);
+  lists.forEach(list => {
+    const seen = new Map();
+    (list || []).filter(Boolean).forEach(match => {
+      const key = match.client?.client;
+      if (!key) return;
+      const prev = seen.get(key);
+      if (!prev || match.score > prev.score) seen.set(key, match);
+    });
+    seen.forEach((match, key) => {
+      const prev = byName.get(key);
+      const contactConflict = /但原文名字是|位客户在用/.test(match.reason || '');
+      if (!prev || contactConflict || match.score > prev.score) byName.set(key, match);
+    });
   });
   return [...byName.values()].sort((a, b) => b.score - a.score).slice(0, 5);
 }
@@ -12197,9 +12281,20 @@ function customerOwnEmailList() {
 function customerOwnEmailSet() {
   try { return new Set(customerOwnEmailList().map(value => value.toLowerCase())); } catch (_) { return new Set(); }
 }
-// "anna [at] example [dot] de" 这类防爬写法还原成正常邮箱
+// "anna [at] example [dot] de" 这类防爬写法还原成正常邮箱。另外几种常见写法也还原：
+// - 全角「＠」「．」（中文输入法）、域名里的中文句号「maria@gmail。com」；
+// - @ 两边带空格「maria @ gmail.com」；手机键盘在点后自动加的空格「maria@gmail. com」「maria@gmail .com」（只处理 @ 后面的第一个点，后缀要像 com / net / 两个字母的国家代码）；
+// - 不带括号的「maria at gmail dot com」（阿里巴巴站内聊天会屏蔽邮箱）：必须是「词 at 词 dot 后缀」整段，普通句子里的 at 不动。
 function deobfuscateEmailText(text = '') {
+  const tld = '(?:com|net|org|edu|gov|info|biz|co|io|me|[a-z]{2})(?![a-z0-9])';
   return String(text || '')
+    .replace(/[＠﹫]/g, '@')
+    .replace(/[．｡]/g, '.')
+    .replace(new RegExp(`\\b([a-z0-9._%+-]+)[ \\t]+at[ \\t]+([a-z0-9-]+(?:[ \\t]+dot[ \\t]+[a-z0-9-]+)*)[ \\t]+dot[ \\t]+(${tld})`, 'gi'),
+      (m, local, domain, suffix) => `${local}@${domain.replace(/[ \t]+dot[ \t]+/gi, '.')}.${suffix}`)
+    // @ 两边的空格只在后面确实是「域名.后缀」时去掉：「IG @nia.lashbar」这类社交账号不拼成邮箱。
+    .replace(new RegExp(`([a-z0-9._%+-])[ \\t]*@[ \\t]*(?=[a-z0-9-]+(?:\\.[a-z0-9-]+)*\\.${tld})`, 'gi'), '$1@')
+    .replace(new RegExp(`(@[a-z0-9-]+)[ \\t]*[.。][ \\t]*(?=${tld})`, 'gi'), '$1.')
     .replace(/\s*[\[(（]\s*at\s*[\])）]\s*/gi, '@')
     .replace(/(@[A-Z0-9.-]+?)\s*[\[(（]\s*dot\s*[\])）]\s*(?=[A-Z0-9])/gi, '$1.')
     .replace(/(@[A-Z0-9.-]+?)\s*[\[(（]\s*dot\s*[\])）]\s*(?=[A-Z0-9])/gi, '$1.');
@@ -12390,6 +12485,15 @@ function customerPasteLines(text) {
     .split(/\n+|[;；](?=\s*(?:客户|公司|联系人|姓名|邮箱|地址|国家|付款|收款|产品|标签|备注|customer|client|company|contact|email|address|country|payment|product|tag|note)\b)/i)
     .map(line => line.replace(/^\s*[-*•·]\s*/, '').trim())
     .filter(Boolean);
+}
+// 原文明确写出的名字：带标签的（Name: / Customer: / 客户：）或自我介绍（it's / I'm / this is / my name is 加大写开头的名字）。
+function explicitCustomerNameInText(text = '') {
+  const labelled = cleanCustomerNameCandidate(labeledCustomerValue(customerPasteLines(text), [
+    /^(?:客户名称|客户名|客户|姓名|名字|公司名称|公司|full\s*name|name|customer\s*name|customer|client|company\s*name|company)\s*[:：-]\s*(.{2,100})$/i
+  ]));
+  if (labelled) return labelled.slice(0, 80);
+  const intro = decodePasteEntities(String(text || '')).match(/\b(?:[Tt]his is|I am|I'm|[Ii]t's|[Ii]t is|[Mm]y name is)\s+(\p{Lu}[\p{L}'-]+(?:[ \t]+\p{Lu}[\p{L}'-]+){0,3})/u);
+  return intro ? intro[1] : '';
 }
 function labeledCustomerValue(lines, patterns) {
   for (const line of lines) {
@@ -12990,7 +13094,9 @@ function localCustomerEmails(segments, text) {
   });
   const unique = list => list.filter((value, index) => list.findIndex(item => item.toLowerCase() === value.toLowerCase()) === index);
   const paymentEmail = unique(payment)[0] || (sameEmailForPayment ? unique(contact)[0] || '' : '');
-  const emails = unique(contact).filter(value => value.toLowerCase() !== paymentEmail.toLowerCase() || !unique(payment).length);
+  // 联系邮箱里的都是原文在非付款的行里写出来的（「Email: maria@lopez.es (main)」）：即使它同时是付款邮箱也留着，
+  // 以前有付款行就把它拿掉，客户自己写明的主邮箱只剩在「付款邮箱」一栏，档案邮箱变成次要的工作邮箱。
+  const emails = unique(contact);
   return { emails, paymentEmail };
 }
 function localCustomerContactFields(text = '') {
@@ -13073,7 +13179,8 @@ function analyzeCustomerPasteText(text) {
   const paymentEmail = [local.paymentEmail, findCustomerPaymentEmailFieldInText(text)].find(customerEmail) || '';
   const fallbackEmail = findEmailsInText(text).find(customerEmail) || '';
   const extracted = {
-    name: autoCapitalizeCustomerName(bestClient?.client || local.name || findCustomerNameInText(text)),
+    // 原文写明的名字优先：按电话 / 邮箱认出的老客户只作为匹配卡片提示，不把「Name: Tasha Green」换成别人的名字。
+    name: autoCapitalizeCustomerName(local.name || explicitCustomerNameInText(text) || bestClient?.client || findCustomerNameInText(text)),
     country: localCustomerCountry(text, local.addresses) || (bestClient?.country ? normalizeCountry(bestClient.country) : ''),
     contact: local.contacts[0] || cleanContactValue(findContactInText(text, address), address),
     contacts: local.contacts.length > 1 ? local.contacts : undefined,
@@ -13689,7 +13796,7 @@ name, country, countrySource, countryEvidence, contacts, phones, emails, address
 - phones 只输出客户联系电话，保留原文完整国际区号。
 - 只有 +44、+1 等国家区号时不是完整电话，不加入 phones；不得拼接门牌或邮编补成电话。
 - 姓名、区号、地址在同一行时分别提取；英国邮编可包含字母、数字和空格，例如 PR2 2LE。保留原文门牌、公寓号/Suite/Unit/Flat/楼层、邮编、街道、城市、州省和国家信息，不丢失或补造地址细节；国家单独写在其他行时，也接到这条地址末尾；地址不包含开头姓名或电话。纯地址或街道中的专名不是独立客户名称。
-- 邮箱去掉 mailto: 和链接查询参数，只保留邮箱地址。"anna [at] example [dot] de" 这类防爬写法还原成 anna@example.de。
+- 邮箱去掉 mailto: 和链接查询参数，只保留邮箱地址。"anna [at] example [dot] de"、"anna at example dot de" 这类防爬写法还原成 anna@example.de；全角「＠」「．」、域名里的「。」、@ 两边或点后面多出来的空格（"anna @ example. de"）也还原成正常写法。
 - 原文前后矛盾时以客户最后的更正为准，例如 “sorry zip is 30318 not 30310” 要把地址里的邮编改成 30318。
 - paymentMethod 只能使用 "阿里巴巴", "Paypal", "西联", "Zelle", "信用卡", "TT"。bank transfer、wire、bonifico、virement、Überweisung、transferencia、银行转账都是 "TT"；Western Union 是 "西联"；card、Visa、Mastercard 是 "信用卡"。提到多种时取客户实际选的那种。只有原文明确时才输出，Other、其他、未知或不确定时省略，不能用表单默认值代替识别结果。
 - paymentEmail 是收款邮箱、付款邮箱或 Paypal 邮箱，不要和普通联系邮箱混淆。
@@ -13787,8 +13894,14 @@ function normalizeAiCustomerResult(raw = {}, sourceText = '') {
       multi.emails = normalizeCustomerValueList(omitted, '', normalizeCustomerEmail);
     }
     // 付款邮箱单独存一栏；还有别的联系邮箱时不再重复进联系邮箱（同一个邮箱既联系又付款时保留）
+    // 原文在不是付款的行里把它写成联系邮箱（「Email: maria@lopez.es (main)」）时保留，客户写明的主邮箱不能只剩在付款一栏。
     const contactOnlyEmails = multi.emails.filter(value => folded(value) !== folded(fields.paymentEmail || ''));
-    if (fields.paymentEmail && contactOnlyEmails.length) multi.emails = contactOnlyEmails;
+    const paymentWords = /paypal|zelle|付款|收款|\bpay(?:ment)?\b|send\s+from|pays?\s+via/i;
+    const listedAsContact = Boolean(fields.paymentEmail) && source.split(/\r?\n/).some(line => {
+      const lineEmails = findEmailsInText(line);
+      return lineEmails.some(value => folded(value) === folded(fields.paymentEmail)) && !paymentWords.test(deobfuscateEmailText(line).replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/ig, ' '));
+    });
+    if (fields.paymentEmail && contactOnlyEmails.length && !listedAsContact) multi.emails = contactOnlyEmails;
   } else {
     multi.emails = multi.emails.filter(notExcluded);
   }
@@ -14456,6 +14569,9 @@ function contactForClient(name = '') {
 // 全小写输入的首字母大写：公司后缀按惯用写法（llc → LLC、gmbh → GmbH），姓名里的 de / van / von 这类小词不在开头时保持小写，
 // mcdonald → McDonald、o'neil → O'Neil；连字符两边各自大写（k-beauty → K-Beauty）。
 function autoCapitalizeCustomerName(value = '') {
+  // 拿邮箱当客户名（询盘只有邮箱）：原样保留，不改成「John.smith@Gmail.com」。
+  const asEmail = normalizeCustomerEmail(String(value || '').trim());
+  if (asEmail && asEmail === String(value || '').trim()) return asEmail;
   const suffixes = { llc:'LLC', ltd:'Ltd', 'ltd.':'Ltd.', inc:'Inc', 'inc.':'Inc.', gmbh:'GmbH', plc:'PLC', ag:'AG', bv:'BV', 'b.v.':'B.V.', srl:'SRL', 'co.':'Co.', co:'Co', corp:'Corp', 'corp.':'Corp.', llp:'LLP', 'l.l.c.':'L.L.C.', usa:'USA', uk:'UK' };
   const particles = new Set(['de', 'la', 'le', 'del', 'della', 'der', 'den', 'van', 'von', 'da', 'das', 'dos', 'du', 'di', 'y', 'e', 'and', 'of', 'the', 'und', 'et']);
   const capitalize = part => {
@@ -14475,6 +14591,15 @@ function autoCapitalizeCustomerName(value = '') {
     if (particles.has(lower) && !first && word === lower) return word;
     return lower.split('-').map(part => part ? capitalize(part) : part).join('-');
   });
+}
+// 列表第二行、档案头部的邮箱：没有联系邮箱时，名字本身是邮箱就显示它，只有付款邮箱就显示付款邮箱并标明。
+function customerEmailSummary(record = {}) {
+  const email = String(record.email || '').trim() || normalizeCustomerContactFields(record).emails[0] || '';
+  if (email) return email;
+  const nameEmail = normalizeCustomerEmail(String(record.client || '').trim());
+  if (nameEmail) return nameEmail;
+  const pay = normalizeCustomerEmail(record.paymentEmail || '');
+  return pay ? `${pay}（付款邮箱）` : '邮箱未填写';
 }
 function clientDisplayName(name = '') {
   const rawClient = String(name || '').trim();
@@ -18132,6 +18257,14 @@ function customerDuplicateRecord(name = '') {
     phone: customerDuplicatePhone(profile)
   };
 }
+// 「不是同一人」：两边的名字（原样）排序后拼成一个键，以后不再提示这一对。
+function customerDuplicateIgnoreKey(a = '', b = '') {
+  return [String(a), String(b)].sort().join('\u0000');
+}
+function customerDuplicateIgnored(a = '', b = '') {
+  const list = Array.isArray(state.customerDuplicateIgnores) ? state.customerDuplicateIgnores : [];
+  return list.includes(customerDuplicateIgnoreKey(a, b));
+}
 function customerDuplicateCandidates() {
   const records = clientHistory().map(client => customerDuplicateRecord(client.client));
   const candidates = [];
@@ -18139,12 +18272,16 @@ function customerDuplicateCandidates() {
     for (let j = i + 1; j < records.length; j += 1) {
       const a = records[i];
       const b = records[j];
+      if (customerDuplicateIgnored(a.name, b.name)) continue;
       const reasons = [];
       if (a.normalizedName && a.normalizedName === b.normalizedName) reasons.push('姓名相同');
       if (a.emails.some(email => b.emails.includes(email))) reasons.push('邮箱相同');
       if (a.paymentEmail && a.paymentEmail === b.paymentEmail) reasons.push('付款邮箱相同');
+      // 一位的联系邮箱是另一位的付款邮箱：粘贴识别按邮箱认人时两位都会命中，这里同样提醒（和粘贴匹配一个口径）。
+      else if ((a.paymentEmail && b.emails.includes(a.paymentEmail)) || (b.paymentEmail && a.emails.includes(b.paymentEmail))) reasons.push('一方的邮箱是另一方的付款邮箱');
       if (a.phone && a.phone === b.phone) reasons.push('电话相同');
-      if (a.addresses.some(address => address.length >= 12 && b.addresses.includes(address))) reasons.push('地址相同');
+      // 只有地址相同常常是同一个货代仓（尼日利亚、加纳一带很多买家寄到同一个仓），说明里写出来，不让人以为一定是同一人。
+      if (a.addresses.some(address => address.length >= 12 && b.addresses.includes(address))) reasons.push(reasons.length ? '地址相同' : '地址相同（可能是同一个货代仓）');
       if (!reasons.length) continue;
       const primary = a.score >= b.score ? a : b;
       const secondary = primary === a ? b : a;
@@ -18152,6 +18289,22 @@ function customerDuplicateCandidates() {
     }
   }
   return candidates;
+}
+// 订单数（含垃圾箱和已删除订单）：和改名 / 合并搬订单同一口径——大小写不同、自己没有档案的写法也算这位客户的。
+function customerOrderCounts(name = '') {
+  const customers = state.customers || {};
+  const separate = client => Object.hasOwn(customers, name) && Object.hasOwn(customers, client);
+  const belongs = client => client === name || (sameCustomerName(client, name) && !separate(client));
+  const count = list => (Array.isArray(list) ? list : []).filter(order => belongs(order.client)).length;
+  const active = count(state.orders);
+  const trash = count(state.trashOrders);
+  const deleted = count(state.deletedOrders);
+  return { active, trash, deleted, total:active + trash + deleted };
+}
+function customerOrderCountText(counts) {
+  if (!counts.total) return '0 单';
+  const archived = counts.trash + counts.deleted;
+  return archived ? `${counts.total} 单，其中 ${archived} 单在垃圾箱 / 已删除订单` : `${counts.total} 单`;
 }
 function renderCustomerDuplicateAlerts() {
   const el = document.getElementById('customerDuplicateAlerts');
@@ -18161,6 +18314,8 @@ function renderCustomerDuplicateAlerts() {
     el.innerHTML = '';
     return;
   }
+  // 显示档案的原名和订单数：自动大写后的显示名会让「alice baker」和「Alice Baker」看起来一模一样。
+  const label = record => `${record.name || '未命名客户'}（${customerOrderCounts(record.name).total} 单）`;
   el.innerHTML = `
     <section class="customer-duplicate-alerts" aria-label="客户资料提醒">
       <div class="customer-duplicate-head">
@@ -18170,11 +18325,12 @@ function renderCustomerDuplicateAlerts() {
       ${candidates.map(item => `
         <div class="customer-duplicate-row">
           <div class="customer-duplicate-main">
-            <strong>${escapeAttr(clientDisplayName(item.primary.name))} ↔ ${escapeAttr(clientDisplayName(item.secondary.name))}</strong>
-            <small>${escapeAttr(item.reasons.join('、'))} · 建议保留 ${escapeAttr(clientDisplayName(item.primary.name))}</small>
+            <strong>${escapeAttr(label(item.primary))} ↔ ${escapeAttr(label(item.secondary))}</strong>
+            <small>${escapeAttr(item.reasons.join('、'))} · 建议保留 ${escapeAttr(item.primary.name || '未命名客户')}，合并时可以改为保留另一份</small>
           </div>
           <div class="customer-duplicate-actions">
             <button class="btn btn-small" type="button" data-duplicate-view="${escapeAttr(item.primary.name)}">查看</button>
+            <button class="btn btn-small" type="button" data-duplicate-ignore-a="${escapeAttr(item.primary.name)}" data-duplicate-ignore-b="${escapeAttr(item.secondary.name)}">不是同一人</button>
             <button class="btn btn-primary btn-small" type="button" data-duplicate-merge-primary="${escapeAttr(item.primary.name)}" data-duplicate-merge-secondary="${escapeAttr(item.secondary.name)}">合并</button>
           </div>
         </div>
@@ -18182,14 +18338,45 @@ function renderCustomerDuplicateAlerts() {
     </section>
   `;
 }
+function ignoreCustomerDuplicate(a = '', b = '') {
+  if (!a || !b || !canSubmitStoredData()) return;
+  const key = customerDuplicateIgnoreKey(a, b);
+  const list = Array.isArray(state.customerDuplicateIgnores) ? state.customerDuplicateIgnores : [];
+  if (!list.includes(key)) state.customerDuplicateIgnores = [...list, key];
+  saveState();
+  render();
+  focusCustomerDuplicateNext();
+  toast(`不再提示：${a} 和 ${b}`, { desc:'两位客户各自保留', group:'customer-change', undo:() => {
+    state.customerDuplicateIgnores = (state.customerDuplicateIgnores || []).filter(item => item !== key);
+    saveState();
+    render();
+  } });
+}
+// 合并 / 删除 / 忽略之后焦点不掉到 body：落到下一条提醒的「查看」，没有提醒了就落到客户搜索框。
+function focusCustomerDuplicateNext() {
+  const target = document.querySelector('#customerDuplicateAlerts [data-duplicate-view]') || document.getElementById('customerSearch');
+  if (target && target.getClientRects().length && !document.querySelector('.modal-backdrop.open')) target.focus({ preventScroll:true });
+}
+const customerMergeFieldLabels = { country:'国家', currency:'币种', level:'等级', paymentMethod:'收款方式', paymentEmail:'付款邮箱', productType:'产品', owner:'负责人', alibabaId:'阿里 ID', repurchaseCycle:'复购周期（天）', nextFollow:'下次跟进', primaryContactMethod:'首选联系方式' };
+// 两边都有、但不一样的单值字段：合并后以保留的这份为准，另一份的值写进备注，不静默丢掉。
+function customerMergeConflicts(primary = {}, secondary = {}) {
+  return Object.keys(customerMergeFieldLabels).map(key => {
+    const keep = String(primary[key] ?? '').trim();
+    const drop = String(secondary[key] ?? '').trim();
+    return keep && drop && keep.toLowerCase() !== drop.toLowerCase() ? { key, label:customerMergeFieldLabels[key], keep, drop } : null;
+  }).filter(Boolean);
+}
 function mergedCustomerNote(primary = {}, secondary = {}, secondaryName = '') {
   const notes = [String(primary.note || '').trim()];
   const extras = [];
-  if (secondary.contact && secondary.contact !== primary.contact) extras.push(`其他联系人：${secondary.contact}`);
-  if (secondary.email && secondary.email !== primary.email) extras.push(`其他邮箱：${secondary.email}`);
-  if (secondary.paymentEmail && secondary.paymentEmail !== primary.paymentEmail) extras.push(`其他付款邮箱：${secondary.paymentEmail}`);
+  // 只有保留的这份本来就有值时才叫「其他…」：它原来没有的话，合并后另一份的值就是这份的（联系人、邮箱、地址都已经并进列表）。
+  if (secondary.contact && primary.contact && secondary.contact !== primary.contact) extras.push(`其他联系人：${secondary.contact}`);
+  if (secondary.email && primary.email && secondary.email !== primary.email) extras.push(`其他邮箱：${secondary.email}`);
   if (secondary.alibabaId && primary.alibabaId && secondary.alibabaId !== primary.alibabaId) extras.push(`其他阿里 ID：${secondary.alibabaId}`);
-  if (secondary.address && secondary.address !== primary.address) extras.push(`其他地址：${secondary.address}`);
+  if (secondary.address && primary.address && secondary.address !== primary.address) extras.push(`其他地址：${secondary.address}`);
+  // 首选联系方式不记：另一份的首选方式已经并进「可选联系方式」。
+  customerMergeConflicts(primary, secondary).filter(item => !['alibabaId', 'primaryContactMethod'].includes(item.key))
+    .forEach(item => extras.push(`${item.key === 'paymentEmail' ? '其他付款邮箱' : `原${item.label}`}：${item.drop}`));
   if (secondary.note && secondary.note !== primary.note) extras.push(secondary.note);
   if (extras.length) notes.push(`[合并自 ${secondaryName}]\n${extras.join('\n')}`);
   return notes.filter(Boolean).join('\n\n').slice(0, 2000);
@@ -18200,20 +18387,134 @@ function mergedCustomerPermanentNote(primary = {}, secondary = {}, secondaryName
   if (!secondaryNote || secondaryNote === primaryNote) return primaryNote;
   return [primaryNote, `[合并自 ${secondaryName}]\n${secondaryNote}`].filter(Boolean).join('\n\n').slice(0, 2000);
 }
+// 合并 / 删除客户前的备份：先把手上的修改存进数据库，再强制生成一份（不受「一小时一次」限制），备份里是操作前的最新数据。
+// 备份失败时再问一次，默认焦点在「取消」；浏览器预览没有本地备份，确认框里也不会说会备份。
+async function backupBeforeCustomerChange(actionLabel = '操作') {
+  if (!isMacAppMode()) return true;
+  let message = '';
+  try {
+    if (!await flushPendingSave()) throw new Error(macSaveLastError || '还有修改没存进数据库');
+    const res = await apiFetch('/api/backup-before-change', { method:'POST' });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok) {
+      if (typeof refreshBackupInfo === 'function') refreshBackupInfo();
+      return true;
+    }
+    message = data.message || `HTTP ${res.status}`;
+  } catch (error) {
+    message = error.message || '备份失败';
+  }
+  const next = await appConfirm({
+    title:'备份没有完成',
+    sub:`${actionLabel}前的数据备份`,
+    message:`${actionLabel}前的数据备份没有生成：${message}\n\n仍然${actionLabel}吗？${actionLabel}后 6 秒内仍可撤销，但不会有这次${actionLabel}前的备份。`,
+    confirmText:`仍然${actionLabel}`,
+    danger:true,
+    defaultFocus:'cancel'
+  });
+  return next.confirmed;
+}
+// 合并 / 删除客户会改到的其他数据（订单客户名、物流查询记录、复购「已处理」记录）：操作前记一份，撤销时只把这次改动的改回去。
+function customerChangeSnapshot() {
+  const orderClients = new Map();
+  ['orders', 'trashOrders', 'deletedOrders'].forEach(bucket => (state[bucket] || []).forEach(order => orderClients.set(order.id, order.client)));
+  return {
+    orderClients,
+    lookupClients:new Map((state.trackingLookups || []).map(item => [item.id, item.client])),
+    doneTasks:{ ...(state.doneTasks || {}) }
+  };
+}
+function customerChangeDiff(before) {
+  const orders = [];
+  ['orders', 'trashOrders', 'deletedOrders'].forEach(bucket => (state[bucket] || []).forEach(order => {
+    const previous = before.orderClients.get(order.id);
+    if (previous !== undefined && previous !== order.client) orders.push({ id:order.id, from:previous, to:order.client });
+  }));
+  const lookups = (state.trackingLookups || []).filter(item => before.lookupClients.has(item.id) && before.lookupClients.get(item.id) !== item.client)
+    .map(item => ({ id:item.id, from:before.lookupClients.get(item.id), to:item.client }));
+  const now = state.doneTasks || {};
+  return {
+    orders,
+    lookups,
+    doneAdded:Object.keys(now).filter(key => !Object.hasOwn(before.doneTasks, key)),
+    doneRemoved:Object.fromEntries(Object.keys(before.doneTasks).filter(key => !Object.hasOwn(now, key)).map(key => [key, before.doneTasks[key]]))
+  };
+}
+function revertCustomerChangeDiff(diff) {
+  const orderMoves = new Map(diff.orders.map(item => [item.id, item]));
+  ['orders', 'trashOrders', 'deletedOrders'].forEach(bucket => {
+    if (!Array.isArray(state[bucket])) return;
+    state[bucket] = state[bucket].map(order => {
+      const move = orderMoves.get(order.id);
+      return move && order.client === move.to ? { ...order, client:move.from } : order;
+    });
+  });
+  const lookupMoves = new Map(diff.lookups.map(item => [item.id, item]));
+  state.trackingLookups = (state.trackingLookups || []).map(item => {
+    const move = lookupMoves.get(item.id);
+    return move && item.client === move.to ? { ...item, client:move.from } : item;
+  });
+  state.doneTasks = state.doneTasks || {};
+  diff.doneAdded.forEach(key => { delete state.doneTasks[key]; });
+  Object.assign(state.doneTasks, diff.doneRemoved);
+}
+// 已点「完成」的复购提醒跟着客户名走（键是 repurchase-客户名-日期）：改名、合并后不再重新冒出来。
+function moveRepurchaseDoneTasks(oldName = '', newName = '') {
+  if (!oldName || !newName || oldName === newName || !state.doneTasks || typeof state.doneTasks !== 'object') return;
+  const prefix = `repurchase-${oldName}-`;
+  Object.keys(state.doneTasks).forEach(key => {
+    const date = key.startsWith(prefix) ? key.slice(prefix.length) : '';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+    state.doneTasks[`repurchase-${newName}-${date}`] = state.doneTasks[key];
+    delete state.doneTasks[key];
+  });
+}
+let customerUndoVersion = 0;
+// 合并两位客户：保留 primaryName 这份档案的名字（不再自动改大小写——改了以后可能正好是另一位客户的名字，会把那份档案整份覆盖）。
 async function mergeDuplicateCustomers(primaryName = '', secondaryName = '') {
   if (!primaryName || !secondaryName || primaryName === secondaryName) return;
+  if (!canSubmitStoredData()) return;
   const primaryRecord = customerDuplicateRecord(primaryName);
   const secondaryRecord = customerDuplicateRecord(secondaryName);
-  const targetName = autoCapitalizeCustomerName(primaryName);
-  const result = await appConfirm({
-    title:'合并重复客户',
-    sub:'订单和资料将归入主档案',
-    message:`保留主档案：${targetName}\n合并并删除：${secondaryName}\n\n关联订单会自动改到主档案，缺失字段、标签和历史记录会合并。此操作执行前会由系统保存数据备份。`,
-    confirmText:'确认合并'
-  });
-  if (!result.confirmed) return;
   const primary = primaryRecord.profile || {};
   const secondary = secondaryRecord.profile || {};
+  const targetName = primaryName;
+  const conflicts = customerMergeConflicts(primary, secondary);
+  const backupLine = isMacAppMode() ? '合并前会先保存一份数据备份；合并后 6 秒内可以撤销。' : '合并后 6 秒内可以撤销（浏览器预览不会生成本地备份）。';
+  const result = await appConfirm({
+    title:'合并重复客户',
+    sub:'订单和资料将归入保留的档案',
+    message:[
+      `保留：${targetName}（${customerOrderCountText(customerOrderCounts(primaryName))}）`,
+      `并入后删除档案：${secondaryName}（${customerOrderCountText(customerOrderCounts(secondaryName))}）`,
+      '',
+      `${secondaryName} 的订单（含垃圾箱和已删除订单）、电话、邮箱、联系人、地址、标签和 WhatsApp 聊天会归到 ${targetName}。`,
+      conflicts.length
+        ? `两边不一样的资料以 ${targetName} 为准，${secondaryName} 的写法记进备注：\n${conflicts.map(item => `· ${item.label}：保留 ${item.keep}，记进备注 ${item.drop}`).join('\n')}`
+        : '两边没有冲突的资料。',
+      '',
+      backupLine
+    ].join('\n'),
+    confirmText:'确认合并',
+    altText:`改为保留 ${secondaryName}`,
+    danger:true,
+    defaultFocus:'cancel'
+  });
+  if (result.alt) return mergeDuplicateCustomers(secondaryName, primaryName);
+  if (!result.confirmed) return;
+  if (!await backupBeforeCustomerChange('合并')) return;
+  // 备份期间档案被改掉了（另一处删除 / 合并了其中一位）：不按旧的确认继续。
+  const present = name => clientHistory().some(item => item.client === name);
+  if (!present(primaryName) || !present(secondaryName)) {
+    toast('客户资料刚刚有变化，这次合并已取消，请重新确认', { tone:'warn' });
+    return;
+  }
+  state.customers = state.customers || {};
+  const beforeProfiles = {
+    primary:Object.hasOwn(state.customers, primaryName) ? JSON.parse(JSON.stringify(state.customers[primaryName])) : undefined,
+    secondary:Object.hasOwn(state.customers, secondaryName) ? JSON.parse(JSON.stringify(state.customers[secondaryName])) : undefined
+  };
+  const before = customerChangeSnapshot();
   const scalarFields = ['country','contact','email','address','currency','productType','owner','level','paymentMethod','paymentEmail','alibabaId','repurchaseCycle','nextFollow','primaryContactMethod'];
   const merged = { ...secondary, ...primary, client:targetName };
   scalarFields.forEach(key => { merged[key] = primary[key] || secondary[key] || ''; });
@@ -18232,20 +18533,138 @@ async function mergeDuplicateCustomers(primaryName = '', secondaryName = '') {
   merged.tags = normalizeTags([...(normalizeTags(primary.tags)), ...(normalizeTags(secondary.tags))]);
   merged.note = mergedCustomerNote(primary, secondary, secondaryName);
   merged.permanentNote = mergedCustomerPermanentNote(primary, secondary, secondaryName);
+  // 变更记录不再截到 40 条：两份档案的历史都留着。
   merged.history = [
     { time:nowText(), text:`合并客户档案：${secondaryName} → ${targetName}` },
     ...(primary.history || []),
     ...(secondary.history || [])
-  ].slice(0, 40);
-  patchAllOrdersForCustomerRename(primaryName, targetName);
+  ];
+  // 两份档案都还在的时候搬订单：大小写不同、但本身是另一位客户档案的订单不会被一起搬走。
   patchAllOrdersForCustomerRename(secondaryName, targetName);
-  state.customers = state.customers || {};
-  delete state.customers[primaryName];
+  moveRepurchaseDoneTasks(secondaryName, targetName);
   delete state.customers[secondaryName];
   state.customers[targetName] = merged;
+  const diff = customerChangeDiff(before);
+  const mergedJson = JSON.stringify(merged);
+  const chatMove = queueCustomerStorageOp({ kind:'move', from:secondaryName, to:targetName });
+  const version = ++customerUndoVersion;
   saveState();
   render();
-  toast(`已合并到 ${targetName}`);
+  focusCustomerDuplicateNext();
+  toast(`已合并到 ${targetName}`, { desc:isMacAppMode() ? '合并前已备份' : '', group:'customer-change', undo:() => {
+    const stillMerged = JSON.stringify(state.customers?.[targetName]) === mergedJson && !Object.hasOwn(state.customers || {}, secondaryName);
+    if (version !== customerUndoVersion || !stillMerged || !canSubmitStoredData()) {
+      toast(`${targetName} 之后又改动过，这条撤销已失效`, { tone:'warn' });
+      return;
+    }
+    if (beforeProfiles.primary === undefined) delete state.customers[primaryName];
+    else state.customers[primaryName] = beforeProfiles.primary;
+    if (beforeProfiles.secondary !== undefined) state.customers[secondaryName] = beforeProfiles.secondary;
+    revertCustomerChangeDiff(diff);
+    revertCustomerStorageOp(chatMove);
+    customerUndoVersion += 1;
+    saveState();
+    render();
+    toast(`已撤销合并：${primaryName} 和 ${secondaryName} 恢复成两份档案`, { group:'customer-change' });
+  } });
+}
+// 合并到另一位客户：有订单的客户不能直接删除，从这里选一位已有客户把订单和资料并过去（之后走同一个合并确认）。
+async function mergeCustomerInto(sourceName = '') {
+  if (!sourceName) return;
+  const others = clientHistory().map(item => item.client).filter(name => name && name !== sourceName);
+  if (!others.length) {
+    toast('没有别的客户可以合并', { tone:'warn' });
+    return;
+  }
+  const list = document.getElementById('customerMergeTargetOptions');
+  if (list) list.innerHTML = others.map(name => `<option value="${escapeAttr(name)}"></option>`).join('');
+  const input = document.getElementById('confirmInput');
+  const resolve = value => others.find(name => name === value) || others.find(name => sameCustomerName(name, value)) || '';
+  input?.setAttribute('list', 'customerMergeTargetOptions');
+  let picked;
+  try {
+    picked = await appConfirm({
+      title:'合并到其他客户',
+      sub:sourceName,
+      message:`把 ${sourceName} 的订单和资料并入哪位客户？输入或从列表里选客户名，下一步会列出两边的差异再确认。`,
+      inputLabel:'并入的客户',
+      inputPlaceholder:'客户名',
+      confirmText:'下一步',
+      validate:value => (value && resolve(value) ? true : '没有这位客户，请从列表里选')
+    });
+  } finally {
+    input?.removeAttribute('list');
+  }
+  if (!picked.confirmed) return;
+  const target = resolve(picked.value);
+  if (!target) return;
+  if (document.getElementById('customerModal')?.classList.contains('open') && editingCustomer === sourceName) closeCustomerModal();
+  return mergeDuplicateCustomers(target, sourceName);
+}
+// 删除客户：只删没有订单的档案（打错名字、测试用的）。有订单（含垃圾箱和已删除订单）的不能直接删，给「合并到其他客户」。
+async function deleteCustomerProfile(name = '') {
+  if (!name || !canSubmitStoredData()) return;
+  const counts = customerOrderCounts(name);
+  if (counts.total) {
+    const next = await appConfirm({
+      title:'不能直接删除这位客户',
+      sub:name,
+      message:`${name} 名下有 ${customerOrderCountText(counts)}。\n\n有订单的客户不能直接删除，否则这些订单会变成没有档案的客户。可以先把订单改到别的客户，或者把这位客户合并到另一位客户。`,
+      confirmText:'合并到其他客户…',
+      cancelText:'关闭',
+      defaultFocus:'cancel'
+    });
+    if (next.confirmed) return mergeCustomerInto(name);
+    return;
+  }
+  if (!Object.hasOwn(state.customers || {}, name)) return;
+  const result = await appConfirm({
+    title:'删除客户',
+    sub:name,
+    message:[
+      `删除 ${name} 的客户档案：联系方式、备注、标签和变更记录都会删除。`,
+      '名下没有订单（含垃圾箱和已删除订单）。',
+      ...(isMacAppMode() ? ['WhatsApp 聊天记录不会删除；撤销后会自动接回这位客户。'] : []),
+      '',
+      isMacAppMode() ? '删除前会先保存一份数据备份；删除后 6 秒内可以撤销。' : '删除后 6 秒内可以撤销（浏览器预览不会生成本地备份）。'
+    ].join('\n'),
+    confirmText:'删除客户',
+    danger:true,
+    defaultFocus:'cancel'
+  });
+  if (!result.confirmed) return;
+  if (!await backupBeforeCustomerChange('删除')) return;
+  if (!Object.hasOwn(state.customers || {}, name) || customerOrderCounts(name).total) {
+    toast('客户资料刚刚有变化，这次删除已取消，请重新确认', { tone:'warn' });
+    return;
+  }
+  const profile = state.customers[name];
+  const before = customerChangeSnapshot();
+  delete state.customers[name];
+  Object.keys(state.doneTasks || {}).forEach(key => { if (key.startsWith(`repurchase-${name}-`)) delete state.doneTasks[key]; });
+  const ignoresBefore = Array.isArray(state.customerDuplicateIgnores) ? state.customerDuplicateIgnores.slice() : null;
+  if (ignoresBefore) state.customerDuplicateIgnores = ignoresBefore.filter(key => !key.split('\u0000').includes(name));
+  const diff = customerChangeDiff(before);
+  const deleteOp = queueCustomerStorageOp({ kind:'delete', name });
+  const version = ++customerUndoVersion;
+  if (document.getElementById('customerModal')?.classList.contains('open') && editingCustomer === name) closeCustomerModal();
+  saveState();
+  render();
+  focusCustomerDuplicateNext();
+  toast(`已删除客户 ${name}`, { desc:isMacAppMode() ? '删除前已备份' : '', group:'customer-change', undo:() => {
+    if (version !== customerUndoVersion || Object.hasOwn(state.customers || {}, name) || !canSubmitStoredData()) {
+      toast(`${name} 之后又改动过，这条撤销已失效`, { tone:'warn' });
+      return;
+    }
+    state.customers[name] = profile;
+    revertCustomerChangeDiff(diff);
+    if (ignoresBefore) state.customerDuplicateIgnores = ignoresBefore;
+    revertCustomerStorageOp(deleteOp);
+    customerUndoVersion += 1;
+    saveState();
+    render();
+    toast(`已撤销：${name} 的客户档案已恢复`, { group:'customer-change' });
+  } });
 }
 function customerWorkspaceRecord(client = {}) {
   const name = client.client || '';
@@ -18356,7 +18775,7 @@ function renderCustomers() {
           <span class="customer-avatar" aria-hidden="true">${escapeAttr(customerInitials(displayName))}</span>
           <div class="customer-cell-text">
             <div class="customer-name-line"><strong class="customer-cell-ellipsis" title="${escapeAttr(c.customerId)}">${escapeAttr(displayName)}</strong></div>
-            <div class="muted customer-cell-ellipsis">${escapeAttr(contact || c.phone || '联系人未填写')} · ${escapeAttr(c.email || '邮箱未填写')}</div>
+            <div class="muted customer-cell-ellipsis">${escapeAttr(contact || c.phone || '联系人未填写')} · ${escapeAttr(customerEmailSummary(c))}</div>
           </div>
         </div>
         <div class="customer-cell-stack"><strong class="customer-cell-ellipsis" title="${escapeAttr(c.country || '')}">${escapeAttr(orderListCountryShort(c.country) || '国家未填写')}</strong><span class="muted customer-cell-ellipsis" title="${escapeAttr(c.address || '')}">${escapeAttr(c.address || '地址未填写')}</span></div>
@@ -18453,7 +18872,7 @@ function renderCustomerDetailView(name = '', data = {}) {
     <div class="customer-detail-hero">
       <div class="customer-detail-identity">
         <div class="customer-detail-name-line"><span class="customer-mini-id">${record.customerId}</span><span class="customer-detail-name">${escapeAttr(clientDisplayName(record.client))}</span></div>
-        <div class="customer-detail-identity-meta"><span>${escapeAttr(record.country || '国家未填写')}</span><span>联系人：${escapeAttr(contact)}</span><span>${escapeAttr(record.phone || '电话未填写')}</span><span>${escapeAttr(record.email || '邮箱未填写')}</span></div>
+        <div class="customer-detail-identity-meta"><span>${escapeAttr(record.country || '国家未填写')}</span><span>联系人：${escapeAttr(contact)}</span><span>${escapeAttr(record.phone || '电话未填写')}</span><span>${escapeAttr(customerEmailSummary(record))}</span></div>
       </div>
       <div class="customer-detail-hero-tags">${renderTagChips(record.tags.slice(0, 4), record.level)}${record.total > 0 && record.due === 0 ? '<span class="level-tag">已收全款</span>' : ''}</div>
     </div>`;
@@ -18529,6 +18948,8 @@ function setCustomerModalMode(editMode = false, { isNew = false } = {}) {
   if (detailEditBtn) detailEditBtn.style.display = viewOnly ? '' : 'none';
   if (cancelBtn) cancelBtn.style.display = editMode && !isNew ? '' : 'none';
   if (newOrderBtn) newOrderBtn.style.display = isNew ? 'none' : '';
+  const deleteBtn = document.getElementById('customerDeleteBtn');
+  if (deleteBtn) deleteBtn.style.display = viewOnly ? '' : 'none';
   document.getElementById('customerModalSub').textContent = isNew ? '新客户档案' : (viewOnly ? '客户完整档案 · 只读' : '编辑客户档案');
 }
 function openCustomerModal(name = '', { viewOnly = true } = {}) {
@@ -18729,6 +19150,12 @@ function patchAllOrdersForCustomerRename(oldName = '', newName = '') {
   state.orders = patchOrdersForCustomerRename(state.orders, oldName, newName, customers);
   if (Array.isArray(state.trashOrders)) state.trashOrders = patchOrdersForCustomerRename(state.trashOrders, oldName, newName, customers);
   if (Array.isArray(state.deletedOrders)) state.deletedOrders = patchOrdersForCustomerRename(state.deletedOrders, oldName, newName, customers);
+  // 物流「最近查询」里存的是查询当时的客户名：指向这些订单的记录跟着改，不再显示改名 / 合并前的旧名字。
+  if (oldName && oldName !== newName && Array.isArray(state.trackingLookups)) {
+    const orderClients = new Map(['orders', 'trashOrders', 'deletedOrders'].flatMap(bucket => (state[bucket] || []).map(order => [order.id, order.client])));
+    state.trackingLookups = state.trackingLookups.map(item => item.orderId && orderClients.get(item.orderId) === newName && item.client !== newName && sameCustomerName(item.client, oldName)
+      ? { ...item, client:newName } : item);
+  }
 }
 async function confirmDuplicateCustomerSave({ oldName = '', newName = '', emails = [], email = '', phones = [], paymentEmail = '' } = {}) {
   const normalizedOld = String(oldName || '').trim().toLowerCase();
@@ -18851,16 +19278,7 @@ function commitCustomerSavePayload({ oldName = '', nextProfile, historyEntry, pr
   patchAllOrdersForCustomerRename(oldName, nextProfile.client);
   if (oldName && oldName !== nextProfile.client) {
     delete state.customers[oldName];
-    // 已点「完成」的复购提醒跟着改名（键是 repurchase-客户名-日期），改名后不再重新冒出来。
-    if (state.doneTasks && typeof state.doneTasks === 'object') {
-      const prefix = `repurchase-${oldName}-`;
-      Object.keys(state.doneTasks).forEach(key => {
-        const date = key.startsWith(prefix) ? key.slice(prefix.length) : '';
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
-        state.doneTasks[`repurchase-${nextProfile.client}-${date}`] = state.doneTasks[key];
-        delete state.doneTasks[key];
-      });
-    }
+    moveRepurchaseDoneTasks(oldName, nextProfile.client);
   }
   state.customers[nextProfile.client] = { ...nextProfile, history: [historyEntry, ...previousHistory].slice(0, 20) };
   return nextProfile.client;
@@ -20791,33 +21209,76 @@ async function clearDemoOrders() {
   render();
   toast('示例订单已清除');
 }
+// 示例档案被用户改过（加了电话、邮箱、备注……）就当成用户自己的客户：按名字一律删掉会把在用的档案一起删了。
+function demoCustomerProfileEdited(name = '') {
+  const template = demoCustomerProfiles[name];
+  const profile = state.customers?.[name];
+  if (!template || !profile) return false;
+  const base = normalizeCustomerProfiles({ [name]:template })[name] || {};
+  const comparable = record => {
+    const fields = normalizeCustomerContactFields(record);
+    return JSON.stringify({
+      contacts:fields.contacts, phones:fields.phones, emails:fields.emails, addresses:fields.addresses,
+      note:String(record.note || '').trim(), permanentNote:String(record.permanentNote || '').trim(),
+      level:String(record.level || ''), paymentEmail:String(record.paymentEmail || '').trim(), alibabaId:String(record.alibabaId || '').trim(),
+      tags:normalizeTags(record.tags), paymentMethod:String(record.paymentMethod || ''), repurchaseCycle:String(record.repurchaseCycle || ''),
+      history:(record.history || []).length
+    });
+  };
+  return comparable(profile) !== comparable(base);
+}
 async function clearDemoCustomers() {
+  if (!canSubmitStoredData()) return;
   const demo = demoOrderIdentity();
-  const ownCustomerNames = new Set((state.orders || []).filter(o => !isDemoOrder(o)).map(o => o.client));
-  const demoProfiles = Object.keys(state.customers || {}).filter(name => demo.clients.has(name));
+  // 自己的客户：正常单、垃圾箱、已删除订单里有非示例订单的，或者示例档案被改过的。
+  const ownCustomerNames = new Set(['orders', 'trashOrders', 'deletedOrders'].flatMap(bucket => (state[bucket] || []).filter(o => !isDemoOrder(o)).map(o => o.client)));
+  const keptEdited = Object.keys(state.customers || {}).filter(name => demo.clients.has(name) && !ownCustomerNames.has(name) && demoCustomerProfileEdited(name));
+  keptEdited.forEach(name => ownCustomerNames.add(name));
+  const demoProfiles = Object.keys(state.customers || {}).filter(name => demo.clients.has(name) && !ownCustomerNames.has(name));
   const demoOnlyVisibleClients = clientHistory().filter(c => demo.clients.has(c.client) && !ownCustomerNames.has(c.client)).length;
   const clearCount = Math.max(demoProfiles.length, demoOnlyVisibleClients);
   if (!clearCount) {
     state.demoCustomersCleared = true;
+    saveState();
     render();
-    toast('当前没有示例客户');
+    toast(keptEdited.length ? `没有要清除的示例客户（${keptEdited.length} 个改过的示例档案按你的客户保留）` : '当前没有示例客户');
     return;
   }
+  const keptNames = Object.keys(state.customers || {}).filter(name => demo.clients.has(name) && ownCustomerNames.has(name));
+  const keptLine = keptNames.length ? `\n\n以下 ${keptNames.length} 个和示例同名的档案你改过资料或下过单，会保留：${keptNames.join('、')}` : '';
   const confirmed = await confirmDangerFlow({
     title:'清除示例客户',
-    firstMessage:`将从客户管理中清除 ${clearCount} 个系统示例客户，保留你自己新增的客户。`,
-    secondMessage:'清除后系统会记住这个状态，示例客户不会再自动显示在客户管理里。',
+    firstMessage:`将从客户管理中清除 ${clearCount} 个系统示例客户，保留你自己新增的客户。${keptLine}`,
+    secondMessage:'清除后系统会记住这个状态，示例客户不会再自动显示在客户管理里。清除后 6 秒内可以撤销。',
     confirmText:'清除示例客户',
     mathA:8,
     mathB:5
   });
   if (!confirmed) return;
+  const removed = {};
   Object.keys(state.customers || {}).forEach(name => {
-    if (demo.clients.has(name) && !ownCustomerNames.has(name)) delete state.customers[name];
+    if (demo.clients.has(name) && !ownCustomerNames.has(name)) {
+      removed[name] = state.customers[name];
+      delete state.customers[name];
+    }
   });
+  const wasCleared = state.demoCustomersCleared === true;
   state.demoCustomersCleared = true;
+  const version = ++customerUndoVersion;
+  saveState();
   render();
-  toast('示例客户已清除');
+  toast('示例客户已清除', { group:'customer-change', undo:() => {
+    if (version !== customerUndoVersion || Object.keys(removed).some(name => Object.hasOwn(state.customers || {}, name)) || !canSubmitStoredData()) {
+      toast('客户资料之后又改动过，这条撤销已失效', { tone:'warn' });
+      return;
+    }
+    Object.assign(state.customers, removed);
+    state.demoCustomersCleared = wasCleared;
+    customerUndoVersion += 1;
+    saveState();
+    render();
+    toast('已撤销：示例客户已恢复', { group:'customer-change' });
+  } });
 }
 function exportCsv(month = 'all') {
   const header = ['订单号','客户','国家','创建日期','订单月份','金额','已付款','币种','产品类型','收款方式','订单类型','草稿','加急订单','客户要求收到日期','最晚发出日期','阶段','物流单号','物流汇总','首批发货日','附件数量','备注','更新时间'];
@@ -24086,6 +24547,7 @@ document.getElementById('customerDetailEditBtn').addEventListener('click', () =>
   document.getElementById('customerForm')?.elements.name?.focus({ preventScroll:true });
 });
 document.getElementById('customerEditCancelBtn').addEventListener('click', () => uiCancelCustomerEditGuarded());
+document.getElementById('customerDeleteBtn').addEventListener('click', () => { if (editingCustomer) deleteCustomerProfile(editingCustomer); });
 document.getElementById('customerNewOrderBtn').addEventListener('click', () => openNewOrderForCustomer(editingCustomer));
 document.getElementById('customerModal').addEventListener('click', async e => {
   if (e.target.id === 'customerModal') {
@@ -24845,6 +25307,11 @@ document.getElementById('customerDuplicateAlerts').addEventListener('click', e =
   const viewBtn = e.target.closest('[data-duplicate-view]');
   if (viewBtn) {
     openCustomerModal(viewBtn.dataset.duplicateView, { viewOnly:true });
+    return;
+  }
+  const ignoreBtn = e.target.closest('[data-duplicate-ignore-a]');
+  if (ignoreBtn) {
+    ignoreCustomerDuplicate(ignoreBtn.dataset.duplicateIgnoreA, ignoreBtn.dataset.duplicateIgnoreB);
     return;
   }
   const mergeBtn = e.target.closest('[data-duplicate-merge-primary]');

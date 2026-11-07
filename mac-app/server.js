@@ -7,7 +7,7 @@ const zlib = require('zlib');
 const crypto = require('crypto');
 const { spawn } = require('child_process');
 const { DatabaseSync } = require('node:sqlite');
-const { createWhatsAppStore, renameWhatsAppCustomer } = require('./whatsapp-store');
+const { createWhatsAppStore, renameWhatsAppCustomer, moveWhatsAppChats } = require('./whatsapp-store');
 const { createAiUsageStore } = require('./ai-usage-store');
 const { createSubscriptionStore } = require('./subscription-store');
 const { readFeishuSettings } = require('./feishu-settings');
@@ -217,7 +217,9 @@ function httpError(status, message, details = {}) {
 }
 
 // 备份目录可以是用户自己选的文件夹（iCloud、网盘），里面可能有别的 .sqlite / .json：轮转、统计、清理附件只认 OTS 自己起的名字。
-const otsBackupFileName = /^trade-order-data-\d{8}-\d{6}(?:-\d+)?\.(?:sqlite|json)$/;
+// 「-before-change」：合并 / 删除客户前强制生成的备份，单独保留最近 20 份，不挤掉日常备份。
+const otsBackupFileName = /^trade-order-data-\d{8}-\d{6}(?:-before-change)?(?:-\d+)?\.(?:sqlite|json)$/;
+const beforeChangeBackupPattern = /-before-change(?:-\d+)?\.(?:sqlite|json)$/;
 function isOtsBackupFile(name = '', extension = '') {
   return otsBackupFileName.test(name) && (!extension || name.endsWith(`.${extension}`));
 }
@@ -380,7 +382,7 @@ function createDatabaseSchema() {
   `);
 }
 
-function writeStateToDatabase(rawPayload, { migration = false, baseRevision } = {}) {
+function writeStateToDatabase(rawPayload, { migration = false, baseRevision, customerMoves: explicitMoves = [], customerDeletes = [] } = {}) {
   if (!database) throw new Error('SQLite database is not available');
   const payload = normalizeDataPayload(rawPayload);
   const data = payload.data;
@@ -552,11 +554,26 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision } = 
     });
     // A customer without orders renamed in the profile editor leaves no order move behind:
     // exactly one old name gone and exactly one new name added in the same save is that rename.
-    const removedNames = [...existingCustomers.keys()].filter(name => !desiredCustomerNames.has(name) && !customerMoves.has(name));
+    // The page names deleted customers explicitly: their chats stay on the deleted name (undo or restore
+    // re-attaches them) and are never guessed into a rename of a customer added in the same save.
+    const deletedNames = new Set((Array.isArray(customerDeletes) ? customerDeletes : []).map(name => String(name || '')));
+    const removedNames = [...existingCustomers.keys()].filter(name => !desiredCustomerNames.has(name) && !customerMoves.has(name) && !deletedNames.has(name));
     const addedNames = [...desiredCustomerNames].filter(name => !existingCustomers.has(name));
     if (removedNames.length === 1 && addedNames.length === 1 && !desiredOrders.some(({ order }) => String(order.client || '') === removedNames[0])) {
       customerMoves.set(removedNames[0], new Set([addedNames[0]]));
     }
+    // Merges and their undo arrive as explicit moves: a merged customer without orders leaves no order
+    // move behind, and the target already exists, so neither guess above would see it. An undo names the
+    // exact chats the merge moved, so chats that were the target's own stay where they are.
+    const movedChats = [];
+    (Array.isArray(explicitMoves) ? explicitMoves : []).forEach(move => {
+      const from = String(move?.from || '');
+      const to = String(move?.to || '');
+      if (!from || !to || from === to || !desiredCustomerNames.has(to)) return;
+      customerMoves.delete(from);
+      const chats = Array.isArray(move.chats) ? move.chats : null;
+      movedChats.push({ id:String(move.id || ''), from, to, chats:moveWhatsAppChats(database, from, to, chats) });
+    });
     customerMoves.forEach((targets, from) => {
       if (targets.size === 1) renameWhatsAppCustomer(database, from, [...targets][0]);
     });
@@ -616,7 +633,7 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision } = 
     }
     database.exec('COMMIT');
     storageRevision = nextRevision;
-    return { revision: nextRevision, counts: actual };
+    return { revision: nextRevision, counts: actual, ...(movedChats.length ? { movedChats } : {}) };
   } catch (error) {
     try { database.exec('ROLLBACK'); } catch (_) {}
     throw error;
@@ -1325,7 +1342,7 @@ function missingAttachmentReport() {
   }
   return { count, orders:[...orders].map(([orderNum, files]) => ({ orderNum, files })) };
 }
-function createBackup(force = false) {
+function createBackup(force = false, { beforeChange = false } = {}) {
   ensureStorage();
   if (storageMode !== 'sqlite' || !database) return { ok: false, message: storageError || 'SQLite unavailable' };
   let meta = {};
@@ -1337,7 +1354,7 @@ function createBackup(force = false) {
     return { ok: true, skipped: true };
   }
   const extension = 'sqlite';
-  const backupName = availableFileName(backupDir, `trade-order-data-${timestamp()}`, extension);
+  const backupName = availableFileName(backupDir, `trade-order-data-${timestamp()}${beforeChange ? '-before-change' : ''}`, extension);
   const backupFile = path.join(backupDir, backupName);
   const stagingFile = backupFile + '.partial';
   const missing = missingAttachmentReport();
@@ -1367,7 +1384,7 @@ function createBackup(force = false) {
     .filter(name => isOtsBackupFile(name, extension))
     .sort()
     .reverse();
-  backups.slice(30).forEach(name => {
+  [...backups.filter(name => !beforeChangeBackupPattern.test(name)).slice(30), ...backups.filter(name => beforeChangeBackupPattern.test(name)).slice(20)].forEach(name => {
     fs.rmSync(path.join(backupDir, name), { force:true });
     fs.rmSync(path.join(backupDir, name) + '.attachments', { recursive:true, force:true });
   });
@@ -2447,7 +2464,7 @@ const server = http.createServer(async (req, res) => {
         : requestPayload;
       const baseRevision = requestPayload?.baseRevision ?? payload?.baseRevision;
       ensureStorage();
-      const result = saveCurrentPayload(payload, { baseRevision });
+      const result = saveCurrentPayload(payload, { baseRevision, customerMoves:requestPayload?.customerMoves, customerDeletes:requestPayload?.customerDeletes });
       let backup;
       try { backup = createBackup(false); } catch (error) {
         backup = { ok: false, message: error.message || 'automatic backup failed' };
@@ -2480,6 +2497,11 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && url.pathname === '/api/order-notification') {
       const body = await readJsonBody(req);
       return send(res, 200, JSON.stringify(await sendOrderNotification(body.orderId)));
+    }
+    // 合并 / 删除客户前由页面调用：不受「一小时一次」限制，备份的是操作前的数据（页面先把手上的修改存完再调用）。
+    if (req.method === 'POST' && url.pathname === '/api/backup-before-change') {
+      const result = createBackup(true, { beforeChange:true });
+      return send(res, result.ok ? 200 : 503, JSON.stringify(result));
     }
     if (req.method === 'POST' && url.pathname === '/api/manual-backup') {
       const result = createBackup(true);

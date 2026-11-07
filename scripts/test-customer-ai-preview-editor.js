@@ -9,7 +9,7 @@ const fields = {name:'Alice Example',phones:['+1 2025550101','+1 2025550102'],em
   const browser = await chromium.launch({headless:true});
   try {
     const page = await browser.newPage({viewport:{width:1360,height:1000}});
-    let release, mode = 'success', requests = 0, saves = 0;
+    let release, requestSeen, mode = 'success', requests = 0, saves = 0;
     const errors = []; page.on('pageerror', e => errors.push(e.message));
     await page.route('**/*', async route => {
       const pathname = new URL(route.request().url()).pathname;
@@ -19,9 +19,12 @@ const fields = {name:'Alice Example',phones:['+1 2025550101','+1 2025550102'],em
       if (pathname === '/api/save') { saves++; return route.fulfill({json:{ok:true,revision:1}}); }
       if (pathname === '/api/ai-chat') {
         requests++;
-        await new Promise(resolve => release = resolve);
-        if (mode === 'failure') return route.fulfill({status:502,json:{message:'fixture unavailable'}});
-        return route.fulfill({json:{choices:[{message:{content:JSON.stringify(fields)}}]}});
+        const answered = new Promise(resolve => release = resolve);
+        requestSeen?.();
+        await answered;
+        // 被取消 / 作废的请求浏览器已经断开，这里应答失败是预期的。
+        if (mode === 'failure') return route.fulfill({status:502,json:{message:'fixture unavailable'}}).catch(() => {});
+        return route.fulfill({json:{choices:[{message:{content:JSON.stringify(fields)}}]}}).catch(() => {});
       }
       return route.fulfill({json:{ok:true}});
     });
@@ -29,11 +32,19 @@ const fields = {name:'Alice Example',phones:['+1 2025550101','+1 2025550102'],em
     await page.waitForFunction(() => window.pendingSaveStatus?.().loaded);
     await page.clock.install();
     await page.evaluate(() => openCustomerModal(''));
-    async function start() {
+    async function start({confirmRerun=false}={}) {
       release = undefined;
+      const seen = new Promise(resolve => requestSeen = resolve);
       await page.locator('#customerPasteInput').fill(source);
       await page.locator('#customerPasteAnalyzeBtn').click();
-      for (let i=0;i<100 && !release;i++) await new Promise(resolve=>setTimeout(resolve,10));
+      if (confirmRerun) {
+        // 预览里有手动修改时，重新识别要先确认（默认焦点在「保留修改」上）。
+        await page.locator('#confirmModal.open #confirmOkBtn').waitFor({state:'visible'});
+        await page.waitForFunction(()=>document.activeElement?.id==='confirmCancelBtn',null,{timeout:3000}).catch(()=>{throw new Error('rerun confirm must focus the safe button');});
+        if (typeof confirmRerun === 'function') await confirmRerun();
+        await page.locator('#confirmOkBtn').click();
+      }
+      await seen;
       assert.equal(typeof release,'function');
     }
     async function finish() {
@@ -123,8 +134,11 @@ const fields = {name:'Alice Example',phones:['+1 2025550101','+1 2025550102'],em
     const failure = await page.locator('[data-customer-paste-timing]').innerText();
     await page.clock.runFor(1000);
     assert.equal(await page.locator('[data-customer-paste-timing]').innerText(),failure);
-    mode='success'; await start();
+    // 暂停假时钟后再重试：此时计时器必须正好从 0.0 秒开始（不受机器快慢影响）。
+    // （确认框的默认焦点要靠 50ms 定时器，所以等焦点落好后、点「重新识别」之前再暂停。）
+    mode='success'; await start({confirmRerun:async()=>page.clock.pauseAt(await page.evaluate(()=>Date.now()) + 1000)});
     assert.match(await page.locator('#customerPasteResults').innerText(),/已用时 0\.0 秒/,'retry must reset timer');
+    await page.clock.resume();
     await page.clock.runFor(500);
     await page.locator('#customerPasteInput').fill('Different customer');
     await page.clock.runFor(1000); await finish();

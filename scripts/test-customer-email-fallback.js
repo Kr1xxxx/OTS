@@ -30,7 +30,10 @@ const { chromium } = require('playwright');
     assert.equal(omitted.email,'Buyer@example.com');
     assert.equal(omitted.phone,undefined,'Email recovery must not merge unrelated local fields');
     assert.deepEqual((await normalize({},'only@example.com')).emails,['only@example.com'],'An empty AI object must not discard an explicit source email');
-    assert.deepEqual((await normalize({emails:['orders+sales@example.net']},source)).emails,['orders+sales@example.net','Buyer@example.com'],'Preserve the valid AI primary email and append omitted values without duplicates');
+    // When the AI already returned a valid email, other source emails are only offered (they may be a corrected typo or our own mailbox).
+    assert.deepEqual((await normalize({emails:['orders+sales@example.net']},source)).emails,['orders+sales@example.net'],'Keep the AI email list as the decision when it has a valid email');
+    const offered = await page.evaluate(({text})=>normalizeAiCustomerResult({emails:['orders+sales@example.net']},text).extraEmails,{text:source});
+    assert.deepEqual(offered,['Buyer@example.com'],'Other source emails must be offered once, case-insensitively deduplicated');
     assert.deepEqual((await normalize({email:'invented@example.org'},source)).emails,['Buyer@example.com','orders+sales@example.net'],'Reject fabricated AI emails before supplementing source values');
     const absent = await normalize({email:'invented@example.org'},'Alex Example\nnot-an-email\nbuyer@\n@example.com');
     assert.equal(absent.email,undefined);

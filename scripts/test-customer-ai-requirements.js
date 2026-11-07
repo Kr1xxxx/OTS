@@ -77,7 +77,7 @@ const root = path.resolve(__dirname, '..');
       form.elements.email.value='existing@example.com';
       appendCustomerMultiRow(form,'emails').value='pending-email';
       const original=appConfirm;
-      appConfirm=async()=>({confirmed:false});
+      appConfirm=async()=>({confirmed:false,alt:true});
       try { await fillCustomerFieldsFromPaste({emails:['new@example.com'],email:'new@example.com',phones:['+1 202 555 0103'],phone:'+1 202 555 0103'}); }
       finally { appConfirm=original; }
     });
@@ -88,7 +88,8 @@ const root = path.resolve(__dirname, '..');
       try { await fillCustomerFieldsFromPaste({phones:['+1 202 555 0104'],phone:'+1 202 555 0104'}); }
       finally { appConfirm=original; }
     });
-    assert.deepEqual(await values('phones'),['+1 202 555 0104']);
+    // Overwrite puts the new number first but keeps the old ones, so a wrong overwrite never loses data.
+    assert.deepEqual(await values('phones'),['+1 202 555 0104','+1 202 555 0101','+1 202 555 0102','+1 202 555 0103']);
     assert.ok((await values('emails')).includes('pending-email'),'untouched unfinished field must remain');
     responseFields = {name:'Alex Example',country:'United States',countrySource:'explicit',phones:['(202) 555-0116','+1-2025550116','+1 (202) 555 0116','+1 202 555 0117']};
     await page.evaluate(()=>{closeCustomerModal();openCustomerModal('');});

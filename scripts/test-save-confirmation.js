@@ -22,7 +22,7 @@ async function scenario(readOnly, saveOK) {
     isMacAppMode:()=>true, macSaveLastError:'test disk failure', editingId:null,
     FormData:class { entries() { return [['name','Test Buyer'],['originalName',''],['client','Test Buyer']]; } },
     customerMultiFieldData:()=>({}), customerContactPreferenceData:()=>({}), autoCapitalizeCustomerName:x=>x, customerSaveName:x=>String(x||'').trim(),
-    confirmDuplicateCustomerSave:async()=>true,
+    confirmDuplicateCustomerSave:async()=>true, validateCustomerForm:()=>true,
     buildCustomerSavePayload:()=>({newName:'Test Buyer',nextProfile:{client:'Test Buyer'}}),
     commitCustomerSavePayload:()=>events.push('mutated'),
     closeCustomerModal:()=>events.push('closed'), openPendingCombinedOrder:()=>false,

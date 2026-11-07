@@ -69,6 +69,7 @@ context.clientHistory = () => Object.entries(context.state.customers || {}).map(
 // Load the shared production labels used by both read-only and editable previews.
 vm.runInContext(html.match(/^const localCustomerLabelDefs = \[[\s\S]*?\];$/m)[0].replace('const ','var ') + html.match(/^const localCustomerLabelPattern = .*$/m)[0].replace('const ','var ') + html.match(/^const localCustomerNameStopWords = .*$/m)[0].replace('const ','var '), context);
 vm.runInContext(html.match(/^const customerPasteLabels = .*;$/m)[0], context);
+vm.runInContext(html.match(/^const customerPasteFieldOrder = .*;$/m)[0].replace('const ', 'var '), context);
 [
   'isMacAppMode',
   'existingCustomerKey',
@@ -114,6 +115,16 @@ vm.runInContext(html.match(/^const customerPasteLabels = .*;$/m)[0], context);
   'customerAddressMatchEvidence',
   'isAutomaticClientMatch',
   'matchClientsFromPaste',
+  'customerPhoneMatchKeys',
+  'sameCustomerPhone',
+  'customerNameCoreTokens',
+  'splitCustomerPhoneExtension',
+  'customerExcludedEmails',
+  'supersededCustomerEmails',
+  'customerOwnEmailSet',
+  'customerOwnEmailList',
+  'canonicalCountry',
+  'customerCountryFromInput',
   'findExplicitNoteInText',
   'analyzePasteText',
   'deobfuscateEmailText',

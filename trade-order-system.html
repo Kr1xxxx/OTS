@@ -4137,6 +4137,12 @@ html[data-theme] .board-card-amount.due { color:var(--s-amber); }
 html[data-theme] .board-card-meta .tag { font-size:11px; padding:2px 7px; }
 html[data-theme] .board-empty { color:var(--gray-400); font-size:13px; border:1px dashed var(--surface-border-strong); border-radius:var(--radius); padding:18px 8px; text-align:center; background:transparent; }
 html[data-theme] .board-column.drag-over, html[data-theme] .board-column.is-drop-target { background:var(--accent-tint); }
+/* 放不进去的列（全款单 → 尾款、草稿 → 已发货）：不画成可放的高亮，改成红色虚线框，松手时提示原因。 */
+html[data-theme] .board-column.drag-invalid { outline:2px dashed color-mix(in srgb, var(--s-red) 55%, transparent); outline-offset:-3px; }
+/* 看板横向放不下：还有列的那一侧渐隐（右边 / 左边 / 两边）。 */
+html[data-theme] .workspace-board[data-more-right] { -webkit-mask-image:linear-gradient(to right, #000 calc(100% - 40px), transparent); mask-image:linear-gradient(to right, #000 calc(100% - 40px), transparent); }
+html[data-theme] .workspace-board[data-more-left] { -webkit-mask-image:linear-gradient(to left, #000 calc(100% - 40px), transparent); mask-image:linear-gradient(to left, #000 calc(100% - 40px), transparent); }
+html[data-theme] .workspace-board[data-more-left][data-more-right] { -webkit-mask-image:linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent); mask-image:linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent); }
 html[data-theme] .board-card.just-landed { animation:uiLand var(--motion-spring) var(--ease-spring); }
 @keyframes uiLand { 0% { transform:scale(1.06) rotate(-1.5deg); box-shadow:var(--floating-shadow); } 100% { transform:none; } }
 html[data-theme] .page-enter .board-card { animation:uiRise .45s var(--ease-out) backwards; animation-delay:calc(min(var(--i, 0), 12) * 35ms); }
@@ -4148,6 +4154,8 @@ html[data-theme] .page-enter .board-card { animation:uiRise .45s var(--ease-out)
 .board-menu button:not(.hold-btn):hover { background:var(--surface-soft); }
 .board-menu .ui-icon { width:16px; height:16px; color:var(--gray-500); }
 .board-menu .hold-btn { margin-top:4px; height:34px; min-height:34px; justify-content:center; }
+.board-menu-note { padding:2px 10px 0; font-size:11px; line-height:16px; color:var(--gray-500); text-align:center; }
+.board-menu button:not(.hold-btn):focus-visible { background:var(--surface-soft); outline:2px solid var(--accent); outline-offset:-2px; }
 
 /* 任务收件箱 / 最近订单 */
 html[data-theme] .task { border-radius:var(--radius); border-color:var(--surface-border); background:var(--surface-bg); box-shadow:none; transition:background var(--motion-fast) var(--ease); }
@@ -4524,7 +4532,8 @@ html[data-theme] .toast-item { position:absolute; right:0; bottom:0; width:100%;
   transition:transform var(--motion-spring) var(--ease-spring), opacity var(--motion-med) var(--ease); animation:uiToastIn var(--motion-spring) var(--ease-spring); }
 html[data-theme] .toast:hover .toast-item { transform:translateY(calc(var(--i, 0) * -58px)); opacity:1; }
 html[data-theme] .toast-item.is-hidden { opacity:0; pointer-events:none; }
-html[data-theme] .toast-item.leaving { opacity:0; transform:translateY(12px) scale(.96); transition:transform .18s var(--ease-exit), opacity .18s var(--ease-exit); }
+/* 正在淡出的提示 / 运单号小卡（还在页面里 200ms）：不再接点击和滚轮，免得挡住下面刚露出来的「撤销」、卡片和列表。 */
+html[data-theme] .toast-item.leaving { opacity:0; transform:translateY(12px) scale(.96); transition:transform .18s var(--ease-exit), opacity .18s var(--ease-exit); pointer-events:none; }
 html[data-theme] .toast-text { flex:1; min-width:0; line-height:1.4; }
 html[data-theme] .toast-desc { display:block; margin-top:2px; font-size:13px; font-weight:400; color:var(--gray-500); }
 html[data-theme] .toast-ic { flex:none; width:20px; height:20px; display:grid; place-items:center; color:var(--s-green); }
@@ -4704,6 +4713,8 @@ html[data-theme] .board-card.oc-card:hover { box-shadow:var(--shadow-hover); tra
 html[data-theme] .board-card.oc-card { position:relative; }
 html[data-theme] .oc-actions { position:absolute; right:6px; bottom:6px; display:none; gap:4px; padding-left:28px; background:linear-gradient(90deg, transparent, var(--surface-bg) 26px); }
 html[data-theme] .board-card.oc-card:hover .oc-actions, html[data-theme] .board-card.oc-card:focus-within .oc-actions { display:flex; }
+/* 卡片能用 Tab 走到（回车打开、Shift+F10 / ContextMenu 键打开菜单）：键盘聚焦时画一圈强调色。 */
+html[data-theme] .board-card.oc-card:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 html[data-theme] .oc-act { display:inline-flex; align-items:center; gap:4px; height:22px; padding:0 8px; border-radius:999px; border:1px solid var(--surface-border); background:var(--surface-bg); color:var(--gray-800); font:inherit; font-size:11.5px; font-weight:500; cursor:pointer; box-shadow:0 1px 2px oklch(0% 0 0 / .08); white-space:nowrap; }
 html[data-theme] .oc-act:hover { border-color:var(--accent); color:var(--accent); }
 html[data-theme] .oc-act .ui-icon { width:12px; height:12px; }
@@ -4968,6 +4979,12 @@ html[data-theme] .tone-1:is(.donut-seg, .side-dot) { --tone:var(--s-teal); }
 html[data-theme] .tone-2:is(.donut-seg, .side-dot) { --tone:var(--s-amber); }
 html[data-theme] .tone-3:is(.donut-seg, .side-dot) { --tone:var(--s-blue); }
 html[data-theme] .tone-4:is(.donut-seg, .side-dot) { --tone:var(--gray-400); }
+/* 阶段金额环图：和看板列圆点同一套阶段颜色。 */
+html[data-theme] .stage-tone-quote:is(.donut-seg, .side-dot) { --tone:var(--s-blue); }
+html[data-theme] .stage-tone-production:is(.donut-seg, .side-dot) { --tone:var(--s-teal); }
+html[data-theme] .stage-tone-balance:is(.donut-seg, .side-dot) { --tone:var(--s-orange); }
+html[data-theme] .stage-tone-shipment:is(.donut-seg, .side-dot) { --tone:var(--s-green); }
+html[data-theme] .stage-tone-done:is(.donut-seg, .side-dot) { --tone:var(--s-gray); }
 html[data-theme] .donut-seg { stroke:var(--tone); }
 html[data-theme] .side-dot { display:inline-block; width:8px; height:8px; margin-right:6px; border-radius:2px; background:var(--tone); }
 html[data-theme] .side-chart .side-bars { gap:8px; }
@@ -5436,7 +5453,7 @@ html[data-theme] .track-card small { display:block; margin-top:2px; font-size:12
 html[data-theme] .track-card input { width:100%; height:36px; padding:0 12px; border:1px solid var(--surface-border-strong, var(--surface-border)); border-radius:12px; background:var(--surface-soft); font:inherit; font-size:14px; color:inherit; }
 html[data-theme] .track-card input:focus { outline:2px solid var(--accent); outline-offset:1px; }
 html[data-theme] .track-card-actions { display:flex; justify-content:flex-end; gap:8px; }
-html[data-theme] .track-card.leaving { opacity:0; transform:translateY(12px) scale(.96); transition:transform .18s var(--ease-exit), opacity .18s var(--ease-exit); }
+html[data-theme] .track-card.leaving { opacity:0; transform:translateY(12px) scale(.96); transition:transform .18s var(--ease-exit), opacity .18s var(--ease-exit); pointer-events:none; }
 /* 抽屉开着时 toast 抬到底部按钮上方（above-foot），运单号小卡跟着再往上，不盖住 toast 的「撤销」。 */
 html[data-theme] body:has(#toast.above-foot) .track-card { bottom:164px; }
 @media (max-width: 820px) { html[data-theme] .track-card { right:12px; left:12px; width:auto; bottom:calc(150px + env(safe-area-inset-bottom)); } html[data-theme] body:has(#toast.above-foot) .track-card { bottom:calc(170px + env(safe-area-inset-bottom)); } }
@@ -5602,7 +5619,8 @@ html[data-theme] .board-column-head > .board-column-top { display:flex; align-it
 html[data-theme] .board-column-top .board-column-title { flex:0 1 auto; min-width:0; }
 html[data-theme] .board-column-top .board-column-meta { flex:none; margin-left:auto; white-space:nowrap; text-align:right; }
 html[data-theme] .board-column-head > .board-column-sub { display:block; padding-left:15px; font-size:11px; line-height:16px; height:16px; color:var(--gray-500); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-html[data-theme] .oc-next.empty { color:var(--gray-400); }
+/* 没写下一步的那一行叫 .is-empty：叫 .empty 会被全局空状态样式套成虚线大框，卡片比写了下一步的高 29px。 */
+html[data-theme] .oc-next.is-empty { color:var(--gray-400); }
 html[data-theme] .oc-r3 .board-card-amount.due { color:var(--s-amber); }
 </style>
 <style id="ots-form-v3">
@@ -5722,7 +5740,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.121，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.121</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.122，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.122</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -5785,7 +5803,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
           <div>
             <div class="section-title">订单进度</div>
             <div class="section-meta">按阶段排列</div>
-            <div class="drag-hint"><svg class="ui-icon" aria-hidden="true"><use href="#i-grip"/></svg>拖动卡片可以改阶段，右键卡片可以删除</div>
+            <div class="drag-hint"><svg class="ui-icon" aria-hidden="true"><use href="#i-grip"/></svg>拖动卡片改阶段 · 右键（触控板双指点按）卡片有收齐、推进、删除等操作</div>
           </div>
           <div class="board-head-actions">
             <div class="segment-control compact board-product-filter" id="boardProductFilter">
@@ -8501,6 +8519,11 @@ function normalizeActiveOrder(o = {}) {
     ? o.orderType
     : (Number(o.paidAmount || 0) >= amount && amount > 0 ? '全款订单' : '定金订单');
   const payment = normalizeOrderPaymentInput(o, amount, orderType, stage);
+  // 已发货 / 已完成的单载入（导入）时已收按全额记：文件里写的真实已收存进 paidBeforeSettle，退回前面的阶段时能还原。
+  const settleBefore = isSettledStage(stage) && (o.paidBeforeSettle === undefined || o.paidBeforeSettle === null || o.paidBeforeSettle === '')
+    ? normalizeOrderPaymentInput(o, amount, orderType, 'quote').paidAmount
+    : null;
+  if (settleBefore !== null && settleBefore < payment.paidAmount) payment.paidBeforeSettle = settleBefore;
   const shipments = normalizeOrderShipments({ ...o, stage });
   const primaryShipment = shipments[0];
   const wasShippedWithoutStatus = stage === 'shipment' && (!o.logisticsStatus || o.logisticsStatus === '未发货');
@@ -9551,7 +9574,10 @@ function applyStagePaymentInvariant(order = {}, stage = order.stage, logReason =
   const previous = Math.max(0, Number(order.paidAmount || 0));
   if (previous === amount) return false;
   // Remember what was really received, so moving the order back before 已发货 can undo this assumption.
-  order.paidBeforeSettle = previous;
+  // 已经记过（已发货期间改了金额又补成全额）就保留最早那个真实值，不拿已经视为收齐的金额覆盖它。
+  const known = Number(order.paidBeforeSettle);
+  const hasKnown = order.paidBeforeSettle !== undefined && order.paidBeforeSettle !== null && order.paidBeforeSettle !== '' && Number.isFinite(known);
+  order.paidBeforeSettle = hasKnown ? Math.min(known, previous) : previous;
   order.paidAmount = amount;
   order.logs = [{
     time:nowText(),
@@ -9635,7 +9661,10 @@ function stageDef(key) { return stageDefs.find(s => s.key === key) || stageDefs[
 function normalizeStage(key) {
   if (key === 'sample') return 'quote';
   if (stageDefs.some(s => s.key === key)) return key;
-  return 'quote';
+  // 导入文件里阶段写成中文名（「尾款」）或大小写不同的英文（「Production」）：认出来，不再一律当成报价。
+  const text = String(key ?? '').trim();
+  const hit = stageDefs.find(s => s.key === text.toLowerCase() || s.name === text);
+  return hit ? hit.key : 'quote';
 }
 function productTypeDef(value) { return productTypeDefs.find(item => item.value === value) || productTypeDefs[0]; }
 function paymentChannelDef(value) { return paymentChannelDefs.find(item => item.value === value) || paymentChannelDefs[0]; }
@@ -10142,6 +10171,8 @@ function setModalOpenState(modalOrId, open) {
   const isOpen = Boolean(open);
   const wasOpen = typeof modal.classList?.contains === 'function' && modal.classList.contains('open');
   const canManageFocus = typeof document === 'object' && typeof window === 'object' && typeof window.requestAnimationFrame === 'function' && typeof modal.querySelector === 'function';
+  // 抽屉 / 弹窗关掉时，里面正在按住的「按住删除」一起放弃：以前按住时按 Esc 关了抽屉，1.5 秒后订单照样被删。
+  if (!isOpen && typeof uiCancelAllHolds === 'function') uiCancelAllHolds(modal);
   modal.classList.toggle('open', isOpen);
   modal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
   if (canManageFocus && isOpen && !wasOpen) {
@@ -15713,7 +15744,8 @@ function renderAmountSideChart(orders) {
   const stageGroups = stageDefs
     .map(stage => {
       const stageOrders = orders.filter(o => o.stage === stage.key);
-      return { name: stage.name, amount: usdTotal(stageOrders), count: stageOrders.length };
+      // 颜色跟着阶段走（和看板列的圆点一样），不按排第几：以前没有报价单时每个阶段都用了别的阶段的颜色。
+      return { name: stage.name, amount: usdTotal(stageOrders), count: stageOrders.length, tone: `stage-tone-${stage.key}` };
     })
     .filter(item => item.amount > 0 || item.count > 0);
   const paymentGroups = groupedStats(orders, o => paymentShortLabel(o.paymentChannel)).slice(0, 4);
@@ -15730,7 +15762,7 @@ function renderAmountSideChart(orders) {
     let offset = 0;
     const arcs = groups.map((g, i) => {
       const len = sum ? g.amount / sum * c : 0;
-      const arc = `<circle class="donut-seg tone-${i % 5}" cx="60" cy="60" r="${r}" stroke-dasharray="${len.toFixed(2)} ${(c - len).toFixed(2)}" stroke-dashoffset="${(-offset).toFixed(2)}"></circle>`;
+      const arc = `<circle class="donut-seg ${g.tone || `tone-${i % 5}`}" cx="60" cy="60" r="${r}" stroke-dasharray="${len.toFixed(2)} ${(c - len).toFixed(2)}" stroke-dashoffset="${(-offset).toFixed(2)}"></circle>`;
       offset += len;
       return arc;
     }).join('');
@@ -15742,7 +15774,7 @@ function renderAmountSideChart(orders) {
           <div class="side-bars" aria-label="${escapeAttr(title)}">
             ${groups.map((g, i) => `
               <div class="side-bar-row">
-                <div class="side-bar-head"><span><i class="side-dot tone-${i % 5}"></i>${escapeAttr(g.name)} · ${g.count}单</span><strong>${summaryMoney(g.amount, 'USD')}</strong></div>
+                <div class="side-bar-head"><span><i class="side-dot ${g.tone || `tone-${i % 5}`}"></i>${escapeAttr(g.name)} · ${g.count}单</span><strong>${summaryMoney(g.amount, 'USD')}</strong></div>
               </div>
             `).join('') || '<div class="muted">暂无数据。</div>'}
           </div>
@@ -15815,16 +15847,16 @@ function renderPipeline() {
         const date = cardSettings.showOrderDate ? `<span class="oc-date">${escapeAttr(monthDayLabel(o.createdAt || o.updated))}</span>` : '';
         const nextStage = typeof nextStageFor === 'function' ? nextStageFor(o) : '';
         const quick = [
-          balanceDue > 0 && !isSettledStage(o.stage) ? `<button class="oc-act" type="button" data-quick="paid" title="收齐尾款 ${escapeAttr(money(balanceDue, o.currency))}">${uiIcon('cash')}收齐</button>` : '',
+          balanceDue > 0 && !isSettledStage(o.stage) ? `<button class="oc-act" type="button" data-quick="paid" title="${quickPaidLabel(o)} ${escapeAttr(money(balanceDue, o.currency))}">${uiIcon('cash')}收齐</button>` : '',
           nextStage ? `<button class="oc-act" type="button" data-quick="advance" title="推进到${stageDef(nextStage).name}">${uiIcon('arrow')}${stageDef(nextStage).name}</button>` : ''
         ].join('');
         return `
-          <article class="board-card oc-card ${productClass}" data-id="${escapeAttr(o.id)}" data-stage-card="${s.key}" draggable="true" style="--i:${index}">
+          <article class="board-card oc-card ${productClass}" data-id="${escapeAttr(o.id)}" data-stage-card="${s.key}" draggable="true" tabindex="0" aria-keyshortcuts="Enter Shift+F10" style="--i:${index}">
             ${quick ? `<div class="oc-actions">${quick}</div>` : ''}
             <div class="oc-r1">${flag ? `<span class="oc-flag">${flag}</span>` : ''}${cardSettings.showLevelIcon ? renderLevelIcon(level) : ''}${cardSettings.showOrderNumber ? `<span class="oc-num">${escapeAttr(o.num)}</span>${cleanTracking(o.trackingNumber) ? '<span class="tracking-submitted-check" title="已提交运单" aria-label="已提交运单">✓</span>' : ''}` : ''}${status}${date}</div>
             <div class="board-card-title oc-client" title="${escapeAttr(clientDisplayName(o.client))}">${escapeAttr(clientDisplayName(o.client))}</div>
             ${meta || cardSettings.showAmount ? `<div class="oc-r3"><span class="oc-meta">${meta}</span>${cardSettings.showAmount ? boardCardAmountHtml(o, balanceDue, cardSettings) : ''}</div>` : ''}
-            ${boardHasNext ? `<div class="oc-next${o.next ? '' : ' empty'}">${uiIcon('arrow')}<span>${o.next ? escapeAttr(o.next) : '未设下一步'}</span></div>` : ''}
+            ${boardHasNext ? `<div class="oc-next${o.next ? '' : ' is-empty'}">${uiIcon('arrow')}<span>${o.next ? escapeAttr(o.next) : '未设下一步'}</span></div>` : ''}
           </article>
         `;
       }).join('') || '<div class="board-empty">暂无订单</div>'}
@@ -16011,7 +16043,7 @@ function renderOrderListPage() {
           <td class="col-action">${(() => {
             const next = typeof nextStageFor === 'function' ? nextStageFor(order) : '';
             const buttons = [
-              due > 0 && !isSettledStage(order.stage) ? `<button class="order-table-view" type="button" data-order-list-quick="paid" data-order-list-open="${escapeAttr(order.id)}" title="收齐尾款 ${escapeAttr(money(due, order.currency))}">收齐</button>` : '',
+              due > 0 && !isSettledStage(order.stage) ? `<button class="order-table-view" type="button" data-order-list-quick="paid" data-order-list-open="${escapeAttr(order.id)}" title="${quickPaidLabel(order)} ${escapeAttr(money(due, order.currency))}">收齐</button>` : '',
               next ? `<button class="order-table-view" type="button" data-order-list-quick="advance" data-order-list-open="${escapeAttr(order.id)}" title="推进到${escapeAttr(stageDef(next).name)}">→ ${escapeAttr(stageDef(next).name)}</button>` : ''
             ].join('');
             return buttons ? `<div class="order-table-actions">${buttons}</div>` : `<button class="order-table-view" type="button" data-order-list-open="${escapeAttr(order.id)}">查看</button>`;
@@ -18806,18 +18838,24 @@ function orderFormSaveStage(form) {
     paidAmount:payment.paidAmount, trackingNumber:tracking, stageTouched:form.dataset.stageTouched === 'true', firstTracking
   });
   const dueBefore = existing ? orderDueValue(existing) : 0;
-  return { selected, stage, byTracking:stage === 'shipment' && Boolean(tracking) && selected !== 'shipment', firstTracking, dueBefore };
+  // 这次保存会不会进已发货 / 已完成、按「尾款视为已收齐」把没收的尾款记成已收（原来就在已发货的单不算）。
+  const realPaid = normalizeOrderPaymentInput({ paidAmount:f.paidAmount?.value, depositAmount:f.depositAmount?.value, depositPercent:f.depositPercent?.value }, amount, orderType, 'quote').paidAmount;
+  const settleDue = isSettledStage(stage) && !(existing && !existing.isDraft && isSettledStage(existing.stage)) ? roundMoneyValue(Math.max(0, amount - realPaid)) : 0;
+  return { selected, stage, byTracking:stage === 'shipment' && Boolean(tracking) && selected !== 'shipment', firstTracking, dueBefore, settleDue, realPaid, currency:f.currency?.value || 'USD' };
 }
 function syncOrderStageHint(form) {
   const hint = form?.querySelector?.('[data-stage-hint]');
   const preview = orderFormSaveStage(form);
   if (hint) {
-    const show = Boolean(preview) && preview.stage !== preview.selected;
+    const moved = Boolean(preview) && preview.stage !== preview.selected;
+    // 进已发货 / 已完成还没收齐：说清楚尾款会按已收齐记、退回前面的阶段时能恢复（选「已发货」、新单带单号、第一次补单号都一样）。
+    const settle = Boolean(preview?.settleDue > 0);
+    const show = moved || settle;
     hint.hidden = !show;
-    let text = show ? `保存后会按${preview.byTracking ? '物流单号' : '收款'}自动放到「${stageDef(preview.stage).name}」` : '';
-    // 已有订单第一次填单号：说清楚会进已发货、尾款会按收齐记；样品单号可以点「只记单号」留在原阶段。
-    const keep = show && preview.byTracking && preview.firstTracking;
-    if (keep && preview.dueBefore > 0) text += '，尾款还没收齐，进已发货会按已收齐记';
+    let text = moved ? `保存后会按${preview.byTracking ? '物流单号' : '收款'}自动放到「${stageDef(preview.stage).name}」` : '';
+    if (settle) text += `${text ? '，' : '保存后'}还没收的 ${money(preview.settleDue, preview.currency)} 会按已收齐记，退回前面的阶段时恢复为已收 ${money(preview.realPaid, preview.currency)}`;
+    // 已有订单第一次填单号：样品单号可以点「只记单号」留在原阶段。
+    const keep = moved && preview.byTracking && preview.firstTracking;
     hint.textContent = text;
     if (keep) {
       const btn = document.createElement('button');
@@ -18889,9 +18927,9 @@ function buildOrderFromFormData(data = {}, { existing = null, isDraft = false, s
   primaryShipment = shipments[0] || null;
   // 删光了所有批次：物流状态、更新时间按阶段重置，别让旧的「运输中」「物流异常」挂在一张没有单号的单上。
   const removedAllShipments = previousShipments.length > 0 && !shipments.length;
-  const paymentValues = stageValue === selectedStage
-    ? enteredPaymentValues
-    : normalizeOrderPaymentInput(data, amount, orderType, stageValue);
+  // 已发货 / 已完成也先按表单里的已收建单，再由下面的 applyOrderStageInvariants 统一做「尾款视为已收齐」：记下真实已收、写记录。
+  // 以前这里直接按全额记：编辑弹窗选已发货、新建带运单号、草稿转正都不记原值，之后退回也找不回真实收款。
+  const paymentValues = normalizeOrderPaymentInput(data, amount, orderType, isSettledStage(stageValue) ? 'quote' : stageValue);
   // 客户名大小写 / 空格不同时归到已有档案，别拆成两个客户。
   const typedClient = autoCapitalizeCustomerName(data.client);
   const clientName = (typedClient && (existingCustomerKey(typedClient) || state.orders.find(o => String(o.client || '').trim().toLowerCase() === typedClient.toLowerCase())?.client)) || typedClient || (isDraft ? '未命名草稿' : '');
@@ -18946,7 +18984,17 @@ function buildOrderFromFormData(data = {}, { existing = null, isDraft = false, s
     ? orderShipmentSignature({ shipments })
     : (stageValue === 'done' ? '' : existing?.autoDoneHold || '');
   if (hold) order.autoDoneHold = hold;
+  // 「尾款视为已收齐」之前的真实已收、报价 → 尾款时自动记的定金：表单里已收没改，就跟着这张单走，抽屉 / 弹窗随便保存一次也不丢；
+  // 阶段往回走（已发货 → 尾款 / 生产中，尾款 → 报价）时按拖拽同一套规则还原，没有单号的单同时清掉发货状态。
+  // 用户在表单里自己改了已收，以填的为准，自动记的标记作废。
+  let restoreNote = '';
+  if (existing && !existing.isDraft) {
+    const paidUnchanged = roundMoneyValue(order.paidAmount) === roundMoneyValue(existing.paidAmount);
+    if (paidUnchanged) ['paidBeforeSettle', 'paidBeforeDeposit', 'depositAutoPaid'].forEach(key => { if (existing[key] !== undefined) order[key] = existing[key]; });
+    if (normalizeStage(existing.stage) !== stageValue) restoreNote = restoreAutoPaymentsOnStageExit(order, existing.stage, stageValue, { keepPaid:!paidUnchanged });
+  }
   applyOrderStageInvariants(order, stageValue);
+  if (restoreNote) order.logs.unshift({ time:nowText(), text:`阶段从 ${stageDef(existing.stage).name} 退回 ${stageDef(stageValue).name}${restoreNote}` });
   const changes = orderChangeSummary(existing, order);
   const action = isDraft ? '存为草稿' : (existing ? '保存订单更新' : '新建订单');
   order.logs.unshift({
@@ -18985,9 +19033,15 @@ async function confirmOrderPaymentOverflow(form) {
   return false;
 }
 // 保存成功的提示里写出阶段：按收款自动换了阶段时，用户要知道这张单去了哪一列。
-function orderStageSaveNote(order, selectedStage) {
-  if (!order || order.isDraft || normalizeStage(order.stage) === normalizeStage(selectedStage)) return '';
-  return `，已按${normalizeStage(order.stage) === 'shipment' && cleanTracking(order.trackingNumber) ? '物流单号' : '收款'}放到「${stageDef(order.stage).name}」`;
+// 这次保存刚进已发货 / 已完成、没收的尾款按已收齐记了：提示里也写出金额（以前只说放到了哪一列）。
+function orderStageSaveNote(order, selectedStage, existing = null) {
+  if (!order || order.isDraft) return '';
+  const before = finiteMoneyOrNull(order.paidBeforeSettle);
+  const amount = orderAmountValue(order);
+  const justSettled = isSettledStage(order.stage) && before !== null && before < amount && !(existing && !existing.isDraft && isSettledStage(existing.stage));
+  const settleNote = justSettled ? `，还没收的 ${money(roundMoneyValue(amount - before), order.currency || 'USD')} 按已收齐记` : '';
+  if (normalizeStage(order.stage) === normalizeStage(selectedStage)) return settleNote;
+  return `，已按${normalizeStage(order.stage) === 'shipment' && cleanTracking(order.trackingNumber) ? '物流单号' : '收款'}放到「${stageDef(order.stage).name}」${settleNote}`;
 }
 async function saveCombinedCustomerOrder() {
   const customerForm = document.getElementById('combinedCustomerForm');
@@ -19049,7 +19103,7 @@ async function saveCombinedCustomerOrder() {
   delete orderForm.dataset.saving;
   closeCombinedCustomerOrderModal();
   render();
-  await completeOrderNotification(order.id, notificationRequested, `客户和订单已保存${orderStageSaveNote(order, orderData.stage)}`);
+  await completeOrderNotification(order.id, notificationRequested, `客户和订单已保存${orderStageSaveNote(order, orderData.stage, pendingOrder || null)}`);
   } finally { delete orderForm.dataset.saving; }
 }
 async function upsertOrder(form, options = {}) {
@@ -19100,7 +19154,7 @@ async function upsertOrder(form, options = {}) {
   closeOrder({ cleanupTemp: false });
   render();
   // noteStage：抽屉保存时按保存前的阶段说明阶段变化（抽屉先把推断的阶段写进了表单，拿表单的阶段比较就什么都不说了）。
-  const successText = `${isDraft ? '订单草稿已保存' : (isEdit ? '订单已保存' : '订单已创建')}${orderStageSaveNote(order, options.noteStage ?? data.stage)}`;
+  const successText = `${isDraft ? '订单草稿已保存' : (isEdit ? '订单已保存' : '订单已创建')}${orderStageSaveNote(order, options.noteStage ?? data.stage, existing)}`;
   if (isDraft || !notificationRequested) toast(successText, typeof orderSaveFollowUpAction === 'function' ? orderSaveFollowUpAction(order, existing) : undefined);
   else await completeOrderNotification(order.id, true, successText);
   return true;
@@ -19165,6 +19219,62 @@ function duplicateOrder() {
   openOrder(copy.id);
   toast(`已复制为新订单 ${copy.num}`, { desc:'可以直接改号码、金额后保存' });
 }
+// ===== 撤销按订单记版本 =====
+// 同一张单之后又被移动、收齐、撤销、删除或补了运单号，较早那条「撤销」就作废：提示收起，万一还点到也只提示、不改数据。
+// 以前逐个字段比「是不是还等于移动后的值」，同一张单连拖两次再点较早那条撤销，阶段不动、收款却被改回去（生产中、已收 $0）。
+const orderUndoVersions = new Map();
+function bumpOrderUndoVersion(id) {
+  const next = (orderUndoVersions.get(id) || 0) + 1;
+  orderUndoVersions.set(id, next);
+  return next;
+}
+// 提示里写清是哪张单：连拖几张时，每条「撤销」对应哪张单一眼能看出来。
+function orderToastLabel(order = {}) {
+  const num = String(order?.num || '').trim();
+  const client = clientDisplayName(order?.client || '');
+  return [num, client].filter(Boolean).join(' ') || '这张订单';
+}
+function orderToastGroup(id) { return `order:${id}`; }
+function finiteMoneyOrNull(value) {
+  if (value === undefined || value === null || String(value).trim() === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+function setOrDeleteField(target, key, value) {
+  if (value === undefined) delete target[key];
+  else target[key] = value;
+}
+function refreshOpenOrderDetail(id) {
+  if (detailOrderId === id && document.getElementById('orderDetailDrawer')?.classList.contains('open')) openOrderDetail(id);
+}
+// 撤销一次阶段移动 / 收齐：这张单之后没再动过（版本号没变、阶段还是那次操作后的阶段）才还原；
+// 还原时逐个字段看，撤销前又手动改过的字段保留新值。操作记录只追加一条，从不删掉以前的记录。
+function undoOrderChange(id, { before, after, version, logText, doneText }) {
+  const order = state.orders.find(o => o.id === id);
+  const label = orderToastLabel(order || after);
+  if (!order) { toast(`${label} 已不在看板上，这条撤销已失效`, { tone:'warn' }); return false; }
+  if (!canSubmitStoredData()) return false;
+  if (orderUndoVersions.get(id) !== version || order.stage !== after.stage) {
+    toast(`${label} 之后又改动过，这条撤销已失效`, { tone:'warn', desc:'需要的话请在订单详情里手动改回', group:orderToastGroup(id) });
+    return false;
+  }
+  const paidBefore = order.paidAmount;
+  Object.keys(before).forEach(key => { if (order[key] === after[key]) setOrDeleteField(order, key, before[key]); });
+  if (typeof uiTrackingQuickCardClose === 'function') uiTrackingQuickCardClose(id);
+  const paidRestored = order.paidAmount !== paidBefore;
+  bumpOrderUndoVersion(id);
+  order.updated = nowText();
+  order.logs = [{ time:nowText(), text:`${logText(order)}${paidRestored ? `，已付款恢复为 ${money(order.paidAmount, order.currency || 'USD')}` : ''}` }, ...(order.logs || [])];
+  render();
+  refreshOpenOrderDetail(id);
+  toast(doneText(order, label), { group:orderToastGroup(id) });
+  return true;
+}
+// 删除时清掉这张单的「已处理」标记，只认 类型-订单id 开头的键：以前按子串匹配，删 …-import-1 会连 …-import-10～19 一起清。
+function orderDoneTaskKeys(id) {
+  const prefixes = ['follow', 'payment', 'logistics-risk', 'urgent', 'ship'];
+  return Object.keys(state.doneTasks || {}).filter(key => prefixes.some(prefix => key === `${prefix}-${id}` || key.startsWith(`${prefix}-${id}-`)));
+}
 async function softDeleteOrder(id, { closeModal = false } = {}) {
   if (!id) return false;
   const pendingForm = document.getElementById('orderForm');
@@ -19175,23 +19285,40 @@ async function softDeleteOrder(id, { closeModal = false } = {}) {
   if (!canSubmitStoredData()) return false;
   const order = state.orders.find(o => o.id === id);
   if (!order) return false;
-  state.deletedOrders = [{ ...order, deletedAt: nowText(), logs: [{ time:nowText(), text:'订单已删除，移入已删除订单' }, ...(order.logs || [])] }, ...(state.deletedOrders || [])];
+  // 清掉的「已处理」标记跟着删掉的单存起来，撤销 / 恢复时放回去，提醒不会重新冒出来。
+  const doneKeys = orderDoneTaskKeys(id);
+  const deleted = { ...order, deletedAt: nowText(), logs: [{ time:nowText(), text:'订单已删除，移入已删除订单' }, ...(order.logs || [])] };
+  if (doneKeys.length) deleted.deletedDoneTasks = doneKeys;
+  state.deletedOrders = [deleted, ...(state.deletedOrders || [])];
   state.orders = state.orders.filter(o => o.id !== id);
-  Object.keys(state.doneTasks || {}).forEach(key => { if (key.includes(id)) delete state.doneTasks[key]; });
+  doneKeys.forEach(key => { delete state.doneTasks[key]; });
+  bumpOrderUndoVersion(id);
+  // 这张单的运单号小卡还开着：一起关掉，不然点「保存运单号」时单号静默丢失。
+  if (typeof uiTrackingQuickCardClose === 'function') uiTrackingQuickCardClose(id, { silent:true });
   if (closeModal) closeOrder();
   render();
-  toast('订单已移入已删除订单', { undo:() => restoreOrder(id) });
+  toast(`已删除 ${orderToastLabel(order)}`, { desc:'可在「已删除订单」里恢复', undo:() => restoreOrder(id), group:orderToastGroup(id) });
   return true;
 }
+// 旧版工作台的「垃圾箱」列（只在数据里还有 trashOrders 时出现）：放入、确认删除、从垃圾箱拖回看板都能撤销。
 function moveOrderToTrash(id) {
   if (!canSubmitStoredData()) return false;
   const order = state.orders.find(o => o.id === id);
   if (!order) return false;
+  const index = state.orders.indexOf(order);
   const trashed = { ...order, trashedAt: nowText(), logs: [{ time:nowText(), text:'订单已放入工作台垃圾箱，等待确认删除' }, ...(order.logs || [])] };
   state.trashOrders = [trashed, ...(state.trashOrders || []).filter(o => o.id !== id)];
   state.orders = state.orders.filter(o => o.id !== id);
+  const version = bumpOrderUndoVersion(id);
   render();
-  toast('已放入垃圾箱，点 × 后才会删除');
+  toast(`${orderToastLabel(order)} 已放入垃圾箱`, { desc:'点卡片右上角 × 才会删除', group:orderToastGroup(id), undo:() => {
+    if (orderUndoVersions.get(id) !== version || !(state.trashOrders || []).some(o => o.id === id) || !canSubmitStoredData()) { toast(`${orderToastLabel(order)} 之后又改动过，这条撤销已失效`, { tone:'warn' }); return; }
+    state.trashOrders = state.trashOrders.filter(o => o.id !== id);
+    state.orders.splice(Math.min(index, state.orders.length), 0, order);
+    bumpOrderUndoVersion(id);
+    render();
+    toast(`已撤销：${orderToastLabel(order)} 回到看板`, { group:orderToastGroup(id) });
+  } });
   return true;
 }
 function deleteTrashOrder(id) {
@@ -19202,73 +19329,132 @@ function deleteTrashOrder(id) {
   delete deleted.trashedAt;
   state.deletedOrders = [deleted, ...(state.deletedOrders || [])];
   state.trashOrders = (state.trashOrders || []).filter(o => o.id !== id);
+  const version = bumpOrderUndoVersion(id);
   render();
-  toast('订单已移入已删除订单');
+  // 以前 × 一点就删、没有撤销；现在和右键「按住删除」一样给 6 秒撤销，之后也能在「已删除订单」里恢复。
+  toast(`已删除 ${orderToastLabel(order)}`, { desc:'可在「已删除订单」里恢复', group:orderToastGroup(id), undo:() => {
+    if (orderUndoVersions.get(id) !== version || !(state.deletedOrders || []).some(o => o.id === id) || !canSubmitStoredData()) { toast(`${orderToastLabel(order)} 之后又改动过，这条撤销已失效`, { tone:'warn' }); return; }
+    state.deletedOrders = state.deletedOrders.filter(o => o.id !== id);
+    state.trashOrders = [order, ...(state.trashOrders || [])];
+    bumpOrderUndoVersion(id);
+    render();
+    toast(`已撤销：${orderToastLabel(order)} 回到垃圾箱`, { group:orderToastGroup(id) });
+  } });
   return true;
 }
+// 这次移动会不会被拒绝（拖到列上时不高亮、鼠标显示禁止；松手时说明原因）。返回原因文字，可以移动时返回空串。
+function stageMoveRejection(order, stage) {
+  if (!order) return '';
+  const normalized = normalizeStage(stage);
+  // 全款订单 has no 尾款 stage (the editor does not offer it); a drop there would leave a state the form cannot show.
+  if (normalized === 'balance' && order.orderType === '全款订单') return '全款订单没有尾款阶段，请移到生产中或报价';
+  // 草稿还没转成正式订单：进已发货 / 已完成会把全额记成已收，数据库里出现「已发货、已收齐」的草稿。
+  if (order.isDraft && isSettledStage(normalized)) return `草稿还没转成正式订单，不能直接移到${stageDef(normalized).name}；先打开草稿保存为正式订单`;
+  return '';
+}
+// 返回 true 表示真的移动了（拖拽落地动画只在这时播）。
 function moveOrderToStage(id, stage) {
-  if (!canSubmitStoredData()) return;
+  if (!canSubmitStoredData()) return false;
   const normalized = normalizeStage(stage);
   let order = state.orders.find(o => o.id === id);
   const fromTrash = !order;
   if (fromTrash) order = (state.trashOrders || []).find(o => o.id === id);
-  if (!order) return;
+  if (!order) return false;
+  const label = orderToastLabel(order);
+  const rejection = stageMoveRejection(order, normalized);
+  if (rejection) {
+    toast(`${label} 没有移动`, { tone:'warn', desc:rejection });
+    return false;
+  }
   const oldStage = stageDef(order.stage).name;
   const previousStage = order.stage;
   const before = stageMoveSnapshot(order);
+  const trashedAt = order.trashedAt;
   if (fromTrash) {
     state.trashOrders = (state.trashOrders || []).filter(o => o.id !== id);
     delete order.trashedAt;
     state.orders.unshift(order);
   }
-  // 全款订单 has no 尾款 stage (the editor does not offer it); a drop there would leave a state the form cannot show.
-  if (normalized === 'balance' && order.orderType === '全款订单') {
-    if (fromTrash) { state.orders = state.orders.filter(o => o.id !== id); state.trashOrders = [order, ...(state.trashOrders || [])]; }
-    toast('全款订单没有尾款阶段，请移到生产中或报价');
-    return;
-  }
   if (!fromTrash && order.stage === normalized) {
     if (applyOrderStageInvariants(order, normalized)) {
       order.updated = nowText();
       render();
-      toast('已补齐该阶段的付款与物流状态');
+      toast(`${label} 已补齐该阶段的付款与物流状态`);
     }
-    return;
+    return false;
   }
   order.stage = normalized;
   // 用户手动把已完成的单移回去（UPS 满 5 天推过去的、客户说没收到）：记住这时的批次，自动完成规则不再把它推回去，单号变了才重新算。
   if (normalizeStage(previousStage) === 'done' && normalized !== 'done') order.autoDoneHold = orderShipmentSignature(order);
   else if (normalized === 'done') delete order.autoDoneHold;
   applyOrderStageInvariants(order, normalized);
-  const extraLog = fromTrash ? '' : adjustPaymentForManualMove(order, previousStage, normalized);
+  const extraLog = adjustPaymentForManualMove(order, previousStage, normalized);
   order.updated = nowText();
   order.logs = [{ time:nowText(), text: (fromTrash ? `订单从垃圾箱恢复到 ${stageDef(normalized).name}` : `订单阶段从 ${oldStage} 调整为 ${stageDef(normalized).name}`) + extraLog }, ...(order.logs || [])];
+  const version = bumpOrderUndoVersion(id);
   render();
-  if (detailOrderId === id && document.getElementById('orderDetailDrawer')?.classList.contains('open')) openOrderDetail(id);
+  refreshOpenOrderDetail(id);
   const after = stageMoveSnapshot(order);
-  // 报价 → 尾款按定金记成已收：提示里写出来，别让用户到记录里才看到金额是怎么来的。
-  const depositNote = /定金按预付/.test(extraLog) ? `，定金 ${money(order.paidAmount, order.currency || 'USD')} 记为已收` : '';
-  toast(`已移动到${stageDef(normalized).name}${depositNote}`, fromTrash ? undefined : { undo:() => undoOrderStageMove(id, before, after) });
+  const undo = fromTrash
+    ? () => {
+      // 从垃圾箱拖回来的单：撤销 = 放回垃圾箱，这次移动带来的收款 / 发货变化一起还原。
+      const current = state.orders.find(o => o.id === id);
+      if (!current || orderUndoVersions.get(id) !== version || current.stage !== after.stage || !canSubmitStoredData()) { toast(`${label} 之后又改动过，这条撤销已失效`, { tone:'warn' }); return; }
+      Object.keys(before).forEach(key => { if (current[key] === after[key]) setOrDeleteField(current, key, before[key]); });
+      current.trashedAt = trashedAt || nowText();
+      state.orders = state.orders.filter(o => o.id !== id);
+      state.trashOrders = [current, ...(state.trashOrders || [])];
+      bumpOrderUndoVersion(id);
+      if (typeof uiTrackingQuickCardClose === 'function') uiTrackingQuickCardClose(id, { silent:true });
+      render();
+      toast(`已撤销：${label} 回到垃圾箱`, { group:orderToastGroup(id) });
+    }
+    : () => undoOrderStageMove(id, before, after, version);
+  toast(`${label} 已移动到${stageDef(normalized).name}`, { desc:stageMovePaymentNote(order, before, after), undo, group:orderToastGroup(id) });
   if (normalized === 'done' && normalizeStage(previousStage) !== 'done' && typeof uiConfetti === 'function') uiConfetti(...uiLastPointer());
   if (normalized === 'shipment' && !cleanTracking(order.trackingNumber) && typeof uiTrackingQuickCard === 'function') uiTrackingQuickCard(id);
+  return true;
 }
-// Dragging / quick-advancing follows the deposit rule (收到定金 = 尾款, 付清 = 生产中):
-// - 报价 → 尾款 with nothing received records the planned deposit as received;
-// - leaving 已发货 / 已完成 for 尾款 / 报价 gives back the 「尾款视为已收齐」 assumption made on the way in,
-//   and an order without any tracking number is no longer marked as shipped (a stale ship date later fed the UPS 5-day rule).
+// 移动顺带改了已收时，提示里写出金额：报价 → 尾款记定金、进已发货尾款视为收齐、退回时恢复。不用去记录里找。
+function stageMovePaymentNote(order, before, after) {
+  const currency = order.currency || 'USD';
+  const was = Math.max(0, Number(before.paidAmount || 0));
+  const now = Math.max(0, Number(after.paidAmount || 0));
+  if (now > was && isSettledStage(after.stage)) return `尾款 ${money(roundMoneyValue(now - was), currency)} 视为已收齐，退回前面的阶段会恢复`;
+  if (now > was) return `定金 ${money(now, currency)} 记为已收`;
+  if (now < was) return `已收恢复为 ${money(now, currency)}`;
+  if (normalizeStage(after.stage) === 'quote' && now > 0) return `已收 ${money(now, currency)} 是登记过的收款，没有清零`;
+  return '';
+}
+// 拖拽 / 推进 / 阶段条按定金规则顺带改收款（收到定金 = 尾款，付清 = 生产中），并且移回去时能还原：
+// - 报价 → 尾款、还没收钱：按约定定金记为已收，记下原来的已收（paidBeforeDeposit）和自动记的金额（depositAutoPaid）；
+// - 离开已发货 / 已完成去任何没完成的阶段（含生产中）：还原进去时「尾款视为已收齐」之前的真实已收；
+//   一个单号都没有的单不再标成已发货（旧的发货日以后会喂给 UPS 满 5 天规则）；
+// - 回到报价：自动记的定金还没被改过，就恢复成没收（报价 = 没收定金）；手工登记的真实收款不动。
 function adjustPaymentForManualMove(order, fromStage, toStage) {
   const from = normalizeStage(fromStage);
+  const to = normalizeStage(toStage);
   const amount = orderAmountValue(order);
   let text = '';
-  if (from === 'quote' && toStage === 'balance' && Number(order.paidAmount || 0) <= 0 && Number(order.depositAmount || 0) > 0) {
+  if (from === 'quote' && to === 'balance' && Number(order.paidAmount || 0) <= 0 && Number(order.depositAmount || 0) > 0) {
+    order.paidBeforeDeposit = Math.max(0, Number(order.paidAmount || 0));
     order.paidAmount = Math.min(amount, Number(order.depositAmount));
+    order.depositAutoPaid = order.paidAmount;
     text = `，定金按预付 ${money(order.paidAmount, order.currency || 'USD')} 记为已收`;
   }
-  if (isSettledStage(from) && !isSettledStage(toStage)) {
-    const before = Number(order.paidBeforeSettle);
-    if (['quote', 'balance'].includes(toStage) && Number.isFinite(before) && before < Number(order.paidAmount || 0)) {
-      order.paidAmount = Math.max(0, before);
-      text = `，已付款恢复为 ${money(order.paidAmount, order.currency || 'USD')}`;
+  return text + restoreAutoPaymentsOnStageExit(order, from, to);
+}
+// 阶段往回走时还原自动记的收款（拖拽、阶段条、推进、编辑弹窗 / 抽屉保存共用）。返回写进操作记录的说明。
+function restoreAutoPaymentsOnStageExit(order, fromStage, toStage, { keepPaid = false } = {}) {
+  const from = normalizeStage(fromStage);
+  const to = normalizeStage(toStage);
+  const currency = order.currency || 'USD';
+  let text = '';
+  if (isSettledStage(from) && !isSettledStage(to)) {
+    const before = finiteMoneyOrNull(order.paidBeforeSettle);
+    if (!keepPaid && before !== null && before < Number(order.paidAmount || 0)) {
+      order.paidAmount = roundMoneyValue(Math.max(0, before));
+      text += `，已付款恢复为 ${money(order.paidAmount, currency)}`;
     }
     delete order.paidBeforeSettle;
     if (!normalizeOrderShipments(order).length) {
@@ -19277,39 +19463,50 @@ function adjustPaymentForManualMove(order, fromStage, toStage) {
       order.logisticsUpdated = '';
     }
   }
+  if (to === 'quote' && from !== 'quote') {
+    const auto = finiteMoneyOrNull(order.depositAutoPaid);
+    if (!keepPaid && auto !== null && roundMoneyValue(order.paidAmount) === roundMoneyValue(auto)) {
+      order.paidAmount = roundMoneyValue(Math.max(0, finiteMoneyOrNull(order.paidBeforeDeposit) || 0));
+      text += `，自动记的定金 ${money(auto, currency)} 恢复为未收`;
+    }
+    delete order.paidBeforeDeposit;
+    delete order.depositAutoPaid;
+  }
   return text;
 }
-// 进入已发货 / 已完成会顺带把尾款记为收齐、补发货状态；撤销时这些一起还原，不只改回阶段。
+// 进入已发货 / 已完成会顺带把尾款记为收齐、补发货状态；报价 → 尾款会记定金。撤销时这些一起还原，不只改回阶段。
 function stageMoveSnapshot(order = {}) {
-  return { stage:order.stage, paidAmount:order.paidAmount, paidBeforeSettle:order.paidBeforeSettle, logisticsStatus:order.logisticsStatus, shippedAt:order.shippedAt, logisticsUpdated:order.logisticsUpdated, shipments:order.shipments, autoDoneHold:order.autoDoneHold };
+  return { stage:order.stage, paidAmount:order.paidAmount, paidBeforeSettle:order.paidBeforeSettle, paidBeforeDeposit:order.paidBeforeDeposit, depositAutoPaid:order.depositAutoPaid, logisticsStatus:order.logisticsStatus, shippedAt:order.shippedAt, logisticsUpdated:order.logisticsUpdated, shipments:order.shipments, autoDoneHold:order.autoDoneHold };
 }
-function undoOrderStageMove(id, before, after) {
-  const order = state.orders.find(o => o.id === id);
-  if (!order) return;
-  // 撤销前又被手动改过的字段保留新值，只还原这次移动带来的变化。
-  Object.keys(before).forEach(key => { if (order[key] === after[key]) order[key] = before[key]; });
-  if (typeof uiTrackingQuickCardClose === 'function') uiTrackingQuickCardClose(id);
-  const paidRestored = order.paidAmount !== after.paidAmount;
-  order.updated = nowText();
-  order.logs = [{ time:nowText(), text:`撤销阶段调整：恢复为 ${stageDef(order.stage).name}${paidRestored ? `，已付款恢复为 ${money(order.paidAmount, order.currency || 'USD')}` : ''}` }, ...(order.logs || [])];
-  render();
-  if (detailOrderId === id && document.getElementById('orderDetailDrawer')?.classList.contains('open')) openOrderDetail(id);
-  toast(`已撤销，恢复为${stageDef(order.stage).name}`);
+function undoOrderStageMove(id, before, after, version) {
+  return undoOrderChange(id, {
+    before, after, version,
+    logText: current => `撤销阶段调整：恢复为 ${stageDef(current.stage).name}`,
+    doneText: (current, name) => `已撤销：${name} 回到${stageDef(current.stage).name}`
+  });
 }
 function deleteOrder() {
   if (!editingId) return;
   softDeleteOrder(editingId, { closeModal: true });
 }
+// 恢复时保留原来的「最近更新」时间（卡片回到原来的位置，提醒的「已处理」标记还对得上），删除时清掉的「已处理」标记放回去。
 function restoreOrder(id) {
   if (!canSubmitStoredData()) return;
   const order = (state.deletedOrders || []).find(o => o.id === id);
   if (!order) return;
-  const restored = { ...order, updated: nowText(), logs: [{ time:nowText(), text:'订单已从已删除订单恢复' }, ...(order.logs || [])] };
+  const restored = { ...order, logs: [{ time:nowText(), text:'订单已从已删除订单恢复' }, ...(order.logs || [])] };
   delete restored.deletedAt;
+  const doneKeys = Array.isArray(restored.deletedDoneTasks) ? restored.deletedDoneTasks : [];
+  delete restored.deletedDoneTasks;
+  if (doneKeys.length) {
+    state.doneTasks = state.doneTasks || {};
+    doneKeys.forEach(key => { state.doneTasks[key] = true; });
+  }
   state.orders.unshift(restored);
   state.deletedOrders = (state.deletedOrders || []).filter(o => o.id !== id);
+  bumpOrderUndoVersion(id);
   render();
-  toast('订单已恢复');
+  toast(`已恢复 ${orderToastLabel(restored)}`, { group:orderToastGroup(id) });
 }
 function purgeOrder(id) {
   state.deletedOrders = (state.deletedOrders || []).filter(o => o.id !== id);
@@ -23008,43 +23205,61 @@ document.getElementById('pipeline').addEventListener('click', e => {
   const trashCard = e.target.closest('[data-trash-id]');
   if (trashCard) openOrderDetail(trashCard.dataset.trashId);
 });
+// 拖的是哪张卡：dragover 时浏览器不让读 dataTransfer 里的数据，自己记一份，用来判断目标列能不能放。
+let boardDragId = '';
+const boardDragType = 'application/x-ots-order';
+function boardDragOrder(id = boardDragId) {
+  return state.orders.find(o => o.id === id) || (state.trashOrders || []).find(o => o.id === id) || null;
+}
 document.getElementById('pipeline').addEventListener('dragstart', e => {
   const card = e.target.closest('.board-card[data-id], .trash-card[data-trash-id]');
   if (!card) return;
+  uiCloseBoardMenu();
+  boardDragId = card.dataset.id || card.dataset.trashId;
   card.classList.add('dragging');
   e.dataTransfer.effectAllowed = 'move';
-  e.dataTransfer.setData('text/plain', card.dataset.id || card.dataset.trashId);
+  // 订单 id 用自己的类型传；text/plain 放给人看的内容：拖到备忘录、聊天里是「K3002 客户名 $500 USD」，不是一串内部 id。
+  e.dataTransfer.setData(boardDragType, boardDragId);
+  const order = boardDragOrder();
+  e.dataTransfer.setData('text/plain', order ? `${order.num} ${clientDisplayName(order.client)} ${money(order.amount, order.currency)}` : '');
 });
 document.getElementById('pipeline').addEventListener('dragend', e => {
+  boardDragId = '';
   const card = e.target.closest('.board-card');
   if (card) card.classList.remove('dragging');
-  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  document.querySelectorAll('.drag-over, .drag-invalid').forEach(el => el.classList.remove('drag-over', 'drag-invalid'));
 });
 document.getElementById('pipeline').addEventListener('dragover', e => {
   const column = e.target.closest('.board-column[data-stage], #trashDrop');
   if (!column) return;
+  // 外部拖进来的文本 / 文件也拦下（别让浏览器打开文件），但不高亮、松手时不当成订单。
   e.preventDefault();
-  column.classList.add('drag-over');
+  const order = boardDragId ? boardDragOrder() : null;
+  if (!order) return;
+  if (column.id === 'trashDrop') { column.classList.add('drag-over'); return; }
+  // 放不进去的列（全款单拖到尾款、草稿拖到已发货）：不高亮成可放，画成禁止样式，松手时提示原因；自己所在的列不高亮。
+  const invalid = Boolean(stageMoveRejection(order, column.dataset.stage));
+  const same = state.orders.includes(order) && order.stage === column.dataset.stage;
+  column.classList.toggle('drag-invalid', invalid);
+  column.classList.toggle('drag-over', !invalid && !same);
 });
 document.getElementById('pipeline').addEventListener('dragleave', e => {
   const column = e.target.closest('.board-column[data-stage], #trashDrop');
-  if (column && !column.contains(e.relatedTarget)) column.classList.remove('drag-over');
+  if (column && !column.contains(e.relatedTarget)) column.classList.remove('drag-over', 'drag-invalid');
 });
 document.getElementById('pipeline').addEventListener('drop', e => {
-  const trash = e.target.closest('#trashDrop');
-  if (trash) {
-    e.preventDefault();
-    trash.classList.remove('drag-over');
-    moveOrderToTrash(e.dataTransfer.getData('text/plain'));
-    return;
-  }
-  const column = e.target.closest('.board-column[data-stage]');
-  if (!column) return;
+  const target = e.target.closest('.board-column[data-stage], #trashDrop');
+  if (!target) return;
   e.preventDefault();
-  column.classList.remove('drag-over');
-  const droppedId = e.dataTransfer.getData('text/plain');
-  moveOrderToStage(droppedId, column.dataset.stage);
-  document.querySelector(`#pipeline .board-card[data-id="${CSS.escape(droppedId)}"]`)?.classList.add('just-landed');
+  target.classList.remove('drag-over', 'drag-invalid');
+  const droppedId = e.dataTransfer.getData(boardDragType) || boardDragId;
+  boardDragId = '';
+  if (!droppedId) return;
+  if (target.id === 'trashDrop') { moveOrderToTrash(droppedId); return; }
+  // 只有真的移动成功才播「落地」动画；被拒绝、同列松手不再看起来像成功了。
+  if (moveOrderToStage(droppedId, target.dataset.stage)) {
+    document.querySelector(`#pipeline .board-card[data-id="${CSS.escape(droppedId)}"]`)?.classList.add('just-landed');
+  }
 });
 const workspaceBoard = document.querySelector('.workspace-board');
 let workspaceBoardDrag = null;
@@ -23077,6 +23292,20 @@ workspaceBoard?.addEventListener('click', e => {
   e.preventDefault();
   e.stopPropagation();
 }, true);
+// 看板放不下四列（缩放 120% + 最小窗口）时，有内容的那一侧渐隐，提示还能横向滚（macOS 默认不显示滚动条，以前「已发货」整列看不见也没有任何提示）。
+function uiSyncBoardOverflow() {
+  if (!workspaceBoard) return;
+  const max = workspaceBoard.scrollWidth - workspaceBoard.clientWidth;
+  workspaceBoard.toggleAttribute('data-more-right', max > 2 && workspaceBoard.scrollLeft < max - 2);
+  workspaceBoard.toggleAttribute('data-more-left', max > 2 && workspaceBoard.scrollLeft > 2);
+}
+workspaceBoard?.addEventListener('scroll', uiSyncBoardOverflow, { passive:true });
+if (workspaceBoard && typeof ResizeObserver === 'function') {
+  const boardOverflowObserver = new ResizeObserver(uiSyncBoardOverflow);
+  boardOverflowObserver.observe(workspaceBoard);
+  const columns = document.getElementById('pipeline');
+  if (columns) boardOverflowObserver.observe(columns);
+}
 document.getElementById('trackingLookupBtn').addEventListener('click', renderTrackingLookup);
 document.getElementById('trackingLookupInput').addEventListener('keydown', e => {
   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !isImeKeyEvent(e)) {
@@ -23423,9 +23652,11 @@ document.querySelector('.accent-swatches')?.addEventListener('click', e => {
 try { uiApplyAccent(localStorage.getItem('ots-accent-v1')); } catch (_) { uiApplyAccent('violet'); }
 // 新版 UI：公共组件（Toast 堆叠、状态变形按钮、按住确认）。
 function uiIcon(name) { return `<svg class="ui-icon" aria-hidden="true"><use href="#i-${name}"/></svg>`; }
-function uiToast(text, { undo = null, undoText = '撤销', tone = '', desc = '' } = {}) {
+// group：同一组（例如同一张订单）只留最新的一条提示，旧的连同它的「撤销」一起收起。
+function uiToast(text, { undo = null, undoText = '撤销', tone = '', desc = '', group = '' } = {}) {
   const stack = document.getElementById('toast');
   if (!stack) return;
+  if (group) stack.querySelectorAll('.toast-item:not(.leaving)').forEach(old => { if (old.dataset.toastGroup === group) old.__dismiss?.(); });
   // 原型样式：白底卡片，左边状态图标，标题下可带一行灰色说明。
   const kind = { info:'info', warn:'warn', error:'error', red:'error', amber:'warn' }[tone] || 'success';
   const item = document.createElement('div');
@@ -23452,6 +23683,8 @@ function uiToast(text, { undo = null, undoText = '撤销', tone = '', desc = '' 
     item.classList.add('leaving');
     setTimeout(() => { item.remove(); uiLayoutToasts(); }, uiReduceMotion() ? 0 : 200);
   };
+  item.__dismiss = dismiss;
+  if (group) item.dataset.toastGroup = group;
   if (typeof undo === 'function') {
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -23507,6 +23740,9 @@ function uiMorph(btn, mode, text) {
   btn.morphTimer = setTimeout(() => { btn.style.width = ''; }, 600);
 }
 // 按住确认（Evil Buttons · HoldButton）：data-hold="毫秒"，按满才派发 hold-confirm；中途松手抖一下。
+// 按住期间按了 Esc、窗口失焦、指针移出按钮、按钮所在的菜单 / 抽屉 / 弹窗被关掉，都算放弃；到点时按钮已经不在了也不派发。
+// 以前菜单（或抽屉）已经消失，1.5 秒后订单照样被删。
+let uiHoldPointer = null;
 function uiStartHold(btn) {
   if (btn.disabled || btn.dataset.holding) return;
   const ms = Number(btn.dataset.hold) || 1500;
@@ -23516,35 +23752,66 @@ function uiStartHold(btn) {
   btn.holdTimer = setTimeout(() => {
     delete btn.dataset.holding;
     btn.classList.remove('holding');
+    if (uiHoldPointer?.btn === btn) uiHoldPointer = null;
+    if (!uiHoldTargetAlive(btn)) return;
     btn.classList.add('held');
     setTimeout(() => btn.classList.remove('held'), 1400);
     btn.dispatchEvent(new CustomEvent('hold-confirm', { bubbles:true }));
   }, uiReduceMotion() ? Math.min(ms, 600) : ms);
 }
-function uiCancelHold(btn) {
+// 按钮还在页面上、看得见，所在的抽屉 / 弹窗也还开着。关掉的右键菜单节点虽然脱离了页面，监听器还挂着，不能让它删单。
+function uiHoldTargetAlive(btn) {
+  if (!btn?.isConnected || btn.disabled || !btn.getClientRects().length) return false;
+  const layer = btn.closest('.modal-backdrop');
+  return !layer || layer.classList.contains('open');
+}
+// released：用户自己提前松手。单击「按住删除」只抖一下的话，第一次用的人会以为按钮坏了，所以提示一句（同一个按钮 3 秒内只提示一次）。
+function uiCancelHold(btn, { released = false } = {}) {
   if (!btn?.dataset.holding) return;
   clearTimeout(btn.holdTimer);
   delete btn.dataset.holding;
   btn.classList.remove('holding');
+  if (uiHoldPointer?.btn === btn) uiHoldPointer = null;
   btn.classList.remove('shake');
   void btn.offsetWidth;
   btn.classList.add('shake');
+  if (released && !btn.dataset.holdHinted) {
+    btn.dataset.holdHinted = '1';
+    setTimeout(() => { delete btn.dataset.holdHinted; }, 3000);
+    toast(`要按住不放 ${(Number(btn.dataset.hold) || 1500) / 1000} 秒才会删除`, { tone:'info' });
+  }
+}
+// 一起放弃 scope 里所有正在按住的按钮（Esc、窗口失焦、菜单 / 抽屉 / 弹窗关闭时用）。
+function uiCancelAllHolds(scope = document) {
+  scope?.querySelectorAll?.('[data-holding]').forEach(btn => uiCancelHold(btn));
 }
 document.addEventListener('pointerdown', e => {
   const btn = e.target.closest?.('[data-hold]');
-  if (!btn || e.button !== 0) return;
+  // Mac 上 Control+点按就是右键（button 也是 0），原生菜单会吃掉 mouseup：不算按住。
+  if (!btn || e.button !== 0 || e.ctrlKey) return;
   btn.setPointerCapture?.(e.pointerId);
+  uiHoldPointer = { btn, pointerId:e.pointerId };
   uiStartHold(btn);
 });
 ['pointerup', 'pointercancel'].forEach(type => document.addEventListener(type, e => {
-  const btn = e.target.closest?.('[data-hold]');
-  if (btn) uiCancelHold(btn);
+  const btn = e.target.closest?.('[data-hold]') || (uiHoldPointer?.pointerId === e.pointerId ? uiHoldPointer.btn : null);
+  if (btn) uiCancelHold(btn, { released:type === 'pointerup' });
 }, true));
-// 只有指针离开按钮本体才算放弃。按在「按住删除」文字上时，指针捕获会让文字 span 先收到 pointerleave，
-// 以前这一下就把按住取消了（手稍微一动就删不掉）。
+// 指针被按钮捕获后，浏览器不再给按钮发 pointerleave，真实鼠标移出去也收不到；所以按住期间看指针坐标，出了按钮就放弃。
+// 在按钮里抖几个像素（包括按在「按住删除」文字上）不算。
+document.addEventListener('pointermove', e => {
+  const hold = uiHoldPointer;
+  if (!hold || hold.pointerId !== e.pointerId || !hold.btn.dataset.holding) return;
+  const box = hold.btn.getBoundingClientRect();
+  if (e.clientX < box.left || e.clientX > box.right || e.clientY < box.top || e.clientY > box.bottom) uiCancelHold(hold.btn);
+}, true);
+// 没有指针捕获时照样认 pointerleave。只有指针离开按钮本体才算放弃：按在文字 span 上时，span 自己的 pointerleave 不算。
 document.addEventListener('pointerleave', e => {
   const btn = e.target.closest?.('[data-hold]');
   if (btn && e.target === btn && !(e.relatedTarget && btn.contains(e.relatedTarget))) uiCancelHold(btn);
+}, true);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') uiCancelAllHolds();
 }, true);
 document.addEventListener('keydown', e => {
   const btn = e.target.closest?.('[data-hold]');
@@ -23554,8 +23821,10 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('keyup', e => {
   const btn = e.target.closest?.('[data-hold]');
-  if (btn && (e.key === ' ' || e.key === 'Enter')) uiCancelHold(btn);
+  if (btn && (e.key === ' ' || e.key === 'Enter')) uiCancelHold(btn, { released:true });
 });
+window.addEventListener('blur', () => uiCancelAllHolds());
+document.addEventListener('visibilitychange', () => { if (document.hidden) uiCancelAllHolds(); });
 // 数值变化时轻轻上滚（KPI、看板列金额、导航计数）；只在值真的变了时动。
 function uiTickTargets() { return document.querySelectorAll('.stat-value, .board-column-meta, .nav-count, .board-count'); }
 function uiSnapshotNumbers() {
@@ -23571,32 +23840,59 @@ function uiTickChanged(before) {
     el.classList.add('num-tick');
   });
 }
-// 看板卡片右键菜单：打开、编辑、复制订单号、按住 1.5 秒删除（可撤销）。取代原来的垃圾箱列。
-function uiCloseBoardMenu() {
-  document.querySelector('.board-menu')?.remove();
+// 看板卡片右键菜单：打开、收齐、推进、编辑、复制订单号、按住 1.5 秒删除（可撤销）。取代原来的垃圾箱列。
+// 键盘：卡片可以 Tab 到，回车打开详情；ContextMenu 键 / Shift+F10 打开菜单，↑↓ Home End 选择，Esc 关闭后焦点回到卡片。
+function uiCloseBoardMenu({ restoreFocus = false } = {}) {
+  const menu = document.querySelector('.board-menu');
+  if (!menu) return;
+  // 菜单关了，里面正在按住的「按住删除」一起放弃（以前按住时按 Esc，菜单没了，1.5 秒后订单照样被删）。
+  uiCancelAllHolds(menu);
+  menu.remove();
+  if (!restoreFocus) return;
+  const card = menu.__card?.isConnected ? menu.__card : document.querySelector(`#pipeline .board-card[data-id="${CSS.escape(menu.dataset.orderId || '')}"]`);
+  card?.focus({ preventScroll:true });
 }
-document.getElementById('pipeline')?.addEventListener('contextmenu', e => {
-  const card = e.target.closest('.board-card[data-id]');
-  if (!card) return;
-  e.preventDefault();
+function uiBoardMenuItems(menu) {
+  return [...menu.querySelectorAll('[role="menuitem"]:not([disabled])')];
+}
+function uiOpenBoardMenu(card, { x = 0, y = 0 } = {}) {
   uiCloseBoardMenu();
-  const order = state.orders.find(o => o.id === card.dataset.id);
-  if (!order) return;
+  const order = state.orders.find(o => o.id === card?.dataset.id);
+  if (!order) return null;
+  const due = orderDueValue(order);
+  const next = nextStageFor(order);
+  const title = `${clientDisplayName(order.client)} · ${order.num}`;
   const menu = document.createElement('div');
   menu.className = 'board-menu';
   menu.setAttribute('role', 'menu');
+  menu.setAttribute('aria-label', `${title} 的操作`);
+  menu.dataset.orderId = order.id;
+  menu.__card = card;
+  const anchor = card.getBoundingClientRect();
+  menu.__anchor = { left:anchor.left, top:anchor.top, vw:window.innerWidth, vh:window.innerHeight };
   menu.innerHTML = `
-    <div class="board-menu-title">${escapeAttr(clientDisplayName(order.client))} · ${escapeAttr(order.num)}</div>
-    <button type="button" role="menuitem" data-board-menu="open">${uiIcon('arrow')}打开订单</button>
-    ${orderDueValue(order) > 0 && !isSettledStage(order.stage) ? `<button type="button" role="menuitem" data-board-menu="paid">${uiIcon('cash')}收齐尾款 ${escapeAttr(money(orderDueValue(order), order.currency))}</button>` : ''}
-    ${nextStageFor(order) ? `<button type="button" role="menuitem" data-board-menu="advance">${uiIcon('check')}推进到${stageDef(nextStageFor(order)).name}</button>` : ''}
-    <button type="button" role="menuitem" data-board-menu="edit">${uiIcon('list')}编辑订单</button>
-    <button type="button" role="menuitem" data-board-menu="copy">${uiIcon('copy')}复制订单号</button>
-    <button type="button" role="menuitem" class="btn btn-danger hold-btn" data-hold="1500" data-board-menu="delete"><span class="hold-fill" aria-hidden="true"></span><span class="hold-label">按住删除</span></button>`;
+    <div class="board-menu-title" title="${escapeAttr(title)}">${escapeAttr(title)}</div>
+    <button type="button" role="menuitem" tabindex="-1" data-board-menu="open">${uiIcon('arrow')}打开订单</button>
+    ${due > 0 && !isSettledStage(order.stage) ? `<button type="button" role="menuitem" tabindex="-1" data-board-menu="paid">${uiIcon('cash')}${quickPaidLabel(order)} ${escapeAttr(money(due, order.currency))}</button>` : ''}
+    ${next ? `<button type="button" role="menuitem" tabindex="-1" data-board-menu="advance">${uiIcon('check')}推进到${stageDef(next).name}</button>` : ''}
+    <button type="button" role="menuitem" tabindex="-1" data-board-menu="edit">${uiIcon('list')}编辑订单</button>
+    <button type="button" role="menuitem" tabindex="-1" data-board-menu="copy">${uiIcon('copy')}复制订单号</button>
+    <button type="button" role="menuitem" tabindex="-1" class="btn btn-danger hold-btn" data-hold="1500" data-board-menu="delete" aria-describedby="boardMenuHoldNote" title="按住 1.5 秒删除，6 秒内可撤销，也能在已删除订单里恢复"><span class="hold-fill" aria-hidden="true"></span><span class="hold-label">按住删除</span></button>
+    <div class="board-menu-note" id="boardMenuHoldNote">按住 1.5 秒 · 6 秒内可撤销</div>`;
   document.body.appendChild(menu);
-  const box = menu.getBoundingClientRect();
-  menu.style.left = `${Math.min(e.clientX, window.innerWidth - box.width - 8)}px`;
-  menu.style.top = `${Math.min(e.clientY, window.innerHeight - box.height - 8)}px`;
+  // 量布局尺寸（offsetWidth / offsetHeight）：入场动画还在 scale(.96)，getBoundingClientRect 量到的小 4%，贴边时会超出窗口。
+  const width = menu.offsetWidth;
+  const height = menu.offsetHeight;
+  let left = x;
+  let top = y;
+  // 键盘打开（坐标是 0,0）：贴着卡片放，而不是屏幕左上角。
+  if (!x && !y) {
+    const box = card.getBoundingClientRect();
+    left = box.left + 12;
+    top = box.top + Math.min(box.height, 28);
+  }
+  menu.style.left = `${Math.max(8, Math.min(left, window.innerWidth - width - 8))}px`;
+  menu.style.top = `${Math.max(8, Math.min(top, window.innerHeight - height - 8))}px`;
   menu.addEventListener('click', ev => {
     const action = ev.target.closest('[data-board-menu]')?.dataset.boardMenu;
     if (!action || action === 'delete') return;
@@ -23611,12 +23907,52 @@ document.getElementById('pipeline')?.addEventListener('contextmenu', e => {
     uiCloseBoardMenu();
     softDeleteOrder(order.id);
   });
-  if (!e.clientX && !e.clientY) menu.querySelector('button')?.focus();
+  // 菜单上再右键不弹浏览器 / WebView 自带的菜单（Mac 上叠两层菜单，里面还有「重新载入」）。
+  menu.addEventListener('contextmenu', ev => ev.preventDefault());
+  menu.addEventListener('keydown', ev => {
+    if (isImeKeyEvent(ev)) return;
+    const items = uiBoardMenuItems(menu);
+    const index = items.indexOf(document.activeElement);
+    let target = null;
+    if (ev.key === 'ArrowDown') target = items[(index + 1) % items.length];
+    else if (ev.key === 'ArrowUp') target = items[(index - 1 + items.length) % items.length];
+    else if (ev.key === 'Home') target = items[0];
+    else if (ev.key === 'End') target = items[items.length - 1];
+    else if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); uiCloseBoardMenu({ restoreFocus:true }); return; }
+    else if (ev.key === 'Tab') { ev.preventDefault(); uiCloseBoardMenu({ restoreFocus:true }); return; }
+    if (!target) return;
+    ev.preventDefault();
+    target.focus();
+  });
+  // 焦点放进菜单（第一项），方向键马上能用；鼠标打开时也一样，Esc 关掉后回到卡片。
+  uiBoardMenuItems(menu)[0]?.focus({ preventScroll:true });
+  return menu;
+}
+document.getElementById('pipeline')?.addEventListener('contextmenu', e => {
+  const card = e.target.closest('.board-card[data-id]');
+  // 看板上别的地方（列头、列内空白）右键也不弹浏览器自带菜单（WebView 里有「重新载入」）。
+  if (!card) { if (e.target.closest('.board-column')) e.preventDefault(); return; }
+  e.preventDefault();
+  uiOpenBoardMenu(card, { x:e.clientX, y:e.clientY });
+});
+// 卡片的键盘操作：回车 / 空格打开详情（和单击一样），Shift+F10 打开右键菜单（ContextMenu 键浏览器自己会发 contextmenu）。
+document.getElementById('pipeline')?.addEventListener('keydown', e => {
+  const card = e.target.closest?.('.board-card[data-id]');
+  if (!card || e.target !== card || isImeKeyEvent(e)) return;
+  if (e.key === 'F10' && e.shiftKey) {
+    e.preventDefault();
+    uiOpenBoardMenu(card);
+    return;
+  }
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    card.click();
+  }
 });
 document.addEventListener('pointerdown', e => {
   if (!e.target.closest?.('.board-menu')) uiCloseBoardMenu();
 }, true);
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && !isImeKeyEvent(e)) uiCloseBoardMenu(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !isImeKeyEvent(e)) uiCloseBoardMenu({ restoreFocus:true }); });
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape' || e.defaultPrevented || isImeKeyEvent(e)) return;
   if (document.getElementById('confirmModal')?.classList.contains('open')) return;
@@ -23632,8 +23968,26 @@ document.addEventListener('keydown', e => {
   e.preventDefault();
   hit[1]();
 });
-window.addEventListener('blur', uiCloseBoardMenu);
-document.querySelector('.content')?.addEventListener('scroll', uiCloseBoardMenu, { passive:true });
+window.addEventListener('blur', () => uiCloseBoardMenu());
+// 滚动让卡片动了就关菜单（捕获阶段，一次覆盖页面、列内、看板横向滚动）：Mac App 里滚动的是整个页面，以前只盯着 .content，菜单停在原地盖住别的内容。
+// 只看卡片有没有真的移动：打开菜单前那一下滚动的 scroll 事件晚一帧才到，不能把刚打开的菜单关掉。菜单自己的滚动不算。窗口大小变了也关（位置已经不对）。
+document.addEventListener('scroll', e => {
+  const menu = document.querySelector('.board-menu');
+  if (!menu || e.target?.closest?.('.board-menu')) return;
+  const card = menu.__card;
+  const box = card?.isConnected ? card.getBoundingClientRect() : null;
+  const from = menu.__anchor;
+  if (!box || !from || Math.abs(box.left - from.left) > 2 || Math.abs(box.top - from.top) > 2) uiCloseBoardMenu();
+}, { capture:true, passive:true });
+window.addEventListener('resize', () => {
+  const from = document.querySelector('.board-menu')?.__anchor;
+  if (from && (from.vw !== window.innerWidth || from.vh !== window.innerHeight)) uiCloseBoardMenu();
+});
+// 焦点去了菜单外面（按「/」或 ⌘K 打开搜索、Tab 走开）：菜单收起，别盖在搜索结果上。
+document.addEventListener('focusin', e => {
+  const menu = document.querySelector('.board-menu');
+  if (menu && !menu.contains(e.target)) uiCloseBoardMenu();
+});
 // 通知面板：只放「发生过的事」——保存失败、接口异常、物流状态变化、飞书群消息结果、发现新版本，加上近 3 天的订单动态。
 // 待办（加急/收款/跟进/复购）留在工作台的待办列表里，不再混进通知。事件和已读状态都只记在本机 localStorage。
 // 用函数属性存当前标签：render() 可能在脚本末尾这段执行前就调用 uiRenderNotifs。
@@ -24255,38 +24609,48 @@ function nextStageFor(order = {}) {
 }
 function quickAdvanceStage(id) {
   const order = state.orders.find(o => o.id === id);
-  if (!order) return;
+  if (!order) return false;
   const next = nextStageFor(order);
-  if (!next) { toast('这单已经完成了'); return; }
-  moveOrderToStage(id, next);
+  if (!next) { toast(`${orderToastLabel(order)} 已经完成了`); return false; }
+  return moveOrderToStage(id, next);
+}
+// 收齐时会改的字段：撤销按这几个字段逐个还原（之后又改过的保留新值）。
+function paidFullSnapshot(order = {}) {
+  return { stage:order.stage, paidAmount:order.paidAmount, paidBeforeDeposit:order.paidBeforeDeposit, depositAutoPaid:order.depositAutoPaid };
+}
+// 报价单还没收过定金，一次收的是全款；尾款 / 生产中收的是尾款。
+function quickPaidLabel(order = {}) {
+  return normalizeStage(order.stage) === 'quote' ? '收齐全款' : '收齐尾款';
 }
 function quickMarkPaidFull(id) {
   const order = state.orders.find(o => o.id === id);
-  if (!order) return;
+  if (!order || !canSubmitStoredData()) return;
   const amount = orderAmountValue(order);
   const due = orderDueValue(order);
-  if (due <= 0) { toast('这单已经收齐了'); return; }
-  const before = { paidAmount:order.paidAmount, stage:order.stage, updated:order.updated, logs:order.logs || [] };
+  const label = orderToastLabel(order);
+  if (due <= 0) { toast(`${label} 已经收齐了`); return; }
+  const what = quickPaidLabel(order);
+  const before = paidFullSnapshot(order);
   const previousPaid = orderPaidValue(order);
   order.paidAmount = amount;
+  // 真的收齐了：报价 → 尾款时自动记的定金不再算「自动」，之后退回报价也不会被清零。
+  delete order.paidBeforeDeposit;
+  delete order.depositAutoPaid;
   const stage = normalizeStage(order.stage);
   const moved = ['quote', 'balance'].includes(stage);
   if (moved) order.stage = 'production';
   order.updated = nowText();
-  order.logs = [{ time:nowText(), text:`收齐尾款：已付款 ${money(previousPaid, order.currency || 'USD')} → ${money(amount, order.currency || 'USD')}${moved ? `，阶段从 ${stageDef(stage).name} 进入生产中` : ''}` }, ...before.logs];
+  order.logs = [{ time:nowText(), text:`${what}：已付款 ${money(previousPaid, order.currency || 'USD')} → ${money(amount, order.currency || 'USD')}${moved ? `，阶段从 ${stageDef(stage).name} 进入生产中` : ''}` }, ...(order.logs || [])];
+  const version = bumpOrderUndoVersion(id);
+  const after = paidFullSnapshot(order);
   render();
-  if (detailOrderId === id && document.getElementById('orderDetailDrawer')?.classList.contains('open')) openOrderDetail(id);
-  toast(`已收齐 ${money(amount, order.currency || 'USD')}${moved ? '，进入生产中' : ''}`, { undo:() => {
-    const current = state.orders.find(o => o.id === id);
-    if (!current) return;
-    current.paidAmount = before.paidAmount;
-    current.stage = before.stage;
-    current.updated = nowText();
-    current.logs = [{ time:nowText(), text:`撤销收齐尾款：已付款恢复为 ${money(previousPaid, current.currency || 'USD')}` }, ...before.logs];
-    render();
-    if (detailOrderId === id && document.getElementById('orderDetailDrawer')?.classList.contains('open')) openOrderDetail(id);
-    toast('已撤销收齐');
-  } });
+  refreshOpenOrderDetail(id);
+  // 撤销只认这一次收齐：之后这张单又被移动（比如拖到已发货）就作废，不会退回报价却留着发货状态；记录只追加、不删。
+  toast(`${label} 已收齐 ${money(amount, order.currency || 'USD')}${moved ? '，进入生产中' : ''}`, { group:orderToastGroup(id), undo:() => undoOrderChange(id, {
+    before, after, version,
+    logText: current => `撤销${what}：恢复为 ${stageDef(current.stage).name}`,
+    doneText: (current, name) => `已撤销收齐：${name} 回到${stageDef(current.stage).name}`
+  }) });
 }
 document.getElementById('pipeline')?.addEventListener('click', e => {
   const btn = e.target.closest('[data-quick]');
@@ -24299,20 +24663,40 @@ document.getElementById('pipeline')?.addEventListener('click', e => {
   else quickAdvanceStage(id);
 }, true);
 // 运单号小卡：订单刚进已发货又没有单号时出现在右下角，承运商自动识别；可以先跳过，之后在详情里补。
-function uiTrackingQuickCardClose(id) {
+// 一次只开一张。正在填的那张不会被下一次「进已发货」替换掉（以前输了一半的单号静默丢失），后来的排队，这张关掉后再出现。
+const trackingQuickQueue = [];
+function uiTrackingQuickCardClose(id, { silent = false } = {}) {
+  if (id) {
+    const queued = trackingQuickQueue.indexOf(id);
+    if (queued >= 0) trackingQuickQueue.splice(queued, 1);
+  }
   const card = document.getElementById('trackingQuickCard');
   if (!card || (id && card.dataset.orderId !== id)) return;
+  card.removeAttribute('id');
   card.classList.add('leaving');
   setTimeout(() => card.remove(), 200);
+  // 订单被删掉时一起关掉的小卡：里面填了一半的单号也说一声。
+  if (silent && card.querySelector('input')?.value.trim()) toast(`${card.dataset.orderLabel || '这张订单'} 已删除，没保存的运单号已丢弃`, { tone:'warn' });
+  while (trackingQuickQueue.length) {
+    const next = trackingQuickQueue.shift();
+    const order = state.orders.find(o => o.id === next);
+    if (order && order.stage === 'shipment' && !cleanTracking(order.trackingNumber)) { uiTrackingQuickCard(next); break; }
+  }
 }
 function uiTrackingQuickCard(id) {
   const order = state.orders.find(o => o.id === id);
   if (!order || cleanTracking(order.trackingNumber)) return;
-  document.getElementById('trackingQuickCard')?.remove();
+  const open = document.getElementById('trackingQuickCard');
+  if (open && open.dataset.orderId !== id && open.querySelector('input')?.value.trim()) {
+    if (!trackingQuickQueue.includes(id)) trackingQuickQueue.push(id);
+    return;
+  }
+  open?.remove();
   const card = document.createElement('div');
   card.id = 'trackingQuickCard';
   card.className = 'track-card';
   card.dataset.orderId = id;
+  card.dataset.orderLabel = orderToastLabel(order);
   card.setAttribute('role', 'dialog');
   card.setAttribute('aria-label', '补运单号');
   card.innerHTML = `
@@ -24326,8 +24710,9 @@ function uiTrackingQuickCard(id) {
     const current = state.orders.find(o => o.id === id);
     if (!value) { uiTrackingQuickCardClose(id); return; }
     if (!cleanTracking(value)) { input.classList.remove('ui-err'); void input.offsetWidth; input.classList.add('ui-err'); toast('运单号格式不对'); return; }
-    if (!current) { uiTrackingQuickCardClose(id); return; }
+    if (!current) { uiTrackingQuickCardClose(id); toast(`${card.dataset.orderLabel} 已不在看板上，运单号没有保存`, { tone:'warn' }); return; }
     if (current.stage !== 'shipment') { uiTrackingQuickCardClose(id); toast('这张订单已不在「已发货」，运单号请在订单详情里补'); return; }
+    if (!canSubmitStoredData()) return;
     const shipment = normalizeOrderShipments({ trackingNumber:value, carrier:'auto', logisticsStatus:'已发货', shippedAt:current.shippedAt || normalizeDate(nowText()), stage:'shipment' })[0];
     if (!shipment) { toast('运单号格式不对'); return; }
     // Keep parcels added meanwhile (detail drawer, another window); the card only adds one.
@@ -24339,10 +24724,12 @@ function uiTrackingQuickCard(id) {
     current.logisticsUpdated = nowText();
     current.updated = nowText();
     current.logs = [{ time:nowText(), text:`补充运单号 ${shipment.trackingNumber}（${carrierName(shipment.carrier)}）` }, ...(current.logs || [])];
+    // 补了单号以后，进已发货那次移动的「撤销」作废（撤回去会留下一张有单号、却在生产中的单）。
+    bumpOrderUndoVersion(id);
     render();
-    if (detailOrderId === id && document.getElementById('orderDetailDrawer')?.classList.contains('open')) openOrderDetail(id);
+    refreshOpenOrderDetail(id);
     uiTrackingQuickCardClose(id);
-    toast(`已记录运单号 ${shipment.trackingNumber}`);
+    toast(`已记录运单号 ${shipment.trackingNumber}`, { desc:orderToastLabel(current), group:orderToastGroup(id) });
   };
   card.querySelector('[data-track-save]').addEventListener('click', save);
   card.querySelector('[data-track-skip]').addEventListener('click', () => uiTrackingQuickCardClose(id));

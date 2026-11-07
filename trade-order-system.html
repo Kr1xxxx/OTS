@@ -6063,7 +6063,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
           <div class="report-stat"><div class="report-label">订单额</div><div class="report-value" id="reportUsd">$0 USD</div><div class="report-sub">草稿不计</div></div>
           <div class="report-stat paid"><div class="report-label">已收</div><div class="report-value" id="reportPaid">$0 USD</div><div class="report-sub" id="reportPaidSub">收款率 0%</div></div>
           <div class="report-stat due"><div class="report-label">待收</div><div class="report-value" id="reportDue">$0 USD</div><div class="report-sub">按订单归属月份</div></div>
-          <div class="report-stat risk"><div class="report-label">下单超 30 天未收</div><div class="report-value" id="reportOverdue">$0 USD</div><div class="report-sub" title="订单上没有尾款到期日，这里按下单日算账龄，不是付款逾期">按下单日算，还没收清的欠款</div></div>
+          <div class="report-stat risk"><div class="report-label">下单超 30 天未收</div><div class="report-value" id="reportOverdue">$0 USD</div><div class="report-sub" id="reportOverdueSub" title="全部订单里下单超过 30 天、还没收清的欠款，不跟上面选的时间范围走（和工作台待收款卡同一个数）。订单上没有尾款到期日，这里按下单日算账龄，不是付款逾期">全部订单 · 不跟时间范围</div></div>
           <div class="report-stat"><div class="report-label">订单数量</div><div class="report-value" id="reportCount">0</div><div class="report-sub" id="reportCountSub">平均 -</div></div>
         </div>
         <div class="amount-main-grid">
@@ -15474,6 +15474,7 @@ function positionClientMenu(picker) {
   if (!menu?.classList.contains('open') || !input) return;
   positionFloatingMenu(menu, input, { maxHeight:420 });
   picker._clientMenuAnchor = input.getBoundingClientRect();
+  picker._clientMenuScrolls = uiBoardMenuScrollSnapshot(input);
   syncClientLetterBar(menu);
 }
 function setActiveClientOption(picker, index) {
@@ -15752,7 +15753,9 @@ function renderAmountReport() {
     ? state.orders.filter(o => isRevenueOrder(o) && monthsForRange.includes(normalizeMonth(o.orderMonth || o.updated)))
     : ordersByMonth(selectedMonth).filter(isRevenueOrder);
   // 订单上没有尾款到期日：这里数「下单超过 30 天还有欠款」，按下单日算，不看最后修改时间（复制催款、改备注都会改它）。
-  const overdueOrders = list.filter(o => orderDueAged(o));
+  // 不跟时间范围走、数全部订单：下单超 30 天的单本来就落在默认「本月」之外，以前按区间过滤，默认永远是 $0，
+  // 而工作台同一时刻写着「下单超 30 天未收清 N」。和工作台待收款卡同一个口径。
+  const overdueOrders = state.orders.filter(o => !o.isDraft && orderDueAged(o));
   const paidTotal = usdPaidTotal(list);
   const dueTotal = usdDueTotal(list);
   const overdueTotal = usdDueTotal(overdueOrders);
@@ -15760,6 +15763,9 @@ function renderAmountReport() {
   document.getElementById('reportPaid').textContent = summaryMoney(paidTotal, 'USD');
   document.getElementById('reportDue').textContent = summaryMoney(dueTotal, 'USD');
   document.getElementById('reportOverdue').textContent = summaryMoney(overdueTotal, 'USD');
+  document.getElementById('reportOverdue').closest('.report-stat')?.classList.toggle('risk', overdueTotal > 0);
+  const overdueSub = document.getElementById('reportOverdueSub');
+  if (overdueSub) overdueSub.textContent = overdueOrders.length ? `全部订单 · ${overdueOrders.length} 笔 · 不跟时间范围` : '全部订单 · 不跟时间范围';
   document.getElementById('reportCount').textContent = list.length;
   const total = usdTotal(list);
   const paidSub = document.getElementById('reportPaidSub');
@@ -23078,7 +23084,14 @@ window.addEventListener('scroll', e => {
       const input = activeClientPicker.querySelector('input[name="client"]');
       const rect = input.getBoundingClientRect();
       const before = activeClientPicker._clientMenuAnchor;
-      if (!input.isConnected || (before && (Math.abs(rect.top - before.top) >= 1 || Math.abs(rect.left - before.left) >= 1))) closeClientMenus();
+      // 只有输入框的祖先真的滚过、输入框也跟着挪了位置才收起。弹窗入场的滑入动画（transform）也会让 getBoundingClientRect 变，
+      // 机器慢的时候（CI）点开客户下拉后弹窗还在滑，这时来一个迟到的滚动事件（打开前那一下滚进视野的 scroll 晚一帧才到），
+      // 以前只比位置，就把刚打开的菜单收掉了，接着点 ▾ 又变成「重新打开」。
+      // 没滚过但输入框挪了（弹窗滑入），菜单跟过去重新定位：不然停在旧位置，可能正好盖住 ▾。
+      const scrolled = !activeClientPicker._clientMenuScrolls || activeClientPicker._clientMenuScrolls.some(([node, left, top]) => Math.abs(node.scrollLeft - left) >= 1 || Math.abs(node.scrollTop - top) >= 1);
+      const moved = before && (Math.abs(rect.top - before.top) >= 1 || Math.abs(rect.left - before.left) >= 1);
+      if (!input.isConnected || (scrolled && moved)) closeClientMenus();
+      else if (moved) positionClientMenu(activeClientPicker);
     }
   }
   if (!activeAppSelect || e.target === appSelectPopover || appSelectPopover?.contains(e.target)) return;

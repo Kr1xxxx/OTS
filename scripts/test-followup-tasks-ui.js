@@ -223,9 +223,18 @@ const contrast = page => page.evaluate(() => {
     const reportLabel = await page.locator('#reportOverdue').evaluate(el => el.closest('.report-stat').innerText.replace(/\s+/g, ' '));
     assert.match(reportLabel, /下单超 30 天未收/);
     assert.doesNotMatch(reportLabel, /逾期/);
-    // B1 是 9 月的单：时间范围选「近 6 个月」。
+    // 「下单超 30 天未收」数全部订单、不跟时间范围：默认「本月」下也和工作台待收款卡同一个数（B1 是 9 月的单，$700，1 笔）。
+    // 以前按区间过滤，默认「本月」永远是 $0，工作台同时写着「下单超 30 天未收清 1」。
+    assert.equal(await page.locator('#chartRange').inputValue(), 'this', '金额页默认停在「本月」');
+    const dashboardAged = Number(paymentSub.match(/下单超 30 天未收清 (\d+)/)[1]);
+    assert.deepEqual(await page.evaluate(() => ({
+      amount:document.getElementById('reportOverdue').textContent,
+      sub:document.getElementById('reportOverdueSub').textContent,
+      risk:document.getElementById('reportOverdue').closest('.report-stat').classList.contains('risk'),
+    })), { amount:'$700', sub:`全部订单 · ${dashboardAged} 笔 · 不跟时间范围`, risk:true }, '默认「本月」下，金额页「下单超 30 天未收」等于工作台的数');
     await page.locator('#chartRange').selectOption('6');
-    await page.waitForFunction(() => document.getElementById('reportOverdue').textContent === '$700');
+    await page.waitForFunction(() => document.getElementById('amountRangeText').textContent.includes(' 至 '));
+    assert.equal(await page.locator('#reportOverdue').innerText(), '$700', '换时间范围不改变「下单超 30 天未收」');
     // 复制催款（真实点击菜单）：金额页不清零，收款提醒记成已催款。
     await clickIn(page, '.nav-item[data-page="dashboard"]');
     await clickIn(page, '#taskList .task[data-task-id="payment-b1"] [data-task-action="open"]');

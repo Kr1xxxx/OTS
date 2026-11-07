@@ -90,6 +90,27 @@ const webkitFocusSim = () => {
     const clientMenuOpen = () => page.locator('#orderForm .client-menu').evaluate(n => n.classList.contains('open'));
     await clientInput.click();
     assert.equal(await clientMenuOpen(), true, 'focusing the client field opens the menu');
+    // 1a. 弹窗还在滑入（transform 动画让输入框的位置一直在变）时来一个迟到的滚动事件，没有任何祖先真的滚过，菜单不能被收掉。
+    //     以前只比输入框的 getBoundingClientRect，机器慢的时候（CI）刚打开就被收起，接着点 ▾ 变成「重新打开」。
+    const slide = await page.evaluate(() => {
+      const anim = document.querySelector('#orderModal .modal').animate([{ transform:'translateY(60px)' }, { transform:'none' }], { duration:10000 });
+      window.__slideAnim = anim;
+      return Math.round(anim.currentTime || 0);
+    });
+    await page.waitForFunction(at => (window.__slideAnim.currentTime || 0) > at + 150, slide);
+    assert.deepEqual(await page.evaluate(() => {
+      document.getElementById('orderForm').dispatchEvent(new Event('scroll'));
+      const result = { moving:window.__slideAnim.playState, open:document.querySelector('#orderForm .client-menu').classList.contains('open') };
+      window.__slideAnim.cancel();
+      return result;
+    }), { moving:'running', open:true }, 'a late scroll event while the modal is still sliding in must not close the client menu');
+    // 弹窗停下后再来一个迟到的滚动事件：菜单跟着输入框重新定位，不能停在滑动中的旧位置盖住 ▾。
+    assert.deepEqual(await page.evaluate(() => {
+      document.getElementById('orderForm').dispatchEvent(new Event('scroll'));
+      const trigger = document.querySelector('#orderForm .client-trigger').getBoundingClientRect();
+      const hit = document.elementFromPoint(trigger.left + trigger.width / 2, trigger.top + trigger.height / 2);
+      return { open:document.querySelector('#orderForm .client-menu').classList.contains('open'), triggerOnTop:!!hit?.closest('.client-trigger') };
+    }), { open:true, triggerOnTop:true }, 'after the modal settles the client menu follows the field and leaves ▾ clickable');
     await page.locator('#orderForm .client-trigger').click();
     assert.equal(await clientMenuOpen(), false, '▾ must close the open client menu');
     await page.locator('#orderForm .client-trigger').click();

@@ -47,6 +47,26 @@ const settledMenuBox = async page => {
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => !document.getElementById('orderDetailDrawer').classList.contains('open'));
 
+    // 2b. 卡片还在做 transform 动画（页面刚切回来的入场上浮、悬停上浮的弹簧）时打开菜单，随后来一个和卡片无关的滚动事件
+    // （关抽屉时重置滚动、打开前那次滚动迟到的事件）：菜单不能关。以前按卡片的 getBoundingClientRect 判断「卡片动了」，
+    // 它带着动画里的 transform，macOS CI 上偶发菜单一打开就没了。动画用一段 10 秒、每秒 40px 的位移代替，结果和机器快慢无关。
+    await page.locator('#pipeline .board-card[data-id="k1"]').evaluate(card => { window.__moving = card.animate([{ transform:'translateY(400px)' }, { transform:'translateY(0)' }], { duration:10000 }); });
+    await page.locator('#pipeline .board-card[data-id="k1"]').focus();
+    await page.keyboard.press('Shift+F10');
+    await page.waitForSelector('.board-menu');
+    // 等卡片从打开菜单那一刻起又移动了 5px 以上（40px/秒），再来滚动事件。
+    const openedAt = await page.evaluate(() => window.__moving.currentTime);
+    await page.waitForFunction(t => window.__moving.currentTime > t + 150, openedAt);
+    const lateScroll = await page.evaluate(() => {
+      document.querySelector('#pipeline .board-card-list').dispatchEvent(new Event('scroll'));
+      return { moving:window.__moving.playState, open:!!document.querySelector('.board-menu') };
+    });
+    assert.deepEqual(lateScroll, { moving:'running', open:true }, '卡片还在动画里时，无关的滚动事件不能关掉刚打开的菜单');
+    await settledMenuBox(page);
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !document.querySelector('.board-menu'));
+    await page.evaluate(() => window.__moving.cancel());
+
     // 3. Shift+F10 打开菜单：贴着卡片，焦点在第一项；↑↓ Home End；Esc 关闭后焦点回到卡片。
     await page.locator('#pipeline .board-card[data-id="k1"]').focus();
     await page.keyboard.press('Shift+F10');

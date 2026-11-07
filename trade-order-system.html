@@ -24399,6 +24399,7 @@ function uiOpenBoardMenu(card, { x = 0, y = 0 } = {}) {
   menu.__card = card;
   const anchor = card.getBoundingClientRect();
   menu.__anchor = { left:anchor.left, top:anchor.top, vw:window.innerWidth, vh:window.innerHeight };
+  menu.__scrolls = uiBoardMenuScrollSnapshot(card);
   menu.innerHTML = `
     <div class="board-menu-title" title="${escapeAttr(title)}">${escapeAttr(title)}</div>
     <button type="button" role="menuitem" tabindex="-1" data-board-menu="open">${uiIcon('arrow')}打开订单</button>
@@ -24498,15 +24499,24 @@ document.addEventListener('keydown', e => {
   hit[1]();
 });
 window.addEventListener('blur', () => uiCloseBoardMenu());
+// 打开菜单时记下卡片所有祖先（列表、列、看板、页面）的滚动位置。
+function uiBoardMenuScrollSnapshot(card) {
+  const nodes = [];
+  for (let node = card?.parentElement; node; node = node.parentElement) nodes.push(node);
+  if (document.scrollingElement && !nodes.includes(document.scrollingElement)) nodes.push(document.scrollingElement);
+  return nodes.map(node => [node, node.scrollLeft, node.scrollTop]);
+}
 // 滚动让卡片动了就关菜单（捕获阶段，一次覆盖页面、列内、看板横向滚动）：Mac App 里滚动的是整个页面，以前只盯着 .content，菜单停在原地盖住别的内容。
-// 只看卡片有没有真的移动：打开菜单前那一下滚动的 scroll 事件晚一帧才到，不能把刚打开的菜单关掉。菜单自己的滚动不算。窗口大小变了也关（位置已经不对）。
+// 打开菜单前那一下滚动的 scroll 事件晚一帧才到，不能把刚打开的菜单关掉，所以只看「卡片的祖先有没有真的滚过」。
+// 以前比的是卡片的 getBoundingClientRect：它带着 transform，卡片正在做入场上浮（页面刚切过来 0.9 秒内）或悬停上浮的弹簧动画时
+// 位置一直在变，这时随便来一个滚动事件（关抽屉时重置滚动、迟到的滚动事件）菜单就被当成「卡片动了」关掉——机器快的时候（macOS CI）偶发。
+// 菜单自己的滚动不算。窗口大小变了也关（位置已经不对）。
 document.addEventListener('scroll', e => {
   const menu = document.querySelector('.board-menu');
   if (!menu || e.target?.closest?.('.board-menu')) return;
   const card = menu.__card;
-  const box = card?.isConnected ? card.getBoundingClientRect() : null;
-  const from = menu.__anchor;
-  if (!box || !from || Math.abs(box.left - from.left) > 2 || Math.abs(box.top - from.top) > 2) uiCloseBoardMenu();
+  const scrolled = !card?.isConnected || !menu.__scrolls || menu.__scrolls.some(([node, left, top]) => Math.abs(node.scrollLeft - left) > 2 || Math.abs(node.scrollTop - top) > 2);
+  if (scrolled) uiCloseBoardMenu();
 }, { capture:true, passive:true });
 window.addEventListener('resize', () => {
   const from = document.querySelector('.board-menu')?.__anchor;

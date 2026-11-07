@@ -64,14 +64,24 @@ const h = {
   toasts: page => page.evaluate(() => [...document.querySelectorAll('#toast .toast-item:not(.leaving)')].map(el => el.textContent.replace(/\s+/g, ' ').trim())),
   waitToast: (page, text) => page.waitForFunction(text => [...document.querySelectorAll('#toast .toast-item:not(.leaving)')].some(el => el.textContent.includes(text)), text),
   // 点某条提示（按文字找）的「撤销」：和用户一样先把鼠标放到提示堆上让它展开，等展开动画停下再点。
+  // 新提示弹入是 580ms 的弹簧动画：机器快的时候（macOS CI）在动画中途量到的位置，等鼠标移过去时提示已经挪开，
+  // 提示堆没展开，量到的是叠在下面的旧位置，点到了最新那条上。所以先等弹入停下，确认提示堆真的展开（:hover）再量，
+  // 点之前再确认那一点就是这个「撤销」按钮。
   clickUndo: async (page, text) => {
     const item = page.locator('#toast .toast-item:not(.leaving)', { hasText:text }).last();
     await item.waitFor();
+    const settled = () => page.waitForFunction(() => [...document.querySelectorAll('#toast .toast-item')].every(el => !el.getAnimations().some(a => a.playState === 'running')));
+    await settled();
     const newest = await page.locator('#toast .toast-item:not(.leaving)').last().boundingBox();
     await page.mouse.move(newest.x + newest.width / 3, newest.y + newest.height / 2);
-    await page.waitForFunction(() => [...document.querySelectorAll('#toast .toast-item')].every(el => !el.getAnimations().some(a => a.playState === 'running')));
-    const box = await item.locator('.toast-undo').boundingBox();
-    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await page.waitForFunction(() => document.getElementById('toast')?.matches(':hover'));
+    await settled();
+    const undo = item.locator('.toast-undo');
+    const box = await undo.boundingBox();
+    const point = { x:box.x + box.width / 2, y:box.y + box.height / 2 };
+    const onTop = await undo.evaluate((el, p) => document.elementFromPoint(p.x, p.y)?.closest('.toast-undo') === el, point);
+    if (!onTop) throw new Error(`「${text}」的撤销按钮被挡住了：${await page.evaluate(p => document.elementFromPoint(p.x, p.y)?.outerHTML.slice(0, 160), point)}`);
+    await page.mouse.click(point.x, point.y);
   },
   clearToasts: page => page.evaluate(() => document.querySelectorAll('#toast .toast-item').forEach(el => el.remove())),
   flush: page => page.evaluate(() => window.flushPendingSave?.()),

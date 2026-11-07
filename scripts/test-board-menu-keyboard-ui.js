@@ -101,6 +101,19 @@ const settledMenuBox = async page => {
     await page.waitForFunction(() => state.orders.find(o => o.id === 'k3').stage === 'shipment');
     await page.locator('#trackingQuickCard [data-track-skip]').click();
     await page.waitForFunction(() => !document.getElementById('trackingQuickCard'));
+    // 点「先跳过」后小卡还要淡出 200ms：这段时间它不能再接点击 / 滚轮（以前在 macOS 上第 6 步正好点在淡出的小卡上，
+    // 点不到下面的列表）。淡出中的提示也一样，不能挡住下面那条的「撤销」。关掉和检查放在同一次执行里，结果和机器快慢无关。
+    const fading = await page.evaluate(() => {
+      uiTrackingQuickCard('k3');
+      const card = document.getElementById('trackingQuickCard');
+      uiTrackingQuickCardClose('k3');
+      toast('fading toast check');
+      const item = [...document.querySelectorAll('#toast .toast-item')].at(-1);
+      item.__dismiss();
+      const probe = el => { const r = el.getBoundingClientRect(); return document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) === el || el.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)); };
+      return { card:[card.classList.contains('leaving'), getComputedStyle(card).pointerEvents, probe(card)], toast:[item.classList.contains('leaving'), getComputedStyle(item).pointerEvents, probe(item)] };
+    });
+    assert.deepEqual(fading, { card:[true, 'none', false], toast:[true, 'none', false] }, '淡出中的运单号小卡 / 提示不能再挡住下面的内容');
 
     // 6. 滚动关菜单：整页滚动（Mac App 里滚的是页面）、列内滚动。
     await h.rightClick(page, 'k2');

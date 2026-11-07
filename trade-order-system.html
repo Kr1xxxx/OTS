@@ -4532,7 +4532,8 @@ html[data-theme] .toast-item { position:absolute; right:0; bottom:0; width:100%;
   transition:transform var(--motion-spring) var(--ease-spring), opacity var(--motion-med) var(--ease); animation:uiToastIn var(--motion-spring) var(--ease-spring); }
 html[data-theme] .toast:hover .toast-item { transform:translateY(calc(var(--i, 0) * -58px)); opacity:1; }
 html[data-theme] .toast-item.is-hidden { opacity:0; pointer-events:none; }
-html[data-theme] .toast-item.leaving { opacity:0; transform:translateY(12px) scale(.96); transition:transform .18s var(--ease-exit), opacity .18s var(--ease-exit); }
+/* 正在淡出的提示 / 运单号小卡（还在页面里 200ms）：不再接点击和滚轮，免得挡住下面刚露出来的「撤销」、卡片和列表。 */
+html[data-theme] .toast-item.leaving { opacity:0; transform:translateY(12px) scale(.96); transition:transform .18s var(--ease-exit), opacity .18s var(--ease-exit); pointer-events:none; }
 html[data-theme] .toast-text { flex:1; min-width:0; line-height:1.4; }
 html[data-theme] .toast-desc { display:block; margin-top:2px; font-size:13px; font-weight:400; color:var(--gray-500); }
 html[data-theme] .toast-ic { flex:none; width:20px; height:20px; display:grid; place-items:center; color:var(--s-green); }
@@ -5452,7 +5453,7 @@ html[data-theme] .track-card small { display:block; margin-top:2px; font-size:12
 html[data-theme] .track-card input { width:100%; height:36px; padding:0 12px; border:1px solid var(--surface-border-strong, var(--surface-border)); border-radius:12px; background:var(--surface-soft); font:inherit; font-size:14px; color:inherit; }
 html[data-theme] .track-card input:focus { outline:2px solid var(--accent); outline-offset:1px; }
 html[data-theme] .track-card-actions { display:flex; justify-content:flex-end; gap:8px; }
-html[data-theme] .track-card.leaving { opacity:0; transform:translateY(12px) scale(.96); transition:transform .18s var(--ease-exit), opacity .18s var(--ease-exit); }
+html[data-theme] .track-card.leaving { opacity:0; transform:translateY(12px) scale(.96); transition:transform .18s var(--ease-exit), opacity .18s var(--ease-exit); pointer-events:none; }
 /* 抽屉开着时 toast 抬到底部按钮上方（above-foot），运单号小卡跟着再往上，不盖住 toast 的「撤销」。 */
 html[data-theme] body:has(#toast.above-foot) .track-card { bottom:164px; }
 @media (max-width: 820px) { html[data-theme] .track-card { right:12px; left:12px; width:auto; bottom:calc(150px + env(safe-area-inset-bottom)); } html[data-theme] body:has(#toast.above-foot) .track-card { bottom:calc(170px + env(safe-area-inset-bottom)); } }

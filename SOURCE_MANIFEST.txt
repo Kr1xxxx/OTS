@@ -97,6 +97,7 @@ scripts/test-order-list-page.js
 scripts/test-order-modal-history.js
 scripts/test-order-num-duplicates-ui.js
 scripts/test-order-number.js
+scripts/test-order-paste-ai-ui.js
 scripts/test-order-payment-input-ui.js
 scripts/test-order-recognition.js
 scripts/test-quick-actions-ui.js

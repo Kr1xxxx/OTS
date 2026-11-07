@@ -1,6 +1,6 @@
 {
   "name": "trade-order-system",
-  "version": "3.119.0",
+  "version": "3.120.0",
   "private": true,
   "description": "Local trade order tracking system with a native Mac host, SQLite storage, and logistics API helpers.",
   "scripts": {
@@ -15,7 +15,7 @@
     "test:board-layout": "node scripts/test-board-layout.js",
     "test:injection": "node scripts/test-html-injection-ui.js && node scripts/test-mac-only-ui.js",
     "test:install-browser": "playwright install chromium",
-    "test:recognition": "node scripts/test-order-recognition.js && node scripts/test-customer-ai-first-ui.js && node scripts/test-customer-ai-requirements.js && node scripts/test-customer-email-fallback.js && node scripts/test-customer-ai-preview-editor.js && node scripts/test-customer-multi-fields.js && node scripts/test-customer-contact-preferences.js && node scripts/test-multi-shipments.js && npm run test:whatsapp",
+    "test:recognition": "node scripts/test-order-recognition.js && node scripts/test-order-paste-ai-ui.js && node scripts/test-customer-ai-first-ui.js && node scripts/test-customer-ai-requirements.js && node scripts/test-customer-email-fallback.js && node scripts/test-customer-ai-preview-editor.js && node scripts/test-customer-multi-fields.js && node scripts/test-customer-contact-preferences.js && node scripts/test-multi-shipments.js && npm run test:whatsapp",
     "test:whatsapp": "node scripts/test-whatsapp-sync.js && node scripts/test-whatsapp-wajs.js && node scripts/test-whatsapp-extension.js && node scripts/test-whatsapp-integration.js && node scripts/test-whatsapp-chrome.js",
     "test:order-number": "node scripts/test-order-number.js",
     "test:dashboard-month": "node scripts/test-dashboard-month.js && node scripts/test-summary-amounts-ui.js",

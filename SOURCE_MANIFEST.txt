@@ -59,6 +59,8 @@ scripts/test-calendar-analysis-ui.js
 scripts/test-client-picker-fixes-ui.js
 scripts/test-client-picker-open-profile.js
 scripts/test-client-picker-search.js
+scripts/test-close-guard-paths-ui.js
+scripts/test-close-guard-save-ui.js
 scripts/test-custom-select.js
 scripts/test-customer-ai-first-ui.js
 scripts/test-customer-ai-preview-editor.js

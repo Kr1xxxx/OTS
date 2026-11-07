@@ -111,6 +111,40 @@ const webkitFocusSim = () => {
       const hit = document.elementFromPoint(trigger.left + trigger.width / 2, trigger.top + trigger.height / 2);
       return { open:document.querySelector('#orderForm .client-menu').classList.contains('open'), triggerOnTop:!!hit?.closest('.client-trigger') };
     }), { open:true, triggerOnTop:true }, 'after the modal settles the client menu follows the field and leaves ▾ clickable');
+    // 1b. 真把弹窗内容往下滚一点（想够到菜单下沿外面的几项）：输入框还看得见，菜单跟过去、不收；滚到输入框看不见才收。
+    const gap = () => page.evaluate(() => {
+      const input = document.querySelector('#orderForm input[name="client"]').getBoundingClientRect();
+      const menu = document.querySelector('#orderForm .client-menu');
+      const box = menu.getBoundingClientRect();
+      return { open:menu.classList.contains('open'), gap:Math.round(menu.dataset.placement === 'top' ? input.top - box.bottom : box.top - input.bottom) };
+    });
+    const scrollForm = by => page.evaluate(by => new Promise(resolve => {
+      const form = document.getElementById('orderForm');
+      form.addEventListener('scroll', () => requestAnimationFrame(resolve), { once:true });
+      form.scrollTop += by;
+    }), by);
+    await page.evaluate(() => { document.getElementById('orderForm').scrollTop = 0; });
+    await scrollForm(30);
+    assert.deepEqual(await gap(), { open:true, gap:6 }, 'scrolling the modal a little keeps the client menu open and attached to the field');
+    await scrollForm(2000);
+    assert.equal(await clientMenuOpen(), false, 'scrolling the field out of the modal closes the client menu');
+    await page.evaluate(() => { document.getElementById('orderForm').scrollTop = 0; });
+    await clientInput.click();
+    assert.equal(await clientMenuOpen(), true, 'focusing the client field again reopens the menu');
+    // 1c. 弹窗还在做入场缩放（transform 让它成了 fixed 菜单的定位参照）时打开菜单：菜单照样贴在输入框下面，不往下错开到可视区外。
+    assert.deepEqual(await page.evaluate(() => {
+      const modal = document.querySelector('#orderModal .modal');
+      const anim = modal.animate([{ transform:'translateY(40px) scale(.96)' }, { transform:'none' }], { duration:10000 });
+      anim.pause();
+      positionClientMenu(document.querySelector('#orderForm .client-picker'));
+      const input = document.querySelector('#orderForm input[name="client"]').getBoundingClientRect();
+      const menu = document.querySelector('#orderForm .client-menu');
+      const box = menu.getBoundingClientRect();
+      const result = Math.round(menu.dataset.placement === 'top' ? input.top - box.bottom : box.top - input.bottom);
+      anim.cancel();
+      positionClientMenu(document.querySelector('#orderForm .client-picker'));
+      return result;
+    }), 6, 'a client menu opened while the modal is still scaling in sits right next to the field');
     await page.locator('#orderForm .client-trigger').click();
     assert.equal(await clientMenuOpen(), false, '▾ must close the open client menu');
     await page.locator('#orderForm .client-trigger').click();

@@ -10112,6 +10112,27 @@ function positionFloatingMenu(menu, anchor, { minWidth = 0, maxHeight = 320 } = 
   menu.style.maxHeight = `${Math.min(maxHeight, availableHeight)}px`;
   menu.style.top = `${Math.max(topEdge, upwards ? rect.top - height - 6 : rect.bottom + 6)}px`;
   menu.dataset.placement = upwards ? 'top' : 'bottom';
+  fixFloatingMenuContainingBlock(menu);
+}
+// position:fixed 的菜单放在弹窗里：弹窗入场的缩放动画（transform）期间，弹窗成了它的定位参照，top / left 按弹窗算，
+// 菜单整体往下错开、还跟着缩放，底下几项落到窗口 / 弹窗可视区外面。量一下实际位置，把偏移和缩放折算回去。
+function fixFloatingMenuContainingBlock(menu) {
+  const top = parseFloat(menu.style.top) || 0;
+  const left = parseFloat(menu.style.left) || 0;
+  const now = menu.getBoundingClientRect();
+  if (Math.abs(now.top - top) < 0.5 && Math.abs(now.left - left) < 0.5) return;
+  menu.style.top = `${top + 100}px`;
+  menu.style.left = `${left + 100}px`;
+  const moved = menu.getBoundingClientRect();
+  const scaleY = (moved.top - now.top) / 100 || 1;
+  const scaleX = (moved.left - now.left) / 100 || 1;
+  menu.style.top = `${top + (top - now.top) / scaleY}px`;
+  menu.style.left = `${left + (left - now.left) / scaleX}px`;
+  // 往上展开的菜单要贴住的是下沿：缩放后高度变矮，再按下沿对齐一次。
+  if (menu.dataset.placement === 'top') {
+    const bottom = top + menu.offsetHeight;
+    menu.style.top = `${parseFloat(menu.style.top) + (bottom - menu.getBoundingClientRect().bottom) / scaleY}px`;
+  }
 }
 function positionAppSelectPopover(select) {
   const popover = ensureAppSelectPopover();
@@ -15468,13 +15489,23 @@ function syncClientLetterBar(menu) {
   bar.classList.toggle('has-more', bar.scrollLeft + bar.clientWidth < bar.scrollWidth - 1);
   bar.classList.toggle('has-before', bar.scrollLeft > 1);
 }
+// 输入框还在它所有可滚动祖先（弹窗内容区等）和窗口的可视范围里吗。
+function clientInputVisible(input) {
+  const r = input.getBoundingClientRect();
+  if (r.bottom <= 0 || r.top >= window.innerHeight) return false;
+  for (let node = input.parentElement; node && node !== document.body; node = node.parentElement) {
+    if (!/(auto|scroll|hidden|clip)/.test(getComputedStyle(node).overflowY)) continue;
+    const box = node.getBoundingClientRect();
+    if (r.bottom <= box.top + 1 || r.top >= box.bottom - 1) return false;
+  }
+  return true;
+}
 function positionClientMenu(picker) {
   const menu = picker.querySelector('.client-menu');
   const input = picker.querySelector('input[name="client"]');
   if (!menu?.classList.contains('open') || !input) return;
   positionFloatingMenu(menu, input, { maxHeight:420 });
   picker._clientMenuAnchor = input.getBoundingClientRect();
-  picker._clientMenuScrolls = uiBoardMenuScrollSnapshot(input);
   syncClientLetterBar(menu);
 }
 function setActiveClientOption(picker, index) {
@@ -23089,14 +23120,15 @@ window.addEventListener('scroll', e => {
       const input = activeClientPicker.querySelector('input[name="client"]');
       const rect = input.getBoundingClientRect();
       const before = activeClientPicker._clientMenuAnchor;
-      // 只有输入框的祖先真的滚过、输入框也跟着挪了位置才收起。弹窗入场的滑入动画（transform）也会让 getBoundingClientRect 变，
-      // 机器慢的时候（CI）点开客户下拉后弹窗还在滑，这时来一个迟到的滚动事件（打开前那一下滚进视野的 scroll 晚一帧才到），
-      // 以前只比位置，就把刚打开的菜单收掉了，接着点 ▾ 又变成「重新打开」。
-      // 没滚过但输入框挪了（弹窗滑入），菜单跟过去重新定位：不然停在旧位置，可能正好盖住 ▾。
-      const scrolled = !activeClientPicker._clientMenuScrolls || activeClientPicker._clientMenuScrolls.some(([node, left, top]) => Math.abs(node.scrollLeft - left) >= 1 || Math.abs(node.scrollTop - top) >= 1);
+      // 输入框挪了位置（弹窗滚动、弹窗入场的缩放 / 滑入动画）：输入框还看得见，菜单就跟过去重新定位；输入框被滚出弹窗可视区才收起。
+      // 以前一滚就收：菜单底下几项在弹窗下沿外面时，用户（或自动化）把弹窗往下滚想够到它们，菜单反而被收掉，永远点不到；
+      // 弹窗还在动时迟到的滚动事件也会把刚打开的菜单收掉，接着点 ▾ 变成「重新打开」。菜单停在旧位置不跟，又可能盖住 ▾。
       const moved = before && (Math.abs(rect.top - before.top) >= 1 || Math.abs(rect.left - before.left) >= 1);
-      if (!input.isConnected || (scrolled && moved)) closeClientMenus();
-      else if (moved) positionClientMenu(activeClientPicker);
+      if (!input.isConnected) closeClientMenus();
+      else if (moved) {
+        if (clientInputVisible(input)) positionClientMenu(activeClientPicker);
+        else closeClientMenus();
+      }
     }
   }
   if (!activeAppSelect || e.target === appSelectPopover || appSelectPopover?.contains(e.target)) return;

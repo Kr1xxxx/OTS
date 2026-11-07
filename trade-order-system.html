@@ -5684,7 +5684,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.118，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.118</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.119，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.119</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -6659,9 +6659,9 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
         <div class="attachment-box">
           <input type="hidden" name="attachmentsJson">
           <div class="attachment-form">
-            <div class="field"><label>文件名称</label><input id="attachmentName" placeholder="例如 定金付款截图"></div>
+            <div class="field"><label>文件名称</label><input id="attachmentName" data-dirty-track placeholder="例如 定金付款截图"></div>
             <div class="field"><label>类型</label><select id="attachmentType"><option>付款截图</option><option>物流面单</option><option>报价单</option><option>PI</option><option>聊天截图</option><option>其他</option></select></div>
-            <div class="field"><label>链接 / 备注</label><input id="attachmentLink" placeholder="粘贴链接或填写文件名"></div>
+            <div class="field"><label>链接 / 备注</label><input id="attachmentLink" data-dirty-track placeholder="粘贴链接或填写文件名"></div>
             <button class="btn" type="button" id="addAttachmentBtn">添加</button>
           </div>
           <div class="attachment-paste-hint">在订单弹窗内直接粘贴图片，会通过 TinyPNG 优化后保存为本机附件；服务不可用时自动保留本地原图，不写入订单主数据。</div>
@@ -7039,7 +7039,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
         <div class="order-num" id="confirmSub">需要确认</div>
         <div class="modal-title" id="confirmTitle">确认操作</div>
       </div>
-      <button class="btn btn-small" id="confirmCloseBtn" type="button">关闭</button>
+      <button class="btn btn-small" id="confirmCloseBtn" type="button" aria-label="关闭" title="关闭">关闭</button>
     </div>
     <div class="confirm-body">
       <div class="confirm-message" id="confirmMessage"></div>
@@ -7825,6 +7825,27 @@ async function persistFormState(...forms) {
     return false;
   } finally { forms.forEach((form,index) => { form.inert = previous[index]; }); }
 }
+// 表单保存没写进数据库时，这次的改动先留在内存里：后台会自动重试，版本冲突时「导出这次的修改」也要带上它。
+// 同时在表单（或抽屉）上记一个撤回函数：用户放弃这张表单（关掉、换一张、点放弃修改）就撤回，内存回到保存前，
+// 后台重试也不会再把它写进数据库。连续失败几次时按后进先出叠起来，撤回到第一次保存之前。保存成功就清掉。
+function failedSaveRemember(host, undo) {
+  if (!host || typeof undo !== 'function') return;
+  const previous = host._failedSave;
+  host._failedSave = previous ? () => { undo(); previous(); } : undo;
+}
+function failedSaveForget(host) {
+  if (host) delete host._failedSave;
+}
+function failedSaveUndo(host, { rerender = true } = {}) {
+  const undo = host?._failedSave;
+  if (!undo) return false;
+  delete host._failedSave;
+  undo();
+  // render() 和 saveState() 都会把撤回后的内存排进保存队列，替换掉失败时排着的那份。
+  if (rerender) render();
+  else saveState();
+  return true;
+}
 let readOnlySaveToastAt = 0;
 function saveState() {
   if (!isMacAppMode() || !macDataLoaded || macStorageReadOnly) {
@@ -8032,9 +8053,39 @@ async function flushPendingSave() {
   return Boolean(ok && !macSaveLastError && macSaveCompletedVersion >= macSaveRequestedVersion);
 }
 window.flushPendingSave = flushPendingSave;
-// Mac 壳在退出、安装更新前调用这一个：数据库根本没读进来（读库失败）时内存里没有用户数据可保存，
+// 页面里开着、改了没保存的表单，给人看的名字，例如「订单 K1001」「客户 Demo」。退出、关窗、更新重启前要先问。
+function otsUnsavedForms() {
+  const open = id => document.getElementById(id)?.classList.contains('open');
+  const list = [];
+  const orderForm = document.getElementById('orderForm');
+  if (open('orderModal') && uiFormUnsaved(orderForm)) list.push(`订单 ${orderForm.elements.num?.value.trim() || '（新建）'}`);
+  const customerForm = document.getElementById('customerForm');
+  if (open('customerModal') && customerForm?.classList.contains('customer-edit-mode') && uiFormUnsaved(customerForm)) list.push(`客户 ${customerForm.elements.name?.value.trim() || '（新建）'}`);
+  if (open('orderDetailDrawer') && uiDetailUnsaved()) list.push(`订单详情 ${document.getElementById('detailNum')?.textContent.trim() || ''}`.trim());
+  if (open('combinedCustomerOrderModal') && (['combinedCustomerForm', 'combinedOrderForm'].some(id => uiFormDirty(document.getElementById(id))) || document.getElementById('combinedCustomerOrderModal')._failedSave)) list.push('新客户和订单');
+  if (open('subscriptionEditModal') && subscriptionDraft && JSON.stringify(subscriptionDraft) !== subscriptionDraftClean) list.push(`续费 ${String(subscriptionDraft.name || '').trim() || '（新增）'}`);
+  if (open('subscriptionPriceModal') && subscriptionPriceDirty()) list.push('续费价格');
+  if (open('boardCardSettingsModal') && uiFormDirty(document.getElementById('boardCardSettingsForm'))) list.push('卡片设置');
+  return list;
+}
+window.otsUnsavedForms = otsUnsavedForms;
+// 最近一次退出 / 更新前检查被没保存的表单拦下：Mac 壳接着弹的提示（nativeDialog）和更新失败的提示据此说清楚原因。
+let quitBlockedByForms = null;
+function recentQuitBlock() {
+  const block = quitBlockedByForms;
+  return block && Date.now() - block.at < 30000 ? block : null;
+}
+// Mac 壳在退出、关窗、安装更新前调用这一个：数据库根本没读进来（读库失败）时内存里没有用户数据可保存，
 // 别因此拦住更新——新版本可能正是修复。页面内部的保存仍直接调用 flushPendingSave()。
-window.otsFlushBeforeQuit = async () => (isMacAppMode() && !macDataLoaded ? true : flushPendingSave());
+// 先把已经改好的数据存掉；还有表单改了没保存就返回 false：Mac 壳不会直接退出，而是用页面里的确认框
+// 问「不保存，退出 / 继续编辑」（见 nativeDialog）；更新则取消，并在页面里提示是哪几张表单。
+window.otsFlushBeforeQuit = async () => {
+  if (isMacAppMode() && !macDataLoaded) return true;
+  const saved = await flushPendingSave();
+  const unsaved = otsUnsavedForms();
+  quitBlockedByForms = unsaved.length ? { at:Date.now(), unsaved, saved } : null;
+  return unsaved.length ? false : saved;
+};
 function macStateEnvelope(payload = {}) {
   const source = payload && payload.state !== undefined
     ? payload.state
@@ -9925,6 +9976,7 @@ function setModalOpenState(modalOrId, open) {
   }
   return modal;
 }
+let appConfirmActive = null;
 function appConfirm({
   title = '确认操作',
   sub = '需要确认',
@@ -9934,7 +9986,8 @@ function appConfirm({
   danger = false,
   inputLabel = '',
   inputPlaceholder = '',
-  validate = null
+  validate = null,
+  defaultFocus = ''
 } = {}) {
   const modal = document.getElementById('confirmModal');
   const titleEl = document.getElementById('confirmTitle');
@@ -9947,6 +10000,9 @@ function appConfirm({
   const okBtn = document.getElementById('confirmOkBtn');
   const cancelBtn = document.getElementById('confirmCancelBtn');
   const closeBtn = document.getElementById('confirmCloseBtn');
+  // 已经有一个确认框开着（例如「放弃修改？」还没回答，Mac 壳又弹出退出 / 更新提示）：先把前一个按「取消」收掉。
+  // 以前直接换掉按钮的处理函数，前一个 Promise 永远不返回，等它的关闭保护从此卡住，订单弹窗再也关不掉。
+  if (appConfirmActive) appConfirmActive({ confirmed:false, value:'' }, { keepOpen:true });
   titleEl.textContent = title;
   subEl.textContent = sub;
   messageEl.textContent = message;
@@ -9955,6 +10011,9 @@ function appConfirm({
   cancelBtn.hidden = !cancelText;
   okBtn.hidden = false;
   closeBtn.hidden = false;
+  // 右上角是 × 图标：它等于「取消」那个按钮（放弃确认里就是「继续编辑」），读屏和悬停提示照实说。
+  closeBtn.setAttribute('aria-label', cancelText || '关闭');
+  closeBtn.title = cancelText || '关闭';
   okBtn.classList.toggle('btn-danger', danger);
   okBtn.classList.toggle('btn-primary', !danger);
   inputWrap.style.display = inputLabel ? '' : 'none';
@@ -9963,17 +10022,25 @@ function appConfirm({
   input.value = '';
   errorEl.textContent = '';
   setModalOpenState(modal, true);
-  setTimeout(() => (inputLabel ? input : okBtn).focus(), 50);
+  // 默认焦点：有输入框给输入框；危险操作（红色按钮）落在安全的「取消 / 继续编辑」上，按回车或空格不会直接丢数据。
+  const focusTarget = inputLabel ? input
+    : (defaultFocus === 'cancel' || (defaultFocus !== 'confirm' && danger)) && cancelText ? cancelBtn
+      : okBtn;
   return new Promise(resolve => {
-    const cleanup = result => {
-      setModalOpenState(modal, false);
-      resetModalScroll(modal);
+    const cleanup = (result, { keepOpen = false } = {}) => {
+      if (appConfirmActive === cleanup) appConfirmActive = null;
+      if (!keepOpen) {
+        setModalOpenState(modal, false);
+        resetModalScroll(modal);
+      }
       okBtn.onclick = null;
       cancelBtn.onclick = null;
       closeBtn.onclick = null;
       input.onkeydown = null;
       resolve(result);
     };
+    appConfirmActive = cleanup;
+    setTimeout(() => { if (appConfirmActive === cleanup) focusTarget.focus(); }, 50);
     okBtn.onclick = () => {
       const value = input.value.trim();
       if (validate) {
@@ -10883,6 +10950,8 @@ async function handleOrderPasteResultClick(e) {
     return;
   }
   if (createComboBtn && pasteAssistAnalysis) {
+    // 粘贴的内容会带到新弹窗里；手填的其它内容会随订单弹窗关掉，改过就先问。
+    if (!await uiConfirmLeaveOrder('新建客户 + 订单', pasteAssistAnalysis.text)) return;
     startCombinedCustomerOrderReview(pasteAssistAnalysis.text);
     return;
   }
@@ -10906,14 +10975,19 @@ async function handleOrderPasteResultClick(e) {
     return;
   }
   if (openOrderBtn) {
+    // 正在录的这张单改了没保存：先问，别一点「打开订单」就把输入丢掉。
+    if (!await uiConfirmLeaveOrder('打开订单')) return;
     closeOrder();
     openOrderDetail(openOrderBtn.dataset.pasteOpenOrder);
     return;
   }
   if (fillBtn && pasteAssistAnalysis) {
+    const form = document.getElementById('orderForm'), text = pasteAssistAnalysis.text;
+    const onlyPaste = typeof uiPasteFillBegin === 'function' && uiPasteFillBegin(form, text);
     await fillOrderFieldsFromPaste(pasteAssistAnalysis.extracted, {
       forceKeys: ['createdAt', 'currency', 'paymentChannel', 'productType', 'orderType', 'trackingNumber', 'carrier', 'fullPaymentStatus', 'urgentOrder', 'shipmentStatus', 'stage']
     });
+    if (typeof uiPasteFillEnd === 'function') uiPasteFillEnd(form, text, onlyPaste);
   }
 }
 async function fillOrderFieldsFromPaste(fields, options = {}) {
@@ -12172,12 +12246,15 @@ async function handleCustomerPasteResultClick(e) {
     return;
   }
   if (createComboBtn && customerPasteAnalysis) {
+    // 识别结果会带到新弹窗里；档案里手改的其它内容、下面开着的订单会关掉，改过就先问。
+    if (!await uiConfirmLeaveCustomerEdit('新建客户 + 订单', customerPasteAnalysis.text) || !await uiConfirmLeaveOrder('新建客户 + 订单')) return;
     startCombinedCustomerOrderReview(customerPasteAnalysis.text, customerPasteAnalysis.extracted);
     return;
   }
   if (newOrderBtn) {
     const client = clientHistory().find(item => item.client === newOrderBtn.dataset.customerPasteNewOrder);
     if (client) {
+      if (!await uiConfirmLeaveCustomerEdit('给老客户新建订单') || !await leaveOrderUnderCustomerModal('给老客户新建订单')) return;
       const orderAnalysis = analyzePasteText(customerPasteAnalysis?.text || '');
       const fields = existingCustomerOrderFields(client, orderAnalysis.extracted || {});
       closeCustomerModal();
@@ -12202,7 +12279,12 @@ async function handleCustomerPasteResultClick(e) {
       level: state.customers?.[client.client]?.level || ''
     });
   }
-  if (fillBtn && customerPasteAnalysis) await fillCustomerFieldsFromPaste(customerPasteAnalysis.extracted);
+  if (fillBtn && customerPasteAnalysis) {
+    const form = document.getElementById('customerForm'), text = customerPasteAnalysis.text;
+    const onlyPaste = typeof uiPasteFillBegin === 'function' && uiPasteFillBegin(form, text);
+    await fillCustomerFieldsFromPaste(customerPasteAnalysis.extracted);
+    if (typeof uiPasteFillEnd === 'function') uiPasteFillEnd(form, text, onlyPaste);
+  }
 }
 async function fillCustomerFieldsFromPaste(fields = {}) {
   const form = document.getElementById('customerForm');
@@ -14031,6 +14113,13 @@ function renderOrderDetailHeader(order, source = 'active') {
 function openOrderDetail(id, { tab = '' } = {}) {
   const { order, source } = findOrderRecord(id);
   if (!order) return;
+  const drawerOpen = document.getElementById('orderDetailDrawer')?.classList.contains('open');
+  const body = document.getElementById('orderDetailBody');
+  // 同一张单就地刷新（改阶段、撤销、补运单号、收齐尾款、重新发送等）：抽屉里还没保存的输入先记下，重画后放回去，
+  // 仍算没保存。以前整块重画后直接标成干净，备注等输入被静默清空，关抽屉也不再提示。
+  const carried = drawerOpen && detailOrderId === id && typeof uiDetailChangedValues === 'function' ? uiDetailChangedValues() : null;
+  // 换到另一张单：上一张保存失败、留在内存里的改动撤回（入口已先问过要不要放弃）。
+  if (detailOrderId !== id && typeof failedSaveUndo === 'function') failedSaveUndo(body);
   detailOrderId = id;
   document.getElementById('detailNum').textContent = order.num || '订单详情';
   document.getElementById('detailTitle').textContent = clientDisplayName(order.client || '未命名客户');
@@ -14061,15 +14150,19 @@ function openOrderDetail(id, { tab = '' } = {}) {
   resetModalScroll('#orderDetailDrawer');
   if (typeof uiDetailTab === 'function') uiDetailTab(uiDetailTab.current, true);
   if (typeof uiDetailMarkClean === 'function') uiDetailMarkClean();
+  if (carried && Object.keys(carried).length) uiDetailRestoreValues(carried);
 }
-function openCustomerFromOrderDetail(name = '') {
+async function openCustomerFromOrderDetail(name = '') {
   const clean = String(name || '').trim();
   if (!clean) return;
+  if (typeof uiDetailConfirmLeave === 'function' && !await uiDetailConfirmLeave('客户档案')) return;
   closeOrderDetail();
   openCustomerModal(clean, { viewOnly:true });
 }
 function closeOrderDetail() {
   const drawer = document.getElementById('orderDetailDrawer');
+  // 关抽屉 = 放弃抽屉里的修改：之前保存失败、留在内存里的改动一起撤回。
+  if (typeof failedSaveUndo === 'function') failedSaveUndo(document.getElementById('orderDetailBody'));
   setModalOpenState(drawer, false);
   resetModalScroll(drawer);
 }
@@ -14491,6 +14584,13 @@ function openBoardCardSettings() {
   renderBoardCardSettingsForm();
   setModalOpenState('boardCardSettingsModal', true);
   resetModalScroll('#boardCardSettingsModal');
+  uiFormMarkClean(document.getElementById('boardCardSettingsForm'));
+}
+// 勾选改了还没点「保存」：Esc / 关闭 / 点背景先问一句。
+async function closeBoardCardSettingsGuarded() {
+  const form = document.getElementById('boardCardSettingsForm');
+  if (uiFormDirty(form) && !await uiConfirmDiscard(form, '卡片设置')) return;
+  closeBoardCardSettings();
 }
 function closeBoardCardSettings() {
   const modal = document.getElementById('boardCardSettingsModal');
@@ -16604,6 +16704,9 @@ function setCustomerModalMode(editMode = false, { isNew = false } = {}) {
   document.getElementById('customerModalSub').textContent = isNew ? '新客户档案' : (viewOnly ? '客户完整档案 · 只读' : '编辑客户档案');
 }
 function openCustomerModal(name = '', { viewOnly = true } = {}) {
+  const form = document.getElementById('customerForm');
+  // 换一位客户 / 取消编辑回到只读：上一次保存失败、留在内存里的改动先撤回，下面读到的才是数据库里的档案。
+  failedSaveUndo(form);
   editingCustomer = name || null;
   fillStageSelects();
   clearCustomerPasteAssist();
@@ -16611,7 +16714,6 @@ function openCustomerModal(name = '', { viewOnly = true } = {}) {
   const fromHistory = isNew ? {} : (clientHistory().find(c => c.client === name) || {});
   const profile = isNew ? {} : (state.customers?.[name] || {});
   const data = { ...fromHistory, ...profile };
-  const form = document.getElementById('customerForm');
   const settings = { ...defaultOrderSettings, ...(state.orderSettings || {}) };
   form.elements.originalName.value = name || '';
   form.elements.name.value = data.client || name || '';
@@ -16655,8 +16757,11 @@ function openCustomerModal(name = '', { viewOnly = true } = {}) {
     renderCustomerHistory(data.history || []);
   }
   updateCustomerSaveLabels();
+  const wasOpen = document.getElementById('customerModal')?.classList.contains('open');
   setModalOpenState('customerModal', true);
   resetModalScroll('#customerModal');
+  // 弹窗本来就开着、换成另一位客户或回到只读：自己重新取快照（观察器只在遮罩 class 变化时取）。
+  if (wasOpen) requestAnimationFrame(() => uiFormMarkClean(form));
 }
 function updateCustomerSaveLabels() {
   const headerBtn = document.getElementById('customerHeaderSaveBtn');
@@ -16667,6 +16772,8 @@ function updateCustomerSaveLabels() {
 }
 function closeCustomerModal(clearPending = true) {
   if (document.getElementById('customerForm')?.dataset.saving) return;
+  // 关掉 = 放弃这次编辑：之前保存失败、留在内存里的档案改动一起撤回。
+  failedSaveUndo(document.getElementById('customerForm'));
   clearCustomerPasteAssist();
   if (clearPending) setPendingCombinedOrderFields(null);
   const modal = document.getElementById('customerModal');
@@ -16676,6 +16783,8 @@ function closeCustomerModal(clearPending = true) {
 async function openNewOrderForCustomer(name = '') {
   const clean = String(name || editingCustomer || '').trim();
   if (!clean) return;
+  // 档案正在编辑、改了没保存：先问（以前一点「＋新建订单」档案就关了，修改静默丢掉）。
+  if (!await uiConfirmLeaveCustomerEdit('新建订单')) return;
   if (!await leaveOrderUnderCustomerModal('新建订单')) return;
   closeCustomerModal();
   openOrder('');
@@ -16830,6 +16939,23 @@ function buildCustomerSavePayload(data = {}, previousProfile = {}, oldName = '')
   };
   return { newName, nextProfile, historyEntry, previousHistory };
 }
+// 客户档案写进 state 之前，记下会被改到的几份档案、所有订单上的客户名、客户标签和表单里的原名：保存失败后放弃时按它撤回。
+function customerSaveSnapshot(names = [], originalNameField = null) {
+  const customers = state.customers || {};
+  const profiles = [...new Set(names.filter(Boolean))].map(key => [key, Object.hasOwn(customers, key), customers[key]]);
+  const clients = ['orders', 'trashOrders', 'deletedOrders'].map(key => [key, new Map((state[key] || []).map(order => [order.id, order.client]))]);
+  const customerTags = state.customerTags;
+  const originalName = originalNameField?.value;
+  return () => {
+    state.customers = { ...(state.customers || {}) };
+    profiles.forEach(([key, had, profile]) => { if (had) state.customers[key] = profile; else delete state.customers[key]; });
+    clients.forEach(([key, before]) => {
+      if (Array.isArray(state[key])) state[key] = state[key].map(order => before.has(order.id) && before.get(order.id) !== order.client ? { ...order, client:before.get(order.id) } : order);
+    });
+    state.customerTags = customerTags;
+    if (originalNameField) originalNameField.value = originalName;
+  };
+}
 function commitCustomerSavePayload({ oldName = '', nextProfile, historyEntry, previousHistory = [] } = {}) {
   if (!nextProfile?.client) return '';
   syncCustomerTags(nextProfile.tags || []);
@@ -16853,9 +16979,15 @@ async function saveCustomer(form) {
   if (!duplicateOk) return;
   const previousProfile = state.customers[oldName] || (!oldName ? state.customers[newName] : {}) || {};
   const payload = buildCustomerSavePayload(data, previousProfile, oldName);
+  const undo = typeof customerSaveSnapshot === 'function' ? customerSaveSnapshot([oldName, payload.newName], form.elements.originalName) : null;
   commitCustomerSavePayload({ oldName, ...payload });
   if (form.elements.originalName) form.elements.originalName.value = payload.newName;
-  if (!await persistFormState(form)) return;
+  if (!await persistFormState(form)) {
+    // 没写进数据库：放弃这次编辑（关掉档案、取消编辑、换一位客户）时按快照撤回，后台重试不会再写进去。
+    if (undo && typeof failedSaveRemember === 'function') failedSaveRemember(form, undo);
+    return;
+  }
+  if (typeof failedSaveForget === 'function') failedSaveForget(form);
   delete form.dataset.saving;
   closeCustomerModal(false);
   render();
@@ -16881,7 +17013,7 @@ async function leaveOrderUnderCustomerModal(sub) {
     toast('附件正在处理，请完成后再离开这张订单');
     return false;
   }
-  if (uiFormDirty(form) && !await uiConfirmDiscard(form, sub)) return false;
+  if (uiFormUnsaved(form) && !await uiConfirmDiscard(form, sub)) return false;
   closeOrder();
   return !orderModal.classList.contains('open');
 }
@@ -17040,6 +17172,7 @@ function fillCombinedOrderForm(fields = {}, customerFields = {}) {
 function openCombinedCustomerOrderModal(preview = {}) {
   const modal = document.getElementById('combinedCustomerOrderModal');
   if (!modal) return;
+  failedSaveUndo(modal);
   delete document.getElementById('combinedOrderForm').dataset.pendingOrderId;
   fillStageSelects();
   const existingKey = existingCustomerKey(preview.customerFields?.name || '');
@@ -17055,7 +17188,8 @@ function openCombinedCustomerOrderModal(preview = {}) {
 }
 async function uiCloseCombinedGuarded() {
   const modal = document.getElementById('combinedCustomerOrderModal');
-  const dirty = ['combinedCustomerForm', 'combinedOrderForm'].some(id => uiFormDirty(document.getElementById(id)));
+  if (uiFormBusy(document.getElementById('combinedOrderForm'))) return;
+  const dirty = ['combinedCustomerForm', 'combinedOrderForm'].some(id => uiFormDirty(document.getElementById(id))) || !!modal?._failedSave;
   if (dirty && !await uiConfirmDiscard(modal, '关闭客户和订单')) return;
   closeCombinedCustomerOrderModal();
 }
@@ -17063,6 +17197,7 @@ function closeCombinedCustomerOrderModal() {
   if (document.getElementById('combinedOrderForm')?.dataset.saving) return;
   const modal = document.getElementById('combinedCustomerOrderModal');
   if (!modal) return;
+  failedSaveUndo(modal);
   setModalOpenState(modal, false);
   resetModalScroll(modal);
 }
@@ -17206,6 +17341,7 @@ function clientAutofillValues(data = {}) {
   if (!data.client) return null;
   const product = productTypeDefs.some(item => item.value === data.productType) ? data.productType : '';
   return {
+    client: data.client,
     country: data.country ? normalizeCountry(data.country) : '',
     currency: data.currency || '',
     paymentChannel: customerDefaultPaymentForName(data.client),
@@ -17241,6 +17377,13 @@ function fillClientFromHistory(form) {
     return;
   }
   const previous = form._clientAutofill || {};
+  // 还是同一位客户（只差大小写 / 空格，或者又选了一次）：不重新套用档案默认值，只刷新摘要。
+  // 以前旧数据里的小写客户名，光标进出一下就把收款方式从 Paypal 换成档案默认的阿里巴巴，关闭时还误报「有改动」。
+  if (previous.client && sameCustomerName(previous.client, data.client)) {
+    if (isOrderForm) renderOrderClientAutofillSummary(data);
+    if (isOrderForm) updateOrderModalSummary();
+    return;
+  }
   const next = clientAutofillValues(data);
   const currencyBefore = fields.currency?.value;
   setCustomerDefaultField(fields.country, next.country, settings.defaultCountry, previous.country);
@@ -17564,6 +17707,8 @@ function openOrder(id) {
     toast('附件正在处理，请完成后再切换订单');
     return;
   }
+  // 换一张单（或抽屉保存时借用表单）之前：上一张保存失败、留在内存里的改动撤回。
+  if (typeof failedSaveUndo === 'function') failedSaveUndo(pendingForm);
   clearOrderImageUploads();
   editingId = id || null;
   clearPasteAssist();
@@ -17635,8 +17780,11 @@ function openOrder(id) {
     <div class="log"><div class="log-dot" style="${i ? 'background:var(--gray-300)' : ''}"></div><div><div>${escapeAttr(log.text)}</div><div class="muted">${escapeAttr(log.time || order.updated || nowText())}</div></div></div>
   `; 
   }).join('') || '<div class="muted">保存后会生成操作记录。</div>';
+  const wasOpen = !!document.getElementById('orderModal')?.classList?.contains?.('open');
   setModalOpenState('orderModal', true);
   resetModalScroll('#orderModal');
+  // 弹窗本来就开着、换成另一张单：遮罩的 class 没变，观察器不会重新取快照，这里自己取，免得拿上一张单来比、误报改动。
+  if (wasOpen && typeof uiFormMarkClean === 'function') requestAnimationFrame(() => uiFormMarkClean(form));
 }
 function openOrderTrackingNumberFirst(id) {
   const order = state.orders.find(o => o.id === id);
@@ -17656,6 +17804,8 @@ function closeOrder({ cleanupTemp = true } = {}) {
     toast('附件正在处理，请完成后再关闭');
     return;
   }
+  // 关掉 = 放弃这张表单：之前保存失败、留在内存里的改动一起撤回。
+  if (typeof failedSaveUndo === 'function') failedSaveUndo(pendingForm);
   clearOrderImageUploads();
   if (cleanupTemp) cleanupTemporaryOrderAttachments();
   const modal = document.getElementById('orderModal');
@@ -17964,6 +18114,7 @@ async function saveCombinedCustomerOrder() {
   if (!duplicateOk) return;
   const previousProfile = state.customers?.[oldName] || (!oldName ? state.customers?.[newName] : {}) || {};
   const customerPayload = buildCustomerSavePayload({ ...customerData, name: newName }, previousProfile, oldName);
+  const undoCustomer = customerSaveSnapshot([oldName, customerPayload.newName], customerForm.elements.originalName);
   commitCustomerSavePayload({ oldName, ...customerPayload });
   if (customerForm.elements.originalName) customerForm.elements.originalName.value = newName;
   const finalCustomer = customerPayload.nextProfile;
@@ -17986,7 +18137,16 @@ async function saveCombinedCustomerOrder() {
   if (pendingOrder) state.orders = state.orders.map(o => o.id === order.id ? order : o);
   else state.orders.unshift(order);
   orderForm.dataset.pendingOrderId = order.id;
-  if (!await persistFormState(customerForm, orderForm)) return;
+  const modal = document.getElementById('combinedCustomerOrderModal');
+  if (!await persistFormState(customerForm, orderForm)) {
+    // 没写进数据库：关掉这个弹窗（放弃）时客户和订单一起撤回。
+    failedSaveRemember(modal, () => {
+      state.orders = pendingOrder ? state.orders.map(o => o.id === order.id ? pendingOrder : o) : state.orders.filter(o => o.id !== order.id);
+      undoCustomer();
+    });
+    return;
+  }
+  failedSaveForget(modal);
   delete orderForm.dataset.saving;
   closeCombinedCustomerOrderModal();
   render();
@@ -18023,13 +18183,23 @@ async function upsertOrder(form, options = {}) {
   if (existing) state.orders = state.orders.map(o => o.id === existing.id ? order : o);
   else state.orders.unshift(order);
   form.dataset.pendingOrderId = order.id;
-  if (!await persistFormState(form)) return;
+  if (!await persistFormState(form)) {
+    // 没写进数据库：记下怎么撤回。放弃这张表单时内存回到保存前（新单删掉、编辑恢复原样），后台重试不会再写进去。
+    if (typeof failedSaveRemember === 'function') {
+      failedSaveRemember(form, () => {
+        state.orders = existing ? state.orders.map(o => o.id === order.id ? existing : o) : state.orders.filter(o => o.id !== order.id);
+      });
+    }
+    return false;
+  }
+  if (typeof failedSaveForget === 'function') failedSaveForget(form);
   delete form.dataset.saving;
   closeOrder({ cleanupTemp: false });
   render();
   const successText = `${isDraft ? '订单草稿已保存' : (isEdit ? '订单已保存' : '订单已创建')}${orderStageSaveNote(order, data.stage)}`;
   if (isDraft || !notificationRequested) toast(successText);
   else await completeOrderNotification(order.id, true, successText);
+  return true;
   } finally { delete form.dataset.saving; }
 }
 function duplicateOrder() {
@@ -18038,6 +18208,8 @@ function duplicateOrder() {
     toast('附件正在处理，完成后才能复制订单');
     return;
   }
+  // 弹窗里保存失败、又选了放弃再复制：先撤回没存进去的改动，副本按数据库里的版本复制。
+  if (typeof failedSaveUndo === 'function') failedSaveUndo(pendingForm, { rerender:false });
   const src = state.orders.find(o => o.id === editingId);
   if (!src || !canSubmitStoredData()) return;
   // 复制出来的是一张新单：不带运单、附件和发货状态（否则物流更新会落到复制件上），日期用今天。
@@ -19979,9 +20151,11 @@ function openSubscriptionPriceEditor(date) {
   const changes = subscriptionPriceChanges(item).filter(change => change.from === date);
   // A period already paid is usually a one-off correction; a future one usually a price rise.
   const scope = changes.some(change => change.once) ? 'once' : changes.length ? 'onward' : past ? 'once' : 'onward';
-  subscriptionPriceDraft = { id:item.id, date, index, past, scope };
   const form = document.getElementById('subscriptionPriceForm');
-  form.elements.priceAmount.value = String(subscriptionPriceAt(item, date));
+  const startAmount = String(subscriptionPriceAt(item, date));
+  // 记下打开时的金额和范围：改过再按 Esc / × / 点背景关闭时先问。
+  subscriptionPriceDraft = { id:item.id, date, index, past, scope, cleanAmount:startAmount, cleanScope:scope };
+  form.elements.priceAmount.value = startAmount;
   document.getElementById('subscriptionPriceTitle').textContent = `修改第 ${index + 1} 期价格`;
   document.getElementById('subscriptionPriceSub').textContent = `${item.name} · ${subscriptionPeriodRange(period)} · ${past ? '已发生' : '未来'}`;
   document.getElementById('subscriptionPriceSymbol').textContent = item.currency === 'USD' ? '$' : '¥';
@@ -20002,6 +20176,16 @@ function syncSubscriptionPriceEditor() {
   document.getElementById('subscriptionPriceHint').textContent = draft.scope === 'once'
     ? `只改第 ${draft.index + 1} 期，前后各期价格不变${draft.past ? '，适合记下这一期实际付了多少' : ''}`
     : `第 ${draft.index + 1} 期和之后每一期都按这个价格计，之前的期不变`;
+}
+function subscriptionPriceDirty() {
+  const draft = subscriptionPriceDraft;
+  const input = document.getElementById('subscriptionPriceAmount');
+  return Boolean(draft && input) && (input.value.trim() !== draft.cleanAmount || draft.scope !== draft.cleanScope);
+}
+async function closeSubscriptionPriceEditorGuarded() {
+  const modal = document.getElementById('subscriptionPriceModal');
+  if (subscriptionPriceDirty() && !await uiConfirmDiscard(modal, '修改价格')) return;
+  if (modal.classList.contains('open')) closeSubscriptionPriceEditor();
 }
 function closeSubscriptionPriceEditor() {
   setModalOpenState('subscriptionPriceModal', false);
@@ -20060,9 +20244,9 @@ async function saveSubscriptionPrice(scope) {
   await saveSubscriptionChange(item, next, message);
 }
 document.getElementById('subscriptionPriceModal').addEventListener('click', event => {
-  if (event.target.id === 'subscriptionPriceModal') return closeSubscriptionPriceEditor();
+  if (event.target.id === 'subscriptionPriceModal') return closeSubscriptionPriceEditorGuarded();
   const action = event.target.closest('[data-price-action]')?.dataset.priceAction;
-  if (action === 'close') return closeSubscriptionPriceEditor();
+  if (action === 'close') return closeSubscriptionPriceEditorGuarded();
   if (action === 'reset') return saveSubscriptionPrice('reset');
   const scope = event.target.closest('[data-price-scope] [data-value]');
   if (scope && subscriptionPriceDraft) {
@@ -20121,10 +20305,30 @@ function openSubscriptionEditor(id = '', { resubscribe = false } = {}) {
   setModalOpenState('subscriptionEditModal', true);
   setTimeout(() => form.elements.subName.focus({ preventScroll:true }), 60);
 }
+// 保存失败时弹窗已经不在：按原来的入口重新打开，再换回用户填的草稿（仍算没保存），并把失败原因写在弹窗里。
+function reopenSubscriptionEditorWithDraft(draft, message = '') {
+  openSubscriptionEditor(draft.id && findSubscription(draft.id) ? draft.id : '');
+  subscriptionDraft = { ...draft };
+  const form = document.getElementById('subscriptionEditForm');
+  form.elements.subName.value = draft.name || '';
+  form.elements.subNote.value = draft.note || '';
+  form.elements.subAmount.value = draft.amount ?? '';
+  form.elements.subStart.value = draft.startDate || '';
+  form.elements.subProvider.value = draft.provider || '';
+  form.elements.subAutoRenew.checked = draft.autoRenew !== false;
+  syncSubscriptionEditorControls();
+  renderSubscriptionPreview();
+  showSubscriptionEditError(message);
+}
 // Esc, the backdrop, × and 取消 ask first when something was typed, like the order and customer dialogs.
 async function closeSubscriptionEditorGuarded() {
   const modal = document.getElementById('subscriptionEditModal');
-  if (subscriptionDraft && !subscriptionBusy && JSON.stringify(subscriptionDraft) !== subscriptionDraftClean
+  // 正在保存：先别关。以前保存中按 Esc 直接关掉，保存失败的提示写进已经关掉的弹窗里，输入丢了也没人知道。
+  if (subscriptionBusy) {
+    subscriptionToast('正在保存，请稍候');
+    return;
+  }
+  if (subscriptionDraft && JSON.stringify(subscriptionDraft) !== subscriptionDraftClean
     && !await uiConfirmDiscard(modal, subscriptionDraft.id ? '关闭编辑' : '关闭新增')) return;
   if (modal.classList.contains('open')) closeSubscriptionEditor();
 }
@@ -20401,6 +20605,11 @@ async function saveSubscriptionDraft(event) {
     subscriptionBusy = false;
     setSubscriptionSaveState('idle');
     showSubscriptionEditError(error.message || '保存失败，请重试');
+    // 万一弹窗已经不在了（例如被别的入口关掉），错误要说出来，并带着这份草稿重新打开，输入不丢。
+    if (!document.getElementById('subscriptionEditModal').classList.contains('open')) {
+      toast(`续费没有保存：${error.message || '保存失败，请重试'}`, { tone:'error' });
+      reopenSubscriptionEditorWithDraft(draft, error.message || '保存失败，请重试');
+    }
     return;
   }
   const isNew = !draft.id;
@@ -20592,10 +20801,12 @@ document.getElementById('subscriptionEditForm').addEventListener('click', event 
   renderSubscriptionPreview();
 });
 document.addEventListener('keydown', event => {
-  if (event.key !== 'Escape' || isImeKeyEvent(event) || document.getElementById('confirmModal').classList.contains('open')) return;
+  // 已被别的处理器用掉的 Esc 不再处理：确认框开着时全局 Esc（捕获阶段）先把它关成「继续编辑」，
+  // 这里要是再看一眼，确认框已经关了，又会弹一次「放弃修改？」，Esc 永远关不掉。
+  if (event.key !== 'Escape' || event.defaultPrevented || isImeKeyEvent(event) || document.getElementById('confirmModal').classList.contains('open')) return;
   if (document.getElementById('subscriptionPriceModal').classList.contains('open')) {
     event.preventDefault();
-    closeSubscriptionPriceEditor();
+    closeSubscriptionPriceEditorGuarded();
   } else if (document.getElementById('subscriptionEditModal').classList.contains('open')) {
     event.preventDefault();
     closeSubscriptionEditorGuarded();
@@ -20849,9 +21060,9 @@ document.getElementById('boardProductFilter').addEventListener('click', e => {
   renderSegmentControls();
 });
 document.getElementById('boardCardSettingsBtn')?.addEventListener('click', openBoardCardSettings);
-document.getElementById('boardCardSettingsCloseBtn')?.addEventListener('click', closeBoardCardSettings);
+document.getElementById('boardCardSettingsCloseBtn')?.addEventListener('click', () => closeBoardCardSettingsGuarded());
 document.getElementById('boardCardSettingsModal')?.addEventListener('click', e => {
-  if (e.target.id === 'boardCardSettingsModal') closeBoardCardSettings();
+  if (e.target.id === 'boardCardSettingsModal') closeBoardCardSettingsGuarded();
 });
 document.getElementById('boardCardSettingsForm')?.addEventListener('submit', e => {
   e.preventDefault();
@@ -21051,6 +21262,11 @@ document.getElementById('chartRange').addEventListener('change', render);
 document.getElementById('themeBtn').addEventListener('click', toggleTheme);
 document.getElementById('newOrderBtn').addEventListener('click', () => openOrder());
 document.getElementById('closeModalBtn').addEventListener('click', () => uiCloseOrderGuarded());
+// 点订单弹窗外面的背景关闭，和客户弹窗、详情抽屉、设计规范一致（以前点了没反应，像卡住了）。有改动先问；
+// 在输入框里拖选、松手落到背景上不算点击（见 backdropPress）。
+document.getElementById('orderModal').addEventListener('click', e => {
+  if (e.target.id === 'orderModal') uiCloseOrderGuarded();
+});
 const pasteAnalyzeBtn = document.getElementById('pasteAssistAnalyzeBtn');
 const pasteClearBtn = document.getElementById('pasteAssistClearBtn');
 const pasteAiBtn = document.getElementById('pasteAssistAiBtn');
@@ -21069,8 +21285,10 @@ pasteAiBtn?.addEventListener('click', runAiPasteAnalysis);
 pasteResultsEl?.addEventListener('click', handleOrderPasteResultClick);
 document.getElementById('detailCloseBtn').addEventListener('click', () => uiCloseDetailGuarded());
 document.getElementById('detailCustomerBtn').addEventListener('click', e => openCustomerFromOrderDetail(e.currentTarget.dataset.customer));
-document.getElementById('detailEditBtn').addEventListener('click', () => {
+document.getElementById('detailEditBtn').addEventListener('click', async () => {
   const id = detailOrderId;
+  // 抽屉里改了没保存：先问。以前直接换成订单弹窗，弹窗里显示的是旧值，抽屉里的输入静默丢掉。
+  if (!await uiDetailConfirmLeave('编辑订单', '抽屉里改的内容还没保存，打开编辑弹窗后这些修改会丢失。可以先点「保存」再编辑。')) return;
   closeOrderDetail();
   openOrder(id);
 });
@@ -21093,7 +21311,8 @@ document.getElementById('orderDetailDrawer').addEventListener('click', e => {
   if (relatedOrderBtn) {
     e.preventDefault();
     e.stopPropagation();
-    openOrderDetail(relatedOrderBtn.dataset.orderCustomerOrder);
+    const nextId = relatedOrderBtn.dataset.orderCustomerOrder;
+    uiDetailConfirmLeave('查看其它订单').then(ok => { if (ok) openOrderDetail(nextId); });
     return;
   }
   if (e.target.id === 'orderDetailDrawer') uiCloseDetailGuarded();
@@ -21425,9 +21644,15 @@ document.getElementById('customerPasteResults').addEventListener('keydown', e =>
     finishCustomerPasteEdit(e.key === 'Enter');
   }
 });
+const autoCapitalizeNameSelector = 'input[name="client"], #customerForm input[name="name"], #combinedCustomerForm input[name="name"], input[name="contact"], [data-customer-multi-kind="contacts"] [data-customer-multi-input]';
+// 只在这次聚焦期间改过名字时才自动首字母大写：光标进出一下不算改动（旧数据的小写客户名以前一进一出就被改写、算作改动）。
+document.addEventListener('focus', e => {
+  if (e.target?.matches?.(autoCapitalizeNameSelector)) e.target._valueAtFocus = e.target.value;
+}, true);
 document.addEventListener('blur', e => {
   const input = e.target;
-  if (!input?.matches?.('input[name="client"], #customerForm input[name="name"], #combinedCustomerForm input[name="name"], input[name="contact"], [data-customer-multi-kind="contacts"] [data-customer-multi-input]')) return;
+  if (!input?.matches?.(autoCapitalizeNameSelector)) return;
+  if (input._valueAtFocus !== undefined && input.value === input._valueAtFocus) return;
   const nextValue = autoCapitalizeCustomerName(input.value);
   if (nextValue && nextValue !== input.value) {
     input.value = nextValue;
@@ -22047,7 +22272,8 @@ document.getElementById('deleteOrderBtn').addEventListener('hold-confirm', delet
 // 复制的是已保存的那一版：弹窗里还没保存的改动会随弹窗关掉，先问一句。
 document.getElementById('duplicateBtn').addEventListener('click', async () => {
   const form = document.getElementById('orderForm');
-  if (uiFormDirty(form) && !await uiConfirmDiscard(form, '复制订单')) return;
+  if (uiFormBusy(form)) return;
+  if (uiFormUnsaved(form) && !await uiConfirmDiscard(form, '复制订单')) return;
   duplicateOrder();
 });
 document.getElementById('topNewCustomerBtn').addEventListener('click', () => openCustomerModal());
@@ -22873,9 +23099,9 @@ function uiStepNavProgress(form) {
     sum.innerHTML = who ? `<b>${escapeAttr(who)}</b>${extra ? `<span>${escapeAttr(extra)}</span>` : ''}` : `<span>${empty}</span>`;
   }
 }
-// 关闭按钮改成原型的图标按钮（id 和行为不变）。
+// 关闭按钮改成原型的图标按钮（id 和行为不变）。确认框右上角的也是 ×（以前写着「关闭」，其实等于「继续编辑」）。
 function uiStepNavCloseIcons() {
-  ['closeModalBtn', 'closeCustomerModalBtn'].forEach(id => {
+  ['closeModalBtn', 'closeCustomerModalBtn', 'confirmCloseBtn'].forEach(id => {
     const btn = document.getElementById(id);
     if (!btn || btn.classList.contains('btn-icon-x')) return;
     btn.classList.add('btn-icon-x');
@@ -22892,12 +23118,26 @@ document.getElementById('customerFooterCancelBtn')?.addEventListener('click', ()
 // ===== 关闭保护：订单 / 客户弹窗和详情抽屉里有没保存的改动时，关闭、点遮罩、Esc 都先确认；没改动直接关。=====
 function uiFormFingerprint(form) {
   if (!form) return '';
-  return JSON.stringify([...form.elements]
-    .filter(el => el.name && !['button', 'submit', 'reset', 'file'].includes(el.type))
-    .map(el => (el.type === 'checkbox' || el.type === 'radio') ? (el.checked ? 1 : 0) : el.value));
+  const values = [...form.elements]
+    // 带 data-dirty-track 的输入框没有 name（附件的名称 / 链接）：填了还没点「添加」也算改动。
+    .filter(el => (el.name || el.hasAttribute('data-dirty-track')) && !['button', 'submit', 'reset', 'file'].includes(el.type))
+    .map(el => (el.type === 'checkbox' || el.type === 'radio') ? (el.checked ? 1 : 0) : el.value);
+  // 动态加出来的行没有 name：第 2 条起的物流单号，客户的第 2 个起的电话 / 邮箱 / 联系人 / 地址。
+  // 按保存时读取的口径另算一份；以前这些改了不算改动，Esc / × 直接关掉就丢了。
+  if (form.querySelector('[data-shipment-editor]')) values.push(orderShipmentsFromForm(form));
+  if (form.querySelector('[data-customer-multi-kind]')) values.push(customerMultiFieldData(form));
+  return JSON.stringify(values);
 }
 function uiFormMarkClean(form) { if (form) form._cleanFingerprint = uiFormFingerprint(form); }
 function uiFormDirty(form) { return !!form && form._cleanFingerprint !== undefined && uiFormFingerprint(form) !== form._cleanFingerprint; }
+// 有没保存的东西：表单改过，或者上次保存没写进数据库、改动还留在内存里没撤回。
+function uiFormUnsaved(form) { return uiFormDirty(form) || !!form?._failedSave; }
+// 正在保存 / 附件正在处理时不能关：只提示一句，不弹「放弃修改」。以前点了放弃也关不掉，随后保存成功，放弃变成了保存。
+function uiFormBusy(form) {
+  if (form?.dataset.saving) { toast('正在保存，请稍候'); return true; }
+  if (form?.dataset.uploading || form?.dataset.deletingAttachment) { toast('附件正在处理，请完成后再关闭'); return true; }
+  return false;
+}
 function uiDetailMarkClean() {
   const body = document.getElementById('orderDetailBody');
   if (body) body._cleanFingerprint = JSON.stringify(uiDetailEditValues());
@@ -22906,32 +23146,98 @@ function uiDetailDirty() {
   const body = document.getElementById('orderDetailBody');
   return !!body && body._cleanFingerprint !== undefined && JSON.stringify(uiDetailEditValues()) !== body._cleanFingerprint;
 }
-async function uiConfirmDiscard(host, sub) {
+function uiDetailUnsaved() { return uiDetailDirty() || !!document.getElementById('orderDetailBody')?._failedSave; }
+// 抽屉里改过的字段（和上次标干净时比），例如 { note:'…', amount:'…' }。
+function uiDetailChangedValues() {
+  const body = document.getElementById('orderDetailBody');
+  if (!body || body._cleanFingerprint === undefined) return {};
+  let clean = {};
+  try { clean = JSON.parse(body._cleanFingerprint) || {}; } catch (_) { return {}; }
+  return Object.fromEntries(Object.entries(uiDetailEditValues()).filter(([key, value]) => clean[key] !== value));
+}
+function uiDetailRestoreValues(values = {}) {
+  const body = document.getElementById('orderDetailBody');
+  Object.entries(values).forEach(([key, value]) => {
+    const el = [...(body?.querySelectorAll('[data-dedit]') || [])].find(item => item.dataset.dedit === key);
+    if (!el) return;
+    if (el.type === 'checkbox') el.checked = !!value;
+    else el.value = value;
+    el.dispatchEvent(new Event('input', { bubbles:true }));
+  });
+}
+async function uiConfirmDiscard(host, sub, message = '这里有还没保存的内容，关闭后就找不回来了。') {
   if (host._discardPending) return false;
   host._discardPending = true;
   try {
-    const result = await appConfirm({ title:'放弃未保存的修改？', sub, message:'这里有还没保存的内容，关闭后就找不回来了。', confirmText:'放弃修改', cancelText:'继续编辑', danger:true });
+    // 默认焦点在「继续编辑」上：按 Esc 再顺手按回车，不会把改动丢掉。
+    const result = await appConfirm({ title:'放弃未保存的修改？', sub, message, confirmText:'放弃修改', cancelText:'继续编辑', danger:true, defaultFocus:'cancel' });
     return result.confirmed;
   } finally { host._discardPending = false; }
 }
 async function uiCloseOrderGuarded() {
   const form = document.getElementById('orderForm');
-  if (uiFormDirty(form) && !await uiConfirmDiscard(form, '关闭订单')) return;
+  if (uiFormBusy(form)) return;
+  if (uiFormUnsaved(form) && !await uiConfirmDiscard(form, '关闭订单')) return;
   closeOrder();
 }
 async function uiCloseCustomerGuarded() {
   const form = document.getElementById('customerForm');
-  if (form?.classList.contains('customer-edit-mode') && uiFormDirty(form) && !await uiConfirmDiscard(form, '关闭客户资料')) return;
+  if (uiFormBusy(form)) return;
+  if (form?.classList.contains('customer-edit-mode') && uiFormUnsaved(form) && !await uiConfirmDiscard(form, '关闭客户资料')) return;
   closeCustomerModal();
 }
 async function uiCancelCustomerEditGuarded() {
   const form = document.getElementById('customerForm');
-  if (uiFormDirty(form) && !await uiConfirmDiscard(form, '取消编辑')) return;
+  if (uiFormBusy(form)) return;
+  if (uiFormUnsaved(form) && !await uiConfirmDiscard(form, '取消编辑', '取消后，这次改的内容不会保存，档案回到修改前的样子。')) return;
   openCustomerModal(editingCustomer, { viewOnly:true });
 }
-async function uiCloseDetailGuarded() {
+// 客户档案正在编辑、改了没保存时，要离开它（＋新建订单、给老客户新建订单、新客户 + 订单）先问一句。
+// pasteText：从粘贴识别结果点「新建客户 + 订单」时传入。表单里只有这次识别「填入」的内容，新弹窗会按识别结果重新带入，不用问。
+async function uiConfirmLeaveCustomerEdit(sub, pasteText = null) {
+  const form = document.getElementById('customerForm');
+  if (!document.getElementById('customerModal')?.classList.contains('open') || !form?.classList.contains('customer-edit-mode')) return true;
+  if (uiFormBusy(form)) return false;
+  if (pasteText !== null && uiPasteFillOnly(form, pasteText)) return true;
+  return !uiFormUnsaved(form) || uiConfirmDiscard(form, sub);
+}
+// 订单弹窗开着、改了没保存时，要换到别处（粘贴识别里的「打开订单」「新建客户 + 订单」）先问一句。
+async function uiConfirmLeaveOrder(sub, pasteText = null) {
+  const form = document.getElementById('orderForm');
+  if (!document.getElementById('orderModal')?.classList.contains('open')) return true;
+  if (uiFormBusy(form)) return false;
+  if (pasteText !== null && uiPasteFillOnly(form, pasteText)) return true;
+  return !uiFormUnsaved(form) || uiConfirmDiscard(form, sub);
+}
+// 粘贴识别「填入」前表单没改过（或只有同一段识别填入的内容）：填完记下表单的样子和那段文字。
+function uiPasteFillBegin(form, text) {
+  if (!form || typeof uiFormUnsaved !== 'function') return false;
+  return !uiFormUnsaved(form) || uiPasteFillOnly(form, text);
+}
+function uiPasteFillEnd(form, text, onlyPaste) {
+  if (form) form._pasteFill = onlyPaste ? { text, print:uiFormFingerprint(form) } : null;
+}
+// 填入后再没手改过：表单和填完那一刻一样，识别的还是同一段文字。
+function uiPasteFillOnly(form, text) {
+  const fill = form?._pasteFill;
+  return !!fill && fill.text === text && !form._failedSave && fill.print === uiFormFingerprint(form);
+}
+// 详情抽屉里改了没保存时，离开这张单或重画它（关闭、编辑订单、客户档案、复制、关联订单、切换阶段）先问。
+// 选了放弃：留在内存里的失败保存撤回，抽屉算干净，接下来的重画不再把输入带回来。
+async function uiDetailConfirmLeave(sub, message) {
   const body = document.getElementById('orderDetailBody');
-  if (uiDetailDirty() && !await uiConfirmDiscard(body, '关闭订单详情')) return;
+  if (document.getElementById('detailSaveBtn')?.dataset.mode === 'busy' || document.getElementById('orderForm')?.dataset.saving) {
+    toast('正在保存，请稍候');
+    return false;
+  }
+  if (!uiDetailUnsaved()) return true;
+  if (!await uiConfirmDiscard(body, sub, message)) return false;
+  failedSaveUndo(body);
+  uiDetailMarkClean();
+  return true;
+}
+async function uiCloseDetailGuarded() {
+  if (!await uiDetailConfirmLeave('关闭订单详情')) return;
   closeOrderDetail();
 }
 // ===== 新建订单精简模式：只留 识别 / 基础与金额 / 产品与阶段，附件、交期、物流、备注折到「展开更多」；编辑已有订单全部展开。=====
@@ -23085,7 +23391,7 @@ document.addEventListener('keydown', e => {
     attachmentPreviewModal:() => closeAttachmentPreview(),
     customerModal:() => uiCloseCustomerGuarded(),
     combinedCustomerOrderModal:() => uiCloseCombinedGuarded(),
-    boardCardSettingsModal:() => closeBoardCardSettings(),
+    boardCardSettingsModal:() => closeBoardCardSettingsGuarded(),
     trackingDetailDrawer:() => closeTrackingDetail(),
     calendarTaskDrawer:() => closeCalendarTaskDrawer(),
     orderDetailDrawer:() => uiCloseDetailGuarded(),
@@ -23094,6 +23400,32 @@ document.addEventListener('keydown', e => {
   if (!close) return;
   e.preventDefault();
   close();
+}, true);
+// 弹窗 / 抽屉开着时，Tab 只在最上面那一层里循环。以前连按 Tab 会跑到背后的列表上，再按回车就打开了背后的另一个客户，
+// 正在编辑的内容被静默换掉。
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Tab' || e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+  const layers = [...document.querySelectorAll('.modal-backdrop.open')];
+  const top = layers.find(el => el.id === 'confirmModal') || layers[layers.length - 1];
+  if (!top) return;
+  const focusables = [...top.querySelectorAll('a[href], button, input, select, textarea, [tabindex]')].filter(el =>
+    el.tabIndex >= 0 && !el.disabled && el.type !== 'hidden' && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden' && !el.closest('[inert]'));
+  if (!focusables.length) return;
+  const first = focusables[0];
+  const last = focusables[focusables.length - 1];
+  const active = document.activeElement;
+  // 焦点在这一层外面（背后的页面、或者已经跑出去了）：拉回来。层里自己的弹出菜单（客户下拉等）不管。
+  if (!top.contains(active)) {
+    if (active?.closest?.('.app-select-popover, .client-menu')) return;
+    e.preventDefault();
+    (e.shiftKey ? last : first).focus();
+  } else if (e.shiftKey && active === first) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && active === last) {
+    e.preventDefault();
+    first.focus();
+  }
 }, true);
 // 新版 UI：工作台数字卡的趋势线、环比、待办分类和目标进度条（数据仍由 renderStats 计算）。
 function uiMonthShift(month, delta) {
@@ -23200,10 +23532,15 @@ document.getElementById('detailTabs')?.addEventListener('click', e => {
   const btn = e.target.closest('[data-detail-tab-btn]');
   if (btn) uiDetailTab(btn.dataset.detailTabBtn);
 });
-document.getElementById('detailStageBar')?.addEventListener('click', e => {
+document.getElementById('detailStageBar')?.addEventListener('click', async e => {
   const btn = e.target.closest('[data-detail-stage]');
   if (!btn || btn.disabled || !detailOrderId) return;
-  moveOrderToStage(detailOrderId, btn.dataset.detailStage);
+  const id = detailOrderId;
+  const stage = btn.dataset.detailStage;
+  // 切换阶段会按内存里的这张单重画抽屉：改了没保存先问，以前备注等输入被静默清空。
+  if (!await uiDetailConfirmLeave('切换阶段', '抽屉里改的内容还没保存。切换阶段会重新显示这张订单，这些修改会丢失。可以先点「保存」再切换。')) return;
+  if (detailOrderId !== id) return;
+  moveOrderToStage(id, stage);
   document.querySelector('#detailPills .tag')?.classList.add('ui-pop-in');
 });
 document.getElementById('detailCopyNumBtn')?.addEventListener('click', () => {
@@ -23350,11 +23687,25 @@ async function uiDetailSave() {
     });
     if (inferred !== currentStage) uiDetailSetFormValue(form, 'stage', inferred);
   }
+  const previousNext = order.next;
   if (values.next !== undefined) order.next = String(values.next || '').trim();
   const feishu = document.getElementById('detailFeishuToggle');
   if (form.elements.sendFeishuNotification && feishu && !document.getElementById('detailFeishuField')?.hidden) form.elements.sendFeishuNotification.checked = feishu.checked;
+  const body = document.getElementById('orderDetailBody');
+  let saved = false;
   uiMorph(saveBtn, 'busy', '保存中…');
-  try { await upsertOrder(form); } finally { uiMorph(saveBtn, 'idle'); }
+  try { saved = await upsertOrder(form); } finally { uiMorph(saveBtn, 'idle'); }
+  if (!saved) {
+    // 没存进去：抽屉里的输入原样留着、仍算没保存。以前会用内存里的新值重画并标成干净，看起来像已经保存。
+    // 留在内存里的改动交给抽屉记着，关抽屉 / 换单 / 选放弃时撤回。
+    const undo = form._failedSave;
+    failedSaveForget(form);
+    if (undo) failedSaveRemember(body, () => { undo(); order.next = previousNext; });
+    else order.next = previousNext;
+    return;
+  }
+  failedSaveForget(body);
+  uiDetailMarkClean();
   if (state.orders.some(o => o.id === id)) openOrderDetail(id);
 }
 function uiDetailPaidFull() {
@@ -23372,12 +23723,16 @@ document.getElementById('detailCancelBtn')?.addEventListener('click', () => uiCl
 document.getElementById('detailDeleteBtn')?.addEventListener('hold-confirm', async () => {
   const id = detailOrderId;
   if (!id) return;
+  // 按住删除就是放弃抽屉里的修改：先撤回保存失败留在内存里的改动，删掉的是数据库里那一版。
+  failedSaveUndo(document.getElementById('orderDetailBody'), { rerender:false });
   const deleted = await softDeleteOrder(id);
   if (deleted) closeOrderDetail();
 });
-document.getElementById('detailDuplicateBtn')?.addEventListener('click', () => {
+document.getElementById('detailDuplicateBtn')?.addEventListener('click', async () => {
   const id = detailOrderId;
   if (!id || !state.orders.some(o => o.id === id)) return;
+  // 复制的是已保存的那一版，抽屉里没保存的修改会丢：先问。
+  if (!await uiDetailConfirmLeave('复制订单', '复制的是已保存的那一版，抽屉里改的内容还没保存，复制后这些修改会丢失。')) return;
   closeOrderDetail();
   editingId = id;
   duplicateOrder();
@@ -23498,6 +23853,21 @@ function requestAppUpdate() {
 }
 // 退出提醒等原生弹窗都借用网页里的确认框，跟设计规范保持一致；返回是否点了主按钮。
 function nativeDialog({ title = '', message = '', sub = '软件更新', confirmText = '好', cancelText = '', danger = false } = {}) {
+  // 退出 / 关窗时页面刚报告还有表单没保存（otsFlushBeforeQuit 返回了 false）：Mac 壳给的是通用的「尚未确认保存」，
+  // 这里换成说清楚是哪几张表单。「不保存，退出」才退出；「继续编辑」留在软件里，之后还能正常退出。
+  const block = sub === '退出软件' ? recentQuitBlock() : null;
+  if (block) {
+    quitBlockedByForms = null;
+    return appConfirm({
+      title:'还有没保存的修改',
+      sub,
+      message:`${block.unsaved.join('、')} 里改的内容还没保存，退出后这些修改会丢失。${block.saved ? '' : '\n\n另外，其它数据也还没确认写进数据库。'}`,
+      confirmText:'不保存，退出',
+      cancelText:'继续编辑',
+      danger:true,
+      defaultFocus:'cancel'
+    }).then(result => result.confirmed);
+  }
   return appConfirm({ title, sub, message, confirmText, cancelText, danger }).then(result => result.confirmed);
 }
 function otsAppUpdateStatus(status) {
@@ -23530,8 +23900,12 @@ function otsAppUpdateStatus(status) {
   // 同一条失败原因短时间内只提示一次（连点两下、菜单和按钮各点一次时不叠两张一样的提示）。
   if (status.state === 'error' && status.message) {
     const now = Date.now();
-    if (status.message !== appUpdateLastError.message || now - appUpdateLastError.at > 15000) toast(`更新失败：${status.message}`, { tone:'error' });
-    appUpdateLastError = { message: status.message, at: now };
+    // 更新前的检查被没保存的表单拦下：说清楚是哪几张，保存或关掉后再点更新。
+    const block = recentQuitBlock();
+    if (block) quitBlockedByForms = null;
+    const reason = block ? `${block.unsaved.join('、')} 里还有没保存的修改，已取消本次更新。请先保存或关闭，再点「更新」。` : status.message;
+    if (reason !== appUpdateLastError.message || now - appUpdateLastError.at > 15000) toast(block ? reason : `更新失败：${reason}`, { tone:'error' });
+    appUpdateLastError = { message: reason, at: now };
   }
   if (status.state === 'available' && typeof uiNotifLogEvent === 'function') uiNotifLogEvent({ id:`update-${status.version || ''}`, kind:'info', title:`发现新版本 V${status.version || ''}`, sub:'点右上角「更新」会自动下载、重装并重启', pill:'更新' });
   if (status.state === 'latest' || status.state === 'error') {

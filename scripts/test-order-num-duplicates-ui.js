@@ -144,8 +144,10 @@ const base = { country:'🇺🇸 美国 United States', currency:'USD', amount:1
     assert.match((await toastTexts()).join('\n'), new RegExp(`已复制为新订单 ${copy.num}`));
     await page.evaluate(() => closeOrder());
     // 弹窗里有没保存的改动时，复制前先问（复制的是已保存的那一版）。
-    await page.evaluate(() => openOrder('o1'));
-    await page.waitForTimeout(100);
+    // 打开弹窗后快照在下一帧才取（遮罩观察器里的 requestAnimationFrame），慢机器上固定等 100ms 不够：
+    // 先清掉上次的快照，等这次的快照真的取好再改字段。
+    await page.evaluate(() => { delete document.getElementById('orderForm')._cleanFingerprint; openOrder('o1'); });
+    await page.waitForFunction(() => document.getElementById('orderForm')._cleanFingerprint !== undefined);
     await page.locator('#orderForm input[name="amount"]').fill('4321');
     await page.locator('#duplicateBtn').click();
     await page.waitForFunction(() => document.getElementById('confirmModal').classList.contains('open'));

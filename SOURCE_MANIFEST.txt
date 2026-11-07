@@ -73,7 +73,9 @@ scripts/test-customer-ai-requirements.js
 scripts/test-customer-contact-preferences-ui.js
 scripts/test-customer-contact-preferences.js
 scripts/test-customer-email-fallback.js
+scripts/test-customer-email-matching.js
 scripts/test-customer-form-validation-ui.js
+scripts/test-customer-merge-delete-ui.js
 scripts/test-customer-multi-fields.js
 scripts/test-dashboard-month.js
 scripts/test-deep-review-fixes.js

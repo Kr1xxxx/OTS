@@ -165,6 +165,7 @@ vm.runInContext(html.match(/^const customerPasteFieldOrder = .*;$/m)[0].replace(
   'cleanContactValue',
   'findContactInText',
   'findCustomerNameInText',
+  'explicitCustomerNameInText',
   'findCustomerLevelInText',
   'findRepurchaseCycleInText',
   'findCustomerCountryFieldInText',

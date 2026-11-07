@@ -1,6 +1,6 @@
 {
   "name": "trade-order-system",
-  "version": "3.120.0",
+  "version": "3.121.0",
   "private": true,
   "description": "Local trade order tracking system with a native Mac host, SQLite storage, and logistics API helpers.",
   "scripts": {
@@ -21,7 +21,7 @@
     "test:dashboard-month": "node scripts/test-dashboard-month.js && node scripts/test-summary-amounts-ui.js",
     "test:deposit": "node scripts/test-deposit-picker.js",
     "test:full-payment-status": "node scripts/test-full-payment-status.js",
-    "test:new-order-stage": "node scripts/test-new-order-stage.js && node scripts/test-ups-auto-completion.js",
+    "test:new-order-stage": "node scripts/test-new-order-stage.js && node scripts/test-ups-auto-completion.js && node scripts/test-tracking-status-mapping.js && node scripts/test-shipments-partial-ui.js",
     "test:order-modal-history": "node scripts/test-order-modal-history.js",
     "test:modal-accessibility": "node scripts/test-modal-accessibility.js",
     "test:custom-select": "node scripts/test-custom-select.js && node scripts/test-menu-popovers-ui.js",

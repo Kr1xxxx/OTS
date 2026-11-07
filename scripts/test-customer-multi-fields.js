@@ -38,7 +38,7 @@ const normalize = profile => JSON.parse(JSON.stringify(vm.runInContext(
   context
 )));
 assert.equal(context.customerDetailCopyText({alibabaId:'  0012AbC  '},'alibabaId'),'0012AbC');
-Object.assign(context, {autoCapitalizeCustomerName:v=>v, customerSaveName:v=>v, normalizePaymentChannelValue:v=>v, productTypeDefs:[{value:'睫毛'}],defaultOrderSettings:{defaultProductType:'睫毛'},normalizeTags:()=>[],normalizeCountry:v=>v,cleanContactValue:v=>v,nowText:()=> '2026-09-10',customerChangeSummary:()=> '更新'});
+Object.assign(context, {autoCapitalizeCustomerName:v=>v, customerSaveName:v=>v, normalizePaymentChannelValue:v=>v, productTypeDefs:[{value:'睫毛'}],defaultOrderSettings:{defaultProductType:'睫毛'},normalizeTags:()=>[],normalizeCountry:v=>v,storedCountry:v=>v,cleanContactValue:v=>v,nowText:()=> '2026-09-10',customerChangeSummary:()=> '更新'});
 vm.runInContext(extractFunction('buildCustomerSavePayload'),context);
 assert.equal(context.buildCustomerSavePayload({name:'Buyer',alibabaId:'  0012AbC  '}).nextProfile.alibabaId,'0012AbC');
 assert.equal(context.buildCustomerSavePayload({name:'Buyer'},{alibabaId:'old-id'}).nextProfile.alibabaId,'old-id');

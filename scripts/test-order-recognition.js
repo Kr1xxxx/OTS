@@ -697,7 +697,7 @@ assert.match(html, /data-copy-customer-address/);
 assert.match(html, /客户地址、电话和邮箱已复制/);
 assert.match(html, /客户地址未填写/);
 assert.match(html, /const wasShippedWithoutStatus = stage === 'shipment'/);
-assert.match(html, /logisticsStatus: primaryShipment\?\.status \|\| \(wasShippedWithoutStatus \? '已发货'/);
+assert.match(html, /logisticsStatus: shipments\.length \? aggregateShipmentStatus\(shipments\) : \(wasShippedWithoutStatus \? '已发货'/);
 assert.match(html, /macPersistedStateJson\s*=\s*JSON\.stringify\(state\)/);
 assert.doesNotMatch(html, /loaded\.rawState|rawState\s*,\s*revision/);
 assert.doesNotMatch(html, /<span class="order-num">\$\{o\.num\}<\/span>/);

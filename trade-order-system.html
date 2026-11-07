@@ -18608,7 +18608,7 @@ function openCustomerModal(name = '', { viewOnly = true } = {}) {
   if (wasOpen) requestAnimationFrame(() => { if (modalEl?.classList.contains('open') && focusTarget?.getClientRects().length) focusTarget.focus({ preventScroll:true }); });
   resetModalScroll('#customerModal');
   // 弹窗本来就开着、换成另一位客户或回到只读：自己重新取快照（观察器只在遮罩 class 变化时取）。
-  if (wasOpen) requestAnimationFrame(() => uiFormMarkClean(form));
+  if (wasOpen) uiFormSnapshotOnOpen(form);
 }
 function updateCustomerSaveLabels() {
   const headerBtn = document.getElementById('customerHeaderSaveBtn');
@@ -19912,7 +19912,7 @@ function openOrder(id) {
   setModalOpenState('orderModal', true);
   resetModalScroll('#orderModal');
   // 弹窗本来就开着、换成另一张单：遮罩的 class 没变，观察器不会重新取快照，这里自己取，免得拿上一张单来比、误报改动。
-  if (wasOpen && typeof uiFormMarkClean === 'function') requestAnimationFrame(() => uiFormMarkClean(form));
+  if (wasOpen && typeof uiFormSnapshotOnOpen === 'function') uiFormSnapshotOnOpen(form);
 }
 function openOrderTrackingNumberFirst(id) {
   const order = state.orders.find(o => o.id === id);
@@ -25823,12 +25823,10 @@ function uiStepNavSetup(modalId, formId) {
   new MutationObserver(records => {
     // 只在「从关到开」的那一下记「干净」。以前弹窗开着时 class 有任何变化（上一次关闭动画的收尾类名晚到）都重记一次，
     // 刚打开就打的字被当成原样，关闭时不再提示、直接丢掉。
-    // 打开时立刻按刚填好的内容记一次（这个回调在打开它的那段代码跑完后才执行），下一帧再记一次：
-    // 以前只在下一帧记，机器忙、下一帧还没到时按 Esc，比的是上一次打开时的内容，没改也问「放弃修改？」。
     const opened = backdrop.classList.contains('open') && records.some(record => !/(^|\s)open(\s|$)/.test(record.oldValue || ''));
     if (opened) {
-      uiFormMarkClean(form);
-      requestAnimationFrame(() => { uiStepNavBuild(form); uiFormMarkClean(form); });
+      uiFormSnapshotOnOpen(form);
+      requestAnimationFrame(() => uiStepNavBuild(form));
     }
   }).observe(backdrop, { attributes:true, attributeFilter:['class'], attributeOldValue:true });
 }
@@ -25919,6 +25917,19 @@ function uiFormFingerprint(form) {
   return JSON.stringify(values);
 }
 function uiFormMarkClean(form) { if (form) form._cleanFingerprint = uiFormFingerprint(form); }
+// 弹窗打开 / 换成另一张单时取「干净」快照：立刻按刚填好的内容取一次（打开它的那段代码已经跑完），
+// 下一帧再取一次（有些控件下一帧才同步好）——但这中间用户已经动过表单就不再重取，不然刚打的字会被当成原样、关闭时直接丢掉。
+// 以前只在下一帧取：机器忙、下一帧还没到时按 Esc，比的是上一次打开时的内容，没改也问「放弃修改？」。
+function uiFormSnapshotOnOpen(form) {
+  if (!form) return;
+  form._userInputSinceOpen = false;
+  uiFormMarkClean(form);
+  requestAnimationFrame(() => { if (!form._userInputSinceOpen) uiFormMarkClean(form); });
+}
+['input', 'change'].forEach(type => document.addEventListener(type, event => {
+  const form = event.isTrusted ? event.target?.closest?.('form') : null;
+  if (form) form._userInputSinceOpen = true;
+}, true));
 function uiFormDirty(form) { return !!form && form._cleanFingerprint !== undefined && uiFormFingerprint(form) !== form._cleanFingerprint; }
 // 有没保存的东西：表单改过，或者上次保存没写进数据库、改动还留在内存里没撤回。
 function uiFormUnsaved(form) { return uiFormDirty(form) || !!form?._failedSave; }

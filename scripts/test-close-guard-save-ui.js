@@ -39,7 +39,8 @@ async function launch() {
     };
     let stored = { app:'trade-order-system', data:{ orders, customers, demoCleared:true, demoCustomersCleared:true }, revision:0 };
     let failSave = false;
-    let saveDelay = 0;
+    // 保存请求挂住，直到测试放行：以前固定延迟 1.5 秒，机器忙时后面几步还没做完保存就回来、弹窗已经关了。
+    let saveGate = null;
     let failSubscriptionSave = false;
     const store = createSubscriptionStore(new DatabaseSync(':memory:'));
     store.save({ name:'VPS', note:'', amount:20, currency:'USD', cycleMonths:1, startDate:`${month}-01`, category:'工具效率', color:'#2f6fde' });
@@ -52,7 +53,7 @@ async function launch() {
       const pathname = new URL(request.url()).pathname;
       if (pathname === '/trade-order-system.html') return route.fulfill({ contentType:'text/html', body:html });
       if (pathname === '/api/save') {
-        if (saveDelay) await new Promise(resolve => setTimeout(resolve, saveDelay));
+        if (saveGate) await saveGate.promise;
         if (failSave) return route.fulfill({ status:500, json:{ ok:false, message:'TEST disk unavailable' } });
         stored = { ...request.postDataJSON().state, revision:stored.revision + 1 };
         return route.fulfill({ json:{ ok:true, revision:stored.revision, backup:{ ok:true, skipped:true } } });
@@ -234,9 +235,10 @@ async function launch() {
     await page.evaluate(() => openOrder('o2'));
     await settle();
     await type(page.locator('#orderForm [name="note"]'), 'SAVED-WHILE-ESC');
-    saveDelay = 1500;
+    saveGate = {};
+    saveGate.promise = new Promise(resolve => { saveGate.release = resolve; });
     await orderSave.click();
-    await settle(200);
+    await page.waitForFunction(() => document.getElementById('orderForm').dataset.saving);
     await page.keyboard.press('Escape');
     await settle(200);
     assert.equal(await isOpen('confirmModal'), false, 'no 放弃修改 offer while saving');
@@ -244,8 +246,11 @@ async function launch() {
     await page.locator('#closeModalBtn').click();
     await settle(200);
     assert.equal(await isOpen('confirmModal'), false);
+    assert.equal(await isOpen('orderModal'), true, 'the form stays open until the save finishes');
+    const release = saveGate.release;
+    saveGate = null;
+    release();
     await page.waitForFunction(() => !document.getElementById('orderModal').classList.contains('open'), null, { timeout:8000 });
-    saveDelay = 0;
     await waitWritten();
     assert.equal(stored.data.orders.find(o => o.id === 'o2').note, 'SAVED-WHILE-ESC');
 

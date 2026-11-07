@@ -19,6 +19,8 @@ concurrency:
 
 jobs:
   mac:
+    # 手动触发也只从 main 发版，别把其他分支上没合并的代码发给所有人。
+    if: github.ref == 'refs/heads/main'
     runs-on: macos-15
     timeout-minutes: 30
     env:

@@ -170,7 +170,8 @@ function ensureStorage() {
   fs.mkdirSync(attachmentsDir, { recursive: true });
   fs.mkdirSync(migrationArchiveDir, { recursive: true });
   fs.mkdirSync(secretsDir, { recursive: true });
-  [supportDir, backupDir, attachmentsDir, migrationArchiveDir, secretsDir].forEach(dir => {
+  // 用户自选的备份目录不改它的权限（可能是共享网盘文件夹）。
+  [supportDir, ...(backupDir === defaultBackupDir ? [backupDir] : []), attachmentsDir, migrationArchiveDir, secretsDir].forEach(dir => {
     try { fs.chmodSync(dir, 0o700); } catch (_) {}
   });
 }
@@ -215,6 +216,11 @@ function httpError(status, message, details = {}) {
   return error;
 }
 
+// 备份目录可以是用户自己选的文件夹（iCloud、网盘），里面可能有别的 .sqlite / .json：轮转、统计、清理附件只认 OTS 自己起的名字。
+const otsBackupFileName = /^trade-order-data-\d{8}-\d{6}(?:-\d+)?\.(?:sqlite|json)$/;
+function isOtsBackupFile(name = '', extension = '') {
+  return otsBackupFileName.test(name) && (!extension || name.endsWith(`.${extension}`));
+}
 function timestamp() {
   const d = new Date();
   const pad = n => String(n).padStart(2, '0');
@@ -451,11 +457,18 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision } = 
     const existingOrders = new Map(database.prepare('SELECT id, bucket, position, num, client, data_json FROM orders').all().map(row => [row.id, row]));
     const desiredOrders = [];
     const desiredOrderIds = new Set();
+    // Invalid state is a client error (422), not a server failure: the page must not retry it forever.
+    const desiredNums = new Map();
     orderBuckets.forEach(bucket => {
       data[bucket].forEach((order, position) => {
         const id = String(order?.id || '').trim();
-        if (!id) throw new Error(`${bucket} contains an order without id`);
-        if (desiredOrderIds.has(id)) throw new Error(`duplicate order id: ${id}`);
+        if (!id) throw httpError(422, `${bucket} contains an order without id`);
+        if (desiredOrderIds.has(id)) throw httpError(422, `duplicate order id: ${id}`);
+        const num = String(order?.num || '');
+        if (num && desiredNums.has(num)) {
+          throw httpError(422, `订单号 ${num} 重复：两张订单用了同一个订单号（含回收站和已删除），请改掉其中一个`, { publicDetails:{ duplicateNum:num } });
+        }
+        if (num) desiredNums.set(num, id);
         desiredOrderIds.add(id);
         desiredOrders.push({ bucket, order, position, id });
       });
@@ -699,7 +712,7 @@ function archiveMigrationSource(sourceFile) {
 function hasPriorSqliteEvidence() {
   if (fs.existsSync(storageMarkerFile)) return true;
   try {
-    if (fs.readdirSync(backupDir).some(name => name.endsWith('.sqlite'))) return true;
+    if (fs.readdirSync(backupDir).some(name => isOtsBackupFile(name, 'sqlite'))) return true;
     if (fs.readdirSync(migrationArchiveDir).some(name => name.endsWith('.json'))) return true;
     if (fs.readdirSync(supportDir).some(name => name.startsWith('trade-order-system.sqlite.failed-'))) return true;
   } catch (_) {}
@@ -1278,7 +1291,7 @@ function backupAttachmentRefs(file) {
 }
 function retainedAttachmentRefs(payload = readCurrentPayload()) {
   const refs = collectAttachmentRefs(payload);
-  for (const name of fs.readdirSync(backupDir).filter(name => /\.(sqlite|json)$/.test(name))) {
+  for (const name of fs.readdirSync(backupDir).filter(name => isOtsBackupFile(name))) {
     for (const file of backupAttachmentRefs(path.join(backupDir, name))) refs.add(file);
   }
   return refs;
@@ -1351,7 +1364,7 @@ function createBackup(force = false) {
     throw error;
   }
   const backups = fs.readdirSync(backupDir)
-    .filter(name => name.endsWith(`.${extension}`))
+    .filter(name => isOtsBackupFile(name, extension))
     .sort()
     .reverse();
   backups.slice(30).forEach(name => {
@@ -1379,7 +1392,7 @@ function automaticBackup() {
 function backupSummary() {
   ensureStorage();
   const backups = fs.readdirSync(backupDir)
-    .filter(name => name.endsWith('.json') || name.endsWith('.sqlite'))
+    .filter(name => isOtsBackupFile(name))
     .sort()
     .reverse();
   let meta = {};
@@ -1683,6 +1696,16 @@ function readBody(req, limit = bodyLimitForRequest(req)) {
   });
 }
 
+// 请求正文不是 JSON 对象（写错、空正文、null）是调用方的问题，回 400，别当成服务器出错（500）。
+async function readJsonBody(req, fallback) {
+  const text = await readBody(req);
+  if (!text.trim() && fallback !== undefined) return fallback;
+  let value;
+  try { value = JSON.parse(text); } catch (_) { throw httpError(400, '请求内容不是有效的 JSON'); }
+  if (!value || typeof value !== 'object') throw httpError(400, '请求内容必须是 JSON 对象');
+  return value;
+}
+
 function tokenMatches(candidate = '') {
   const supplied = Buffer.from(String(candidate || ''));
   const expected = Buffer.from(apiToken);
@@ -1910,8 +1933,10 @@ async function queryAiChat(body = {}) {
       : `AI 请求失败：${requestError?.message || '未知错误'}`;
     return { ok: false, message, ...(accountingWarning ? { accountingWarning } : {}) };
   }
-  if (response.status < 200 || response.status >= 300) {
-    const error = response.data.error || response.data.errors?.[0] || {};
+  // 有的中转接口出错也回 200，只在正文里放 error：同样当失败处理（费用记录那边已经这么算）。
+  if (response.status < 200 || response.status >= 300 || response.data?.error) {
+    const error = (typeof response.data.error === 'object' && response.data.error) || response.data.errors?.[0] || {};
+    if (typeof response.data.error === 'string') error.message = response.data.error;
     return { ok: false, status: response.status, message: error.message || response.data.message || `AI 接口 HTTP ${response.status}`, ...(accountingWarning ? { accountingWarning } : {}) };
   }
   return { ok: true, ...response.data, ...(accountingWarning ? { accountingWarning } : {}) };
@@ -1937,6 +1962,9 @@ async function checkDhlApiStatus() {
     if (response.status === 401 || response.status === 403) {
       return { ok: false, label: 'DHL', checkedAt, message: 'DHL API 未授权' };
     }
+    // 测试单号 0000000000 查不到（400/404）也说明 Key 能用；429 限流、5xx 服务故障都不算可连接。
+    if (response.status === 429) return { ok: false, label: 'DHL', checkedAt, message: 'DHL API 调用次数超限，请稍后再试' };
+    if (response.status >= 500) return { ok: false, label: 'DHL', checkedAt, message: `DHL 服务暂时不可用（HTTP ${response.status}）` };
     return { ok: true, label: 'DHL', checkedAt, message: 'DHL API 可连接' };
   } catch (error) {
     const text = String(error?.message || '');
@@ -2002,6 +2030,8 @@ function detectCarrier(number) {
 function logisticsStatusFromDhl(shipment) {
   const status = [shipment?.status?.statusCode, shipment?.status?.description, shipment?.status?.status].filter(Boolean).join(' ');
   const text = String(status).toLowerCase();
+  // 「not delivered / undeliverable / delivery attempted」也含 delivered / delivery，要先判成异常。
+  if (/not\s+delivered|undeliver|delivery\s+(?:attempt|failed|exception)|未签收|派送失败/.test(text)) return '异常';
   if (text.includes('delivered') || text.includes('签收')) return '已签收';
   if (text.includes('out for delivery') || text.includes('派送')) return '派送中';
   if (text.includes('transit') || text.includes('运输')) return '运输中';
@@ -2187,6 +2217,8 @@ async function queryFedExTracking(number) {
   const data = JSON.parse(text);
   const track = data.output?.completeTrackResults?.[0]?.trackResults?.[0];
   if (!track) throw new Error('FedEx 未返回物流记录');
+  // 单号查不到时 FedEx 也回 200，只在 trackResults[0].error 里写原因：不能当成「已发货」。
+  if (track.error && !track.latestStatusDetail) throw new Error(`FedEx 查不到这个单号：${track.error.message || track.error.code || '未知原因'}`);
   const status = logisticsStatusFromFedEx(track);
   const checkedAt = new Date().toISOString();
   const message = `FedEx API 已同步：${status}`;
@@ -2345,10 +2377,11 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'GET' && url.pathname.startsWith('/attachments/')) {
       ensureStorage();
-      const relative = decodeURIComponent(url.pathname.replace(/^\/attachments\//, ''));
+      let relative = '';
+      try { relative = decodeURIComponent(url.pathname.replace(/^\/attachments\//, '')); } catch (_) { throw httpError(400, 'invalid attachment path'); }
       const target = path.resolve(attachmentsDir, relative);
       const root = path.resolve(attachmentsDir);
-      if (!target.startsWith(root + path.sep) || !fs.existsSync(target)) {
+      if (!target.startsWith(root + path.sep) || !fs.existsSync(target) || !fs.statSync(target).isFile()) {
         return send(res, 404, JSON.stringify({ ok: false, message: 'attachment not found' }));
       }
       const ext = path.extname(target).toLowerCase();
@@ -2367,8 +2400,7 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, JSON.stringify(result));
     }
     if (req.method === 'POST' && url.pathname === '/api/save') {
-      const body = await readBody(req);
-      const requestPayload = JSON.parse(body);
+      const requestPayload = await readJsonBody(req);
       const payload = requestPayload && requestPayload.state && typeof requestPayload.state === 'object'
         ? requestPayload.state
         : requestPayload;
@@ -2385,27 +2417,27 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, JSON.stringify(subscriptionStore().list()));
     }
     if (req.method === 'POST' && url.pathname === '/api/subscriptions/save') {
-      const body = JSON.parse(await readBody(req));
+      const body = await readJsonBody(req);
       const result = subscriptionStore().save(body.item);
       return send(res, 200, JSON.stringify({ ...result, backup: automaticBackup() }));
     }
     if (req.method === 'POST' && url.pathname === '/api/subscriptions/delete') {
-      const body = JSON.parse(await readBody(req));
+      const body = await readJsonBody(req);
       const result = subscriptionStore().remove(body);
       return send(res, 200, JSON.stringify({ ...result, backup: automaticBackup() }));
     }
     if (req.method === 'POST' && url.pathname === '/api/subscriptions/rate') {
-      const body = JSON.parse(await readBody(req));
+      const body = await readJsonBody(req);
       const result = subscriptionStore().setRate(body);
       return send(res, 200, JSON.stringify({ ...result, backup: automaticBackup() }));
     }
     if (req.method === 'POST' && url.pathname === '/api/subscriptions/options') {
-      const body = JSON.parse(await readBody(req));
+      const body = await readJsonBody(req);
       const result = subscriptionStore().setOptions(body);
       return send(res, 200, JSON.stringify({ ...result, backup: automaticBackup() }));
     }
     if (req.method === 'POST' && url.pathname === '/api/order-notification') {
-      const body = JSON.parse(await readBody(req));
+      const body = await readJsonBody(req);
       return send(res, 200, JSON.stringify(await sendOrderNotification(body.orderId)));
     }
     if (req.method === 'POST' && url.pathname === '/api/manual-backup') {
@@ -2416,7 +2448,7 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, JSON.stringify(backupSummary()));
     }
     if (req.method === 'POST' && url.pathname === '/api/backup-settings') {
-      const body = JSON.parse(await readBody(req) || '{}');
+      const body = await readJsonBody(req, {});
       return send(res, 200, JSON.stringify(setBackupDir(body.backupDir)));
     }
     if (req.method === 'POST' && url.pathname === '/api/choose-backup-folder') {
@@ -2425,7 +2457,7 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, JSON.stringify(setBackupDir(picked.path)));
     }
     if (req.method === 'POST' && url.pathname === '/api/export-file') {
-      const body = JSON.parse(await readBody(req));
+      const body = await readJsonBody(req);
       return send(res, 200, JSON.stringify(writeExportFile(body.name, body.text)));
     }
     if (req.method === 'POST' && url.pathname === '/api/open-data-folder') {
@@ -2435,7 +2467,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && url.pathname === '/api/open-attachment-folder') {
       ensureStorage();
-      const body = JSON.parse(await readBody(req));
+      const body = await readJsonBody(req);
       const target = attachmentTargetFromUrl(body.fileUrl);
       const folder = fs.existsSync(target) ? path.dirname(target) : path.dirname(target);
       if (!folder.startsWith(path.resolve(attachmentsDir) + path.sep)) {
@@ -2446,7 +2478,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && url.pathname === '/api/delete-attachments') {
       ensureStorage();
-      const body = JSON.parse(await readBody(req));
+      const body = await readJsonBody(req);
       const urls = Array.isArray(body.urls) ? body.urls : [];
       // If a retained backup cannot be read, fail closed rather than delete its images.
       const protectedRefs = retainedAttachmentRefs();
@@ -2463,13 +2495,14 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, JSON.stringify({ ok: true, deleted }));
     }
     if (req.method === 'POST' && url.pathname === '/api/attachments') {
-      const body = JSON.parse(await readBody(req));
+      const body = await readJsonBody(req);
       return send(res, 200, JSON.stringify(await saveAttachmentImage(body)));
     }
     if (req.method === 'POST' && url.pathname === '/api/open-url') {
-      const body = JSON.parse(await readBody(req));
+      const body = await readJsonBody(req);
       const target = String(body.url || '');
-      const parsed = new URL(target);
+      let parsed;
+      try { parsed = new URL(target); } catch (_) { return send(res, 400, JSON.stringify({ ok: false, message: 'unsupported url' })); }
       if (parsed.protocol !== 'https:' || !isAllowedTrackingHost(parsed.hostname)) {
         return send(res, 400, JSON.stringify({ ok: false, message: 'unsupported url' }));
       }
@@ -2520,19 +2553,19 @@ const server = http.createServer(async (req, res) => {
       }
     }
     if (req.method === 'POST' && url.pathname === '/api/ai-settings') {
-      const body = JSON.parse(await readBody(req));
+      const body = await readJsonBody(req);
       return send(res, 200, JSON.stringify(writeAiSettings(body)));
     }
     if (req.method === 'POST' && url.pathname === '/api/ai-chat') {
-      const body = JSON.parse(await readBody(req));
+      const body = await readJsonBody(req);
       return send(res, 200, JSON.stringify(await queryAiChat(body)));
     }
     if (req.method === 'POST' && url.pathname === '/api/api-status') {
-      const body = JSON.parse(await readBody(req) || '{}');
+      const body = await readJsonBody(req, {});
       return send(res, 200, JSON.stringify(await checkApiStatus(String(body.kind || 'all'))));
     }
     if (req.method === 'POST' && url.pathname === '/api/tracking-settings') {
-      const body = JSON.parse(await readBody(req));
+      const body = await readJsonBody(req);
       const current = readTrackingSettings();
       const next = { ...body };
       if (!String(next.dhlApiKey || '').trim() && current.dhlApiKey) next.dhlApiKey = current.dhlApiKey;

@@ -62,7 +62,7 @@ async function main() {
       body: { state: duplicatePayload, baseRevision: afterSave.revision },
       allowError: true
     });
-    assert(duplicateResult.status === 500, 'duplicate order number was not rejected');
+    assert(duplicateResult.status === 422 && /重复/.test(duplicateResult.data?.message || ''), `duplicate order number was not rejected with a readable 422: ${duplicateResult.status} ${JSON.stringify(duplicateResult.data)}`);
     const afterRejectedSave = await request('/api/data');
     assert(afterRejectedSave.data.orders[1].num === originalSecondNumber, 'failed transaction changed stored data');
 
@@ -86,7 +86,7 @@ async function main() {
     trashPayload.data.trashOrders.push(trashed);
     trashPayload.data.orders.push({ ...trashed, id: `${trashed.id}-duplicate` });
     const trashDuplicate = await request('/api/save', { method: 'POST', body: { state: trashPayload, baseRevision: trashPayload.revision }, allowError: true });
-    assert(trashDuplicate.status === 500, 'an order number still held by the trash must stay unique');
+    assert(trashDuplicate.status === 422, 'an order number still held by the trash must stay unique');
   }
 
   const renameSource = (await request('/api/data'));

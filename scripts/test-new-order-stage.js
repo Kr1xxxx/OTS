@@ -41,6 +41,7 @@ const context = vm.createContext({
   },
   autoCapitalizeCustomerName(value) { return String(value || '').trim(); },
   preferredOrderPaymentChannel(_client, value) { return value || 'Paypal'; },
+  normalizePaymentChannelValue(value) { return String(value || '').trim(); },
   nextOrderNum() { return 'SO26082799'; },
   normalizeDate() { return '2026-08-27'; },
   nowText() { return '2026-08-27 12:00'; },

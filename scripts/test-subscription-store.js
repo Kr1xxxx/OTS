@@ -53,17 +53,64 @@ function storeTests() {
   // Per-period prices and a planned stop date round-trip; same period + kind keeps the later entry.
   assert.deepEqual(renamed.priceChanges, [], 'records start without price changes');
   assert.equal(renamed.stopOn, '');
+  // A one-off price off the charge days (the 24th) never applies and is dropped; an onward one before the start moves to it.
   const priced = store.save({ ...renamed, stopOn:'2026-12-31', priceChanges:[
-    { from:'2026-09-01', amount:25.555 }, { from:'2026-03-01', amount:18, once:true }, { from:'2026-09-01', amount:26 }
+    { from:'2026-09-01', amount:25.555 }, { from:'2026-03-24', amount:18, once:true }, { from:'2026-09-01', amount:26 },
+    { from:'2026-03-01', amount:99, once:true }, { from:'2024-01-01', amount:'19.99' }
   ] }).item;
-  assert.deepEqual(priced.priceChanges, [{ from:'2026-03-01', amount:18, once:true }, { from:'2026-09-01', amount:26, once:false }]);
+  assert.deepEqual(priced.priceChanges, [{ from:'2024-11-24', amount:19.99, once:false }, { from:'2026-03-24', amount:18, once:true }, { from:'2026-09-01', amount:26, once:false }]);
   assert.equal(priced.stopOn, '2026-12-31');
   assert.equal(store.save({ ...priced, stopOn:'' }).item.stopOn, '', 'clearing the planned stop');
   expectInvalid(() => store.save({ ...renamed, stopOn:'2026-13-01' }), '预计停止时间无效');
   expectInvalid(() => store.save({ ...renamed, priceChanges:[{ from:'x', amount:1 }] }), '周期价格日期无效');
   expectInvalid(() => store.save({ ...renamed, priceChanges:[{ from:'2026-01-01', amount:-1 }] }), '周期价格无效');
   expectInvalid(() => store.save({ ...renamed, priceChanges:'nope' }), '周期价格无效');
-  store.save({ ...renamed, stopOn:'', priceChanges:[] });
+  const current = store.save({ ...renamed, stopOn:'', priceChanges:[] }).item;
+
+  // Earlier settings (terms) round-trip, must end on or before the current start and follow each other.
+  const term = { startDate:'2023-11-24', until:'2024-11-24', amount:15, currency:'USD', cycleUnit:'month', cycleCount:12, paymentMethod:'PayPal', category:'AI', priceChanges:[] };
+  const withTerms = store.save({ ...current, terms:[term] }).item;
+  assert.deepEqual(withTerms.terms, [term], 'earlier settings are kept with the record');
+  assert.equal(store.list().items.find(entry => entry.id === current.id).terms.length, 1);
+  expectInvalid(() => store.save({ ...current, terms:[{ ...term, until:'2025-01-01' }] }), '历史设置无效');
+  expectInvalid(() => store.save({ ...current, terms:[{ ...term, until:term.startDate }] }), '历史设置无效');
+  expectInvalid(() => store.save({ ...current, terms:[term, { ...term }] }), '历史设置无效');
+  expectInvalid(() => store.save({ ...current, terms:'x' }), '历史设置无效');
+  // Without terms in the request the stored history would be lost: an edit always sends them.
+  const plainEdit = store.save({ ...withTerms, terms:[] }).item;
+  assert.deepEqual(plainEdit.terms, []);
+
+  // Edits made from an older copy are refused instead of overwriting another window's save.
+  const fresh = store.save({ ...plainEdit, note:'A' }).item;
+  assert.throws(() => store.save({ ...fresh, note:'B', baseUpdatedAt:'2000-01-01T00:00:00.000Z' }),
+    error => error.status === 409 && error.publicDetails.current.note === 'A', 'stale edits get 409 with the current record');
+  assert.equal(store.save({ ...fresh, note:'B', baseUpdatedAt:fresh.updatedAt }).item.note, 'B', 'an edit from the latest copy saves');
+  const gone = store.save({ ...sample, name:'gone' }).item;
+  store.remove({ id:gone.id });
+  assert.throws(() => store.save({ ...gone, baseUpdatedAt:gone.updatedAt }), error => error.status === 404, 'editing a deleted record says so');
+  assert.equal(store.save({ ...gone, baseUpdatedAt:gone.updatedAt, restore:true }).item.id, gone.id, 'undo of a delete may write it back');
+  store.remove({ id:gone.id });
+
+  // Manual renewals record what the user has renewed: new ones start at today, edits keep it, '' means unknown.
+  const manualNew = store.save({ ...sample, name:'example.org', autoRenew:false }).item;
+  assert.match(manualNew.renewedThrough, /^\d{4}-\d{2}-\d{2}$/);
+  assert.equal(store.save({ ...manualNew, renewedThrough:undefined }).item.renewedThrough, manualNew.renewedThrough, 'an edit without it keeps it');
+  assert.equal(store.save({ ...manualNew, renewedThrough:'2027-01-01' }).item.renewedThrough, '2027-01-01');
+  expectInvalid(() => store.save({ ...manualNew, renewedThrough:'2027-02-30' }), '已续费日期无效');
+  assert.equal(store.save({ ...sample, name:'auto' }).item.renewedThrough, '', 'auto-renewals do not track it');
+  store.remove({ id:manualNew.id });
+  store.remove({ id:store.list().items.find(entry => entry.name === 'auto').id });
+
+  // Typing slips: odd years, end dates before the start, text instead of true/false, hex or exponent amounts.
+  expectInvalid(() => store.save({ ...sample, startDate:'0202-01-01' }), '开始日期无效');
+  expectInvalid(() => store.save({ ...sample, startDate:'2200-01-01' }), '开始日期无效');
+  expectInvalid(() => store.save({ ...sample, status:'cancelled', endsOn:'2024-01-01' }), '到期日不能早于开始日期');
+  expectInvalid(() => store.save({ ...sample, stopOn:'2024-01-01' }), '预计停止时间不能早于开始日期');
+  expectInvalid(() => store.save({ ...sample, autoRenew:'false' }), '续费方式无效');
+  expectInvalid(() => store.save({ ...sample, amount:'0x10' }), '金额无效');
+  expectInvalid(() => store.save({ ...sample, amount:'1e3' }), '金额无效');
+  assert.equal(store.save({ ...sample, name:'Bell\u0007 name\nline' }).item.name, 'Bell  name line', 'control characters become spaces');
+  store.remove({ id:store.list().items.find(entry => entry.name.startsWith('Bell')).id });
 
   expectInvalid(() => store.save({ ...sample, name:'  ' }), '名称无效');
   expectInvalid(() => store.save({ ...sample, name:'x'.repeat(81) }), '名称无效');
@@ -114,7 +161,7 @@ function storeTests() {
   assert.deepEqual(store.list().customPaymentMethods, ['招行信用卡', 'Wise'], 'custom options persist');
   expectInvalid(() => store.setOptions({ customCycles:[{ unit:'hour', count:1 }] }), '扣费周期无效');
   expectInvalid(() => store.setOptions({ customPaymentMethods:['  '] }), '付款方式无效');
-  expectInvalid(() => store.setOptions({ customPaymentMethods:Array.from({ length:31 }, (_, i) => `卡${i}`) }), '自定义付款方式无效');
+  expectInvalid(() => store.setOptions({ customPaymentMethods:Array.from({ length:31 }, (_, i) => `卡${i}`) }), '自定义付款方式最多 30 个，请先删掉不用的');
   const typed = store.setOptions({ customCategories:['邮箱', '邮箱', 'VPS', ' 证书 '] });
   assert.deepEqual(typed.customCategories, ['邮箱', '证书'], 'duplicates and built-in types are dropped');
   assert.deepEqual(typed.customPaymentMethods, ['招行信用卡', 'Wise'], 'a call without a list keeps the saved one');
@@ -131,7 +178,28 @@ function storeTests() {
   const migrated = createSubscriptionStore(legacy).list().items[0];
   assert.deepEqual([migrated.cycleUnit, migrated.cycleCount, migrated.paymentMethod], ['month', 12, '']);
   assert.deepEqual([migrated.category, migrated.provider, migrated.autoRenew], ['软件', '', true], 'old 工具效率 rows become 软件, auto-renew on');
+  assert.deepEqual([migrated.terms, migrated.renewedThrough], [[], ''], 'old rows get no earlier settings');
   legacy.close();
+
+  // V3.128 database (manual renewals, no terms / renewed_through yet): manual rows count as renewed up to the upgrade day.
+  const v128 = new DatabaseSync(':memory:');
+  v128.exec(`CREATE TABLE subscriptions (id TEXT PRIMARY KEY, name TEXT NOT NULL, note TEXT NOT NULL DEFAULT '', amount REAL NOT NULL,
+    currency TEXT NOT NULL, cycle_months INTEGER NOT NULL, start_date TEXT NOT NULL, category TEXT NOT NULL, color TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL, ends_on TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL, extra_json TEXT NOT NULL DEFAULT '{}',
+    cycle_unit TEXT NOT NULL DEFAULT 'month', payment_method TEXT NOT NULL DEFAULT '', provider TEXT NOT NULL DEFAULT '', auto_renew INTEGER NOT NULL DEFAULT 1,
+    price_changes_json TEXT NOT NULL DEFAULT '[]', stop_on TEXT NOT NULL DEFAULT '');
+    INSERT INTO subscriptions(id, name, amount, currency, cycle_months, start_date, category, status, created_at, updated_at, auto_renew, price_changes_json)
+      VALUES('manual-0001', 'example.com', 60, 'CNY', 12, '2020-03-01', '域名', 'active', 'x', 'x', 0, '[{"from":"2023-03-01","amount":70,"once":false}]'),
+            ('auto-00001', 'VPS', 5, 'USD', 1, '2024-01-10', 'VPS', 'active', 'x', 'x', 1, '[]');`);
+  const upgraded = createSubscriptionStore(v128).list().items;
+  const manualRow = upgraded.find(entry => entry.id === 'manual-0001');
+  assert.match(manualRow.renewedThrough, /^\d{4}-\d{2}-\d{2}$/, 'manual rows are marked renewed up to the upgrade day');
+  assert.deepEqual(manualRow.priceChanges, [{ from:'2023-03-01', amount:70, once:false }], 'existing price changes are kept');
+  assert.equal(upgraded.find(entry => entry.id === 'auto-00001').renewedThrough, '');
+  // Reopening the upgraded database does not move the date again.
+  v128.prepare("UPDATE subscriptions SET renewed_through = '2021-03-01' WHERE id = 'manual-0001'").run();
+  assert.equal(createSubscriptionStore(v128).list().items.find(entry => entry.id === 'manual-0001').renewedThrough, '2021-03-01');
+  v128.close();
 }
 
 async function serverTests() {
@@ -156,6 +224,12 @@ async function serverTests() {
   const invalid = await request('/api/subscriptions/save', { method:'POST', body:{ item:{ ...sample, amount:-1 } }, allowError:true });
   assert.equal(invalid.status, 400);
   assert.equal(invalid.data.message, '金额无效');
+  // baseUpdatedAt next to the item: a save from an older copy gets 409 with the current record.
+  const stale = await request('/api/subscriptions/save', { method:'POST', body:{ item:{ ...saved.item, note:'stale' }, baseUpdatedAt:'2000-01-01T00:00:00.000Z' }, allowError:true });
+  assert.equal(stale.status, 409);
+  assert.equal(stale.data.current.note, '个人账号');
+  const latest = await request('/api/subscriptions/save', { method:'POST', body:{ item:{ ...saved.item, note:'latest' }, baseUpdatedAt:saved.item.updatedAt } });
+  assert.equal(latest.item.note, 'latest');
   assert.equal((await request('/api/subscriptions/rate', { method:'POST', body:{ usdCnyRate:6.9 } })).usdCnyRate, 6.9);
   const options = await request('/api/subscriptions/options', { method:'POST', body:{ customCycles:[{ unit:'day', count:14 }], customPaymentMethods:['Wise'] } });
   assert.deepEqual([options.customCycles, options.customPaymentMethods, options.backup.ok], [[{ unit:'day', count:14 }], ['Wise'], true]);

@@ -127,7 +127,9 @@ scripts/test-stage-settle-restore-ui.js
 scripts/test-stage-undo-ui.js
 scripts/test-stats-targets-calendar-ui.js
 scripts/test-subscription-analysis-ui.js
+scripts/test-subscription-history-edits-ui.js
 scripts/test-subscription-periods-ui.js
+scripts/test-subscription-reminders-ui.js
 scripts/test-subscription-schedule.js
 scripts/test-subscription-store.js
 scripts/test-subscriptions-ui.js

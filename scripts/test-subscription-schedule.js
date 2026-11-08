@@ -27,7 +27,9 @@ vm.runInContext(html.match(/const subscriptionRemindDays = [^;]+;/)[0].replace('
   'subscriptionLocalDate', 'subscriptionDayNumber', 'subscriptionDateFromDay', 'subscriptionAddMonths',
   'subscriptionCycle', 'subscriptionChargeDate', 'subscriptionCycleEvery', 'subscriptionCycleLabel', 'subscriptionChargeIndex', 'subscriptionSchedule', 'subscriptionSummary', 'subscriptionCompare', 'subscriptionWhen', 'subscriptionRemindWindow',
   'subscriptionInitial', 'subscriptionDayAfter', 'subscriptionPriceChanges', 'subscriptionPriceAt', 'subscriptionToCny', 'subscriptionStopBound', 'subscriptionCharges',
-  'subscriptionMonthShift', 'subscriptionMonthEnd', 'subscriptionStopPreset', 'subscriptionWithPrice'
+  'subscriptionMonthShift', 'subscriptionMonthEnd', 'subscriptionStopPreset', 'subscriptionWithPrice',
+  'subscriptionPricer', 'subscriptionTerms', 'subscriptionFirstStart', 'subscriptionManualTracked', 'subscriptionTermTotals', 'subscriptionTermOffset',
+  'subscriptionDefaultRemindWindow', 'subscriptionWhenDate'
 ].forEach(name => vm.runInContext(extractFunction(name), context));
 const call = (name, ...args) => context[name](...args);
 const item = overrides => ({
@@ -210,4 +212,52 @@ assert.equal(call('subscriptionInitial', '阿里云域名'), '阿');
 assert.equal(call('subscriptionInitial', 'iCloud+'), 'iC');
 assert.equal(call('subscriptionInitial', ' + '), '·');
 
-console.log('Subscription schedule test passed: custom day/month cycles, month ends, leap years, today, cancellation, local date, 30-day window, status pills, initials and ordering.');
+// History keeps the settings of its time: $10 monthly from Jan 5, then (from Apr 5 on) ¥200 every 3 months.
+const switched = item({
+  startDate:'2026-04-05', amount:200, currency:'CNY', cycleUnit:'month', cycleCount:3, cycleMonths:undefined,
+  terms:[{ startDate:'2026-01-05', until:'2026-04-05', amount:10, currency:'USD', cycleUnit:'month', cycleCount:1, priceChanges:[{ from:'2026-03-05', amount:12, once:true }], paymentMethod:'PayPal', category:'AI' }]
+});
+const switchedCharges = Array.from(call('subscriptionCharges', switched, '2026-01-01', '2026-12-31', 7, { today:'2026-11-08' }), charge => `${charge.date}:${charge.amount}${charge.currency}#${charge.index}`);
+assert.deepEqual(switchedCharges, ['2026-01-05:10USD#0', '2026-02-05:10USD#1', '2026-03-05:12USD#2', '2026-04-05:200CNY#3', '2026-07-05:200CNY#4', '2026-10-05:200CNY#5'],
+  'old charges keep their price, cycle and currency; numbering runs on');
+const switchedNow = call('subscriptionSchedule', switched, '2026-11-08', 7);
+assert.equal(switchedNow.charges, 6);
+assert.equal(switchedNow.spentCny, 32 * 7 + 600, 'spent adds the earlier settings at the page rate');
+assert.equal(switchedNow.mixedCurrency, true);
+assert.equal(switchedNow.nextCharge, '2027-01-05');
+assert.equal(call('subscriptionTermOffset', switched), 3);
+assert.equal(call('subscriptionFirstStart', switched), '2026-01-05');
+assert.equal(call('subscriptionTermTotals', switched, '2026-02-10', 7).charges, 2, 'only charges up to today count');
+
+// Manual renewals with a confirmed date: a due date that passes without 「已续费」 is overdue, not paid.
+const domain = item({ startDate:'2025-04-10', cycleMonths:12, amount:60, autoRenew:false, renewedThrough:'2025-04-10' });
+const due = call('subscriptionSchedule', domain, '2026-04-20', 7);
+assert.equal(due.overdue, true);
+assert.equal(due.nextCharge, '2026-04-10');
+assert.equal(due.daysLeft, -10);
+assert.equal(due.charges, 1, 'the unconfirmed renewal is not counted as spent');
+assert.deepEqual({ ...call('subscriptionWhen', due, domain) }, { cls:'red solid', text:'已过期 10 天' });
+assert.deepEqual(Array.from(call('subscriptionCharges', domain, '2025-01-01', '2027-12-31', 7, { today:'2026-04-20' }), charge => charge.date), ['2025-04-10', '2027-04-10'],
+  'history leaves the unconfirmed renewal out; the next year is still projected');
+assert.deepEqual(Array.from(call('subscriptionCharges', domain, '2025-01-01', '2026-12-31', 7, { today:'2026-04-20', unpaid:true }), charge => charge.date), ['2025-04-10', '2026-04-10']);
+const renewed = call('subscriptionSchedule', { ...domain, renewedThrough:'2026-04-10' }, '2026-04-20', 7);
+assert.deepEqual([renewed.overdue, renewed.nextCharge, renewed.charges], [false, '2027-04-10', 2], '「已续费」 moves on to the next year');
+const legacyManual = call('subscriptionSchedule', { ...domain, renewedThrough:'' }, '2026-04-20', 7);
+assert.equal(legacyManual.overdue, false, 'records without the date keep the old behaviour');
+
+// Reminder windows: default per renewal kind, capped at a quarter of the cycle; the item's own choice wins.
+assert.equal(call('subscriptionRemindWindow', item({ cycleMonths:12, autoRenew:false })), 30);
+assert.equal(call('subscriptionRemindWindow', item({ cycleMonths:1, autoRenew:false })), 7, 'a monthly manual renewal is not reminded every day');
+assert.equal(call('subscriptionRemindWindow', item({ cycleUnit:'day', cycleCount:1 })), -1, 'daily charges are not reminded');
+assert.equal(call('subscriptionRemindWindow', item({ cycleMonths:12, extra:{ remindDays:60 } })), 60);
+assert.equal(call('subscriptionRemindWindow', item({ cycleMonths:12, extra:{ remindDays:-1 } })), -1);
+assert.deepEqual({ ...call('subscriptionWhen', call('subscriptionSchedule', item({ cycleUnit:'day', cycleCount:1, startDate:'2026-01-01' }), '2026-03-18', 7), item({ cycleUnit:'day', cycleCount:1 })) }, { cls:'line', text:'每天扣费' });
+// A planned stop reads 停止, and the countdown pill carries its date.
+const plannedStop = call('subscriptionSchedule', stopping, '2026-04-10', 7.1);
+assert.deepEqual({ ...call('subscriptionWhen', plannedStop, stopping) }, { cls:'amber', text:'20天后停止' });
+context.subscriptionLocalDate = () => '2026-04-10';
+assert.equal(call('subscriptionWhenDate', plannedStop), '04-30');
+assert.equal(call('subscriptionWhenDate', { nextCharge:'2027-01-05' }), '2027-01-05');
+context.subscriptionLocalDate = realLocalDate;
+
+console.log('Subscription schedule test passed: custom day/month cycles, month ends, leap years, today, cancellation, local date, 30-day window, status pills, initials, ordering, earlier settings, manual renewal confirmation and reminder windows.');

@@ -83,9 +83,13 @@ async function capture(page, name, options = {}) {
         await page.locator('#subscriptionStopLabel').scrollIntoViewIfNeeded();
         await capture(page, 'editor-stop');
         await page.click('#subscriptionSaveBtn');
-        await page.locator('#subscriptionDrawer.open').waitFor();
         await page.waitForFunction(() => !document.getElementById('subscriptionEditModal').classList.contains('open'));
         assert.equal(store.list().items.find(item => item.id === vps.id).stopOn, '2026-12-31');
+        // Opened from the row's edit button, saving returns to that row instead of opening the detail.
+        assert.equal(await page.locator('#subscriptionDrawer').evaluate(el => el.classList.contains('open')), false);
+        await page.waitForFunction(() => document.activeElement?.closest?.('.subs-row')?.textContent.includes('搬瓦工'));
+        await rows.filter({ hasText:'搬瓦工' }).click();
+        await page.locator('#subscriptionDrawer.open').waitFor();
       } else {
         await page.keyboard.press('Escape');
         await rows.filter({ hasText:'搬瓦工' }).click();

@@ -28147,12 +28147,56 @@ function uiRenderNotifs() {
     const today = normalizeDate(new Date().toISOString());
     return text === today ? '今天' : text.slice(5, 10);
   };
-  document.getElementById('notifList').innerHTML = list.length ? list.map((item, i) => `
-    <button class="notif-card is-${item.kind}${item.tone ? ` is-${item.tone}` : ''}${read.has(item.id) ? ' is-read' : ''}" type="button" data-notif-id="${escapeAttr(item.id)}" data-order-id="${escapeAttr(item.orderId || '')}" data-sub-id="${escapeAttr(item.subId || '')}" data-tab="${escapeAttr(item.tab || '')}" style="--i:${Math.min(i, 12)}">
+  const cardHtml = item => `<button class="notif-card is-${item.kind}${item.tone ? ` is-${item.tone}` : ''}${read.has(item.id) ? ' is-read' : ''}" type="button" data-notif-id="${escapeAttr(item.id)}" data-order-id="${escapeAttr(item.orderId || '')}" data-sub-id="${escapeAttr(item.subId || '')}" data-tab="${escapeAttr(item.tab || '')}">
       <span class="notif-ic">${uiIcon(item.tone === 'warn' ? 'bolt' : icons[item.kind])}</span>
       <span class="notif-body"><b${item.countdown ? ' class="notif-tl"' : ''}>${item.countdown ? `<span class="notif-t">${escapeAttr(item.title)}${item.pill && item.pill !== pillLabel(item) ? ` · ${escapeAttr(item.pill)}` : ''}</span><span class="notif-cd">${escapeAttr(item.countdown)}</span>` : `${escapeAttr(item.title)}${item.pill && item.pill !== pillLabel(item) ? ` · ${escapeAttr(item.pill)}` : ''}`}</b><small>${escapeAttr(item.sub)}</small>
         <span class="notif-foot">${item.timeLabel ? `<time>${escapeAttr(item.timeLabel)}</time>` : item.time ? `<time>${escapeAttr(when(item.time))}</time>` : ''}<span class="notif-pill is-${item.kind}${item.tone ? ` is-${item.tone}` : ''}">${pillLabel(item)}</span></span></span>
-    </button>`).join('') : '<div class="notif-empty">这里没有通知</div>';
+    </button>`;
+  uiPatchNotifList(document.getElementById('notifList'), list.map(item => ({ key:item.id, html:cardHtml(item) })));
+}
+// 通知列表按 id 增量更新：内容没变的卡片保留原来的节点，不重播入场动画。以前每次 uiRenderNotifs（render()、
+// 窗口获得焦点后重读续费、记一条事件……面板开着时一会儿一次）都整片 innerHTML 重写，所有卡片被换成新节点、
+// 重新从透明升起：正在点的那张卡在点下去之前被换掉，或者还在动画里（macOS 上偶发点不到）。
+function uiPatchNotifList(box, entries) {
+  if (!box) return;
+  if (!entries.length) {
+    if (!box.querySelector(':scope > .notif-empty') || box.children.length !== 1) box.innerHTML = '<div class="notif-empty">这里没有通知</div>';
+    return;
+  }
+  box.querySelector(':scope > .notif-empty')?.remove();
+  const current = new Map([...box.children].filter(el => el.dataset.notifId !== undefined).map(el => [el.dataset.notifId, el]));
+  const template = document.createElement('template');
+  let fresh = 0;
+  const nodes = entries.map(({ key, html }) => {
+    const old = current.get(key);
+    if (old) {
+      current.delete(key);
+      // 同一张卡内容变了（已读、倒计时走了）：就地改属性和内部，按钮节点本身不换，正在点的卡不会被摘掉。
+      if (old._notifHtml !== html) {
+        template.innerHTML = html.trim();
+        const next = template.content.firstElementChild;
+        [...old.attributes].forEach(attr => { if (attr.name !== 'style' && !next.hasAttribute(attr.name)) old.removeAttribute(attr.name); });
+        [...next.attributes].forEach(attr => { if (old.getAttribute(attr.name) !== attr.value) old.setAttribute(attr.name, attr.value); });
+        if (old.innerHTML !== next.innerHTML) old.innerHTML = next.innerHTML;
+        old._notifHtml = html;
+      }
+      return old;
+    }
+    template.innerHTML = html.trim();
+    const node = template.content.firstElementChild;
+    node._notifHtml = html;
+    node.style.setProperty('--i', String(Math.min(fresh++, 12)));
+    return node;
+  });
+  current.forEach(el => el.remove());
+  // 只挪不在位置上的节点；已在位置上的卡不摘下来，动画不会重播。被挪动的旧卡不再播入场动画。
+  nodes.forEach((node, index) => {
+    const at = box.children[index];
+    if (at === node) return;
+    if (node.isConnected) node.style.animation = 'none';
+    box.insertBefore(node, at || null);
+  });
+  while (box.children.length > nodes.length) box.lastElementChild.remove();
 }
 function uiToggleNotifs(open) {
   const panel = document.getElementById('notifPanel');
@@ -28162,7 +28206,8 @@ function uiToggleNotifs(open) {
   panel.hidden = !next;
   scrim.hidden = !next;
   document.getElementById('notifBtn')?.setAttribute('aria-expanded', String(next));
-  if (next) { uiRenderNotifs(); panel.focus(); }
+  // 打开面板、切页签时清空列表，卡片照常依次升起；面板开着期间的后台重画只做增量更新。
+  if (next) { const box = document.getElementById('notifList'); if (box) box.textContent = ''; uiRenderNotifs(); panel.focus(); }
   else document.getElementById('notifBtn')?.focus();
 }
 document.getElementById('notifBtn')?.addEventListener('click', () => uiToggleNotifs());
@@ -28175,6 +28220,8 @@ document.getElementById('notifTabs')?.addEventListener('click', e => {
   const tab = e.target.closest('[data-notif-tab]');
   if (!tab) return;
   uiNotifTab(tab.dataset.notifTab);
+  const box = document.getElementById('notifList');
+  if (box) box.textContent = '';
   uiRenderNotifs();
 });
 document.getElementById('notifReadAll')?.addEventListener('click', () => {

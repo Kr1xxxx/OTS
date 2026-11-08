@@ -133,6 +133,45 @@ const h = {
       }
     }
   },
+  // 真实鼠标点元素中心。每一轮都按 locator 重新找元素（中途被重画换掉就找新的那个），滚进视野，
+  // 等它和祖先上的动画跑完、连续两帧位置不变，再用 elementFromPoint 确认中心点上就是它（没被提示条、遮罩挡住），然后才按下鼠标。
+  // 只有「元素被换掉 / 还在动 / 被挡住」会重试；找不到元素、超时等其它错误照常抛出。
+  click: async (page, target, label = String(target)) => {
+    const locator = typeof target === 'string' ? page.locator(target).first() : target;
+    let last = '';
+    for (let attempt = 1; attempt <= 8; attempt++) {
+      try {
+        await locator.waitFor({ state:'visible' });
+        const result = await locator.evaluate(el => new Promise(resolve => {
+          el.scrollIntoView({ block:'nearest', inline:'nearest' });
+          const moving = () => document.getAnimations().some(a => a.playState === 'running' && a.effect?.getComputedTiming?.().endTime !== Infinity && a.effect.target instanceof Element && (a.effect.target.contains(el) || el.contains(a.effect.target)));
+          const started = performance.now();
+          let prev = '';
+          let steady = 0;
+          const check = () => {
+            if (!el.isConnected) return resolve({ detached:true });
+            const r = el.getBoundingClientRect();
+            const key = [r.x, r.y, r.width, r.height].map(v => v.toFixed(1)).join();
+            steady = !moving() && key === prev ? steady + 1 : 0;
+            prev = key;
+            if (steady < 2 && performance.now() - started < 5000) return requestAnimationFrame(check);
+            if (steady < 2) return resolve({ unstable:key });
+            const point = { x:r.x + r.width / 2, y:r.y + r.height / 2 };
+            const top = document.elementFromPoint(point.x, point.y);
+            resolve(top === el || el.contains(top) ? { point } : { covered:(top?.outerHTML || 'nothing').slice(0, 160) });
+          };
+          requestAnimationFrame(check);
+        }));
+        if (result.point) return page.mouse.click(result.point.x, result.point.y);
+        last = result.detached ? 'detached while settling' : result.unstable ? `still moving at ${result.unstable}` : `covered by ${result.covered}`;
+      } catch (error) {
+        if (!/not attached|detached|Execution context was destroyed/i.test(error.message)) throw error;
+        last = error.message.split('\n')[0];
+      }
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    }
+    throw new Error(`${label} could not be clicked: ${last}`);
+  },
   columnPoint: async (page, stage) => {
     const box = await page.locator(`#pipeline .board-column[data-stage="${stage}"]`).boundingBox();
     return { x:box.x + box.width / 2, y:box.y + Math.min(box.height - 20, 160) };

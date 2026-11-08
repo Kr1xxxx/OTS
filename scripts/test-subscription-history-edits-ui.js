@@ -69,25 +69,8 @@ const addMonths = (text, months) => {
     await page.locator('#subsList .subs-row').first().waitFor();
 
     // Real mouse click on the element's centre, after checking nothing (a toast, an animation) covers it.
-    const click = async (selector, { locator = null } = {}) => {
-      let hit = '';
-      for (let attempt = 0; attempt < 5; attempt++) {
-        const target = locator || page.locator(selector).first();
-        await target.waitFor({ state:'visible' });
-        await target.scrollIntoViewIfNeeded();
-        await target.evaluate(el => new Promise(resolve => {
-          const moving = () => document.getAnimations().some(a => a.playState === 'running' && a.effect?.getComputedTiming?.().endTime !== Infinity && a.effect.target instanceof Element && (a.effect.target.contains(el) || el.contains(a.effect.target)));
-          const check = () => (el.isConnected && moving() ? requestAnimationFrame(check) : resolve());
-          check();
-        }));
-        const box = await target.boundingBox();
-        const point = { x:box.x + box.width / 2, y:box.y + box.height / 2 };
-        hit = await target.evaluate((el, p) => { const top = document.elementFromPoint(p.x, p.y); return top === el || el.contains(top) ? '' : (top?.outerHTML || 'nothing').slice(0, 160); }, point);
-        if (!hit) return page.mouse.click(point.x, point.y);
-        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-      }
-      assert.fail(`${selector} is covered: ${hit}`);
-    };
+    // Re-locates the element every attempt, waits until it has stopped moving, checks elementFromPoint (see h.click).
+    const click = (selector, { locator = null } = {}) => h.click(page, locator || selector, selector || String(locator));
     const row = name => page.locator('#subsList .subs-row', { hasText:name });
     const confirmOpen = async () => {
       await page.waitForFunction(() => document.getElementById('confirmModal').classList.contains('open'));

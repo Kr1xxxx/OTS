@@ -60,25 +60,8 @@ const addMonths = (text, months) => {
     await page.evaluate(() => setPage('subscriptions'));
     await page.locator('#subsList .subs-row').first().waitFor();
 
-    const click = async (selector, { locator = null } = {}) => {
-      let hit = '';
-      for (let attempt = 0; attempt < 5; attempt++) {
-        const target = locator || page.locator(selector).first();
-        await target.waitFor({ state:'visible' });
-        await target.scrollIntoViewIfNeeded();
-        await target.evaluate(el => new Promise(resolve => {
-          const moving = () => document.getAnimations().some(a => a.playState === 'running' && a.effect?.getComputedTiming?.().endTime !== Infinity && a.effect.target instanceof Element && (a.effect.target.contains(el) || el.contains(a.effect.target)));
-          const check = () => (el.isConnected && moving() ? requestAnimationFrame(check) : resolve());
-          check();
-        }));
-        const box = await target.boundingBox();
-        const point = { x:box.x + box.width / 2, y:box.y + box.height / 2 };
-        hit = await target.evaluate((el, p) => { const top = document.elementFromPoint(p.x, p.y); return top === el || el.contains(top) ? '' : (top?.outerHTML || 'nothing').slice(0, 160); }, point);
-        if (!hit) return page.mouse.click(point.x, point.y);
-        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-      }
-      assert.fail(`${selector} is covered: ${hit}`);
-    };
+    // Re-locates the element every attempt, waits until it has stopped moving, checks elementFromPoint (see h.click).
+    const click = (selector, { locator = null } = {}) => h.click(page, locator || selector, selector || String(locator));
     const bellCards = () => page.locator('#notifList .notif-card[data-sub-id]:not([data-sub-id=""])');
 
     // ---- 1. Stopped here, still auto-renewing at the provider: the bell says to cancel there ----
@@ -87,6 +70,17 @@ const addMonths = (text, months) => {
     await cancelCard.waitFor();
     assert.equal(await cancelCard.locator('.notif-cd').innerText(), '记得取消自动续费');
     assert.match(await cancelCard.locator('small').innerText(), new RegExp(`扣费前去服务商关掉自动续费`));
+    // A background redraw while the panel is open (focus reload, a logged event, render()) keeps the same card nodes
+    // and does not replay their entrance: the card being clicked is never swapped out from under the mouse.
+    await h.settle(page, '#notifList .notif-card');
+    const kept = await page.evaluate(() => {
+      const before = [...document.querySelectorAll('#notifList .notif-card')];
+      uiRenderNotifs();
+      render();
+      const after = [...document.querySelectorAll('#notifList .notif-card')];
+      return { same:before.length === after.length && before.every((el, i) => el === after[i]), running:after.some(el => el.getAnimations().some(a => a.playState === 'running')) };
+    });
+    assert.deepEqual(kept, { same:true, running:false });
     await click('', { locator:cancelCard });
     await page.locator('#subscriptionDrawer.open [data-sub-action="provider-cancelled"]').waitFor();
     await click('#subscriptionDrawer [data-sub-action="provider-cancelled"]');

@@ -116,7 +116,11 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     await page.locator('#notifBtn').click();
     const renewCards = page.locator('#notifList .notif-card[data-sub-id]:not([data-sub-id=""])');
     await renewCards.first().waitFor();
-    assert.deepEqual((await renewCards.locator('b').allInnerTexts()).sort(), ['ChatGPT Plus 今天扣费 · 续费', '阿里云域名 7天后扣费 · 续费']);
+    // Name (shortened with … when long) and the countdown are separate, so the countdown always shows whole.
+    assert.deepEqual((await renewCards.evaluateAll(cards => cards.map(card => `${card.querySelector('.notif-t').textContent} | ${card.querySelector('.notif-cd').textContent} | ${card.querySelector('.notif-foot time').textContent}`))).sort(),
+      ['ChatGPT Plus · 续费 | 今天扣费 | 03-18 扣费', '阿里云域名 · 续费 | 7天后扣费 | 03-25 扣费']);
+    // Due today sits above due in a week, ahead of everything else in the bell.
+    assert.deepEqual(await page.locator('#notifList .notif-card').evaluateAll(cards => cards.slice(0, 2).map(card => card.dataset.subId ? card.querySelector('.notif-t').textContent : '')), ['ChatGPT Plus · 续费', '阿里云域名 · 续费']);
     await renewCards.filter({ hasText:'阿里云域名' }).click();
     await page.waitForFunction(() => document.getElementById('subscriptionDrawer').classList.contains('open'));
     assert.equal(await page.locator('#subscriptionDrawerTitle').innerText(), '阿里云域名');
@@ -143,19 +147,37 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     await capture(page, 'detail');
 
     // Cancel keeps it until the paid-through date; the toast can undo it; resume restores auto-renewal.
+    // Stopping an auto-renewal first asks whether it was also turned off at the provider (in-app dialog, never native).
     await drawer.locator('[data-sub-action="toggle"]').click();
+    await page.locator('#confirmModal.open').waitFor();
+    assert.match(await page.locator('#confirmTitle').innerText(), /已经在服务商那里关掉自动续费了吗/);
+    assert.equal(await page.locator('#confirmAltBtn').innerText(), '还没，提醒我');
+    await clickFooterButton(page, '#confirmCancelBtn');
+    await page.waitForFunction(() => !document.getElementById('confirmModal').classList.contains('open'));
+    assert.equal(store.list().items.find(item => item.name === '1Password').status, 'active', '先不停止 changes nothing');
+    await drawer.locator('[data-sub-action="toggle"]').click();
+    await page.locator('#confirmModal.open').waitFor();
+    await clickFooterButton(page, '#confirmAltBtn');
     await drawer.locator('.subs-dh .subs-pill.amber').waitFor();
+    // Not cancelled at the provider yet: the drawer offers 已在服务商取消.
+    await drawer.locator('[data-sub-action="provider-cancelled"]').waitFor();
     assert.match(await drawer.locator('.subs-card').first().innerText(), /有效期至\s*2026-05-18\s*61天后到期，不再扣费/);
     assert.equal(store.list().items.find(item => item.name === '1Password').endsOn, '2026-05-18');
     assert.match(await page.locator('#subsHeroSide').innerText(), /2 项续费中 · 1 项不再续费/);
-    assert.equal(await rows.filter({ hasText:'1Password' }).locator('.subs-pill').innerText(), '61天后到期');
+    // The pill names the date as well as the countdown.
+    assert.match(await rows.filter({ hasText:'1Password' }).locator('.subs-pill').innerText(), /^05-18\s+61天后到期$/);
+    assert.match(await rows.filter({ hasText:'1Password' }).locator('.subs-meta').innerText(), /有效期至 5月18日/, 'the row keeps the end date');
     const cancelToast = toasts.filter({ hasText:'1Password 已停止续费' });
     assert.match(await cancelToast.innerText(), /2026-05-18 到期后不再扣费/);
     await cancelToast.locator('.toast-undo').click();
     await drawer.locator('.subs-dh .subs-pill.green').waitFor();
     assert.deepEqual((({ status, endsOn }) => ({ status, endsOn }))(store.list().items.find(item => item.name === '1Password')), { status:'active', endsOn:'' });
     await drawer.locator('[data-sub-action="toggle"]').click();
+    await page.locator('#confirmModal.open').waitFor();
+    await clickFooterButton(page, '#confirmOkBtn');
     await drawer.locator('.subs-dh .subs-pill.amber').waitFor();
+    assert.match(store.list().items.find(item => item.name === '1Password').extra.providerCancelledOn, /^2026-03-18$/, '已关掉 is remembered');
+    assert.equal(await drawer.locator('[data-sub-action="provider-cancelled"]').count(), 0);
     await drawer.locator('[data-sub-action="toggle"]').click();
     await drawer.locator('.subs-dh .subs-pill.green').waitFor();
     assert.equal(store.list().items.find(item => item.name === '1Password').status, 'active');
@@ -197,7 +219,11 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     assert.match(await modal.locator('#subscriptionName').evaluate(el => el.closest('.subs-field').className), /\berr\b/);
     await modal.locator('#subscriptionName').fill('Claude Pro');
     await clickFooterButton(page, '#subscriptionSaveBtn');
-    await page.waitForFunction(text => document.getElementById('subscriptionEditError').textContent === text, '请填写大于 0 的金额', { timeout:5000 });
+    await page.waitForFunction(text => document.getElementById('subscriptionEditError').textContent === text, '请填写金额', { timeout:5000 });
+    // Text that is not a number is refused instead of being read as part of it (1e3, 12abc).
+    await modal.locator('#subscriptionAmount').fill('1e3');
+    await clickFooterButton(page, '#subscriptionSaveBtn');
+    await page.waitForFunction(text => document.getElementById('subscriptionEditError').textContent === text, '只填数字，例如 1299.00', { timeout:5000 });
     await modal.locator('#subscriptionAmount').fill('200');
     await modal.locator('[data-sub-segment="currency"] [data-value="USD"]').click();
     // Custom cycle: 每 2 周 is saved as a reusable option and selected.
@@ -230,7 +256,8 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     await typeOpts.locator('[data-opt-value="AI"]').click();
     await modal.locator('#subscriptionProvider').fill('Anthropic');
     await modal.locator('.subs-renew').click();
-    assert.equal(await page.locator('#subscriptionPreviewWhen').innerText(), '今天到期');
+    // A manual renewal recorded today counts today's period as renewed: it falls due again a year later.
+    assert.match(await page.locator('#subscriptionPreviewWhen').innerText(), /^2027-03-18\s+365天后到期$/);
     assert.match(await page.locator('#subscriptionAutoRenewText').innerText(), /手动续费/);
     await modal.locator('.subs-renew').click();
     await modal.locator('[data-sub-color="#e0336f"]').click();
@@ -238,7 +265,7 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     assert.equal(await page.locator('#subscriptionPreviewLogo').innerText(), 'Cl');
     assert.equal(await page.locator('#subscriptionPreviewPrice').innerText(), '$200.00');
     assert.equal(await page.locator('#subscriptionPreviewCycle').innerText(), '年付 · ≈¥1,420.00');
-    assert.equal(await page.locator('#subscriptionPreviewWhen').innerText(), '今天扣费');
+    assert.match(await page.locator('#subscriptionPreviewWhen').innerText(), /^03-18\s+今天扣费$/);
     assert.equal(await page.locator('#subscriptionAmountHint').innerText(), '≈¥1,420.00（1 USD = 7.1 CNY） · 月均 ¥118.33');
     assert.equal(await modal.locator('#subscriptionStart').inputValue(), '2026-03-18', 'the default start date is the local day');
     await capture(page, 'editor');
@@ -356,7 +383,7 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     // 固定成这个顺序，每次都检查弹窗打开后提示条会让到按钮条上方。
     await expiredApp.page.locator('#toast .toast-item:not(.leaving)').first().waitFor();
     assert.match(await expiredRow.first().getAttribute('class'), /\bis-ended\b/);
-    assert.equal(await expiredRow.first().locator('.subs-pill').innerText(), '已到期');
+    assert.match(await expiredRow.first().locator('.subs-pill').innerText(), /^02-05\s+已到期$/);
     await expiredRow.first().click();
     await expiredApp.page.locator('[data-sub-action="resubscribe"]').click();
     await expiredApp.page.locator('#subscriptionName').waitFor({ state:'visible' });

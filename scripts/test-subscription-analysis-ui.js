@@ -71,11 +71,15 @@ function seededStore() {
 
     // Arc bar chart: 12 months paid + 6 forecast, the headline reads the 12-month average until a month is scrubbed.
     const barBox = page.locator('#subsArcBars');
-    const marks = barBox.locator('.arc-bar-mark');
+    const marks = barBox.locator('.arc-bar-mark:not(.arc-bar-pend)');
     assert.equal(await marks.count(), 18);
-    assert.equal(await barBox.locator('.arc-bar-mark.plan').count(), 6);
-    assert.match(await barBox.locator('.arc-bar-head').evaluate(el => el.textContent), /近 12 个月月均\s*¥95\s*2025年4月 – 2026年3月/);
-    assert.equal(await barBox.locator('.arc-tick.mean').innerText(), '均 ¥95');
+    assert.equal(await barBox.locator('.arc-bar-mark.plan:not(.arc-bar-pend)').count(), 6);
+    // This month: what was charged, with what is still to come stacked on top as a forecast.
+    assert.equal(await barBox.locator('.arc-bar-pend').count(), 1);
+    assert.equal(await barBox.locator('.arc-bar-pend').getAttribute('data-i'), '11');
+    // The average covers the 12 complete months before this one (¥996.75 / 12): this month's charges still to come do not pull it.
+    assert.match(await barBox.locator('.arc-bar-head').evaluate(el => el.textContent), /过去 12 个月月均\s*¥83\s*2025年3月 – 2026年2月/);
+    assert.equal(await barBox.locator('.arc-tick.mean').innerText(), '均 ¥83');
     assert.match(await barBox.locator('table').innerText(), /2026年3月（本月）\s*¥211[\s\S]*2026年5月\s*¥397（预计）/);
     const scrub = barBox.locator('.arc-scrubber');
     const plot = await barBox.locator('.arc-bar-plot').boundingBox();
@@ -87,7 +91,7 @@ function seededStore() {
     await capture(page, 'analysis-scrub', { clip:{ x:plot.x - 30, y:plot.y - 150, width:plot.width + 110, height:plot.height + 190 } });
     await page.mouse.move(plot.x + plot.width * (11.5 / 18), plot.y + plot.height / 2);
     await page.waitForTimeout(400);
-    assert.match(await barBox.locator('.arc-bar-head').evaluate(el => el.textContent), /已扣费\s*¥211\s*2026年3月（本月）/);
+    assert.match(await barBox.locator('.arc-bar-head').evaluate(el => el.textContent), /已扣 ¥142 · 待扣 ¥69\s*¥211\s*2026年3月（本月）/);
     await page.mouse.move(5, 5);
     await scrub.focus();
     await page.keyboard.press('Home');
@@ -145,8 +149,11 @@ function seededStore() {
     await page.locator('#subsHistoryFilter [data-sub-history-filter="all"]').click();
     await page.locator('#subsHistory .subs-h-row', { hasText:'阿里云域名' }).click();
     await page.locator('.subs-drawer .subs-card').first().waitFor();
-    assert.equal(await page.locator('.page-title').innerText(), '续费');
+    // The detail opens over the history in place: closing it returns to the same row, with filters and scroll kept.
+    assert.equal(await page.locator('.page-title').innerText(), '续费历史');
     await page.keyboard.press('Escape');
+    await page.waitForFunction(() => document.activeElement?.closest?.('.subs-h-row')?.textContent.includes('阿里云域名'));
+    assert.equal(await page.locator('.page-title').innerText(), '续费历史');
 
     // Leaving the subscription pages closes the menu.
     await page.locator('.nav-item[data-page="settings"]').click();

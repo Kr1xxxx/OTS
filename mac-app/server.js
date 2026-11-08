@@ -2558,7 +2558,15 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && url.pathname === '/api/subscriptions/save') {
       const body = await readJsonBody(req);
-      const result = subscriptionStore().save(body.item);
+      // baseUpdatedAt / restore travel next to the item; the store checks them for edits made elsewhere meanwhile.
+      const item = body.item && typeof body.item === 'object' && !Array.isArray(body.item) ? { ...body.item } : body.item;
+      if (item && typeof item === 'object') {
+        delete item.baseUpdatedAt;
+        delete item.restore;
+        if (typeof body.baseUpdatedAt === 'string') item.baseUpdatedAt = body.baseUpdatedAt;
+        if (body.restore === true) item.restore = true;
+      }
+      const result = subscriptionStore().save(item);
       return send(res, 200, JSON.stringify({ ...result, backup: automaticBackup() }));
     }
     if (req.method === 'POST' && url.pathname === '/api/subscriptions/delete') {

@@ -233,7 +233,7 @@ const contrast = page => page.evaluate(() => {
       risk:document.getElementById('reportOverdue').closest('.report-stat').classList.contains('risk'),
     })), { amount:'$700', sub:`全部订单 · ${dashboardAged} 笔 · 不跟时间范围`, risk:true }, '默认「本月」下，金额页「下单超 30 天未收」等于工作台的数');
     await page.locator('#chartRange').selectOption('6');
-    await page.waitForFunction(() => document.getElementById('amountRangeText').textContent.includes(' 至 '));
+    await page.waitForFunction(() => document.getElementById('amountRangeText').textContent.includes('–'));
     assert.equal(await page.locator('#reportOverdue').innerText(), '$700', '换时间范围不改变「下单超 30 天未收」');
     // 复制催款（真实点击菜单）：金额页不清零，收款提醒记成已催款。
     await clickIn(page, '.nav-item[data-page="dashboard"]');
@@ -290,8 +290,10 @@ const contrast = page => page.evaluate(() => {
       const events = date => [...(cell(date)?.querySelectorAll('.calendar-event') || [])].map(el => `${el.className.replace('calendar-event', '').trim()}|${el.textContent.trim()}`);
       return { today:events('2026-11-07'), ship:events('2026-11-09'), legend:document.querySelector('.calendar-legend').textContent };
     });
-    assert.ok(cal.today.some(item => item.startsWith('follow|跟进 Quiet Lead')), `今天的格子里没有过期的跟进：${cal.today}`);
-    assert.ok(cal.ship.some(item => item.startsWith('repurchase|发货期限 Ship Soon')), `最晚发出日期应是交期色：${cal.ship}`);
+    // 色块先写客户名、再写事项；过期的写明逾期几天。
+    assert.ok(cal.today.some(item => item.startsWith('follow|Quiet Lead 跟进 · 逾期')), `今天的格子里没有过期的跟进：${cal.today}`);
+    assert.ok(cal.ship.some(item => item.startsWith('repurchase|Ship Soon')), `最晚发出日期应是交期色：${cal.ship}`);
+    assert.equal(cal.ship.filter(item => item.includes('Ship Soon')).length, 1, `同一张单同一天的发货提醒和交期只出一块：${cal.ship}`);
     assert.match(cal.legend, /跟进/);
 
     // 8. 客户页「待跟进」= 待办里的复购（只有 Plain Due）；客户动态里未处理的待办不叫「跟进记录」。

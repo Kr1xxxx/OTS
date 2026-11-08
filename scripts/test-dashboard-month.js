@@ -101,7 +101,8 @@ console.log('Dashboard month test passed: current-month default and manual selec
     assert.equal(rawAmounts.before,rawAmounts.after,'Display rounding must not modify underlying order amounts');
     assert.equal(rawAmounts.ordinaryMoney,'$123.456 USD','Amounts outside the homepage retain their existing display precision');
     await page.evaluate(()=>{amountStatMode='paidRmb';renderStats();});
-    assert.equal(await page.locator('#statAmountSub').innerText(),'26/8 · 13 单','The paid view keeps the month because its label is 已收款');
+    assert.match(await page.locator('#statAmountSub').innerText(),/^\d+ 单有收款 · 点数字切回订单额$/,'The paid view counts orders that actually have money in, and says how to switch back');
+    assert.match(await page.locator('#statAmountLabel').innerText(),/已收 · RMB/,'The paid view label names the month and 已收');
     await page.evaluate(()=>{amountStatMode='totalUsd';renderStats();});
     for(const theme of ['light','dark']) {
       await page.evaluate(t=>applyTheme(t),theme);

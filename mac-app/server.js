@@ -1867,13 +1867,11 @@ function parseEcbHistoricalRates(xml = '') {
   return rows.sort((a, b) => b.date.localeCompare(a.date));
 }
 
-async function queryEcbHistoricalRates() {
-  const cached = fs.existsSync(ecbExchangeCacheFile) ? (() => {
-    try { return readJson(ecbExchangeCacheFile); } catch (_) { return null; }
-  })() : null;
-  const cachedAge = cached?.updatedAt ? Date.now() - Date.parse(cached.updatedAt) : Infinity;
-  if (Array.isArray(cached?.rates) && cached.rates.length && cachedAge < 24 * 60 * 60 * 1000) return { ...cached, cached:true };
-  try {
+let ecbRefreshPromise = null;
+function refreshEcbHistoricalRates() {
+  // 同一时间只下载一次：几个窗口同时打开、或者前端重试时，不重复拉整份 ECB 历史。
+  if (ecbRefreshPromise) return ecbRefreshPromise;
+  ecbRefreshPromise = (async () => {
     const xml = await requestText('https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml', {
       headers:{ 'User-Agent':'TradeOrderSystem/3.56' }
     });
@@ -1882,10 +1880,24 @@ async function queryEcbHistoricalRates() {
     const payload = { source:'European Central Bank', updatedAt:new Date().toISOString(), rates };
     atomicWrite(ecbExchangeCacheFile, JSON.stringify(payload));
     return payload;
-  } catch (error) {
-    if (Array.isArray(cached?.rates) && cached.rates.length) return { ...cached, cached:true, stale:true };
-    throw error;
+  })().finally(() => { ecbRefreshPromise = null; });
+  return ecbRefreshPromise;
+}
+
+async function queryEcbHistoricalRates() {
+  const cached = fs.existsSync(ecbExchangeCacheFile) ? (() => {
+    try { return readJson(ecbExchangeCacheFile); } catch (_) { return null; }
+  })() : null;
+  const hasCache = Array.isArray(cached?.rates) && cached.rates.length;
+  const cachedAge = cached?.updatedAt ? Date.now() - Date.parse(cached.updatedAt) : Infinity;
+  if (hasCache && cachedAge < 24 * 60 * 60 * 1000) return { ...cached, cached:true };
+  // 缓存过期：先把旧缓存交出去（历史汇率只多出最近一两天），后台再去 ECB 下载更新。
+  // 以前要等整份历史下载完才返回，每天第一次打开 App 时统计卡要等好几秒、期间非美元订单算 0。
+  if (hasCache) {
+    refreshEcbHistoricalRates().catch(() => {});
+    return { ...cached, cached:true, stale:true };
   }
+  return refreshEcbHistoricalRates();
 }
 
 function aiChatEndpoint(baseUrl) {

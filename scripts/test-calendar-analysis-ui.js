@@ -45,22 +45,13 @@ assert.match(analysisPage, /id="analysisCustomerMix"/, 'analysis page must show 
 assert.match(analysisPage, /id="analysisAttention"/, 'analysis page must show actionable orders');
 assert.match(analysisPage, /id="analysisClients"/, 'analysis page must show customer contribution');
 
+// 目标金额解析和完成率：没到目标不显示 100%；「5万」「50,000」「$5w」都认；空、负数、0、乱填不保存。
 const context = vm.createContext({});
-vm.runInContext(extractFunction('groupCalendarEvents'), context);
-const grouped = vm.runInContext(`groupCalendarEvents(${JSON.stringify([
-  { type: 'order' },
-  { type: 'urgent' },
-  { type: 'due' },
-  { type: 'payment' },
-  { type: 'logistics' },
-  { type: 'logistics' },
-  { type: 'repurchase' },
-  { type: 'customer' },
-  { type: 'unknown' }
-])})`, context);
-assert.deepEqual(
-  JSON.parse(JSON.stringify(grouped)),
-  { order: 1, due: 3, logistics: 2, repurchase: 1, customer: 1, other: 1, total: 9 }
-);
+vm.runInContext(extractFunction('targetRate'), context);
+vm.runInContext(extractFunction('parseTargetAmount'), context);
+const run = code => JSON.parse(JSON.stringify(vm.runInContext(code, context)));
+assert.deepEqual(run('[targetRate(996, 1000), targetRate(999.9, 1000), targetRate(1000, 1000), targetRate(1500, 1000), targetRate(5, 0)]'), [99, 99, 100, 150, 0]);
+assert.deepEqual(run(`['5万', '50,000', ' $50000 ', '５００００', '50k', '5w', '12.5', '50000 USD'].map(t => parseTargetAmount(t).value)`), [50000, 50000, 50000, 50000, 50000, 50000, 12.5, 50000]);
+for (const bad of ['', '-500', '0', 'abc', '5万5']) assert.equal(run(`parseTargetAmount(${JSON.stringify(bad)}).ok`), false, `「${bad}」不应保存`);
 
-console.log('Calendar and analysis UI tests passed: retired freight flow, split navigation, page ownership, and event grouping verified.');
+console.log('Calendar and analysis UI tests passed: retired freight flow, split navigation, page ownership, target parsing and completion rate verified.');

@@ -73,18 +73,28 @@ const { chromium } = require('playwright');
     assert.equal(await page.locator('#page-amount #analysisSection').count(),1,'analysis lives inside the 金额统计 page');
     assert.equal(await page.locator('#page-analysis').count(),0);
     // Empty current month → chart range falls back to 上月 and the analysis month to the last month with data.
-    assert.equal(await page.locator('#chartRange').inputValue(),'last','本月 empty → 上月');
+    // 下拉框仍是「本月」，只是数字临时按上月算，并写明原因（以前直接把下拉框改成「上月」）。
+    assert.equal(await page.locator('#chartRange').inputValue(),'this','the select keeps 本月');
+    assert.equal(await page.evaluate(()=>effectiveChartRange()),'last','本月 empty → numbers use 上月');
     assert.match(await page.locator('#amountRangeNote').innerText(),/本月还没有正式订单/);
     assert.equal(await page.evaluate(()=>activeBusinessMonth),last,'analysis month falls back to the latest month with orders');
     assert.equal(await page.locator('#analysisFallbackNote').isHidden(),false);
     assert.equal(await page.locator('#reportUsd').innerText(),'$1,800','numbers follow the fallback month');
+    // 重画（保存、汇率到达）后说明还在，数字也还按上月（以前重画一次说明就没了）。
+    await page.evaluate(()=>render());
+    await settle();
+    assert.match(await page.locator('#amountRangeNote').innerText(),/本月还没有正式订单/,'fallback note survives a re-render');
+    assert.equal(await page.locator('#reportUsd').innerText(),'$1,800');
     // Touching the month stops the fallback.
     await page.locator('#businessNextBtn').click();
     await settle();
     assert.equal(await page.evaluate(()=>activeBusinessMonth),ym(0));
     assert.equal(await page.locator('#analysisFallbackNote').isHidden(),true,'manual month choice is respected');
+    await page.locator('#chartRange').selectOption('last');
     await page.locator('#chartRange').selectOption('this');
     await page.evaluate(()=>render());
+    assert.equal(await page.evaluate(()=>effectiveChartRange()),'this','after a manual choice the fallback stops');
+    assert.equal(await page.locator('#amountRangeNote').isVisible(),false,'no fallback note after a manual choice');
     await settle();
     assert.equal(await page.locator('#chartRange').inputValue(),'this','manual range choice is respected');
 

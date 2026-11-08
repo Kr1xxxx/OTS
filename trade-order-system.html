@@ -5176,6 +5176,30 @@ html[data-theme] :is(.ship-row-actions, .recent-tracking-actions) .btn { height:
 html[data-theme] .recent-tracking-actions .recent-tracking-delete:hover { color:var(--s-red); }
 @media (hover: none) { html[data-theme] :is(.ship-row-actions, .recent-tracking-actions) { opacity:1; } html[data-theme] .recent-tracking-actions { height:auto; } }
 html[data-theme] .price-history-tools { display:flex; gap:10px; margin-bottom:6px; }
+/* 物流页：状态筛选、含已完成、行上的批次 / 查询结果、再显示更多 */
+html[data-theme] .clear-tracking-btn[hidden] { display:none !important; }
+html[data-theme] .logistics-filters { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; margin:-2px 0 8px; }
+html[data-theme] .logistics-filters :is(select.inline-select, .app-select) { flex:none; width:auto; min-width:150px; height:34px; min-height:34px; border-radius:999px; }
+html[data-theme] .logistics-done-toggle { display:inline-flex; align-items:center; gap:6px; color:var(--gray-600); font-size:12.5px; cursor:pointer; }
+html[data-theme] .ship-row-tags { display:inline-flex; align-items:center; gap:6px; flex:none; }
+html[data-theme] .ship-batch { color:var(--gray-500); white-space:nowrap; }
+html[data-theme] .ship-check { font-size:11.5px; color:var(--gray-500); white-space:nowrap; }
+html[data-theme] .ship-check.bad { color:var(--s-red); }
+html[data-theme] :is(.logistics-card.ship-row, .price-history-row.recent-tracking-row):focus-visible { outline:2px solid var(--accent); outline-offset:-2px; border-radius:14px; }
+html[data-theme] :is(.logistics-more, .recent-tracking-more) { align-self:center; margin:10px 0 2px; padding:6px 12px; font-size:12.5px; }
+html[data-theme] .tracking-detail-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+html[data-theme] .tracking-detail-order { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:6px 0; color:var(--gray-700); font-size:13px; }
+html[data-theme] .logistics-result .paste-result-actions { display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end; }
+html[data-theme] .logistics-result .paste-result-meta.is-bad { color:var(--s-red); }
+html[data-theme] .logistics-result .paste-result-card.is-skipped { opacity:.75; }
+/* 能悬停的设备：隐藏的操作按钮叠在行尾，不再换行占位（1024pt 窗口 85% 缩放、窄窗口时每行下面空出一块） */
+@media (hover: hover) {
+  html[data-theme] :is(.logistics-card.ship-row, .price-history-row.recent-tracking-row) { position:relative; }
+  html[data-theme] :is(.ship-row-actions, .recent-tracking-actions) { position:absolute; right:6px; bottom:10px; padding-left:16px; background:linear-gradient(90deg, transparent, var(--surface-soft) 14px); pointer-events:none; }
+  html[data-theme] :is(.ship-row, .recent-tracking-row):is(:hover, :focus-within) :is(.ship-row-actions, .recent-tracking-actions) { pointer-events:auto; }
+  /* 最近查询：以前悬停时操作按钮把这一行撑高，下面的行和「全部显示」跟着往下跳；鼠标移向按钮时一行展开、一行收起，来回抖 */
+  html[data-theme] .recent-tracking-actions { width:auto; max-width:calc(100% - 12px); height:auto; overflow:visible; flex-wrap:wrap; justify-content:flex-end; }
+}
 html[data-theme] .price-history-tools .search { flex:1; height:38px; min-height:38px; border-radius:999px; }
 html[data-theme] .price-history-tools :is(select.inline-select, .app-select) { flex:none; width:auto; min-width:128px; height:38px; min-height:38px; border-radius:999px; }
 @media (max-width: 1100px) { html[data-theme] .logistics-grid { grid-template-columns:1fr; } }
@@ -5855,7 +5879,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.127，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.127</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.128，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.128</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -6074,7 +6098,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
           <div class="section-head">
             <div class="logistics-query-heading">
               <div class="section-title">查物流</div>
-              <div class="section-meta">一次可以粘贴多个单号，每行一个；自动识别 DHL / FedEx / UPS</div>
+              <div class="section-meta">一次可以粘贴多个单号，每行一个（逗号、Tab 隔开也行），每次查 12 个；自动识别 DHL / FedEx / UPS</div>
             </div>
           </div>
           <div class="logistics-query">
@@ -6094,7 +6118,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
             <div class="section-head logistics-head">
               <div>
                 <div class="section-title">发货订单</div>
-                <div class="section-meta" id="logisticsCount">0 个物流单</div>
+                <div class="section-meta" id="logisticsCount">0 个包裹</div>
               </div>
               <div class="segment-control compact" id="logisticsCarrierFilter">
                 <button class="segment-option active" type="button" data-carrier-filter="all">全部</button>
@@ -6102,6 +6126,18 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
                 <button class="segment-option" type="button" data-carrier-filter="FedEx">FedEx</button>
                 <button class="segment-option" type="button" data-carrier-filter="UPS">UPS</button>
               </div>
+            </div>
+            <div class="logistics-filters">
+              <label class="visually-hidden" for="logisticsStatusFilter">按物流状态筛选</label>
+              <select class="inline-select" id="logisticsStatusFilter">
+                <option value="all">全部状态</option>
+                <option value="异常">异常</option>
+                <option value="派送中">派送中</option>
+                <option value="运输中">运输中（含已发货）</option>
+                <option value="已签收">已签收</option>
+                <option value="待补单号">待补单号</option>
+              </select>
+              <label class="logistics-done-toggle"><input type="checkbox" id="logisticsIncludeDone"> 含已完成（近 30 天）</label>
             </div>
             <div class="logistics-list" id="logisticsList"></div>
           </section>
@@ -6111,7 +6147,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
                 <div class="section-title">最近查询物流</div>
                 <div class="section-meta">查过的单号、状态和关联订单</div>
               </div>
-              <button class="link-btn clear-tracking-btn" type="button" id="clearTrackingHistoryBtn">清除所有</button>
+              <button class="link-btn clear-tracking-btn" type="button" id="clearTrackingHistoryBtn" hidden>清除所有</button>
             </div>
             <div class="price-history-tools">
               <div class="search">
@@ -8626,6 +8662,12 @@ function normalizeOrderShipments(order = {}) {
     const rawStatus = String(shipment?.rawStatus || (given && !known.includes(given) ? given : '')).trim().slice(0, 120);
     if (rawStatus) result.rawStatus = rawStatus;
     if (shipment?.checkedAt) result.checkedAt = String(shipment.checkedAt);
+    // 最后一次查询成功的时间、最近一次查询失败（时间、原因）：物流风险提醒和物流页「查过 ✓ / 查询失败」用。
+    // 旧数据没有 trackOkAt：批次上的 checkedAt 只在查询成功时写，就拿它当最后一次成功（清掉查询记录后提醒也不丢）。
+    if (shipment?.trackOkAt || shipment?.checkedAt) result.trackOkAt = String(shipment.trackOkAt || shipment.checkedAt);
+    if (shipment?.trackError && typeof shipment.trackError === 'object' && shipment.trackError.at) {
+      result.trackError = { code:String(shipment.trackError.code || 'error'), message:String(shipment.trackError.message || '').slice(0, 160), at:String(shipment.trackError.at) };
+    }
     return result;
   }).filter(Boolean);
 }
@@ -8754,7 +8796,7 @@ function normalizeState(raw) {
     boardCardSettings: normalizeBoardCardSettings(raw.boardCardSettings || {}),
     exchangeSettings: normalizeExchangeSettings(raw.exchangeSettings),
     trackingLookups: Array.isArray(raw.trackingLookups) && raw.trackingLookups.length
-      ? raw.trackingLookups.slice(0, 30).map(item => ({
+      ? capTrackingLookups(raw.trackingLookups).map(item => ({
         ...item,
         pinned: item.pinned === true,
         displayClient: item.displayClient || '',
@@ -9377,9 +9419,12 @@ function logisticsRiskTask(order, fallbackDate) {
     const clean = shipment.trackingNumber;
     const carrier = carrierName(shipment.carrier === 'auto' ? detectCarrier(clean) : shipment.carrier);
     if (!['DHL', 'FedEx'].includes(carrier) || shipment.status === '已签收') return null;
+    // 看「最后一次查询成功」：查询成功的时间记在这一批上（trackOkAt），不再只靠「最近查询」那张有上限的表，
+    // 一次限流 / 超时、被挤出列表、点了「清除所有」，提醒都不会消失。旧数据没有 trackOkAt 时仍看查询记录。
     const lookup = latestTrackingLookup(clean);
-    if (!lookup || lookup.online !== '是') return null;
-    const statusDate = lookup.statusUpdatedAt || shipment.updated || order.logisticsUpdated || lookup.checkedAt;
+    const okAt = shipment.trackOkAt || lookup?.lastOkAt || (lookup?.online === '是' ? lookup.checkedAt : '');
+    if (!okAt) return null;
+    const statusDate = (lookup?.lastOkAt || lookup?.online === '是' ? lookup.statusUpdatedAt : '') || shipment.updated || order.logisticsUpdated || okAt;
     return { clean, carrier, statusDate, staleDays:daysBetween(statusDate) };
   }).filter(item => item && item.staleDays > 3).sort((a, b) => b.staleDays - a.staleDays)[0];
   if (!risky) return null;
@@ -10696,6 +10741,9 @@ function setModalOpenState(modalOrId, open) {
   if (!isOpen && typeof uiCancelAllHolds === 'function') uiCancelAllHolds(modal);
   modal.classList.toggle('open', isOpen);
   modal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+  // 弹窗开 / 关时重新摆提示条：以前只在新提示出现时摆一次，先出了提示（开机问候、「已恢复」）再开弹窗，
+  // 提示条留在窗口底部，正好盖住弹窗底部的「保存」（续费弹窗的「重新续费」被盖住一半，macOS 上整个按钮中心都被盖住）。
+  if (isOpen !== wasOpen && typeof uiLayoutToasts === 'function' && typeof document === 'object' && document.querySelector?.('#toast .toast-item')) uiLayoutToasts();
   if (canManageFocus && isOpen && !wasOpen) {
     const active = document.activeElement;
     modal.__returnFocus = active && active !== document.body && !modal.contains(active) ? active : null;
@@ -14438,10 +14486,14 @@ function buildGlobalSearchResults(query = '') {
   });
   (state.trackingLookups || []).forEach(item => {
     const title = item.trackingNumber || '未填写物流单号';
-    const haystack = `${title} ${item.carrier || ''} ${item.client || ''} ${item.displayClient || ''} ${item.orderNum || ''} ${item.status || ''} ${item.queryMessage || ''} ${globalSearchText(item.events || [])}`;
+    // 拼箱：共用这个单号的每张订单的客户、订单号都能搜到（以前只关联第一张单）。
+    const linkedOrders = trackingLinkedOrders(title);
+    const linkedText = linkedOrders.map(order => `${order.client || ''} ${order.num || ''}`).join(' ');
+    const haystack = `${title} ${item.carrier || ''} ${item.client || ''} ${item.displayClient || ''} ${item.orderNum || ''} ${linkedText} ${item.status || ''} ${item.queryMessage || ''} ${globalSearchText(item.events || [])}`;
     const score = globalSearchScore(title, haystack, cleanQuery);
     if (score < 0) return;
-    results.push({ type:'tracking', group:'物流', kind:'物流', icon:'⇢', id:item.id, orderId:item.orderId || '', title, subtitle:`${item.displayClient || item.client || '未关联客户'} · ${carrierName(item.carrier)} · ${item.status || '待查询'}`, score:score + 25 });
+    const who = linkedOrders.length ? `${clientDisplayName(linkedOrders[0].client)}${linkedOrders.length > 1 ? ` 等 ${linkedOrders.length} 单` : ''}` : (item.displayClient || item.client || '未关联客户');
+    results.push({ type:'tracking', group:'物流', kind:'物流', icon:'⇢', id:item.id, orderId:item.orderId || '', title, subtitle:`${who} · ${carrierName(item.carrier)} · ${item.status || '待查询'}`, score:score + 25 });
   });
   return results.sort((a, b) => b.score - a.score || a.title.localeCompare(b.title));
 }
@@ -17786,105 +17838,181 @@ function groupTrackingNumber(value = '') {
   const clean = cleanTracking(value);
   return /^\d{9,}$/.test(clean) ? clean.replace(/(\d{4})(?=\d)/g, '$1 ') : clean;
 }
-// 物流页四张数字卡：运输中 / 异常 / 已签收 / 待填运单（生产中和尾款阶段还没填单号的订单）。
+// 物流页、侧栏、数字卡共用一个口径：非草稿、未完成订单里已经发出的每一批（已完成的只在打开「含已完成」时列出近 30 天的）。
+// 以前三处各算各的：数字卡和列表把已完成的老单（手动完成时包裹状态停在「已发货」）一直算进「运输中」，挂着红色「在途 60 天」；
+// 草稿也算；侧栏数的是阶段 = 已发货的订单数。1,000 单时「运输中」显示 470，实际 70。
+const logisticsInTransit = ['已发货','运输中','派送中'];
+let logisticsStatusFilter = 'all';
+let logisticsIncludeDone = false;
+let logisticsListLimit = 50;
+function logisticsRows({ includeDone = false } = {}) {
+  const doneSince = Date.now() - 30 * 86400000;
+  return (state.orders || []).filter(order => !order.isDraft).flatMap(order => {
+    const done = normalizeStage(order.stage) === 'done';
+    if (done && (!includeDone || parseDate(order.updated) < doneSince)) return [];
+    const shipments = normalizeOrderShipments(order);
+    if (!shipments.length) return order.stage === 'shipment' ? [{ order, shipment:null, index:0, total:0, done, status:'待补单号', carrier:'' }] : [];
+    return shipments
+      .map((shipment, i) => ({ order, shipment, index:i + 1, total:shipments.length, done, status:shipment.status || '已发货', carrier:shipment.carrier }))
+      .filter(row => order.stage === 'shipment' || done || row.status !== '未发货');
+  });
+}
+// 同一个单号（拼箱）只算一个包裹；没有单号的行各算一个。
+function logisticsParcelKeys(rows) {
+  return new Set(rows.map(row => row.shipment ? `n:${row.shipment.trackingNumber}` : `o:${row.order.id}`));
+}
+function logisticsNavCount() {
+  return new Set(logisticsRows().filter(row => row.status !== '已签收').map(row => row.order.id)).size;
+}
+// 物流页四张数字卡：运输中 / 异常 / 近 7 天签收 / 待补单号（已发货却还没填单号）。
 function renderLogisticsKpis() {
   const el = document.getElementById('logisticsKpis');
   if (!el) return;
-  const statuses = state.orders.filter(order => !order.isDraft).flatMap(order => {
-    const shipments = normalizeOrderShipments(order);
-    if (shipments.length) return shipments.map(shipment => shipment.status || order.logisticsStatus || '已发货');
-    return order.stage === 'shipment' ? [order.logisticsStatus || '已发货'] : [];
-  });
-  const count = list => statuses.filter(status => list.includes(status)).length;
-  const waiting = state.orders.filter(order => !order.isDraft && ['production','balance'].includes(order.stage) && !normalizeOrderShipments(order).length && !cleanTracking(order.trackingNumber || '')).length;
+  const rows = logisticsRows();
+  const parcels = list => logisticsParcelKeys(rows.filter(row => row.shipment && list.includes(row.status))).size;
+  const weekAgo = Date.now() - 7 * 86400000;
+  const delivered = new Set((state.orders || []).filter(order => !order.isDraft).flatMap(order => normalizeOrderShipments(order)
+    .filter(shipment => shipment.status === '已签收' && parseDate(shipment.updated || order.logisticsUpdated) >= weekAgo)
+    .map(shipment => shipment.trackingNumber))).size;
+  const waiting = rows.filter(row => !row.shipment).length;
   const cards = [
-    { label:'运输中', value:count(['已发货','运输中','派送中']), sub:'含已发货和派送中' },
-    { label:'异常', value:count(['异常']), sub:'需要联系承运商', tone:'red' },
-    { label:'已签收', value:count(['已签收']), sub:'客户已收到' },
-    { label:'待填运单', value:waiting, sub:'生产中和尾款阶段' }
+    { label:'运输中', value:parcels(logisticsInTransit), sub:'进行中订单的包裹，含已发货和派送中' },
+    { label:'异常', value:parcels(['异常']), sub:'需要联系承运商', tone:'red' },
+    { label:'近 7 天签收', value:delivered, sub:'客户已收到' },
+    { label:'待补单号', value:waiting, sub:'已发货还没填物流单号' }
   ];
   el.innerHTML = cards.map(card => `<div class="logistics-kpi ${card.tone && card.value ? `tone-${card.tone}` : ''}"><span>${card.label}</span><strong>${card.value}</strong><small>${card.sub}</small></div>`).join('');
+}
+function trackingCheckCodeLabel(code = '') {
+  return { rate_limited:'限流', not_found:'查不到单号', timeout:'超时', auth:'未授权', server:'承运商故障', network:'网络不通' }[code] || '失败';
+}
+// 上次查询的结果单独写在时间旁边（「11-06 查过 ✓」「今天 10:00 查询失败（限流）」），不再把 ✅ / ❌ 贴在状态前面：
+// 「DHL · ❌ 运输中」读起来像「不在运输中」。
+function trackingCheckNote(shipment = null, lookup = null) {
+  const okAt = shipment?.trackOkAt || lookup?.lastOkAt || (lookup?.online === '是' ? lookup.checkedAt : '');
+  const error = shipment?.trackError || lookup?.lastError || null;
+  if (error?.at && (!okAt || parseDate(error.at) >= parseDate(okAt))) {
+    return { tone:'bad', text:`${orderListWhen(error.at)} 查询失败（${trackingCheckCodeLabel(error.code)}）`, title:error.message || '' };
+  }
+  if (okAt) return { tone:'ok', text:`${orderListWhen(okAt)} 查过 ✓`, title:'最近一次查询成功的时间' };
+  return null;
+}
+function trackingCheckBadge(note) {
+  return note ? `<span class="ship-check ${note.tone}" title="${escapeAttr(note.title || note.text)}">${escapeAttr(note.text)}</span>` : '';
 }
 function renderLogistics() {
   renderLogisticsKpis();
   const el = document.getElementById('logisticsList');
   if (!el) return;
-  const list = state.orders
-    .flatMap(order => {
-      const shipments = normalizeOrderShipments(order);
-      if (shipments.length) return shipments.map(shipment => ({
-        ...order,
-        trackingNumber:shipment.trackingNumber,
-        carrier:shipment.carrier,
-        logisticsStatus:shipment.status,
-        logisticsUpdated:shipment.updated || order.logisticsUpdated,
-        shippedAt:shipment.shippedAt || order.shippedAt
-      }));
-      return order.stage === 'shipment' ? [order] : [];
-    })
-    .filter(o => o.stage === 'shipment' || ['已发货','运输中','派送中','已签收','异常'].includes(o.logisticsStatus))
-    .filter(o => {
-      if (logisticsCarrierFilter === 'all') return true;
-      const clean = cleanTracking(o.trackingNumber);
-      const code = ['DHL','FedEx','UPS'].includes(o.carrier) ? o.carrier : detectCarrier(clean);
-      return code === logisticsCarrierFilter;
-    })
-    .slice()
-    .sort((a, b) => parseDate(b.logisticsUpdated || b.updated) - parseDate(a.logisticsUpdated || a.updated));
-  document.getElementById('logisticsCount').textContent = `${list.length} 个物流单`;
+  const rank = { '异常':0, '派送中':1, '运输中':2, '已发货':3, '待补单号':4, '已签收':5 };
+  const list = logisticsRows({ includeDone:logisticsIncludeDone })
+    .filter(row => logisticsCarrierFilter === 'all' || (row.shipment && row.carrier === logisticsCarrierFilter))
+    .filter(row => logisticsStatusFilter === 'all'
+      || (logisticsStatusFilter === '运输中' ? logisticsInTransit.includes(row.status) && !row.done : row.status === logisticsStatusFilter && (!row.done || row.status === '已签收')))
+    // 异常件排最前；已完成的单排最后；同一档按物流最近更新倒序。
+    .sort((a, b) => Number(a.done) - Number(b.done)
+      || (rank[a.status] ?? 6) - (rank[b.status] ?? 6)
+      || parseDate(b.shipment?.updated || b.order.logisticsUpdated || b.order.updated) - parseDate(a.shipment?.updated || a.order.logisticsUpdated || a.order.updated));
+  const orders = new Set(list.map(row => row.order.id)).size;
+  document.getElementById('logisticsCount').textContent = list.length ? `${logisticsParcelKeys(list).size} 个包裹 · ${orders} 张订单` : '0 个包裹';
   if (!list.length) {
-    el.innerHTML = '<div class="empty">暂无已发货订单。订单详情里填写物流单号后会显示在这里。</div>';
+    const filtered = logisticsCarrierFilter !== 'all' || logisticsStatusFilter !== 'all';
+    el.innerHTML = `<div class="empty">${filtered ? '没有符合筛选条件的包裹。' : '暂无进行中的发货订单。订单详情里填写物流单号后会显示在这里。'}</div>`;
     return;
   }
-  el.innerHTML = list.map(o => {
-    const clean = cleanTracking(o.trackingNumber);
-    const code = ['DHL','FedEx','UPS'].includes(o.carrier) ? o.carrier : detectCarrier(clean);
+  const shown = list.slice(0, logisticsListLimit);
+  el.innerHTML = shown.map(row => {
+    const { order:o, shipment } = row;
+    const clean = shipment?.trackingNumber || '';
+    const code = clean ? row.carrier : '';
     const url = clean ? trackingUrl(clean, code) : '';
-    const status = o.logisticsStatus || (o.stage === 'shipment' ? '已发货' : '未发货');
-    const lookup = latestTrackingLookup(clean);
-    const queryMark = trackingResultEmoji(lookup?.online);
-    const timing = deliveryTimingInfo({ ...(lookup || {}), status }, o);
+    const lookup = clean ? latestTrackingLookup(clean) : null;
+    const timing = row.done ? null : deliveryTimingInfo(lookup || {}, { shippedAt:shipment?.shippedAt || o.shippedAt, status:row.status, deliveredAt:shipment?.updated });
+    const batch = row.total > 1 ? `第 ${row.index}/${row.total} 批` : '';
+    const label = `${clientDisplayName(o.client)} · ${o.num}${batch ? ` · ${batch}` : ''}`;
     return `
-      <div class="logistics-card ship-row" data-id="${escapeAttr(o.id)}" title="发货 ${escapeAttr(o.shippedAt || '-')} · 更新 ${escapeAttr(o.logisticsUpdated || o.updated || '-')}">
+      <div class="logistics-card ship-row" data-id="${escapeAttr(o.id)}" tabindex="0" role="button" aria-label="打开 ${escapeAttr(label)} 的物流" title="发货 ${escapeAttr(shipment?.shippedAt || o.shippedAt || '-')} · 更新 ${escapeAttr(shipment?.updated || o.logisticsUpdated || o.updated || '-')}">
         <div class="ship-row-top">
           <strong class="ship-row-client">${escapeAttr(clientDisplayName(o.client))}</strong>
-          <span class="ship-pill ${logisticsTone(status)}">${carrierName(code)} · ${queryMark ? `${queryMark} ` : ''}${escapeAttr(status)}</span>
+          <span class="ship-row-tags">
+            ${o.partialShipment === true && !row.done ? '<span class="ship-pill tone-line">部分发货</span>' : ''}
+            <span class="ship-pill ${clean ? logisticsTone(row.status) : 'tone-line'}">${clean ? `${carrierName(code)} · ` : ''}${escapeAttr(row.status)}</span>
+          </span>
         </div>
         <div class="ship-row-sub">
           <span class="tracking-code">${clean ? `${carrierName(code)} ${escapeAttr(groupTrackingNumber(clean))}` : '未填写物流单号'}</span><span>· ${escapeAttr(o.num)}</span>
-          ${deliveryTimingBadge(timing)}
+          ${batch ? `<span class="ship-batch">· ${batch}</span>` : ''}
+          ${row.done ? '<span class="delivery-timing neutral" title="订单已完成，不再跟进物流">已完成</span>' : deliveryTimingBadge(timing)}
+          ${clean && code !== 'UPS' ? trackingCheckBadge(trackingCheckNote(shipment, lookup)) : ''}
           <span class="ship-row-actions">
             ${clean ? `<button class="btn btn-small copy-tracking-btn" type="button" title="复制单号" data-copy-tracking="${escapeAttr(clean)}">复制</button>` : ''}
-            ${clean ? `<button class="btn btn-small" type="button" data-refresh-logistics="${escapeAttr(o.id)}" data-refresh-tracking="${escapeAttr(clean)}" data-refresh-carrier="${escapeAttr(code)}">更新</button>` : ''}
+            ${clean && code !== 'UPS' ? `<button class="btn btn-small" type="button" data-refresh-logistics="${escapeAttr(o.id)}" data-refresh-tracking="${escapeAttr(clean)}" data-refresh-carrier="${escapeAttr(code)}">更新</button>` : ''}
             ${url ? `<button class="btn btn-small" type="button" data-open-official-tracking="${escapeAttr(clean)}" data-official-carrier="${escapeAttr(code)}">官网</button>` : ''}
+            ${!clean ? `<button class="btn btn-small" type="button" data-fill-tracking="${escapeAttr(o.id)}">补单号</button>` : ''}
           </span>
         </div>
       </div>
     `;
-  }).join('');
+  }).join('') + (list.length > shown.length ? `<button class="link-btn logistics-more" type="button" data-logistics-more>再显示 ${Math.min(50, list.length - shown.length)} 条（还有 ${list.length - shown.length} 条）</button>` : '');
 }
-function addTrackingLookup(clean, carrier, result = {}) {
-  const linked = state.orders.find(o => normalizeOrderShipments(o).some(shipment => shipment.trackingNumber === clean));
+// 「最近查询」最多留 50 条，置顶的永远不挤掉（以前 30 条按写入顺序截断，置顶、改过名字的也被批量查询挤掉）。
+function capTrackingLookups(list = [], limit = 50) {
+  let room = Math.max(0, limit - list.filter(item => item?.pinned === true).length);
+  return list.filter(item => item?.pinned === true || room-- > 0);
+}
+// 共用一个单号的所有订单（拼箱）；只看没删除的订单。
+function trackingLinkedOrders(clean) {
+  const number = cleanTracking(clean);
+  return number ? (state.orders || []).filter(order => normalizeOrderShipments(order).some(shipment => shipment.trackingNumber === number)) : [];
+}
+// 订单里这个单号手选过的承运商（DHL / FedEx / UPS）；自动识别的返回空。
+function orderTrackingCarrier(clean) {
+  const number = cleanTracking(clean);
+  for (const order of state.orders || []) {
+    const raw = Array.isArray(order.shipments) && order.shipments.length ? order.shipments
+      : (cleanTracking(order.trackingNumber) ? [{ trackingNumber:order.trackingNumber, carrier:order.carrier }] : []);
+    const hit = raw.find(shipment => cleanTracking(shipment?.trackingNumber || shipment?.number || '') === number);
+    if (hit && ['DHL','FedEx','UPS'].includes(hit.carrier)) return hit.carrier;
+  }
+  return '';
+}
+// 写一条「最近查询」。manual=false（定时自动更新）时只更新已经在列表里的记录，不新增：自动更新不再把用户查过的记录挤掉。
+// 查询失败不覆盖上一次成功的结果：状态、节点、更新时间留着，另记 lastError（以前一次限流就把「✅ 运输中」改成「❌ 待 API 查询」，
+// 物流风险提醒当场消失）。
+function addTrackingLookup(clean, carrier, result = {}, { manual = true } = {}) {
+  const existing = latestTrackingLookup(clean);
+  if (!manual && !existing) return null;
+  const linkedOrders = trackingLinkedOrders(clean);
+  const linked = linkedOrders[0] || null;
   const linkedShipment = linked ? normalizeOrderShipments(linked).find(shipment => shipment.trackingNumber === clean) : null;
-  const existing = (state.trackingLookups || []).find(v => cleanTracking(v.trackingNumber) === clean);
+  // 关联的订单被删了：保留关联（恢复订单后自动接上），不再在「更新」时静默清掉。
+  const deletedLink = !linked && existing?.orderId && (state.deletedOrders || []).some(order => order.id === existing.orderId) ? existing : null;
+  const ok = result.ok === true;
+  const official = result.online === '官网';
+  const previousOkAt = existing?.lastOkAt || (existing?.online === '是' ? existing.checkedAt : '');
+  const keepPrevious = !ok && !official && Boolean(previousOkAt);
+  const now = nowText();
   const item = {
     id: `lookup-${clean}-${Date.now()}`,
     trackingNumber: clean,
     carrier: carrierName(carrier),
-    checkedAt: nowText(),
-    orderId: linked?.id || '',
-    client: linked?.client || existing?.displayClient || existing?.client || '未关联订单',
+    checkedAt: now,
+    orderId: linked?.id || deletedLink?.orderId || '',
+    orderIds: linkedOrders.map(order => order.id),
+    client: linked?.client || deletedLink?.client || existing?.displayClient || existing?.client || '未关联订单',
     displayClient: linked?.id ? '' : (existing?.displayClient || ''),
-    orderNum: linked?.num || '-',
+    orderNum: linked?.num || deletedLink?.orderNum || '-',
     shippedAt: linkedShipment?.shippedAt || linked?.shippedAt || existing?.shippedAt || '',
-    status: result.status || linkedShipment?.status || linked?.logisticsStatus || (linked?.stage === 'shipment' ? '已发货' : '待 API 查询'),
-    statusUpdatedAt: formatApiTime(result.updatedAt || linkedShipment?.updated || linked?.logisticsUpdated || result.checkedAt || nowText()),
-    queryMessage: result.message || '',
-    online: result.online || (result.ok ? '是' : '否'),
+    status: keepPrevious ? existing.status : (result.status || linkedShipment?.status || linked?.logisticsStatus || (linked?.stage === 'shipment' ? '已发货' : '待 API 查询')),
+    statusUpdatedAt: keepPrevious ? existing.statusUpdatedAt : formatApiTime(result.updatedAt || linkedShipment?.updated || linked?.logisticsUpdated || result.checkedAt || nowText()),
+    queryMessage: keepPrevious ? (existing.queryMessage || '') : (result.message || ''),
+    online: keepPrevious ? '是' : (result.online || (ok ? '是' : '否')),
+    lastOkAt: ok ? now : previousOkAt,
     pinned: existing?.pinned === true,
-    events: normalizeTrackingEvents(result.events || existing?.events || [])
+    events: keepPrevious ? normalizeTrackingEvents(existing.events || []) : normalizeTrackingEvents(result.events || existing?.events || [])
   };
-  state.trackingLookups = [item, ...(state.trackingLookups || []).filter(v => v.trackingNumber !== clean)].slice(0, 30);
+  if (!ok && !official) item.lastError = { code:result.code || 'error', message:String(result.message || '查询失败').slice(0, 160), at:now };
+  state.trackingLookups = capTrackingLookups([item, ...(state.trackingLookups || []).filter(v => cleanTracking(v.trackingNumber) !== clean)]);
   return item;
 }
 function latestTrackingLookup(clean) {
@@ -17912,16 +18040,46 @@ function toggleTrackingLookupPin(id) {
   saveState();
   renderPriceHistory();
 }
-function deleteTrackingLookup(id) {
-  state.trackingLookups = (state.trackingLookups || []).filter(item => item.id !== id);
+// 删除 / 清除都能撤销：放回删之前的整张表（中间新查的记录不丢）。
+function restoreTrackingLookups(removed = []) {
+  const ids = new Set((state.trackingLookups || []).map(item => item.id));
+  const numbers = new Set((state.trackingLookups || []).map(item => cleanTracking(item.trackingNumber)));
+  state.trackingLookups = capTrackingLookups([...(state.trackingLookups || []), ...removed.filter(item => !ids.has(item.id) && !numbers.has(cleanTracking(item.trackingNumber)))]
+    .sort((a, b) => parseDate(b.checkedAt) - parseDate(a.checkedAt)));
   saveState();
   renderPriceHistory();
+  renderLogistics();
+  renderTasks();
 }
-function clearTrackingLookups() {
-  state.trackingLookups = [];
+function deleteTrackingLookup(id) {
+  const item = findTrackingLookup(id);
+  if (!item) return;
+  state.trackingLookups = (state.trackingLookups || []).filter(entry => entry.id !== id);
   saveState();
   renderPriceHistory();
-  toast('最近查询物流已清空');
+  toast(`已删除查询记录 ${groupTrackingNumber(item.trackingNumber)}`, { undo:() => restoreTrackingLookups([item]) });
+}
+// 「清除所有」先确认；置顶的默认留着，另给「连置顶一起清除」。清完可以撤销。
+async function clearTrackingLookups() {
+  const all = state.trackingLookups || [];
+  if (!all.length) return;
+  const pinned = all.filter(item => item.pinned === true).length;
+  const answer = await appConfirm({
+    title: `清除 ${all.length} 条查询记录？`,
+    sub: '最近查询物流',
+    message: `${pinned ? `置顶的 ${pinned} 条会保留。` : ''}订单里的物流状态不受影响，清除后可以撤销。`,
+    confirmText: pinned ? `清除未置顶的 ${all.length - pinned} 条` : '清除',
+    altText: pinned ? '连置顶一起清除' : '',
+    danger: true
+  });
+  if (!answer.confirmed && !answer.alt) return;
+  const keepPinned = answer.confirmed && pinned > 0;
+  const removed = (state.trackingLookups || []).filter(item => !(keepPinned && item.pinned === true));
+  if (!removed.length) return;
+  state.trackingLookups = keepPinned ? (state.trackingLookups || []).filter(item => item.pinned === true) : [];
+  saveState();
+  renderPriceHistory();
+  toast(keepPinned ? `已清除 ${removed.length} 条查询记录，置顶的 ${pinned} 条保留` : `已清除 ${removed.length} 条查询记录`, { undo:() => restoreTrackingLookups(removed) });
 }
 function trackingResultEmoji(value) {
   if (value === '是') return '✅';
@@ -17965,7 +18123,12 @@ function renderTrackingApiMiniStatus() {
     `;
   }).join('');
 }
+// 每个结果都带上按哪家查的（carrier），写回订单时只写承运商一致的批次。
 async function queryTrackingStatus(clean, carrier) {
+  const result = await queryTrackingStatusRaw(clean, carrier);
+  return { ...result, carrier:carrierName(carrier) };
+}
+async function queryTrackingStatusRaw(clean, carrier) {
   const settings = getTrackingApiSettings();
   if (carrierName(carrier) === 'UPS') {
     return {
@@ -18005,9 +18168,13 @@ async function queryTrackingStatus(clean, carrier) {
     sourceUrl: trackingUrl(clean, carrier)
   };
 }
+// 前端等 30 秒：本机服务卡住时（FedEx 拿 token 加查询最长 2 × 12 秒），「更新中」不再一直挂着。
+const trackingFetchTimeoutMs = 30000;
 async function queryMacTrackingStatus(clean, carrier, settings) {
+  const controller = typeof AbortController === 'function' ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), trackingFetchTimeoutMs) : 0;
   try {
-    const res = await apiFetch(`/api/track?number=${encodeURIComponent(clean)}&carrier=${encodeURIComponent(carrierName(carrier))}`, { cache: 'no-store' });
+    const res = await apiFetch(`/api/track?number=${encodeURIComponent(clean)}&carrier=${encodeURIComponent(carrierName(carrier))}`, { cache: 'no-store', ...(controller ? { signal:controller.signal } : {}) });
     const data = await res.json();
     const message = data.message || (data.ok ? `${carrierName(carrier)} 状态已同步` : `${carrierName(carrier)} 暂未读到状态`);
     const checkedAt = nowText();
@@ -18019,12 +18186,15 @@ async function queryMacTrackingStatus(clean, carrier, settings) {
       ...trackingCarrierStatusPatch(carrier, message, checkedAt)
     });
     // 查到了但状态认不出（服务端回空状态 + 原文）：状态留空，订单里的包裹状态不动，只记原文。
-    return { ok: data.ok === true, status: data.ok === true ? String(data.status || '') : (data.status || '待 API 查询'), rawStatus: String(data.rawStatus || ''), message, checkedAt: data.checkedAt, updatedAt: data.updatedAt, events: normalizeTrackingEvents(data.events || []) };
+    return { ok: data.ok === true, status: data.ok === true ? String(data.status || '') : (data.status || '待 API 查询'), rawStatus: String(data.rawStatus || ''), message, code: data.ok === true ? '' : String(data.code || 'error'), checkedAt: data.checkedAt, updatedAt: data.updatedAt, events: normalizeTrackingEvents(data.events || []) };
   } catch (e) {
-    const message = `Mac 本地追踪服务暂不可用：${e.message || '未知错误'}`;
+    const timedOut = e?.name === 'AbortError';
+    const message = timedOut ? `${carrierName(carrier)} 查询超时（${trackingFetchTimeoutMs / 1000} 秒没有响应），请稍后再试` : `Mac 本地追踪服务暂不可用：${e.message || '未知错误'}`;
     const checkedAt = nowText();
     saveTrackingApiSettings({ ...settings, lastCheckedAt: checkedAt, lastStatus: message, ...trackingCarrierStatusPatch(carrier, message, checkedAt) });
-    return { ok: false, status: '待 API 查询', message };
+    return { ok: false, status: '待 API 查询', code: timedOut ? 'timeout' : 'network', message };
+  } finally {
+    clearTimeout(timer);
   }
 }
 function normalizeTrackingEvents(events = []) {
@@ -18111,12 +18281,28 @@ function checkUpsAutoCompletion() {
   if (document.querySelector('.modal-backdrop.open')) return;
   if (completeDueUpsOrders()) render();
 }
-function applyTrackingResultToOrder(clean, result) {
-  if (!result.ok || !(result.status || result.rawStatus)) return;
+// 查询结果写回订单。carrier：这次按哪家查的；只写回承运商一致的批次（订单里选成 UPS 的 12 位单号，按 FedEx 查到的结果不再写进去、
+// 也不会因此把订单自动完成）。返回 { orders, completed:[{ order, undo }] }：签收后自动移到已完成的单，带撤销用的快照。
+// 查询失败只在批次上记一笔 trackError（时间、原因），状态、更新时间都不动。
+function applyTrackingResultToOrder(clean, result = {}, carrier = result.carrier) {
+  const code = carrier ? carrierName(carrier) : '';
+  const orders = state.orders.filter(o => normalizeOrderShipments(o).some(shipment => shipment.trackingNumber === clean && (!code || shipment.carrier === code)));
+  const outcome = { orders, completed:[] };
+  if (!result.ok || !(result.status || result.rawStatus)) {
+    if (result.ok === false && result.online !== '官网' && code !== 'UPS') orders.forEach(order => markShipmentTrackFailure(order, clean, result));
+    return outcome;
+  }
   // Consolidated parcels: several orders can share one tracking number, and every one of them gets the result.
-  state.orders
-    .filter(o => normalizeOrderShipments(o).some(shipment => shipment.trackingNumber === clean))
-    .forEach(order => applyTrackingResultToOneOrder(order, clean, result));
+  orders.forEach(order => {
+    const undo = applyTrackingResultToOneOrder(order, clean, result);
+    if (undo) outcome.completed.push({ order, undo });
+  });
+  return outcome;
+}
+function markShipmentTrackFailure(order, clean, result = {}) {
+  order.shipments = normalizeOrderShipments(order).map(shipment => shipment.trackingNumber === clean
+    ? { ...shipment, trackError:{ code:result.code || 'error', message:String(result.message || '查询失败').slice(0, 160), at:nowText() } }
+    : shipment);
 }
 function applyTrackingResultToOneOrder(order, clean, result) {
   const oldStage = normalizeStage(order.stage);
@@ -18129,7 +18315,8 @@ function applyTrackingResultToOneOrder(order, clean, result) {
   const raw = String(result.rawStatus || (mapped && mapped === String(result.status || '').trim() ? '' : result.status) || '').trim();
   order.shipments = before.map(shipment => {
     if (shipment.trackingNumber !== clean) return shipment;
-    const next = { ...shipment, status:mapped || shipment.status, updated:updatedAt, checkedAt:nowText() };
+    const next = { ...shipment, status:mapped || shipment.status, updated:updatedAt, checkedAt:nowText(), trackOkAt:nowText() };
+    delete next.trackError;
     if (raw) next.rawStatus = raw.slice(0, 120);
     else delete next.rawStatus;
     return next;
@@ -18143,11 +18330,15 @@ function applyTrackingResultToOneOrder(order, clean, result) {
   // (a sample, or a parcel sent before the balance arrived) must not be marked fully paid by the carrier.
   // 多批的单要每一批都送到；标了「还有批次没发」的不自动完成。
   const check = oldStage === 'shipment' ? orderAutoCompleteCheck(order) : { ready:false };
+  let undo = null;
   if (check.ready) {
+    // 撤销用：完成前的样子（阶段、已收……），撤销时顺带记住这批单号，自动完成规则不再把它推回去。
+    const snapshot = { ...stageMoveSnapshot(order), autoDoneHold:orderShipmentSignature(order) };
     order.stage = 'done';
     delete order.autoDoneHold;
     applyStagePaymentInvariant(order, 'done');
     order.logs = [{ time:nowText(), text:check.byUps ? '物流已签收（UPS 批次按发货满 5 天计），订单自动移动到已完成' : '物流已签收，订单自动移动到已完成' }, ...(order.logs || [])];
+    undo = { before:snapshot, after:stageMoveSnapshot(order), version:bumpOrderUndoVersion(order.id) };
   }
   // 只有状态真的变了（或者因此完成了）才算订单有新动态。以前每次查询都刷新「最近更新」，看板和列表排序每天被打乱两次，
   // 带着包裹的生产中 / 尾款单跟进提醒也永远出不来。
@@ -18155,19 +18346,46 @@ function applyTrackingResultToOneOrder(order, clean, result) {
   if (statusChanged || order.stage !== oldStage) order.updated = nowText();
   const newStatus = mapped;
   if (newStatus && newStatus !== oldStatus && typeof uiNotifLogEvent === 'function') {
-    uiNotifLogEvent({ id:`logistics-${order.id}-${clean}-${newStatus}-${normalizeDate(updatedAt) || ''}`, kind:newStatus === '异常' ? 'error' : newStatus === '已签收' ? 'success' : 'info', title:`物流${oldStatus ? `从「${oldStatus}」` : ''}变为「${newStatus}」`, sub:`${clientDisplayName(order.client)} · ${order.num} · ${clean}${raw ? ` · ${raw}` : ''}`, pill:'物流', orderId:order.id, tab:'logistics', time:updatedAt });
+    const title = undo ? '已签收 · 已移到已完成' : `物流${oldStatus ? `从「${oldStatus}」` : ''}变为「${newStatus}」`;
+    uiNotifLogEvent({ id:`logistics-${order.id}-${clean}-${newStatus}-${normalizeDate(updatedAt) || ''}`, kind:newStatus === '异常' ? 'error' : newStatus === '已签收' ? 'success' : 'info', title, sub:`${clientDisplayName(order.client)} · ${order.num} · ${clean}${raw ? ` · ${raw}` : ''}${undo ? ' · 客户没收到可以拖回已发货' : ''}`, pill:'物流', orderId:order.id, tab:'logistics', time:updatedAt });
   }
+  return undo;
 }
-async function refreshTrackingOnce(clean, carrier, button) {
+// 签收导致订单自动完成：每张单一条提示，写清楚移到了「已完成」，带撤销（以前只有一句「物流状态已同步」）。
+function toastTrackingCompletions(completed = []) {
+  completed.forEach(({ order, undo }) => {
+    toast(`${orderToastLabel(order)} 已签收，订单移到「已完成」`, { group:orderToastGroup(order.id), desc:'客户没收到可以撤销', undo:() => undoOrderStageMove(order.id, undo.before, undo.after, undo.version) });
+  });
+}
+// 查询时这个单号用哪家：订单里手选过的承运商优先（物流页说明写的就是「是 UPS 时到订单里手动选」），其次是按钮上带的，最后自动识别。
+function resolveTrackingCarrier(clean, carrier = '') {
+  return orderTrackingCarrier(clean) || (carrier && carrier !== 'auto' ? carrierName(carrier) : detectCarrier(clean));
+}
+// 同一个单号正在查时不再发请求（列表行和「最近查询」各有一个「更新」）。
+const trackingRefreshInFlight = new Set();
+function setTrackingRefreshBusy(number, busy) {
+  document.querySelectorAll('[data-refresh-tracking], [data-refresh-recent-tracking]').forEach(button => {
+    if ((button.dataset.refreshTracking || button.dataset.refreshRecentTracking) !== number) return;
+    button.classList.toggle('logistics-refreshing', busy);
+    button.disabled = busy;
+    button.setAttribute('aria-busy', String(busy));
+    button.textContent = busy ? '更新中' : '更新';
+  });
+}
+async function refreshTrackingOnce(clean, carrier) {
   const number = cleanTracking(clean);
   if (!number) return;
-  const code = carrier && carrier !== 'auto' ? carrierName(carrier) : detectCarrier(number);
-  if (button) {
-    button.classList.add('logistics-refreshing');
-    button.textContent = '更新中';
+  if (trackingRefreshInFlight.has(number)) return;
+  const code = resolveTrackingCarrier(number, carrier);
+  trackingRefreshInFlight.add(number);
+  setTrackingRefreshBusy(number, true);
+  let result;
+  try {
+    result = await queryTrackingStatus(number, code);
+  } finally {
+    trackingRefreshInFlight.delete(number);
   }
-  const result = await queryTrackingStatus(number, code);
-  applyTrackingResultToOrder(number, result);
+  const outcome = applyTrackingResultToOrder(number, result, code);
   const lookup = addTrackingLookup(number, code, result);
   saveState();
   renderTrackingApiMiniStatus();
@@ -18177,7 +18395,9 @@ async function refreshTrackingOnce(clean, carrier, button) {
   // 签收会把订单移到已完成：侧边栏「物流」的数字、通知也要跟着变。
   uiNavCounts();
   uiRenderNotifs();
-  toast(result.ok ? '物流状态已同步' : (result.message || '已记录本次查询'));
+  setTrackingRefreshBusy(number, false);
+  if (outcome.completed.length) toastTrackingCompletions(outcome.completed);
+  else toast(result.ok ? '物流状态已同步' : (result.message || '已记录本次查询'), result.ok || result.online === '官网' ? undefined : { tone:'warn' });
 }
 function dhlAutoRunSlots(settings = getTrackingApiSettings()) {
   return String(settings.autoRunTimes || defaultTrackingApiSettings.autoRunTimes)
@@ -18200,16 +18420,18 @@ function nextTrackingAutoSlot(settings = getTrackingApiSettings()) {
 }
 // Every undelivered DHL / FedEx parcel, once per tracking number (an order's second parcel used to be skipped,
 // so the order never reached 「全部签收」).
-// 已完成的订单不再查：手动完成、UPS 规则完成的单里没签收的包裹以前每天被查两次、永远不停。
+// 已完成的订单、草稿不再查：手动完成、UPS 规则完成的单里没签收的包裹以前每天被查两次、永远不停；草稿的单号也被拿去查。
 function trackingAutoUpdateTargets(settings = getTrackingApiSettings()) {
   const targets = new Map();
-  state.orders.filter(order => normalizeStage(order.stage) !== 'done').forEach(order => normalizeOrderShipments(order).forEach(shipment => {
+  state.orders.filter(order => normalizeStage(order.stage) !== 'done' && !order.isDraft).forEach(order => normalizeOrderShipments(order).forEach(shipment => {
     if (normalizeTrackingStatus(shipment.status) === '已签收' || targets.has(shipment.trackingNumber)) return;
     const carrier = carrierName(shipment.carrier === 'auto' ? detectCarrier(shipment.trackingNumber) : shipment.carrier);
     if ((carrier === 'DHL' && settings.dhlApiEnabled === '是') || (carrier === 'FedEx' && settings.fedexApiEnabled === '是')) targets.set(shipment.trackingNumber, carrier);
   }));
   return [...targets].map(([clean, carrier]) => ({ clean, carrier }));
 }
+// 两次请求之间隔一会儿，别一口气把承运商的限流打满。
+let trackingAutoUpdateGapMs = 1000;
 async function runTrackingAutoUpdate(reason = 'manual') {
   const settings = getTrackingApiSettings();
   if (settings.dhlApiEnabled !== '是' && settings.fedexApiEnabled !== '是') {
@@ -18225,17 +18447,25 @@ async function runTrackingAutoUpdate(reason = 'manual') {
   dhlAutoUpdateRunning = true;
   let okCount = 0;
   let failCount = 0;
+  let skipped = 0;
+  // 某家承运商回了限流：这一轮剩下的这家单号都跳过，不再发请求，也不写记录（以前照样全打一遍，全部记成失败）。
+  const limited = new Set();
+  const completed = [];
   try {
+    let sent = 0;
     for (const { clean, carrier } of targets) {
+      if (limited.has(carrier)) { skipped += 1; continue; }
+      if (sent > 0 && trackingAutoUpdateGapMs > 0) await new Promise(resolve => setTimeout(resolve, trackingAutoUpdateGapMs));
+      sent += 1;
       let result;
-      try { result = await queryTrackingStatus(clean, carrier); } catch (error) { result = { ok:false, message:error?.message || '查询失败' }; }
-      if (result.ok) {
-        applyTrackingResultToOrder(clean, result);
-        okCount += 1;
-      } else {
+      try { result = await queryTrackingStatus(clean, carrier); } catch (error) { result = { ok:false, carrier, message:error?.message || '查询失败' }; }
+      completed.push(...applyTrackingResultToOrder(clean, result, carrier).completed);
+      if (result.ok) okCount += 1;
+      else {
         failCount += 1;
+        if (result.code === 'rate_limited') limited.add(carrier);
       }
-      addTrackingLookup(clean, carrier, result);
+      addTrackingLookup(clean, carrier, result, { manual:false });
     }
   } finally {
     dhlAutoUpdateRunning = false;
@@ -18243,7 +18473,7 @@ async function runTrackingAutoUpdate(reason = 'manual') {
   const nextSettings = {
     ...getTrackingApiSettings(),
     lastCheckedAt: nowText(),
-    lastStatus: `物流${reason === 'auto' ? '自动' : '手动'}更新完成：成功 ${okCount}，失败 ${failCount}`,
+    lastStatus: `物流${reason === 'auto' ? '自动' : '手动'}更新完成：成功 ${okCount}，失败 ${failCount}${skipped ? `；${[...limited].join(' / ')} 限流，跳过 ${skipped} 个，下次再查` : ''}`,
     lastAutoRunAt: reason === 'auto' ? nowText() : getTrackingApiSettings().lastAutoRunAt,
     lastAutoOkCount: okCount,
     lastAutoFailCount: failCount
@@ -18252,7 +18482,8 @@ async function runTrackingAutoUpdate(reason = 'manual') {
   saveState();
   renderTrackingApiMiniStatus();
   render();
-  toast(nextSettings.lastStatus);
+  toast(nextSettings.lastStatus, failCount || skipped ? { tone:'warn' } : undefined);
+  toastTrackingCompletions(completed);
 }
 function checkDhlAutoUpdateSchedule() {
   const settings = getTrackingApiSettings();
@@ -18278,50 +18509,80 @@ function checkDhlAutoUpdateSchedule() {
   saveTrackingApiSettings({ ...settings, lastAutoRunSlot: slotId });
   runTrackingAutoUpdate('auto');
 }
+// 一条查询记录现在关联的订单：有关联就从订单里这一批实时取（状态、订单号、客户、发货日），快照只给没关联的单号用。
+// 以前显示的是查询那一刻的快照：订单里改成已签收，这里还写「运输中」；多批订单的「在途」按第一批的发货日算。
+function trackingLookupLinks(item = {}) {
+  const ids = [...new Set([...(Array.isArray(item.orderIds) ? item.orderIds : []), item.orderId].filter(Boolean))];
+  const number = cleanTracking(item.trackingNumber);
+  const orders = ids.map(id => (state.orders || []).find(order => order.id === id)).filter(Boolean)
+    .filter(order => normalizeOrderShipments(order).some(shipment => shipment.trackingNumber === number));
+  const live = orders.length ? orders : trackingLinkedOrders(number);
+  const shipment = live[0] ? normalizeOrderShipments(live[0]).find(entry => entry.trackingNumber === number) || null : null;
+  const deleted = !live.length && item.orderId ? (state.deletedOrders || []).find(order => order.id === item.orderId) || null : null;
+  return { orders:live, shipment, deleted };
+}
+function trackingLookupView(item = {}) {
+  const links = trackingLookupLinks(item);
+  const first = links.orders[0];
+  const status = links.shipment?.status || item.status || '待 API 查询';
+  const client = first ? clientDisplayName(first.client) : (item.displayClient || item.client || '未关联订单');
+  const orderText = first ? `${first.num}${links.orders.length > 1 ? ` 等 ${links.orders.length} 单` : ''}`
+    : links.deleted ? `${item.orderNum && item.orderNum !== '-' ? `${item.orderNum} · ` : ''}订单已删除`
+      : (item.orderNum && item.orderNum !== '-' ? item.orderNum : '');
+  return { ...links, status, client, orderText, shippedAt:links.shipment?.shippedAt || item.shippedAt || '' };
+}
+// 搜索时单号去掉空格和横杠再比：页面上单号分组显示成「1234 5678 90」，以前把这段复制进搜索框搜不到。
+function compactSearchText(value = '') {
+  return String(value || '').toLowerCase().replace(/[\s-]+/g, '');
+}
+let priceHistoryExpanded = false;
 function renderPriceHistory(activeLookupId = '') {
   const el = document.getElementById('priceHistoryList');
   if (!el) return;
+  const clearBtn = document.getElementById('clearTrackingHistoryBtn');
+  if (clearBtn) clearBtn.hidden = !(state.trackingLookups || []).length;
   const productSelect = document.getElementById('priceHistoryProduct');
   if (productSelect) {
     const current = productSelect.value || 'all';
     productSelect.innerHTML = '<option value="all">全部承运商</option><option value="DHL">DHL</option><option value="FedEx">FedEx</option><option value="UPS">UPS</option>';
     productSelect.value = ['all','DHL','FedEx','UPS'].includes(current) ? current : 'all';
   }
-  const query = (document.getElementById('priceHistorySearch')?.value || '').trim().toLowerCase();
+  const query = compactSearchText(document.getElementById('priceHistorySearch')?.value || '');
   const carrier = productSelect?.value || 'all';
   const list = (state.trackingLookups || [])
     .filter(item => carrier === 'all' || item.carrier === carrier)
-    .filter(item => {
-      const haystack = [item.client, item.orderNum, item.trackingNumber, item.carrier, item.status].join(' ').toLowerCase();
-      return !query || haystack.includes(query);
+    .map(item => ({ item, view:trackingLookupView(item) }))
+    .filter(({ item, view }) => {
+      if (!query) return true;
+      const names = view.orders.flatMap(order => [order.client, clientDisplayName(order.client), order.num]);
+      return compactSearchText([item.client, item.displayClient, item.orderNum, item.trackingNumber, item.carrier, view.status, ...names].join(' ')).includes(query);
     })
-    .slice()
-    .sort((a, b) => Number(b.pinned === true) - Number(a.pinned === true) || parseDate(b.checkedAt) - parseDate(a.checkedAt));
+    .sort((a, b) => Number(b.item.pinned === true) - Number(a.item.pinned === true) || parseDate(b.item.checkedAt) - parseDate(a.item.checkedAt));
   if (!list.length) {
-    el.innerHTML = '<div class="empty">暂无最近查询记录。输入物流单号查询后会自动记录在这里。</div>';
+    el.innerHTML = `<div class="empty">${(state.trackingLookups || []).length ? '没有符合条件的查询记录。' : '暂无最近查询记录。输入物流单号查询后会自动记录在这里。'}</div>`;
     return;
   }
-  el.innerHTML = list.slice(0, 18).map(item => {
-    const queryMark = trackingResultEmoji(item.online);
-    const linked = Boolean(item.orderId);
-    const title = item.displayClient || item.client || '未关联订单';
-    const linkedOrder = item.orderId ? state.orders.find(order => order.id === item.orderId) : null;
-    const timing = deliveryTimingInfo(item, linkedOrder);
-    const official = item.carrier === 'UPS' && !/已签收|异常|运输中|派送中/.test(item.status || '');
+  const limit = priceHistoryExpanded ? list.length : 18;
+  el.innerHTML = list.slice(0, limit).map(({ item, view }) => {
+    const linked = view.orders.length > 0 || Boolean(view.deleted);
+    const timing = deliveryTimingInfo(item, { shippedAt:view.shippedAt, status:view.status, deliveredAt:view.shipment?.updated });
+    const official = item.carrier === 'UPS' && !/已签收|异常|运输中|派送中/.test(view.status || '');
+    const label = `${item.carrier} ${groupTrackingNumber(item.trackingNumber)} · ${view.client}`;
     return `
-      <div class="price-history-row recent-tracking-row ${item.pinned ? 'pinned' : ''} ${item.id === activeLookupId ? 'just-updated' : ''}" ${item.orderId ? `data-recent-order-id="${escapeAttr(item.orderId)}"` : ''} data-lookup-id="${escapeAttr(item.id)}" title="查询 ${escapeAttr(monthDayTimeLabel(item.checkedAt))} · 更新 ${escapeAttr(monthDayTimeLabel(item.statusUpdatedAt || item.checkedAt))}">
+      <div class="price-history-row recent-tracking-row ${item.pinned ? 'pinned' : ''} ${item.id === activeLookupId ? 'just-updated' : ''}" ${item.orderId ? `data-recent-order-id="${escapeAttr(item.orderId)}"` : ''} data-lookup-id="${escapeAttr(item.id)}" tabindex="0" role="button" aria-label="打开 ${escapeAttr(label)} 的物流详情" title="查询 ${escapeAttr(monthDayTimeLabel(item.checkedAt))} · 更新 ${escapeAttr(monthDayTimeLabel(item.statusUpdatedAt || item.checkedAt))}">
         <div class="recent-tracking-top">
           <span class="recent-tracking-code">${item.pinned ? '<span class="recent-tracking-pin" title="已置顶">●</span>' : ''}${escapeAttr(item.carrier)} ${escapeAttr(groupTrackingNumber(item.trackingNumber))}</span>
           <span class="recent-tracking-time">${escapeAttr(orderListWhen(item.checkedAt))}</span>
         </div>
         <div class="recent-tracking-sub">
-          <span class="ship-pill ${official ? 'tone-line' : logisticsTone(item.status)}">${queryMark ? `${queryMark} ` : ''}${escapeAttr(official ? '官网查询' : item.status)}</span>
-          <span class="recent-tracking-client">${escapeAttr(title)}${item.orderNum && item.orderNum !== '-' ? ` · ${escapeAttr(item.orderNum)}` : ''}</span>
-          ${deliveryTimingBadge(timing)}
+          <span class="ship-pill ${official ? 'tone-line' : logisticsTone(view.status)}">${escapeAttr(official ? '官网查询' : view.status)}</span>
+          <span class="recent-tracking-client">${escapeAttr(view.client)}${view.orderText ? ` · ${escapeAttr(view.orderText)}` : ''}</span>
+          ${view.deleted ? '' : deliveryTimingBadge(timing)}
+          ${item.carrier !== 'UPS' ? trackingCheckBadge(trackingCheckNote(null, item)) : ''}
         </div>
         <div class="recent-tracking-actions">
           <button class="btn btn-small copy-tracking-btn" type="button" title="复制单号" data-copy-tracking="${escapeAttr(item.trackingNumber)}">复制</button>
-          <button class="btn btn-small" type="button" data-refresh-recent-tracking="${escapeAttr(item.trackingNumber)}" data-recent-carrier="${escapeAttr(item.carrier)}">更新</button>
+          ${item.carrier !== 'UPS' ? `<button class="btn btn-small" type="button" data-refresh-recent-tracking="${escapeAttr(item.trackingNumber)}" data-recent-carrier="${escapeAttr(item.carrier)}">更新</button>` : ''}
           <button class="btn btn-small" type="button" data-open-tracking-detail="${escapeAttr(item.id)}">详情</button>
           ${!linked ? `<button class="btn btn-small" type="button" data-edit-lookup-name="${escapeAttr(item.id)}">编辑名称</button>` : ''}
           <button class="btn btn-small" type="button" data-pin-lookup="${escapeAttr(item.id)}">${item.pinned ? '取消置顶' : '置顶'}</button>
@@ -18329,7 +18590,7 @@ function renderPriceHistory(activeLookupId = '') {
         </div>
       </div>
     `;
-  }).join('');
+  }).join('') + (list.length > 18 ? `<button class="link-btn recent-tracking-more" type="button" data-toggle-lookups>${priceHistoryExpanded ? '收起' : `还有 ${list.length - 18} 条 · 全部显示`}</button>` : '');
 }
 function renderTrackingEvents(item) {
   const events = sortTrackingEvents(uniqueTrackingEvents(normalizeTrackingEvents(item?.events || [])));
@@ -18412,133 +18673,260 @@ function deliveryTimingClass(days) {
   if (days <= 4) return 'warn';
   return 'bad';
 }
-function deliveryTimingInfo(source = {}, order = null) {
+// 在途 / 签收时长：颜色和文字用同一个天数，都按本机时间算（以前颜色按美国东部日期、文字按本机时间，「在途 3天10小时」是绿色）。
+// 发货日用这一批自己的（多批订单以前用第一批的发货日：同一个包裹左边 3 天、右边 6 天）。异常件写「异常 · 已 N 天」，红色。
+function deliveryTimingInfo(source = {}, { shippedAt = '', status = '', deliveredAt = '' } = {}) {
   const item = source || {};
-  const status = String(item.status || order?.logisticsStatus || '');
-  const delivered = /签收|delivered/i.test(status);
-  const deliveryEvent = deliveryEventForItem(item);
-  const pickupEvent = pickupEventForItem(item);
-  const startValue = order?.shippedAt || item.shippedAt || pickupEvent?.time || '';
+  const current = String(status || item.status || '');
+  const delivered = /签收|delivered/i.test(current);
+  const startValue = shippedAt || item.shippedAt || pickupEventForItem(item)?.time || '';
   const endValue = delivered
-    ? (deliveryEvent?.time || item.statusUpdatedAt || order?.logisticsUpdated || item.checkedAt || order?.updated || '')
+    ? (deliveryEventForItem(item)?.time || deliveredAt || item.statusUpdatedAt || item.checkedAt || '')
     : nowText();
-  const startKey = dateKeyInZone(startValue);
-  const endKey = dateKeyInZone(endValue);
-  const days = daysBetweenDateKeys(startKey, endKey);
-  if (days === null) return null;
   const parts = elapsedDayHourParts(startValue, endValue);
-  const labelTime = dayHourLabel(parts) || `${days}天`;
+  if (!parts) return null;
+  const since = normalizeDate(startValue) || startValue;
+  if (current === '异常') return { days:parts.days, hours:parts.hours, delivered:false, cls:'bad', label:`异常 · 已 ${parts.days} 天`, title:`${since} 发货，物流异常，需要联系承运商` };
   return {
-    days,
-    hours: parts?.hours ?? 0,
+    days: parts.days,
+    hours: parts.hours,
     delivered,
-    cls: deliveryTimingClass(days),
-    label: `${delivered ? '签收' : '在途'} ${labelTime}`,
-    title: `颜色按美国东部日期计算：${startKey} 至 ${endKey}`
+    cls: deliveryTimingClass(parts.days),
+    label: `${delivered ? '签收' : '在途'} ${dayHourLabel(parts)}`,
+    title: `${since} 发货；按本机时间计算，2 天内绿色、4 天内橙色、更久红色`
   };
 }
 function deliveryTimingBadge(info) {
   if (!info) return '';
   return `<span class="delivery-timing ${info.cls}" title="${escapeAttr(info.title)}">${escapeAttr(info.label)}</span>`;
 }
+// 抽屉里的「风险判断」和待办里的物流风险提醒同一套规则：异常写异常；UPS 不查 API；DHL / FedEx 查询成功过、
+// 3 天以上没有新进度才算「N 天没更新」；从没查成功过写查询失败的原因。以前异常件只要最近有更新就写「正常」。
+function trackingRiskText(item = {}, view = trackingLookupView(item)) {
+  if (view.status === '异常') return { text:'异常 · 需要联系承运商', risk:true };
+  if (/签收/.test(view.status)) return { text:'已签收', risk:false };
+  if (carrierName(item.carrier) === 'UPS') return { text:'UPS 不查 API，请在官网核对', risk:false };
+  const okAt = view.shipment?.trackOkAt || item.lastOkAt || (item.online === '是' ? item.checkedAt : '');
+  if (!okAt) return { text:item.lastError ? `还没有查到（${trackingCheckCodeLabel(item.lastError.code)}）` : '还没有查到', risk:false };
+  const days = daysBetween(item.statusUpdatedAt || view.shipment?.updated || okAt);
+  return days > 3 ? { text:`${days} 天没更新`, risk:true } : { text:'正常', risk:false };
+}
 function openTrackingDetail(id) {
   const item = findTrackingLookup(id);
   if (!item) return;
-  const title = item.displayClient || item.client || '未关联订单';
+  const view = trackingLookupView(item);
+  const risk = trackingRiskText(item, view);
   const fresh = trackingFreshness(item);
-  document.getElementById('trackingDetailNum').textContent = item.trackingNumber || '物流详情';
+  const official = carrierName(item.carrier) === 'UPS';
+  document.getElementById('trackingDetailNum').textContent = groupTrackingNumber(item.trackingNumber) || '物流详情';
   document.getElementById('trackingDetailTitle').textContent = `${carrierName(item.carrier)} 物流进度`;
+  const check = trackingCheckNote(null, item);
+  document.getElementById('trackingDetailBody').dataset.lookupId = id;
   document.getElementById('trackingDetailBody').innerHTML = `
-    <section class="detail-hero">
-      <div class="detail-num">${escapeAttr(item.orderNum || '-')}</div>
+    <section class="detail-hero" data-tracking-detail="${escapeAttr(item.id)}">
+      <div class="detail-num">${escapeAttr(view.orderText || '未关联订单')}</div>
       <div class="detail-client-line">
-        <div class="detail-client">${escapeAttr(title)}</div>
+        <div class="detail-client">${escapeAttr(view.client)}</div>
         <span class="carrier-badge ${carrierBadgeClass(item.carrier)}">${escapeAttr(item.carrier)}</span>
       </div>
       <div class="modal-summary">
-        <span class="tag tag-green">${trackingResultEmoji(item.online)} ${escapeAttr(item.status || '待 API 查询')}</span>
+        <span class="ship-pill ${official && !/已签收|异常|运输中|派送中/.test(view.status) ? 'tone-line' : logisticsTone(view.status)}">${escapeAttr(official && !/已签收|异常|运输中|派送中/.test(view.status) ? '官网查询' : view.status)}</span>
         <span class="tag tag-neutral">查询 ${escapeAttr(item.checkedAt || '-')}</span>
         <span class="tag tag-neutral">更新 ${escapeAttr(item.statusUpdatedAt || '-')}</span>
+        ${check ? trackingCheckBadge(check) : ''}
+      </div>
+      <div class="tracking-detail-actions">
+        <button class="btn btn-small" type="button" data-copy-tracking="${escapeAttr(item.trackingNumber)}">复制单号</button>
+        ${official ? '' : `<button class="btn btn-small" type="button" data-refresh-recent-tracking="${escapeAttr(item.trackingNumber)}" data-recent-carrier="${escapeAttr(item.carrier)}" data-detail-refresh="${escapeAttr(item.id)}">重新查询</button>`}
       </div>
     </section>
+    ${view.orders.length || view.deleted ? `<section class="detail-section">
+      <div class="detail-section-title">关联订单</div>
+      ${view.orders.map(order => `<div class="tracking-detail-order"><span>${escapeAttr(clientDisplayName(order.client))} · ${escapeAttr(order.num)} · ${escapeAttr(stageDef(order.stage).name)}</span><button class="btn btn-small" type="button" data-tracking-open-order="${escapeAttr(order.id)}">打开订单</button></div>`).join('')}
+      ${view.deleted ? `<div class="tracking-detail-order"><span>${escapeAttr(clientDisplayName(view.deleted.client))} · ${escapeAttr(view.deleted.num)} · 订单已删除</span><button class="btn btn-small" type="button" data-tracking-restore-order="${escapeAttr(view.deleted.id)}">恢复订单</button></div>` : ''}
+    </section>` : ''}
     <section class="detail-section">
       <div class="detail-section-title">物流概览</div>
       <div class="detail-grid">
         ${detailItem('最后有效节点', fresh.event ? `${fresh.event.title || '-'} · ${fresh.event.location || '-'}` : '-')}
         ${detailItem('节点时间', fresh.event?.time || item.statusUpdatedAt || '-')}
-        ${detailItem('风险判断', fresh.risk ? '物流风险' : '正常', false, fresh.risk ? 'tracking-freshness-risk' : 'tracking-freshness-ok')}
+        ${detailItem('风险判断', risk.text, false, risk.risk ? 'tracking-freshness-risk' : 'tracking-freshness-ok')}
       </div>
     </section>
     <section class="detail-section">
       <div class="detail-section-title">物流节点</div>
       ${renderTrackingEvents(item)}
     </section>
-    ${item.queryMessage ? `<section class="detail-section"><div class="detail-section-title">查询结果</div><div class="detail-value">${escapeAttr(item.queryMessage)}</div></section>` : ''}
+    ${item.lastError ? `<section class="detail-section"><div class="detail-section-title">最近一次查询</div><div class="detail-value">${escapeAttr(`${item.lastError.at} 查询失败：${item.lastError.message}`)}${item.lastOkAt ? escapeAttr(`；上面是 ${item.lastOkAt} 查到的结果`) : ''}</div></section>`
+      : item.queryMessage ? `<section class="detail-section"><div class="detail-section-title">查询结果</div><div class="detail-value">${escapeAttr(item.queryMessage)}</div></section>` : ''}
     <section class="detail-section">
       <div class="detail-section-title">人工核对</div>
       <button class="btn btn-small" type="button" data-open-official-tracking="${escapeAttr(item.trackingNumber)}" data-official-carrier="${escapeAttr(item.carrier)}">打开官网查询</button>
     </section>
   `;
-  setModalOpenState('trackingDetailDrawer', true);
-  resetModalScroll('#trackingDetailDrawer');
+  if (!document.getElementById('trackingDetailDrawer').classList.contains('open')) {
+    setModalOpenState('trackingDetailDrawer', true);
+    resetModalScroll('#trackingDetailDrawer');
+  }
 }
 function closeTrackingDetail() {
   const drawer = document.getElementById('trackingDetailDrawer');
   setModalOpenState(drawer, false);
   resetModalScroll(drawer);
 }
+// 查询框的拆分规则（识别提示和查询共用）：换行、逗号、分号、Tab、斜杠、竖线、两个以上空格都算分隔；
+// 一行里有两个以上完整的单号（9 位以上数字或 1Z 开头）也拆开；「FedEx 1234…」这样的前缀跟着后面的单号走。
+function splitTrackingInput(raw = '') {
+  const looksFull = token => { const clean = cleanTracking(token); return /^\d{9,}$/.test(clean) || /^1Z[A-Z0-9]{16}$/.test(clean); };
+  const entries = [];
+  String(raw || '').split(/[\n\r,，;；\t|/、]+|\s{2,}/).forEach(segment => {
+    const text = segment.trim();
+    if (!text) return;
+    const tokens = text.split(/\s+/);
+    if (tokens.filter(looksFull).length >= 2) {
+      let hint = '';
+      tokens.forEach(token => {
+        if (looksFull(token)) {
+          entries.push({ raw:`${hint ? `${hint} ` : ''}${token}`, clean:cleanTracking(token), hint });
+          hint = '';
+        } else hint = carrierHintFromTrackingText(token) || hint;
+      });
+      return;
+    }
+    const clean = cleanTracking(text);
+    if (clean) entries.push({ raw:text, clean, hint:carrierHintFromTrackingText(text) });
+  });
+  return entries.filter((entry, index, list) => list.findIndex(other => other.clean === entry.clean) === index);
+}
+// 认不出的格式（订单号、电话、顺丰单号……）不发请求：以前一律当 DHL 查，还写进「最近查询」，占 DHL 的调用额度。
+// 订单里已经有这个单号就用订单里的承运商；写了前缀就按前缀查（和订单不一致时提示一句）。
+function strictTrackingCarrier(clean) {
+  if (isUpsTrackingNumber(clean)) return 'UPS';
+  if (/^\d{10}$/.test(clean)) return 'DHL';
+  if (/^(\d{12}|\d{15}|\d{20}|\d{22})$/.test(clean)) return 'FedEx';
+  if (/^(JJD|JVGL|GM|LX|RX|3S)[A-Z0-9]{8,}$/.test(clean)) return 'DHL';
+  return '';
+}
+function planTrackingEntry(entry) {
+  const orderCarrier = orderTrackingCarrier(entry.clean);
+  const linked = trackingLinkedOrders(entry.clean).length > 0;
+  const valid = linked || (entry.hint ? entry.clean.length >= 8 && /\d{6,}/.test(entry.clean) : Boolean(strictTrackingCarrier(entry.clean)));
+  const carrier = !valid ? '' : entry.hint || orderCarrier || (linked ? detectCarrier(entry.clean) : strictTrackingCarrier(entry.clean));
+  return { ...entry, valid, carrier, conflict:Boolean(entry.hint && orderCarrier && entry.hint !== orderCarrier), orderCarrier };
+}
+const trackingQueryBatch = 12;
+let trackingLookupRunning = false;
+function trackingLinkText(clean) {
+  const orders = trackingLinkedOrders(clean);
+  if (!orders.length) return '未关联订单';
+  return `${clientDisplayName(orders[0].client)} · ${orders[0].num}${orders.length > 1 ? ` 等 ${orders.length} 单` : ''}`;
+}
+function trackingLookupRowHtml(row) {
+  const { entry, result, lookupId, completed } = row;
+  const grouped = groupTrackingNumber(entry.clean);
+  if (!entry.valid) {
+    return `<div class="paste-result-card is-skipped"><div class="paste-result-title">? · ${escapeAttr(entry.raw)}</div><div class="muted">格式不像 DHL / FedEx / UPS 单号，没有查询。是这几家的单号时，在前面写上承运商，例如「DHL ${escapeAttr(entry.clean)}」。</div></div>`;
+  }
+  const official = result?.online === '官网';
+  const statusLine = !result ? (row.running ? '查询中…' : '等待查询')
+    : result.ok ? `${result.status || '状态未识别'} · 更新 ${formatApiTime(result.updatedAt || result.checkedAt || nowText())}${completed ? ' · → 已完成' : ''}`
+      : official ? 'UPS 不查 API，请打开官网查看' : `查询失败：${result.message || '未知原因'}`;
+  return `
+    <div class="paste-result-card ${result && !result.ok && !official ? 'is-failed' : ''}" data-lookup-row="${escapeAttr(entry.clean)}">
+      <div class="paste-result-top">
+        <div>
+          <div class="paste-result-title">${carrierName(entry.carrier)} · ${escapeAttr(grouped)}</div>
+          <div class="paste-result-meta">${escapeAttr(trackingLinkText(entry.clean))}</div>
+          <div class="paste-result-meta ${result && !result.ok && !official ? 'is-bad' : ''}">${escapeAttr(statusLine)}</div>
+          ${entry.conflict ? `<div class="muted">订单里选的是 ${escapeAttr(entry.orderCarrier)}，这次按你写的 ${escapeAttr(entry.hint)} 查。</div>` : ''}
+        </div>
+        <div class="paste-result-actions">
+          <button class="btn btn-small" type="button" data-copy-tracking="${escapeAttr(entry.clean)}">复制</button>
+          ${lookupId ? `<button class="btn btn-small" type="button" data-open-tracking-detail="${escapeAttr(lookupId)}">详情</button>` : ''}
+          ${result && !result.ok && !official ? `<button class="btn btn-small" type="button" data-refresh-recent-tracking="${escapeAttr(entry.clean)}" data-recent-carrier="${escapeAttr(entry.carrier)}">重试</button>` : ''}
+          <button class="btn btn-small" type="button" data-open-official-tracking="${escapeAttr(entry.clean)}" data-official-carrier="${escapeAttr(entry.carrier)}">官网</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+function setTrackingLookupButton(mode, text = '') {
+  const btn = document.getElementById('trackingLookupBtn');
+  if (!btn) return;
+  if (!btn.dataset.idleHtml) btn.dataset.idleHtml = btn.innerHTML;
+  clearTimeout(btn.idleTimer);
+  btn.disabled = mode === 'busy';
+  btn.setAttribute('aria-busy', String(mode === 'busy'));
+  btn.dataset.morph = mode;
+  if (mode === 'idle') {
+    btn.innerHTML = btn.dataset.idleHtml;
+    delete btn.dataset.morph;
+    return;
+  }
+  btn.innerHTML = `${mode === 'busy' ? '<span class="morph-spin" aria-hidden="true"></span>' : uiIcon('check')}<span class="morph-label">${escapeAttr(text)}</span>`;
+  if (mode === 'ok') btn.idleTimer = setTimeout(() => setTrackingLookupButton('idle'), 1400);
+}
 async function renderTrackingLookup() {
   const input = document.getElementById('trackingLookupInput');
   const result = document.getElementById('trackingLookupResult');
   if (!input || !result) return;
-  const raw = input.value.trim();
-  const entries = raw
-    .split(/[\n,，;；]+/)
-    .map(item => ({ clean:cleanTracking(item), hint:carrierHintFromTrackingText(item) }))
-    .filter(item => item.clean);
+  // 正在查：再点一次（或 ⌘Enter）不开新的一轮。以前连点两次，每个单号查两次。
+  if (trackingLookupRunning) return;
+  const entries = splitTrackingInput(input.value).map(planTrackingEntry);
   if (!entries.length) {
     result.classList.remove('show');
     result.innerHTML = '';
     return;
   }
-  const uniqueEntries = entries.filter((item, index, list) => list.findIndex(other => other.clean === item.clean) === index).slice(0, 12);
-  input.value = uniqueEntries.map(item => item.clean).join('\n');
-  result.classList.add('show');
-  result.innerHTML = `<div><strong>正在识别并查询...</strong></div><div class="muted">本次将按顺序处理 ${uniqueEntries.length} 个物流单。</div>`;
-  const results = [];
-  for (const entry of uniqueEntries) {
-    const clean = entry.clean;
-    const code = entry.hint || detectCarrier(clean);
-    const trackingResult = await queryTrackingStatus(clean, code);
-    applyTrackingResultToOrder(clean, trackingResult);
-    addTrackingLookup(clean, code, trackingResult);
-    results.push({ clean, code, result: trackingResult });
+  const valid = entries.filter(entry => entry.valid);
+  const batch = valid.slice(0, trackingQueryBatch);
+  const rest = valid.slice(trackingQueryBatch);
+  const rows = [...batch.map(entry => ({ entry })), ...entries.filter(entry => !entry.valid).map(entry => ({ entry }))];
+  const draw = done => {
+    result.classList.add('show');
+    const count = rows.filter(row => row.result).length;
+    result.innerHTML = `
+      <div><strong>${done ? `查询完成：${batch.length} 个物流单` : `正在查询 ${count}/${batch.length}`}</strong></div>
+      ${rest.length ? `<div class="muted">还有 ${rest.length} 个单号没查（一次最多查 ${trackingQueryBatch} 个）${done ? '，已留在输入框里，点「批量查询」继续' : '，查完这批后留在输入框里'}。</div>` : ''}
+      ${rows.map(trackingLookupRowHtml).join('')}
+    `;
+  };
+  trackingLookupRunning = true;
+  const completed = [];
+  try {
+    for (let i = 0; i < batch.length; i += 1) {
+      const row = rows[i];
+      row.running = true;
+      setTrackingLookupButton('busy', `查询中 ${i + 1}/${batch.length}`);
+      draw(false);
+      const trackingResult = await queryTrackingStatus(row.entry.clean, row.entry.carrier);
+      const outcome = applyTrackingResultToOrder(row.entry.clean, trackingResult, row.entry.carrier);
+      completed.push(...outcome.completed);
+      row.lookupId = addTrackingLookup(row.entry.clean, row.entry.carrier, trackingResult)?.id || '';
+      row.completed = outcome.completed.length > 0;
+      row.result = trackingResult;
+      row.running = false;
+    }
+  } finally {
+    trackingLookupRunning = false;
+    setTrackingLookupButton(batch.length ? 'ok' : 'idle', '查询完成');
   }
-  saveState();
-  renderTrackingApiMiniStatus();
-  renderPriceHistory();
-  renderLogistics();
-  renderTasks();
-  uiNavCounts();
-  uiRenderNotifs();
-  result.classList.add('show');
-  result.innerHTML = `
-    <div><strong>查询完成：${results.length} 个物流单</strong></div>
-    ${results.map(item => `
-      <div class="paste-result-card">
-        <div class="paste-result-top">
-          <div>
-            <div class="paste-result-title">${carrierName(item.code)} · ${escapeAttr(item.clean)}</div>
-            <div class="paste-result-meta">${trackingResultEmoji(item.result.online || (item.result.ok ? '是' : '否'))} ${escapeAttr(item.result.status || '待查询')} · 更新 ${escapeAttr(formatApiTime(item.result.updatedAt || item.result.checkedAt || nowText()))}</div>
-          </div>
-        </div>
-        ${item.result.message ? `<div class="muted">${escapeAttr(item.result.message)}</div>` : ''}
-      </div>
-    `).join('')}
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-      <span class="muted">需要人工核对时，可在右侧详情里打开官网。</span>
-    </div>
-  `;
+  // 输入框不再改写成纯数字（以前「UPS 1234…」的前缀被去掉，再点一次换成按 FedEx 查）；只有超过 12 个时把没查的留下。
+  if (rest.length) {
+    input.value = rest.map(entry => entry.raw).join('\n');
+    uiTrackingDetect();
+  }
+  if (batch.length) {
+    saveState();
+    renderTrackingApiMiniStatus();
+    renderPriceHistory();
+    renderLogistics();
+    renderTasks();
+    uiNavCounts();
+    uiRenderNotifs();
+  }
+  draw(true);
+  toastTrackingCompletions(completed);
 }
 // 待办列表一次显示 14 条，多出来的在底部写明「还有 N 条」，可以展开。
 const taskListLimit = 14;
@@ -21191,7 +21579,11 @@ function buildOrderFromFormData(data = {}, { existing = null, isDraft = false, s
     };
     delete next.rawStatus;
     delete next.checkedAt;
+    delete next.trackOkAt;
+    delete next.trackError;
     if (sameNumber?.checkedAt) next.checkedAt = sameNumber.checkedAt;
+    if (sameNumber?.trackOkAt) next.trackOkAt = sameNumber.trackOkAt;
+    if (sameNumber?.trackError) next.trackError = sameNumber.trackError;
     // 承运商原文只在状态没被手动改过时还算数。
     if (sameNumber?.rawStatus && sameNumber.status === status) next.rawStatus = sameNumber.rawStatus;
     return next;
@@ -24605,8 +24997,63 @@ document.getElementById('logisticsCarrierFilter').addEventListener('click', e =>
   const btn = e.target.closest('[data-carrier-filter]');
   if (!btn) return;
   logisticsCarrierFilter = btn.dataset.carrierFilter;
+  logisticsListLimit = 50;
   document.querySelectorAll('#logisticsCarrierFilter .segment-option').forEach(item => item.classList.toggle('active', item === btn));
   renderLogistics();
+});
+document.getElementById('logisticsStatusFilter')?.addEventListener('change', e => {
+  logisticsStatusFilter = e.target.value || 'all';
+  logisticsListLimit = 50;
+  renderLogistics();
+});
+document.getElementById('logisticsIncludeDone')?.addEventListener('change', e => {
+  logisticsIncludeDone = e.target.checked;
+  logisticsListLimit = 50;
+  renderLogistics();
+});
+// 「查询结果」卡片、物流详情抽屉里的按钮：复制、详情、重试 / 重新查询、打开订单、恢复订单。
+function handleTrackingActionClick(e) {
+  const copyBtn = e.target.closest('[data-copy-tracking]');
+  if (copyBtn) {
+    copyText(copyBtn.dataset.copyTracking, '物流单号已复制');
+    return true;
+  }
+  const refreshBtn = e.target.closest('[data-refresh-recent-tracking]');
+  if (refreshBtn) {
+    const number = cleanTracking(refreshBtn.dataset.refreshRecentTracking);
+    const fromDetail = Boolean(refreshBtn.dataset.detailRefresh);
+    refreshTrackingOnce(number, refreshBtn.dataset.recentCarrier).then(() => {
+      const latest = latestTrackingLookup(number);
+      if (fromDetail && latest && document.getElementById('trackingDetailDrawer')?.classList.contains('open')) openTrackingDetail(latest.id);
+    });
+    return true;
+  }
+  const detailBtn = e.target.closest('[data-open-tracking-detail]');
+  if (detailBtn) {
+    openTrackingDetail(detailBtn.dataset.openTrackingDetail);
+    return true;
+  }
+  const orderBtn = e.target.closest('[data-tracking-open-order]');
+  if (orderBtn) {
+    closeTrackingDetail();
+    openOrderDetail(orderBtn.dataset.trackingOpenOrder, { tab:'logistics' });
+    return true;
+  }
+  const restoreBtn = e.target.closest('[data-tracking-restore-order]');
+  if (restoreBtn) {
+    restoreOrder(restoreBtn.dataset.trackingRestoreOrder);
+    const id = document.getElementById('trackingDetailBody')?.dataset.lookupId;
+    if (id && findTrackingLookup(id)) openTrackingDetail(id);
+    renderPriceHistory();
+    return true;
+  }
+  return false;
+}
+document.getElementById('trackingLookupResult')?.addEventListener('click', e => {
+  if (handleTrackingActionClick(e)) e.preventDefault();
+});
+document.getElementById('trackingDetailBody')?.addEventListener('click', e => {
+  if (handleTrackingActionClick(e)) e.preventDefault();
 });
 document.getElementById('logisticsList')?.addEventListener('click', e => {
   const copyBtn = e.target.closest('[data-copy-tracking]');
@@ -24621,7 +25068,7 @@ document.getElementById('logisticsList')?.addEventListener('click', e => {
     e.preventDefault();
     e.stopPropagation();
     const order = state.orders.find(item => item.id === refreshBtn.dataset.refreshLogistics);
-    if (order) refreshTrackingOnce(refreshBtn.dataset.refreshTracking || order.trackingNumber, refreshBtn.dataset.refreshCarrier || order.carrier, refreshBtn);
+    if (order) refreshTrackingOnce(refreshBtn.dataset.refreshTracking || order.trackingNumber, refreshBtn.dataset.refreshCarrier || order.carrier);
     return;
   }
   const officialBtn = e.target.closest('[data-open-official-tracking]');
@@ -24631,8 +25078,34 @@ document.getElementById('logisticsList')?.addEventListener('click', e => {
     openOfficialTracking(officialBtn.dataset.openOfficialTracking, officialBtn.dataset.officialCarrier);
     return;
   }
+  const fillBtn = e.target.closest('[data-fill-tracking]');
+  if (fillBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    uiTrackingQuickCard(fillBtn.dataset.fillTracking);
+    return;
+  }
+  if (e.target.closest('[data-logistics-more]')) {
+    logisticsListLimit += 50;
+    renderLogistics();
+    return;
+  }
+  // 从物流页点进来的：直接到订单的「物流」页签。
   const row = e.target.closest('[data-id]');
-  if (row) openOrderDetail(row.dataset.id);
+  if (row) openOrderDetail(row.dataset.id, { tab:'logistics' });
+});
+// 行可以用键盘打开：Tab 到这一行，Enter / 空格。
+document.getElementById('logisticsList')?.addEventListener('keydown', e => {
+  const row = e.target.closest?.('.ship-row[data-id]');
+  if (!row || e.target !== row || (e.key !== 'Enter' && e.key !== ' ') || isImeKeyEvent(e)) return;
+  e.preventDefault();
+  openOrderDetail(row.dataset.id, { tab:'logistics' });
+});
+document.getElementById('priceHistoryList')?.addEventListener('keydown', e => {
+  const row = e.target.closest?.('.recent-tracking-row[data-lookup-id]');
+  if (!row || e.target !== row || (e.key !== 'Enter' && e.key !== ' ') || isImeKeyEvent(e)) return;
+  e.preventDefault();
+  openTrackingDetail(row.dataset.lookupId);
 });
 document.getElementById('priceHistoryList')?.addEventListener('click', e => {
   const copyBtn = e.target.closest('[data-copy-tracking]');
@@ -24650,7 +25123,7 @@ document.getElementById('priceHistoryList')?.addEventListener('click', e => {
   if (refreshBtn) {
     e.preventDefault();
     e.stopPropagation();
-    refreshTrackingOnce(refreshBtn.dataset.refreshRecentTracking, refreshBtn.dataset.recentCarrier, refreshBtn);
+    refreshTrackingOnce(refreshBtn.dataset.refreshRecentTracking, refreshBtn.dataset.recentCarrier);
     return;
   }
   if (deleteBtn) {
@@ -24701,7 +25174,16 @@ document.getElementById('priceHistoryList')?.addEventListener('click', e => {
     e.preventDefault();
     e.stopPropagation();
     renderPriceHistory();
+    return;
   }
+  if (e.target.closest('[data-toggle-lookups]')) {
+    priceHistoryExpanded = !priceHistoryExpanded;
+    renderPriceHistory();
+    return;
+  }
+  // 点行本身打开物流详情（以前整行有手形光标和悬停背景，点了却没反应）。
+  const row = e.target.closest('.recent-tracking-row[data-lookup-id]');
+  if (row && !e.target.closest('button, input, a, .recent-tracking-edit')) openTrackingDetail(row.dataset.lookupId);
 });
 // 物流记录「编辑名称」：Enter 保存、Esc 取消（中文输入法选字时的 Enter/Esc 不算）。
 document.getElementById('priceHistoryList')?.addEventListener('keydown', e => {
@@ -26230,7 +26712,8 @@ function uiNavCounts() {
   const counts = {
     'order-list': orders.length,
     customers: clients.size,
-    logistics: orders.filter(o => o.stage === 'shipment').length,
+    // 和物流页同一个口径：进行中（非草稿、未完成）还有包裹在途、异常或待补单号的订单数。
+    logistics: logisticsNavCount(),
     deleted: (state.deletedOrders || []).length
   };
   document.querySelectorAll('[data-nav-count]').forEach(el => {
@@ -26360,6 +26843,19 @@ function uiToast(text, { undo = null, undoText = '撤销', tone = '', desc = '',
   uiLayoutToasts();
   arm();
 }
+// 弹窗还在弹入（从下往上、由小变大）时量到的按钮条位置偏低：按每个动画走到终点时的位置量，量完退回原处，动画照常播放。
+// 用 endTime - 1ms 而不是终点：动画不会在中途被判定为「已结束」，不触发 finish / transitionend。
+function uiSettledRect(modal, el) {
+  const moving = (typeof modal?.getAnimations === 'function' ? modal.getAnimations({ subtree:true }) : [])
+    .filter(a => a.playState === 'running' && Number.isFinite(a.currentTime) && Number.isFinite(a.effect?.getComputedTiming?.().endTime) && a.effect.target instanceof Element && a.effect.target.contains(el));
+  const saved = moving.map(a => a.currentTime);
+  try {
+    moving.forEach(a => { a.currentTime = Math.max(a.currentTime, a.effect.getComputedTiming().endTime - 1); });
+    return el.getBoundingClientRect();
+  } finally {
+    moving.forEach((a, i) => { a.currentTime = saved[i]; });
+  }
+}
 function uiLayoutToasts() {
   const stack = document.getElementById('toast');
   if (!stack) return;
@@ -26371,9 +26867,10 @@ function uiLayoutToasts() {
   // 按最上层弹窗底部按钮条的实际位置再抬高，提示条落在按钮上方。
   stack.style.bottom = '';
   const modal = [...document.querySelectorAll('.modal-backdrop.open')].pop();
-  const foot = items.length ? modal?.querySelector('.modal-foot') : null;
+  // 续费的新增 / 编辑弹窗、详情抽屉的按钮条叫 .subs-df，以前只认 .modal-foot：提示条压在「保存 / 重新续费」上。
+  const foot = items.length ? modal?.querySelector('.modal-foot, .subs-df') : null;
   if (foot) {
-    const footRect = foot.getBoundingClientRect();
+    const footRect = uiSettledRect(modal, foot);
     const stackRect = stack.getBoundingClientRect();
     const cssBottom = parseFloat(getComputedStyle(stack).bottom) || 0;
     const needed = window.innerHeight - footRect.top + 12;
@@ -27637,11 +28134,18 @@ function uiTrackingDetect() {
   const input = document.getElementById('trackingLookupInput');
   const el = document.getElementById('trackingDetect');
   if (!input || !el) return;
-  const numbers = input.value.split(/\n+/).map(line => cleanTracking(line)).filter(Boolean);
-  if (!numbers.length) { el.innerHTML = '<span class="tracking-detect-empty">粘贴后自动识别承运商</span>'; return; }
+  // 和查询用同一套拆分和识别：以前提示只按换行拆、不看前缀，提示写「1 个单号 · DHL 1」，实际查了两个、按 FedEx 查。
+  const entries = splitTrackingInput(input.value).map(planTrackingEntry);
+  if (!entries.length) { el.innerHTML = '<span class="tracking-detect-empty">粘贴后自动识别承运商</span>'; return; }
   const counts = {};
-  numbers.forEach(number => { const code = carrierName(detectCarrier(number)); counts[code] = (counts[code] || 0) + 1; });
-  el.innerHTML = `<span>${numbers.length} 个单号</span>${Object.entries(counts).map(([code, n]) => `<span class="ship-pill tone-green">${code} ${n}</span>`).join('')}`;
+  let unknown = 0;
+  entries.forEach(entry => {
+    if (!entry.valid) { unknown += 1; return; }
+    const code = carrierName(entry.carrier);
+    counts[code] = (counts[code] || 0) + 1;
+  });
+  const validCount = entries.length - unknown;
+  el.innerHTML = `<span>${entries.length} 个单号${validCount > trackingQueryBatch ? ` · 每次查 ${trackingQueryBatch} 个` : ''}</span>${Object.entries(counts).map(([code, n]) => `<span class="ship-pill tone-green">${code} ${n}</span>`).join('')}${unknown ? `<span class="ship-pill tone-line" title="格式不像 DHL / FedEx / UPS 单号，不会查询">识别不了 ${unknown}</span>` : ''}`;
 }
 document.getElementById('trackingLookupInput')?.addEventListener('input', uiTrackingDetect);
 uiTrackingDetect();
@@ -27966,7 +28470,7 @@ document.getElementById('orderDetailBody')?.addEventListener('click', async e =>
   const refreshBtn = e.target.closest('[data-detail-ship-refresh]');
   if (refreshBtn) {
     const id = detailOrderId;
-    await refreshTrackingOnce(refreshBtn.dataset.detailShipRefresh, refreshBtn.dataset.carrier, refreshBtn);
+    await refreshTrackingOnce(refreshBtn.dataset.detailShipRefresh, refreshBtn.dataset.carrier);
     if (detailOrderId === id && document.getElementById('orderDetailDrawer')?.classList.contains('open') && state.orders.some(o => o.id === id)) openOrderDetail(id, { tab:'logistics' });
     return;
   }

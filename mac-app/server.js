@@ -48,7 +48,13 @@ const feishuSettings = readFeishuSettings(feishuSettingsFile);
 const larkProfile = feishuSettings.profile;
 const larkChatName = feishuSettings.chatName;
 const larkChatId = feishuSettings.chatId;
-const dhlTrackingEndpoint = 'https://api-eu.dhl.com/track/shipments';
+// 测试用：环境变量可以把 DHL / FedEx 指到本机的假服务（只认 127.0.0.1），测试永远不碰真实承运商接口。
+function loopbackOverride(value) {
+  const text = String(value || '').trim().replace(/\/+$/, '');
+  return /^https?:\/\/127\.0\.0\.1(?::\d+)?(\/|$)/.test(text) ? text : '';
+}
+const dhlTrackingEndpoint = loopbackOverride(process.env.OTS_DHL_TRACKING_ENDPOINT) || 'https://api-eu.dhl.com/track/shipments';
+const fedexApiHostOverride = loopbackOverride(process.env.OTS_FEDEX_API_HOST);
 const apiToken = String(process.env.TRADE_API_TOKEN || crypto.randomBytes(32).toString('base64url'));
 const instanceNonce = String(process.env.TRADE_INSTANCE_NONCE || crypto.randomBytes(24).toString('base64url'));
 const apiSessionCookie = 'trade_api_session';
@@ -1788,9 +1794,11 @@ function sessionCookieHeader() {
   return `${apiSessionCookie}=${encodeURIComponent(apiToken)}; HttpOnly; SameSite=Strict; Path=/`;
 }
 
+// 失败时错误上带 statusCode / retryAfter / timeout，给物流查询归类（限流、查不到、超时、未授权）用。
 function requestText(targetUrl, options = {}) {
   return new Promise((resolve, reject) => {
-    const req = https.request(targetUrl, {
+    const client = String(targetUrl).startsWith('http://127.0.0.1') ? http : https;
+    const req = client.request(targetUrl, {
       method: options.method || 'GET',
       headers: { 'Accept-Encoding': 'identity', ...(options.headers || {}) },
       timeout: 12000
@@ -1807,13 +1815,21 @@ function requestText(targetUrl, options = {}) {
         } catch (_) {}
         const body = buffer.toString('utf8');
         if (res.statusCode < 200 || res.statusCode >= 300) {
-          reject(new Error(`HTTP ${res.statusCode}: ${body.slice(0, 300)}`));
+          const error = new Error(`HTTP ${res.statusCode}: ${body.slice(0, 300)}`);
+          error.statusCode = res.statusCode;
+          const retryAfter = Number(res.headers['retry-after']);
+          if (Number.isFinite(retryAfter) && retryAfter > 0) error.retryAfter = retryAfter;
+          reject(error);
           return;
         }
         resolve(body);
       });
     });
-    req.on('timeout', () => req.destroy(new Error('request timeout')));
+    req.on('timeout', () => {
+      const error = new Error('request timeout');
+      error.timeout = true;
+      req.destroy(error);
+    });
     req.on('error', reject);
     if (options.body) req.write(options.body);
     req.end();
@@ -2122,6 +2138,45 @@ function dhlTrackingEvents(shipment = {}) {
   })));
 }
 
+// 物流查询失败归类：返回给前端的是人话和一个代码（rate_limited / not_found / timeout / auth / server / network），
+// 不再把 HTTP 状态码和承运商返回的 JSON 原文拼进提示里。
+function trackingFailure(carrier, error = {}, { notFound = false } = {}) {
+  const status = Number(error.statusCode || (String(error.message || '').match(/HTTP (\d{3})/) || [])[1] || 0);
+  const text = String(error.message || '');
+  let code = 'error';
+  let message;
+  if (notFound || status === 404) {
+    code = 'not_found';
+    message = `${carrier} 查不到这个单号（刚发出的包裹可能要几小时后才有记录）`;
+  } else if (status === 429) {
+    code = 'rate_limited';
+    const minutes = Number(error.retryAfter) > 0 ? Math.max(1, Math.ceil(Number(error.retryAfter) / 60)) : 0;
+    message = `${carrier} 调用次数超限${minutes ? `，约 ${minutes} 分钟后再试` : '，请稍后再试'}`;
+  } else if (status === 401 || status === 403) {
+    code = 'auth';
+    message = carrier === 'DHL'
+      ? 'DHL API 未授权当前资源，请在 DHL Developer 后台确认已开通 Shipment Tracking - Unified。'
+      : 'FedEx API 未授权，请在设置里检查 API Key 和 Secret。';
+  } else if (error.timeout || /timeout|ETIMEDOUT/i.test(text)) {
+    code = 'timeout';
+    message = `${carrier} 查询超时，请稍后再试`;
+  } else if (status >= 500) {
+    code = 'server';
+    message = `${carrier} 服务暂时不可用（HTTP ${status}），请稍后再试`;
+  } else if (status) {
+    message = `${carrier} 查询失败（HTTP ${status}）`;
+  } else if (/ENOTFOUND|ECONNREFUSED|ECONNRESET|EAI_AGAIN|ENETUNREACH|socket hang up/i.test(text)) {
+    code = 'network';
+    message = `${carrier} 连不上，请检查网络`;
+  } else {
+    message = `${carrier} 查询失败：${text.replace(/\s*[{[][\s\S]*$/, '').slice(0, 80) || '未知错误'}`;
+  }
+  const result = new Error(message);
+  result.code = code;
+  if (Number(error.retryAfter) > 0) result.retryAfter = Number(error.retryAfter);
+  return result;
+}
+
 async function queryDhlTracking(number) {
   const settings = readTrackingSettings();
   const apiKey = process.env.DHL_API_KEY || settings.dhlApiKey || '';
@@ -2133,16 +2188,14 @@ async function queryDhlTracking(number) {
   try {
     text = await requestText(url, { headers: { 'DHL-API-Key': apiKey, Accept: 'application/json' } });
   } catch (error) {
-    const message = /HTTP 401/.test(String(error.message || ''))
-      ? 'DHL API 未授权当前资源，请在 DHL Developer 后台确认已开通 Shipment Tracking - Unified。'
-      : `DHL API 查询失败：${error.message || '未知错误'}`;
+    const failure = trackingFailure('DHL', error);
     const checkedAt = new Date().toISOString();
-    writeTrackingSettings({ lastCheckedAt: checkedAt, lastStatus: message, ...trackingCarrierStatusPatch('DHL', message, checkedAt) });
-    throw new Error(message);
+    writeTrackingSettings({ lastCheckedAt: checkedAt, lastStatus: failure.message, ...trackingCarrierStatusPatch('DHL', failure.message, checkedAt) });
+    throw failure;
   }
   const data = JSON.parse(text);
   const shipment = data.shipments?.[0];
-  if (!shipment) throw new Error('DHL 未返回物流记录');
+  if (!shipment) throw trackingFailure('DHL', {}, { notFound:true });
   const status = logisticsStatusFromDhl(shipment);
   const rawStatus = String(shipment?.status?.description || shipment?.status?.status || shipment?.status?.statusCode || '').trim();
   const checkedAt = new Date().toISOString();
@@ -2160,8 +2213,11 @@ async function queryDhlTracking(number) {
 }
 
 function fedexApiHost(settings) {
+  if (fedexApiHostOverride) return fedexApiHostOverride;
   return settings.fedexEnv === 'prod' ? 'https://apis.fedex.com' : 'https://apis-sandbox.fedex.com';
 }
+// FedEx 的 OAuth token 按 expires_in 缓存（提前 60 秒过期）：以前每查一个单号都重新拿一次，请求量翻倍，更容易被限流。
+const fedexTokenCache = new Map();
 
 async function fedexToken(settings = readTrackingSettings()) {
   return fedexTokenWithCredentials(settings, process.env.FEDEX_CLIENT_ID || settings.fedexApiKey || '', process.env.FEDEX_CLIENT_SECRET || settings.fedexApiSecret || '');
@@ -2171,6 +2227,9 @@ async function fedexTokenWithCredentials(settings = readTrackingSettings(), apiK
   const clientId = String(apiKey || '').trim();
   const clientSecret = String(apiSecret || '').trim();
   if (!clientId || !clientSecret) return '';
+  const cacheKey = crypto.createHash('sha256').update(`${fedexApiHost(settings)}\n${clientId}\n${clientSecret}`).digest('hex');
+  const cached = fedexTokenCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.token;
   const body = new URLSearchParams({
     grant_type: 'client_credentials',
     client_id: clientId,
@@ -2181,7 +2240,11 @@ async function fedexTokenWithCredentials(settings = readTrackingSettings(), apiK
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body
   });
-  return JSON.parse(text).access_token || '';
+  const data = JSON.parse(text);
+  const token = data.access_token || '';
+  const ttl = Number(data.expires_in);
+  if (token && Number.isFinite(ttl) && ttl > 120) fedexTokenCache.set(cacheKey, { token, expiresAt:Date.now() + (ttl - 60) * 1000 });
+  return token;
 }
 
 // FedEx 按状态代码映射，代码认不出再看文字；都认不出回空状态（前端不改原来的状态），原文另放 rawStatus。
@@ -2257,10 +2320,11 @@ async function queryFedExTracking(number) {
   try {
     token = await fedexToken(settings);
   } catch (error) {
-    const message = `FedEx 授权失败：${error.message || '请检查 API Key 和 Secret'}`;
+    const failure = trackingFailure('FedEx', error);
+    if (failure.code === 'auth' || failure.code === 'error') failure.message = `FedEx 授权失败：${failure.code === 'auth' ? '请检查 API Key 和 Secret' : failure.message.replace(/^FedEx /, '')}`;
     const checkedAt = new Date().toISOString();
-    writeTrackingSettings({ lastCheckedAt: checkedAt, lastStatus: message, ...trackingCarrierStatusPatch('FedEx', message, checkedAt) });
-    throw new Error(message);
+    writeTrackingSettings({ lastCheckedAt: checkedAt, lastStatus: failure.message, ...trackingCarrierStatusPatch('FedEx', failure.message, checkedAt) });
+    throw failure;
   }
   if (!token) {
     return { ok: false, status: '待 API 查询', message: 'FedEx API Key 或 Secret 未保存。' };
@@ -2277,16 +2341,22 @@ async function queryFedExTracking(number) {
       body
     });
   } catch (error) {
-    const message = `FedEx API 查询失败：${error.message || '未知错误'}`;
+    const failure = trackingFailure('FedEx', error);
+    // token 被 FedEx 提前作废：下次重新拿。
+    if (failure.code === 'auth') fedexTokenCache.clear();
     const checkedAt = new Date().toISOString();
-    writeTrackingSettings({ lastCheckedAt: checkedAt, lastStatus: message, ...trackingCarrierStatusPatch('FedEx', message, checkedAt) });
-    throw new Error(message);
+    writeTrackingSettings({ lastCheckedAt: checkedAt, lastStatus: failure.message, ...trackingCarrierStatusPatch('FedEx', failure.message, checkedAt) });
+    throw failure;
   }
   const data = JSON.parse(text);
   const track = data.output?.completeTrackResults?.[0]?.trackResults?.[0];
-  if (!track) throw new Error('FedEx 未返回物流记录');
   // 单号查不到时 FedEx 也回 200，只在 trackResults[0].error 里写原因：不能当成「已发货」。
-  if (track.error && !track.latestStatusDetail) throw new Error(`FedEx 查不到这个单号：${track.error.message || track.error.code || '未知原因'}`);
+  if (!track || (track.error && !track.latestStatusDetail)) {
+    const failure = trackingFailure('FedEx', {}, { notFound:true });
+    const checkedAt = new Date().toISOString();
+    writeTrackingSettings({ lastCheckedAt: checkedAt, lastStatus: failure.message, ...trackingCarrierStatusPatch('FedEx', failure.message, checkedAt) });
+    throw failure;
+  }
   const status = logisticsStatusFromFedEx(track);
   const rawStatus = String(track.latestStatusDetail?.statusByLocale || track.latestStatusDetail?.description || track.latestStatusDetail?.code || '').trim();
   const checkedAt = new Date().toISOString();
@@ -2598,7 +2668,9 @@ const server = http.createServer(async (req, res) => {
           ? { ok: false, online: '官网', status: '待官网查询', message: 'UPS 单号已识别，请打开 UPS 官网查询实时轨迹。' }
           : carrier === 'FedEx' ? await queryFedExTracking(number) : await queryDhlTracking(number);
       } catch (error) {
-        result = { ok: false, status: '待 API 查询', message: `物流 API 查询失败：${error.message || '请检查 API 设置'}` };
+        // 失败带归类代码：前端据此不覆盖上一次成功的结果、自动更新遇到限流就停掉这家。
+        result = { ok: false, status: '待 API 查询', code: error.code || 'error', message: error.message || '物流查询失败，请检查 API 设置' };
+        if (error.retryAfter) result.retryAfter = error.retryAfter;
       }
       return send(res, 200, JSON.stringify({ carrier, number, checkedAt: new Date().toISOString(), ...result }));
     }

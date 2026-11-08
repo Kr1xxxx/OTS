@@ -5,12 +5,26 @@ const path = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 const { chromium } = require('playwright');
 const { createSubscriptionStore } = require('../mac-app/subscription-store');
+const { h } = require('./helpers/board-page');
 
 const html = fs.readFileSync(path.resolve(__dirname, '..', 'trade-order-system.html'), 'utf8');
 async function capture(page, name, options = {}) {
   if (!process.env.UI_SCREENSHOT) return;
   await page.waitForTimeout(700);
   await page.screenshot({ path:`${process.env.UI_SCREENSHOT}.${name}.png`, ...options });
+}
+// 弹窗底部按钮（保存 / 取消 / 确认）：等弹窗弹入停稳，确认那一点上最上层就是这个按钮（没有被提示条之类盖住），再用真鼠标点。
+// 以前直接 locator.click()：先出了开机问候提示、再开续费弹窗时，提示条（z-index 比弹窗高）留在窗口底部，
+// 盖住「重新续费」按钮的下半截；macOS 字体下按钮中心也被盖住，点击一直被提示挡着、鼠标停在提示上又让它不消失，等到超时。
+async function clickFooterButton(page, selector) {
+  const point = await h.center(page, selector);
+  const hit = await page.evaluate(({ selector, x, y }) => {
+    const target = document.querySelector(selector);
+    const top = document.elementFromPoint(x, y);
+    return target && top && target.contains(top) ? '' : (top?.outerHTML || 'nothing').slice(0, 160);
+  }, { selector, x:point.x, y:point.y });
+  assert.equal(hit, '', `${selector} must be the topmost element at its center, found ${hit}`);
+  await page.mouse.click(point.x, point.y);
 }
 // 07:00 in UTC+8 is still the previous day in UTC; the page must use the local date.
 const now = new Date('2026-03-18T07:00:00+08:00');
@@ -178,11 +192,11 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     const modal = page.locator('#subscriptionEditModal');
     await modal.locator('#subscriptionName').waitFor({ state:'visible' });
     assert.equal(await modal.locator('#subscriptionSaveBtn').innerText(), '添加');
-    await modal.locator('#subscriptionSaveBtn').click();
+    await clickFooterButton(page, '#subscriptionSaveBtn');
     await page.waitForFunction(text => document.getElementById('subscriptionEditError').textContent === text, '请填写名称', { timeout:5000 });
     assert.match(await modal.locator('#subscriptionName').evaluate(el => el.closest('.subs-field').className), /\berr\b/);
     await modal.locator('#subscriptionName').fill('Claude Pro');
-    await modal.locator('#subscriptionSaveBtn').click();
+    await clickFooterButton(page, '#subscriptionSaveBtn');
     await page.waitForFunction(text => document.getElementById('subscriptionEditError').textContent === text, '请填写大于 0 的金额', { timeout:5000 });
     await modal.locator('#subscriptionAmount').fill('200');
     await modal.locator('[data-sub-segment="currency"] [data-value="USD"]').click();
@@ -275,12 +289,12 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     await page.keyboard.press('Escape');
     await page.locator('#confirmModal.open').waitFor();
     assert.match(await page.locator('#confirmTitle').innerText(), /放弃未保存的修改/);
-    await page.locator('#confirmCancelBtn').click();
+    await clickFooterButton(page, '#confirmCancelBtn');
     assert.equal(await modal.getAttribute('aria-hidden'), 'false');
     assert.equal(await modal.locator('#subscriptionName').inputValue(), 'Claude Max');
-    await modal.locator('#subscriptionEditCancelBtn').click();
+    await clickFooterButton(page, '#subscriptionEditCancelBtn');
     await page.locator('#confirmModal.open').waitFor();
-    await page.locator('#confirmOkBtn').click();
+    await clickFooterButton(page, '#confirmOkBtn');
     await page.waitForFunction(() => !document.getElementById('subscriptionEditModal').classList.contains('open'));
     assert.equal(store.list().items.some(item => item.name === 'Claude Max'), false);
     await drawer.locator('[data-sub-action="edit"]').click();
@@ -338,6 +352,9 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     const expiredApp = await openApp(browser, expiredStore, expiredCounters);
     const expiredRow = expiredApp.page.locator('#subsList .subs-row');
     await expiredRow.first().waitFor();
+    // 先等开机问候提示出来再开抽屉和弹窗：这就是 macOS CI 上偶发超时的顺序（提示先出、弹窗后开，提示条盖住「重新续费」）。
+    // 固定成这个顺序，每次都检查弹窗打开后提示条会让到按钮条上方。
+    await expiredApp.page.locator('#toast .toast-item:not(.leaving)').first().waitFor();
     assert.match(await expiredRow.first().getAttribute('class'), /\bis-ended\b/);
     assert.equal(await expiredRow.first().locator('.subs-pill').innerText(), '已到期');
     await expiredRow.first().click();
@@ -345,7 +362,16 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     await expiredApp.page.locator('#subscriptionName').waitFor({ state:'visible' });
     assert.equal(await expiredApp.page.locator('#subscriptionEditTitle').innerText(), '重新续费');
     assert.equal(await expiredApp.page.locator('#subscriptionStart').inputValue(), '2026-03-18');
-    await expiredApp.page.locator('#subscriptionSaveBtn').click();
+    // 提示条在弹窗一打开就让到按钮条上方（按弹窗停稳后的位置量），不是等弹入动画结束才挪。
+    const toastBottom = await expiredApp.page.evaluate(() => {
+      const item = document.querySelector('#toast .toast-item:not(.leaving)');
+      return item ? item.getBoundingClientRect().bottom : null;
+    });
+    assert.notEqual(toastBottom, null, 'the greeting toast is still showing when the editor opens');
+    await h.settle(expiredApp.page, '#subscriptionEditModal .subs-modal');
+    const footTop = (await expiredApp.page.locator('#subscriptionEditModal .subs-df').boundingBox()).y;
+    assert.ok(toastBottom <= footTop, `the toast (bottom ${toastBottom}) must sit above the editor's buttons (top ${footTop})`);
+    await clickFooterButton(expiredApp.page, '#subscriptionSaveBtn');
     await expiredApp.page.waitForFunction(() => !document.getElementById('subscriptionEditModal').classList.contains('open'));
     // Re-subscribing adds a new record; the expired one stays so its past charges keep counting in 历史 / 分析.
     const [oldNotion, renewed] = expiredStore.list().items;

@@ -7,7 +7,7 @@ const { chromium } = require('playwright');
 const { installWhatsAppFixture } = require('./helpers/whatsapp-fixture');
 const root = path.resolve(__dirname, '..');
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'trade-whatsapp-test-'));
-const port = 51000 + process.pid % 1000;
+const port = require('./helpers/free-port').freePortSync();
 const base = `http://127.0.0.1:${port}`;
 const token = 'isolated-whatsapp-test';
 let child, browser;

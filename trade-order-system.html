@@ -4227,6 +4227,8 @@ html[data-theme] .customer-summary-item { background:var(--surface-bg); }
 html[data-theme] .customer-workspace-summary { background:var(--hairline); border-color:var(--hairline); }
 html[data-theme] .insights-tabs { width:max-content; max-width:100%; grid-auto-columns:max-content; }
 html[data-theme] .insights-tabs .segment-option { padding:0 18px; }
+/* 窄屏为底部导航隐藏了所有 .nav-text，页签里的字也一起没了：页签的字始终显示。 */
+@media (max-width: 820px) { html[data-theme] .insights-tabs .segment-option .nav-text { display:inline !important; } }
 html[data-theme] .target-history-fill { box-shadow:none; }
 html[data-theme] .target-history-fill::after { display:none; }
 html[data-theme] .target-history-fill.empty { background:transparent; }
@@ -4489,6 +4491,17 @@ html[data-theme] .analysis-action-row small { font-weight:400; color:var(--gray-
 html[data-theme] .analysis-action-row > span:nth-child(2) { color:var(--s-amber); font-size:12.5px; }
 html[data-theme] .analysis-action-row > span:last-child { color:var(--gray-500); font-size:12px; }
 html[data-theme] .analysis-trend-track { height:6px; }
+/* 经营分析里可以点的行（客户、产品、近六个月）：按钮去掉默认外观，悬停有底色，键盘焦点可见。 */
+html[data-theme] :is(button.analysis-trend-row, button.analysis-rank, button.business-product-row) { width:100%; border:0; background:transparent; color:inherit; font:inherit; text-align:left; cursor:pointer; border-radius:10px; transition:background var(--motion-fast) var(--ease); }
+html[data-theme] :is(button.analysis-trend-row, button.analysis-rank, button.business-product-row):hover { background:var(--surface-soft); }
+html[data-theme] :is(button.analysis-trend-row, button.analysis-rank, button.business-product-row):focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+html[data-theme] button.analysis-trend-row { padding:10px 6px; }
+html[data-theme] button.analysis-trend-row.is-current { background:color-mix(in srgb, var(--accent) 6%, transparent); }
+html[data-theme] button.business-product-row { padding:6px; }
+html[data-theme] .analysis-action-row > span:nth-child(2) { display:flex; flex-direction:column; align-items:flex-end; gap:1px; }
+html[data-theme] .analysis-action-row > span:nth-child(2) small { color:var(--gray-500); }
+html[data-theme] .analysis-attention-more { margin:8px 6px 0; }
+html[data-theme] .analysis-attention [data-analysis-list], html[data-theme] [data-analysis-list="month"] { white-space:nowrap; }
 @media (max-width: 1100px) { html[data-theme] .analysis-page .business-kpi-grid { grid-template-columns:repeat(3, minmax(0,1fr)); } }
 @media (max-width: 820px) {
   html[data-theme] .analysis-page .business-kpi-grid { grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
@@ -4531,6 +4544,43 @@ html[data-theme] .calendar-event.logistics { background:color-mix(in srgb, var(-
 html[data-theme] .calendar-event.urgent { background:color-mix(in srgb, var(--s-red) 12%, transparent); color:var(--s-red); }
 html[data-theme] .calendar-event.done { background:var(--surface-soft); color:var(--gray-600); }
 html[data-theme] .calendar-more { padding:0 7px; color:var(--gray-500); font-size:11px; }
+/* 日历新增的类型：新客户（只有档案的）、续费扣费日；「新」角标；明天回来的「稍后」用淡色。 */
+html[data-theme] .calendar-event.customer { background:color-mix(in srgb, var(--s-blue, #2f6fdf) 8%, transparent); color:var(--s-blue, #2f6fdf); box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--s-blue, #2f6fdf) 30%, transparent); }
+html[data-theme] .calendar-event.subscription { background:color-mix(in srgb, var(--gray-500) 12%, transparent); color:var(--gray-700); }
+html[data-theme] .calendar-event { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; cursor:pointer; }
+html[data-theme] .calendar-event.faded { opacity:.6; background:transparent; box-shadow:inset 0 0 0 1px currentColor; }
+html[data-theme] .calendar-badge { display:inline-grid; place-items:center; min-width:14px; height:14px; margin-right:4px; padding:0 2px; border:1px solid currentColor; border-radius:4px; font-style:normal; font-size:9.5px; font-weight:600; line-height:1; vertical-align:1px; }
+html[data-theme] button.calendar-more { width:auto; border:0; background:transparent; text-align:left; cursor:pointer; white-space:nowrap; border-radius:6px; }
+html[data-theme] button.calendar-more:hover { color:var(--gray-800); }
+html[data-theme] .calendar-day:focus-visible, html[data-theme] .agenda-row:focus-visible, html[data-theme] button.calendar-more:focus-visible, html[data-theme] .agenda-date:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+html[data-theme] .calendar-day { cursor:pointer; }
+html[data-theme] .calendar-day.muted .calendar-events { opacity:.55; }
+html[data-theme] button.agenda-date { border:0; background:transparent; padding:0; font:inherit; color:inherit; text-align:left; cursor:pointer; border-radius:6px; }
+html[data-theme] .agenda-row { cursor:pointer; }
+html[data-theme] .agenda-row.faded { opacity:.6; }
+html[data-theme] .agenda-dot.customer { background:transparent; box-shadow:inset 0 0 0 2px var(--s-blue, #2f6fdf); }
+html[data-theme] .agenda-dot.subscription { background:var(--gray-500); }
+/* 浅色下色块文字加深到 4.5:1 以上（11.5px 正文），深色不变。 */
+html[data-theme="light"] .calendar-event { color:color-mix(in srgb, var(--s-blue, #2f6fdf) 70%, #000); }
+html[data-theme="light"] .calendar-event.repurchase { color:color-mix(in srgb, var(--s-teal, #0f8f81) 68%, #000); }
+html[data-theme="light"] .calendar-event.payment { color:color-mix(in srgb, var(--s-amber) 55%, #000); }
+html[data-theme="light"] .calendar-event.follow { color:color-mix(in srgb, var(--accent) 72%, #000); }
+html[data-theme="light"] .calendar-event.logistics { color:color-mix(in srgb, var(--s-green) 65%, #000); }
+html[data-theme="light"] .calendar-event.urgent { color:color-mix(in srgb, var(--s-red) 75%, #000); }
+html[data-theme="light"] .calendar-event.done { color:var(--gray-700); }
+html[data-theme="light"] .calendar-event.customer { color:color-mix(in srgb, var(--s-blue, #2f6fdf) 70%, #000); }
+/* 今天的日期数字：深色主题下强调色是浅紫，白字只有 2.7:1，改深色字。 */
+html[data-theme] .calendar-day.today .calendar-day-num > span:first-child { color:var(--on-accent, #fff); }
+html[data-theme="dark"]:not([data-accent="ink"]) .calendar-day.today .calendar-day-num > span:first-child { color:color-mix(in srgb, var(--accent) 18%, #000); }
+/* 当天抽屉：「待处理」「当天记录」两段。 */
+html[data-theme] .calendar-drawer-section { margin:4px 0 8px; color:var(--gray-500); font-size:12px; font-weight:500; }
+html[data-theme] .calendar-task-list + .calendar-drawer-section { margin-top:18px; }
+html[data-theme] .calendar-record-list { display:flex; flex-direction:column; }
+html[data-theme] .calendar-record { display:grid; grid-template-columns:10px minmax(0,1fr) auto; align-items:center; gap:10px; padding:10px 2px; border-bottom:1px solid var(--hairline); }
+html[data-theme] .calendar-record.faded { opacity:.65; }
+html[data-theme] .calendar-record-title { font-size:13px; font-weight:500; color:var(--gray-900); overflow-wrap:anywhere; }
+html[data-theme] .calendar-drawer-tag { display:inline-block; width:auto; cursor:default; padding:2px 8px; border-radius:999px; }
+html[data-theme] .calendar-drawer-foot { display:flex; justify-content:flex-end; margin-top:16px; }
 /* 当月日程 */
 html[data-theme] .calendar-agenda-panel { position:sticky; top:16px; max-height:calc(100vh - 150px); display:flex; flex-direction:column; }
 html[data-theme] .calendar-agenda-heading { display:flex; align-items:baseline; gap:10px; }
@@ -4715,7 +4765,24 @@ html[data-theme] .content .page .target-metric :is(#targetGoal, #targetActual, #
   html[data-theme] .stats > .amount-stat .amount-stat-actions { position:absolute; left:0; top:0; width:100%; height:100%; max-width:none; z-index:2; margin:0; display:block; }
   html[data-theme] .stats > .amount-stat .amount-stat-actions :is(.app-select, select, .app-select-button) { width:100%; height:100%; min-height:0; opacity:0; cursor:pointer; }
   html[data-theme] .stats > .amount-stat .kpi-spark { top:16px; right:14px; bottom:auto; }
+  /* 键盘焦点：透明的月份按钮盖在标题上，它自己的焦点环也是透明的；改在标题上画焦点环。 */
+  html[data-theme] .stats > .amount-stat .stat-head:has(.app-select-button:focus-visible) { outline:2px solid var(--accent); outline-offset:3px; border-radius:6px; }
 }
+/* 窄卡（最小窗口、缩放）：副行最多两行，不再把「下单超 30 天未收清 N」截掉；卡太窄时收起趋势线，标题不被挤成「本.」。 */
+html[data-theme] .stats .stat-sub, html[data-theme] .stats #statTargetSub { white-space:normal; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
+@container (max-width: 250px) {
+  html[data-theme] .stats > .amount-stat .kpi-spark { display:none; }
+  html[data-theme] .stats > .amount-stat .stat-head { max-width:100%; }
+}
+@media (min-width: 821px) and (max-width: 1180px) {
+  html[data-theme] .stats { grid-template-columns:repeat(3, minmax(0, 1fr)); }
+}
+/* 工作台数字卡读数据库时的骨架（真实数字到了再滚上来）；读库失败时写「没读到」。 */
+html[data-theme] .stats.is-loading .stat-value { color:transparent !important; min-width:72px; border-radius:8px;
+  background:linear-gradient(90deg, var(--surface-soft) 25%, color-mix(in srgb, var(--surface-soft) 45%, var(--surface-bg)) 50%, var(--surface-soft) 75%);
+  background-size:200% 100%; animation:uiSweep 1.4s linear infinite; }
+html[data-theme] .stats.is-failed .stat-sub { color:var(--s-red); }
+html[data-theme] .stats .amount-stat #statAmount:focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:6px; }
 
 /* 看板标题栏 */
 html[data-theme] .board-panel > .section-head { flex-wrap:wrap; gap:12px; }
@@ -5526,6 +5593,15 @@ html[data-theme] .target-form :is(select.inline-select, .app-select, input) { he
 html[data-theme] .target-amount-input { position:relative; display:block; }
 html[data-theme] .target-amount-input > span { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--gray-500); font-size:13px; pointer-events:none; }
 html[data-theme] .target-amount-input input { padding-left:30px; }
+html[data-theme] .target-input-row { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:20px; font-size:12px; }
+html[data-theme] .target-input-hint { color:var(--gray-500); }
+html[data-theme] .target-input-hint.error { color:var(--s-red); }
+html[data-theme] .target-input-hint.dirty { color:var(--s-amber); }
+html[data-theme] #targetAmountInput[aria-invalid="true"] { border-color:var(--s-red); box-shadow:0 0 0 3px color-mix(in srgb, var(--s-red) 14%, transparent); }
+html[data-theme] .target-history-row[data-target-pick] { cursor:pointer; transition:background var(--motion-fast) var(--ease); }
+html[data-theme] .target-history-row[data-target-pick]:hover { background:var(--surface-soft); }
+html[data-theme] .target-history-row[data-target-pick]:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+html[data-theme] .target-history-values .pending { color:var(--gray-500); }
 html[data-theme] .target-form .btn { height:38px; min-height:38px; padding:0 18px; border-radius:999px; background:var(--gray-900); color:var(--surface-bg); border-color:transparent; }
 html[data-theme] .target-metrics { grid-template-columns:repeat(4, minmax(0,1fr)); gap:12px; border:0; background:transparent; overflow:visible; }
 html[data-theme] .target-metric { container-type:inline-size; min-width:0; min-height:0; padding:16px 18px; border:0; border-radius:20px; background:var(--surface-soft); display:flex; flex-direction:column; gap:6px; }
@@ -5779,7 +5855,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.126，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.126</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.127，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.127</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -5814,7 +5890,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
     <datalist id="customerMergeTargetOptions"></datalist>
     <section class="page active" id="page-dashboard">
       <section class="stats" id="dashboard">
-        <div class="stat"><div class="stat-label">进行中订单</div><div class="stat-value" id="statActive">0</div><div class="stat-sub" id="statActiveSub">未完成的客户订单</div></div>
+        <div class="stat clickable" id="activeOrdersStat" role="button" tabindex="0" title="查看进行中的订单"><div class="stat-label">进行中订单</div><div class="stat-value" id="statActive">0</div><div class="stat-sub" id="statActiveSub">未完成的客户订单</div></div>
         <div class="stat amount-stat">
           <div class="stat-head">
             <div class="stat-label" id="statAmountLabel">订单总额</div>
@@ -5825,10 +5901,10 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
             </div>
           </div>
           <span class="kpi-spark" id="statSpark" aria-hidden="true"></span>
-          <div class="stat-value" id="statAmount">$0</div>
+          <div class="stat-value" id="statAmount" role="button" tabindex="0" aria-pressed="false" title="点击切换为已收款（人民币，按设置里的月汇率）">$0</div>
           <div class="stat-sub" id="statAmountSub">按订单月份汇总 USD 订单</div>
         </div>
-        <div class="stat"><div class="stat-label">待收款</div><div class="stat-value" id="statPayment">$0</div><div class="stat-sub" id="statPaymentSub">USD · 历史累计待收款</div></div>
+        <div class="stat clickable" id="paymentStat" role="button" tabindex="0" title="查看还有待收款的订单"><div class="stat-label">待收款</div><div class="stat-value" id="statPayment">$0</div><div class="stat-sub" id="statPaymentSub">USD · 历史累计待收款</div></div>
         <div class="stat clickable" id="todayTasksStat" role="button" tabindex="0"><div class="stat-label">今日待办</div><div class="stat-value" id="statTasks">0</div><div class="stat-sub" id="statTasksSub">按产品周期提醒</div></div>
         <div class="stat clickable" id="targetStat" role="button" tabindex="0">
           <div class="stat-label" id="statTargetLabel">业绩目标</div>
@@ -6095,10 +6171,10 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
         <div class="amount-main-grid">
           <section class="panel chart-panel">
             <div class="section-head">
-              <div class="amount-chart-heading"><div class="section-title">订单总额与已付款</div><span class="section-meta">USD · 按订单归属月份</span></div>
+              <div class="amount-chart-heading"><div class="section-title">订单总额与已收</div><span class="section-meta">USD · 按订单归属月份</span></div>
               <div class="chart-legend">
                 <span><i class="legend-dot"></i>订单总额</span>
-                <span><i class="legend-dot paid"></i>已付款</span>
+                <span><i class="legend-dot paid"></i>已收</span>
               </div>
             </div>
             <div class="chart-wrap">
@@ -6136,7 +6212,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
           </section>
         </section>
         <section class="analysis-grid">
-          <section class="panel"><div class="section-head"><div class="analysis-head"><div class="section-title">客户贡献</div><div class="section-meta">前 8 名</div></div></div><div id="analysisClients"></div></section>
+          <section class="panel"><div class="section-head"><div class="analysis-head"><div class="section-title">客户贡献</div><div class="section-meta" id="analysisClientsMeta">前 8 名</div></div></div><div id="analysisClients"></div></section>
           <section class="panel analysis-attention">
             <div class="section-head"><div class="analysis-head"><div class="section-title">现在需要关注</div><div class="section-meta">截至今天 · 所有月份</div></div><button class="link-btn" type="button" data-analysis-list="outstanding">查看全部待收订单 <span>→</span></button></div>
             <div id="analysisAttention"></div>
@@ -6163,9 +6239,10 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
             </div>
             <div class="target-form">
               <div class="field"><label for="targetMonth">月份</label><select class="inline-select" id="targetMonth"></select></div>
-              <div class="field target-amount-field"><label for="targetAmountInput">月度目标 USD</label><span class="target-amount-input"><span aria-hidden="true">$</span><input id="targetAmountInput" type="number" min="0" step="100" placeholder="例如 50000"></span></div>
+              <div class="field target-amount-field"><label for="targetAmountInput">月度目标 USD</label><span class="target-amount-input"><span aria-hidden="true">$</span><input id="targetAmountInput" type="text" inputmode="decimal" autocomplete="off" placeholder="例如 50000 或 5万" aria-describedby="targetInputHint"></span></div>
               <button class="btn btn-primary" id="saveTargetBtn" type="button">保存目标</button>
             </div>
+            <div class="target-input-row"><span class="target-input-hint" id="targetInputHint" aria-live="polite"></span><button class="link-btn target-clear-btn" id="clearTargetBtn" type="button" hidden>清除这个月的目标</button></div>
             <div class="target-metrics">
               <div class="target-metric"><div class="report-label">目标金额</div><div class="report-value" id="targetGoal">$0 USD</div></div>
               <div class="target-metric"><div class="report-label">实际完成</div><div class="report-value" id="targetActual">$0 USD</div></div>
@@ -6199,12 +6276,12 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
         <div class="calendar-toolbar">
           <div class="calendar-nav">
             <button class="calendar-arrow" type="button" id="calendarPrevBtn" title="上月" aria-label="上月">‹</button>
-            <div class="calendar-month-title" id="calendarMonthTitle">-</div>
+            <div class="calendar-month-title" id="calendarMonthTitle" aria-live="polite">-</div>
             <button class="calendar-arrow" type="button" id="calendarNextBtn" title="下月" aria-label="下月">›</button>
             <button class="btn btn-small calendar-today-btn" type="button" id="calendarTodayBtn">今天</button>
           </div>
           <div class="calendar-legend" aria-label="颜色说明">
-            <span class="calendar-event order">下单</span><span class="calendar-event repurchase">交期 / 复购</span><span class="calendar-event follow">跟进</span><span class="calendar-event payment">收款</span><span class="calendar-event logistics">物流</span><span class="calendar-event urgent">加急 / 异常</span>
+            <span class="calendar-event order">下单</span><span class="calendar-event repurchase">交期 / 复购</span><span class="calendar-event follow">跟进</span><span class="calendar-event payment">收款</span><span class="calendar-event logistics">物流</span><span class="calendar-event done">已签收</span><span class="calendar-event urgent">加急 / 异常 / 逾期</span><span class="calendar-event customer">新客户</span><span class="calendar-event subscription">续费</span>
           </div>
         </div>
         <div class="calendar-layout">
@@ -6899,7 +6976,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
     <div class="modal-head">
       <div>
         <div class="order-num" id="calendarTaskDate">日历任务</div>
-        <div class="modal-title" id="calendarTaskTitle">当天任务</div>
+        <div class="modal-title" id="calendarTaskTitle" tabindex="-1">当天任务</div>
       </div>
       <button class="btn btn-small" id="calendarTaskCloseBtn" type="button">关闭</button>
     </div>
@@ -7911,10 +7988,15 @@ function saveDashboardAmountMonth(value) {
   safeStorage.setItem(dashboardAmountMonthKey, value || 'all');
 }
 
-// Placeholder until loadMacAppState() reads the database.
+// Placeholder until loadMacAppState() reads the database: empty, never the built-in demo orders.
+// 以前占位用示例订单，每次打开 App 统计卡先闪一下「待收款 $70,950 · 今日待办 18」，读库失败时示例数据一直留着像真的一样。
+// 示例订单只在数据库里真的一张单都没有时（新用户）由 normalizeState 放进来。
 function loadState() {
-  return normalizeState({ orders: demoOrders, doneTasks: {} });
+  return normalizeState({ orders: [], doneTasks: {}, demoCleared: true, demoCustomersCleared: true });
 }
+// 真实数据读到了没有：读到之前工作台卡片显示骨架，金额页 / 经营分析的「本月为空」兜底也不跑（不能按占位数据判断）。
+let macStateReady = !isMacAppMode();
+let macStateLoadFailed = false;
 // 另一个窗口（或另一台设备）先保存过：本窗口切成只读，提示语要说清楚是冲突，不是「连接问题」，也别叫人「重试」。
 let macStorageConflict = false;
 const macConflictReadOnlyText = '另一个窗口刚保存过数据，本窗口已切换为只读，这次修改没有存进数据库。';
@@ -8285,6 +8367,10 @@ async function loadMacAppState() {
       macSaveRequestedVersion = 0;
       macSaveCompletedVersion = 0;
       safeStorage.removeItem(storeKey);
+      macStateReady = true;
+      macStateLoadFailed = false;
+      // 数据一到就画：健康检查、AI、物流设置几个请求放在后面，不挡住首屏的真实数字。
+      render();
     } else {
       const failure = await res.json().catch(() => ({}));
       throw new Error(failure.message || `数据库读取失败 HTTP ${res.status}`);
@@ -8309,6 +8395,7 @@ async function loadMacAppState() {
     macDataLoaded = false;
     macStorageReadOnly = true;
     macSaveLastError = e.message || '数据库读取失败';
+    if (!macStateReady) macStateLoadFailed = true;
     setMacStorageStatus('sqlite', 'error', e.message || '数据库读取失败');
     toast('数据库读取失败，当前已进入只读保护，绝不会覆盖本机数据', { tone:'error' });
   }
@@ -8620,7 +8707,8 @@ function normalizeActiveOrder(o = {}) {
     // 不在内置列表里的国家 / 币种保留原文（阿联酋、Nigeria、XYZ），以前加载时改成「其他」/ USD，下次随便保存一下就永久丢了。
     country: storedCountry(o.country),
     currency: storedCurrency(o.currency),
-    orderMonth: normalizeMonth(o.orderMonth || o.updated),
+    // 老数据 / 导入的单没有归属月份时按下单日补（以前取最后修改时间，10-30 下的单改个备注就归到 11 月）。
+    orderMonth: normalizeMonth(o.orderMonth || o.createdAt || o.updated),
     createdAt: normalizeDate(o.createdAt || o.updated),
     ...payment,
     productType: normalizeOrderProductType(o.productType),
@@ -9127,24 +9215,7 @@ function monthOffset(month, delta) {
   d.setMonth(d.getMonth() + delta);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
-function customerFirstDates() {
-  const map = new Map();
-  state.orders.forEach(order => {
-    if (!order.client) return;
-    const date = normalizeDate(order.createdAt || order.updated);
-    if (!map.has(order.client) || parseDate(date) < parseDate(map.get(order.client).date)) {
-      map.set(order.client, { client: order.client, country: order.country || '', date });
-    }
-  });
-  Object.entries(state.customers || {}).forEach(([name, profile]) => {
-    if (map.has(name)) return;
-    const sourceDate = profile.createdAt || profile.updated || '';
-    if (!sourceDate) return;
-    const date = normalizeDate(sourceDate);
-    map.set(name, { client: name, country: profile.country || '', date });
-  });
-  return [...map.values()].sort((a, b) => parseDate(a.date) - parseDate(b.date));
-}
+
 function followIntervalDays(order = {}) {
   return productTypeDef(order.productType).value === '睫毛' ? 7 : 3;
 }
@@ -9253,7 +9324,9 @@ function buildTaskItems({ includeDone = false, includeSnoozed = false } = {}) {
     const followReminder = orderFollowReminder(o, today);
     if (logisticsRisk) reminders.push(logisticsRisk);
     if (o.urgentOrder && !settled) reminders.push({ id:`urgent-${o.id}`, doneKey:`urgent-${o.id}-${urgentTaskDate(o)}`, orderId:o.id, client:o.client, date:urgentTaskDate(o) || fallbackDate, type:'urgent', title, reason:`加急订单：${o.note || '等待处理'}`, detail:`${o.num} · ${stageDef(o.stage).name}`, value:o.customerRequiredDate ? `要求 ${o.customerRequiredDate}` : '加急', tag:'加急', tagClass:'tag-orange', priority:1 });
-    if (o.latestShipDate && latestDays <= 3 && !settled) {
+    // 已经有发货日（补了运单号、阶段还停在生产中）的单不再提醒发货期限：和经营分析「超过最晚发出日期」同一个口径，
+    // 也不会再出现「-18 天内要发出」。
+    if (o.latestShipDate && latestDays <= 3 && !settled && !o.shippedAt) {
       const past = orderPastShipDeadline(o, today);
       reminders.push({ id:`ship-${o.id}`, doneKey:`ship-${o.id}-${o.latestShipDate}`, orderId:o.id, client:o.client, date:o.latestShipDate, type:'ship', title, reason:past ? `超过最晚发出日期 ${Math.abs(latestDays)} 天（${o.latestShipDate}）` : `最晚发出日期 ${o.latestShipDate}`, detail:`${past ? '还没发货' : latestDays === 0 ? '今天要发出' : latestDays + ' 天内要发出'} · ${o.num}`, value:'', tag:'发货期限', tagClass:'tag-orange', priority:0 });
     }
@@ -9331,41 +9404,163 @@ function taskDueToday(item) {
   const today = normalizeDate(new Date().toISOString());
   return parseDate(normalizeDate(item.date || today)) <= parseDate(today);
 }
+// 日历色块上的客户名：用客户显示名（去掉括号里的备注），截断交给 CSS。以前只取第一个词，「Alpha Wigs」「Alpha Lashes」都成了「Alpha」。
 function calendarShortName(client = '') {
-  const words = String(clientDisplayName(client) || '').split(/[（(]/)[0].trim().split(/\s+/).filter(Boolean);
-  if (!words.length) return '未命名客户';
-  return words[0].length < 5 && words[1] ? `${words[0]} ${words[1]}` : words[0];
+  const name = String(clientDisplayName(client) || '').split(/[（(]/)[0].trim();
+  return name || '未命名客户';
 }
 // 待办排在日历的哪一天：已经过期还没处理的（跟进、复购、过了最晚发出日期）放到今天，不再留在过去的格子里没人看见。
 function calendarTaskDate(item = {}, today = normalizeDate(new Date().toISOString())) {
   const date = normalizeDate(item.date || today);
   return date < today ? today : date;
 }
-function calendarEventsForMonth(month = activeCalendarMonth) {
+// 日历上的「日期」和「提醒」分开：
+// - 日期直接从订单 / 客户 / 续费取：最晚发出日期、客户要求到货日（没发货的单都画，不再只画 3 天内的）、下单、每一批的发货和物流进度、
+//   下次复购日、只有档案的新客户、续费扣费日。处理提醒（完成 / 稍后）不会让日期从日历上消失。
+// - 提醒（收款、跟进、物流风险、过期项）叠在今天的格子上；和某个日期是同一件事的提醒（发货期限、加急）并到那个日期的色块上。
+// 草稿不画（别处都不把草稿当订单）。
+function calendarEventsInRange(from, to) {
   const events = [];
   const today = normalizeDate(new Date().toISOString());
-  buildTaskItems().forEach(item => {
+  const tomorrow = addDays(today, 1);
+  const inRange = date => Boolean(date) && date >= from && date <= to;
+  const deadlineIndex = new Map();
+  const formalOrders = state.orders.filter(order => !order.isDraft);
+  // 1. 交期：没发货、没完成、也没有发货日的正式订单。加急单的最晚发出日期用红色。
+  formalOrders.forEach(order => {
+    if (isSettledStage(order.stage) || order.shippedAt) return;
+    const name = calendarShortName(order.client);
+    const add = (date, kind, event) => {
+      const day = normalizeDate(date || '');
+      if (!inRange(day)) return;
+      const item = { date:day, type:'deadline', kind, orderId:order.id, client:order.client, ...event };
+      deadlineIndex.set(`${order.id}|${day}`, item);
+      events.push(item);
+    };
+    if (order.latestShipDate) {
+      const late = order.latestShipDate < today;
+      add(order.latestShipDate, 'ship', {
+        tone: order.urgentOrder || late ? 'urgent' : 'repurchase',
+        label: `${name} ${order.urgentOrder ? '加急 · ' : ''}最晚发出`,
+        sub: `${late ? '已过最晚发出日期、还没发货 · ' : ''}最晚发出日期 ${order.latestShipDate} · ${order.num}${order.customerRequiredDate ? ` · 客户要求到货 ${order.customerRequiredDate}` : ''}`
+      });
+    }
+    if (order.customerRequiredDate && order.customerRequiredDate !== order.latestShipDate) {
+      add(order.customerRequiredDate, 'arrive', {
+        tone: 'repurchase',
+        label: `${name} ${order.urgentOrder ? '加急 · ' : ''}要求到货`,
+        sub: `客户要求到货 ${order.customerRequiredDate} · ${order.num}${order.latestShipDate ? ` · 最晚发出 ${order.latestShipDate}` : ''}`
+      });
+    }
+  });
+  // 2. 提醒。
+  const taskTone = item => (item.type === 'logistics' || String(item.id || '').startsWith('logistics-risk-')) ? 'urgent'
+    : item.type === 'ship' ? (normalizeDate(item.date) < today ? 'urgent' : 'repurchase')
+      : item.type === 'urgent' ? 'urgent'
+        : item.type === 'payment' ? 'payment' : item.type === 'follow' ? 'follow' : 'repurchase';
+  const pushTask = (item, date, extra = {}) => {
+    const lateDays = normalizeDate(item.date || today) < today ? daysBetween(item.date) : 0;
+    // 和交期是同一件事（发货期限、加急）：并到交期色块上，点开是当天抽屉。
+    if (['ship', 'urgent'].includes(item.type) && !extra.snoozed && !lateDays) {
+      const merged = deadlineIndex.get(`${item.orderId}|${date}`);
+      if (merged) {
+        merged.taskId = item.id;
+        if (!merged.sub.includes(item.reason)) merged.sub = `${merged.sub} · ${item.reason}`;
+        return;
+      }
+    }
+    const name = calendarShortName(item.client || item.title);
+    events.push({
+      ...item,
+      date,
+      tone: extra.snoozed ? taskTone(item) : taskTone(item),
+      label: `${name} ${item.tag}${lateDays ? ` · 逾期 ${lateDays} 天` : ''}${extra.snoozed ? '（稍后）' : ''}`,
+      sub: `${lateDays ? `已过 ${lateDays} 天 · ` : ''}${extra.snoozed ? '今天点了「稍后」，明天回到待办 · ' : ''}${item.reason} · ${item.detail || ''}`,
+      taskId: extra.snoozed ? '' : item.id,
+      snoozedTaskId: extra.snoozed ? item.id : '',
+      faded: Boolean(extra.snoozed),
+      lateDays,
+      // 复购提醒点开的是客户，不是这个客户最近更新的某张旧单。
+      orderId: item.type === 'repurchase' ? '' : item.orderId
+    });
+  };
+  const activeTasks = buildTaskItems();
+  const activeIds = new Set(activeTasks.map(item => item.id));
+  activeTasks.forEach(item => {
     const date = calendarTaskDate(item, today);
-    if (normalizeMonth(date) === month) {
-      const late = normalizeDate(item.date || today) < today ? `已过 ${daysBetween(item.date)} 天 · ` : '';
-      events.push({ ...item, date, label: `${item.tag} ${item.title}`, sub: `${late}${item.reason} · ${item.detail || ''}`, taskId: item.id });
-    }
+    if (inRange(date)) pushTask(item, date);
   });
-  state.orders.forEach(order => {
+  // 今天点了「稍后」的提醒：明天的格子里用淡色画出来，不会在日历上凭空消失。
+  buildTaskItems({ includeSnoozed:true }).filter(item => !activeIds.has(item.id) && snoozedTasks.has(item.id)).forEach(item => {
+    if (inRange(tomorrow)) pushTask(item, tomorrow, { snoozed:true });
+  });
+  // 3. 下次复购日：还没到期的也画在那天（推迟 7 / 30 天后就在新日期上）；到期的已经是提醒。
+  const dueRepurchase = new Set(activeTasks.filter(item => item.type === 'repurchase').map(item => item.client));
+  clientHistory().forEach(c => {
+    if (dueRepurchase.has(c.client)) return;
+    const next = nextRepurchaseDate(c.client);
+    if (!next || next <= today || !inRange(next)) return;
+    events.push({ date:next, type:'repurchase-plan', tone:'repurchase', client:c.client, label:`${calendarShortName(c.client)} 复购`, sub:`下次复购提醒 ${next}` });
+  });
+  // 4. 下单：第一单带「新」角标（新客户不再单独占一条）。
+  const firstOrder = new Map();
+  formalOrders.forEach(order => {
+    if (!order.client) return;
+    const date = normalizeDate(order.createdAt || order.updated);
+    const current = firstOrder.get(order.client);
+    if (!current || date < current.date) firstOrder.set(order.client, { id:order.id, date });
+  });
+  formalOrders.forEach(order => {
     const created = normalizeDate(order.createdAt || order.updated);
-    if (normalizeMonth(created) === month) {
-      events.push({ date: created, type: 'order', label: `${calendarShortName(order.client)} 下单`, sub: `${order.num} · ${money(order.amount, order.currency || 'USD')}`, orderId: order.id });
-    }
-    if (order.logisticsUpdated && normalizeMonth(order.logisticsUpdated) === month) {
-      events.push({ date: normalizeDate(order.logisticsUpdated), type: 'logistics', label: `${cleanTracking(order.trackingNumber) ? carrierName(['DHL','FedEx','UPS'].includes(order.carrier) ? order.carrier : detectCarrier(order.trackingNumber)) : '物流'} ${order.logisticsStatus || '更新'}`, sub: `${order.client} · ${cleanTracking(order.trackingNumber) || order.num}`, orderId: order.id });
-    }
+    if (!inRange(created)) return;
+    const isNew = Boolean(order.client) && firstOrder.get(order.client)?.id === order.id;
+    events.push({ date:created, type:'order', tone:'order', badge:isNew ? '新' : '', label:`${calendarShortName(order.client)} 下单`, sub:`${isNew ? '新客户第一单 · ' : ''}${order.num} · ${money(order.amount, order.currency || 'USD')}`, orderId:order.id, client:order.client });
   });
-  customerFirstDates().forEach(customer => {
-    if (normalizeMonth(customer.date) === month) {
-      events.push({ date: customer.date, type: 'customer', label: `新增客户 ${customer.client}`, sub: customer.country || '客户档案' });
-    }
+  // 5. 物流：按批次画。每批在发货日画「发货」，在最近一次进度那天画「承运商 + 状态」，单号用这一批的。
+  formalOrders.forEach(order => {
+    const name = calendarShortName(order.client);
+    normalizeOrderShipments(order).forEach(shipment => {
+      const carrier = carrierName(shipment.carrier === 'auto' ? detectCarrier(shipment.trackingNumber) : shipment.carrier) || '物流';
+      const shipped = normalizeDate(shipment.shippedAt || '');
+      const updated = normalizeDate(shipment.updated || '');
+      const sub = `${order.client || ''} · ${carrier} ${shipment.trackingNumber} · ${order.num}`;
+      if (inRange(shipped) && !(updated === shipped && ['已发货', '未发货'].includes(shipment.status))) {
+        events.push({ date:shipped, type:'logistics', tone:'logistics', label:`${name} ${carrier} 发货`, sub, orderId:order.id });
+      }
+      if (inRange(updated)) {
+        const status = shipment.status || '更新';
+        const tone = status === '异常' ? 'urgent' : status === '已签收' ? 'done' : 'logistics';
+        events.push({ date:updated, type:'logistics', tone, label:`${name} ${carrier} ${status === '已发货' && updated === shipped ? '发货' : status}`, sub, orderId:order.id });
+      }
+    });
   });
-  return events.sort((a, b) => parseDate(a.date) - parseDate(b.date));
+  // 6. 只有档案、还没有正式订单的新客户：按建档日画（建档日取 createdAt，老档案取最早一条档案记录；改备注不会再把它挪到今天）。
+  // 有订单（含草稿）的客户不算「只有档案」：草稿的客户不再多一条新客户。
+  const withOrders = new Set(state.orders.map(order => order.client).filter(Boolean));
+  Object.entries(state.customers || {}).forEach(([name, profile]) => {
+    if (withOrders.has(name)) return;
+    const historyTimes = (profile.history || []).map(item => String(item?.time || '')).filter(Boolean).sort();
+    const created = normalizeDate(profile.createdAt || historyTimes[0] || '');
+    if (!inRange(created)) return;
+    events.push({ date:created, type:'customer', tone:'customer', client:name, label:`${calendarShortName(name)} 新客户`, sub:`${profile.country || ''} 建档`.trim() });
+  });
+  // 7. 续费扣费日。
+  if (typeof subscriptionState !== 'undefined' && subscriptionState.loaded) {
+    subscriptionState.items.forEach(item => {
+      subscriptionCharges(item, from, to, subscriptionState.usdCnyRate).forEach(charge => {
+        const manual = item.autoRenew === false;
+        events.push({ date:charge.date, type:'subscription', tone:'subscription', subId:item.id, label:`${item.name} 续费`, sub:[subscriptionMoney(charge.amount, item.currency), item.category, manual ? '需要手动续费' : item.paymentMethod].filter(Boolean).join(' · ') });
+      });
+    });
+  }
+  // 同一天：提醒在前，再按交期、下单、物流、其它。
+  const order = { payment:0, follow:0, logistics:1, ship:0, urgent:0, repurchase:0, deadline:1, order:2, 'repurchase-plan':3, customer:4, subscription:5 };
+  return events.sort((a, b) => a.date.localeCompare(b.date) || ((a.taskId ? 0 : 1) - (b.taskId ? 0 : 1)) || ((order[a.type] ?? 6) - (order[b.type] ?? 6)));
+}
+function calendarEventsForMonth(month = activeCalendarMonth) {
+  const days = daysInMonth(month);
+  if (!days.length) return [];
+  return calendarEventsInRange(days[0], days.at(-1));
 }
 function renderCustomerGrowthChart(customers, endMonth = activeCalendarMonth) {
   const el = document.getElementById('customerGrowthChart');
@@ -9399,97 +9594,110 @@ function renderCustomerGrowthChart(customers, endMonth = activeCalendarMonth) {
     </svg>
   `;
 }
-function groupCalendarEvents(events = []) {
-  const grouped = { order:0, due:0, logistics:0, repurchase:0, customer:0, other:0, total:events.length };
-  events.forEach(event => {
-    const type = String(event?.type || 'other');
-    if (type === 'order') grouped.order += 1;
-    else if (['due', 'urgent', 'payment', 'ship'].includes(type)) grouped.due += 1;
-    else if (type === 'logistics') grouped.logistics += 1;
-    else if (type === 'repurchase') grouped.repurchase += 1;
-    else if (type === 'customer') grouped.customer += 1;
-    else grouped.other += 1;
-  });
-  return grouped;
-}
-// 日历事件的颜色分组：下单 / 交期复购 / 跟进 / 收款 / 物流 / 加急异常 / 已签收。最晚发出日期是「交期」，不是物流。
+// 日历事件的颜色：下单 / 交期复购 / 跟进 / 收款 / 物流 / 加急异常（含物流风险、过了最晚发出日期）/ 已签收 / 新客户 / 续费。
+// 日历格子、当月日程、当天抽屉用同一张表。
 function calendarEventTone(event = {}) {
+  if (event.tone) return event.tone;
   if (event.type === 'urgent' || /异常/.test(event.label || '')) return 'urgent';
   if (event.type === 'logistics' && /已签收/.test(event.label || '')) return 'done';
-  if (['order', 'customer'].includes(event.type)) return 'order';
+  if (['order'].includes(event.type)) return 'order';
+  if (event.type === 'customer') return 'customer';
   if (['payment', 'due'].includes(event.type)) return 'payment';
   if (event.type === 'follow') return 'follow';
-  if (event.type === 'ship') return 'repurchase';
   if (event.type === 'logistics') return 'logistics';
   return 'repurchase';
+}
+const calendarWeekdays = ['日','一','二','三','四','五','六'];
+function calendarDayTitle(date) {
+  const d = parseDate(date);
+  return `${d.getMonth() + 1} 月 ${d.getDate()} 日 · 周${calendarWeekdays[d.getDay()]}`;
+}
+// 事件被点时做什么：有提醒的打开当天抽屉；订单 → 订单详情；客户 → 客户档案；续费 → 续费详情；别的打开当天抽屉。
+function calendarEventAttrs(event, date) {
+  if (event.taskId || event.snoozedTaskId) return `data-calendar-date="${escapeAttr(date)}"`;
+  if (event.orderId) return `data-calendar-order-id="${escapeAttr(event.orderId)}"`;
+  if (event.subId) return `data-calendar-sub="${escapeAttr(event.subId)}"`;
+  if (event.client) return `data-calendar-client="${escapeAttr(event.client)}"`;
+  return `data-calendar-date="${escapeAttr(date)}"`;
+}
+function calendarChipHtml(event, date) {
+  const badge = event.badge ? `<i class="calendar-badge" aria-label="新客户">${escapeAttr(event.badge)}</i>` : '';
+  return `<button class="calendar-event ${calendarEventTone(event)}${event.faded ? ' faded' : ''}" type="button" ${calendarEventAttrs(event, date)} title="${escapeAttr(`${event.label} · ${event.sub || ''}`)}">${badge}${escapeAttr(event.label)}</button>`;
 }
 function renderCalendarAgenda(targetId, events, limit = Infinity) {
   const agenda = document.getElementById(targetId);
   if (!agenda) return;
   const count = document.getElementById('calendarAgendaCount');
   if (count) count.textContent = `${events.length} 件`;
-  const weekdays = ['日','一','二','三','四','五','六'];
   const groups = new Map();
   events.slice().sort((a, b) => parseDate(a.date) - parseDate(b.date)).slice(0, limit).forEach(event => {
     const date = normalizeDate(event.date);
     groups.set(date, [...(groups.get(date) || []), event]);
   });
+  // 日程的行可以 Tab 到、回车打开；日期标题点开当天抽屉。
   agenda.innerHTML = [...groups].map(([date, list]) => {
     const d = parseDate(date);
     return `
     <div class="agenda-group">
-      <div class="agenda-date">${d.getMonth() + 1} 月 ${String(d.getDate()).padStart(2, '0')} 日 · 周${weekdays[d.getDay()]}</div>
+      <button type="button" class="agenda-date" data-calendar-date="${escapeAttr(date)}">${d.getMonth() + 1} 月 ${String(d.getDate()).padStart(2, '0')} 日 · 周${calendarWeekdays[d.getDay()]}</button>
       ${list.map(event => {
         const order = event.orderId ? state.orders.find(item => item.id === event.orderId) : null;
         return `
-        <div class="agenda-row" ${event.orderId ? `data-calendar-order-id="${escapeAttr(event.orderId)}"` : ''} title="${escapeAttr(event.sub || '')}">
+        <div class="agenda-row${event.faded ? ' faded' : ''}" role="button" tabindex="0" ${calendarEventAttrs(event, date)} title="${escapeAttr(event.sub || '')}">
           <span class="agenda-dot ${calendarEventTone(event)}" aria-hidden="true"></span>
-          <div class="agenda-main"><div class="agenda-title">${escapeAttr(event.label)}</div></div>
+          <div class="agenda-main"><div class="agenda-title">${event.badge ? `<i class="calendar-badge">${escapeAttr(event.badge)}</i>` : ''}${escapeAttr(event.label)}</div></div>
           <span class="agenda-num">${escapeAttr(order?.num || '')}</span>
         </div>`;
       }).join('')}
     </div>`;
   }).join('') || '<div class="empty">这个月份暂无日程。</div>';
 }
+// 日历里能用键盘选的那一天（只有它 tabindex=0，方向键移动）。
+let calendarFocusDate = '';
 function renderCalendarPage() {
   const title = document.getElementById('calendarMonthTitle');
   const grid = document.getElementById('calendarGrid');
   if (!title || !grid) return;
+  // 续费扣费日也画在日历上：续费数据还没读过时读一次，读到后再画。
+  if (typeof subscriptionState !== 'undefined' && !subscriptionState.loaded && !subscriptionState.loading && !subscriptionState.error && typeof loadSubscriptions === 'function' && (!isMacAppMode() || macStateReady)) {
+    loadSubscriptions().then(() => {
+      if (document.getElementById('page-calendar')?.classList.contains('active')) renderCalendarPage();
+    });
+  }
   title.textContent = monthLabel(activeCalendarMonth).replace(/(\d+)年(\d+)月/, '$1 年 $2 月');
   const [year, monthNum] = activeCalendarMonth.split('-').map(Number);
   const first = new Date(year, monthNum - 1, 1);
   const start = new Date(first);
   start.setDate(first.getDate() - ((first.getDay() + 6) % 7));
   const today = normalizeDate(new Date().toISOString());
-  const events = calendarEventsForMonth(activeCalendarMonth);
+  const cellCount = Math.ceil((((first.getDay() + 6) % 7) + new Date(year, monthNum, 0).getDate()) / 7) * 7;
+  const cellDates = Array.from({ length:cellCount }, (_, i) => { const d = new Date(start); d.setDate(start.getDate() + i); return normalizeDate(d.toISOString()); });
+  // 隔壁月份的灰格子也画当天的事件（淡色），点了能打开。
+  const gridEvents = calendarEventsInRange(cellDates[0], cellDates.at(-1));
+  const events = gridEvents.filter(event => normalizeMonth(event.date) === activeCalendarMonth);
   const byDate = new Map();
-  events.forEach(event => {
+  gridEvents.forEach(event => {
     const date = normalizeDate(event.date);
     byDate.set(date, [...(byDate.get(date) || []), event]);
   });
+  if (!cellDates.includes(calendarFocusDate) || normalizeMonth(calendarFocusDate) !== activeCalendarMonth) {
+    calendarFocusDate = normalizeMonth(today) === activeCalendarMonth ? today : `${activeCalendarMonth}-01`;
+  }
   const weekdays = ['一','二','三','四','五','六','日'];
-  const cells = [];
-  const cellCount = Math.ceil((((first.getDay() + 6) % 7) + new Date(year, monthNum, 0).getDate()) / 7) * 7;
-  for (let i = 0; i < cellCount; i++) {
-    const d = new Date(start);
-    d.setDate(start.getDate() + i);
-    const date = normalizeDate(d.toISOString());
+  const cells = cellDates.map(date => {
+    const d = parseDate(date);
     const dayEvents = byDate.get(date) || [];
-    cells.push(`
-      <div class="calendar-day ${normalizeMonth(date) === activeCalendarMonth ? '' : 'muted'} ${date === today ? 'today' : ''}" data-calendar-date="${escapeAttr(date)}">
+    const outside = normalizeMonth(date) !== activeCalendarMonth;
+    return `
+      <div class="calendar-day ${outside ? 'muted' : ''} ${date === today ? 'today' : ''}" data-calendar-date="${escapeAttr(date)}" role="button" tabindex="${date === calendarFocusDate ? 0 : -1}" aria-label="${d.getMonth() + 1}月${d.getDate()}日 周${calendarWeekdays[d.getDay()]}${date === today ? '（今天）' : ''}，${dayEvents.length ? `${dayEvents.length} 件` : '没有安排'}"${date === today ? ' aria-current="date"' : ''}>
         <div class="calendar-day-num"><span>${d.getDate()}</span>${dayEvents.length ? `<span class="calendar-count">${dayEvents.length}</span>` : ''}</div>
         <div class="calendar-events">
-          ${dayEvents.slice(0, 3).map(event => event.taskId
-            ? `<button class="calendar-event ${calendarEventTone(event)}" type="button" data-calendar-date="${escapeAttr(date)}" title="${escapeAttr(event.sub || '')}">${escapeAttr(event.label)}</button>`
-            : event.orderId
-            ? `<button class="calendar-event ${calendarEventTone(event)}" type="button" data-calendar-order-id="${escapeAttr(event.orderId)}" title="${escapeAttr(event.sub || '')}">${escapeAttr(event.label)}</button>`
-            : `<span class="calendar-event ${calendarEventTone(event)}" title="${escapeAttr(event.sub || '')}">${escapeAttr(event.label)}</span>`
-          ).join('')}
-          ${dayEvents.length > 3 ? `<span class="calendar-more">+${dayEvents.length - 3} 更多</span>` : ''}
+          ${dayEvents.slice(0, 3).map(event => calendarChipHtml(event, date)).join('')}
+          ${dayEvents.length > 3 ? `<button type="button" class="calendar-more" data-calendar-date="${escapeAttr(date)}" aria-label="${d.getMonth() + 1}月${d.getDate()}日还有 ${dayEvents.length - 3} 件，打开当天">+${dayEvents.length - 3} 更多</button>` : ''}
         </div>
       </div>
-    `);
-  }
+    `;
+  });
   grid.innerHTML = weekdays.map(day => `<div class="calendar-weekday">周${day}</div>`).join('') + cells.join('');
   renderCalendarAgenda('calendarAgenda', events);
 }
@@ -9499,12 +9707,30 @@ function ecbUsdRateForOrder(order = {}, rateRows = ecbHistoricalRates) {
   const currency = String(order?.currency || 'USD').toUpperCase();
   if (currency === 'USD') return 1;
   const date = String(order?.createdAt || order?.orderMonth || order?.updated || '').slice(0, 10);
-  const rows = (Array.isArray(rateRows) ? rateRows : []).filter(item => item?.date).sort((a, b) => b.date.localeCompare(a.date));
-  // 订单早于最早一条汇率时用最早那条，别把整单算成 0 美元。
-  const row = rows.find(item => item.date <= date) || rows[rows.length - 1];
+  // 全量 ECB 日汇率有 7000 多行：每张汇率表只排一次序（按日期从新到旧），再按「币种|日期」记住结果。
+  // 以前每换算一次都过滤 + 排序整张表，1000 单时工作台每次重画要 1 秒多。
+  const list = Array.isArray(rateRows) ? rateRows : [];
+  const indexes = ecbUsdRateForOrder.indexes || (ecbUsdRateForOrder.indexes = new WeakMap());
+  let index = indexes.get(list);
+  if (!index || index.length !== list.length) {
+    index = { length:list.length, rows:list.filter(item => item?.date).sort((a, b) => b.date.localeCompare(a.date)), memo:new Map() };
+    indexes.set(list, index);
+  }
+  const key = `${currency}|${date}`;
+  if (index.memo.has(key)) return index.memo.get(key);
+  const rows = index.rows;
+  // 二分找第一条日期 ≤ 订单日期的汇率（rows 从新到旧）；订单早于最早一条汇率时用最早那条，别把整单算成 0 美元。
+  let lo = 0, hi = rows.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (rows[mid].date <= date) hi = mid; else lo = mid + 1;
+  }
+  const row = rows[lo] || rows[rows.length - 1];
   const usdPerEuro = Number(row?.rates?.USD || 0);
   const sourcePerEuro = currency === 'EUR' ? 1 : Number(row?.rates?.[currency] || 0);
-  return usdPerEuro > 0 && sourcePerEuro > 0 ? usdPerEuro / sourcePerEuro : null;
+  const rate = usdPerEuro > 0 && sourcePerEuro > 0 ? usdPerEuro / sourcePerEuro : null;
+  index.memo.set(key, rate);
+  return rate;
 }
 function orderAmountUsd(order = {}, rateRows = ecbHistoricalRates) {
   const rate = ecbUsdRateForOrder(order, rateRows);
@@ -9559,7 +9785,8 @@ function businessAnalysisForMonth(orders = [], month = '', rateRows = ecbHistori
     paid,
     due,
     average:convertedOrders.length ? total / convertedOrders.length : 0,
-    collectionRate:total ? Math.round((paid / total) * 100) : 0,
+    // 还有待收时最多 99%（以前 99.6% 显示「100%」，旁边还写着待收 $40）。
+    collectionRate:total ? (paid >= total ? 100 : Math.min(99, Math.floor((paid / total) * 100))) : 0,
     products:Array.from(productMap.values()).sort((a, b) => b.amount - a.amount || b.count - a.count || a.name.localeCompare(b.name))
   };
 }
@@ -9569,27 +9796,23 @@ function renderBusinessTrend(orders) {
   const months = monthsBetween(monthOffset(activeBusinessMonth, -5), activeBusinessMonth);
   const rows = months.map(month => businessAnalysisForMonth(orders, month));
   const maxAmount = Math.max(1, ...rows.map(row => row.total));
-  el.innerHTML = rows.map(row => '<div class="analysis-trend-row"><span>' + row.month + '</span><div class="analysis-trend-track"><span style="width:' + Math.round(row.total/maxAmount*100) + '%"></span></div><strong>' + summaryMoney(row.total,'USD') + '</strong><span>' + row.orderCount + ' 单</span></div>' + (row.missingRateCount ? '<div class="section-meta">该月有 ' + row.missingRateCount + ' 单缺少汇率，金额未计入</div>' : '')).join('');
+  // 每一行可以点（或回车），把经营分析切到那个月。
+  el.innerHTML = rows.map(row => '<button type="button" class="analysis-trend-row' + (row.month === activeBusinessMonth ? ' is-current' : '') + '" data-analysis-month="' + row.month + '" title="切到' + escapeAttr(monthLabel(row.month)) + '"><span>' + escapeAttr(monthLabel(row.month)) + '</span><div class="analysis-trend-track"><span style="width:' + Math.round(row.total/maxAmount*100) + '%"></span></div><strong>' + summaryMoney(row.total,'USD') + '</strong><span>' + row.orderCount + ' 单</span></button>' + (row.missingRateCount ? '<div class="section-meta">该月有 ' + row.missingRateCount + ' 单缺少汇率，金额未计入</div>' : '')).join('');
 }
 function renderBusinessAnalysis(orders = state.orders || []) {
   const analysis = businessAnalysisForMonth(orders, activeBusinessMonth);
   const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
   setText('businessMonthTitle', monthLabel(activeBusinessMonth));
-  setText('businessOrderCount', analysis.orderCount);
-  setText('businessRevenue', summaryMoney(analysis.total, 'USD'));
-  setText('businessPaid', summaryMoney(analysis.paid, 'USD'));
-  setText('businessDue', summaryMoney(analysis.due, 'USD'));
-  setText('businessAverage', summaryMoney(analysis.average, 'USD'));
-  setText('businessCollectionRate', `${analysis.collectionRate}%`);
   setText('businessRateStatus', analysis.missingRateCount
     ? `有 ${analysis.missingRateCount} 笔非美元订单暂缺 ECB 历史汇率，未计入金额；其余按订单日期折算`
     : `全部币种已按订单日期的 ECB 历史汇率折算为 USD${ecbRatesLoadedAt ? ` · 更新 ${ecbRatesLoadedAt.slice(0, 10)}` : ''}`);
   renderBusinessTrend(orders);
   const payment = document.getElementById('businessPaymentStructure');
   if (payment) {
+    const paidWidth = analysis.total ? Math.min(100, analysis.paid / analysis.total * 100) : 0;
     payment.innerHTML = analysis.total ? `
       <div class="business-payment-summary"><span class="muted">已完成收款</span><strong>${analysis.collectionRate}%</strong></div>
-      <div class="business-payment-bar" aria-label="已收 ${analysis.collectionRate}%，待收 ${100 - analysis.collectionRate}%"><div class="business-payment-paid" style="width:${analysis.collectionRate}%"></div><div class="business-payment-due" style="width:${100 - analysis.collectionRate}%"></div></div>
+      <div class="business-payment-bar" aria-label="已收 ${analysis.collectionRate}%，待收 ${summaryMoney(analysis.due, 'USD')}"><div class="business-payment-paid" style="width:${paidWidth.toFixed(2)}%"></div><div class="business-payment-due" style="width:${(100 - paidWidth).toFixed(2)}%"></div></div>
       <div class="business-payment-legend"><div class="business-payment-item"><span>已收金额</span><strong>${summaryMoney(analysis.paid, 'USD')}</strong></div><div class="business-payment-item"><span>待收金额</span><strong>${summaryMoney(analysis.due, 'USD')}</strong></div></div>
     ` : '<div class="empty">这个月份暂无可统计的正式订单。</div>';
   }
@@ -9597,9 +9820,10 @@ function renderBusinessAnalysis(orders = state.orders || []) {
   if (products) {
     const maxAmount = Math.max(1, ...analysis.products.map(item => item.amount));
     products.innerHTML = analysis.products.slice(0, 8).map(item => `
-      <div class="business-product-row"><span class="business-product-name">${escapeAttr(item.name)}</span><div class="business-product-track"><div class="business-product-fill" style="width:${Math.max(4, Math.round(item.amount / maxAmount * 100))}%"></div></div><span class="business-product-value">${item.count} 单 · ${summaryMoney(item.amount, 'USD')}</span></div>
+      <button type="button" class="business-product-row" data-analysis-product="${escapeAttr(item.name)}" title="在订单列表里看${escapeAttr(monthLabel(activeBusinessMonth))}的${escapeAttr(item.name)}订单"><span class="business-product-name">${escapeAttr(item.name)}</span><div class="business-product-track"><div class="business-product-fill" style="width:${Math.max(4, Math.round(item.amount / maxAmount * 100))}%"></div></div><span class="business-product-value">${item.count} 单 · ${summaryMoney(item.amount, 'USD')}</span></button>
     `).join('') || '<div class="empty">这个月份暂无产品贡献数据。</div>';
   }
+  return analysis;
 }
 function analysisDashboardData(orders, month, product, today, rates) {
   const formal = orders.filter(o => !o.isDraft);
@@ -9613,59 +9837,96 @@ function analysisDashboardData(orders, month, product, today, rates) {
   formal.forEach(o => { const m = dateMonth(o); if (o.client && m && (!first.has(o.client) || m < first.get(o.client))) first.set(o.client,m); });
   const monthly = scoped.filter(o => dateMonth(o) === month);
   const clients = new Map();
+  // 没填客户的单不进排名，单独数一下（以前汇成「未命名客户」排进名次）。
+  let unnamedOrders = 0;
   monthly.forEach(o => {
-    const name = o.client || '未命名客户';
+    if (!String(o.client || '').trim()) { unnamedOrders++; return; }
+    const name = o.client;
     const row = clients.get(name) || {name,count:0,amount:0};
     row.count++; row.amount += orderAmountUsd(o,rates); clients.set(name,row);
   });
   const newOrders = monthly.filter(o => o.client && first.get(o.client) === month).length;
   const repeatOrders = monthly.filter(o => o.client && first.get(o.client) < month).length;
-  const receivables = scoped.filter(o => !['shipment','done'].includes(o.stage) && Number(o.amount || 0) > Math.max(0,Number(o.paidAmount || 0)));
-  const overdue = scoped.filter(o => orderPastShipDeadline(o, today));
-  return {current,previous,monthly,newOrders,repeatOrders,unknownOrders:monthly.length-newOrders-repeatOrders,clients:[...clients.values()].sort((a,b)=>b.amount-a.amount),receivables,overdue};
+  // 未收清：按待收 USD 从大到小，一样多时下单早的在前。
+  const receivables = scoped.filter(o => !['shipment','done'].includes(o.stage) && Number(o.amount || 0) > Math.max(0,Number(o.paidAmount || 0)))
+    .map(o => ({ o, due:Math.max(0, orderAmountUsd(o, rates) - orderPaidUsd(o, rates)), at:String(o.createdAt || o.orderMonth || '') }))
+    .sort((a, b) => (b.due - a.due) || a.at.localeCompare(b.at))
+    .map(item => item.o);
+  const overdue = scoped.filter(o => orderPastShipDeadline(o, today)).sort((a, b) => String(a.latestShipDate).localeCompare(String(b.latestShipDate)));
+  return {current,previous,monthly,newOrders,repeatOrders,unknownOrders:monthly.length-newOrders-repeatOrders,clients:[...clients.values()].sort((a,b)=>b.amount-a.amount),unnamedOrders,receivables,overdue};
 }
 // 空月份兜底：用户还没手动切过月份时，本月没有正式订单就落到最近有数据的月份，并在标题旁说明。
 let analysisMonthTouched = false;
+// 每次都从「本月」出发判断（以前从上一次兜底的结果再往前找：刷新时先按占位数据落到 4 月，真实数据到了又落到更早的 2025-12，
+// 本月有单也回不来）；数据还没读到时不兜底。
 function analysisMonthFallback() {
   const note = document.getElementById('analysisFallbackNote');
+  const hide = () => { if (note) note.hidden = true; };
+  if (analysisMonthTouched) { hide(); return; }
+  const current = normalizeMonth(new Date().toISOString());
+  activeBusinessMonth = current;
+  if (isMacAppMode() && !macStateReady) { hide(); return; }
   const has = month => (state.orders || []).some(o => isRevenueOrder(o) && normalizeMonth(o.orderMonth || o.updated) === month);
-  if (analysisMonthTouched || has(activeBusinessMonth)) { if (note) note.hidden = true; return; }
-  const latest = (state.orders || []).filter(isRevenueOrder).map(o => normalizeMonth(o.orderMonth || o.updated)).filter(m => m && m < activeBusinessMonth).sort().at(-1);
-  if (!latest) { if (note) note.hidden = true; return; }
-  const asked = activeBusinessMonth;
+  if (has(current)) { hide(); return; }
+  const latest = (state.orders || []).filter(isRevenueOrder).map(o => normalizeMonth(o.orderMonth || o.updated)).filter(m => m && m < current).sort().at(-1);
+  if (!latest) { hide(); return; }
   activeBusinessMonth = latest;
-  if (note) { note.textContent = `${monthLabel(asked)}还没有正式订单，先显示最近有数据的${monthLabel(latest)}`; note.hidden = false; }
+  if (note) { note.textContent = `${monthLabel(current)}还没有正式订单，先显示最近有数据的${monthLabel(latest)}`; note.hidden = false; }
 }
+// 「现在需要关注」两组的开合：记在这里，重画时不再全部展开。
+const analysisAttentionOpen = { receivables:true, overdue:true };
+const analysisAttentionLimit = 8;
 function renderAnalysisPage() {
   if (!document.getElementById('analysisProduct')) return;
   analysisMonthFallback();
   const product = document.getElementById('analysisProduct').value;
   const today = normalizeDate(new Date().toISOString());
+  const currentMonth = normalizeMonth(today);
   const monthListLink = document.querySelector('[data-analysis-list="month"]');
-  if (monthListLink) monthListLink.innerHTML = `${activeBusinessMonth === normalizeMonth(today) ? '本月' : escapeAttr(monthLabel(activeBusinessMonth))}待收订单 <span>→</span>`;
+  if (monthListLink) monthListLink.innerHTML = `${activeBusinessMonth === currentMonth ? '本月' : escapeAttr(monthLabel(activeBusinessMonth))}待收订单 <span>→</span>`;
   const data = analysisDashboardData(state.orders || [], activeBusinessMonth, product, today, ecbHistoricalRates);
   const scoped = (state.orders || []).filter(o => product === 'all' || o.productType === product);
   renderBusinessAnalysis(scoped);
-  const compare = (value, previous) => previous > 0 ? ((value - previous) / previous * 100).toFixed(1) + '%' : (value > 0 ? '上月为 0，不计算增幅' : '两期均为 0');
-  document.getElementById('analysisComparison').textContent = data.current.missingRateCount || data.previous.missingRateCount
-    ? '有订单缺少汇率，金额对比暂不展示。订单数：本期 ' + data.current.orderCount + ' 单 / 上月 ' + data.previous.orderCount + ' 单'
-    : '较上月整月：订单额 ' + compare(data.current.total,data.previous.total) + ' · 订单数 ' + data.current.orderCount + ' / ' + data.previous.orderCount + ' 单 · 平均订单额 ' + compare(data.current.average,data.previous.average) + '。当月尚未结束时，不代表最终增减。';
+  // 对比带符号（+14.9% / −22.5%）；只有看本月时才说「当月尚未结束」；还没开始的月份不比。
+  const compare = (value, previous) => {
+    if (!(previous > 0)) return value > 0 ? '上月为 0，不计算增幅' : '两期均为 0';
+    const pct = (value - previous) / previous * 100;
+    return `${pct > 0 ? '+' : pct < 0 ? '−' : ''}${Math.abs(pct).toFixed(1)}%`;
+  };
+  const cur = data.current;
+  const summary = `${monthLabel(activeBusinessMonth)}订单额 ${summaryMoney(cur.total, 'USD')} · ${cur.orderCount} 单${cur.convertedOrderCount ? ` · 平均 ${summaryMoney(cur.average, 'USD')}` : ''}`;
+  let comparison;
+  if (activeBusinessMonth > currentMonth) comparison = `${summary}。这个月还没开始，不做环比。`;
+  else if (cur.missingRateCount || data.previous.missingRateCount) comparison = `${summary}。有订单缺少汇率，金额对比暂不展示。订单数：本期 ${cur.orderCount} 单 / 上月 ${data.previous.orderCount} 单`;
+  else comparison = `${summary}。较上月整月：订单额 ${compare(cur.total, data.previous.total)} · 订单数 ${cur.orderCount} / ${data.previous.orderCount} 单 · 平均订单额 ${compare(cur.average, data.previous.average)}。${activeBusinessMonth === currentMonth ? '当月尚未结束，不代表最终增减。' : ''}`;
+  document.getElementById('analysisComparison').textContent = comparison;
   fillMonthOptions(document.getElementById('analysisMonthInput'), orderMonths(), activeBusinessMonth);
-  const revenueSub = document.getElementById('businessRevenueSub');
-  if (revenueSub) {
-    const prevLabel = `${Number(monthOffset(activeBusinessMonth, -1).slice(5))} 月`;
-    const pct = data.previous.total > 0 ? Math.round((data.current.total - data.previous.total) / data.previous.total * 100) : null;
-    revenueSub.innerHTML = data.current.missingRateCount || data.previous.missingRateCount ? '有订单缺少汇率，暂不对比'
-      : pct === null ? '按订单归属月份 · 草稿不计入' : `<span class="${pct >= 0 ? 'up' : 'down'}">${pct >= 0 ? '+' : ''}${pct}%</span> 比 ${prevLabel}`;
-  }
-  const rateBar = document.getElementById('businessRateBar');
-  if (rateBar) rateBar.style.width = `${Math.min(100, Number(data.current.collectionRate) || 0)}%`;
   const clientMax = Math.max(1, ...data.clients.map(row => row.amount));
-  document.getElementById('analysisClients').innerHTML = data.clients.slice(0,8).map((row,index) => '<div class="analysis-rank"><span class="muted">' + (index+1) + '</span><span>' + escapeAttr(clientDisplayName(row.name)) + '</span><span class="muted">' + row.count + ' 单</span><strong>' + summaryMoney(row.amount,'USD') + '</strong><i class="analysis-rank-bar"><b style="width:' + Math.max(3, Math.round(row.amount / clientMax * 100)) + '%"></b></i></div>').join('') || '<div class="empty">该月份暂无客户订单。</div>';
+  const shownClients = data.clients.slice(0, 8);
+  const clientsMeta = document.getElementById('analysisClientsMeta');
+  if (clientsMeta) clientsMeta.textContent = shownClients.length ? `前 ${shownClients.length} 名` : '';
+  document.getElementById('analysisClients').innerHTML = (shownClients.map((row,index) => '<button type="button" class="analysis-rank" data-analysis-client="' + escapeAttr(row.name) + '" title="在订单列表里看' + escapeAttr(clientDisplayName(row.name)) + '在' + escapeAttr(monthLabel(activeBusinessMonth)) + '的订单"><span class="muted">' + (index+1) + '</span><span>' + escapeAttr(clientDisplayName(row.name)) + '</span><span class="muted">' + row.count + ' 单</span><strong>' + summaryMoney(row.amount,'USD') + '</strong><i class="analysis-rank-bar"><b style="width:' + Math.max(3, Math.round(row.amount / clientMax * 100)) + '%"></b></i></button>').join('') || '<div class="empty">该月份暂无客户订单。</div>')
+    + (data.unnamedOrders ? `<p class="section-meta">另有 ${data.unnamedOrders} 单没填客户，不参与排名</p>` : '');
   const total = data.monthly.length;
   document.getElementById('analysisCustomerMix').innerHTML = [['新客户订单',data.newOrders],['老客户订单',data.repeatOrders],['客户信息不全',data.unknownOrders]].map(([label,count]) => '<div class="analysis-rank"><span></span><span>' + label + '</span><strong>' + count + ' 单</strong><span>' + (total ? Math.round(count/total*100) : 0) + '%</span></div>').join('') + '<p class="section-meta">按现有订单历史判断，不等于新建客户档案数。</p>';
-  const groups = [['未收清订单',data.receivables],['超过最晚发出日期',data.overdue]];
-  document.getElementById('analysisAttention').innerHTML = groups.map(([label,orders]) => '<details class="analysis-action-group" open><summary>' + label + ' · ' + orders.length + ' 单</summary>' + (orders.length ? orders.map(o => '<button type="button" class="analysis-action-row" data-analysis-order="' + escapeAttr(o.id) + '"><span>' + escapeAttr(o.client || '未命名客户') + '<small>' + escapeAttr(o.num || '') + '</small></span><span>' + (label === '未收清订单' ? '待收 ' + money(Math.max(0,Number(o.amount||0)-Number(o.paidAmount||0)),o.currency) : '最晚发出 ' + escapeAttr(o.latestShipDate)) + '</span><span>查看 →</span></button>').join('') : '<p class="section-meta">暂无需要处理的订单</p>') + '</details>').join('');
+  // 未收清按待收 USD 从大到小，只列前 8 条（以前全部列出，47 单时 4000 多像素长）；summary 写合计；行里主金额用 USD、原币种放小字。
+  const dueUsd = o => Math.max(0, orderAmountUsd(o) - orderPaidUsd(o));
+  const groups = [
+    { key:'receivables', label:'未收清订单', orders:data.receivables, extra:` · 待收 ${summaryMoney(data.receivables.reduce((sum, o) => sum + dueUsd(o), 0), 'USD')}` },
+    { key:'overdue', label:'超过最晚发出日期', orders:data.overdue, extra:'' }
+  ];
+  document.getElementById('analysisAttention').innerHTML = groups.map(({ key, label, orders, extra }) => {
+    const limit = key === 'receivables' ? analysisAttentionLimit : Infinity;
+    const rows = orders.slice(0, limit).map(o => {
+      const value = key === 'receivables'
+        ? `待收 ${summaryMoney(dueUsd(o), 'USD')}${(o.currency || 'USD') !== 'USD' ? `<small>${escapeAttr(money(Math.max(0, Number(o.amount || 0) - Number(o.paidAmount || 0)), o.currency))}</small>` : ''}`
+        : `最晚发出 ${escapeAttr(o.latestShipDate)}`;
+      return '<button type="button" class="analysis-action-row" data-analysis-order="' + escapeAttr(o.id) + '"><span>' + escapeAttr(o.client || '未命名客户') + '<small>' + escapeAttr(o.num || '') + '</small></span><span>' + value + '</span><span>查看 →</span></button>';
+    }).join('');
+    const more = orders.length > limit
+      ? `<button type="button" class="link-btn analysis-attention-more" data-analysis-list="outstanding">还有 ${orders.length - limit} 单 · 查看全部待收订单 <span>→</span></button>` : '';
+    return `<details class="analysis-action-group" data-attention-group="${key}"${analysisAttentionOpen[key] ? ' open' : ''}><summary>${label} · ${orders.length} 单${orders.length ? extra : ''}</summary>${orders.length ? rows + more : '<p class="section-meta">暂无需要处理的订单</p>'}</details>`;
+  }).join('');
 }
 function ordersByMonth(month = 'all') {
   return state.orders.filter(o => month === 'all' || normalizeMonth(o.orderMonth || o.updated) === month);
@@ -9738,8 +9999,13 @@ async function refreshUsdCnyRate({ force = false } = {}) {
 function targetForMonth(month) {
   return Number((state.performanceTargets || {})[month] || 0);
 }
+// 达成率：没达成时向下取整（最多 99%），达成后再四舍五入。以前完成 99.6% 显示「100%」，卡片变成绿色达成样式，
+// 目标页还写「已经超出目标 $-33」。
 function targetRate(actual, goal) {
-  return goal > 0 ? Math.round((Number(actual || 0) / goal) * 100) : 0;
+  if (!(goal > 0)) return 0;
+  const value = Number(actual || 0);
+  const pct = value / goal * 100;
+  return value >= goal ? Math.round(pct) : Math.min(99, Math.floor(pct));
 }
 function parseDate(value) {
   const text = String(value || '').trim();
@@ -16397,77 +16663,125 @@ function boardCardAmountHtml(o, balanceDue, cardSettings) {
   }
   return `<span class="board-card-amount" title="总额 ${escapeAttr(total)}">${total}</span>`;
 }
+// 工作台卡片上的月份名：今年的写「10 月」，别的年份带上年份「2025 年 12 月」，回看去年同月时不会和今年混。
+function dashboardMonthName(month = '') {
+  const [year, num] = String(month).split('-');
+  if (!year || !num) return '';
+  return year === String(new Date().getFullYear()) ? `${Number(num)} 月` : `${year} 年 ${Number(num)} 月`;
+}
+// 真实数据还没读到（或读库失败）时，卡片显示骨架 / 「没读到」，不显示 0，也不显示占位数据。
+function renderStatsPending() {
+  const failed = macStateLoadFailed;
+  const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+  ['statActive', 'statAmount', 'statPayment', 'statTasks', 'statTargetRate'].forEach(id => set(id, '—'));
+  const sub = failed ? '没读到数据库 · 数据未显示' : '正在读取数据…';
+  ['statActiveSub', 'statAmountSub', 'statPaymentSub', 'statTasksSub', 'statTargetSub'].forEach(id => set(id, sub));
+  set('statAmountLabel', '本月订单额');
+  set('statTargetLabel', '业绩目标');
+  document.getElementById('statPayment')?.classList.remove('has-due');
+  document.getElementById('statTargetRate')?.classList.remove('has-target', 'is-achieved');
+  document.getElementById('targetStat')?.classList.remove('has-goal');
+  const spark = document.getElementById('statSpark');
+  if (spark) { spark.innerHTML = ''; delete spark.dataset.key; }
+  const bar = document.getElementById('statTargetBar');
+  if (bar) bar.style.width = '0%';
+}
 function renderStats() {
+  const statsEl = document.getElementById('dashboard');
+  const pending = isMacAppMode() && !macStateReady;
+  statsEl?.classList.toggle('is-loading', pending && !macStateLoadFailed);
+  statsEl?.classList.toggle('is-failed', pending && macStateLoadFailed);
+  if (statsEl) statsEl.setAttribute('aria-busy', pending && !macStateLoadFailed ? 'true' : 'false');
+  if (pending) { renderStatsPending(); return; }
   const active = state.orders.filter(o => !o.isDraft && !isSettledStage(o.stage));
   const totalOrders = state.orders.filter(o => inTotalRange(o) && !o.isDraft && orderAmountValue(o) > 0);
   const totalRange = document.getElementById('totalRange')?.value || 'all';
-  const targetMonth = totalRange === 'all' ? normalizeMonth(new Date().toISOString()) : totalRange;
+  const currentMonth = normalizeMonth(new Date().toISOString());
+  const targetMonth = totalRange === 'all' ? currentMonth : totalRange;
   const targetOrders = ordersByMonth(targetMonth).filter(isRevenueOrder);
   const targetActual = usdTotal(targetOrders);
   const targetGoal = targetForMonth(targetMonth);
-  const rangeText = shortMonthLabel(totalRange);
+  const rangeName = totalRange === 'all' ? '全部' : totalRange === currentMonth ? '本月' : dashboardMonthName(totalRange);
   const amountLabel = document.getElementById('statAmountLabel');
   const amountValue = document.getElementById('statAmount');
   const amountSub = document.getElementById('statAmountSub');
   document.getElementById('statActive').textContent = active.length;
   const activeSub = document.getElementById('statActiveSub');
   if (activeSub) { const urgentCount = active.filter(o => o.urgentOrder).length; activeSub.textContent = urgentCount ? `其中加急 ${urgentCount} 单` : '没有加急订单'; }
-  if (amountStatMode === 'paidRmb') {
-    amountLabel.textContent = '已收款';
+  const paidMode = amountStatMode === 'paidRmb';
+  if (paidMode) {
+    // 已收款（人民币）：标题写清楚是哪个月、什么币种；单数只数真的收到过钱的单。
+    amountLabel.textContent = `${rangeName === '全部' ? '全部' : rangeName}已收 · RMB`;
     amountValue.textContent = rmbMoney(usdPaidTotalRmb(totalOrders));
-    amountSub.textContent = `${rangeText} · ${totalOrders.length} 单`;
+    amountSub.textContent = `${totalOrders.filter(o => orderPaidValue(o) > 0).length} 单有收款 · 点数字切回订单额`;
   } else {
-    // 原型文案：当月叫「本月订单额」，别的月份写月份，全部范围叫「订单总额」。
-    const currentMonth = normalizeMonth(new Date().toISOString());
-    amountLabel.textContent = totalRange === 'all' ? '订单总额' : totalRange === currentMonth ? '本月订单额' : `${Number(totalRange.slice(5))} 月订单额`;
+    // 原型文案：当月叫「本月订单额」，别的月份写月份（不是今年的带年份），全部范围叫「订单总额」。
+    amountLabel.textContent = totalRange === 'all' ? '订单总额' : totalRange === currentMonth ? '本月订单额' : `${dashboardMonthName(totalRange)}订单额`;
     amountValue.textContent = summaryMoney(usdTotal(totalOrders), 'USD');
     amountSub.textContent = `${totalOrders.length} 单 · 草稿不计`;
   }
-  amountValue.classList.toggle('is-paid-mode', amountStatMode === 'paidRmb');
+  amountValue.classList.toggle('is-paid-mode', paidMode);
+  amountValue.setAttribute('aria-pressed', paidMode ? 'true' : 'false');
+  amountValue.title = paidMode ? '点击切回订单额（USD）' : '点击切换为已收款（人民币，按设置里的月汇率）';
   const paymentTotal = usdDueTotal(state.orders.filter(o => !o.isDraft && orderAmountValue(o) > 0));
   const paymentValue = document.getElementById('statPayment');
   paymentValue.textContent = summaryMoney(paymentTotal, 'USD');
   paymentValue.classList.toggle('has-due', paymentTotal > 0);
   const targetValue = document.getElementById('statTargetRate');
+  const reached = Boolean(targetGoal) && targetActual >= targetGoal;
   const currentTargetRate = targetGoal ? targetRate(targetActual, targetGoal) : 0;
   targetValue.textContent = targetGoal ? `${currentTargetRate}%` : '未设';
   targetValue.classList.toggle('has-target', Boolean(targetGoal));
-  targetValue.classList.toggle('is-achieved', Boolean(targetGoal) && currentTargetRate >= 100);
-  document.getElementById('statTargetSub').textContent = targetGoal ? `已完成 ${summaryMoney(targetActual, 'USD')}` : `点这里设置 ${Number(targetMonth.slice(5))} 月目标`;
-  document.getElementById('targetStat')?.classList.toggle('has-goal', Boolean(targetGoal));
+  targetValue.classList.toggle('is-achieved', reached);
+  document.getElementById('statTargetSub').textContent = targetGoal ? `已完成 ${summaryMoney(targetActual, 'USD')}` : `点这里设置 ${dashboardMonthName(targetMonth)}目标`;
+  const targetCard = document.getElementById('targetStat');
+  if (targetCard) {
+    targetCard.classList.toggle('has-goal', Boolean(targetGoal));
+    // 点卡片进目标页时打开的就是卡片上这个月。
+    targetCard.dataset.targetMonth = targetMonth;
+  }
   const dashboardProgress = document.getElementById('dashboardTargetProgress');
   const dashboardTargetText = document.getElementById('dashboardTargetText');
-  if (dashboardProgress) dashboardProgress.style.width = targetGoal ? `${Math.min(100, targetRate(targetActual, targetGoal))}%` : '0%';
+  if (dashboardProgress) dashboardProgress.style.width = targetGoal ? `${Math.min(100, currentTargetRate)}%` : '0%';
   if (dashboardTargetText) {
     dashboardTargetText.textContent = targetGoal
-      ? `${monthLabel(targetMonth)} ${targetRate(targetActual, targetGoal)}% · ${summaryMoney(targetActual, 'USD')} / ${summaryMoney(targetGoal, 'USD')}`
+      ? `${monthLabel(targetMonth)} ${currentTargetRate}% · ${summaryMoney(targetActual, 'USD')} / ${summaryMoney(targetGoal, 'USD')}`
       : `${monthLabel(targetMonth)} 暂未设置目标`;
   }
   uiDashboardKpis();
 }
+// 工作台订单额的月份下拉：「2026年11月 · 本月」「2026年10月 · 上月」，严格按时间倒序（有预订单的未来月份排最前、标「预订」）。
+function dashboardMonthOptionLabel(month) {
+  if (month === 'all') return '全部';
+  const current = normalizeMonth(new Date().toISOString());
+  const suffix = month === current ? ' · 本月' : month === monthOffset(current, -1) ? ' · 上月' : month > current ? ' · 预订' : '';
+  return `${monthLabel(month)}${suffix}`;
+}
 function renderMonthSelects() {
-  const options = Array.from(new Set(['all', normalizeMonth(new Date().toISOString()), ...orderMonths()]));
+  const currentMonth = normalizeMonth(new Date().toISOString());
+  const months = Array.from(new Set([currentMonth, ...orderMonths()])).sort().reverse();
+  const options = ['all', ...months];
+  // 业绩目标页的月份由 renderPerformanceTargets 自己维护（以前这里每次都把它改成「全部」，目标页只好落到列表第一项）。
   const selects = [
     document.getElementById('totalRange'),
     document.getElementById('amountMonth'),
-    document.getElementById('exportMonth'),
-    document.getElementById('targetMonth')
+    document.getElementById('exportMonth')
   ];
   selects.forEach(sel => {
     if (!sel) return;
     const previous = sel.id === 'totalRange' ? dashboardAmountMonthValue(options) : (sel.value || 'all');
     sel.innerHTML = options.map(m => {
-      const label = sel.id === 'totalRange' ? shortMonthLabel(m) : sel.id === 'amountMonth' && m === 'all' ? '跟随图表范围' : monthLabel(m);
+      const label = sel.id === 'totalRange' ? dashboardMonthOptionLabel(m) : sel.id === 'amountMonth' && m === 'all' ? '跟随图表范围' : monthLabel(m);
       return `<option value="${m}">${label}</option>`;
     }).join('');
     sel.value = options.includes(previous) ? previous : 'all';
   });
-  const months = orderMonths();
-  const thisMonth = normalizeMonth(new Date().toISOString());
+  const rangeMonths = orderMonths();
+  const thisMonth = currentMonth;
   const chartFrom = document.getElementById('chartFrom');
   const chartTo = document.getElementById('chartTo');
-  fillMonthOptions(chartFrom, months, chartFrom?.value || months[Math.min(5, months.length - 1)] || thisMonth);
-  fillMonthOptions(chartTo, months, chartTo?.value || months[0] || thisMonth);
+  fillMonthOptions(chartFrom, rangeMonths, chartFrom?.value || monthOffset(thisMonth, -5));
+  fillMonthOptions(chartTo, rangeMonths, chartTo?.value || thisMonth);
 }
 // 月份下拉（自定义区间、经营分析）：选项是有订单的月份加近 12 个月，新的在前；当前值不在列表里也补上。
 function fillMonthOptions(select, months = [], value = '') {
@@ -16481,20 +16795,76 @@ function fillMonthOptions(select, months = [], value = '') {
   select.value = list.includes(value) ? value : (list[0] || '');
 }
 let chartRangeTouched = false;
-function amountRangeFallback() {
-  const select = document.getElementById('chartRange');
-  const note = document.getElementById('amountRangeNote');
-  if (!select) return;
-  if (chartRangeTouched || select.value !== 'this') { if (note) note.hidden = true; return; }
+// 金额页的区间同月内记住（和工作台订单额的月份同一规则）：刷新、重启 App 后还是上次选的；跨月回到「本月」。
+const amountRangeStoreKey = 'trade-order-amount-range';
+let amountRangeRestored = false;
+function saveAmountRangeChoice() {
+  const value = {
+    month: normalizeMonth(new Date().toISOString()),
+    range: document.getElementById('chartRange')?.value || 'this',
+    from: document.getElementById('chartFrom')?.value || '',
+    to: document.getElementById('chartTo')?.value || '',
+    amountMonth: document.getElementById('amountMonth')?.value || 'all'
+  };
+  safeStorage.setItem(amountRangeStoreKey, JSON.stringify(value));
+}
+function restoreAmountRangeChoice() {
+  if (amountRangeRestored || (isMacAppMode() && !macStateReady)) return;
+  amountRangeRestored = true;
+  let saved = null;
+  try { saved = JSON.parse(safeStorage.getItem(amountRangeStoreKey) || 'null'); } catch (_) { saved = null; }
+  if (!saved || saved.month !== normalizeMonth(new Date().toISOString())) return;
+  const range = document.getElementById('chartRange');
+  if (!range || ![...range.options].some(option => option.value === saved.range)) return;
+  range.value = saved.range;
+  const valid = month => /^\d{4}-(0[1-9]|1[0-2])$/.test(month || '');
+  if (saved.range === 'custom' && valid(saved.from) && valid(saved.to)) {
+    fillMonthOptions(document.getElementById('chartFrom'), orderMonths(), saved.from);
+    fillMonthOptions(document.getElementById('chartTo'), orderMonths(), saved.to);
+  }
+  const amountMonth = document.getElementById('amountMonth');
+  if (amountMonth && saved.amountMonth && [...amountMonth.options].some(option => option.value === saved.amountMonth)) amountMonth.value = saved.amountMonth;
+  chartRangeTouched = true;
+}
+// 实际用来算的区间。「本月」没有正式订单、用户也没手动选过时，先显示上月（上月也没有就近 6 个月），并一直写着说明；
+// 下拉本身保持「本月」，本月一有正式订单就自动回来。数据还没读到、或者库里一张正式单都没有时不兜底。
+function effectiveChartRange() {
+  const selected = document.getElementById('chartRange')?.value || 'this';
+  if (chartRangeTouched || selected !== 'this' || (isMacAppMode() && !macStateReady)) return selected;
+  const revenue = state.orders.filter(isRevenueOrder);
+  if (!revenue.length) return selected;
   const thisMonth = normalizeMonth(new Date().toISOString());
-  const inMonth = month => state.orders.some(o => isRevenueOrder(o) && normalizeMonth(o.orderMonth || o.updated) === month);
-  if (inMonth(thisMonth)) { if (note) note.hidden = true; return; }
-  const last = monthOffset(thisMonth, -1);
-  select.value = inMonth(last) ? 'last' : '6';
-  if (typeof fitSegmentControl === 'function') document.querySelectorAll('#chartRangeSegments [data-segment-value]').forEach(btn => btn.classList.toggle('active', btn.dataset.segmentValue === select.value));
-  if (note) { note.textContent = `本月还没有正式订单，先显示${select.value === 'last' ? '上月' : '近 6 个月'}`; note.hidden = false; }
+  const inMonth = month => revenue.some(o => normalizeMonth(o.orderMonth || o.createdAt || o.updated) === month);
+  if (inMonth(thisMonth)) return selected;
+  return inMonth(monthOffset(thisMonth, -1)) ? 'last' : '6';
+}
+function amountRangeFallback() {
+  const note = document.getElementById('amountRangeNote');
+  if (!note) return;
+  const selected = document.getElementById('chartRange')?.value || 'this';
+  const effective = effectiveChartRange();
+  if (effective === selected) { note.hidden = true; return; }
+  note.textContent = `本月还没有正式订单，先显示${effective === 'last' ? '上月' : '近 6 个月'}`;
+  note.hidden = false;
+}
+// 区间的月份写法：「2026年6月–11月」「2025年12月–2026年1月」，单月「2026年11月」。
+function monthSpanLabel(months = []) {
+  if (!months.length) return '';
+  const first = months[0], last = months.at(-1);
+  if (first === last) return monthLabel(first);
+  return first.slice(0, 4) === last.slice(0, 4)
+    ? `${monthLabel(first)}–${Number(last.slice(5))}月`
+    : `${monthLabel(first)}–${monthLabel(last)}`;
+}
+// 订单在金额页按天分桶的那一天：下单日在归属月份里就用下单日；老数据 / 导入的单两者不在同一个月时放到归属月份 1 号，
+// 保证按天的柱状图、汇总表合计和卡片一致（以前这种单卡片里算、图表和表格里没有）。
+function amountOrderDay(order = {}) {
+  const month = normalizeMonth(order.orderMonth || order.createdAt || order.updated);
+  const created = normalizeDate(order.createdAt || '');
+  return created && normalizeMonth(created) === month ? created : `${month}-01`;
 }
 function renderAmountReport() {
+  restoreAmountRangeChoice();
   amountRangeFallback();
   const selectedMonth = document.getElementById('amountMonth')?.value || 'all';
   const monthsForRange = chartMonths();
@@ -16515,37 +16885,55 @@ function renderAmountReport() {
   document.getElementById('reportOverdue').closest('.report-stat')?.classList.toggle('risk', overdueTotal > 0);
   const overdueSub = document.getElementById('reportOverdueSub');
   if (overdueSub) overdueSub.textContent = overdueOrders.length ? `全部订单 · ${overdueOrders.length} 笔 · 不跟时间范围` : '全部订单 · 不跟时间范围';
-  document.getElementById('reportCount').textContent = list.length;
+  // 订单数量、平均不算 0 元单（免费补发等），和工作台订单额卡的单数一致。
+  const counted = list.filter(o => orderAmountValue(o) > 0);
+  const zeroCount = list.length - counted.length;
+  document.getElementById('reportCount').textContent = counted.length;
   const total = usdTotal(list);
   const paidSub = document.getElementById('reportPaidSub');
-  if (paidSub) paidSub.textContent = `收款率 ${total ? Math.round(paidTotal / total * 100) : 0}%`;
+  if (paidSub) paidSub.textContent = `收款率 ${total ? Math.floor(paidTotal / total * 100) : 0}%`;
   const countSub = document.getElementById('reportCountSub');
-  if (countSub) countSub.textContent = list.length ? `平均 ${summaryMoney(total / list.length, 'USD')}` : '平均 -';
+  if (countSub) countSub.textContent = `${counted.length ? `平均 ${summaryMoney(total / counted.length, 'USD')}` : '平均 -'}${zeroCount ? ` · 另有 ${zeroCount} 张 0 元单不计` : ''}`;
+  // 数字卡选了某个月时，卡片标题带上那个月，看得出卡片和下面的图表不是同一段时间。
+  const cardMonthText = selectedMonth === 'all' ? '' : monthLabel(selectedMonth);
+  document.querySelectorAll('#amountKpiBoard .report-stat').forEach(card => {
+    const label = card.querySelector('.report-label');
+    if (!label || card.querySelector('#reportOverdue')) return;
+    if (!label.dataset.base) label.dataset.base = label.textContent;
+    label.textContent = cardMonthText ? `${cardMonthText} ${label.dataset.base}` : label.dataset.base;
+  });
   const rangeText = document.getElementById('amountRangeText');
-  if (rangeText) rangeText.textContent = monthsForRange.length ? (monthsForRange.length > 1 ? `${monthsForRange[0]} 至 ${monthsForRange.at(-1)}` : monthsForRange[0]) : '';
+  const effective = effectiveChartRange();
+  chartRangeShown = effective;
+  if (rangeText) {
+    // 自定义时下拉已经写了起止，不重复；数字卡单独选了月份时写清楚「数字卡」和「图表」各看哪段。
+    const span = effective === 'custom' ? '' : monthSpanLabel(monthsForRange);
+    rangeText.textContent = cardMonthText ? `数字卡：${cardMonthText} · 图表：${monthSpanLabel(monthsForRange)}` : span;
+  }
   document.getElementById('amount-report')?.classList.toggle('custom-range', document.getElementById('chartRange')?.value === 'custom');
   renderAmountChart();
   renderAmountBreakdowns(list);
   renderAmountTimeTable(selectedMonth);
 }
-function dateLabel(date) {
+function dateLabel(date, { withYear = false } = {}) {
   const d = parseDate(date);
   if (d.getFullYear() <= 1970) return '-';
-  return `${d.getMonth() + 1}月${d.getDate()}日`;
+  return `${withYear ? `${d.getFullYear()}年` : ''}${d.getMonth() + 1}月${d.getDate()}日`;
 }
 function amountTimeBucketKey(order, mode) {
   return mode === 'day'
-    ? normalizeDate(order.createdAt || order.updated || order.orderMonth)
+    ? amountOrderDay(order)
     : normalizeMonth(order.orderMonth || order.createdAt || order.updated);
 }
 function amountTimeTableConfig(selectedMonth = 'all') {
-  const chartRange = document.getElementById('chartRange')?.value || '6';
+  const chartRange = effectiveChartRange();
   if (selectedMonth !== 'all') {
     return {
     mode: 'day',
     label: `${monthLabel(selectedMonth)} · 按天统计`,
     orders: ordersByMonth(selectedMonth).filter(isRevenueOrder),
-    allowed: null
+    allowed: null,
+    crossYear: false
     };
   }
   const months = chartMonths();
@@ -16554,11 +16942,13 @@ function amountTimeTableConfig(selectedMonth = 'all') {
     mode: dayRange ? 'day' : 'month',
     label: `${chartRangeLabel(chartRange)} · ${dayRange ? '按天统计' : '按月统计'}`,
     orders: state.orders.filter(o => isRevenueOrder(o) && months.includes(normalizeMonth(o.orderMonth || o.createdAt || o.updated))),
-    allowed: new Set(months)
+    allowed: new Set(months),
+    crossYear: new Set(months.map(month => month.slice(0, 4))).size > 1
   };
 }
 function chartRangeLabel(range) {
-  const labels = { this:'本月', last:'上月', '1':'近1个月', '2':'近2个月', '6':'近6个月', '12':'近12个月', custom:'自定义', all:'全部月份' };
+  if (range === 'custom') return monthSpanLabel(chartMonths()) || '自定义';
+  const labels = { this:'本月', last:'上月', '1':'近1个月', '2':'近2个月', '6':'近6个月', '12':'近12个月', all:'全部月份' };
   return labels[range] || `${range}个月`;
 }
 function renderAmountTimeTable(selectedMonth = 'all') {
@@ -16582,21 +16972,22 @@ function renderAmountTimeTable(selectedMonth = 'all') {
   const rows = [...map.values()].sort((a, b) => b.key.localeCompare(a.key));
   const body = rows.map(row => {
     const avg = row.count ? row.total / row.count : 0;
-    const label = config.mode === 'day' ? dateLabel(row.key) : monthLabel(row.key);
+    const label = config.mode === 'day' ? dateLabel(row.key, { withYear:config.crossYear }) : monthLabel(row.key);
+    // 和卡片、分组一样用整数美元（表头写 USD），不再出现「$647.059 USD」。
     return `
       <div class="report-row report-row-compact amount-time-row">
         <div><strong>${escapeAttr(label)}</strong></div>
         <div>${row.count}单</div>
-        <div>${money(row.total, 'USD')}</div>
-        <div class="paid-amount">${money(row.paid, 'USD')}</div>
-        <div class="${row.due > 0 ? 'balance-amount' : 'paid-amount'}">${row.due > 0 ? money(row.due, 'USD') : '-'}</div>
-        <div>${money(avg, 'USD')}</div>
+        <div>${summaryMoney(row.total, 'USD')}</div>
+        <div class="paid-amount">${summaryMoney(row.paid, 'USD')}</div>
+        <div class="${row.due > 0 ? 'balance-amount' : 'paid-amount'}">${row.due > 0 ? summaryMoney(row.due, 'USD') : '-'}</div>
+        <div>${summaryMoney(avg, 'USD')}</div>
       </div>
     `;
   }).join('');
   el.innerHTML = `
     <div class="amount-table-title">时间金额汇总 <span>${escapeAttr(config.label)}</span></div>
-    <div class="report-row head report-row-compact amount-time-row"><div>时间</div><div>订单数</div><div>订单总额</div><div>已收</div><div>尾款</div><div>客单价</div></div>
+    <div class="report-row head report-row-compact amount-time-row"><div>时间</div><div>订单数</div><div>订单总额 USD</div><div>已收</div><div>待收</div><div>客单价</div></div>
     ${body || '<div class="empty">这个时间范围暂无订单。</div>'}
   `;
 }
@@ -16609,7 +17000,14 @@ function groupedStats(orders, getter) {
     current.count += 1;
     map.set(key, current);
   });
-  return [...map.values()].sort((a, b) => b.amount - a.amount).slice(0, 6);
+  return [...map.values()].sort((a, b) => b.amount - a.amount);
+}
+// 分组只列前 limit 项，其余合成一行「其他 N 项」：各行合计 = 订单额（以前只列前 6、环图只拿前 4 算百分比）。
+function foldGroupedStats(rows = [], limit = 6) {
+  if (rows.length <= limit) return rows;
+  const head = rows.slice(0, limit - 1);
+  const rest = rows.slice(limit - 1);
+  return [...head, { name:`其他 ${rest.length} 项`, amount:rest.reduce((sum, r) => sum + r.amount, 0), count:rest.reduce((sum, r) => sum + r.count, 0), other:true, title:rest.map(r => r.name).join('、') }];
 }
 function renderBreakdownCard(title, rows, sub = '') {
   const max = Math.max(...rows.map(r => r.amount), 1);
@@ -16618,7 +17016,7 @@ function renderBreakdownCard(title, rows, sub = '') {
       <div class="breakdown-title">${title}${sub ? `<span>${escapeAttr(sub)}</span>` : ''}</div>
       ${rows.map(r => `
         <div class="breakdown-row">
-          <div class="breakdown-head"><span>${escapeAttr(r.name)} · ${r.count} 单</span><strong>${summaryMoney(r.amount, 'USD')}</strong></div>
+          <div class="breakdown-head"${r.title ? ` title="${escapeAttr(r.title)}"` : ''}><span>${escapeAttr(r.name)} · ${r.count} 单</span><strong>${summaryMoney(r.amount, 'USD')}</strong></div>
           <div class="breakdown-track"><div class="breakdown-fill" style="width:${Math.max(4, Math.round((r.amount / max) * 100))}%"></div></div>
         </div>
       `).join('') || '<div class="muted">暂无数据。</div>'}
@@ -16629,21 +17027,69 @@ function renderAmountBreakdowns(orders) {
   const el = document.getElementById('amountBreakdowns');
   if (!el) return;
   const selectedMonth = document.getElementById('amountMonth')?.value || 'all';
-  const sub = selectedMonth === 'all' ? chartRangeLabel(document.getElementById('chartRange')?.value || '6') : `${Number(selectedMonth.slice(5))} 月明细`;
+  const sub = selectedMonth === 'all' ? chartRangeLabel(effectiveChartRange()) : `${monthLabel(selectedMonth)}明细`;
   el.innerHTML = [
-    renderBreakdownCard('按产品', groupedStats(orders, o => o.productType), sub),
-    renderBreakdownCard('按收款方式', groupedStats(orders, o => o.paymentChannel), sub),
-    renderBreakdownCard('按国家地区', groupedStats(orders, o => storedCountry(o.country)), sub)
+    renderBreakdownCard('按产品', foldGroupedStats(groupedStats(orders, o => o.productType)), sub),
+    renderBreakdownCard('按收款方式', foldGroupedStats(groupedStats(orders, o => o.paymentChannel)), sub),
+    renderBreakdownCard('按国家地区', foldGroupedStats(groupedStats(orders, o => storedCountry(o.country))), sub)
   ].join('');
+}
+// 业绩目标页正在看的月份：默认本月（以前取列表第一项，有下月预订单时就是下个月）；工作台目标卡、近月记录的行可以改它。
+let targetPageMonth = '';
+// 目标金额框里还没保存的输入：{ month, text }。重画（汇率到达、物流更新、换页回来）不覆盖它。
+let targetDraft = null;
+// 目标页的月份：去年 1 月到明年 12 月（可以提前设下个月、明年的目标），加上有订单 / 设过目标的月份，新的在前。
+function targetMonthOptions() {
+  const year = new Date().getFullYear();
+  const fixed = monthsBetween(`${year - 1}-01`, `${year + 1}-12`);
+  return Array.from(new Set([...fixed, ...orderMonths(), ...Object.keys(state.performanceTargets || {})]))
+    .filter(month => /^\d{4}-(0[1-9]|1[0-2])$/.test(month)).sort().reverse();
+}
+// 目标页的月份名：今年的写「11 月」，别的年份带年份。
+function targetMonthName(month) {
+  return dashboardMonthName(month);
+}
+// 解析目标金额：去掉空格、千分位、$ / USD / 美元，全角转半角，支持「5万」「5w」「50k」。
+// 解析不了、负数、0 都不保存（以前 Number('') = 0 直接删掉这个月的目标，「5万」存成 $5）。
+function parseTargetAmount(raw = '') {
+  let text = String(raw || '').replace(/[！-～]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0)).replace(/　/g, ' ');
+  text = text.replace(/[\s,，]/g, '').replace(/^(usd|us\$|\$)/i, '').replace(/(usd|美元|美金|刀)$/i, '').replace(/^\$/, '');
+  if (!text) return { ok:false, empty:true, error:'请填写目标金额，例如 50000 或 5万' };
+  if (/^-/.test(text)) return { ok:false, error:'目标金额不能是负数；要清除目标请点「清除这个月的目标」' };
+  const match = text.match(/^(\d+(?:\.\d+)?|\.\d+)(万|w|k|千)?$/i);
+  if (!match) return { ok:false, error:'请填数字，例如 50000、50,000 或 5万' };
+  const unit = (match[2] || '').toLowerCase();
+  const value = Math.round(Number(match[1]) * (unit === '万' || unit === 'w' ? 10000 : unit === 'k' || unit === '千' ? 1000 : 1) * 100) / 100;
+  if (!(value > 0)) return { ok:false, error:'目标金额要大于 0；要清除目标请点「清除这个月的目标」' };
+  if (value > 1e10) return { ok:false, error:'金额太大了，请检查是不是多打了 0' };
+  return { ok:true, value };
+}
+function setTargetHint(text = '', tone = '') {
+  const hint = document.getElementById('targetInputHint');
+  const input = document.getElementById('targetAmountInput');
+  if (hint) {
+    hint.textContent = text;
+    hint.classList.toggle('error', tone === 'error');
+    hint.classList.toggle('dirty', tone === 'dirty');
+  }
+  if (input) {
+    if (tone === 'error') input.setAttribute('aria-invalid', 'true');
+    else input.removeAttribute('aria-invalid');
+  }
 }
 function renderPerformanceTargets() {
   const monthSel = document.getElementById('targetMonth');
   if (!monthSel) return;
-  const months = orderMonths();
-  const selected = monthSel.value || normalizeMonth(new Date().toISOString());
-  const targetMonths = Array.from(new Set([...months, ...Object.keys(state.performanceTargets || {})])).sort().reverse();
-  monthSel.innerHTML = targetMonths.map(m => `<option value="${m}">${monthLabel(m)}</option>`).join('');
-  monthSel.value = targetMonths.includes(selected) ? selected : (targetMonths[0] || normalizeMonth(new Date().toISOString()));
+  const currentMonth = normalizeMonth(new Date().toISOString());
+  const targetMonths = targetMonthOptions();
+  const wanted = targetPageMonth || currentMonth;
+  const key = targetMonths.join(',');
+  if (monthSel.dataset.monthOptions !== key) {
+    monthSel.innerHTML = targetMonths.map(m => `<option value="${m}">${monthLabel(m)}${m === currentMonth ? ' · 本月' : ''}</option>`).join('');
+    monthSel.dataset.monthOptions = key;
+  }
+  monthSel.value = targetMonths.includes(wanted) ? wanted : currentMonth;
+  targetPageMonth = monthSel.value;
 
   const month = monthSel.value;
   const orders = ordersByMonth(month).filter(isRevenueOrder);
@@ -16651,59 +17097,176 @@ function renderPerformanceTargets() {
   const goal = targetForMonth(month);
   const rate = targetRate(actual, goal);
   const gap = Math.max(0, goal - actual);
-  document.getElementById('targetAmountInput').value = goal || '';
+  const input = document.getElementById('targetAmountInput');
+  // 输入框里有没保存的内容（同一个月）就不覆盖：以前汇率到达、后台重画都会把刚打的数字改回旧值。
+  if (targetDraft && targetDraft.month === month) {
+    if (document.activeElement !== input && input.value !== targetDraft.text) input.value = targetDraft.text;
+    if (!document.getElementById('targetInputHint')?.classList.contains('error')) setTargetHint(`${monthLabel(month)}的目标还没保存 · 按回车或点「保存目标」`, 'dirty');
+  } else {
+    targetDraft = null;
+    input.value = goal ? String(goal) : '';
+    setTargetHint(goal ? '' : '可以填 50000、50,000 或 5万');
+  }
+  const clearBtn = document.getElementById('clearTargetBtn');
+  if (clearBtn) clearBtn.hidden = !goal;
   document.getElementById('targetGoal').textContent = goal ? summaryMoney(goal, 'USD') : '未设置';
   document.getElementById('targetActual').textContent = summaryMoney(actual, 'USD');
   document.getElementById('targetRate').textContent = goal ? `${rate}%` : '未设';
   const over = goal && actual >= goal;
+  const exact = over && Math.round(actual) === Math.round(goal);
   document.getElementById('targetGap').textContent = goal ? summaryMoney(over ? actual - goal : gap, 'USD') : '-';
   document.getElementById('targetGap').classList.toggle('over', Boolean(over));
   const gapLabel = document.getElementById('targetGapLabel');
   if (gapLabel) gapLabel.textContent = over ? '超出' : '差额';
   document.getElementById('targetOrderCount').textContent = orders.length;
   // 百万级金额（$1,234,568）字数多，卡又窄，单独缩小一档，避免溢出。
-  ['targetGoal', 'targetActual', 'targetGap'].forEach(id => { const el = document.getElementById(id); el.classList.toggle('is-long', el.textContent.length > 8); });
-  document.getElementById('targetMonthBadge').textContent = `${Number(month.slice(5))} 月`;
+  ['targetGoal', 'targetActual', 'targetGap'].forEach(id => {
+    const el = document.getElementById(id);
+    el.classList.toggle('is-long', el.textContent.length > 8);
+    el.title = el.textContent.length > 12 ? el.textContent : '';
+  });
+  document.getElementById('targetMonthBadge').textContent = targetMonthName(month);
   const ring = document.getElementById('targetProgress');
   ring.setAttribute('stroke-dasharray', `${goal ? Math.min(100, rate) : 0} 100`);
   ring.classList.toggle('done', Boolean(over));
+  const future = month > currentMonth;
   document.getElementById('targetProgressText').textContent = goal
-    ? (rate >= 100 ? `已经超出目标 ${summaryMoney(actual - goal, 'USD')}。` : `完成 ${summaryMoney(actual, 'USD')}，还差 ${summaryMoney(gap, 'USD')}。`)
+    ? (exact ? '刚好完成目标。' : over ? `已经超出目标 ${summaryMoney(actual - goal, 'USD')}。` : future && !actual ? `${monthLabel(month)}还没开始，目标 ${summaryMoney(goal, 'USD')}。` : `完成 ${summaryMoney(actual, 'USD')}，还差 ${summaryMoney(gap, 'USD')}。`)
     : `${monthLabel(month)} 暂未设置业绩目标`;
 
-  const currentMonth = normalizeMonth(new Date().toISOString());
-  document.getElementById('targetHistoryList').innerHTML = targetMonths.slice(0, 8).map(m => {
+  // 近月目标记录：只列设过目标的月份 + 本月（按时间倒序），行可以点 / 回车，切到那个月。
+  const historyMonths = Array.from(new Set([currentMonth, ...Object.keys(state.performanceTargets || {}).filter(m => targetForMonth(m) > 0)])).sort().reverse();
+  document.getElementById('targetHistoryList').innerHTML = historyMonths.map(m => {
     const monthOrders = ordersByMonth(m).filter(isRevenueOrder);
     const monthActual = usdTotal(monthOrders);
     const monthGoal = targetForMonth(m);
     const monthRate = targetRate(monthActual, monthGoal);
     const progress = monthGoal ? Math.min(100, monthRate) : 0;
     const monthOver = monthGoal && monthActual >= monthGoal;
+    const notStarted = m > currentMonth;
     const diff = Math.abs(monthActual - monthGoal);
+    const diffCell = !monthGoal ? '<span class="muted">-</span>'
+      : notStarted ? '<span class="pending">未开始</span>'
+        : `<span class="${monthOver ? 'over' : 'under'}">${monthOver ? '+' : '−'}${summaryMoney(diff, 'USD')}</span>`;
     return `
-      <div class="target-history-row ${m === month ? 'selected' : ''}">
-        <span class="target-history-month">${escapeAttr(m)}${m === currentMonth ? '<i class="target-history-now">当前</i>' : ''}</span>
+      <div class="target-history-row ${m === month ? 'selected' : ''}" role="button" tabindex="0" data-target-pick="${m}" aria-label="${escapeAttr(monthLabel(m))}，${monthGoal ? `目标 ${summaryMoney(monthGoal, 'USD')}，完成 ${monthRate}%` : '未设置目标'}"${m === month ? ' aria-current="true"' : ''}>
+        <span class="target-history-month">${escapeAttr(monthLabel(m))}${m === currentMonth ? '<i class="target-history-now">当前</i>' : ''}</span>
         <span class="target-history-amount">${monthGoal ? summaryMoney(monthGoal, 'USD') : '未设置'}</span>
-        <div class="target-history-values"><span>${summaryMoney(monthActual, 'USD')}</span><span class="${monthGoal ? (monthOver ? 'over' : 'under') : 'muted'}">${monthGoal ? `${monthOver ? '+' : '−'}${summaryMoney(diff, 'USD')}` : '-'}</span></div>
+        <div class="target-history-values"><span>${summaryMoney(monthActual, 'USD')}</span>${diffCell}</div>
         <div class="target-history-progress">
           <div class="target-history-track"><div class="target-history-fill ${monthGoal ? (monthOver ? 'done' : '') : 'empty'}" style="width:${progress}%"></div></div>
-          <small class="target-history-rate ${monthGoal ? '' : 'empty'}">${monthGoal ? monthRate + '%' : '未设'}</small>
+          <small class="target-history-rate ${monthGoal ? '' : 'empty'}">${monthGoal ? (notStarted ? '未开始' : monthRate + '%') : '未设'}</small>
         </div>
         <span class="target-history-count">${monthOrders.length}</span>
       </div>
     `;
   }).join('');
 }
-function chartMonths() {
-  const range = document.getElementById('chartRange')?.value || '6';
-  const months = orderMonths();
-  if (range === 'all') return months.slice().reverse();
-  if (range === 'this') return [normalizeMonth(new Date().toISOString())];
-  if (range === 'last') return [monthOffset(normalizeMonth(new Date().toISOString()), -1)];
+// 保存目标：解析失败不保存、红字说明；比上一个目标和上月实际都大 10 倍以上时先问一次（防多打 0）。
+async function saveTargetFromInput() {
+  const month = document.getElementById('targetMonth').value || normalizeMonth(new Date().toISOString());
+  const input = document.getElementById('targetAmountInput');
+  const parsed = parseTargetAmount(input.value);
+  if (!parsed.ok) {
+    setTargetHint(parsed.error, 'error');
+    input.focus();
+    return false;
+  }
+  const amount = parsed.value;
+  const previous = targetForMonth(month);
+  const earlierGoals = Object.entries(state.performanceTargets || {}).filter(([m, v]) => m !== month && Number(v) > 0).sort(([a], [b]) => b.localeCompare(a));
+  const lastMonthActual = usdTotal(ordersByMonth(monthOffset(month, -1)).filter(isRevenueOrder));
+  const base = Math.max(previous, Number(earlierGoals[0]?.[1] || 0), lastMonthActual);
+  if (base > 0 && amount > base * 10) {
+    const answer = await appConfirm({
+      title:'目标比平时大很多',
+      sub:'确认金额',
+      message:`${monthLabel(month)}的目标填的是 ${summaryMoney(amount, 'USD')}，是平时（${summaryMoney(base, 'USD')}）的 ${Math.round(amount / base)} 倍。是不是多打了 0？`,
+      confirmText:'就是这个数',
+      cancelText:'回去改',
+      defaultFocus:'cancel'
+    });
+    if (!answer.confirmed) { input.focus(); return false; }
+  }
+  state.performanceTargets = state.performanceTargets || {};
+  state.performanceTargets[month] = amount;
+  targetDraft = null;
+  render();
+  toast(`${monthLabel(month)}目标已设为 ${summaryMoney(amount, 'USD')}`, { desc:'工作台的目标卡已同步', undo:() => {
+    if (previous > 0) state.performanceTargets[month] = previous;
+    else delete state.performanceTargets[month];
+    targetDraft = null;
+    render();
+  } });
+  return true;
+}
+async function clearTargetForMonth() {
+  const month = document.getElementById('targetMonth').value || normalizeMonth(new Date().toISOString());
+  const previous = targetForMonth(month);
+  if (!previous) return;
+  const answer = await appConfirm({
+    title:'清除业绩目标',
+    sub:monthLabel(month),
+    message:`清除 ${monthLabel(month)} 的目标 ${summaryMoney(previous, 'USD')}？清除后工作台目标卡显示「未设」，6 秒内可以撤销。`,
+    confirmText:'清除目标',
+    cancelText:'取消',
+    danger:true
+  });
+  if (!answer.confirmed) return;
+  delete state.performanceTargets[month];
+  targetDraft = null;
+  render();
+  toast(`${monthLabel(month)}的目标已清除`, { undo:() => {
+    state.performanceTargets[month] = previous;
+    targetDraft = null;
+    render();
+  } });
+}
+// 换月份时目标框里还有没保存的数：先问「保存 / 放弃 / 继续编辑」，不再悄悄丢掉。
+async function changeTargetMonth(nextMonth) {
+  const monthSel = document.getElementById('targetMonth');
+  const fromMonth = targetPageMonth;
+  if (targetDraft && targetDraft.month === fromMonth && nextMonth !== fromMonth) {
+    monthSel.value = fromMonth;
+    const answer = await appConfirm({
+      title:'目标还没保存',
+      sub:monthLabel(fromMonth),
+      message:`${monthLabel(fromMonth)}的目标改成了「${targetDraft.text}」，还没保存。`,
+      confirmText:'保存后切换',
+      altText:'放弃修改',
+      cancelText:'继续编辑'
+    });
+    if (answer.confirmed) {
+      const saved = await saveTargetFromInput();
+      if (!saved) return;
+    } else if (answer.alt) {
+      targetDraft = null;
+    } else {
+      renderPerformanceTargets();
+      return;
+    }
+  }
+  targetPageMonth = nextMonth;
+  renderPerformanceTargets();
+}
+// 区间里的月份，一律连续：
+// - 「近 N 个月」= 到本月为止的 N 个月（以前取「出现过订单的月份」里最新的 N 个，有下月预订单时「近 1 个月」全是 $0、
+//   「近 6 个月」少掉最早一个月；年份打错的草稿还会让区间不连续）。
+// - 「全部月份」= 最早一张正式订单的月份 到 max(本月, 最晚一张正式订单的月份)，中间没单的月份也占一格；草稿不算。
+function chartMonths(range = effectiveChartRange()) {
+  const thisMonth = normalizeMonth(new Date().toISOString());
+  if (range === 'all') {
+    const formal = state.orders.filter(isRevenueOrder).map(o => normalizeMonth(o.orderMonth || o.createdAt || o.updated)).filter(Boolean).sort();
+    if (!formal.length) return [thisMonth];
+    return monthsBetween(formal[0] < thisMonth ? formal[0] : thisMonth, formal.at(-1) > thisMonth ? formal.at(-1) : thisMonth);
+  }
+  if (range === 'this') return [thisMonth];
+  if (range === 'last') return [monthOffset(thisMonth, -1)];
   if (range === 'custom') {
     return monthsBetween(document.getElementById('chartFrom')?.value, document.getElementById('chartTo')?.value);
   }
-  return months.slice(0, Number(range)).reverse();
+  const count = Math.max(1, Number(range) || 6);
+  return monthsBetween(monthOffset(thisMonth, -(count - 1)), thisMonth);
 }
 function daysInMonth(month) {
   const [year, monthNum] = String(month || '').split('-').map(Number);
@@ -16717,7 +17280,7 @@ function compactDayLabel(date) {
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 function amountChartConfig() {
-  const range = document.getElementById('chartRange')?.value || '6';
+  const range = effectiveChartRange();
   const months = chartMonths();
   const dayRange = ['this','last','1','2','custom'].includes(range) && months.length <= 2;
   const mode = dayRange ? 'day' : 'month';
@@ -16725,7 +17288,7 @@ function amountChartConfig() {
   const rangeOrders = state.orders.filter(order => isRevenueOrder(order) && months.includes(normalizeMonth(order.orderMonth || order.createdAt || order.updated)));
   const data = keys.map(key => {
     const orders = rangeOrders.filter(order => mode === 'day'
-      ? normalizeDate(order.createdAt || order.updated || order.orderMonth) === key
+      ? amountOrderDay(order) === key
       : normalizeMonth(order.orderMonth || order.createdAt || order.updated) === key);
     return {
       key,
@@ -16753,21 +17316,25 @@ function renderAmountChart() {
   const bar = Math.max(3, Math.min(28, slot * .32));
   const y = value => pad.top + chartH - (value / max) * chartH;
   const k = value => value >= 1000 ? `${(value / 1000).toFixed(value >= 10000 || value % 1000 === 0 ? 0 : 1)}k` : `${Math.round(value)}`;
-  const axisLabel = (d, i) => mode === 'day' ? d.label : (i === 0 || d.key.endsWith('-01') ? `${d.key.slice(2, 4)}年${Number(d.key.slice(5))}月` : `${Number(d.key.slice(5))}月`);
+  // 按月：第一根和每年 1 月写年份；按天跨年时，第一天和每月 1 号写年份（「25/12/1」），看得出是哪一年。
+  const crossYear = new Set(data.map(d => d.key.slice(0, 4))).size > 1;
+  const axisLabel = (d, i) => mode === 'day'
+    ? (crossYear && (i === 0 || d.key.endsWith('-01')) ? `${d.key.slice(2, 4)}/${d.label}` : d.label)
+    : (i === 0 || d.key.endsWith('-01') ? `${d.key.slice(2, 4)}年${Number(d.key.slice(5))}月` : `${Number(d.key.slice(5))}月`);
   const grid = [0, .25, .5, .75, 1].map(r => {
     const gy = pad.top + chartH - chartH * r;
     return `<line class="chart-grid-line" x1="${pad.left}" y1="${gy}" x2="${pad.left + chartW}" y2="${gy}"></line><text class="chart-axis chart-axis-y" x="${pad.left - 8}" y="${gy + 4}" text-anchor="end">${k(max * r)}</text>`;
   }).join('');
   const labelEvery = mode === 'day' ? Math.ceil(data.length / 10) : 1;
   el.innerHTML = `
-    <svg class="trend-chart bar-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="订单总额与已付款柱状图">
+    <svg class="trend-chart bar-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="订单总额与已收柱状图">
       ${grid}
       ${data.map((d, i) => {
         const cx = pad.left + slot * i + slot / 2;
         const totalY = y(d.total), paidY = y(d.paid);
         return `
         <g>
-          <title>${escapeAttr(d.label)}：订单总额 ${summaryMoney(d.total, 'USD')} · 已付款 ${summaryMoney(d.paid, 'USD')}</title>
+          <title>${escapeAttr(d.label)}：订单总额 ${summaryMoney(d.total, 'USD')} · 已收 ${summaryMoney(d.paid, 'USD')}</title>
           <rect class="chart-bar" x="${cx - bar - 1}" y="${totalY}" width="${bar}" height="${pad.top + chartH - totalY}" rx="${Math.min(4, bar / 3)}"></rect>
           <rect class="chart-bar paid" x="${cx + 1}" y="${paidY}" width="${bar}" height="${pad.top + chartH - paidY}" rx="${Math.min(4, bar / 3)}"></rect>
           ${d.total && mode === 'month' ? `<text class="chart-value" x="${cx}" y="${Math.max(12, totalY - 7)}" text-anchor="middle">${k(d.total)}</text>` : ''}
@@ -16788,8 +17355,8 @@ function renderAmountSideChart(orders) {
       return { name: stage.name, amount: usdTotal(stageOrders), count: stageOrders.length, tone: `stage-tone-${stage.key}` };
     })
     .filter(item => item.amount > 0 || item.count > 0);
-  const paymentGroups = groupedStats(orders, o => paymentShortLabel(o.paymentChannel)).slice(0, 4);
-  const productGroups = groupedStats(orders, o => o.productType).slice(0, 4);
+  const paymentGroups = foldGroupedStats(groupedStats(orders, o => paymentShortLabel(o.paymentChannel)), 5);
+  const productGroups = foldGroupedStats(groupedStats(orders, o => o.productType), 5);
   const views = {
     stage: { title: '阶段金额', groups: stageGroups },
     payment: { title: '收款方式', groups: paymentGroups },
@@ -16826,7 +17393,7 @@ function renderAmountSideChart(orders) {
   el.innerHTML = `
     <div>
       <div class="side-chart-title">${escapeAttr(views[amountStructureView].title)}构成</div>
-      <div class="side-chart-sub">${escapeAttr(chartRangeLabel(document.getElementById('chartRange')?.value || '6'))} · 点击切换结构</div>
+      <div class="side-chart-sub">${escapeAttr(chartRangeLabel(effectiveChartRange()))} · 点击切换结构</div>
     </div>
     <div class="side-chart-tabs">
       <button class="side-chart-tab ${amountStructureView === 'stage' ? 'active' : ''}" type="button" data-amount-structure="stage">阶段</button>
@@ -18016,7 +18583,7 @@ function renderTasks() {
     btn.innerHTML = `${{ all:'全部', payment:'收款', follow:'跟进', urgent:'加急', repurchase:'复购', logistics:'物流', snoozed:'稍后', done:'已处理' }[type] || btn.textContent}<span class="c">${n}</span>`;
   });
   if (summaryEl) summaryEl.innerHTML = '';
-  document.getElementById('statTasks').textContent = dueToday.length;
+  document.getElementById('statTasks').textContent = isMacAppMode() && !macStateReady ? '—' : dueToday.length;
   if (!shown.length) {
     el.innerHTML = `<div class="empty">${listMode === 'done' ? '没有已处理的待办。点过「完成」的提醒会在这里留到再提醒那天，可以恢复。' : listMode === 'snoozed' ? '今天没有暂缓的待办。' : '当前筛选下没有待办。'}</div>`;
     return;
@@ -18052,8 +18619,8 @@ function renderTasks() {
     : taskListExpanded && ordered.length > taskListLimit ? '<button class="task-more" type="button" data-task-more="collapse">收起</button>' : '';
   el.innerHTML = rows.join('') + more;
 }
-function renderCalendarTaskRows(tasks) {
-  if (!tasks.length) return '<div class="empty">当天暂无任务。</div>';
+function renderCalendarTaskRows(tasks, toneOf = {}) {
+  if (!tasks.length) return '';
   return `
     <div class="calendar-task-list">
       ${tasks.map(item => `
@@ -18062,25 +18629,49 @@ function renderCalendarTaskRows(tasks) {
             <div class="task-title">${escapeAttr(item.title)}</div>
             <div class="task-sub">${escapeAttr(item.reason)} · ${escapeAttr(item.detail || '')}</div>
             <div class="task-meta">
-              <span class="tag ${item.tagClass}">${escapeAttr(item.tag)}</span>
+              <span class="calendar-event calendar-drawer-tag ${toneOf[item.id] || 'repurchase'}">${escapeAttr(item.tag)}</span>
               <span class="muted">${escapeAttr(item.value || '')}</span>
             </div>
           </div>
           <div class="task-actions">
-            ${taskActionButtons(item, { snooze:true, short:true })}
-            <button class="task-action-btn done" type="button" data-task-action="done">${escapeAttr(taskDoneLabel(item))}</button>
+            ${taskActionButtons(item, { snooze:normalizeDate(item.date || '') <= normalizeDate(new Date().toISOString()), short:true })}
+            <button class="task-action-btn done" type="button" data-task-action="done"${calendarTaskIsDateBound(item) ? ' title="只关掉这条提醒，日历上的日期还在"' : ''}>${escapeAttr(calendarTaskIsDateBound(item) ? '不再提醒' : taskDoneLabel(item))}</button>
           </div>
         </div>
       `).join('')}
     </div>
   `;
 }
+// 将来日期上的发货期限 / 加急：「完成」只关提醒，日历上的交期还在，所以叫「不再提醒」；也不给「稍后」（稍后到明天说不通）。
+function calendarTaskIsDateBound(item = {}) {
+  return ['ship', 'urgent'].includes(item.type) && normalizeDate(item.date || '') > normalizeDate(new Date().toISOString());
+}
+// 当天抽屉：「待处理」放提醒和动作，「当天记录」放下单、交期、物流、新客户、续费（以前只列提醒，「+10 更多」点开是「当天暂无任务」）。
 function openCalendarTaskDrawer(date) {
   selectedCalendarDate = normalizeDate(date || new Date().toISOString());
-  const tasks = buildTaskItems().filter(item => calendarTaskDate(item) === selectedCalendarDate);
+  const dayEvents = calendarEventsInRange(selectedCalendarDate, selectedCalendarDate);
+  const taskIds = new Set(dayEvents.map(event => event.taskId).filter(Boolean));
+  const toneOf = Object.fromEntries(dayEvents.filter(event => event.taskId).map(event => [event.taskId, calendarEventTone(event)]));
+  const tasks = buildTaskItems().filter(item => taskIds.has(item.id));
+  const records = dayEvents.filter(event => !event.taskId || event.type === 'deadline');
   document.getElementById('calendarTaskDate').textContent = selectedCalendarDate;
-  document.getElementById('calendarTaskTitle').textContent = `${monthDayLabel(selectedCalendarDate)} 任务`;
-  document.getElementById('calendarTaskBody').innerHTML = renderCalendarTaskRows(tasks);
+  document.getElementById('calendarTaskTitle').textContent = `${calendarDayTitle(selectedCalendarDate)} · ${dayEvents.length} 件`;
+  const recordAction = event => event.orderId ? `<button class="task-action-btn" type="button" data-calendar-order-id="${escapeAttr(event.orderId)}">打开订单</button>`
+    : event.subId ? `<button class="task-action-btn" type="button" data-calendar-sub="${escapeAttr(event.subId)}">打开续费</button>`
+      : event.client ? `<button class="task-action-btn" type="button" data-calendar-client="${escapeAttr(event.client)}">打开客户</button>` : '';
+  const recordRows = records.map(event => `
+    <div class="calendar-record${event.faded ? ' faded' : ''}">
+      <span class="agenda-dot ${calendarEventTone(event)}" aria-hidden="true"></span>
+      <div class="calendar-record-main"><div class="calendar-record-title">${event.badge ? `<i class="calendar-badge">${escapeAttr(event.badge)}</i>` : ''}${escapeAttr(event.label)}</div><div class="task-sub">${escapeAttr(event.sub || '')}</div></div>
+      ${recordAction(event)}
+    </div>`).join('');
+  const body = [
+    tasks.length ? `<div class="calendar-drawer-section">待处理 · ${tasks.length}</div>${renderCalendarTaskRows(tasks, toneOf)}` : '',
+    records.length ? `<div class="calendar-drawer-section">当天记录 · ${records.length}</div><div class="calendar-record-list">${recordRows}</div>` : '',
+    !tasks.length && !records.length ? '<div class="empty">这一天没有安排。</div>' : '',
+    `<div class="calendar-drawer-foot"><button class="btn btn-small" type="button" data-calendar-new-order>新建订单</button></div>`
+  ].join('');
+  document.getElementById('calendarTaskBody').innerHTML = body;
   setModalOpenState('calendarTaskDrawer', true);
   resetModalScroll('#calendarTaskDrawer');
 }
@@ -18123,8 +18714,21 @@ function postponeRepurchase(client, days) {
     render();
   } });
 }
+// 抽屉里处理完一条：重画后焦点放到下一条的第一个按钮（没有下一条就放到标题），键盘用户不用从头 Tab 进来。
 function refreshCalendarTaskDrawer() {
-  if (document.getElementById('calendarTaskDrawer')?.classList.contains('open')) openCalendarTaskDrawer(selectedCalendarDate);
+  const drawer = document.getElementById('calendarTaskDrawer');
+  if (!drawer?.classList.contains('open')) return;
+  const body = document.getElementById('calendarTaskBody');
+  const active = document.activeElement;
+  const rowsBefore = [...body.querySelectorAll('.calendar-task-list [data-task-id]')];
+  const activeRow = active?.closest?.('.calendar-task-list [data-task-id]');
+  const index = activeRow ? rowsBefore.indexOf(activeRow) : -1;
+  const hadFocus = drawer.contains(active);
+  openCalendarTaskDrawer(selectedCalendarDate);
+  if (!hadFocus || index < 0) return;
+  const rowsAfter = [...body.querySelectorAll('.calendar-task-list [data-task-id]')];
+  const target = (rowsAfter[index] || rowsAfter[index - 1])?.querySelector('button') || document.getElementById('calendarTaskTitle');
+  target?.focus({ preventScroll:true });
 }
 function findTaskItem(id) {
   return buildTaskItems({ includeDone:true, includeSnoozed:true }).find(item => item.id === id);
@@ -19246,6 +19850,9 @@ function buildCustomerSavePayload(data = {}, previousProfile = {}, oldName = '',
     permanentNote: String(data.permanentNote || '').trim(),
     updated: nowText()
   };
+  // 建档日：新建时记下来，以后改资料不动它（日历的「新客户」按它画；以前只有 updated，改一句备注就挪到今天）。
+  const createdAt = previousProfile.createdAt || (oldName ? (previousHistory.map(item => String(item?.time || '')).filter(Boolean).sort()[0] || '') : nowText());
+  if (createdAt) nextProfile.createdAt = createdAt;
   const historyEntry = {
     time: nowText(),
     text: oldName ? customerChangeSummary({ client: oldName, ...previousProfile }, nextProfile) : '新建客户档案'
@@ -23915,20 +24522,52 @@ document.getElementById('totalRange').addEventListener('change', e => {
   saveDashboardAmountMonth(e.target.value);
   render();
 });
+// 点金额（或按回车 / 空格）切换「订单额 USD ⇄ 已收款 RMB」；走 render()，数字有上滚动画。
+function toggleAmountStatMode() {
+  amountStatMode = amountStatMode === 'paidRmb' ? 'totalUsd' : 'paidRmb';
+  render();
+}
 document.getElementById('statAmount').addEventListener('click', e => {
   e.stopPropagation();
-  amountStatMode = amountStatMode === 'paidRmb' ? 'totalUsd' : 'paidRmb';
-  renderStats();
+  toggleAmountStatMode();
 });
-document.getElementById('amountMonth').addEventListener('change', render);
-document.getElementById('chartRangeSegments')?.addEventListener('click', e => {
-  const btn = e.target.closest('[data-segment-value]');
-  if (!btn) return;
+document.getElementById('statAmount').addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  e.preventDefault();
+  e.stopPropagation();
+  toggleAmountStatMode();
+});
+// 「进行中订单」「待收款」卡：跳订单列表的同口径快捷筛选（原型就是这样）。
+function jumpToOrderListQuick(quick) {
+  if (isMacAppMode() && !macStateReady) return;
+  resetOrderListFilters();
+  orderListQuickFilter = quick;
+  setPage('order-list');
+  renderOrderListPage();
+}
+[['activeOrdersStat', 'active'], ['paymentStat', 'unpaid']].forEach(([id, quick]) => {
+  const card = document.getElementById(id);
+  card?.addEventListener('click', () => jumpToOrderListQuick(quick));
+  card?.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    jumpToOrderListQuick(quick);
+  });
+});
+document.getElementById('amountMonth').addEventListener('change', () => { saveAmountRangeChoice(); render(); });
+// 选「自定义」时起止先设成刚才看的那段（例如从「上月」切过来就是上月），只改一头就能扩展区间。
+let chartRangeShown = 'this';
+document.getElementById('chartRange')?.addEventListener('change', e => {
+  if (e.target.value === 'custom') {
+    const months = chartMonths(chartRangeShown === 'custom' ? 'custom' : chartRangeShown);
+    if (months.length) {
+      fillMonthOptions(document.getElementById('chartFrom'), orderMonths(), months[0]);
+      fillMonthOptions(document.getElementById('chartTo'), orderMonths(), months.at(-1));
+    }
+  }
   chartRangeTouched = true;
-  document.getElementById('chartRange').value = btn.dataset.segmentValue;
-  render();
+  saveAmountRangeChoice();
 });
-document.getElementById('chartRange')?.addEventListener('change', () => { chartRangeTouched = true; });
 document.getElementById('amountSideChart').addEventListener('click', e => {
   const btn = e.target.closest('[data-amount-structure]');
   if (!btn) return;
@@ -24125,15 +24764,32 @@ document.addEventListener('click', e => {
   e.stopPropagation();
   openAttachmentFolder(folderBtn.dataset.openAttachmentFolder);
 });
-document.getElementById('targetMonth').addEventListener('change', renderPerformanceTargets);
-document.getElementById('saveTargetBtn').addEventListener('click', () => {
-  const month = document.getElementById('targetMonth').value || normalizeMonth(new Date().toISOString());
-  const amount = Number(document.getElementById('targetAmountInput').value || 0);
-  state.performanceTargets = state.performanceTargets || {};
-  if (amount > 0) state.performanceTargets[month] = amount;
-  else delete state.performanceTargets[month];
-  render();
-  toast(amount > 0 ? '业绩目标已保存' : '业绩目标已清除');
+document.getElementById('targetMonth').addEventListener('change', e => changeTargetMonth(e.target.value));
+document.getElementById('saveTargetBtn').addEventListener('click', () => { saveTargetFromInput(); });
+document.getElementById('clearTargetBtn')?.addEventListener('click', () => { clearTargetForMonth(); });
+document.getElementById('targetAmountInput').addEventListener('input', e => {
+  const month = document.getElementById('targetMonth').value;
+  const saved = targetForMonth(month);
+  const text = e.target.value;
+  targetDraft = text.trim() === (saved ? String(saved) : '') ? null : { month, text };
+  setTargetHint(targetDraft ? `${monthLabel(month)}的目标还没保存 · 按回车或点「保存目标」` : '', targetDraft ? 'dirty' : '');
+});
+// 回车 = 保存（输入法选字时的回车不算）。
+document.getElementById('targetAmountInput').addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || isImeKeyEvent(e)) return;
+  e.preventDefault();
+  saveTargetFromInput();
+});
+// 近月目标记录：点一行（或回车 / 空格）切到那个月。
+document.getElementById('targetHistoryList')?.addEventListener('click', e => {
+  const row = e.target.closest('[data-target-pick]');
+  if (row) changeTargetMonth(row.dataset.targetPick);
+});
+document.getElementById('targetHistoryList')?.addEventListener('keydown', e => {
+  const row = e.target.closest('[data-target-pick]');
+  if (!row || (e.key !== 'Enter' && e.key !== ' ')) return;
+  e.preventDefault();
+  changeTargetMonth(row.dataset.targetPick);
 });
 document.getElementById('chartRange').addEventListener('change', render);
 // 自定义区间：开始月份晚于结束月份时把另一头跟过去，不出现空图表。
@@ -24145,6 +24801,8 @@ document.getElementById('chartRange').addEventListener('change', render);
     else from.value = to.value;
   }
   document.getElementById('chartRange').value = 'custom';
+  chartRangeTouched = true;
+  saveAmountRangeChoice();
   renderSegmentControls();
   render();
 }));
@@ -25211,8 +25869,14 @@ document.getElementById('todayTasksStat').addEventListener('keydown', e => {
     jumpToReminderCenter();
   }
 });
+// 点「业绩目标」卡：目标页打开卡片上那个月（选「全部」时是本月），焦点放到目标金额框。
+// 以前不带月份，目标页落到列表第一项（有下月预订单时就是下个月），照着「设置 11 月目标」填完存进了 12 月。
 function jumpToTargets() {
+  const month = document.getElementById('targetStat')?.dataset.targetMonth || normalizeMonth(new Date().toISOString());
+  targetPageMonth = month;
   setPage('targets');
+  renderPerformanceTargets();
+  requestAnimationFrame(() => document.getElementById('targetAmountInput')?.focus({ preventScroll:true }));
 }
 document.getElementById('targetStat').addEventListener('click', jumpToTargets);
 document.getElementById('targetStat').addEventListener('keydown', e => {
@@ -25221,15 +25885,19 @@ document.getElementById('targetStat').addEventListener('keydown', e => {
     jumpToTargets();
   }
 });
+let calendarMonthTouched = false;
 document.getElementById('calendarPrevBtn')?.addEventListener('click', () => {
+  calendarMonthTouched = true;
   activeCalendarMonth = monthOffset(activeCalendarMonth, -1);
   renderCalendarPage();
 });
 document.getElementById('calendarNextBtn')?.addEventListener('click', () => {
+  calendarMonthTouched = true;
   activeCalendarMonth = monthOffset(activeCalendarMonth, 1);
   renderCalendarPage();
 });
 document.getElementById('calendarTodayBtn')?.addEventListener('click', () => {
+  calendarMonthTouched = false;
   activeCalendarMonth = normalizeMonth(new Date().toISOString());
   renderCalendarPage();
 });
@@ -25245,9 +25913,50 @@ document.getElementById('analysisMonthInput')?.addEventListener('change', e => {
   activeBusinessMonth = e.target.value;
   renderAnalysisPage();
 });
+// 「现在需要关注」收起 / 展开后记住，重画时照旧（toggle 不冒泡，用捕获）。
+document.getElementById('analysisAttention')?.addEventListener('toggle', e => {
+  const group = e.target?.closest?.('[data-attention-group]');
+  if (group && group === e.target) analysisAttentionOpen[group.dataset.attentionGroup] = group.open;
+}, true);
+// 订单列表按月份筛选：看的月份没有订单、也不在最近 12 个月里时，下拉里没有这个选项，先补上再选。
+function setOrderListMonthFilter(month) {
+  const monthSelect = document.getElementById('orderListMonthFilter');
+  if (!monthSelect) return;
+  if (![...monthSelect.options].some(option => option.value === month)) monthSelect.add(new Option(monthLabel(month), month));
+  monthSelect.value = month;
+}
 document.getElementById('page-amount')?.addEventListener('click', e => {
   const order = e.target.closest('[data-analysis-order]');
   if (order) { openOrderDetail(order.dataset.analysisOrder); return; }
+  // 近六个月的行：把经营分析切到那个月。
+  const monthRow = e.target.closest('[data-analysis-month]');
+  if (monthRow) {
+    analysisMonthTouched = true;
+    activeBusinessMonth = monthRow.dataset.analysisMonth;
+    renderAnalysisPage();
+    return;
+  }
+  // 客户贡献、产品贡献的行：跳订单列表，按这个客户 / 产品 + 这个月筛选（草稿不算）。
+  const clientRow = e.target.closest('[data-analysis-client]');
+  const productRow = e.target.closest('[data-analysis-product]');
+  if (clientRow || productRow) {
+    resetOrderListFilters();
+    document.getElementById('orderListDraftFilter').value = 'formal';
+    const product = document.getElementById('analysisProduct').value;
+    if (productRow) {
+      const productSelect = document.getElementById('orderListProductFilter');
+      const wanted = productRow.dataset.analysisProduct;
+      if (![...productSelect.options].some(option => option.value === wanted)) productSelect.add(new Option(wanted, wanted));
+      productSelect.value = wanted;
+    } else {
+      document.getElementById('orderListProductFilter').value = product;
+      document.getElementById('orderListSearch').value = clientRow.dataset.analysisClient;
+    }
+    setOrderListMonthFilter(activeBusinessMonth);
+    setPage('order-list');
+    renderOrderListPage();
+    return;
+  }
   const link = e.target.closest('[data-analysis-list]');
   if (!link) return;
   resetOrderListFilters();
@@ -25256,9 +25965,7 @@ document.getElementById('page-amount')?.addEventListener('click', e => {
   document.getElementById('orderListProductFilter').value = document.getElementById('analysisProduct').value;
   if (link.dataset.analysisList === 'month') {
     // 看的月份没有订单、也不在最近 12 个月里时，下拉里没有这个选项，以前赋值失败、月份条件被悄悄丢掉。
-    const monthSelect = document.getElementById('orderListMonthFilter');
-    if (![...monthSelect.options].some(option => option.value === activeBusinessMonth)) monthSelect.add(new Option(monthLabel(activeBusinessMonth), activeBusinessMonth));
-    monthSelect.value = activeBusinessMonth;
+    setOrderListMonthFilter(activeBusinessMonth);
   }
   setPage('order-list');
 });
@@ -25272,15 +25979,55 @@ document.getElementById('businessNextBtn')?.addEventListener('click', () => {
   activeBusinessMonth = monthOffset(activeBusinessMonth, 1);
   renderAnalysisPage();
 });
+// 日历上的色块、日程行、抽屉里的「打开」：订单 → 订单详情，客户 → 客户档案，续费 → 续费详情，其它 → 当天抽屉。
+function activateCalendarTarget(target) {
+  if (!target) return false;
+  const closeDrawer = () => { if (document.getElementById('calendarTaskDrawer')?.classList.contains('open')) closeCalendarTaskDrawer(); };
+  if (target.dataset.calendarOrderId) { closeDrawer(); openOrderDetail(target.dataset.calendarOrderId); return true; }
+  if (target.dataset.calendarClient) { closeDrawer(); openCustomerModal(target.dataset.calendarClient, { viewOnly:true }); return true; }
+  if (target.dataset.calendarSub) {
+    closeDrawer();
+    setPage('subscriptions');
+    if (typeof openSubscriptionDetail === 'function') openSubscriptionDetail(target.dataset.calendarSub);
+    return true;
+  }
+  if (target.dataset.calendarDate) { calendarFocusDate = target.dataset.calendarDate; openCalendarTaskDrawer(target.dataset.calendarDate); return true; }
+  return false;
+}
+const calendarTargetSelector = '[data-calendar-order-id], [data-calendar-client], [data-calendar-sub], [data-calendar-date]';
 document.getElementById('calendarGrid')?.addEventListener('click', e => {
-  const item = e.target.closest('[data-calendar-order-id]');
-  if (item) openOrderDetail(item.dataset.calendarOrderId);
-  const day = e.target.closest('[data-calendar-date]');
-  if (day && !item) openCalendarTaskDrawer(day.dataset.calendarDate);
+  activateCalendarTarget(e.target.closest(calendarTargetSelector));
+});
+// 日格子：回车 / 空格打开当天，方向键在日子之间移动（只有当前那天 tabindex=0）。
+document.getElementById('calendarGrid')?.addEventListener('keydown', e => {
+  const cell = e.target.closest?.('.calendar-day');
+  if (!cell || e.target !== cell) return;
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    activateCalendarTarget(cell);
+    return;
+  }
+  const step = { ArrowLeft:-1, ArrowRight:1, ArrowUp:-7, ArrowDown:7 }[e.key];
+  if (!step) return;
+  e.preventDefault();
+  const next = addDays(cell.dataset.calendarDate, step);
+  if (normalizeMonth(next) !== activeCalendarMonth) {
+    activeCalendarMonth = normalizeMonth(next);
+    calendarMonthTouched = true;
+  }
+  calendarFocusDate = next;
+  renderCalendarPage();
+  document.querySelector(`#calendarGrid .calendar-day[data-calendar-date="${next}"]`)?.focus();
 });
 document.getElementById('calendarAgenda')?.addEventListener('click', e => {
-  const item = e.target.closest('[data-calendar-order-id]');
-  if (item) openOrderDetail(item.dataset.calendarOrderId);
+  activateCalendarTarget(e.target.closest(calendarTargetSelector));
+});
+document.getElementById('calendarAgenda')?.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const row = e.target.closest?.('.agenda-row');
+  if (!row || e.target !== row) return;
+  e.preventDefault();
+  activateCalendarTarget(row);
 });
 document.getElementById('analysisAgenda')?.addEventListener('click', e => {
   const item = e.target.closest('[data-calendar-order-id]');
@@ -25289,6 +26036,13 @@ document.getElementById('analysisAgenda')?.addEventListener('click', e => {
 document.getElementById('calendarTaskCloseBtn')?.addEventListener('click', closeCalendarTaskDrawer);
 document.getElementById('calendarTaskDrawer')?.addEventListener('click', e => {
   if (e.target.id === 'calendarTaskDrawer') closeCalendarTaskDrawer();
+  if (e.target.closest('[data-calendar-new-order]')) {
+    closeCalendarTaskDrawer();
+    openNewOrderForCustomer('');
+    return;
+  }
+  const open = e.target.closest('[data-calendar-order-id], [data-calendar-client], [data-calendar-sub]');
+  if (open) { activateCalendarTarget(open); return; }
   const action = e.target.closest('[data-task-action]');
   if (!action) return;
   handleTaskAction(action.dataset.taskAction, action.closest('[data-task-id]'));
@@ -26769,18 +27523,38 @@ function uiSpark(values) {
 }
 function uiDashboardKpis() {
   if (!document.getElementById('statActive')) return;
+  if (isMacAppMode() && !macStateReady) return;
   const range = document.getElementById('totalRange')?.value || 'all';
-  const month = range === 'all' ? normalizeMonth(new Date().toISOString()) : range;
-  const monthTotal = m => usdTotal(ordersByMonth(m).filter(o => !o.isDraft));
+  const currentMonth = normalizeMonth(new Date().toISOString());
+  const month = range === 'all' ? currentMonth : range;
+  const monthOrders = m => ordersByMonth(m).filter(o => !o.isDraft);
+  const monthTotal = m => usdTotal(monthOrders(m));
   const months = [-5, -4, -3, -2, -1, 0].map(d => uiMonthShift(month, d));
   const spark = document.getElementById('statSpark');
-  if (spark) spark.innerHTML = months.some(m => monthTotal(m) > 0) ? uiSpark(months.map(monthTotal)) : '';
+  if (spark) {
+    // 只在数据变了时重画趋势线：同样的 6 个数不替换 SVG，描线动画不会在每次无关的重画（点「稍后」、保存）时重放。
+    const values = months.map(monthTotal);
+    const show = amountStatMode !== 'paidRmb' && values.some(v => v > 0);
+    const key = show ? values.map(v => Math.round(v)).join(',') : '';
+    if (spark.dataset.key !== key) {
+      spark.innerHTML = show ? uiSpark(values) : '';
+      spark.dataset.key = key;
+    }
+  }
   const amountSub = document.getElementById('statAmountSub');
-  if (amountSub && range !== 'all' && amountStatMode !== 'paidRmb') {
-    const now = monthTotal(month), before = monthTotal(uiMonthShift(month, -1));
+  // 环比：过去的月份整月比整月；本月拿「本月至今」和「上月同期」（上月 1 号到同一个日号）比，不再月初就是大红的 -89%；
+  // 还没开始的月份不比。
+  if (amountSub && range !== 'all' && amountStatMode !== 'paidRmb' && month <= currentMonth) {
+    const prev = uiMonthShift(month, -1);
+    const isCurrent = month === currentMonth;
+    const todayDay = new Date().getDate();
+    const before = isCurrent
+      ? usdTotal(monthOrders(prev).filter(o => { const d = parseDate(o.createdAt || ''); return d.getFullYear() > 1970 && d.getDate() <= todayDay; }))
+      : monthTotal(prev);
+    const now = monthTotal(month);
     if (before > 0) {
       const pct = Math.round((now - before) / before * 100);
-      amountSub.insertAdjacentHTML('afterbegin', `<span class="${pct >= 0 ? 'up' : 'down'}">比 ${Number(uiMonthShift(month, -1).slice(5))} 月 ${pct >= 0 ? '+' : ''}${pct}%</span> · `);
+      amountSub.insertAdjacentHTML('afterbegin', `<span class="${pct >= 0 ? 'up' : 'down'}" title="${isCurrent ? `本月 1–${todayDay} 日对比上月 1–${todayDay} 日` : '整月对比上月整月'}">比 ${escapeAttr(dashboardMonthName(prev))}${isCurrent ? '同期' : ''} ${pct >= 0 ? '+' : ''}${pct}%</span> · `);
     }
   }
   const dueOrders = state.orders.filter(o => !o.isDraft && orderDueValue(o) > 0);
@@ -26801,7 +27575,7 @@ function uiDashboardKpis() {
   }
   const goal = targetForMonth(month);
   const label = document.getElementById('statTargetLabel');
-  if (label) label.textContent = goal ? `${Number(month.slice(5))} 月目标 ${summaryMoney(goal, 'USD')}` : '业绩目标';
+  if (label) label.textContent = goal ? `${dashboardMonthName(month)}目标 ${summaryMoney(goal, 'USD')}` : '业绩目标';
   const bar = document.getElementById('statTargetBar');
   if (bar) bar.style.width = goal ? `${Math.min(100, targetRate(usdTotal(ordersByMonth(month).filter(isRevenueOrder)), goal))}%` : '0%';
 }
@@ -26826,12 +27600,24 @@ function uiGreetOnce() {
 }
 // App 开着过了午夜（或者从睡眠里醒来）：日期一变就重画待办、「今日待办」，昨天「稍后」的提醒回来，并补上当天的问候。
 // 每分钟看一次本地日期，窗口重新可见 / 获得焦点时也看一次。
+// 跨月：日历、经营分析停在「上一个本月」就跟到新的一个月（以前过了月底日历停在上个月，今天成了不画事件的灰格子）。
+let rolloverMonthSeen = normalizeMonth(new Date().toISOString());
+function checkMonthRollover() {
+  const current = normalizeMonth(new Date().toISOString());
+  if (current === rolloverMonthSeen) return false;
+  const previous = rolloverMonthSeen;
+  rolloverMonthSeen = current;
+  if (activeCalendarMonth === previous || !calendarMonthTouched) activeCalendarMonth = current;
+  if (activeBusinessMonth === previous) activeBusinessMonth = current;
+  return true;
+}
 function checkTaskDayRollover() {
   const today = normalizeDate(new Date().toISOString());
   if (typeof window.pendingSaveStatus === 'function' && !window.pendingSaveStatus().loaded) return false;
+  const monthChanged = checkMonthRollover();
   // 开着别的页面、待办还没画过：先记下今天，过了午夜照样会刷新。
-  if (!taskListRenderedDay) { taskListRenderedDay = today; return false; }
-  if (taskListRenderedDay === today) return false;
+  if (!taskListRenderedDay) { taskListRenderedDay = today; if (monthChanged) render(); return monthChanged; }
+  if (taskListRenderedDay === today) { if (monthChanged) render(); return monthChanged; }
   taskListRenderedDay = today;
   render();
   uiGreetOnce();

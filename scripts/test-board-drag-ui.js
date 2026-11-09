@@ -33,8 +33,8 @@ const orders = [
     await page.waitForFunction(() => state.orders.find(o => o.id === 'q1').stage === 'balance');
     let q1 = await h.order(page, 'q1');
     assert.equal(q1.paidAmount, 300, '报价 → 尾款按约定定金记为已收');
-    await h.waitToast(page, 'K101 Quote Deposit 已移动到尾款');
-    assert.match((await h.toasts(page)).join('|'), /K101 Quote Deposit 已移动到尾款定金 \$300 USD 记为已收/);
+    await h.waitToast(page, 'K101 Quote Deposit 已移动到待发货');
+    assert.match((await h.toasts(page)).join('|'), /K101 Quote Deposit 已移动到待发货定金 \$300 USD 记为已收/);
     assert.equal(await page.locator('#pipeline .board-card[data-id="q1"]').evaluate(el => el.classList.contains('just-landed')), true, '移动成功才播落地动画');
     const drop = await page.evaluate(() => window.__drops.at(-1));
     assert(drop.types.includes('application/x-ots-order'), `拖拽用自己的类型传订单：${drop.types}`);
@@ -46,7 +46,7 @@ const orders = [
     q1 = await h.order(page, 'q1');
     assert.equal(q1.paidAmount, 0, '拖回报价：自动记的定金恢复为没收（报价 = 没收定金）');
     assert.equal(q1.depositAutoPaid, undefined);
-    assert.match(q1.logs[0].text, /订单阶段从 尾款 调整为 报价，自动记的定金 \$300 USD 恢复为未收/);
+    assert.match(q1.logs[0].text, /订单阶段从 待发货 调整为 报价，自动记的定金 \$300 USD 恢复为未收/);
     await h.waitToast(page, 'K101 Quote Deposit 已移动到报价');
     assert.match((await h.toasts(page)).join('|'), /已收恢复为 \$0/);
     await h.flush(page);
@@ -85,7 +85,7 @@ const orders = [
     } });
     assert.equal((await h.order(page, 'q2')).stage, 'quote');
     await h.waitToast(page, 'K102 Quote Full 没有移动');
-    assert.match((await h.toasts(page)).join('|'), /全款订单没有尾款阶段/);
+    assert.match((await h.toasts(page)).join('|'), /全款订单没有待发货阶段/);
     assert.equal(await page.locator('#pipeline .board-card[data-id="q2"]').evaluate(el => el.classList.contains('just-landed')), false, '被拒绝时不播落地动画');
     await h.drag(page, 'd1', 'shipment', { beforeUp:async () => {
       assert.match(await page.locator('#pipeline .board-column[data-stage="shipment"]').getAttribute('class'), /drag-invalid/);

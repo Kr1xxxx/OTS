@@ -25,6 +25,7 @@ const measure = page => page.evaluate(() => {
   const emptyStyle = emptyNext ? getComputedStyle(emptyNext) : null;
   return {
     stages:columns.map(col => col.dataset.stage),
+    titles:columns.map(col => col.querySelector('.board-column-title')?.textContent.trim() || ''),
     heads:columns.map(col => {
       const head = col.querySelector('.board-column-head');
       return { h:Math.round(head.getBoundingClientRect().height * 10) / 10, parts:[...head.querySelectorAll('.board-column-title, .board-column-meta, .board-column-sub')].length };
@@ -47,6 +48,8 @@ const measure = page => page.evaluate(() => {
         const result = await measure(page);
         const label = `${theme}/${width}`;
         assert.deepEqual(result.stages, ['quote', 'production', 'balance', 'shipment'], `${label}: 看板列顺序不变`);
+        // 「尾款」列 2026-11-09 改名「待发货」（key 还是 balance）。
+        assert(result.titles[2].includes('待发货') && !result.titles.some(t => t.includes('尾款')), `${label}: 第 3 列叫「待发货」 ${JSON.stringify(result.titles)}`);
         assert.equal(new Set(result.heads.map(item => item.h)).size, 1, `${label}: 4 列表头高度不一致 ${JSON.stringify(result.heads)}`);
         assert(result.heads.every(item => item.parts === 3), `${label}: 每列表头都要有标题、数量金额、副标题`);
         assert.equal(new Set(result.columnHeights).size, 1, `${label}: 4 列高度不一致 ${result.columnHeights}`);

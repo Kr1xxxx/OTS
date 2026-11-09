@@ -289,7 +289,7 @@ async function launch() {
     assert.equal(await dedit('paidAmount').getAttribute('placeholder'), '定金 300');
     await replaceText(dedit('paidAmount'), '300');
     await saveDrawer();
-    await waitToast('已按收款放到「尾款」');
+    await waitToast('已按收款放到「待发货」');
     assert.equal((await order('q1')).stage, 'balance');
     await closeDrawer();
 

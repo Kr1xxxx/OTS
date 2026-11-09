@@ -97,7 +97,7 @@ const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return 
     const own = page.locator('#notifList .notif-card[data-order-id="N1"]');
     await own.waitFor();
     assert.deepEqual(await own.evaluate(el => [el.classList.contains('is-quiet'), el.classList.contains('is-read'), el.querySelector('.notif-pill').textContent]), [true, true, '订单']);
-    assert.match(await own.locator('small').innerText(), /K3001 · 尾款/, 'the stage moves into the subtitle');
+    assert.match(await own.locator('small').innerText(), /K3001 · 待发货/, 'the stage moves into the subtitle');
     assert.equal(await page.locator('#notifReadAll').isDisabled(), true, 'nothing to mark read');
     // The read look keeps full opacity (contrast), the unread dot is gone.
     await h.settle(page, '#notifList .notif-card[data-order-id="N1"]');

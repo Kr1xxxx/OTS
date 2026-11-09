@@ -421,8 +421,11 @@ function orderMoneyValue(order, field, label) {
 }
 // customerInference:false（导入、恢复示例、撤销导入）：整份数据换掉时不按「删 1 加 1」或订单改名去猜客户改名，
 // WhatsApp 聊天留在原来的名字上，不会挂到另一位客户名下。
-function writeStateToDatabase(rawPayload, { migration = false, baseRevision, customerMoves: explicitMoves = [], customerDeletes = [], customerInference = true } = {}) {
+function writeStateToDatabase(rawPayload, { migration = false, baseRevision, saveId = '', customerMoves: explicitMoves = [], customerDeletes = [], customerInference = true } = {}) {
   if (!database) throw new Error('SQLite database is not available');
+  // 同一次保存的编号（页面重试时不变）：上一次其实已经写进去、只是响应在路上丢了，重试直接回那次的结果，
+  // 不再拿旧版本号去比、得到 409，让只有一个窗口的人看到「另一个窗口刚保存过数据」。
+  const requestSaveId = typeof saveId === 'string' && /^[A-Za-z0-9_-]{8,100}$/.test(saveId) ? saveId : '';
   const payload = normalizeDataPayload(rawPayload);
   const data = payload.data;
   const orderInsert = database.prepare(`
@@ -485,6 +488,13 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision, cus
   database.exec('BEGIN IMMEDIATE');
   try {
     const currentRevision = Number(metadataValue('revision', '0'));
+    if (!migration && requestSaveId && metadataValue('last_save_id', '') === requestSaveId) {
+      let previous = {};
+      try { previous = JSON.parse(metadataValue('last_save_result', '{}')) || {}; } catch (_) { previous = {}; }
+      database.exec('COMMIT');
+      storageRevision = currentRevision;
+      return { ...previous, revision: Number(previous.revision) || currentRevision, duplicate: true };
+    }
     if (!migration) {
       const requestedRevision = Number(baseRevision);
       if (!Number.isSafeInteger(requestedRevision) || requestedRevision < 0) {
@@ -674,9 +684,14 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision, cus
     if (JSON.stringify(expected) !== JSON.stringify(actual)) {
       throw new Error(`SQLite verification failed: expected ${JSON.stringify(expected)}, actual ${JSON.stringify(actual)}`);
     }
+    const result = { revision: nextRevision, counts: actual, ...(movedChats.length ? { movedChats } : {}) };
+    if (!migration) {
+      setMetadata('last_save_id', requestSaveId);
+      setMetadata('last_save_result', requestSaveId ? JSON.stringify(result) : '');
+    }
     database.exec('COMMIT');
     storageRevision = nextRevision;
-    return { revision: nextRevision, counts: actual, ...(movedChats.length ? { movedChats } : {}) };
+    return result;
   } catch (error) {
     try { database.exec('ROLLBACK'); } catch (_) {}
     throw error;
@@ -858,6 +873,41 @@ function initializeStorage() {
 function readCurrentPayload() {
   if (storageMode === 'sqlite') return readStateFromDatabase();
   throw new Error(storageError || 'storage unavailable');
+}
+
+// 版本号以数据库里的为准：同一个数据目录被第二个服务进程写过时，本进程内存里的数字是旧的，
+// 页面拿着旧版本号保存会一直 409，重新加载也出不来。
+function currentStorageRevision() {
+  if (storageMode !== 'sqlite' || !database) return storageRevision;
+  try {
+    const revision = Number(metadataValue('revision', String(storageRevision)));
+    if (Number.isSafeInteger(revision)) storageRevision = revision;
+  } catch (_) {}
+  return storageRevision;
+}
+
+// 数据和版本号在同一个读事务里取：两者对得上。
+function readCurrentPayloadWithRevision() {
+  if (storageMode !== 'sqlite' || !database) return { ...readCurrentPayload(), revision: storageRevision };
+  database.exec('BEGIN');
+  try {
+    const payload = readCurrentPayload();
+    const revision = currentStorageRevision();
+    database.exec('COMMIT');
+    return { ...payload, revision };
+  } catch (error) {
+    try { database.exec('ROLLBACK'); } catch (_) {}
+    throw error;
+  }
+}
+
+// 常见的存储错误说成人话（以前直接回英文原文「database or disk is full」）。code 给页面区分原因。
+function friendlySaveError(error) {
+  const text = `${error?.code || ''} ${error?.message || ''}`;
+  if (/SQLITE_FULL|disk is full|ENOSPC/i.test(text)) return { code: 'disk-full', message: 'Mac 磁盘空间不足，数据没有存进去。清理出空间后会自动继续保存。' };
+  if (/SQLITE_BUSY|SQLITE_LOCKED|database is locked/i.test(text)) return { code: 'db-busy', message: '数据库正被其他程序占用，稍后会自动重试。' };
+  if (/EACCES|EPERM|SQLITE_READONLY|readonly database/i.test(text)) return { code: 'no-permission', message: '没有权限写入数据目录，请检查文件夹权限。' };
+  return null;
 }
 
 function saveCurrentPayload(payload, options = {}) {
@@ -3081,7 +3131,7 @@ const server = http.createServer(async (req, res) => {
         instanceNonce,
         appUpdatedAt,
         storageMode,
-        storageRevision
+        storageRevision: currentStorageRevision()
       };
       if (authorized) {
         Object.assign(health, {
@@ -3124,7 +3174,12 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'GET' && url.pathname === '/api/data') {
       ensureStorage();
-      return send(res, 200, JSON.stringify({ ...readCurrentPayload(), revision: storageRevision }));
+      return send(res, 200, JSON.stringify(readCurrentPayloadWithRevision()));
+    }
+    // 页面每隔一会儿、窗口回到前台时看一眼版本号：别的窗口存过、自己又没有待保存的修改，就悄悄读最新数据。
+    if (req.method === 'GET' && url.pathname === '/api/revision') {
+      ensureStorage();
+      return send(res, 200, JSON.stringify({ ok: true, revision: currentStorageRevision() }));
     }
     if (req.method === 'GET' && url.pathname === '/api/whatsapp/messages') {
       if (!database || storageMode !== 'sqlite') throw httpError(503, '聊天数据库暂不可用');
@@ -3140,7 +3195,7 @@ const server = http.createServer(async (req, res) => {
         : requestPayload;
       const baseRevision = requestPayload?.baseRevision ?? payload?.baseRevision;
       ensureStorage();
-      const result = saveCurrentPayload(payload, { baseRevision, customerMoves:requestPayload?.customerMoves, customerDeletes:requestPayload?.customerDeletes, customerInference:requestPayload?.customerInference !== false });
+      const result = saveCurrentPayload(payload, { baseRevision, saveId:requestPayload?.saveId, customerMoves:requestPayload?.customerMoves, customerDeletes:requestPayload?.customerDeletes, customerInference:requestPayload?.customerInference !== false });
       let backup;
       try { backup = createBackup(false); } catch (error) {
         backup = { ok: false, message: error.message || 'automatic backup failed' };
@@ -3377,9 +3432,11 @@ const server = http.createServer(async (req, res) => {
     return send(res, 404, JSON.stringify({ ok: false, message: 'not found' }));
   } catch (error) {
     const status = Number.isInteger(error.status) ? error.status : 500;
+    const friendly = status >= 500 ? friendlySaveError(error) : null;
     return send(res, status, JSON.stringify({
       ok: false,
-      message: error.message || 'internal server error',
+      message: friendly?.message || error.message || 'internal server error',
+      ...(friendly ? { code: friendly.code, detail: String(error.message || '').slice(0, 200) } : {}),
       ...(error.publicDetails && typeof error.publicDetails === 'object' ? error.publicDetails : {}),
       ...(Number.isInteger(error.currentRevision) ? { currentRevision: error.currentRevision } : {})
     }), 'application/json; charset=utf-8', status === 401 ? { 'WWW-Authenticate': 'Bearer' } : {});
@@ -3419,6 +3476,14 @@ function shutdown(signal) {
   server.closeIdleConnections?.();
   setTimeout(() => server.closeAllConnections?.(), 1000).unref();
 }
+
+// 一个没接住的异常不该让整个服务退出（页面会只剩一个永远保存不了的窗口）：记下来，继续服务。
+process.on('uncaughtException', error => {
+  console.error(`Uncaught exception: ${error?.stack || error}`);
+});
+process.on('unhandledRejection', reason => {
+  console.error(`Unhandled rejection: ${reason?.stack || reason}`);
+});
 
 process.once('SIGTERM', () => shutdown('SIGTERM'));
 process.once('SIGINT', () => shutdown('SIGINT'));

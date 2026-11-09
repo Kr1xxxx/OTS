@@ -4323,7 +4323,9 @@ html[data-theme] .api-status-dot.checking .api-status-state { color:var(--s-ambe
 html[data-theme] .sidebar-foot { padding:0; border:0; }
 html[data-theme] .team { min-height:0; padding:0 4px 0 8px; border:0; background:transparent; font-size:12px; color:var(--gray-500); gap:8px; justify-content:flex-start; }
 html[data-theme] .team .app-version { min-width:0; height:auto; padding:0; border:0; background:none; font-size:12px; font-weight:400; color:var(--gray-500); }
-html[data-theme] .save-pulse { margin-left:auto; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; }
+html[data-theme] .save-pulse { margin-left:auto; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; color:var(--gray-600); }
+/* 确认框副标题（例如冲突框的「本窗口已切换为只读」）：以前用 order-num 的浅灰，浅色 2.68:1、深色 3.55:1。 */
+html[data-theme] #confirmSub { color:var(--gray-600); }
 html[data-theme] .save-pulse i { width:6px; height:6px; border-radius:50%; background:var(--s-green); }
 html[data-theme] .save-pulse.is-busy i { background:var(--accent); animation:uiPing 1s var(--ease) infinite; }
 html[data-theme] .save-pulse.is-error { color:var(--s-red); }
@@ -5945,9 +5947,9 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.134，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.134</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.135，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.135</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
-      <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
+      <span class="save-pulse is-busy" id="savePulse" aria-live="polite"><i></i><span>读取中</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
     </div>
   </div>
@@ -6519,6 +6521,12 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
                 <div class="order-action-group">
                   <button class="btn" type="button" id="macConflictExportBtn">导出未保存的修改</button>
                   <button class="btn btn-primary" type="button" id="macConflictReloadBtn">重新加载最新数据</button>
+                </div>
+              </div>
+              <div class="data-action mac-only" id="macStorageReloadActions" hidden>
+                <div><strong>数据库没有读出来</strong><div class="muted">本窗口处于只读保护，不会覆盖本机数据。数据库恢复正常后（例如其他程序释放了它），点「重新读取数据库」。</div></div>
+                <div class="order-action-group">
+                  <button class="btn btn-primary" type="button" id="macStorageReloadBtn">重新读取数据库</button>
                 </div>
               </div>
               <div class="data-action mac-only">
@@ -7878,10 +7886,21 @@ function consumeTradeApiToken() {
   return token;
 }
 const tradeApiToken = consumeTradeApiToken();
+// timeoutMs：到点还没回应就中止，抛出带 timeout:true 的错误（保存请求用它，服务端卡住时不会一直「保存中…」）。
 function apiFetch(resource, options = {}) {
-  const headers = new Headers(options.headers || {});
+  const { timeoutMs = 0, ...rest } = options;
+  const headers = new Headers(rest.headers || {});
   if (tradeApiToken) headers.set('X-Trade-Token', tradeApiToken);
-  return fetch(resource, { ...options, headers });
+  if (!(timeoutMs > 0) || typeof AbortController !== 'function') return fetch(resource, { ...rest, headers });
+  const controller = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
+  return fetch(resource, { ...rest, headers, signal:controller.signal }).catch(error => {
+    if (!timedOut) throw error;
+    const timeout = new Error('保存请求超时');
+    timeout.timeout = true;
+    throw timeout;
+  }).finally(() => clearTimeout(timer));
 }
 window.tradeApiFetch = apiFetch;
 function normalizeFeishuNotification(raw = {}) {
@@ -8229,17 +8248,26 @@ async function fetchMacAiSettings() {
     return null;
   }
 }
+// AI / 物流设置保存失败的原因（给表单的红色提示用）。
+let macSettingsSaveError = '';
+async function macSettingsFailure(res) {
+  const result = await res.json().catch(() => ({}));
+  macSettingsSaveError = String(result.message || `HTTP ${res.status}`);
+  return null;
+}
 async function saveMacAiSettings(settings) {
   if (!isMacAppMode()) return null;
+  macSettingsSaveError = '';
   try {
     const res = await apiFetch('/api/ai-settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(settings)
     });
-    if (!res.ok) return null;
+    if (!res.ok) return macSettingsFailure(res);
     return normalizeAiSettings(await res.json());
   } catch (e) {
+    macSettingsSaveError = '本机数据服务没有响应';
     return null;
   }
 }
@@ -8255,15 +8283,17 @@ async function fetchMacTrackingSettings() {
 }
 async function saveMacTrackingSettings(settings) {
   if (!isMacAppMode()) return null;
+  macSettingsSaveError = '';
   try {
     const res = await apiFetch('/api/tracking-settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(settings)
     });
-    if (!res.ok) return null;
+    if (!res.ok) return macSettingsFailure(res);
     return normalizeTrackingApiSettings(await res.json());
   } catch (e) {
+    macSettingsSaveError = '本机数据服务没有响应';
     return null;
   }
 }
@@ -8343,6 +8373,8 @@ let macStateLoadFailed = false;
 // 另一个窗口（或另一台设备）先保存过：本窗口切成只读，提示语要说清楚是冲突，不是「连接问题」，也别叫人「重试」。
 let macStorageConflict = false;
 const macConflictReadOnlyText = '另一个窗口刚保存过数据，本窗口已切换为只读，这次修改没有存进数据库。';
+// 读库失败时的只读提示：说出设置里那个按钮真实的名字（以前叫人去点一个根本不存在的「重新加载」）。
+const macReadOnlyText = '数据库处于只读保护，这次修改没有保存。可在 设置 → 数据管理 里点「重新读取数据库」。';
 function canSubmitStoredData() {
   if (isMacAppMode() && (!macDataLoaded || macStorageReadOnly)) {
     if (macStorageConflict) {
@@ -8364,7 +8396,11 @@ async function persistFormState(...forms) {
     if (!saved && macSaveWaitTimedOut && !macStorageReadOnly) {
       toast('数据库这次保存比平时慢，还在后台继续，输入已保留。', { tone:'warn', desc:'保存状态变成「已保存」前，先别关闭这张表单。' });
     } else if (!saved && !macStorageConflict) {
-      toast(macStorageReadOnly ?'数据库处于只读保护，这次修改没有保存。请先到设置里重新加载数据库。' : '尚未保存到数据库，输入已保留，请重试。', { tone:'error' });
+      // 后台会自动重试的失败（网络、服务端暂时出错）：队列那边已经说了「正在自动重试」，这里不再叫人「请重试」。
+      if (macStorageReadOnly) toast(macReadOnlyText, { tone:'error' });
+      else if (macSaveAutoRetrying) {
+        if (Date.now() - macSaveErrorToastAt > 1500) toast('这次修改已排队，正在自动重试，输入已保留。', { tone:'warn', desc:macSaveLastError ? `原因：${macSaveLastError}` : '' });
+      } else toast('尚未保存到数据库，输入已保留，请重试。', { tone:'error' });
     }
     return saved;
   } catch (_) {
@@ -8379,14 +8415,50 @@ function failedSaveRemember(host, undo) {
   if (!host || typeof undo !== 'function') return;
   const previous = host._failedSave;
   host._failedSave = previous ? () => { undo(); previous(); } : undo;
+  // 记下失败那一刻表单里的样子：后台重试存进去以后，没再动过的表单直接算已保存。
+  host._failedPrint = failedSaveFingerprint(host);
+}
+function failedSaveFingerprint(host) {
+  if (!host) return '';
+  if (host.id === 'orderDetailBody') return typeof uiDetailEditValues === 'function' ? JSON.stringify(uiDetailEditValues()) : '';
+  if (host.tagName === 'FORM') return uiFormFingerprint(host);
+  return [...host.querySelectorAll('form')].map(form => uiFormFingerprint(form)).join('\u0001');
+}
+function failedSaveMarkClean(host) {
+  if (host.id === 'orderDetailBody') uiDetailMarkClean();
+  else if (host.tagName === 'FORM') uiFormMarkClean(host);
+  else host.querySelectorAll('form').forEach(form => uiFormMarkClean(form));
+}
+// 后台自动重试把保存失败时留在内存里的修改存进去了：这些表单不再算「没保存」。以前弹窗还开着、仍算没保存，
+// 按 Esc 选「放弃修改」会撤回已经存进数据库的新订单（下一次保存把它从数据库删掉）。
+// 冲突时选了「用那边的」：表单里的内容可能已被那边的覆盖，不标成已保存。
+let macMergeDroppedMine = false;
+function failedSaveSettleAfterSave() {
+  const hosts = ['orderForm', 'customerForm', 'combinedCustomerOrderModal', 'orderDetailBody']
+    .map(id => document.getElementById(id)).filter(host => host?._failedSave);
+  const dropped = macMergeDroppedMine;
+  macMergeDroppedMine = false;
+  if (!hosts.length || dropped) return false;
+  // 用户正好又点了保存（表单正在保存）：那次保存自己会提示，这里只清记录、不再多说一句。
+  const foreground = Boolean(document.querySelector('form[data-saving]'));
+  hosts.forEach(host => {
+    const unchanged = host._failedPrint !== undefined && host._failedPrint === failedSaveFingerprint(host);
+    delete host._failedSave;
+    delete host._failedPrint;
+    if (unchanged) failedSaveMarkClean(host);
+  });
+  if (foreground) return true;
+  toast('刚才没存进去的修改，已在后台自动保存到数据库', { desc:'表单里没再改动的内容可以直接关闭' });
+  return true;
 }
 function failedSaveForget(host) {
-  if (host) delete host._failedSave;
+  if (host) { delete host._failedSave; delete host._failedPrint; }
 }
 function failedSaveUndo(host, { rerender = true } = {}) {
   const undo = host?._failedSave;
   if (!undo) return false;
   delete host._failedSave;
+  delete host._failedPrint;
   undo();
   // render() 和 saveState() 都会把撤回后的内存排进保存队列，替换掉失败时排着的那份。
   if (rerender) render();
@@ -8394,15 +8466,24 @@ function failedSaveUndo(host, { rerender = true } = {}) {
   return true;
 }
 let readOnlySaveToastAt = 0;
+// 进入只读那一刻的数据：之后 render() 每次都会走到这里，只有数据真的变了才提示「这次修改没有保存」
+// （以前读库失败、什么都没改，也弹这一句）。
+let readOnlyBaselineJson = null;
 function saveState() {
   if (!isMacAppMode() || !macDataLoaded || macStorageReadOnly) {
     // 只读保护下（读库失败、版本冲突）改动只留在这一屏、没有写进数据库：要说出来，别让人以为已经保存了。
-    if (isMacAppMode() && macStorageReadOnly && Date.now() - readOnlySaveToastAt > 5000) {
-      readOnlySaveToastAt = Date.now();
-      toast(macStorageConflict ? macConflictReadOnlyText : '数据库处于只读保护，这次修改没有保存。请先到设置里重新加载数据库。', { tone:'error' });
+    if (isMacAppMode() && macStorageReadOnly) {
+      const json = JSON.stringify(state);
+      if (readOnlyBaselineJson === null) readOnlyBaselineJson = json;
+      if (json !== readOnlyBaselineJson && Date.now() - readOnlySaveToastAt > 5000) {
+        readOnlySaveToastAt = Date.now();
+        toast(macStorageConflict ? macConflictReadOnlyText : macReadOnlyText, { tone:'error' });
+      }
+      readOnlyBaselineJson = json;
     }
     return Promise.resolve(false);
   }
+  readOnlyBaselineJson = null;
   return syncStateToMacApp();
 }
 let macSaveTimer = 0;
@@ -8416,6 +8497,10 @@ let macSaveLastError = '';
 // 这次保存失败最早是什么时候（铃铛里补的那张「数据保存失败」卡用它当时间）。
 let macSaveLastErrorAt = '';
 let macSaveInFlight = false;
+// 上一次失败后正在等自动重试（网络、服务端暂时出错）；表单保存的提示据此不再叫人「请重试」。
+let macSaveAutoRetrying = false;
+// 最近一次失败的原因类别：conflict / server-down / timeout / storage / rejected，退出、更新前的提示据此说清楚。
+let macSaveLastErrorKind = '';
 let macBackupWarning = '';
 // 合并 / 删除客户要明确告诉服务端（WhatsApp 聊天跟着合并走、删除的客户不被猜成改名）：跟着下一次保存一起发。
 let macPendingCustomerOps = [];
@@ -8449,24 +8534,33 @@ function backupSaveFeedback(backup, previousWarning = '') {
   return { warning: Boolean(message), message };
 }
 function setMacStorageStatus(mode = 'sqlite', stateText = 'saved', detail = '') {
+  // 还有修改排着、马上要存：不说「已保存」（例如读库后的健康检查、上一次保存刚回来时）。
+  if (stateText === 'saved' && macSaveTimer && !macSaveInFlight) { stateText = 'pending'; detail = ''; }
   const badge = document.getElementById('macStorageStatusBadge');
   const text = document.getElementById('macStorageStatusText');
   const isError = stateText === 'error';
-  const isSaving = stateText === 'saving';
+  // pending：有修改、还在 350 毫秒防抖里没发出去；loading：数据库还没读出来。以前这两种时候都写「已保存」。
+  const isPending = stateText === 'pending';
+  const isLoading = stateText === 'loading';
+  const isSaving = stateText === 'saving' || isPending || isLoading;
   const isWarning = stateText === 'warning';
   const pulse = document.getElementById('savePulse');
   if (pulse) {
     pulse.className = `save-pulse ${isError || isWarning ? 'is-error' : isSaving ? 'is-busy' : 'is-saved'}`;
-    pulse.lastElementChild.textContent = isError ? '保存失败' : isWarning ? '备份失败' : isSaving ? '保存中' : '已保存';
+    pulse.lastElementChild.textContent = isError ? '保存失败' : isWarning ? '备份失败' : isPending ? '待保存' : isLoading ? '读取中' : isSaving ? '保存中' : '已保存';
   }
   if (badge) {
     badge.className = `tag ${isError || isWarning ? 'tag-orange' : isSaving ? 'tag-gray' : 'tag-green'}`;
-    badge.textContent = isError ? '保存失败' : isWarning ? '已保存 · 备份失败' : isSaving ? '保存中' : mode === 'sqlite' ? 'SQLite 正常' : 'JSON 回退';
+    badge.textContent = isError ? '保存失败' : isWarning ? '已保存 · 备份失败' : isPending ? '待保存' : isLoading ? '读取中' : isSaving ? '保存中' : mode === 'sqlite' ? 'SQLite 正常' : 'JSON 回退';
   }
   if (text) {
     text.textContent = detail || (isError
       ? '数据库保存失败，请先不要关闭软件。'
-      : isSaving
+      : isPending
+        ? '有修改，马上保存…'
+        : isLoading
+          ? '正在读取本机数据库…'
+          : isSaving
         ? '正在写入本机数据库…'
         : `数据库已连接 · ${new Date().toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}`);
   }
@@ -8475,11 +8569,88 @@ function showMacStorageConflictActions() {
   const panel = document.getElementById('macStorageConflictActions');
   if (panel) panel.hidden = false;
 }
-function exportUnsavedMacState() {
-  return download(`trade-order-unsaved-${Date.now()}.json`, JSON.stringify(dataFilePayload(state), null, 2));
+function hideMacStorageConflictActions() {
+  const panel = document.getElementById('macStorageConflictActions');
+  if (panel) panel.hidden = true;
+}
+// 本窗口相对「上次存进数据库的那份」改了哪些：改过的订单（含移进垃圾箱、已删除的）、改过或新加的客户、新的物流查询记录。
+// 冲突时只导出这些，文件标 scope:'unsaved-conflict'；导入时只按记录合并，不再整库覆盖（以前导出整份旧数据，
+// 拿去导入会把另一个窗口刚存的修改全改回去）。
+function macUnsavedChanges(current = state) {
+  let base = {};
+  try { base = JSON.parse(macPersistedStateJson || '{}') || {}; } catch (_) { base = {}; }
+  const before = stateOrderIndex(base);
+  const out = { orders:[], trashOrders:[], deletedOrders:[], customers:{}, trackingLookups:[] };
+  const nums = [];
+  stateOrderIndex(current).forEach((item, id) => {
+    const prev = before.get(id);
+    if (prev && prev.bucket === item.bucket && macStableJson(prev.order) === macStableJson(item.order)) return;
+    out[item.bucket].push(item.order);
+    nums.push(String(item.order.num || id));
+  });
+  const names = [];
+  Object.entries(current.customers || {}).forEach(([name, profile]) => {
+    if (macStableJson(base.customers?.[name]) === macStableJson(profile)) return;
+    out.customers[name] = profile;
+    names.push(name);
+  });
+  const lookupIds = new Set((base.trackingLookups || []).map(item => item?.id));
+  out.trackingLookups = (current.trackingLookups || []).filter(item => item?.id && !lookupIds.has(item.id));
+  return { data:out, nums, names, count:nums.length + names.length + out.trackingLookups.length };
+}
+async function exportUnsavedMacState() {
+  const changes = macUnsavedChanges();
+  if (!changes.count) {
+    toast('本窗口没有没存进数据库的订单或客户修改，不用导出', { tone:'info' });
+    return true;
+  }
+  const payload = { ...dataFilePayload({ ...changes.data, demoCleared:true, demoCustomersCleared:true }, { scope:'unsaved-conflict' }), baseRevision:macStorageRevision };
+  return download(`trade-order-unsaved-${Date.now()}.json`, JSON.stringify(payload, null, 2));
 }
 document.getElementById('macConflictExportBtn')?.addEventListener('click', () => exportUnsavedMacState());
-document.getElementById('macConflictReloadBtn')?.addEventListener('click', () => window.location.reload());
+document.getElementById('macConflictReloadBtn')?.addEventListener('click', () => guardedPageReload());
+document.getElementById('macStorageReloadBtn')?.addEventListener('click', async () => {
+  const btn = document.getElementById('macStorageReloadBtn');
+  if (btn) { btn.disabled = true; btn.setAttribute('aria-busy', 'true'); }
+  try { await loadMacAppState(); } finally { if (btn) { btn.disabled = false; btn.removeAttribute('aria-busy'); } }
+  if (macDataLoaded) toast('已重新读取数据库');
+});
+// 刷新页面（左下角刷新按钮、冲突面板的「重新加载最新数据」）：先把排着的保存存完；还有存不进去的修改
+// （重试中、冲突只读、表单没保存）就先问，可以先导出。以前直接 reload，删除后马上刷新、重试中刷新，修改都会丢。
+async function guardedPageReload({ scrollTop = false } = {}) {
+  const go = () => {
+    if (scrollTop) sessionStorage.setItem(refreshTopKey, '1');
+    window.location.reload();
+  };
+  if (!isMacAppMode() || !macDataLoaded) return go();
+  const saved = await flushPendingSave();
+  const unsaved = otsUnsavedForms();
+  const localLost = !saved && JSON.stringify(state) !== macPersistedStateJson;
+  if (!unsaved.length && !localLost) return go();
+  const lines = unsaved.map(name => `· ${name} 里改的内容还没保存`);
+  if (localLost) {
+    const changes = macUnsavedChanges();
+    const what = [changes.nums.length ? `订单 ${changes.nums.slice(0, 5).join('、')}${changes.nums.length > 5 ? ' 等' : ''}` : '', changes.names.length ? `客户 ${changes.names.slice(0, 3).join('、')}${changes.names.length > 3 ? ' 等' : ''}` : ''].filter(Boolean).join('；');
+    lines.push(macStorageConflict
+      ? `· 本窗口的修改因为和另一个窗口冲突，没有存进数据库${what ? `（${what}）` : ''}`
+      : `· 修改还没确认写进数据库${what ? `（${what}）` : ''}${macSaveLastError ? `，原因：${macSaveLastError}` : ''}`);
+  }
+  const choice = await appConfirm({
+    title:'还有修改没存进数据库',
+    sub:'刷新页面',
+    message:`${lines.join('\n')}\n\n刷新后这些修改会丢失。`,
+    confirmText:'仍然刷新',
+    altText:localLost ? '导出后刷新' : '',
+    cancelText:'取消',
+    danger:true,
+    defaultFocus:'cancel'
+  });
+  if (choice.alt) {
+    if (await exportUnsavedMacState()) go();
+    return;
+  }
+  if (choice.confirmed) go();
+}
 // 版本冲突当场弹页面内确认框，把「导出这次的修改」「重新加载」放到眼前（以前只在设置页里）。
 // 取消 / Esc / × 都只是先关掉，不会重新加载丢掉修改；设置页里的两个按钮一直都在。
 // 返回是否弹出了确认框：已有别的确认框开着时不抢，由调用方改用 toast 提示。
@@ -8490,10 +8661,27 @@ function promptMacStorageConflict() {
   macConflictPromptOpen = true;
   (async () => {
     try {
+      // 两边改了同一处：列出来，让人选用哪一边；不冲突的修改已经合并好了。
+      if (macPendingMerge) {
+        const preview = mergeMacStates(macMergeBase(), JSON.parse(JSON.stringify(state)), macPendingMerge.theirs);
+        const list = preview.conflicts.slice(0, 8).map(item => `· ${macConflictLine(item)}`);
+        if (preview.conflicts.length > 8) list.push(`· 另外还有 ${preview.conflicts.length - 8} 处`);
+        const pick = await appConfirm({
+          title:'两个窗口改了同一处',
+          sub:`${preview.conflicts.length} 处需要选一边`,
+          message:`另一个窗口刚保存过数据。两边改的不同地方已经自动合并，下面这些地方两边都改了：\n\n${list.join('\n')}\n\n「用那边的」：这几处以另一个窗口为准；「用我的」：这几处以本窗口为准。`,
+          confirmText:'用那边的',
+          altText:'用我的',
+          cancelText:'稍后处理'
+        });
+        if (pick.confirmed || pick.alt) applyMacMergeChoice(pick.alt ? 'mine' : 'theirs');
+        else toast('本窗口暂时只读', { tone:'warn', desc:'可在 设置 → 数据管理 里导出这次的修改或重新加载；重新加载后，没导出的修改需要重新录入' });
+        return;
+      }
       const choice = await appConfirm({
         title: '另一个窗口刚保存过数据',
         sub: '本窗口已切换为只读',
-        message: '为了不覆盖那边的修改，本窗口这次的修改没有存进数据库。\n\n建议先「导出这次的修改」留一份文件，再重新加载最新数据，把需要的修改重新录入。',
+        message: '为了不覆盖那边的修改，本窗口这次的修改没有存进数据库。\n\n建议先「导出这次的修改」留一份文件（只含本窗口没存进去的订单和客户，导入时只合并这些记录），再重新加载最新数据。选「稍后处理」的话，重新加载后需要把修改重新录入。',
         confirmText: '导出这次的修改',
         cancelText: '稍后处理'
       });
@@ -8534,10 +8722,216 @@ function queueCurrentMacState() {
 }
 function scheduleMacSave() {
   if (macSaveTimer || macSaveLoopPromise || macStorageReadOnly) return;
+  if (!macSaveLastError) setMacStorageStatus('sqlite', 'pending');
   macSaveTimer = window.setTimeout(() => {
     macSaveTimer = 0;
     runMacSaveQueue();
   }, 350);
+}
+// 保存请求最多等这么久，超时按网络错误处理（自动重试）；配合保存编号，超时后其实已写入也不会变成假冲突。
+let macSaveRequestTimeoutMs = 20000;
+let macSaveAttempt = null;
+function macNewSaveId() {
+  try { if (crypto?.randomUUID) return crypto.randomUUID().replace(/-/g, ''); } catch (_) {}
+  return `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
+}
+// ---- 冲突后的三方合并 ----
+// 基准 = 本窗口上次存进数据库的那份（macPersistedStateJson），我的 = 本窗口现在的数据，那边的 = 数据库里最新的。
+// 只有一边改了的地方取改了的那边；两边改成一样的不算冲突；两边改成不一样的才是冲突（同一张单的同一个字段）。
+// 订单按 id 合并（订单在哪一栏——看板 / 垃圾箱 / 已删除——也当成一个字段），客户按名字，物流查询记录按 id，其余按键逐层比。
+function macStableJson(value) {
+  if (value === undefined) return '\u0000';
+  if (Array.isArray(value)) return `[${value.map(item => item === undefined ? 'null' : macStableJson(item)).join(',')}]`;
+  if (value && typeof value === 'object') return `{${Object.keys(value).sort().filter(key => value[key] !== undefined).map(key => `${JSON.stringify(key)}:${macStableJson(value[key])}`).join(',')}}`;
+  return JSON.stringify(value);
+}
+function macIsPlainObject(value) { return !!value && typeof value === 'object' && !Array.isArray(value); }
+function macMergeValue(base, mine, theirs, path, ctx) {
+  const m = macStableJson(mine);
+  const t = macStableJson(theirs);
+  if (m === t) return mine;
+  const b = macStableJson(base);
+  if (m === b) return theirs;
+  if (t === b) return mine;
+  if (macIsPlainObject(mine) && macIsPlainObject(theirs)) {
+    const baseObj = macIsPlainObject(base) ? base : {};
+    const out = {};
+    [...new Set([...Object.keys(theirs), ...Object.keys(mine)])].forEach(key => {
+      const value = macMergeValue(baseObj[key], mine[key], theirs[key], [...path, key], ctx);
+      if (value !== undefined) out[key] = value;
+    });
+    return out;
+  }
+  ctx.conflicts.push({ path, mine, theirs });
+  return ctx.prefer === 'mine' ? mine : theirs;
+}
+// 合并后的先后顺序：以那边的顺序为主，本窗口新加的按它在本窗口里的位置插进去。
+function macMergeSequence(keep, mineIds, theirsIds) {
+  const out = theirsIds.filter(id => keep.has(id));
+  const placed = new Set(out);
+  mineIds.forEach((id, index) => {
+    if (!keep.has(id) || placed.has(id)) return;
+    out.splice(Math.min(index, out.length), 0, id);
+    placed.add(id);
+  });
+  keep.forEach(id => { if (!placed.has(id)) out.push(id); });
+  return out;
+}
+function macMergeIdList(base, mine, theirs, path, ctx) {
+  const index = list => new Map((Array.isArray(list) ? list : []).filter(item => item?.id !== undefined && item?.id !== null).map(item => [String(item.id), item]));
+  const B = index(base), M = index(mine), T = index(theirs);
+  const merged = new Map();
+  [...new Set([...T.keys(), ...M.keys()])].forEach(id => {
+    const value = macMergeValue(B.get(id), M.get(id), T.get(id), [...path, id], ctx);
+    if (value !== undefined) merged.set(id, value);
+  });
+  const ids = macMergeSequence(new Set(merged.keys()), [...M.keys()], [...T.keys()]);
+  const noId = (Array.isArray(theirs) ? theirs : []).filter(item => item?.id === undefined || item?.id === null);
+  return [...ids.map(id => merged.get(id)), ...noId];
+}
+const macOrderBuckets = ['orders', 'trashOrders', 'deletedOrders'];
+function macMergeOrderBuckets(base, mine, theirs, ctx) {
+  const wrap = data => {
+    const map = new Map();
+    macOrderBuckets.forEach(bucket => (data?.[bucket] || []).forEach(order => { if (order?.id) map.set(String(order.id), { bucket, order }); }));
+    return map;
+  };
+  const B = wrap(base), M = wrap(mine), T = wrap(theirs);
+  const merged = new Map();
+  [...new Set([...T.keys(), ...M.keys()])].forEach(id => {
+    const value = macMergeValue(B.get(id), M.get(id), T.get(id), ['orders', id], ctx);
+    if (value?.order && macOrderBuckets.includes(value.bucket)) merged.set(id, value);
+  });
+  const out = {};
+  macOrderBuckets.forEach(bucket => {
+    const keep = new Set([...merged].filter(([, value]) => value.bucket === bucket).map(([id]) => id));
+    const ids = macMergeSequence(keep, (mine?.[bucket] || []).map(order => String(order?.id)), (theirs?.[bucket] || []).map(order => String(order?.id)));
+    out[bucket] = ids.map(id => merged.get(id).order);
+  });
+  return out;
+}
+function mergeMacStates(base = {}, mine = {}, theirs = {}, prefer = 'theirs') {
+  const ctx = { conflicts:[], prefer };
+  const special = new Set([...macOrderBuckets, 'trackingLookups']);
+  const merged = {};
+  [...new Set([...Object.keys(theirs || {}), ...Object.keys(mine || {})])].filter(key => !special.has(key)).forEach(key => {
+    const value = macMergeValue(base?.[key], mine?.[key], theirs?.[key], [key], ctx);
+    if (value !== undefined) merged[key] = value;
+  });
+  Object.assign(merged, macMergeOrderBuckets(base, mine, theirs, ctx));
+  merged.trackingLookups = macMergeIdList(base?.trackingLookups, mine?.trackingLookups, theirs?.trackingLookups, ['trackingLookups'], ctx);
+  return { state:merged, conflicts:ctx.conflicts };
+}
+// 两个窗口各建了一张同号的新单：合并后数据库会拒收，不能自动合并。
+function macMergeHasDuplicateNums(data) {
+  const owners = new Map();
+  for (const bucket of macOrderBuckets) {
+    for (const order of data[bucket] || []) {
+      const num = String(order?.num || '');
+      if (!num) continue;
+      if (owners.has(num) && owners.get(num) !== order.id) return true;
+      owners.set(num, order.id);
+    }
+  }
+  return false;
+}
+const macMergeSettingLabels = {
+  orderSettings:'订单设置', boardCardSettings:'卡片设置', exchangeSettings:'汇率设置', paymentMethods:'收款方式', customerTags:'客户标签',
+  customerLevels:'客户等级', customerLevelRules:'等级规则', owners:'负责人', performanceTargets:'业绩目标', doneTasks:'待办处理记录',
+  snoozedTasks:'稍后处理的待办', customerDuplicateIgnores:'客户去重设置', trackingLookups:'物流查询记录'
+};
+function macConflictValueText(value) {
+  if (value === undefined || value === null) return '（已删除）';
+  const text = typeof value === 'string' ? value : JSON.stringify(value);
+  const clean = String(text).replace(/\s+/g, ' ').trim();
+  return clean.length > 24 ? `${clean.slice(0, 24)}…` : (clean || '（空）');
+}
+function macBucketName(value) {
+  return { orders:'订单', trashOrders:'垃圾箱', deletedOrders:'已删除' }[value] || '（已删除）';
+}
+function macConflictLine(item) {
+  const [root, id, ...rest] = item.path;
+  let label;
+  if (root === 'orders') {
+    const wrapper = macIsPlainObject(item.theirs) && item.theirs.order ? item.theirs : item.mine;
+    const all = [...(state.orders || []), ...(state.trashOrders || []), ...(state.deletedOrders || [])];
+    const num = wrapper?.order?.num || all.find(order => String(order.id) === id)?.num || id;
+    if (!rest.length) return `订单 ${num}：${item.mine === undefined ? '本窗口删除了，那边改了' : '那边删除了，本窗口改了'}`;
+    if (rest[0] === 'bucket') return `订单 ${num} · 所在位置：那边「${macBucketName(item.theirs)}」/ 你的「${macBucketName(item.mine)}」`;
+    label = `订单 ${num} · ${pasteOrderFieldLabel(rest[1]) || rest[1] || '内容'}`;
+  } else if (root === 'customers') {
+    label = `客户 ${id ?? ''}${rest.length ? ` · ${customerPasteLabels[rest[0]] || rest[0]}` : ''}`;
+  } else {
+    label = macMergeSettingLabels[root] || root;
+  }
+  return `${label}：那边「${macConflictValueText(item.theirs)}」/ 你的「${macConflictValueText(item.mine)}」`;
+}
+function macMergeBase() {
+  try { return JSON.parse(macPersistedStateJson || '{}') || {}; } catch (_) { return {}; }
+}
+// 冲突后等人选「用我的 / 用那边的」：{ theirs, revision }。
+let macPendingMerge = null;
+// 409 之后：读数据库里最新的一份，和本窗口合并。
+// 'same'：数据库里就是刚才发出去的那份（上一次其实已经存进去了）；'merged'：自动合并好了，接着存；
+// 'conflict'：两边改了同一处，等人选；'failed'：读不到最新数据或没法合并，按原来的只读处理。
+async function macMergeAfterConflict({ snapshotJson, targetVersion, customerOps }) {
+  let loaded;
+  try {
+    const res = await apiFetch('/api/data', { cache:'no-store', timeoutMs:macSaveRequestTimeoutMs });
+    if (!res.ok) return 'failed';
+    loaded = macStateEnvelope(await res.json());
+  } catch (_) { return 'failed'; }
+  const theirs = loaded.state;
+  const revision = Number(loaded.revision);
+  if (!Number.isFinite(revision)) return 'failed';
+  if (macStableJson(normalizeState(JSON.parse(snapshotJson))) === macStableJson(theirs)) {
+    macStorageRevision = revision;
+    macSaveCompletedVersion = Math.max(macSaveCompletedVersion, targetVersion);
+    macPersistedStateJson = snapshotJson;
+    customerOps.forEach(op => { op.state = 'done'; op.chats = op.chats || []; });
+    macSaveLastError = '';
+    macSaveLastErrorKind = '';
+    macSaveAutoRetrying = false;
+    setMacStorageStatus('sqlite', 'saved', `数据库已保存 · 版本 ${macStorageRevision}`);
+    failedSaveSettleAfterSave();
+    return 'same';
+  }
+  const result = mergeMacStates(macMergeBase(), JSON.parse(JSON.stringify(state)), theirs);
+  if (macMergeHasDuplicateNums(result.state)) return 'failed';
+  if (result.conflicts.length) {
+    macPendingMerge = { theirs, revision };
+    return 'conflict';
+  }
+  state = result.state;
+  macPersistedStateJson = JSON.stringify(theirs);
+  macStorageRevision = revision;
+  macSaveAttempt = null;
+  macQueuedStateJson = '';
+  queueCurrentMacState();
+  macPendingCustomerOps.unshift(...customerOps.filter(op => op.state === 'pending'));
+  render();
+  toast('已合并另一个窗口的修改', { tone:'info', desc:'两边改的不是同一处，已经一起存进数据库' });
+  return 'merged';
+}
+// 冲突时选了一边：按选择合并，回到可写，接着保存。
+function applyMacMergeChoice(prefer = 'theirs') {
+  const pending = macPendingMerge;
+  if (!pending) return;
+  macPendingMerge = null;
+  const result = mergeMacStates(macMergeBase(), JSON.parse(JSON.stringify(state)), pending.theirs, prefer);
+  state = result.state;
+  macPersistedStateJson = JSON.stringify(pending.theirs);
+  macStorageRevision = pending.revision;
+  macSaveAttempt = null;
+  macStorageReadOnly = false;
+  macStorageConflict = false;
+  macSaveLastError = '';
+  macSaveLastErrorKind = '';
+  macMergeDroppedMine = prefer === 'theirs';
+  hideMacStorageConflictActions();
+  macQueuedStateJson = '';
+  render();
+  toast(prefer === 'mine' ? '已合并：冲突的地方用了本窗口的修改' : '已合并：冲突的地方用了另一个窗口的修改', { tone:'info', desc:'正在保存到数据库' });
 }
 async function runMacSaveQueue() {
   if (macSaveLoopPromise) return macSaveLoopPromise;
@@ -8545,36 +8939,60 @@ async function runMacSaveQueue() {
   macSaveLoopPromise = (async () => {
     // 导入 / 恢复示例正在整份写库：等它写完（成功后队列里只剩它之后的改动，失败时队列已清空）。
     while (macDirectSavePromise) await macDirectSavePromise.catch(() => {});
+    let mergeAttempts = 0;
     while (macSaveCompletedVersion < macSaveRequestedVersion && !macStorageReadOnly) {
       const targetVersion = macSaveRequestedVersion;
       const snapshotJson = macQueuedStateJson;
       const snapshot = JSON.parse(snapshotJson);
       const customerOps = macPendingCustomerOps.splice(0);
+      // 同一份数据、同一个版本号的重试用同一个编号：上一次其实写进去了、只是响应丢了，服务端直接回那次的结果。
+      if (!macSaveAttempt || macSaveAttempt.json !== snapshotJson || macSaveAttempt.baseRevision !== macStorageRevision) {
+        macSaveAttempt = { json:snapshotJson, baseRevision:macStorageRevision, saveId:macNewSaveId() };
+      }
+      const hadError = Boolean(macSaveLastError);
       macSaveInFlight = true;
-      macSaveLastError = '';
-      setMacStorageStatus('sqlite', 'saving');
+      setMacStorageStatus('sqlite', 'saving', hadError ? `正在重试保存…（上次：${macSaveLastError}）` : '');
+      // 5 秒还没回来：说一声「比平时慢」，别让人以为卡死了。
+      const slowTimer = window.setTimeout(() => { if (macSaveInFlight) setMacStorageStatus('sqlite', 'saving', '保存较慢，请稍候…'); }, 5000);
       try {
-        const res = await apiFetch('/api/save', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ state: dataFilePayload(snapshot), baseRevision: macStorageRevision, ...customerStorageOpsPayload(customerOps) })
-        });
+        let res;
+        try {
+          res = await apiFetch('/api/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ state: dataFilePayload(snapshot), baseRevision: macStorageRevision, saveId: macSaveAttempt.saveId, ...customerStorageOpsPayload(customerOps) }),
+            timeoutMs: macSaveRequestTimeoutMs
+          });
+        } catch (networkError) {
+          // fetch 本身失败（服务进程没响应）或超时：说中文，不显示「Failed to fetch」。
+          const error = new Error(networkError?.timeout ? '保存超过 20 秒没有回应，正在自动重试' : '本机数据服务没有响应，正在自动重试');
+          error.kind = networkError?.timeout ? 'timeout' : 'server-down';
+          throw error;
+        }
         const result = await res.json().catch(() => ({}));
         if (res.status === 409) {
           const latestRevision = Number(result.revision ?? result.currentRevision);
           if (Number.isFinite(latestRevision)) macStorageRevision = latestRevision;
+          // 先看能不能合并：两个窗口改的不是同一处（或者刚才那次其实已经存进去了）就自动接着存，不切只读。
+          if (mergeAttempts < 2) {
+            mergeAttempts += 1;
+            const outcome = await macMergeAfterConflict({ snapshotJson, targetVersion, customerOps });
+            if (outcome === 'same' || outcome === 'merged') continue;
+          }
           macStorageReadOnly = true;
           macStorageConflict = true;
           showMacStorageConflictActions();
           // 服务端回的是英文原文（state revision conflict），给人看的固定用中文。
           const error = new Error(macConflictReadOnlyText);
           error.conflict = true;
+          error.kind = 'conflict';
           throw error;
         }
         if (!res.ok || result.ok === false) {
           const error = new Error(result.message || `保存失败 HTTP ${res.status}`);
           // 4xx = the data itself was refused (e.g. a repeated order number): retrying the same data cannot help.
           error.rejected = res.status >= 400 && res.status < 500 && ![408, 429].includes(res.status);
+          error.kind = error.rejected ? 'rejected' : 'storage';
           throw error;
         }
         const savedRevision = Number(result.revision);
@@ -8585,14 +9003,20 @@ async function runMacSaveQueue() {
           op.state = 'done';
           op.chats = (result.movedChats || []).find(item => item.id === op.id)?.chats || [];
         });
+        macSaveLastError = '';
+        macSaveLastErrorKind = '';
+        macSaveAutoRetrying = false;
         applyMacSaveBackupResult(result);
         // 又存进去了：铃铛里的「数据保存失败」标成已恢复、已读，红点不再因为它亮着。
         macSaveLastErrorAt = '';
         if (typeof uiNotifResolve === 'function') uiNotifResolve('save-');
+        // 失败后自动重试成功：表单里留着的失败记录清掉；没有表单在等时也说一句「已恢复」。
+        if (!failedSaveSettleAfterSave() && hadError) toast('数据库已恢复保存，刚才的修改都存进去了');
       } catch (error) {
         // 这次没存进去：合并 / 删除的说明放回队列，跟着下一次保存再发。
         macPendingCustomerOps.unshift(...customerOps.filter(op => op.state === 'pending'));
         macSaveLastError = error.message || '数据库保存失败';
+        macSaveLastErrorKind = error.kind || 'storage';
         if (!macSaveLastErrorAt) macSaveLastErrorAt = nowText();
         setMacStorageStatus('sqlite', 'error', macSaveLastError);
         // 恢复过的同一个错误再出现，原卡重新变成未读；还没恢复时自动重试不再一遍遍记。
@@ -8603,13 +9027,15 @@ async function runMacSaveQueue() {
         } else if (Date.now() - macSaveErrorToastAt > 10000 || error.rejected) {
           macSaveErrorToastAt = Date.now();
           // 失败提示不能用默认的绿色对勾：被拒绝 / 只读是红色，自动重试中是黄色。
-          toast(macStorageReadOnly || error.rejected ? `数据库没有保存：${macSaveLastError}` : '数据库保存失败，正在自动重试，请先不要关闭软件', { tone:macStorageReadOnly || error.rejected ? 'error' : 'warn' });
+          toast(macStorageReadOnly || error.rejected ? `数据库没有保存：${macSaveLastError}` : '数据库保存失败，正在自动重试，请先不要关闭软件', { tone:macStorageReadOnly || error.rejected ? 'error' : 'warn', desc:macStorageReadOnly || error.rejected || /自动重试/.test(macSaveLastError) ? '' : `原因：${macSaveLastError}` });
         }
         // 网络抖动或服务端短暂出错时自动重试，别让修改一直停在内存里；数据本身被拒绝时等下一次修改再存。
-        if (!macStorageReadOnly && !error.rejected) window.setTimeout(() => { if (!macStorageReadOnly && macSaveCompletedVersion < macSaveRequestedVersion) scheduleMacSave(); }, 3000);
+        macSaveAutoRetrying = !macStorageReadOnly && !error.rejected;
+        if (macSaveAutoRetrying) window.setTimeout(() => { if (!macStorageReadOnly && macSaveCompletedVersion < macSaveRequestedVersion) scheduleMacSave(); }, 3000);
         return false;
       } finally {
         macSaveInFlight = false;
+        window.clearTimeout(slowTimer);
       }
     }
     return true;
@@ -8754,9 +9180,27 @@ window.otsFlushBeforeQuit = async () => {
   if (isMacAppMode() && !macDataLoaded) return true;
   const saved = await flushPendingSave();
   const unsaved = otsUnsavedForms();
-  quitBlockedByForms = unsaved.length ? { at:Date.now(), unsaved, saved } : null;
+  // 没存进去的原因也记下：冲突（等也没用，先导出）、服务没响应、正在自动重试。退出 / 更新的提示据此说清楚，
+  // 不再一律叫人「确认已保存后再退出」「稍后再试」。
+  quitBlockedByForms = unsaved.length || !saved ? { at:Date.now(), unsaved, saved, reason:saved ? '' : otsSaveBlockReason() } : null;
   return unsaved.length ? false : saved;
 };
+function otsSaveBlockReason() {
+  if (macStorageConflict || macPendingMerge) return 'conflict';
+  if (macSaveWaitTimedOut || macSaveLastErrorKind === 'timeout') return 'slow';
+  if (macSaveLastErrorKind === 'server-down') return 'server-down';
+  if (macSaveLastErrorKind === 'rejected') return 'rejected';
+  return 'retrying';
+}
+function otsSaveBlockText(reason, action = '退出') {
+  return {
+    conflict:`本窗口有修改和另一个窗口冲突，没有存进数据库，等待也不会变成「已保存」。建议返回软件，在 设置 → 数据管理 里先「导出未保存的修改」，再${action}。`,
+    slow:`数据库这次保存比平时慢，还在后台继续。建议返回软件，等左下角变成「已保存」后再${action}。`,
+    'server-down':`本机数据服务没有响应，修改还没存进数据库。建议返回软件，在 设置 → 数据管理 里导出未保存的修改后再${action}。`,
+    rejected:`数据库拒收了这次修改：${macSaveLastError || '数据不符合要求'}。返回软件改正后会自动保存。`,
+    retrying:`数据库保存失败，正在自动重试${macSaveLastError ? `（原因：${macSaveLastError}）` : ''}。建议返回软件，等左下角变成「已保存」后再${action}。`
+  }[reason] || '';
+}
 function macStateEnvelope(payload = {}) {
   const source = payload && payload.state !== undefined
     ? payload.state
@@ -8790,8 +9234,14 @@ function setAppVersionUpdatedAt(value) {
   refreshAppVersionTooltip();
 }
 async function loadMacAppState() {
-  if (!isMacAppMode()) return;
+  if (!isMacAppMode()) {
+    // 浏览器直接打开（不是 Mac App）：没有数据库要读，状态点照旧写「已保存」。
+    const pulse = document.getElementById('savePulse');
+    if (pulse) { pulse.className = 'save-pulse is-saved'; pulse.lastElementChild.textContent = '已保存'; }
+    return;
+  }
   document.documentElement.classList.add('mac-app-mode');
+  if (!macStateReady) setMacStorageStatus('sqlite', 'loading');
   try {
     const res = await apiFetch('/api/data', { cache: 'no-store' });
     if (res.ok) {
@@ -8822,12 +9272,15 @@ async function loadMacAppState() {
     if (aiSettings) safeStorage.setItem(aiSettingsKey, JSON.stringify(aiSettings));
     await refreshAiUsage();
     const trackingSettings = await fetchMacTrackingSettings();
-    if (trackingSettings) safeStorage.setItem(trackingApiSettingsKey, JSON.stringify(trackingSettings));
+    if (trackingSettings) storeTrackingApiSettingsLocal(trackingSettings);
     // 飞书配置状态不挡首屏：读到后更新设置页、接口状态和三处发送开关的默认值。
     refreshFeishuStatus();
     macDataLoaded = true;
     macStorageReadOnly = false;
     macSaveLastError = '';
+    readOnlyBaselineJson = null;
+    const reloadPanel = document.getElementById('macStorageReloadActions');
+    if (reloadPanel) reloadPanel.hidden = true;
     // 启动时检查一次 UPS 满 5 天规则；之后由每分钟的定时检查接着看。
     completeDueUpsOrders();
     showRestoredBackupNotice();
@@ -8840,14 +9293,56 @@ async function loadMacAppState() {
     const friendly = /identity does not match/i.test(reason)
       ? '数据库文件和本机的身份标记对不上（常见于手动放回备份或换了电脑）'
       : /database is missing/i.test(reason) ? '数据库文件不见了，但本机有备份记录' : reason;
-    setMacStorageStatus('sqlite', 'error', `${friendly}。可在下方「从备份恢复…」选一份备份恢复。`);
-    toast('数据库读取失败，当前已进入只读保护，绝不会覆盖本机数据', { tone:'error', desc:'可在 设置 → 数据管理 →「从备份恢复…」找回数据' });
+    setMacStorageStatus('sqlite', 'error', `${friendly}。可在下方点「重新读取数据库」，或「从备份恢复…」选一份备份恢复。`);
+    // 设置里给一个真的「重新读取数据库」按钮（以前提示让人去点，设置里却找不到）。
+    const reloadPanel = document.getElementById('macStorageReloadActions');
+    if (reloadPanel) reloadPanel.hidden = false;
+    toast('数据库读取失败，当前已进入只读保护，绝不会覆盖本机数据', { tone:'error', desc:'可在 设置 → 数据管理 里点「重新读取数据库」，或从备份恢复' });
   }
   render();
   if (typeof shouldScrollTopAfterRefresh !== 'undefined' && shouldScrollTopAfterRefresh) {
     scrollWorkspaceToTop('auto', true);
   }
 }
+// 别的窗口（或本窗口的后台任务以外的地方）存过数据：每 45 秒、窗口回到前台时看一眼版本号。
+// 本窗口没有待保存的修改、也没有开着没保存的表单，就悄悄换成最新数据；有的话不动，等保存时再合并。
+// 以前窗口只在自己保存那一刻才发现数据变了，那时手里的修改已经存不进去。
+let macRevisionCheckAt = 0;
+let macRevisionCheckRunning = false;
+function macSaveIdle() {
+  return isMacAppMode() && macDataLoaded && !macStorageReadOnly && !macSaveInFlight && !macSaveTimer && !macSaveLoopPromise
+    && !macDirectSavePromise && macSaveCompletedVersion >= macSaveRequestedVersion && !macPendingMerge;
+}
+async function macCheckRemoteRevision({ force = false } = {}) {
+  if (!macSaveIdle() || macRevisionCheckRunning || document.hidden) return false;
+  if (!force && Date.now() - macRevisionCheckAt < 5000) return false;
+  macRevisionCheckAt = Date.now();
+  macRevisionCheckRunning = true;
+  try {
+    const res = await apiFetch('/api/revision', { cache:'no-store', timeoutMs:10000 });
+    if (!res.ok) return false;
+    const revision = Number((await res.json().catch(() => ({}))).revision);
+    if (!Number.isFinite(revision) || revision === macStorageRevision) return false;
+    if (!macSaveIdle() || otsUnsavedForms().length || JSON.stringify(state) !== macPersistedStateJson) return false;
+    const dataRes = await apiFetch('/api/data', { cache:'no-store', timeoutMs:20000 });
+    if (!dataRes.ok) return false;
+    const loaded = macStateEnvelope(await dataRes.json());
+    // 读的这一会儿本窗口又改了：不覆盖，交给保存时合并。
+    if (!macSaveIdle() || otsUnsavedForms().length || JSON.stringify(state) !== macPersistedStateJson) return false;
+    state = loaded.state;
+    macStorageRevision = loaded.revision;
+    macPersistedStateJson = JSON.stringify(state);
+    macQueuedStateJson = macPersistedStateJson;
+    render();
+    return true;
+  } catch (_) {
+    return false;
+  } finally { macRevisionCheckRunning = false; }
+}
+window.macCheckRemoteRevision = macCheckRemoteRevision;
+window.setInterval(() => macCheckRemoteRevision(), 45000);
+window.addEventListener('focus', () => macCheckRemoteRevision());
+document.addEventListener('visibilitychange', () => { if (!document.hidden) macCheckRemoteRevision(); });
 function applyTheme(theme) {
   const safeTheme = theme === 'dark' ? 'dark' : 'light';
   document.documentElement.dataset.theme = safeTheme;
@@ -8954,10 +9449,32 @@ function getTrackingApiSettings() {
     return { ...defaultTrackingApiSettings };
   }
 }
-function saveTrackingApiSettings(settings) {
+const trackingSecretFields = ['dhlApiKey', 'fedexApiKey', 'fedexApiSecret'];
+// 本机缓存一份物流设置（给设置页和自动更新用）。Mac App 里密钥只存在服务端的数据目录，缓存里不留明文。
+function storeTrackingApiSettingsLocal(settings) {
   const normalized = normalizeTrackingApiSettings(settings);
-  safeStorage.setItem(trackingApiSettingsKey, JSON.stringify(normalized));
-  if (isMacAppMode()) saveMacTrackingSettings(normalized);
+  const local = isMacAppMode() ? { ...normalized, ...Object.fromEntries(trackingSecretFields.map(key => [key, ''])) } : normalized;
+  safeStorage.setItem(trackingApiSettingsKey, JSON.stringify(local));
+  return normalized;
+}
+// 和 base 比，只留改了的字段；密钥只有填了才发（空着表示不改）。
+function trackingSettingsPatch(next, base = getTrackingApiSettings()) {
+  const a = normalizeTrackingApiSettings(next);
+  const b = normalizeTrackingApiSettings(base);
+  const patch = {};
+  Object.keys(a).forEach(key => {
+    if (/Saved$|Mask$/.test(key)) return;
+    if (trackingSecretFields.includes(key)) { if (a[key]) patch[key] = a[key]; return; }
+    if (JSON.stringify(a[key]) !== JSON.stringify(b[key])) patch[key] = a[key];
+  });
+  return patch;
+}
+// 自动更新、手动查询后记下状态：只发改了的那几个状态字段（以前整份设置写回去，
+// 会把另一个窗口刚改的「自动更新」开关等改回本窗口的旧值；表单保存时还会再 POST 一次）。
+function saveTrackingApiSettings(settings) {
+  const patch = trackingSettingsPatch(settings);
+  storeTrackingApiSettingsLocal(settings);
+  if (isMacAppMode() && Object.keys(patch).length) saveMacTrackingSettings(patch);
 }
 function trackingCarrierStatusPatch(carrier, message, checkedAt = nowText()) {
   return carrierName(carrier) === 'FedEx'
@@ -16756,12 +17273,15 @@ function renderSettings() {
     aiForm.elements.baseUrl.value = ai.baseUrl;
     aiForm.elements.model.value = ai.model;
     aiForm.elements.apiKey.value = '';
+    aiForm._shownSettings = ai;
     aiForm.elements.apiKey.placeholder = savedSecretPlaceholder(ai.apiKeySaved, ai.apiKeyMask, '只保存在本机，不随数据文件导出');
   });
   const trackingForm = document.getElementById('trackingApiSettingsForm');
   if (trackingForm) {
     const tracking = getTrackingApiSettings();
     settingsFormFill(trackingForm, trackingForm => {
+      // 表单显示的是哪一份：保存时只发和它不同的字段（另一个窗口改过的其它项不被这里的旧值盖回去）。
+      trackingForm._shownSettings = tracking;
       trackingForm.elements.dhlApiEnabled.value = tracking.dhlApiEnabled;
       trackingForm.elements.autoDhlUpdate.value = tracking.autoDhlUpdate;
       trackingForm.elements.dhlApiKey.value = '';
@@ -20817,7 +21337,8 @@ async function saveCustomer(form) {
   const undo = typeof customerSaveSnapshot === 'function' ? customerSaveSnapshot([oldName, payload.newName], form.elements.originalName) : null;
   commitCustomerSavePayload({ oldName, ...payload });
   if (form.elements.originalName) form.elements.originalName.value = payload.newName;
-  if (!await persistFormState(form)) {
+  const persist = () => persistFormState(form);
+  if (!await (typeof withBusyButton === 'function' ? withBusyButton(document.getElementById('customerHeaderSaveBtn'), persist) : persist())) {
     // 没写进数据库：放弃这次编辑（关掉档案、取消编辑、换一位客户）时按快照撤回，后台重试不会再写进去。
     if (undo && typeof failedSaveRemember === 'function') failedSaveRemember(form, undo);
     return;
@@ -22189,7 +22710,7 @@ async function saveCombinedCustomerOrder() {
   else state.orders.unshift(order);
   orderForm.dataset.pendingOrderId = order.id;
   const modal = document.getElementById('combinedCustomerOrderModal');
-  if (!await persistFormState(customerForm, orderForm)) {
+  if (!await withBusyButton(document.getElementById('combinedSaveBtn'), () => persistFormState(customerForm, orderForm))) {
     // 没写进数据库：关掉这个弹窗（放弃）时客户和订单一起撤回。
     failedSaveRemember(modal, () => {
       state.orders = pendingOrder ? state.orders.map(o => o.id === order.id ? pendingOrder : o) : state.orders.filter(o => o.id !== order.id);
@@ -22884,7 +23405,7 @@ function prepareImportedData(raw) {
   });
   return {
     data, conversions, droppedLookups,
-    scope: wrapped && raw.scope === 'month' ? 'month' : 'all',
+    scope: wrapped && ['month', 'unsaved-conflict'].includes(raw.scope) ? raw.scope : 'all',
     month: wrapped ? String(raw.month || '') : '',
     exportedAt: wrapped ? String(raw.exportedAt || '') : '',
     version: wrapped ? String(raw.version || '') : ''
@@ -22933,7 +23454,7 @@ function stateDiffLine(label, unit, item, list = []) {
 // 合并导入：文件里的订单按 id 新增或更新（放进文件里的那一栏），文件里没有的订单一张不删；
 // 只加现在没有的客户档案和目标，已有的档案、设置都不动（单月文件里的档案可能比现在的旧）。
 // 订单号已被现有的另一张单占用时跳过这张，预览里说出来。
-function mergeImportedState(current, incoming) {
+function mergeImportedState(current, incoming, { updateCustomers = false } = {}) {
   const next = JSON.parse(JSON.stringify(current));
   const buckets = ['orders', 'trashOrders', 'deletedOrders'];
   buckets.forEach(bucket => { if (!Array.isArray(next[bucket])) next[bucket] = []; });
@@ -22958,8 +23479,9 @@ function mergeImportedState(current, incoming) {
     if (order.num) numOwner.set(String(order.num), order.id);
   }));
   next.customers = next.customers || {};
+  // 冲突时导出的「没存进去的修改」：文件里的客户就是当时改过的，按文件更新；其它文件只加新客户。
   Object.entries(incoming.customers || {}).forEach(([name, profile]) => {
-    if (!Object.prototype.hasOwnProperty.call(next.customers, name)) next.customers[name] = profile;
+    if (updateCustomers || !Object.prototype.hasOwnProperty.call(next.customers, name)) next.customers[name] = profile;
   });
   const lookupIds = new Set((next.trackingLookups || []).map(item => item.id));
   (incoming.trackingLookups || []).forEach(item => {
@@ -22989,7 +23511,7 @@ function importSourceText(plan) {
   if (!plan.exportedAt && !plan.version) return '来源：旧格式文件，没有导出时间和版本';
   const time = Date.parse(plan.exportedAt);
   const when = Number.isFinite(time) ? backupTimeText(time) : plan.exportedAt;
-  return `来源：${when || '导出时间不详'}${plan.version ? ` 由 V${plan.version} 导出` : ''} · ${plan.scope === 'month' ? `${plan.month || '单月'} 单月订单` : '全部数据'}`;
+  return `来源：${when || '导出时间不详'}${plan.version ? ` 由 V${plan.version} 导出` : ''} · ${plan.scope === 'month' ? `${plan.month || '单月'} 单月订单` : plan.scope === 'unsaved-conflict' ? '保存冲突时没存进去的修改' : '全部数据'}`;
 }
 async function previewImportDataFile(file) {
   if (!file || !canSubmitStoredData()) return;
@@ -22997,7 +23519,9 @@ async function previewImportDataFile(file) {
     if (Number(file.size || 0) > importFileMaxBytes) throw new Error(`文件太大（${(file.size / 1048576).toFixed(1)} MB），最多 15 MB`);
     const plan = prepareImportedData(await readJsonFile(file));
     const data = plan.data;
-    const merged = mergeImportedState(state, data);
+    const conflictFile = plan.scope === 'unsaved-conflict';
+    const mergeOnly = plan.scope === 'month' || conflictFile;
+    const merged = mergeImportedState(state, data, { updateCustomers:conflictFile });
     const mergeDiff = stateDiff(state, merged.state);
     const replaceDiff = stateDiff(state, data);
     const removedTotal = replaceDiff.orders.removed + replaceDiff.customers.removed;
@@ -23005,7 +23529,15 @@ async function previewImportDataFile(file) {
     // 只差大小写 / 全角 / 空格的号数据库存得下，不拦导入（自己的旧备份要能恢复），但预览里要说出来。
     const similar = similarOrderNumGroups([...data.orders, ...data.trashOrders, ...data.deletedOrders]);
     const lines = [importSourceText(plan), `文件里：${dataSummaryText(data).replace(/\n/g, ' · ')}`, ''];
-    if (plan.scope === 'month') {
+    if (conflictFile) {
+      // 只合并文件里的这几条记录，不整库覆盖：另一个窗口存过的其它修改都不动。
+      const nums = [...data.orders, ...data.trashOrders, ...data.deletedOrders].map(order => order.num || order.id);
+      const names = Object.keys(data.customers || {});
+      lines.push('这是保存冲突时导出的「没存进去的修改」，只合并文件里的这些记录，不删除、不改动其它数据：');
+      if (nums.length) lines.push(`· 订单 ${nums.slice(0, 8).join('、')}${nums.length > 8 ? ` 等 ${nums.length} 张` : ''}（新增 ${mergeDiff.orders.added}、更新 ${mergeDiff.orders.changed}）`);
+      if (names.length) lines.push(`· 客户 ${names.slice(0, 5).join('、')}${names.length > 5 ? ` 等 ${names.length} 位` : ''}（新增 ${mergeDiff.customers.added}、更新 ${mergeDiff.customers.changed}）`);
+      lines.push('文件里这些订单 / 客户会整条换成导出时本窗口的内容。');
+    } else if (plan.scope === 'month') {
       lines.push(`这是单月订单文件，只能合并：新增 ${mergeDiff.orders.added} 张、更新 ${mergeDiff.orders.changed} 张、新客户 ${mergeDiff.customers.added} 位，不删除任何现有数据。`);
     } else {
       lines.push(`和现在比（现在 ${state.orders.length} 张订单 → 替换后 ${data.orders.length} 张）：`);
@@ -23022,7 +23554,7 @@ async function previewImportDataFile(file) {
     lines.push('', isMacAppMode() ? '导入前会先自动备份当前数据；导入后 6 秒内可撤销，之后也可在「从备份恢复…」里找回。' : '导入后 6 秒内可撤销。');
     const message = lines.join('\n');
     let mode = '';
-    if (plan.scope === 'month') {
+    if (mergeOnly) {
       const choice = await appConfirm({ title:'导入数据文件', sub:'导入前预览 · 只合并', message, confirmText:'合并导入', defaultFocus:'cancel' });
       mode = choice.confirmed ? 'merge' : '';
     } else {
@@ -25448,7 +25980,7 @@ async function closeSubscriptionEditorGuarded() {
   const modal = document.getElementById('subscriptionEditModal');
   // 正在保存：先别关。以前保存中按 Esc 直接关掉，保存失败的提示写进已经关掉的弹窗里，输入丢了也没人知道。
   if (subscriptionBusy) {
-    subscriptionToast('正在保存，请稍候');
+    toast('正在保存，请稍候', { tone:'info' });
     return;
   }
   if (subscriptionDraft && (JSON.stringify(subscriptionDraft) !== subscriptionDraftClean || subscriptionPendingOptionInputs().length)
@@ -26631,12 +27163,15 @@ document.getElementById('boardCardSettingsCloseBtn')?.addEventListener('click', 
 document.getElementById('boardCardSettingsModal')?.addEventListener('click', e => {
   if (e.target.id === 'boardCardSettingsModal') closeBoardCardSettingsGuarded();
 });
-document.getElementById('boardCardSettingsForm')?.addEventListener('submit', e => {
+document.getElementById('boardCardSettingsForm')?.addEventListener('submit', async e => {
   e.preventDefault();
-  const data = new FormData(e.currentTarget);
+  const form = e.currentTarget;
+  if (form.dataset.saving || !canSubmitStoredData()) return;
+  const data = new FormData(form);
   state.boardCardSettings = normalizeBoardCardSettings(Object.fromEntries(Object.keys(defaultBoardCardSettings).map(key => [key, data.has(key)])));
-  saveState();
   renderPipeline();
+  // 存进数据库才说「已保存」、才关掉（以前先提示已保存，冲突只读时绿色「已保存」和红色「没有存进数据库」同时出现）。
+  if (!await settingsFormPersist(form)) return;
   closeBoardCardSettings();
   toast('卡片设置已保存');
 });
@@ -27594,8 +28129,22 @@ document.querySelector('.settings-content').addEventListener('click', e => {
   render();
   toast('已移除');
 });
-document.getElementById('orderSettingsForm').addEventListener('submit', e => {
+// 设置页的表单：写进内存后等数据库确认，成功了才提示「已保存」；保存中再点不会重复提交。
+async function settingsFormPersist(form) {
+  if (!form || form.dataset.saving) return false;
+  form.dataset.saving = 'true';
+  const btn = form.querySelector('button[type="submit"]') || form.querySelector('button:not([type])');
+  if (btn) { btn.disabled = true; btn.setAttribute('aria-busy', 'true'); }
+  try {
+    return await persistFormState(form);
+  } finally {
+    delete form.dataset.saving;
+    if (btn) { btn.disabled = false; btn.removeAttribute('aria-busy'); }
+  }
+}
+document.getElementById('orderSettingsForm').addEventListener('submit', async e => {
   e.preventDefault();
+  if (e.currentTarget.dataset.saving || !canSubmitStoredData()) return;
   const data = Object.fromEntries(new FormData(e.currentTarget).entries());
   settingsFormRefill(e.currentTarget);
   state.orderSettings = {
@@ -27617,11 +28166,13 @@ document.getElementById('orderSettingsForm').addEventListener('submit', e => {
     copyDunningTemplate: state.orderSettings?.copyDunningTemplate || ''
   };
   render();
+  if (!await settingsFormPersist(e.currentTarget)) return;
   toast('订单设置已保存');
 });
-document.getElementById('ownEmailsForm')?.addEventListener('submit', e => {
+document.getElementById('ownEmailsForm')?.addEventListener('submit', async e => {
   e.preventDefault();
   const form = e.currentTarget;
+  if (form.dataset.saving || !canSubmitStoredData()) return;
   const textarea = form.elements.ownEmails;
   const lines = String(textarea.value || '').split(/[\n,，;；]+/).map(line => line.trim()).filter(Boolean);
   const bad = lines.filter(line => !normalizeCustomerEmail(tidyCustomerEmail(line).value));
@@ -27641,16 +28192,19 @@ document.getElementById('ownEmailsForm')?.addEventListener('submit', e => {
   setCustomerFieldHint(textarea, polluted.length ? `这些客户的档案里存着我方邮箱，请到档案里删掉：${polluted.join('、')}` : '', 'note');
   settingsFormRefill(form);
   render();
+  if (!await settingsFormPersist(form)) return;
   toast(list.length ? `已保存 ${list.length} 个我方邮箱` : '已清空我方邮箱');
 });
-document.getElementById('copyTemplatesForm')?.addEventListener('submit', e => {
+document.getElementById('copyTemplatesForm')?.addEventListener('submit', async e => {
   e.preventDefault();
+  if (e.currentTarget.dataset.saving || !canSubmitStoredData()) return;
   const data = Object.fromEntries(new FormData(e.currentTarget).entries());
   state.orderSettings = { ...defaultOrderSettings, ...(state.orderSettings || {}) };
   state.orderSettings.copyStatusTemplate = String(data.copyStatusTemplate || '').trim() === defaultCopyTemplates.status ? '' : String(data.copyStatusTemplate || '').trim();
   state.orderSettings.copyDunningTemplate = String(data.copyDunningTemplate || '').trim() === defaultCopyTemplates.dunning ? '' : String(data.copyDunningTemplate || '').trim();
   settingsFormRefill(e.currentTarget);
   render();
+  if (!await settingsFormPersist(e.currentTarget)) return;
   toast('文案已保存');
 });
 document.getElementById('copyTemplatesResetBtn')?.addEventListener('click', () => {
@@ -27660,8 +28214,9 @@ document.getElementById('copyTemplatesResetBtn')?.addEventListener('click', () =
   form.elements.copyDunningTemplate.value = defaultCopyTemplates.dunning;
   toast('已填回默认文案，记得点保存');
 });
-document.getElementById('levelRuleForm')?.addEventListener('submit', e => {
+document.getElementById('levelRuleForm')?.addEventListener('submit', async e => {
   e.preventDefault();
+  if (e.currentTarget.dataset.saving || !canSubmitStoredData()) return;
   const data = Object.fromEntries(new FormData(e.currentTarget).entries());
   const next = {};
   for (const key of ['A','B','C','D']) {
@@ -27673,6 +28228,7 @@ document.getElementById('levelRuleForm')?.addEventListener('submit', e => {
   state.customerLevelRules = next;
   settingsFormRefill(e.currentTarget);
   render();
+  if (!await settingsFormPersist(e.currentTarget)) return;
   toast('等级规则已保存，客户已按新门槛重新分级');
 });
 document.getElementById('levelRuleResetBtn')?.addEventListener('click', () => {
@@ -27681,8 +28237,9 @@ document.getElementById('levelRuleResetBtn')?.addEventListener('click', () => {
   render();
   toast('等级门槛已恢复默认');
 });
-document.getElementById('exchangeSettingsForm').addEventListener('submit', e => {
+document.getElementById('exchangeSettingsForm').addEventListener('submit', async e => {
   e.preventDefault();
+  if (e.currentTarget.dataset.saving || !canSubmitStoredData()) return;
   const data = Object.fromEntries(new FormData(e.currentTarget).entries());
   const settings = getExchangeSettings();
   settings.monthlyRates = { ...settings.monthlyRates };
@@ -27694,35 +28251,52 @@ document.getElementById('exchangeSettingsForm').addEventListener('submit', e => 
   settings.source = '手动';
   loadCachedUsdCnyRate();
   render();
+  if (!await settingsFormPersist(e.currentTarget)) return;
   toast('汇率设置已保存');
 });
 document.getElementById('refreshExchangeRateBtn')?.addEventListener('click', () => refreshUsdCnyRate({ force: true }));
-document.getElementById('aiSettingsForm')?.addEventListener('submit', e => {
+document.getElementById('aiSettingsForm')?.addEventListener('submit', async e => {
   e.preventDefault();
-  const data = Object.fromEntries(new FormData(e.currentTarget).entries());
-  const current = getAiSettings();
+  const form = e.currentTarget;
+  if (form.dataset.saving) return;
+  const data = Object.fromEntries(new FormData(form).entries());
+  const current = form._shownSettings || getAiSettings();
+  const typedKey = String(data.apiKey || '').trim();
   const nextSettings = normalizeAiSettings({
     ...current,
     enabled: data.enabled === '是' ? '是' : '否',
     provider: data.provider,
     baseUrl: data.baseUrl,
     model: data.model,
-    apiKey: String(data.apiKey || '').trim() || current.apiKey
+    apiKey: typedKey || current.apiKey
   });
-  saveMacAiSettings(nextSettings).then(macSaved => {
-    saveAiSettings(macSaved || nextSettings);
-    aiUsageSelection = null;
-    refreshAiUsage(1);
-    settingsFormRefill(document.getElementById('aiSettingsForm'));
-    renderSettings();
-    renderApiStatusLights();
-    toast('AI 设置已保存');
-  });
+  if (isMacAppMode()) {
+    // 只发改了的字段：另一个窗口刚改过的其它项不会被这边打开表单时的旧值盖回去。
+    const patch = Object.fromEntries(['enabled', 'provider', 'baseUrl', 'model'].filter(key => nextSettings[key] !== current[key]).map(key => [key, nextSettings[key]]));
+    if (typedKey) patch.apiKey = typedKey;
+    form.dataset.saving = 'true';
+    let macSaved;
+    try { macSaved = Object.keys(patch).length ? await saveMacAiSettings(patch) : (await fetchMacAiSettings() || current); } finally { delete form.dataset.saving; }
+    // 服务端没存进去：不说「已保存」，表单里的输入留着（以前照样绿色「已保存」，密钥哪儿都没存）。
+    if (!macSaved) {
+      toast(`AI 设置没有保存：${macSettingsSaveError || '本机数据服务没有响应'}`, { tone:'error', desc:'表单里的输入已保留，可以再点一次保存' });
+      return;
+    }
+    saveAiSettings(macSaved);
+  } else saveAiSettings(nextSettings);
+  aiUsageSelection = null;
+  refreshAiUsage(1);
+  settingsFormRefill(form);
+  renderSettings();
+  renderApiStatusLights();
+  toast('AI 设置已保存');
 });
 document.getElementById('trackingApiSettingsForm')?.addEventListener('submit', async e => {
   e.preventDefault();
-  const data = Object.fromEntries(new FormData(e.currentTarget).entries());
-  const current = getTrackingApiSettings();
+  const form = e.currentTarget;
+  if (form.dataset.saving) return;
+  const data = Object.fromEntries(new FormData(form).entries());
+  const current = form._shownSettings || getTrackingApiSettings();
   const nextSettings = {
     ...current,
     dhlApiEnabled: data.dhlApiEnabled,
@@ -27734,9 +28308,19 @@ document.getElementById('trackingApiSettingsForm')?.addEventListener('submit', a
     autoDhlUpdate: data.autoDhlUpdate,
     autoRunTimes: data.autoRunTimes
   };
-  const macSaved = await saveMacTrackingSettings(nextSettings);
-  saveTrackingApiSettings(macSaved || nextSettings);
-  settingsFormRefill(document.getElementById('trackingApiSettingsForm'));
+  if (isMacAppMode()) {
+    // 只发改了的字段（只发一次）：另一个窗口刚关掉的「自动更新」不会被这边的旧值改回去。
+    const patch = trackingSettingsPatch(nextSettings, current);
+    form.dataset.saving = 'true';
+    let macSaved;
+    try { macSaved = Object.keys(patch).length ? await saveMacTrackingSettings(patch) : (await fetchMacTrackingSettings() || current); } finally { delete form.dataset.saving; }
+    if (!macSaved) {
+      toast(`物流追踪设置没有保存：${macSettingsSaveError || '本机数据服务没有响应'}`, { tone:'error', desc:'表单里的输入已保留，可以再点一次保存' });
+      return;
+    }
+    storeTrackingApiSettingsLocal(macSaved);
+  } else saveTrackingApiSettings(nextSettings);
+  settingsFormRefill(form);
   renderSettings();
   toast('物流追踪设置已保存');
 });
@@ -28384,10 +28968,7 @@ document.getElementById('resetBtn').addEventListener('click', async () => {
 });
 document.getElementById('clearDemoBtn').addEventListener('click', clearDemoOrders);
 document.getElementById('clearDemoCustomersBtn').addEventListener('click', clearDemoCustomers);
-document.getElementById('appRefreshBtn').addEventListener('click', () => {
-  sessionStorage.setItem(refreshTopKey, '1');
-  window.location.reload();
-});
+document.getElementById('appRefreshBtn').addEventListener('click', () => guardedPageReload({ scrollTop:true }));
 document.querySelectorAll('[data-page]').forEach(btn => {
   btn.addEventListener('click', () => setPage(btn.dataset.page));
 });
@@ -28632,6 +29213,23 @@ function uiLayoutToasts() {
   }
 }
 // 状态变形按钮：转圈 + 进行中 → 对勾 / 叉 + 结果；宽度跟着文字弹簧变化。
+// 保存中的按钮：显示「保存中…」、aria-busy、禁用（和订单弹窗、抽屉的保存按钮一样），结束后恢复原样和焦点。
+// 以前客户表头「保存」、「一键保存客户和订单」保存中看不出点没点上。
+async function withBusyButton(btn, fn) {
+  if (!btn) return fn();
+  const hadFocus = document.activeElement === btn;
+  uiMorph(btn, 'busy', '保存中…');
+  btn.setAttribute('aria-busy', 'true');
+  btn.disabled = true;
+  try {
+    return await fn();
+  } finally {
+    btn.disabled = false;
+    btn.removeAttribute('aria-busy');
+    if (btn.dataset.morph) uiMorph(btn, 'idle');
+    if (hadFocus && btn.isConnected && !btn.closest('[inert]')) btn.focus({ preventScroll:true });
+  }
+}
 function uiMorph(btn, mode, text) {
   if (!btn) return;
   if (!btn.dataset.morphOriginal) btn.dataset.morphOriginal = btn.innerHTML;
@@ -29698,7 +30296,7 @@ function uiFormDirty(form) { return !!form && form._cleanFingerprint !== undefin
 function uiFormUnsaved(form) { return uiFormDirty(form) || !!form?._failedSave; }
 // 正在保存 / 附件正在处理时不能关：只提示一句，不弹「放弃修改」。以前点了放弃也关不掉，随后保存成功，放弃变成了保存。
 function uiFormBusy(form) {
-  if (form?.dataset.saving) { toast('正在保存，请稍候'); return true; }
+  if (form?.dataset.saving) { toast('正在保存，请稍候', { tone:'info' }); return true; }
   if (form?.dataset.uploading || form?.dataset.deletingAttachment) { toast('附件正在处理，请完成后再关闭'); return true; }
   return false;
 }
@@ -29791,7 +30389,7 @@ function uiPasteFillOnly(form, text) {
 async function uiDetailConfirmLeave(sub, message) {
   const body = document.getElementById('orderDetailBody');
   if (document.getElementById('detailSaveBtn')?.dataset.mode === 'busy' || document.getElementById('orderForm')?.dataset.saving) {
-    toast('正在保存，请稍候');
+    toast('正在保存，请稍候', { tone:'info' });
     return false;
   }
   if (!uiDetailUnsaved()) return true;
@@ -30703,12 +31301,24 @@ function nativeDialog({ title = '', message = '', sub = '软件更新', confirmT
   // 退出 / 关窗时页面刚报告还有表单没保存（otsFlushBeforeQuit 返回了 false）：Mac 壳给的是通用的「尚未确认保存」，
   // 这里换成说清楚是哪几张表单。「不保存，退出」才退出；「继续编辑」留在软件里，之后还能正常退出。
   const block = sub === '退出软件' ? recentQuitBlock() : null;
+  if (block && !block.unsaved.length && block.reason) {
+    quitBlockedByForms = null;
+    return appConfirm({
+      title:block.reason === 'conflict' ? '有修改和另一个窗口冲突' : '订单数据尚未确认保存',
+      sub,
+      message:otsSaveBlockText(block.reason, '退出'),
+      confirmText:confirmText || '仍然退出',
+      cancelText:cancelText || '返回软件',
+      danger:true,
+      defaultFocus:'cancel'
+    }).then(result => result.confirmed);
+  }
   if (block) {
     quitBlockedByForms = null;
     return appConfirm({
       title:'还有没保存的修改',
       sub,
-      message:`${block.unsaved.join('、')} 里改的内容还没保存，退出后这些修改会丢失。${block.saved ? '' : '\n\n另外，其它数据也还没确认写进数据库。'}`,
+      message:`${block.unsaved.join('、')} 里改的内容还没保存，退出后这些修改会丢失。${block.saved ? '' : `\n\n另外，其它数据也还没确认写进数据库。${otsSaveBlockText(block.reason, '退出')}`}`,
       confirmText:'不保存，退出',
       cancelText:'继续编辑',
       danger:true,
@@ -30750,7 +31360,8 @@ function otsAppUpdateStatus(status) {
     // 更新前的检查被没保存的表单拦下：说清楚是哪几张，保存或关掉后再点更新。
     const block = recentQuitBlock();
     if (block) quitBlockedByForms = null;
-    const reason = block ? `${block.unsaved.join('、')} 里还有没保存的修改，已取消本次更新。请先保存或关闭，再点「更新」。` : status.message;
+    const reason = block?.unsaved.length ? `${block.unsaved.join('、')} 里还有没保存的修改，已取消本次更新。请先保存或关闭，再点「更新」。`
+      : block?.reason ? `已取消本次更新：${otsSaveBlockText(block.reason, '更新')}` : status.message;
     if (reason !== appUpdateLastError.message || now - appUpdateLastError.at > 15000) toast(block ? reason : `更新失败：${reason}`, { tone:'error' });
     appUpdateLastError = { message: reason, at: now };
   }

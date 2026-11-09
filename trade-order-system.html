@@ -338,6 +338,11 @@ html[data-theme] .board-column-head .board-column-meta { flex: none; }
 .board-column-sub { font-size: 11px; font-weight: 400; color: var(--gray-500); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .backup-info { display: grid; gap: 4px; }
 .backup-info code { font-size: 11px; color: var(--gray-700); word-break: break-all; }
+.data-action .btn[hidden] { display: none; }
+.backup-restore-list { display: grid; gap: 6px; margin-top: 10px; max-height: 320px; overflow: auto; }
+.backup-restore-list[hidden] { display: none; }
+.backup-restore-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 10px; border: 1px solid var(--hairline, var(--gray-200)); border-radius: 8px; font-size: 12px; }
+.backup-restore-item span { min-width: 0; overflow-wrap: anywhere; }
 .api-status-dot.ok::before { background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,.18), 0 0 10px rgba(34,197,94,.6); }
 .api-status-dot.bad::before { background: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,.18), 0 0 10px rgba(239,68,68,.55); }
 .api-status-dot.checking::before { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,.18), 0 0 10px rgba(245,158,11,.6); }
@@ -5934,7 +5939,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.130，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.130</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.131，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.131</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -6519,9 +6524,16 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
                   <button class="btn" id="macOpenDataFolderBtn">打开数据文件夹</button>
                 </div>
               </div>
+              <div class="data-action mac-only backup-restore-row">
+                <div><strong>从备份恢复</strong><div class="muted">选一份 Mac 本地备份，先看和现在数据的差别再恢复。恢复前会先把现在的数据另存一份备份，可以再恢复回来。换电脑时先「选择备份目录…」选到旧备份所在的文件夹。</div>
+                  <div class="backup-restore-list" id="macRestoreList" hidden></div></div>
+                <div class="order-action-group">
+                  <button class="btn" type="button" id="macRestoreBackupBtn" aria-expanded="false" aria-controls="macRestoreList">从备份恢复…</button>
+                </div>
+              </div>
               <div class="data-group-title">导出</div>
               <div class="data-action">
-                <div><strong>导出范围</strong><div class="muted">选择全部月份或指定月份后，再导出表格 / 备份。</div></div>
+                <div><strong>导出范围</strong><div class="muted">对「导出表格」「导出备份」生效。选某个月时，备份文件只含这个月的订单，导入时只会合并、不会删除其他数据。</div></div>
                 <select class="inline-select" id="exportMonth">
                   <option value="all">全部月份</option>
                 </select>
@@ -6531,20 +6543,20 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
                 <button class="btn" id="dataExportCsvBtn">导出表格</button>
               </div>
               <div class="data-action">
-                <div><strong>导出备份</strong><div class="muted">下载 JSON 备份，可稍后导入恢复。</div></div>
+                <div><strong>导出备份</strong><div class="muted">下载 JSON：订单、客户、目标和设置。不含附件图片、续费、WhatsApp 聊天和接口 Key；换电脑请用「从备份恢复」。</div></div>
                 <button class="btn" id="exportJsonBtn">导出备份</button>
               </div>
               <div class="data-action">
-                <div><strong>主数据文件</strong><div class="muted">导出 JSON 记录，不包含附件图片；完整备份请使用 Mac 本地备份。</div></div>
+                <div><strong>主数据文件</strong><div class="muted">导出全部订单、客户、目标和设置（不跟随导出范围）。不含附件图片、续费、WhatsApp 聊天和接口 Key；完整备份请用 Mac 本地备份。</div></div>
                 <button class="btn btn-primary" id="exportDataFileBtn">导出数据文件</button>
               </div>
               <div class="data-group-title">导入备份</div>
               <div class="data-action">
-                <div><strong>导入备份</strong><div class="muted">选择之前导出的 JSON 文件。</div></div>
+                <div><strong>导入备份</strong><div class="muted">选择之前导出的 JSON 文件，先预览和现在数据的差别；默认只合并、不删除，导入前会自动备份。</div></div>
                 <button class="btn" id="importJsonBtn">导入备份</button>
               </div>
               <div class="data-action">
-                <div><strong>导入前预览</strong><div class="muted">先查看订单、客户和目标数量，确认后再恢复。</div></div>
+                <div><strong>导入前预览</strong><div class="muted">和「导入备份」相同：先看新增、修改、删除各多少，再选合并或替换。</div></div>
                 <button class="btn" id="previewImportDataFileBtn">预览导入</button>
               </div>
               <div class="data-group-title">维护</div>
@@ -6558,7 +6570,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
               </div>
               <div class="data-group-title danger">危险操作</div>
               <div class="data-action">
-                <div><strong>恢复示例</strong><div class="muted">清除当前本地数据，恢复多月份示例订单。</div></div>
+                <div><strong>恢复示例</strong><div class="muted">把订单、垃圾箱、已删除订单和目标换成多月份示例；客户档案和设置保留，执行前自动备份。</div></div>
                 <button class="btn btn-danger" id="resetBtn">恢复示例</button>
               </div>
               <div class="data-action">
@@ -8195,7 +8207,8 @@ function customerStorageOpsPayload(ops = []) {
   return { ...(moves.length ? { customerMoves:moves } : {}), ...(deletes.length ? { customerDeletes:deletes } : {}) };
 }
 function backupSaveFeedback(backup, previousWarning = '') {
-  const failure = backup?.missingAttachments || /附件文件缺失/.test(String(backup?.message || '')) ? backup.message : '请在设置中重试备份';
+  // 服务端会说清楚原因（磁盘满、目录没权限、网盘没连上），原样告诉用户；没有原因时才叫人去设置里重试。
+  const failure = String(backup?.message || '').trim() || '请在设置中点「立即备份」重试，或换一个备份目录';
   const message = backup?.ok === false ? `数据已保存，自动备份失败：${failure}` : backup?.ok === true && !backup.skipped ? '' : previousWarning;
   return { warning: Boolean(message), message };
 }
@@ -8294,7 +8307,9 @@ async function runMacSaveQueue() {
   if (macSaveLoopPromise) return macSaveLoopPromise;
   if (!macDataLoaded || macStorageReadOnly) return false;
   macSaveLoopPromise = (async () => {
-    while (macSaveCompletedVersion < macSaveRequestedVersion) {
+    // 导入 / 恢复示例正在整份写库：等它写完（成功后队列里只剩它之后的改动，失败时队列已清空）。
+    while (macDirectSavePromise) await macDirectSavePromise.catch(() => {});
+    while (macSaveCompletedVersion < macSaveRequestedVersion && !macStorageReadOnly) {
       const targetVersion = macSaveRequestedVersion;
       const snapshotJson = macQueuedStateJson;
       const snapshot = JSON.parse(snapshotJson);
@@ -8334,11 +8349,7 @@ async function runMacSaveQueue() {
           op.state = 'done';
           op.chats = (result.movedChats || []).find(item => item.id === op.id)?.chats || [];
         });
-        const feedback = backupSaveFeedback(result.backup, macBackupWarning);
-        if (result.backup?.ok === true && !result.backup.skipped && macBackupSummary) renderBackupInfo({ ...macBackupSummary, lastBackupAt:Date.now(), sqliteCount:Number(macBackupSummary.sqliteCount || 0) + 1 });
-        if (feedback.warning && !macBackupWarning) toast(feedback.message, { tone:'warn' });
-        macBackupWarning = feedback.message;
-        setMacStorageStatus(result.storageMode || 'sqlite', feedback.warning ? 'warning' : 'saved', feedback.message || `数据库已保存 · 版本 ${macStorageRevision} · ${new Date().toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}`);
+        applyMacSaveBackupResult(result);
         // 又存进去了：铃铛里的「数据保存失败」标成已恢复、已读，红点不再因为它亮着。
         macSaveLastErrorAt = '';
         if (typeof uiNotifResolve === 'function') uiNotifResolve('save-');
@@ -8370,6 +8381,77 @@ async function runMacSaveQueue() {
     macSaveLoopPromise = null;
   });
   return macSaveLoopPromise;
+}
+// 整份换掉数据（导入、恢复示例、撤销它们）：直接写一次数据库，成功了才算数。
+// 失败时（任何状态码）页面回到换之前的样子，不进每 3 秒重试的保存队列——以前导入「1,200」这种金额后保存永远失败，
+// 界面却一直停在导入的数据上，之后的修改也都存不进去。customerInference:false：不按「删 1 加 1」猜客户改名，
+// WhatsApp 聊天不会挂到另一位客户名下。
+let macDirectSavePromise = null;
+async function macReplaceState(nextState) {
+  if (!await flushPendingSave()) throw new Error(macSaveLastError || '还有修改没存进数据库');
+  const previous = state;
+  const snapshotJson = JSON.stringify(nextState);
+  state = nextState;
+  render();
+  macDirectSavePromise = (async () => {
+    try {
+      setMacStorageStatus('sqlite', 'saving');
+      const res = await apiFetch('/api/save', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body:JSON.stringify({ state:dataFilePayload(JSON.parse(snapshotJson)), baseRevision:macStorageRevision, customerInference:false })
+      });
+      const result = await res.json().catch(() => ({}));
+      if (res.status === 409) {
+        const latestRevision = Number(result.revision ?? result.currentRevision);
+        if (Number.isFinite(latestRevision)) macStorageRevision = latestRevision;
+        macStorageReadOnly = true;
+        macStorageConflict = true;
+        showMacStorageConflictActions();
+        const error = new Error(macConflictReadOnlyText);
+        error.conflict = true;
+        throw error;
+      }
+      if (!res.ok || result.ok === false) throw new Error(result.message || `保存失败 HTTP ${res.status}`);
+      const savedRevision = Number(result.revision);
+      macStorageRevision = Number.isFinite(savedRevision) ? savedRevision : macStorageRevision + 1;
+      macPersistedStateJson = snapshotJson;
+      // 保存途中又改了别的：那些改动在 nextState 之上，留给保存队列接着存。
+      if (JSON.stringify(state) === snapshotJson) {
+        macQueuedStateJson = snapshotJson;
+        macSaveCompletedVersion = macSaveRequestedVersion;
+      }
+      macSaveLastError = '';
+      applyMacSaveBackupResult(result);
+    } catch (error) {
+      state = previous;
+      macQueuedStateJson = macPersistedStateJson;
+      macSaveCompletedVersion = macSaveRequestedVersion;
+      render();
+      setMacStorageStatus('sqlite', error.conflict ? 'error' : 'saved', error.conflict ? macConflictReadOnlyText : '');
+      if (error.conflict && !promptMacStorageConflict()) toast(macConflictReadOnlyText, { tone:'error', desc:'可在设置里导出这次的修改，再重新加载最新数据' });
+      throw error;
+    }
+  })();
+  try { await macDirectSavePromise; } finally { macDirectSavePromise = null; }
+  if (macSaveCompletedVersion < macSaveRequestedVersion) scheduleMacSave();
+  if (typeof refreshBackupInfo === 'function') refreshBackupInfo();
+}
+let macBackupAttachmentWarned = false;
+function applyMacSaveBackupResult(result = {}) {
+  const feedback = backupSaveFeedback(result.backup, macBackupWarning);
+  // 份数用服务端轮转之后的实际数（以前每次 +1，轮转删掉的不算，显示 33 份、实际 30 份）。
+  if (result.backup?.ok === true && !result.backup.skipped && macBackupSummary) {
+    renderBackupInfo({ ...macBackupSummary, lastBackupAt:Date.now(), sqliteCount:Number(result.backup.sqliteCount ?? macBackupSummary.sqliteCount ?? 0), oldestBackupAt:result.backup.oldestBackupAt ?? macBackupSummary.oldestBackupAt });
+  }
+  if (feedback.warning && !macBackupWarning) toast(feedback.message, { tone:'warn' });
+  macBackupWarning = feedback.message;
+  // 备份成功但有附件文件缺失：黄色提示一次，状态仍是「已保存」，备份照常进行。
+  if (result.backup?.warning && !macBackupAttachmentWarned) {
+    macBackupAttachmentWarned = true;
+    toast(result.backup.warning, { tone:'warn', desc:'可在订单里重新上传或删除这些附件' });
+  }
+  setMacStorageStatus(result.storageMode || 'sqlite', feedback.warning ? 'warning' : 'saved', feedback.message || `数据库已保存 · 版本 ${macStorageRevision} · ${new Date().toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}`);
 }
 function syncStateToMacApp({ immediate = false } = {}) {
   if (!queueCurrentMacState()) return Promise.resolve(!macStorageReadOnly);
@@ -8495,13 +8577,18 @@ async function loadMacAppState() {
     macSaveLastError = '';
     // 启动时检查一次 UPS 满 5 天规则；之后由每分钟的定时检查接着看。
     completeDueUpsOrders();
+    showRestoredBackupNotice();
   } catch (e) {
     macDataLoaded = false;
     macStorageReadOnly = true;
     macSaveLastError = e.message || '数据库读取失败';
     if (!macStateReady) macStateLoadFailed = true;
-    setMacStorageStatus('sqlite', 'error', e.message || '数据库读取失败');
-    toast('数据库读取失败，当前已进入只读保护，绝不会覆盖本机数据', { tone:'error' });
+    const reason = String(e.message || '数据库读取失败');
+    const friendly = /identity does not match/i.test(reason)
+      ? '数据库文件和本机的身份标记对不上（常见于手动放回备份或换了电脑）'
+      : /database is missing/i.test(reason) ? '数据库文件不见了，但本机有备份记录' : reason;
+    setMacStorageStatus('sqlite', 'error', `${friendly}。可在下方「从备份恢复…」选一份备份恢复。`);
+    toast('数据库读取失败，当前已进入只读保护，绝不会覆盖本机数据', { tone:'error', desc:'可在 设置 → 数据管理 →「从备份恢复…」找回数据' });
   }
   render();
   if (typeof shouldScrollTopAfterRefresh !== 'undefined' && shouldScrollTopAfterRefresh) {
@@ -10937,7 +11024,9 @@ function appConfirm({
     closeBtn.onclick = () => cleanup({ confirmed: false, value: input.value.trim() });
     input.onkeydown = e => {
       if (isImeKeyEvent(e)) return;
-      if (e.key === 'Enter') okBtn.click();
+      // 先 preventDefault：确认框关掉时焦点同步回到打开它的按钮，不拦的话这次回车会接着「按」那个按钮，
+      // 例如在「恢复示例」的算术题里按回车，确认完又从第一步重新开始。
+      if (e.key === 'Enter') { e.preventDefault(); okBtn.click(); }
       if (e.key === 'Escape') cancelBtn.click();
     };
   });
@@ -19465,12 +19554,12 @@ function mergedCustomerPermanentNote(primary = {}, secondary = {}, secondaryName
 }
 // 合并 / 删除客户前的备份：先把手上的修改存进数据库，再强制生成一份（不受「一小时一次」限制），备份里是操作前的最新数据。
 // 备份失败时再问一次，默认焦点在「取消」；浏览器预览没有本地备份，确认框里也不会说会备份。
-async function backupBeforeCustomerChange(actionLabel = '操作') {
+async function backupBeforeCustomerChange(actionLabel = '操作', reason = 'change') {
   if (!isMacAppMode()) return true;
   let message = '';
   try {
     if (!await flushPendingSave()) throw new Error(macSaveLastError || '还有修改没存进数据库');
-    const res = await apiFetch('/api/backup-before-change', { method:'POST' });
+    const res = await apiFetch('/api/backup-before-change', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ reason }) });
     const data = await res.json().catch(() => ({}));
     if (res.ok && data.ok) {
       if (typeof refreshBackupInfo === 'function') refreshBackupInfo();
@@ -22364,6 +22453,7 @@ async function clearDemoCustomers() {
   } });
 }
 function exportCsv(month = 'all') {
+  if (!exportSourceReady()) return Promise.resolve(false);
   const header = ['订单号','客户','国家','创建日期','订单月份','金额','已付款','币种','产品类型','收款方式','订单类型','草稿','加急订单','客户要求收到日期','最晚发出日期','阶段','物流单号','物流汇总','首批发货日','附件数量','备注','更新时间'];
   const list = ordersByMonth(month);
   // 物流三列：每批写成「承运商 单号（状态）」用「；」连接；汇总按全部批次（部分签收 1/3 等）；首批发货日取最早一批。
@@ -22383,19 +22473,39 @@ function exportCsv(month = 'all') {
   };
   return download(`trade-orders-${month}.csv`, '\ufeff' + [header, ...rows].map(row => row.map(cell).join(',')).join('\n'));
 }
-function exportJson(month = 'all') {
-  const data = month === 'all' ? state : { ...state, orders: ordersByMonth(month) };
-  return download(`trade-orders-backup-${month}.json`, JSON.stringify(data, null, 2));
+// 当前版本号（例如 3.131），取自左下角的版本标记：升级脚本只改那一处。
+function appVersionLabel() {
+  return String(document.querySelector('.app-version')?.textContent || '').trim().replace(/^V/i, '');
 }
-function dataFilePayload(data = state) {
+// 页面里的数据真是从数据库读出来的吗。读库失败（只读保护）时页面里只有空占位，导出它只会得到一份「空备份」，
+// 用户却以为手里有了备份。版本冲突的只读不在此列：那时页面里是真实数据，「导出未保存的修改」要保留。
+function exportSourceReady() {
+  if (!isMacAppMode() || macStateReady) return true;
+  toast('数据库没有读出来，现在导出的不是你的数据，已停止导出', { tone:'error', desc:'可在 设置 → 数据管理 →「从备份恢复…」找回数据' });
+  return false;
+}
+function exportJson(month = 'all') {
+  if (!exportSourceReady()) return Promise.resolve(false);
+  if (month === 'all') return download('trade-orders-backup-all.json', JSON.stringify(dataFilePayload(state), null, 2));
+  // 单月：只含这个月的订单和这些订单的客户档案，标上 scope:'month'。以前除了订单其余全量，再导入时会删掉其他月份的全部订单；
+  // 现在这种文件导入时只能合并（新增、更新这些订单），不会删除任何现有数据。
+  const orders = ordersByMonth(month);
+  const names = new Set(orders.map(order => order.client));
+  const customers = Object.fromEntries(Object.entries(state.customers || {}).filter(([name]) => names.has(name)));
+  return download(`trade-orders-backup-${month}.json`, JSON.stringify(dataFilePayload({ orders, customers, trashOrders:[], deletedOrders:[] }, { scope:'month', month }), null, 2));
+}
+function dataFilePayload(data = state, { scope = 'all', month = '' } = {}) {
   return {
     app: 'trade-order-system',
-  version: '2.63',
-    exportedAt: nowText(),
+    version: appVersionLabel() || '3',
+    exportedAt: new Date().toISOString(),
+    scope,
+    ...(month ? { month } : {}),
     data
   };
 }
 function exportDataFile() {
+  if (!exportSourceReady()) return Promise.resolve(false);
   return download('trade-order-data.json', JSON.stringify(dataFilePayload(state), null, 2));
 }
 function readJsonFile(file) {
@@ -22447,40 +22557,385 @@ function dataSummaryText(data) {
     `业绩目标：${Object.keys(data.performanceTargets || {}).length} 个`
   ].join('\n');
 }
+// 导入文件里的金额：手工整理、从表格转出来的 JSON 常写成 "1,200"、"$500"、"1200.50 "。
+// 能确定意思的转成数字（预览里逐条列出），确定不了的（"1.200,50"、"abc"）返回 null，整份文件不导入。
+function parseImportedMoney(value) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value !== 'string') return null;
+  let text = value.trim()
+    .replace(/^(?:USD|EUR|GBP|CNY|RMB|AED|CAD|AUD|JPY|HKD)\s*/i, '')
+    .replace(/\s*(?:USD|EUR|GBP|CNY|RMB|AED|CAD|AUD|JPY|HKD)$/i, '')
+    .replace(/^([-]?)\s*[$€£¥￥]\s*/, '$1')
+    .trim();
+  if (/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(text)) text = text.replace(/,/g, '');
+  if (!/^-?\d+(\.\d+)?$/.test(text)) return null;
+  return Number(text);
+}
+const importMoneyFields = [['amount', '金额'], ['paidAmount', '已付款'], ['depositAmount', '定金'], ['paidBeforeSettle', '收齐前已付']];
+const importFileMaxBytes = 15 * 1024 * 1024;
+// 导入文件 → 规范好的数据 + 预览要说的话。导入的文件一律当作用户自己的数据：不再往里补示例订单 / 示例客户
+// （以前 {"orders":[]} 会变成 14 张示例订单，旧格式文件会加回 14 位示例客户）。
+function prepareImportedData(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('missing orders');
+  if (raw.app && raw.app !== 'trade-order-system') throw new Error('这个文件不是本系统导出的数据');
+  const wrapped = Boolean(raw.data && Array.isArray(raw.data.orders));
+  const source = JSON.parse(JSON.stringify(wrapped ? raw.data : raw));
+  if (!source || !Array.isArray(source.orders)) throw new Error('missing orders');
+  const conversions = [];
+  const problems = [];
+  ['orders', 'trashOrders', 'deletedOrders'].forEach(bucket => (Array.isArray(source[bucket]) ? source[bucket] : []).forEach(order => {
+    if (!order || typeof order !== 'object') return;
+    const name = String(order.num || order.id || '未编号订单');
+    importMoneyFields.forEach(([field, label]) => {
+      const value = order[field];
+      if (value === undefined || value === null || value === '') return;
+      const parsed = parseImportedMoney(value);
+      if (parsed === null) problems.push(`${name} 的${label}「${String(typeof value === 'object' ? JSON.stringify(value) : value).slice(0, 30)}」`);
+      else if (parsed !== value) {
+        conversions.push(`${name} ${label}「${String(value).trim()}」→ ${parsed}`);
+        order[field] = parsed;
+      }
+    });
+  }));
+  if (problems.length) throw new Error(`文件里有 ${problems.length} 个金额不是数字，没有导入：${problems.slice(0, 5).join('、')}${problems.length > 5 ? ' 等' : ''}。请改成纯数字（例如 1200.50）再导入`);
+  source.demoCleared = true;
+  source.demoCustomersCleared = true;
+  const data = unpackDataFile(source);
+  // 物流查询记录的 id 重复时数据库拒收（以前是 500，保存每 3 秒重试一次、永远不停）：留第一条。
+  const lookupIds = new Set();
+  let droppedLookups = 0;
+  data.trackingLookups = (data.trackingLookups || []).filter(item => {
+    const id = String(item?.id || '');
+    if (!id) return true;
+    if (lookupIds.has(id)) { droppedLookups += 1; return false; }
+    lookupIds.add(id);
+    return true;
+  });
+  return {
+    data, conversions, droppedLookups,
+    scope: wrapped && raw.scope === 'month' ? 'month' : 'all',
+    month: wrapped ? String(raw.month || '') : '',
+    exportedAt: wrapped ? String(raw.exportedAt || '') : '',
+    version: wrapped ? String(raw.version || '') : ''
+  };
+}
+function stateOrderIndex(data = {}) {
+  const map = new Map();
+  ['orders', 'trashOrders', 'deletedOrders'].forEach(bucket => (data[bucket] || []).forEach(order => {
+    if (order?.id) map.set(String(order.id), { bucket, order });
+  }));
+  return map;
+}
+// 现在的数据 → 导入 / 恢复之后：按订单 id、客户名数出新增、修改、删除，并列出前几个会消失的订单号和客户名。
+function stateDiff(current = {}, next = {}) {
+  const strip = order => JSON.stringify({ ...order, feishuNotification:undefined });
+  const before = stateOrderIndex(current);
+  const after = stateOrderIndex(next);
+  const orders = { added:0, changed:0, removed:0, removedNums:[] };
+  after.forEach((item, id) => {
+    const prev = before.get(id);
+    if (!prev) orders.added += 1;
+    else if (prev.bucket !== item.bucket || strip(prev.order) !== strip(item.order)) orders.changed += 1;
+  });
+  before.forEach((item, id) => {
+    if (after.has(id)) return;
+    orders.removed += 1;
+    if (orders.removedNums.length < 8) orders.removedNums.push(String(item.order.num || id));
+  });
+  const has = (obj, key) => Object.prototype.hasOwnProperty.call(obj || {}, key);
+  const customers = { added:0, changed:0, removed:0, removedNames:[] };
+  Object.keys(next.customers || {}).forEach(name => {
+    if (!has(current.customers, name)) customers.added += 1;
+    else if (JSON.stringify(current.customers[name]) !== JSON.stringify(next.customers[name])) customers.changed += 1;
+  });
+  Object.keys(current.customers || {}).forEach(name => {
+    if (has(next.customers, name)) return;
+    customers.removed += 1;
+    if (customers.removedNames.length < 8) customers.removedNames.push(name);
+  });
+  return { orders, customers };
+}
+function stateDiffLine(label, unit, item, list = []) {
+  const removed = item.removed ? `、删除 ${item.removed} ${unit}（${list.join('、')}${item.removed > list.length ? ' 等' : ''}）` : '、删除 0';
+  return `· ${label}：新增 ${item.added}、修改 ${item.changed}${removed}`;
+}
+// 合并导入：文件里的订单按 id 新增或更新（放进文件里的那一栏），文件里没有的订单一张不删；
+// 只加现在没有的客户档案和目标，已有的档案、设置都不动（单月文件里的档案可能比现在的旧）。
+// 订单号已被现有的另一张单占用时跳过这张，预览里说出来。
+function mergeImportedState(current, incoming) {
+  const next = JSON.parse(JSON.stringify(current));
+  const buckets = ['orders', 'trashOrders', 'deletedOrders'];
+  buckets.forEach(bucket => { if (!Array.isArray(next[bucket])) next[bucket] = []; });
+  const where = new Map();
+  const numOwner = new Map();
+  buckets.forEach(bucket => next[bucket].forEach(order => {
+    where.set(order.id, bucket);
+    if (order.num) numOwner.set(String(order.num), order.id);
+  }));
+  const skipped = [];
+  buckets.forEach(bucket => (incoming[bucket] || []).forEach(order => {
+    const owner = order.num ? numOwner.get(String(order.num)) : '';
+    if (owner && owner !== order.id) { skipped.push(order.num); return; }
+    const from = where.get(order.id);
+    if (from === bucket) {
+      next[bucket][next[bucket].findIndex(item => item.id === order.id)] = order;
+    } else {
+      if (from) next[from] = next[from].filter(item => item.id !== order.id);
+      next[bucket].push(order);
+      where.set(order.id, bucket);
+    }
+    if (order.num) numOwner.set(String(order.num), order.id);
+  }));
+  next.customers = next.customers || {};
+  Object.entries(incoming.customers || {}).forEach(([name, profile]) => {
+    if (!Object.prototype.hasOwnProperty.call(next.customers, name)) next.customers[name] = profile;
+  });
+  const lookupIds = new Set((next.trackingLookups || []).map(item => item.id));
+  (incoming.trackingLookups || []).forEach(item => {
+    if (item?.id && !lookupIds.has(item.id)) { next.trackingLookups.push(item); lookupIds.add(item.id); }
+  });
+  next.performanceTargets = { ...(incoming.performanceTargets || {}), ...(next.performanceTargets || {}) };
+  return { state:next, skipped };
+}
+// 文件里的附件本机有没有（换电脑后导入「数据文件」常常没有）。查不了（浏览器预览、服务没响应）返回 null，预览里不提。
+async function missingImportAttachments(data) {
+  if (!isMacAppMode()) return null;
+  const owners = new Map();
+  ['orders', 'trashOrders', 'deletedOrders'].forEach(bucket => (data[bucket] || []).forEach(order => (order.attachments || []).forEach(item => {
+    [item?.fileUrl, item?.thumbUrl].forEach(url => {
+      if (typeof url === 'string' && url.startsWith('/attachments/')) owners.set(url, order.num || order.id);
+    });
+  })));
+  if (!owners.size) return { count:0, nums:[] };
+  try {
+    const res = await apiFetch('/api/check-attachments', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ urls:[...owners.keys()] }) });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok || !Array.isArray(result.missing)) return null;
+    return { count:result.missing.length, nums:[...new Set(result.missing.map(url => owners.get(url)))] };
+  } catch (_) { return null; }
+}
+function importSourceText(plan) {
+  if (!plan.exportedAt && !plan.version) return '来源：旧格式文件，没有导出时间和版本';
+  const time = Date.parse(plan.exportedAt);
+  const when = Number.isFinite(time) ? backupTimeText(time) : plan.exportedAt;
+  return `来源：${when || '导出时间不详'}${plan.version ? ` 由 V${plan.version} 导出` : ''} · ${plan.scope === 'month' ? `${plan.month || '单月'} 单月订单` : '全部数据'}`;
+}
 async function previewImportDataFile(file) {
   if (!file || !canSubmitStoredData()) return;
   try {
-    const data = unpackDataFile(await readJsonFile(file));
+    if (Number(file.size || 0) > importFileMaxBytes) throw new Error(`文件太大（${(file.size / 1048576).toFixed(1)} MB），最多 15 MB`);
+    const plan = prepareImportedData(await readJsonFile(file));
+    const data = plan.data;
+    const merged = mergeImportedState(state, data);
+    const mergeDiff = stateDiff(state, merged.state);
+    const replaceDiff = stateDiff(state, data);
+    const removedTotal = replaceDiff.orders.removed + replaceDiff.customers.removed;
+    const missing = await missingImportAttachments(data);
     // 只差大小写 / 全角 / 空格的号数据库存得下，不拦导入（自己的旧备份要能恢复），但预览里要说出来。
     const similar = similarOrderNumGroups([...data.orders, ...data.trashOrders, ...data.deletedOrders]);
-    const similarText = similar.length
-      ? `\n\n注意：有 ${similar.length} 组订单号只差大小写、全角或空格（${similar.slice(0, 3).map(list => list.map(o => o.num).join(' / ')).join('；')}${similar.length > 3 ? ' 等' : ''}），导入后建议改掉其中一个。`
-      : '';
-    const confirmed = await appConfirm({
-      title: '导入数据文件',
-      sub: '导入前预览',
-      message: `${dataSummaryText(data)}${similarText}\n\n确认后会覆盖当前本地数据。`,
-      confirmText: '确认导入',
-      danger: true
-    });
-    if (!confirmed.confirmed || !canSubmitStoredData()) return;
-    state = data;
-    if (isMacAppMode()) {
-      render();
-      // Only report success once the database has the imported data.
-      const saved = await flushPendingSave();
-      toast(saved ? '数据文件已导入' : '已载入导入的数据，但还没存进数据库，请看保存状态', saved ? undefined : { tone:'error' });
-      return;
+    const lines = [importSourceText(plan), `文件里：${dataSummaryText(data).replace(/\n/g, ' · ')}`, ''];
+    if (plan.scope === 'month') {
+      lines.push(`这是单月订单文件，只能合并：新增 ${mergeDiff.orders.added} 张、更新 ${mergeDiff.orders.changed} 张、新客户 ${mergeDiff.customers.added} 位，不删除任何现有数据。`);
+    } else {
+      lines.push(`和现在比（现在 ${state.orders.length} 张订单 → 替换后 ${data.orders.length} 张）：`);
+      lines.push(stateDiffLine('订单（含垃圾箱、已删除）', '张', replaceDiff.orders, replaceDiff.orders.removedNums));
+      lines.push(stateDiffLine('客户', '位', replaceDiff.customers, replaceDiff.customers.removedNames));
+      lines.push('', `「合并导入」：只新增、更新文件里的订单（新增 ${mergeDiff.orders.added}、更新 ${mergeDiff.orders.changed}），加上新客户，不删除任何现有数据，设置不变。`);
+      lines.push(`「${removedTotal ? '删除并替换' : '替换全部'}」：整份换成文件里的数据${removedTotal ? '，上面列出的订单和客户会被删除' : ''}，收款方式、标签等设置也换成文件里的。`);
     }
-    safeStorage.setItem(storeKey, JSON.stringify(state));
-    render();
-    toast('数据文件已导入');
+    if (merged.skipped.length) lines.push('', `合并时跳过 ${merged.skipped.length} 张：订单号已被现有的另一张订单占用（${merged.skipped.slice(0, 5).join('、')}${merged.skipped.length > 5 ? ' 等' : ''}）。`);
+    if (plan.conversions.length) lines.push('', `${plan.conversions.length} 个金额从文字转成了数字：${plan.conversions.slice(0, 5).join('；')}${plan.conversions.length > 5 ? ' 等' : ''}。`);
+    if (plan.droppedLookups) lines.push('', `物流查询记录里有 ${plan.droppedLookups} 条 ID 重复，只保留第一条。`);
+    if (missing?.count) lines.push('', `${missing.count} 个附件文件在本机找不到（订单 ${missing.nums.slice(0, 5).join('、')}${missing.nums.length > 5 ? ' 等' : ''}），导入后这些图片打不开；备份照常进行。`);
+    if (similar.length) lines.push('', `注意：有 ${similar.length} 组订单号只差大小写、全角或空格（${similar.slice(0, 3).map(list => list.map(o => o.num).join(' / ')).join('；')}${similar.length > 3 ? ' 等' : ''}），导入后建议改掉其中一个。`);
+    lines.push('', isMacAppMode() ? '导入前会先自动备份当前数据；导入后 6 秒内可撤销，之后也可在「从备份恢复…」里找回。' : '导入后 6 秒内可撤销。');
+    const message = lines.join('\n');
+    let mode = '';
+    if (plan.scope === 'month') {
+      const choice = await appConfirm({ title:'导入数据文件', sub:'导入前预览 · 只合并', message, confirmText:'合并导入', defaultFocus:'cancel' });
+      mode = choice.confirmed ? 'merge' : '';
+    } else {
+      // 默认焦点在「合并导入」：不删除任何东西的那一个。替换是红色按钮，要删除数据时还要再输入一次确认。
+      const choice = await appConfirm({ title:'导入数据文件', sub:'导入前预览', message, altText:'合并导入（不删除）', confirmText:removedTotal ? `删除 ${removedTotal} 项并替换` : '替换全部', danger:true, defaultFocus:'alt' });
+      mode = choice.alt ? 'merge' : choice.confirmed ? 'replace' : '';
+      if (mode === 'replace' && removedTotal) {
+        const second = await appConfirm({
+          title:'确认删除并替换',
+          sub:'会删除现有数据',
+          message:`将删除 ${replaceDiff.orders.removed} 张订单、${replaceDiff.customers.removed} 位客户，整份换成文件里的数据。\n\n不想删除的话，请取消后选「合并导入」。`,
+          inputLabel:'输入「替换」两个字确认',
+          validate:value => value === '替换' || '请输入「替换」两个字',
+          confirmText:'删除并替换',
+          danger:true
+        });
+        if (!second.confirmed) mode = '';
+      }
+    }
+    if (!mode || !canSubmitStoredData()) return;
+    const added = mergeDiff.orders.added;
+    const changed = mergeDiff.orders.changed;
+    await applyDataReplacement(mode === 'merge' ? merged.state : data, {
+      reason:'import',
+      label:'导入',
+      successText:mode === 'merge' ? `已合并导入：新增 ${added} 张、更新 ${changed} 张，没有删除数据` : '数据文件已导入'
+    });
   } catch (e) {
     toast(e instanceof SyntaxError || e.message === 'missing orders' ? '导入失败，请选择正确的 JSON 数据文件' : `导入失败：${e.message}`, { tone:'error' });
   }
 }
 function importJson(file) {
   previewImportDataFile(file);
+}
+// 导入、恢复示例：先把手上的修改存完、强制备份一份「操作前」，再整份写进数据库；写成功了才算数（失败就留在操作前的样子），
+// 提示里带 6 秒撤销。撤销只在之后没再改过数据时可用，否则请用「从备份恢复…」。
+async function applyDataReplacement(nextState, { reason = 'change', label = '操作', successText = '' } = {}) {
+  const previous = state;
+  if (isMacAppMode()) {
+    if (!await backupBeforeCustomerChange(label, reason)) return false;
+    try {
+      await macReplaceState(nextState);
+    } catch (error) {
+      if (!error.conflict) toast(`${label}没有完成，数据保持${label}前的样子：${error.message || '数据库没有响应'}`, { tone:'error' });
+      return false;
+    }
+  } else {
+    state = nextState;
+    safeStorage.setItem(storeKey, JSON.stringify(state));
+    render();
+  }
+  const appliedJson = JSON.stringify(state);
+  toast(successText || `已${label}`, {
+    desc:isMacAppMode() ? `${label}前的数据已备份，可在「从备份恢复…」找回` : '',
+    undo:() => undoDataReplacement(previous, appliedJson, label)
+  });
+  return true;
+}
+async function undoDataReplacement(previous, appliedJson, label) {
+  if (JSON.stringify(state) !== appliedJson) {
+    toast(`${label}后数据又改动过，这条撤销已失效`, { tone:'warn', desc:isMacAppMode() ? `可在 设置 → 数据管理 →「从备份恢复…」选「${label}前」的那份备份` : '' });
+    return;
+  }
+  if (!canSubmitStoredData()) return;
+  if (isMacAppMode()) {
+    try { await macReplaceState(previous); } catch (error) {
+      if (!error.conflict) toast(`撤销没有完成：${error.message || '数据库没有响应'}`, { tone:'error' });
+      return;
+    }
+  } else {
+    state = previous;
+    safeStorage.setItem(storeKey, JSON.stringify(state));
+    render();
+  }
+  toast(`已撤销${label}`);
+}
+// ---- 从备份恢复 ----
+// 设置 → 数据管理 →「从备份恢复…」：展开备份目录里的每一份（时间、原因、大小）；点「恢复…」先看这份备份和现在数据的对比，
+// 确认后由本地服务一次做完（先把现在的数据另存一份「恢复前」备份，再换库、并回附件），然后页面重新加载。
+// 读库失败（身份标记不符、数据库文件不见了）时这里照样能用；换电脑时先「选择备份目录…」选到旧备份所在的文件夹。
+const backupReasonLabels = { change:'合并 / 删除客户前', import:'导入前', reset:'恢复示例前', restore:'恢复前' };
+const restoredNoticeKey = 'ots-restored-backup';
+function backupTimeText(ms) {
+  const date = new Date(Number(ms) || 0);
+  const pad = value => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+function backupSizeText(bytes = 0) {
+  const value = Number(bytes) || 0;
+  return value >= 1048576 ? `${(value / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(value / 1024))} KB`;
+}
+function renderRestoreList(data) {
+  const list = document.getElementById('macRestoreList');
+  if (!list) return;
+  const backups = Array.isArray(data?.backups) ? data.backups : [];
+  if (!backups.length) {
+    list.innerHTML = '<div class="muted">备份目录里还没有备份。换电脑时先点「选择备份目录…」，选到旧备份所在的文件夹（例如 iCloud Drive 里的）。</div>';
+    return;
+  }
+  const rows = backups.slice(0, 60).map(item => `<div class="backup-restore-item"><span><b>${escapeAttr(backupTimeText(item.at))}</b>${item.reason ? ` · ${escapeAttr(backupReasonLabels[item.reason] || '操作前')}` : ''} · ${escapeAttr(backupSizeText(item.size))}${item.mine ? '' : ' · 另一台 Mac'}${item.missingAttachments ? ` · 缺 ${Number(item.missingAttachments)} 个附件` : ''}</span><button class="btn btn-small" type="button" data-restore-backup="${escapeAttr(item.name)}">恢复…</button></div>`).join('');
+  list.innerHTML = `${rows}${backups.length > 60 ? `<div class="muted">只列出最近 60 份，共 ${backups.length} 份</div>` : ''}`;
+}
+async function macToggleRestoreList(btn) {
+  const list = document.getElementById('macRestoreList');
+  if (!list || !isMacAppMode()) return;
+  if (!list.hidden) {
+    list.hidden = true;
+    btn?.setAttribute('aria-expanded', 'false');
+    return;
+  }
+  list.hidden = false;
+  btn?.setAttribute('aria-expanded', 'true');
+  list.innerHTML = '<div class="muted">正在读取备份列表…</div>';
+  try {
+    const res = await apiFetch('/api/backups', { cache:'no-store' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(data.message || `HTTP ${res.status}`);
+    renderRestoreList(data);
+  } catch (error) {
+    list.innerHTML = `<div class="muted">备份列表读取失败：${escapeAttr(error.message || '本地服务没有响应')}</div>`;
+  }
+}
+function restorePreviewMessage(preview) {
+  const c = preview.counts || {};
+  const lines = [
+    `备份时间：${backupTimeText(preview.at)}${preview.reason ? `（${backupReasonLabels[preview.reason] || '操作前'}的快照）` : ''}`,
+    `备份里：订单 ${c.orders} · 垃圾箱 ${c.trashOrders} · 已删除 ${c.deletedOrders} · 客户 ${c.customers} · 续费 ${c.subscriptions} · WhatsApp 消息 ${c.whatsappMessages}`
+  ];
+  if (preview.current && preview.diff) {
+    const now = preview.current;
+    lines.push(`现在：订单 ${now.orders} · 垃圾箱 ${now.trashOrders} · 已删除 ${now.deletedOrders} · 客户 ${now.customers} · 续费 ${now.subscriptions} · WhatsApp 消息 ${now.whatsappMessages}`);
+    lines.push('', '恢复后和现在比：');
+    lines.push(stateDiffLine('订单（含垃圾箱、已删除）', '张', preview.diff.orders, preview.diff.orders.removedNums || []));
+    lines.push(stateDiffLine('客户', '位', preview.diff.customers, preview.diff.customers.removedNames || []));
+    if (now.subscriptions !== c.subscriptions) lines.push(`· 续费：${now.subscriptions} 条 → ${c.subscriptions} 条`);
+  } else {
+    lines.push('', '现在的数据库没有读出来（只读保护），没法逐项对比；恢复后以这份备份为准。');
+  }
+  if (preview.missingAttachments) lines.push('', `这份备份做的时候有 ${preview.missingAttachments} 个附件文件已经找不到，恢复后这些图片仍然打不开。`);
+  lines.push('', '恢复会换掉整个数据库（订单、客户、设置、续费、WhatsApp 聊天）。恢复前会先把现在的数据另存为一份「恢复前」备份，恢复后可以撤销。页面会重新加载。');
+  return lines.join('\n');
+}
+async function macRestoreBackup(name) {
+  if (!isMacAppMode() || !name) return;
+  // 恢复会换掉整个数据库：先把手上的修改存完，「恢复前」备份里才有它们。读库失败时没有可存的。
+  if (macDataLoaded && !macStorageReadOnly && !await flushPendingSave()) {
+    toast(`还有修改没存进数据库，先不恢复：${macSaveLastError || '请稍后再试'}`, { tone:'error' });
+    return;
+  }
+  let preview;
+  try {
+    const res = await apiFetch('/api/backup-preview', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ name }) });
+    preview = await res.json().catch(() => ({}));
+    if (!res.ok || !preview.ok) throw new Error(preview.message || `HTTP ${res.status}`);
+  } catch (error) {
+    toast(`这份备份读不出来：${error.message || '本地服务没有响应'}`, { tone:'error' });
+    return;
+  }
+  const choice = await appConfirm({ title:'从备份恢复', sub:`${backupTimeText(preview.at)} 的备份`, message:restorePreviewMessage(preview), confirmText:'恢复这份备份', danger:true, defaultFocus:'cancel' });
+  if (!choice.confirmed) return;
+  try {
+    const res = await apiFetch('/api/restore-backup', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ name }) });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok || !result.ok) throw new Error(result.message || `HTTP ${res.status}`);
+    try { sessionStorage.setItem(restoredNoticeKey, JSON.stringify({ at:preview.at, safety:result.safetyBackup || '' })); } catch (_) {}
+    toast('已从备份恢复，正在重新加载…');
+    window.location.reload();
+  } catch (error) {
+    toast(`恢复没有完成，数据保持原样：${error.message || '本地服务没有响应'}`, { tone:'error' });
+  }
+}
+// 恢复后重新加载完成：说一声恢复的是哪一份，并给「撤销恢复」（= 恢复那份「恢复前」备份，同样先预览）。
+function showRestoredBackupNotice() {
+  let notice = null;
+  try {
+    notice = JSON.parse(sessionStorage.getItem(restoredNoticeKey) || 'null');
+    sessionStorage.removeItem(restoredNoticeKey);
+  } catch (_) {}
+  if (!notice) return;
+  toast(`已从 ${backupTimeText(notice.at)} 的备份恢复`, notice.safety ? {
+    desc:'恢复前的数据已另存为一份「恢复前」备份',
+    undo:() => macRestoreBackup(notice.safety),
+    undoText:'撤销恢复'
+  } : undefined);
 }
 // 备份目录可选（比如 iCloud Drive）+ 上次备份时间；信息来自 /api/health 和 /api/backup-settings。
 let macBackupSummary = null;
@@ -22505,7 +22960,8 @@ function renderBackupInfo(summary = macBackupSummary) {
   if (pulse) pulse.title = `${last}${macBackupSummary.dir ? ` · ${macBackupSummary.dir}` : ''}`;
   if (info) {
     const count = Number(macBackupSummary.sqliteCount ?? macBackupSummary.count ?? 0);
-    info.innerHTML = `<span>${escapeAttr(last)}${count ? ` · 共 ${count} 份` : ''}${macBackupSummary.dirError ? ` · <b style="color:var(--red-600,#dc2626)">目录不可用，已临时用默认目录：${escapeAttr(macBackupSummary.dirError)}</b>` : ''}</span><span>备份目录：<code>${escapeAttr(macBackupSummary.dir || '')}</code>${macBackupSummary.isDefault ? '（默认）' : ''}</span>`;
+    const oldest = Number(macBackupSummary.oldestBackupAt || 0) ? ` · 最早可以回到 ${backupTimeText(macBackupSummary.oldestBackupAt).slice(0, 10)}` : '';
+    info.innerHTML = `<span>${escapeAttr(last)}${count ? ` · 共 ${count} 份` : ''}${escapeAttr(oldest)}${macBackupSummary.dirError ? ` · <b style="color:var(--red-600,#dc2626)">目录不可用，已临时用默认目录：${escapeAttr(macBackupSummary.dirError)}</b>` : ''}</span><span>备份目录：<code>${escapeAttr(macBackupSummary.dir || '')}</code>${macBackupSummary.isDefault ? '（默认）' : ''}</span>`;
   }
   const reset = document.getElementById('macResetBackupDirBtn');
   if (reset) reset.hidden = macBackupSummary.isDefault !== false;
@@ -22549,17 +23005,18 @@ async function macManualBackup(btn) {
   try {
     if (!await flushPendingSave()) throw new Error(macSaveLastError || '数据尚未保存');
     const res = await apiFetch('/api/manual-backup', { method: 'POST' });
-    const data = await res.json();
-    if (!res.ok || !data.ok) throw new Error(Array.isArray(data.missingAttachments) ? data.message : '备份失败');
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(data.message || `HTTP ${res.status}`);
     macBackupWarning = '';
-    setMacStorageStatus('sqlite', 'saved', '数据已保存 · 手动备份已完成');
-    toast('Mac 本地备份已生成');
+    setMacStorageStatus('sqlite', 'saved', data.warning ? '数据已保存 · 手动备份已完成（有附件文件缺失）' : '数据已保存 · 手动备份已完成');
+    // 附件缺失不再让整份备份失败：数据库照常备份，黄色提示缺了哪些订单的图片。
+    toast(data.warning || 'Mac 本地备份已生成', data.warning ? { tone:'warn', desc:'可在订单里重新上传或删除这些附件' } : undefined);
     refreshBackupInfo();
   } catch (e) {
-    const missing = /附件文件缺失/.test(String(e?.message || ''));
-    macBackupWarning = missing ? e.message : '备份失败，请在设置中重试备份';
+    const reason = String(e?.message || '').trim() || '本地服务没有响应';
+    macBackupWarning = `备份失败：${reason}`;
     setMacStorageStatus('sqlite', 'warning', macBackupWarning);
-    toast(missing ? e.message : '备份失败');
+    toast(macBackupWarning, { tone:'error' });
     throw e;
   }
   });
@@ -27531,23 +27988,32 @@ document.getElementById('dataHealthCheckBtn').addEventListener('click', e => {
   runDataHealthCheck();
   setButtonFeedback(e.currentTarget, '检查完成');
 });
-document.getElementById('macManualBackupBtn')?.addEventListener('click', e => macManualBackup(e.currentTarget));
+// 失败已经提示过、按钮也显示了「失败」：这里接住，不留未处理的 Promise 拒绝。
+document.getElementById('macManualBackupBtn')?.addEventListener('click', e => macManualBackup(e.currentTarget).catch(() => {}));
+document.getElementById('macRestoreBackupBtn')?.addEventListener('click', e => macToggleRestoreList(e.currentTarget));
+document.getElementById('macRestoreList')?.addEventListener('click', e => {
+  const btn = e.target.closest('[data-restore-backup]');
+  if (btn) macRestoreBackup(btn.dataset.restoreBackup);
+});
 document.getElementById('macOpenDataFolderBtn')?.addEventListener('click', e => macOpenDataFolder(e.currentTarget));
 document.getElementById('macChooseBackupDirBtn')?.addEventListener('click', e => macChooseBackupDir(e.currentTarget));
 document.getElementById('macResetBackupDirBtn')?.addEventListener('click', e => macResetBackupDir(e.currentTarget));
+// 恢复示例只换订单相关的数据（订单、垃圾箱、已删除、目标、已处理提醒），客户档案、收款方式、标签、编号 / 汇率等设置都保留。
+// 以前整库换成示例：客户档案和设置全被清空、确认框只提订单，也不备份、不能撤销。现在先强制备份，6 秒内可撤销。
 document.getElementById('resetBtn').addEventListener('click', async () => {
+  if (!canSubmitStoredData()) return;
+  const replaced = `${(state.orders || []).length} 张订单、${(state.trashOrders || []).length} 张垃圾箱订单、${(state.deletedOrders || []).length} 张已删除订单和 ${Object.keys(state.performanceTargets || {}).length} 个月的业绩目标`;
   const confirmed = await confirmDangerFlow({
     title:'恢复示例数据',
-    firstMessage:'恢复示例数据会清除当前本地修改，并重新载入多月份示例订单。',
-    secondMessage:'再次确认：当前订单、垃圾箱、已删除订单和目标数据都会被示例数据覆盖。',
+    firstMessage:`恢复示例数据会把现在的 ${replaced} 换成多月份示例订单。`,
+    secondMessage:`再次确认：${replaced}会被示例数据覆盖。客户档案、收款方式、客户标签、编号和汇率等设置都会保留，续费不受影响。${isMacAppMode() ? '执行前会先自动备份当前数据，6 秒内可撤销，之后也可在「从备份恢复…」里找回。' : '6 秒内可撤销。'}`,
     confirmText:'恢复示例',
     mathA:9,
     mathB:4
   });
-  if (!confirmed) return;
-  state = normalizeState({ orders: demoOrders, trashOrders: [], deletedOrders: [], performanceTargets: {}, doneTasks: {}, demoCleared: false, demoCustomersCleared: false });
-  render();
-  toast('已恢复示例数据');
+  if (!confirmed || !canSubmitStoredData()) return;
+  const next = normalizeState({ ...JSON.parse(JSON.stringify(state)), orders: demoOrders, trashOrders: [], deletedOrders: [], performanceTargets: {}, doneTasks: {}, demoCleared: false, demoCustomersCleared: false });
+  await applyDataReplacement(next, { reason:'reset', label:'恢复示例', successText:'已恢复示例数据' });
 });
 document.getElementById('clearDemoBtn').addEventListener('click', clearDemoOrders);
 document.getElementById('clearDemoCustomersBtn').addEventListener('click', clearDemoCustomers);

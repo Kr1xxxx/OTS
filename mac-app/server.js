@@ -60,6 +60,7 @@ const instanceNonce = String(process.env.TRADE_INSTANCE_NONCE || crypto.randomBy
 const apiSessionCookie = 'trade_api_session';
 const defaultBodyLimit = 1024 * 1024;
 const saveBodyLimit = 16 * 1024 * 1024;
+const exportBodyLimit = 64 * 1024 * 1024;
 const attachmentBodyLimit = 96 * 1024 * 1024;
 const tinifyEndpoint = String(process.env.TRADE_TINIFY_ENDPOINT || 'https://api.tinify.com/shrink');
 let database = null;
@@ -146,10 +147,12 @@ function exportDirectory() {
 }
 function safeExportName(name = '') {
   const base = path.basename(String(name || '').replace(/\\/g, '/'))
-    .replace(/[\u0000-\u001f\u007f:*?"<>|]/g, '')
+    // 方向控制符（U+202E 等）能让访达把 a\u202Evsc.json 显示成 ajson.csv：一并去掉。
+    .replace(/[\u0000-\u001f\u007f:*?"<>|\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '')
     .replace(/^[.\s]+/, '')
     .trim();
-  if (!/\.(csv|json|txt)$/i.test(base) || base.length > 120) throw httpError(400, '导出文件名不支持');
+  // 按字节限长：macOS 文件名上限 255 字节，中文一个字 3 字节（以前按字符数，85 个中文字以上写盘时 500）。
+  if (!/\.(csv|json|txt)$/i.test(base) || Buffer.byteLength(base) > 200) throw httpError(400, '导出文件名不支持');
   return base;
 }
 function writeExportFile(name, text) {
@@ -164,7 +167,12 @@ function writeExportFile(name, text) {
     if (!fs.existsSync(candidate)) target = candidate;
   }
   if (!target) throw httpError(409, '下载文件夹里同名文件太多');
-  atomicWrite(target, String(text ?? ''));
+  if (typeof text !== 'string') throw httpError(400, '导出内容必须是文字');
+  try { atomicWrite(target, text); } catch (error) {
+    // 错误里不带绝对路径和临时文件名，常见原因翻成中文。
+    const friendly = friendlyStorageError(error, '「下载」文件夹');
+    throw friendly === error ? httpError(500, '导出文件没有写成功') : friendly;
+  }
   if (process.platform === 'darwin' && process.env.TRADE_EXPORT_NO_REVEAL !== '1') {
     spawn('/usr/bin/open', ['-R', target], { detached: true, stdio: 'ignore' }).unref();
   }
@@ -223,9 +231,19 @@ function httpError(status, message, details = {}) {
 }
 
 // 备份目录可以是用户自己选的文件夹（iCloud、网盘），里面可能有别的 .sqlite / .json：轮转、统计、清理附件只认 OTS 自己起的名字。
-// 「-before-change」：合并 / 删除客户前强制生成的备份，单独保留最近 20 份，不挤掉日常备份。
-const otsBackupFileName = /^trade-order-data-\d{8}-\d{6}(?:-before-change)?(?:-\d+)?\.(?:sqlite|json)$/;
-const beforeChangeBackupPattern = /-before-change(?:-\d+)?\.(?:sqlite|json)$/;
+// 文件名：trade-order-data-<日期>-<时间>[-<本机数据库 id 前 6 位>][-before-<原因>][-<序号>].sqlite
+// - 数据库 id：两台 Mac 把备份目录选到同一个 iCloud 文件夹时，轮转只删自己的，不删对方的（旧备份没有 id，按自己的算）。
+// - 「-before-<原因>」：操作前强制生成的快照（合并 / 删除客户 change、导入 import、恢复示例 reset、从备份恢复 restore），
+//   单独保留 90 天（至少最近 20 份），不参与日常轮转。
+const backupReasons = ['change', 'import', 'reset', 'restore'];
+const otsBackupFileName = /^trade-order-data-(\d{8})-(\d{6})(?:-([0-9a-f]{6}))?(?:-before-(change|import|reset|restore))?(?:-\d+)?\.(?:sqlite|json)$/;
+function parseBackupName(name = '') {
+  const match = otsBackupFileName.exec(name);
+  if (!match) return null;
+  const [, day, time, tag = '', reason = ''] = match;
+  const at = new Date(Number(day.slice(0, 4)), Number(day.slice(4, 6)) - 1, Number(day.slice(6, 8)), Number(time.slice(0, 2)), Number(time.slice(2, 4)), Number(time.slice(4, 6))).getTime();
+  return { name, at, tag, reason };
+}
 function isOtsBackupFile(name = '', extension = '') {
   return otsBackupFileName.test(name) && (!extension || name.endsWith(`.${extension}`));
 }
@@ -258,7 +276,7 @@ function normalizeDataPayload(raw) {
     ? raw
     : { app: 'trade-order-system', version: 'legacy', exportedAt: new Date().toISOString(), data: raw };
   const data = wrapper?.data;
-  if (!data || !Array.isArray(data.orders)) throw new Error('missing orders');
+  if (!data || !Array.isArray(data.orders)) throw httpError(400, 'missing orders');
   orderBuckets.forEach(key => {
     if (!Array.isArray(data[key])) data[key] = [];
   });
@@ -388,7 +406,20 @@ function createDatabaseSchema() {
   `);
 }
 
-function writeStateToDatabase(rawPayload, { migration = false, baseRevision, customerMoves: explicitMoves = [], customerDeletes = [] } = {}) {
+// 金额列是 REAL NOT NULL：写不进去的值（"1,200"、"$500"、对象）是请求的错，回 422 并说出是哪张单的哪个字段，
+// 页面不会把它当成临时故障每 3 秒重试。
+function orderMoneyValue(order, field, label) {
+  const raw = order?.[field];
+  const value = Number(raw || 0);
+  if (!Number.isFinite(value)) {
+    const name = String(order?.num || order?.id || '').slice(0, 60) || '未编号订单';
+    throw httpError(422, `订单 ${name} 的${label}（${field}）不是数字：${String(typeof raw === 'object' ? JSON.stringify(raw) : raw).slice(0, 40)}`, { publicDetails:{ orderNum:name, field } });
+  }
+  return value;
+}
+// customerInference:false（导入、恢复示例、撤销导入）：整份数据换掉时不按「删 1 加 1」或订单改名去猜客户改名，
+// WhatsApp 聊天留在原来的名字上，不会挂到另一位客户名下。
+function writeStateToDatabase(rawPayload, { migration = false, baseRevision, customerMoves: explicitMoves = [], customerDeletes = [], customerInference = true } = {}) {
   if (!database) throw new Error('SQLite database is not available');
   const payload = normalizeDataPayload(rawPayload);
   const data = payload.data;
@@ -477,6 +508,8 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision, cus
           throw httpError(422, `订单号 ${num} 重复：两张订单用了同一个订单号（含回收站和已删除），请改掉其中一个`, { publicDetails:{ duplicateNum:num } });
         }
         if (num) desiredNums.set(num, id);
+        orderMoneyValue(order, 'amount', '金额');
+        orderMoneyValue(order, 'paidAmount', '已付款');
         desiredOrderIds.add(id);
         desiredOrders.push({ bucket, order, position, id });
       });
@@ -505,8 +538,8 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision, cus
           String(order.country || ''),
           String(order.orderMonth || ''),
           String(order.stage || ''),
-          Number(order.amount || 0),
-          Number(order.paidAmount || 0),
+          orderMoneyValue(order, 'amount', '金额'),
+          orderMoneyValue(order, 'paidAmount', '已付款'),
           String(order.currency || 'USD'),
           String(order.trackingNumber || ''),
           String(order.carrier || ''),
@@ -529,6 +562,8 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision, cus
 
     const existingCustomers = new Map(database.prepare('SELECT name, data_json FROM customers').all().map(row => [row.name, row.data_json]));
     const desiredCustomerNames = new Set();
+    // 叫 __proto__ 的客户读回来时会写到对象原型上（凭空消失，下一次保存被删）：直接拒绝。
+    if (Object.prototype.hasOwnProperty.call(data.customers, '__proto__')) throw httpError(422, '客户名称不可用：__proto__', { publicDetails:{ field:'customers' } });
     Object.entries(data.customers).forEach(([name, customer]) => {
       const record = customer && typeof customer === 'object' ? customer : {};
       const cleanName = String(name);
@@ -551,7 +586,7 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision, cus
     // Renames and merges arrive as "old profile removed + its orders moved to a new
     // name". Follow those moves so WhatsApp chats stay attached to the customer.
     const customerMoves = new Map();
-    desiredOrders.forEach(({ order, id }) => {
+    if (customerInference !== false) desiredOrders.forEach(({ order, id }) => {
       const from = existingOrders.get(id)?.client || '';
       const to = String(order.client || '');
       if (!from || from === to || desiredCustomerNames.has(from) || !existingCustomers.has(from) || !desiredCustomerNames.has(to)) return;
@@ -565,7 +600,7 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision, cus
     const deletedNames = new Set((Array.isArray(customerDeletes) ? customerDeletes : []).map(name => String(name || '')));
     const removedNames = [...existingCustomers.keys()].filter(name => !desiredCustomerNames.has(name) && !customerMoves.has(name) && !deletedNames.has(name));
     const addedNames = [...desiredCustomerNames].filter(name => !existingCustomers.has(name));
-    if (removedNames.length === 1 && addedNames.length === 1 && !desiredOrders.some(({ order }) => String(order.client || '') === removedNames[0])) {
+    if (customerInference !== false && removedNames.length === 1 && addedNames.length === 1 && !desiredOrders.some(({ order }) => String(order.client || '') === removedNames[0])) {
       customerMoves.set(removedNames[0], new Set([addedNames[0]]));
     }
     // Merges and their undo arrive as explicit moves: a merged customer without orders leaves no order
@@ -589,7 +624,7 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision, cus
     data.trackingLookups.forEach((item, position) => {
       const id = String(item?.id || `lookup-${position}-${item?.trackingNumber || ''}`);
       const lookupJson = JSON.stringify(item || {});
-      if (desiredLookupIds.has(id)) throw new Error(`duplicate tracking lookup id: ${id}`);
+      if (desiredLookupIds.has(id)) throw httpError(422, `物流查询记录 ID 重复：${id.slice(0, 80)}`, { publicDetails:{ field:'trackingLookups' } });
       desiredLookupIds.add(id);
       const previous = existingLookups.get(id);
       if (!previous || previous.data_json !== lookupJson || Number(previous.position) !== position) {
@@ -646,28 +681,33 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision, cus
   }
 }
 
-function readStateFromDatabase() {
-  if (!database) throw new Error('SQLite database is not available');
+function readStateFromDatabase(db = database) {
+  if (!db) throw new Error('SQLite database is not available');
   const data = {};
-  database.prepare('SELECT key, data_json FROM app_state').all().forEach(row => {
+  db.prepare('SELECT key, data_json FROM app_state').all().forEach(row => {
     data[row.key] = JSON.parse(row.data_json);
   });
   orderBuckets.forEach(bucket => { data[bucket] = []; });
-  database.prepare(`
+  db.prepare(`
     SELECT bucket, data_json FROM orders
     ORDER BY CASE bucket WHEN 'orders' THEN 0 WHEN 'trashOrders' THEN 1 ELSE 2 END, position
   `).all().forEach(row => {
     data[row.bucket].push(JSON.parse(row.data_json));
   });
   data.customers = {};
-  database.prepare('SELECT name, data_json FROM customers ORDER BY name').all().forEach(row => {
-    data.customers[row.name] = JSON.parse(row.data_json);
+  db.prepare('SELECT name, data_json FROM customers ORDER BY name').all().forEach(row => {
+    // 以前存进去的 __proto__ 客户读回来要是自己的键，不能改到原型上。
+    Object.defineProperty(data.customers, row.name, { value:JSON.parse(row.data_json), enumerable:true, writable:true, configurable:true });
   });
-  data.trackingLookups = database.prepare('SELECT data_json FROM tracking_lookups ORDER BY position').all().map(row => JSON.parse(row.data_json));
-  const deliveryByOrder = new Map(database.prepare(`
-    SELECT order_id, status, started_at, sent_at, message_id, last_error, updated_at
-    FROM notification_deliveries
-  `).all().map(row => [row.order_id, row]));
+  data.trackingLookups = db.prepare('SELECT data_json FROM tracking_lookups ORDER BY position').all().map(row => JSON.parse(row.data_json));
+  let deliveryRows = [];
+  try {
+    deliveryRows = db.prepare(`
+      SELECT order_id, status, started_at, sent_at, message_id, last_error, updated_at
+      FROM notification_deliveries
+    `).all();
+  } catch (_) {}
+  const deliveryByOrder = new Map(deliveryRows.map(row => [row.order_id, row]));
   orderBuckets.forEach(bucket => {
     data[bucket] = data[bucket].map(order => {
       const delivery = deliveryByOrder.get(order.id);
@@ -687,10 +727,11 @@ function readStateFromDatabase() {
       };
     });
   });
+  const meta = key => { try { const row = db.prepare('SELECT value FROM metadata WHERE key = ?').get(key); return row ? String(row.value) : ''; } catch (_) { return ''; } };
   return {
-    app: metadataValue('app', 'trade-order-system'),
-    version: metadataValue('payload_version', 'sqlite-1'),
-    exportedAt: metadataValue('exported_at', new Date().toISOString()),
+    app: meta('app') || 'trade-order-system',
+    version: meta('payload_version') || 'sqlite-1',
+    exportedAt: meta('exported_at') || new Date().toISOString(),
     data
   };
 }
@@ -862,7 +903,7 @@ function availableFileName(dir, base, ext) {
 
 function parseImageDataUrl(value = '') {
   const match = String(value || '').match(/^data:(image\/(?:avif|png|jpe?g|webp));base64,([A-Za-z0-9+/=\s]+)$/i);
-  if (!match) throw new Error('invalid image data');
+  if (!match) throw httpError(415, '图片格式不支持：只接受 PNG、JPEG、WebP、AVIF 的 data URL');
   return { mime: match[1].toLowerCase(), buffer: Buffer.from(match[2].replace(/\s+/g, ''), 'base64') };
 }
 
@@ -964,11 +1005,12 @@ function attachmentPublicUrl(relativePath = '') {
 
 function attachmentTargetFromUrl(fileUrl = '') {
   const parsed = new URL(String(fileUrl || ''), `http://127.0.0.1:${port}`);
-  if (!parsed.pathname.startsWith('/attachments/')) throw new Error('unsupported attachment url');
-  const relative = decodeURIComponent(parsed.pathname.replace(/^\/attachments\//, ''));
+  if (!parsed.pathname.startsWith('/attachments/')) throw httpError(400, 'unsupported attachment url');
+  let relative;
+  try { relative = decodeURIComponent(parsed.pathname.replace(/^\/attachments\//, '')); } catch (_) { throw httpError(400, 'unsupported attachment url'); }
   const target = path.resolve(attachmentsDir, relative);
   const root = path.resolve(attachmentsDir);
-  if (!target.startsWith(root + path.sep)) throw new Error('unsupported attachment path');
+  if (!target.startsWith(root + path.sep)) throw httpError(400, 'unsupported attachment path');
   return target;
 }
 
@@ -1326,6 +1368,8 @@ function copyBackupAttachments(backupFile) {
   for (const source of backupAttachmentRefs(backupFile)) {
     const relative = path.relative(attachmentsDir, source);
     if (relative.startsWith('..') || path.isAbsolute(relative)) throw new Error('Invalid backup attachment path');
+    // 本机没有的附件（换电脑后导入的数据文件、被清理过的旧图）记在 missing 清单里，不拖垮整份备份。
+    if (!fs.existsSync(source)) continue;
     const target = path.join(dir, relative);
     fs.mkdirSync(path.dirname(target), { recursive:true, mode:0o700 });
     // Independent copy (APFS may share immutable blocks), never a hard link.
@@ -1336,7 +1380,7 @@ function copyBackupAttachments(backupFile) {
   return count;
 }
 function missingAttachmentReport() {
-  // Backups stay all-or-nothing; name the orders whose images are gone so the user can fix them.
+  // 数据库照常备份；缺的图片按订单列出来，写进备份旁边的 .missing.json，并告诉页面。
   const orders = new Map();
   let count = 0;
   for (const row of database.prepare('SELECT num, data_json FROM orders').all()) {
@@ -1348,9 +1392,65 @@ function missingAttachmentReport() {
   }
   return { count, orders:[...orders].map(([orderNum, files]) => ({ orderNum, files })) };
 }
-function createBackup(force = false, { beforeChange = false } = {}) {
+function missingAttachmentMessage(missing) {
+  if (!missing?.count) return '';
+  const names = missing.orders.slice(0, 10).map(item => item.orderNum).join('、');
+  const more = missing.orders.length > 10 ? ` 等 ${missing.orders.length} 个订单` : '';
+  return `已备份，但 ${missing.count} 个附件文件在本机找不到（订单 ${names}${more}），这些图片没有进备份。`;
+}
+// 备份 / 导出写盘失败的常见原因翻成中文（以前只显示「备份失败」或英文 ENOSPC 原文）。
+function friendlyStorageError(error, where = '备份目录') {
+  const text = `${error?.code || ''} ${error?.message || ''}`;
+  if (/ENOSPC|SQLITE_FULL|disk is full|no space/i.test(text)) return httpError(507, `${where}所在的磁盘空间不足，请清理磁盘或换一个目录`, { code:'disk_full' });
+  if (/EACCES|EPERM|EROFS|read-only file system|readonly/i.test(text)) return httpError(500, `${where}没有写入权限，请换一个目录`, { code:'no_permission' });
+  if (/ENOENT|ENOTDIR|EIO|ETIMEDOUT/i.test(text)) return httpError(503, `${where}暂时不可用（网盘或外置盘没有连上？）`, { code:'unavailable' });
+  return error;
+}
+function databaseTag(db = database) {
+  try {
+    const row = db.prepare("SELECT value FROM metadata WHERE key = 'database_id'").get();
+    return String(row?.value || '').toLowerCase().replace(/[^0-9a-f]/g, '').slice(0, 6);
+  } catch (_) { return ''; }
+}
+function removeBackupFiles(name) {
+  const file = path.join(backupDir, name);
+  fs.rmSync(file, { force:true });
+  fs.rmSync(file + '.attachments', { recursive:true, force:true });
+  fs.rmSync(file + '.missing.json', { force:true });
+}
+// 分级保留（以前只留最新 30 份，一小时最多一份，大约只能回到 3 个工作日前）：
+// - 日常备份：最新 30 份一定留；另外 48 小时内的全留，30 天内每天留最新一份，12 周内每周留最新一份。
+// - 操作前快照（before-*）：90 天内的全留，另外至少留最新 20 份。
+// - 只动本机数据库的备份（文件名里的 id 和本机一致，或旧的没有 id 的），别的 Mac 写进同一目录的不动。
+const dayMs = 24 * 60 * 60 * 1000;
+function backupsToRotate(names, { now = Date.now(), tag = '' } = {}) {
+  const own = names.map(parseBackupName).filter(item => item && item.name.endsWith('.sqlite') && (!item.tag || !tag || item.tag === tag))
+    .sort((a, b) => b.at - a.at || (a.name < b.name ? 1 : -1));
+  const keep = new Set();
+  const regular = own.filter(item => !item.reason);
+  const snapshots = own.filter(item => item.reason);
+  regular.slice(0, 30).forEach(item => keep.add(item.name));
+  const days = new Set();
+  const weeks = new Set();
+  regular.forEach(item => {
+    const age = now - item.at;
+    if (age < 2 * dayMs) { keep.add(item.name); return; }
+    const date = new Date(item.at);
+    const dayKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+    if (age < 30 * dayMs) {
+      if (!days.has(dayKey)) { days.add(dayKey); keep.add(item.name); }
+      return;
+    }
+    const weekKey = Math.floor((item.at - new Date(2001, 0, 1).getTime()) / (7 * dayMs));
+    if (age < 84 * dayMs && !weeks.has(weekKey)) { weeks.add(weekKey); keep.add(item.name); }
+  });
+  snapshots.forEach((item, index) => { if (index < 20 || now - item.at < 90 * dayMs) keep.add(item.name); });
+  return own.filter(item => !keep.has(item.name)).map(item => item.name);
+}
+function createBackup(force = false, { beforeChange = false, reason = '', rotate = true } = {}) {
   ensureStorage();
   if (storageMode !== 'sqlite' || !database) return { ok: false, message: storageError || 'SQLite unavailable' };
+  const label = backupReasons.includes(reason) ? reason : beforeChange ? 'change' : '';
   let meta = {};
   if (fs.existsSync(backupMetaFile)) {
     try { meta = readJson(backupMetaFile); } catch (_) {}
@@ -1360,17 +1460,11 @@ function createBackup(force = false, { beforeChange = false } = {}) {
     return { ok: true, skipped: true };
   }
   const extension = 'sqlite';
-  const backupName = availableFileName(backupDir, `trade-order-data-${timestamp()}${beforeChange ? '-before-change' : ''}`, extension);
+  const tag = databaseTag();
+  const backupName = availableFileName(backupDir, `trade-order-data-${timestamp()}${tag ? `-${tag}` : ''}${label ? `-before-${label}` : ''}`, extension);
   const backupFile = path.join(backupDir, backupName);
   const stagingFile = backupFile + '.partial';
   const missing = missingAttachmentReport();
-  if (missing.count) {
-    const names = missing.orders.slice(0, 10).map(item => item.orderNum).join('、');
-    const more = missing.orders.length > 10 ? ` 等 ${missing.orders.length} 个订单` : '';
-    throw httpError(409, `备份未完成：${missing.count} 个附件文件缺失（订单 ${names}${more}）。请重新上传或删除这些附件后再备份。`, {
-      publicDetails: { missingAttachments: missing.orders }
-    });
-  }
   database.exec('PRAGMA wal_checkpoint(FULL)');
   const quoted = stagingFile.replaceAll("'", "''");
   let attachmentCount;
@@ -1378,24 +1472,31 @@ function createBackup(force = false, { beforeChange = false } = {}) {
     database.exec(`VACUUM INTO '${quoted}'`);
     fs.chmodSync(stagingFile, 0o600);
     attachmentCount = copyBackupAttachments(stagingFile);
+    if (missing.count) atomicWrite(backupFile + '.missing.json', JSON.stringify({ missingAttachments:missing.orders, count:missing.count }, null, 2));
     fs.renameSync(stagingFile + '.attachments', backupFile + '.attachments');
     fs.renameSync(stagingFile, backupFile);
   } catch (error) {
     fs.rmSync(stagingFile, { force:true });
     fs.rmSync(stagingFile + '.attachments', { recursive:true, force:true });
     fs.rmSync(backupFile + '.attachments', { recursive:true, force:true });
-    throw error;
+    fs.rmSync(backupFile + '.missing.json', { force:true });
+    throw friendlyStorageError(error);
   }
-  const backups = fs.readdirSync(backupDir)
-    .filter(name => isOtsBackupFile(name, extension))
-    .sort()
-    .reverse();
-  [...backups.filter(name => !beforeChangeBackupPattern.test(name)).slice(30), ...backups.filter(name => beforeChangeBackupPattern.test(name)).slice(20)].forEach(name => {
-    fs.rmSync(path.join(backupDir, name), { force:true });
-    fs.rmSync(path.join(backupDir, name) + '.attachments', { recursive:true, force:true });
-  });
+  let rotated = 0;
+  try {
+    if (rotate) backupsToRotate(fs.readdirSync(backupDir).filter(name => isOtsBackupFile(name, extension)), { now, tag }).forEach(name => {
+      if (name === backupName) return;
+      removeBackupFiles(name);
+      rotated += 1;
+    });
+  } catch (_) {}
   atomicWrite(backupMetaFile, JSON.stringify({ lastBackupAt: now, lastBackupFile: backupFile }, null, 2));
-  return { ok:true, file:backupFile, attachmentsDir:backupFile + '.attachments', attachmentCount };
+  const summary = backupSummary();
+  return {
+    ok:true, file:backupFile, name:backupName, attachmentsDir:backupFile + '.attachments', attachmentCount, rotated,
+    sqliteCount:summary.sqliteCount, oldestBackupAt:summary.oldestBackupAt,
+    ...(missing.count ? { missingAttachments:missing.orders, warning:missingAttachmentMessage(missing) } : {})
+  };
 }
 
 // Created once per open database: creating it runs the table setup and the legacy-type migration.
@@ -1433,8 +1534,238 @@ function backupSummary() {
     isDefault: backupDir === defaultBackupDir,
     dirError: backupDirError,
     lastBackupAt: Number(meta.lastBackupAt) || 0,
-    lastBackupFile: meta.lastBackupFile || ''
+    lastBackupFile: meta.lastBackupFile || '',
+    // 设置里显示「最早可以回到」：按文件名里的时间，不按修改时间（拷来拷去会变）。
+    oldestBackupAt: (() => { const times = backups.map(parseBackupName).filter(item => item && item.name.endsWith('.sqlite')).map(item => item.at); return times.length ? Math.min(...times) : 0; })()
   };
+}
+
+// ---- 从备份恢复 ----
+// 设置 → 数据管理 →「从备份恢复…」：列出备份目录里的每一份；选一份先看和当前数据的对比，确认后由服务端一次做完：
+// 先给当前数据做一份「恢复前」快照 → 校验备份 → 关库、原子替换 → 并回附件（不覆盖已有文件）→ 身份标记换成备份的 → 版本号调大。
+// 换电脑时把「备份目录」选到 iCloud 里的旧备份文件夹，就能在这里看到并恢复。
+function resolveBackupFile(name) {
+  const clean = String(name || '');
+  if (!clean || path.basename(clean) !== clean || !isOtsBackupFile(clean, 'sqlite')) throw httpError(400, '备份文件名不对');
+  const file = path.join(backupDir, clean);
+  if (!fs.existsSync(file) || !fs.statSync(file).isFile()) throw httpError(404, '找不到这份备份，可能已被轮转删除或移走');
+  return file;
+}
+function payloadCounts(data = {}) {
+  return {
+    orders:(data.orders || []).length,
+    trashOrders:(data.trashOrders || []).length,
+    deletedOrders:(data.deletedOrders || []).length,
+    customers:Object.keys(data.customers || {}).length
+  };
+}
+function orderIndexById(data = {}) {
+  const map = new Map();
+  orderBuckets.forEach(bucket => (Array.isArray(data[bucket]) ? data[bucket] : []).forEach(order => {
+    if (order && order.id) map.set(String(order.id), { bucket, order });
+  }));
+  return map;
+}
+// 「当前 → 恢复后」的差别：按订单 id 和客户名比，数出新增、修改、删除，并列出前几个会消失的订单号和客户名。
+function diffStateData(current = {}, next = {}) {
+  const strip = order => JSON.stringify({ ...order, feishuNotification:undefined });
+  const before = orderIndexById(current);
+  const after = orderIndexById(next);
+  const orders = { added:0, changed:0, removed:0, removedNums:[] };
+  after.forEach((item, id) => {
+    const prev = before.get(id);
+    if (!prev) orders.added += 1;
+    else if (prev.bucket !== item.bucket || strip(prev.order) !== strip(item.order)) orders.changed += 1;
+  });
+  before.forEach((item, id) => {
+    if (after.has(id)) return;
+    orders.removed += 1;
+    if (orders.removedNums.length < 8) orders.removedNums.push(String(item.order.num || id));
+  });
+  const currentCustomers = current.customers || {};
+  const nextCustomers = next.customers || {};
+  const customers = { added:0, changed:0, removed:0, removedNames:[] };
+  Object.keys(nextCustomers).forEach(name => {
+    if (!Object.prototype.hasOwnProperty.call(currentCustomers, name)) customers.added += 1;
+    else if (JSON.stringify(currentCustomers[name]) !== JSON.stringify(nextCustomers[name])) customers.changed += 1;
+  });
+  Object.keys(currentCustomers).forEach(name => {
+    if (Object.prototype.hasOwnProperty.call(nextCustomers, name)) return;
+    customers.removed += 1;
+    if (customers.removedNames.length < 8) customers.removedNames.push(name);
+  });
+  return { orders, customers };
+}
+function tableCount(db, table) {
+  try { return Number(db.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get().count); } catch (_) { return 0; }
+}
+function listBackups() {
+  ensureStorage();
+  const tag = database ? databaseTag() : '';
+  const backups = fs.readdirSync(backupDir)
+    .filter(name => isOtsBackupFile(name, 'sqlite'))
+    .map(parseBackupName)
+    .sort((a, b) => b.at - a.at || (a.name < b.name ? 1 : -1))
+    .map(item => {
+      const file = path.join(backupDir, item.name);
+      let size = 0;
+      try { size = fs.statSync(file).size; } catch (_) {}
+      let missingAttachments = 0;
+      try { missingAttachments = Number(readJson(file + '.missing.json').count) || 0; } catch (_) {}
+      return { name:item.name, at:item.at, reason:item.reason, mine:!item.tag || !tag || item.tag === tag, size, hasAttachments:fs.existsSync(file + '.attachments'), missingAttachments };
+    });
+  return { ok:true, dir:backupDir, isDefault:backupDir === defaultBackupDir, storageMode, storageError, backups };
+}
+function openBackupReadOnly(file) {
+  let db;
+  try { db = new DatabaseSync(file, { readOnly:true }); }
+  catch (error) { throw httpError(422, `这份备份打不开：${String(error.message || error).slice(0, 120)}`); }
+  try {
+    const integrity = String(db.prepare('PRAGMA integrity_check').get()?.integrity_check || 'unknown');
+    if (integrity !== 'ok') throw httpError(422, `这份备份已损坏：${integrity.slice(0, 120)}`);
+    const tables = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all().map(row => row.name));
+    if (!['metadata', 'orders', 'customers'].every(name => tables.has(name))) throw httpError(422, '这不是本系统的数据库备份');
+    return db;
+  } catch (error) {
+    try { db.close(); } catch (_) {}
+    throw error.status ? error : httpError(422, `这份备份打不开：${String(error.message || error).slice(0, 120)}`);
+  }
+}
+function backupPreview(name) {
+  ensureStorage();
+  const file = resolveBackupFile(name);
+  const info = parseBackupName(name);
+  const db = openBackupReadOnly(file);
+  try {
+    const payload = readStateFromDatabase(db);
+    const current = storageMode === 'sqlite' && database ? readCurrentPayload().data : null;
+    let missingAttachments = 0;
+    try { missingAttachments = Number(readJson(file + '.missing.json').count) || 0; } catch (_) {}
+    return {
+      ok:true, name, at:info.at, reason:info.reason,
+      counts:{ ...payloadCounts(payload.data), subscriptions:tableCount(db, 'subscriptions'), whatsappMessages:tableCount(db, 'whatsapp_messages') },
+      current:current ? { ...payloadCounts(current), subscriptions:tableCount(database, 'subscriptions'), whatsappMessages:tableCount(database, 'whatsapp_messages') } : null,
+      diff:current ? diffStateData(current, payload.data) : null,
+      hasAttachments:fs.existsSync(file + '.attachments'),
+      missingAttachments,
+      storageMode, storageError
+    };
+  } finally { db.close(); }
+}
+function mergeBackupAttachments(sourceDir) {
+  if (!fs.existsSync(sourceDir)) return 0;
+  let copied = 0;
+  const root = path.resolve(attachmentsDir);
+  const walk = dir => {
+    fs.readdirSync(dir, { withFileTypes:true }).forEach(entry => {
+      const from = path.join(dir, entry.name);
+      if (entry.isDirectory()) return walk(from);
+      if (!entry.isFile()) return;
+      const target = path.resolve(attachmentsDir, path.relative(sourceDir, from));
+      if (!target.startsWith(root + path.sep) || fs.existsSync(target)) return;
+      fs.mkdirSync(path.dirname(target), { recursive:true, mode:0o700 });
+      fs.copyFileSync(from, target);
+      try { fs.chmodSync(target, 0o600); } catch (_) {}
+      copied += 1;
+    });
+  };
+  walk(sourceDir);
+  return copied;
+}
+function moveDatabaseFiles(from, to) {
+  ['', '-wal', '-shm'].forEach(suffix => {
+    if (fs.existsSync(from + suffix)) fs.renameSync(from + suffix, to + suffix);
+  });
+}
+function restoreFromBackup(name) {
+  ensureStorage();
+  const source = resolveBackupFile(name);
+  const staging = path.join(supportDir, `.restore-${process.pid}-${crypto.randomBytes(4).toString('hex')}.sqlite`);
+  let displaced = '';
+  try {
+    fs.copyFileSync(source, staging);
+    openBackupReadOnly(staging).close();
+    // 1. 当前数据先备份一份「恢复前」快照；生成不了就不恢复。
+    let safety = null;
+    if (storageMode === 'sqlite' && database) {
+      // 这次不轮转：要恢复的那份可能正是按规则该删的旧备份（例如从 iCloud 选回来的），它和它的附件这时还要用。
+      safety = createBackup(true, { reason:'restore', rotate:false });
+      if (!safety.ok) throw httpError(503, `恢复前的备份没有生成，没有恢复：${safety.message || ''}`);
+    } else if (fs.existsSync(databaseFile)) {
+      // 读库失败（身份标记不符等）时库没打开：把现在的文件原样拷一份（连同 -wal）。
+      const rawName = availableFileName(backupDir, `trade-order-data-${timestamp()}-before-restore`, 'sqlite');
+      try {
+        fs.copyFileSync(databaseFile, path.join(backupDir, rawName));
+        if (fs.existsSync(`${databaseFile}-wal`)) fs.copyFileSync(`${databaseFile}-wal`, path.join(backupDir, `${rawName}-wal`));
+      } catch (error) {
+        fs.rmSync(path.join(backupDir, rawName), { force:true });
+        throw friendlyStorageError(error);
+      }
+      safety = { ok:true, name:rawName, file:path.join(backupDir, rawName) };
+    }
+    // 2. 关库、原子替换。原来的文件先挪开，新库打不开就放回去。
+    const previousRevision = database ? Math.max(storageRevision, Number(metadataValue('revision', '0'))) : storageRevision;
+    if (database) {
+      try { database.exec('PRAGMA wal_checkpoint(TRUNCATE)'); } catch (_) {}
+      database.close();
+      database = null;
+    }
+    subscriptionStoreCache = null;
+    integrityCache = null;
+    storageMode = 'restoring';
+    displaced = `${databaseFile}.replaced-${process.pid}-${Date.now()}`;
+    moveDatabaseFiles(databaseFile, displaced);
+    fs.renameSync(staging, databaseFile);
+    let revision = 0;
+    try {
+      database = new DatabaseSync(databaseFile);
+      createDatabaseSchema();
+      const integrity = databaseIntegrity();
+      if (!integrity.ok) throw new Error(`SQLite integrity check failed: ${integrity.message}`);
+      // 3. 版本号比当前和备份里的都大：别的窗口再保存会得到 409，切成只读，不会把旧数据写回来。
+      revision = Math.max(previousRevision, Number(metadataValue('revision', '0'))) + 1;
+      setMetadata('revision', String(revision));
+      if (!metadataValue('initialized', '')) setMetadata('initialized', '1');
+      setMetadata('restored_from', name);
+      setMetadata('restored_at', new Date().toISOString());
+      // 4. 用户明确选了这份备份：身份标记换成它的数据库 id，不再被「identity does not match」拦下。
+      fs.rmSync(storageMarkerFile, { force:true });
+      writeStorageMarker();
+      storageRevision = revision;
+      storageMode = 'sqlite';
+      storageError = '';
+      fs.rmSync(migrationErrorFile, { force:true });
+      try { fs.chmodSync(databaseFile, 0o600); } catch (_) {}
+    } catch (error) {
+      try { database?.close(); } catch (_) {}
+      database = null;
+      ['', '-wal', '-shm'].forEach(suffix => fs.rmSync(databaseFile + suffix, { force:true }));
+      moveDatabaseFiles(displaced, databaseFile);
+      displaced = '';
+      initializeStorage();
+      throw httpError(500, `恢复没有完成，数据保持原样：${error.message || error}`);
+    }
+    ['', '-wal', '-shm'].forEach(suffix => fs.rmSync(displaced + suffix, { force:true }));
+    displaced = '';
+    // 5. 附件并回来，已有的同名文件不覆盖。
+    let restoredAttachments = 0;
+    try { restoredAttachments = mergeBackupAttachments(source + '.attachments'); } catch (_) {}
+    return { ok:true, restored:name, revision, safetyBackup:safety?.name || '', restoredAttachments, counts:databaseCounts(), backups:backupSummary() };
+  } finally {
+    fs.rmSync(staging, { force:true });
+  }
+}
+// 导入预览用：文件里引用的附件本机有没有（换电脑后导入的数据文件常常没有）。
+function checkAttachmentUrls(urls) {
+  if (!Array.isArray(urls)) throw httpError(400, 'urls 必须是数组');
+  const missing = [];
+  urls.slice(0, 20000).forEach(url => {
+    if (typeof url !== 'string' || !url) return;
+    let target;
+    try { target = attachmentTargetFromUrl(url); } catch (_) { return; }
+    if (!fs.existsSync(target)) missing.push(url);
+  });
+  return { ok:true, missing };
 }
 
 const defaultTrackingSettings = {
@@ -1687,7 +2018,9 @@ function bodyLimitForRequest(req) {
   let pathname = '';
   try { pathname = new URL(req.url, `http://127.0.0.1:${port}`).pathname; } catch (_) {}
   if (pathname === '/api/attachments') return attachmentBodyLimit;
-  if (pathname === '/api/save' || pathname === '/api/export-file') return saveBodyLimit;
+  if (pathname === '/api/save') return saveBodyLimit;
+  // 导出的正文是「缩进 JSON 再转义一次」，约为保存体积的 1.8 倍：上限单独放宽，别出现「能保存却不能导出」。
+  if (pathname === '/api/export-file') return exportBodyLimit;
   return defaultBodyLimit;
 }
 
@@ -1719,13 +2052,29 @@ function readBody(req, limit = bodyLimitForRequest(req)) {
   });
 }
 
+// 嵌套太深的 JSON 写库时 JSON.stringify 会栈溢出（500）：读进来就按层数拦下。用显式栈，不递归。
+const maxJsonDepth = 64;
+function jsonTooDeep(value, limit = maxJsonDepth) {
+  const stack = [[value, 1]];
+  while (stack.length) {
+    const [item, depth] = stack.pop();
+    if (!item || typeof item !== 'object') continue;
+    if (depth > limit) return true;
+    for (const key in item) {
+      const child = item[key];
+      if (child && typeof child === 'object') stack.push([child, depth + 1]);
+    }
+  }
+  return false;
+}
 // 请求正文不是 JSON 对象（写错、空正文、null）是调用方的问题，回 400，别当成服务器出错（500）。
 async function readJsonBody(req, fallback) {
   const text = await readBody(req);
   if (!text.trim() && fallback !== undefined) return fallback;
   let value;
   try { value = JSON.parse(text); } catch (_) { throw httpError(400, '请求内容不是有效的 JSON'); }
-  if (!value || typeof value !== 'object') throw httpError(400, '请求内容必须是 JSON 对象');
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw httpError(400, '请求内容必须是 JSON 对象');
+  if (jsonTooDeep(value)) throw httpError(400, `请求内容嵌套超过 ${maxJsonDepth} 层`);
   return value;
 }
 
@@ -1783,7 +2132,7 @@ function requireJsonContentType(req, pathname) {
     '/api/open-url', '/api/ai-settings', '/api/ai-chat', '/api/api-status',
     '/api/tracking-settings', '/api/order-notification', '/api/backup-settings',
     '/api/subscriptions/save', '/api/subscriptions/delete', '/api/subscriptions/rate',
-    '/api/subscriptions/options', '/api/export-file'
+    '/api/subscriptions/options', '/api/export-file', '/api/backup-preview', '/api/restore-backup', '/api/check-attachments'
   ]);
   if (req.method !== 'POST' || !jsonRoutes.has(pathname)) return;
   const type = String(req.headers['content-type'] || '').split(';', 1)[0].trim().toLowerCase();
@@ -2546,7 +2895,7 @@ const server = http.createServer(async (req, res) => {
         : requestPayload;
       const baseRevision = requestPayload?.baseRevision ?? payload?.baseRevision;
       ensureStorage();
-      const result = saveCurrentPayload(payload, { baseRevision, customerMoves:requestPayload?.customerMoves, customerDeletes:requestPayload?.customerDeletes });
+      const result = saveCurrentPayload(payload, { baseRevision, customerMoves:requestPayload?.customerMoves, customerDeletes:requestPayload?.customerDeletes, customerInference:requestPayload?.customerInference !== false });
       let backup;
       try { backup = createBackup(false); } catch (error) {
         backup = { ok: false, message: error.message || 'automatic backup failed' };
@@ -2588,10 +2937,27 @@ const server = http.createServer(async (req, res) => {
       const body = await readJsonBody(req);
       return send(res, 200, JSON.stringify(await sendOrderNotification(body.orderId)));
     }
-    // 合并 / 删除客户前由页面调用：不受「一小时一次」限制，备份的是操作前的数据（页面先把手上的修改存完再调用）。
+    // 合并 / 删除客户、导入、恢复示例前由页面调用：不受「一小时一次」限制，备份的是操作前的数据（页面先把手上的修改存完再调用）。
     if (req.method === 'POST' && url.pathname === '/api/backup-before-change') {
-      const result = createBackup(true, { beforeChange:true });
+      const body = await readJsonBody(req, {});
+      const reason = backupReasons.includes(body.reason) ? body.reason : 'change';
+      const result = createBackup(true, { reason });
       return send(res, result.ok ? 200 : 503, JSON.stringify(result));
+    }
+    if (req.method === 'GET' && url.pathname === '/api/backups') {
+      return send(res, 200, JSON.stringify(listBackups()));
+    }
+    if (req.method === 'POST' && url.pathname === '/api/backup-preview') {
+      const body = await readJsonBody(req);
+      return send(res, 200, JSON.stringify(backupPreview(body.name)));
+    }
+    if (req.method === 'POST' && url.pathname === '/api/restore-backup') {
+      const body = await readJsonBody(req);
+      return send(res, 200, JSON.stringify(restoreFromBackup(body.name)));
+    }
+    if (req.method === 'POST' && url.pathname === '/api/check-attachments') {
+      const body = await readJsonBody(req);
+      return send(res, 200, JSON.stringify(checkAttachmentUrls(body.urls)));
     }
     if (req.method === 'POST' && url.pathname === '/api/manual-backup') {
       const result = createBackup(true);
@@ -2717,6 +3083,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && url.pathname === '/api/api-status') {
       const body = await readJsonBody(req, {});
+      if (body.kind !== undefined && typeof body.kind !== 'string') throw httpError(400, 'kind 必须是文字');
       return send(res, 200, JSON.stringify(await checkApiStatus(String(body.kind || 'all'))));
     }
     if (req.method === 'POST' && url.pathname === '/api/tracking-settings') {

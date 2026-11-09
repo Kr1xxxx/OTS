@@ -74,6 +74,11 @@ const { chromium } = require('playwright');
     conflict = false;
     const loadsBefore = loads;
     await page.locator('#macConflictReloadBtn').click();
+    // 本窗口还有没存进去的修改：重新加载前先问（V3.135），选「仍然刷新」才重新加载。
+    await page.waitForFunction(()=>document.getElementById('confirmModal').classList.contains('open') && document.getElementById('confirmTitle').textContent === '还有修改没存进数据库');
+    await page.waitForFunction(()=>document.activeElement?.id === 'confirmCancelBtn',null,{timeout:3000});
+    assert.equal(await page.locator('#confirmAltBtn').innerText(),'导出后刷新');
+    await page.locator('#confirmOkBtn').click();
     await page.waitForFunction(()=>window.pendingSaveStatus?.().loaded && !window.pendingSaveStatus().readOnly);
     assert.equal(loads,loadsBefore+1,'reload must fetch the latest database state');
     assert.equal(errors.length,0,errors.join('\n'));

@@ -637,11 +637,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     private func confirmUpdate(version: String, notes: String) async -> Bool {
         let current = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
         var message = "当前是 V\(current)。安装时会先保存并备份数据，然后关闭软件、换上新版本并重新打开，大约需要一分钟。"
-        let lines = notes.split(separator: "\n")
-            .map { String($0).trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty && !$0.hasPrefix("**Full Changelog**") }
-            .map { $0.hasPrefix("## ") ? String($0.dropFirst(3)) : $0 }
-            .map { $0.count > 120 ? String($0.prefix(120)) + "…" : $0 }
+        // Plain loop with explicit types: the chained map/filter version was too slow for the type checker.
+        var lines: [String] = []
+        for rawLine in notes.split(separator: "\n") {
+            var line: String = String(rawLine).trimmingCharacters(in: .whitespaces)
+            if line.isEmpty || line.hasPrefix("**Full Changelog**") { continue }
+            if line.hasPrefix("## ") { line = String(line.dropFirst(3)) }
+            if line.count > 120 { line = String(line.prefix(120)) + "…" }
+            lines.append(line)
+        }
         if !lines.isEmpty {
             message += "\n\n这个版本的改动：\n" + lines.prefix(5).joined(separator: "\n")
         }

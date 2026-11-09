@@ -4143,7 +4143,7 @@ html[data-motion="reduce"] :is(.subs-sk, .subs-spin) { animation:none !important
 </style>
 <style id="ots-ui-v2">
 /* ===== 新版 UI：逐页换装 ===== */
-/* 标签：阶段色固定（报价蓝、定金/尾款琥珀橙、生产青、发货绿、完成灰）；产品和收款方式用中性灰，不抢阶段色 */
+/* 标签：阶段色固定（报价蓝、待发货琥珀橙、生产青、发货绿、完成灰）；产品和收款方式用中性灰，不抢阶段色 */
 html[data-theme] .tag-blue { background:color-mix(in oklab, var(--s-blue) var(--s-tint), transparent); color:var(--s-blue); }
 html[data-theme] .tag-orange { background:color-mix(in oklab, var(--s-amber) var(--s-tint), transparent); color:var(--s-amber); }
 html[data-theme] :is(.tag-wig, .tag-lash, .tag-pay-alibaba, .tag-pay-paypal, .tag-pay-western, .tag-pay-zelle, .tag-pay-card, .tag-pay-tt, .tag-neutral) { background:var(--gray-100); color:var(--gray-600); border:0; }
@@ -4201,7 +4201,7 @@ html[data-theme] .board-card-amount.due { color:var(--s-amber); }
 html[data-theme] .board-card-meta .tag { font-size:11px; padding:2px 7px; }
 html[data-theme] .board-empty { color:var(--gray-400); font-size:13px; border:1px dashed var(--surface-border-strong); border-radius:var(--radius); padding:18px 8px; text-align:center; background:transparent; }
 html[data-theme] .board-column.drag-over, html[data-theme] .board-column.is-drop-target { background:var(--accent-tint); }
-/* 放不进去的列（全款单 → 尾款、草稿 → 已发货）：不画成可放的高亮，改成红色虚线框，松手时提示原因。 */
+/* 放不进去的列（全款单 → 待发货、草稿 → 已发货）：不画成可放的高亮，改成红色虚线框，松手时提示原因。 */
 html[data-theme] .board-column.drag-invalid { outline:2px dashed color-mix(in srgb, var(--s-red) 55%, transparent); outline-offset:-3px; }
 /* 看板横向放不下：还有列的那一侧渐隐（右边 / 左边 / 两边）。 */
 html[data-theme] .workspace-board[data-more-right] { -webkit-mask-image:linear-gradient(to right, #000 calc(100% - 40px), transparent); mask-image:linear-gradient(to right, #000 calc(100% - 40px), transparent); }
@@ -5939,7 +5939,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.131，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.131</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.133，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.133</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -7526,7 +7526,7 @@ function isImeKeyEvent(event) {
 const stageDefs = [
   { key:'quote', name:'报价', tag:'tag-blue', cls:'stage-quote' },
   { key:'production', name:'生产中', tag:'tag-cyan', cls:'stage-production' },
-  { key:'balance', name:'尾款', tag:'tag-orange', cls:'stage-balance' },
+  { key:'balance', name:'待发货', tag:'tag-orange', cls:'stage-balance' },
   { key:'shipment', name:'已发货', tag:'tag-green', cls:'stage-shipment' },
   { key:'done', name:'已完成', tag:'tag-gray', cls:'stage-done' }
 ];
@@ -9435,7 +9435,7 @@ function orderAgeDays(order = {}) {
   const start = order.createdAt || (order.orderMonth ? `${order.orderMonth}-01` : '');
   return start ? Math.max(0, daysBetween(start)) : 0;
 }
-// 「欠款超过 N 天没收」：已确认的订单（生产中 / 尾款 / 已发货 / 已完成，不含报价和草稿），还有欠款，下单已超过 N 天。
+// 「欠款超过 N 天没收」：已确认的订单（生产中 / 待发货 / 已发货 / 已完成，不含报价和草稿），还有欠款，下单已超过 N 天。
 // 工作台「待收款」卡和金额页用同一个口径。
 const dueAgeAlertDays = 30;
 function orderDueAged(order = {}, days = dueAgeAlertDays) {
@@ -10372,8 +10372,10 @@ function stageDef(key) { return stageDefs.find(s => s.key === key) || stageDefs[
 function normalizeStage(key) {
   if (key === 'sample') return 'quote';
   if (stageDefs.some(s => s.key === key)) return key;
-  // 导入文件里阶段写成中文名（「尾款」）或大小写不同的英文（「Production」）：认出来，不再一律当成报价。
+  // 导入文件里阶段写成中文名（「待发货」）或大小写不同的英文（「Production」）：认出来，不再一律当成报价。
+  // 「待发货」以前叫「尾款」：旧备份 / 表格里写的「尾款」也认成同一个阶段。
   const text = String(key ?? '').trim();
+  if (text === '尾款') return 'balance';
   const hit = stageDefs.find(s => s.key === text.toLowerCase() || s.name === text);
   return hit ? hit.key : 'quote';
 }
@@ -11758,7 +11760,7 @@ function pasteOrderFieldText(key, value) {
   if (key === 'note' && text.length > 40) return `${text.slice(0, 40)}…`;
   return text;
 }
-// 卡片上预告保存后会放到哪个阶段：和保存时同一条规则（没收定金 = 报价，收到定金 = 尾款，付清 = 生产中，有物流单号 = 已发货）。
+// 卡片上预告保存后会放到哪个阶段：和保存时同一条规则（没收定金 = 报价，收到定金 = 待发货，付清 = 生产中，有物流单号 = 已发货）。
 // fallbackType：识别结果没给订单类型时，填进去后表单上会是哪种（默认按设置里的新单订单类型）。
 function pasteStageHint(fields = {}, fallbackType = '') {
   const amount = Number(fields.amount || 0);
@@ -12234,7 +12236,7 @@ async function handleOrderPasteResultClick(e) {
 // - 已经有内容、和识别结果不一样的：用页面内确认框列出「字段：旧 → 新」，选「全部改 / 只补空字段 / 取消」。
 //   编辑已有订单时每一项都这样问（订单类型、已付、收款方式、币种都不会被静默改掉）；新单里 forceKeys 列的
 //   （聊天里明确说的收款方式、产品等）直接覆盖，币种、金额、已付、定金永远先问。
-// - 阶段不填：保存时按收款 / 物流单号走 resolveOrderSaveStage（没收定金 = 报价，收到定金 = 尾款）。已有订单的创建日期不改。
+// - 阶段不填：保存时按收款 / 物流单号走 resolveOrderSaveStage（没收定金 = 报价，收到定金 = 待发货）。已有订单的创建日期不改。
 // - 新单识别出了金额、聊天里却没提付款：全款单的付款状态按「未付」，不沿用新单默认的「已付」。
 // 返回 false 表示用户取消了，什么都没填。
 function pasteFullTypeNotice(form, status) {
@@ -12499,7 +12501,7 @@ function normalizeAiExtractedFields(raw = {}) {
   return fields;
 }
 // 提示词里不再附「本地规则已识别到」：本地会把小计、折算成美元的金额、单价当成订单金额，错值会干扰 AI。
-// 也不再要 stage：阶段由保存规则按收款定（没收定金 = 报价，收到定金 = 尾款）。
+// 也不再要 stage：阶段由保存规则按收款定（没收定金 = 报价，收到定金 = 待发货）。
 function aiOrderPrompt(text, today = new Date()) {
   const todayText = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   const weekdayText = '日一二三四五六'[today.getDay()];
@@ -16245,7 +16247,7 @@ function renderOrderDetail(order, source = 'active') {
           ${editField('收款方式', 'paymentChannel', `<select data-dedit="paymentChannel">${editOptions('paymentChannel', payment.value)}</select>`)}
           ${editField('币种', 'currency', `<select data-dedit="currency">${currencyOptions}</select>`)}
         </div>
-        <p class="muted detail-edit-hint">${settledStage ? '已发货 / 已完成的订单视为收齐，已付金额不能在这里改；要改先把阶段移回生产中或尾款。' : '只记一个已付金额，收到尾款时改成总额即可；付款截图在「完整编辑…」的附件里添加。保存后阶段和待收会一起更新。'}</p>
+        <p class="muted detail-edit-hint">${settledStage ? '已发货 / 已完成的订单视为收齐，已付金额不能在这里改；要改先把阶段移回生产中或待发货。' : '只记一个已付金额，收到尾款时改成总额即可；付款截图在「完整编辑…」的附件里添加。保存后阶段和待收会一起更新。'}</p>
       </section>` : '';
   const depositLine = depositOrder && depositValue > 0
     ? `<div class="order-detail-deposit">定金：${money(depositValue, currencyCode)}${orderAmountValue(order) ? `（${Math.round(depositValue / orderAmountValue(order) * 100)}%）` : ''} · ${paid >= depositValue ? '已收' : (paid > 0 ? `已收 ${money(paid, currencyCode)}，还差 ${money(depositValue - paid, currencyCode)}` : '未收')}</div>`
@@ -16335,7 +16337,7 @@ function renderOrderDetailHeader(order, source = 'active') {
     money(order.amount, currency)
   ].map(text => `<span>${escapeAttr(text)}</span>`).join('')
     + (orderAmountValue(order) > 0 ? `<span class="order-detail-due-chip ${due > 0 ? 'is-due' : 'is-paid'}">${escapeAttr(due > 0 ? `待收 ${money(due, currency)}` : '已收全款')}</span>` : '');
-  // 阶段条按这张单的流程画：定金单「报价 → 尾款 → 生产中 → 已发货 → 已完成」，全款单没有尾款。
+  // 阶段条按这张单的流程画：定金单「报价 → 待发货 → 生产中 → 已发货 → 已完成」，全款单没有待发货。
   // 当前阶段不能点（以前点了也要先放弃修改，结果什么都没发生）。
   const flow = (order.orderType || '定金订单') === '全款订单'
     ? ['quote', 'production', 'shipment', 'done']
@@ -16871,7 +16873,8 @@ function jumpToCustomerProfile(name) {
   renderCustomers();
   requestAnimationFrame(() => openCustomerModal(name, { viewOnly:true }));
 }
-// 看板列顺序保持 报价 → 生产中 → 尾款 → 已发货（用户选择只加副标题）：定金单先到「尾款」列，付清后才进「生产中」。
+// 看板列顺序保持 报价 → 生产中 → 待发货 → 已发货（用户选择只加副标题）：定金单先到「待发货」列，付清后才进「生产中」。
+// 「待发货」以前叫「尾款」（2026-11-09 改名），key 仍是 balance；副标题「已收定金 · 等尾款」说明它在等什么。
 function boardColumnSubtitle(stage) {
   // 四列都有一行短副标题，表头结构和高度一致。
   return { quote:'未收定金 · 待确认', production:'已付清 · 生产中', balance:'已收定金 · 等尾款', shipment:'已发出 · 跟进签收' }[stage] || '';
@@ -18496,7 +18499,7 @@ function applyTrackingResultToOneOrder(order, clean, result) {
   order.carrier = primary?.carrier || 'auto';
   order.logisticsStatus = aggregateShipmentStatus(order.shipments) || mapped || order.logisticsStatus;
   order.logisticsUpdated = latestShipmentUpdate(order.shipments) || updatedAt;
-  // Only a shipped order completes on delivery. A 报价 / 尾款 / 生产中 order that already has a tracking number
+  // Only a shipped order completes on delivery. A 报价 / 待发货 / 生产中 order that already has a tracking number
   // (a sample, or a parcel sent before the balance arrived) must not be marked fully paid by the carrier.
   // 多批的单要每一批都送到；标了「还有批次没发」的不自动完成。
   const check = oldStage === 'shipment' ? orderAutoCompleteCheck(order) : { ready:false };
@@ -18511,7 +18514,7 @@ function applyTrackingResultToOneOrder(order, clean, result) {
     undo = { before:snapshot, after:stageMoveSnapshot(order), version:bumpOrderUndoVersion(order.id) };
   }
   // 只有状态真的变了（或者因此完成了）才算订单有新动态。以前每次查询都刷新「最近更新」，看板和列表排序每天被打乱两次，
-  // 带着包裹的生产中 / 尾款单跟进提醒也永远出不来。
+  // 带着包裹的生产中 / 待发货单跟进提醒也永远出不来。
   const statusChanged = order.shipments.some(shipment => before.find(item => item.trackingNumber === shipment.trackingNumber)?.status !== shipment.status);
   if (statusChanged || order.stage !== oldStage) order.updated = nowText();
   const newStatus = mapped;
@@ -21165,7 +21168,7 @@ function applyOrderTypeSwitch(form, fromType, toType, { keepPaid = false } = {})
     if (f.depositAmount) f.depositAmount.value = '';
     if (f.depositPercent) f.depositPercent.value = '';
   }
-  // 全款订单没有「尾款」阶段：按收款重新判断（收齐进生产中，没收齐回报价），不再一律换成生产中。
+  // 全款订单没有「待发货」阶段：按收款重新判断（收齐进生产中，没收齐回报价），不再一律换成生产中。
   if (toType === '全款订单' && stage === 'balance') {
     const status = f.fullPaymentStatus?.value || '已付';
     const paid = status === '已付' ? amount : (status === '未付' ? 0 : Number(f.paidAmount.value || 0));
@@ -21194,7 +21197,7 @@ function orderTypeChangeNotice(form, toType) {
     ? inferNewOrderStage({ selectedStage:'quote', orderType:toType, amount, paidAmount:paid, trackingNumber:'' })
     : '';
   return toFull
-    ? `这张单已收 ${money(paid, currency)}（订单金额 ${money(amount, currency)}）。改成全款订单后已收金额保留，付款状态显示「${amount > 0 && paid >= amount ? '已付' : '部分已付'}」${stageAfter ? `；全款订单没有「尾款」阶段，阶段改为「${stageDef(stageAfter).name}」` : ''}。再点回「定金订单」会恢复原来的定金和阶段。`
+    ? `这张单已收 ${money(paid, currency)}（订单金额 ${money(amount, currency)}）。改成全款订单后已收金额保留，付款状态显示「${amount > 0 && paid >= amount ? '已付' : '部分已付'}」${stageAfter ? `；全款订单没有「待发货」阶段，阶段改为「${stageDef(stageAfter).name}」` : ''}。再点回「定金订单」会恢复原来的定金和阶段。`
     : `这张单已收 ${money(paid, currency)}。改成定金订单后已收金额保留，定金需要重新填写。再点回「全款订单」会恢复原样。`;
 }
 async function handleOrderTypeChange(form) {
@@ -21456,8 +21459,8 @@ function openOrder(id) {
   fields.orderType.value = order.orderType || '定金订单';
   fields.depositAmount.value = order.depositAmount || order.paidAmount || '';
   fields.depositPercent.value = order.depositPercent || depositPercent(order.amount, order.depositAmount || order.paidAmount) || '';
-  // 阶段下拉的选项跟着订单类型走（全款订单没有「尾款」）。上一个打开的订单类型不同时，
-  // 旧选项里可能没有这个阶段，先按当前订单类型重建选项再选中，否则尾款单会被显示成报价并在保存时退回。
+  // 阶段下拉的选项跟着订单类型走（全款订单没有「待发货」）。上一个打开的订单类型不同时，
+  // 旧选项里可能没有这个阶段，先按当前订单类型重建选项再选中，否则待发货单会被显示成报价并在保存时退回。
   renderStageSelect(fields.stage, normalizeStage(order.stage), fields.orderType.value);
   if (fields.next) fields.next.value = order.next || '';
   if (fields.owner) fields.owner.value = order.owner;
@@ -21628,8 +21631,8 @@ function inferNewOrderStage({ selectedStage, orderType, amount, paidAmount, trac
   if (orderType === '定金订单' && paid > 0) return 'balance';
   return 'quote';
 }
-// 保存时用哪个阶段。新建 / 草稿转正：按收款推断（没收定金 = 报价，收到定金 = 尾款，付清 = 生产中）。
-// 编辑已有订单：收款（已付、金额、订单类型）改了、阶段没手动动过、原来在报价或尾款，才按收款推进，和详情抽屉一样；
+// 保存时用哪个阶段。新建 / 草稿转正：按收款推断（没收定金 = 报价，收到定金 = 待发货，付清 = 生产中）。
+// 编辑已有订单：收款（已付、金额、订单类型）改了、阶段没手动动过、原来在报价或待发货，才按收款推进，和详情抽屉一样；
 // 只改备注等其它字段时阶段不动。stageTouched 不知道时（null），按选中的阶段和原阶段是否相同来判断。
 // firstTracking：已有订单原来一个单号都没有、这次填了第一个。和新建订单一样进「已发货」（阶段没手动动过时）；
 // 以前阶段不变、包裹停在「未发货」、物流页也看不到，用户以为填了单号就是发货了。样品单号不想移动的话，把阶段手动选回去。
@@ -21821,8 +21824,8 @@ function buildOrderFromFormData(data = {}, { existing = null, isDraft = false, s
     ? orderShipmentSignature({ shipments })
     : (stageValue === 'done' ? '' : existing?.autoDoneHold || '');
   if (hold) order.autoDoneHold = hold;
-  // 「尾款视为已收齐」之前的真实已收、报价 → 尾款时自动记的定金：表单里已收没改，就跟着这张单走，抽屉 / 弹窗随便保存一次也不丢；
-  // 阶段往回走（已发货 → 尾款 / 生产中，尾款 → 报价）时按拖拽同一套规则还原，没有单号的单同时清掉发货状态。
+  // 「尾款视为已收齐」之前的真实已收、报价 → 待发货时自动记的定金：表单里已收没改，就跟着这张单走，抽屉 / 弹窗随便保存一次也不丢；
+  // 阶段往回走（已发货 → 待发货 / 生产中，待发货 → 报价）时按拖拽同一套规则还原，没有单号的单同时清掉发货状态。
   // 用户在表单里自己改了已收，以填的为准，自动记的标记作废。
   let restoreNote = '';
   if (existing && !existing.isDraft) {
@@ -22191,7 +22194,7 @@ function stageMoveRejection(order, stage) {
   if (!order) return '';
   const normalized = normalizeStage(stage);
   // 全款订单 has no 尾款 stage (the editor does not offer it); a drop there would leave a state the form cannot show.
-  if (normalized === 'balance' && order.orderType === '全款订单') return '全款订单没有尾款阶段，请移到生产中或报价';
+  if (normalized === 'balance' && order.orderType === '全款订单') return '全款订单没有待发货阶段，请移到生产中或报价';
   // 草稿还没转成正式订单：进已发货 / 已完成会把全额记成已收，数据库里出现「已发货、已收齐」的草稿。
   if (order.isDraft && isSettledStage(normalized)) return `草稿还没转成正式订单，不能直接移到${stageDef(normalized).name}；先打开草稿保存为正式订单`;
   return '';
@@ -22270,8 +22273,8 @@ function stageMovePaymentNote(order, before, after) {
   if (normalizeStage(after.stage) === 'quote' && now > 0) return `已收 ${money(now, currency)} 是登记过的收款，没有清零`;
   return '';
 }
-// 拖拽 / 推进 / 阶段条按定金规则顺带改收款（收到定金 = 尾款，付清 = 生产中），并且移回去时能还原：
-// - 报价 → 尾款、还没收钱：按约定定金记为已收，记下原来的已收（paidBeforeDeposit）和自动记的金额（depositAutoPaid）；
+// 拖拽 / 推进 / 阶段条按定金规则顺带改收款（收到定金 = 待发货，付清 = 生产中），并且移回去时能还原：
+// - 报价 → 待发货、还没收钱：按约定定金记为已收，记下原来的已收（paidBeforeDeposit）和自动记的金额（depositAutoPaid）；
 // - 离开已发货 / 已完成去任何没完成的阶段（含生产中）：还原进去时「尾款视为已收齐」之前的真实已收；
 //   一个单号都没有的单不再标成已发货（旧的发货日以后会喂给 UPS 满 5 天规则）；
 // - 回到报价：自动记的定金还没被改过，就恢复成没收（报价 = 没收定金）；手工登记的真实收款不动。
@@ -27610,7 +27613,7 @@ document.getElementById('pipeline').addEventListener('dragover', e => {
   const order = boardDragId ? boardDragOrder() : null;
   if (!order) return;
   if (column.id === 'trashDrop') { column.classList.add('drag-over'); return; }
-  // 放不进去的列（全款单拖到尾款、草稿拖到已发货）：不高亮成可放，画成禁止样式，松手时提示原因；自己所在的列不高亮。
+  // 放不进去的列（全款单拖到待发货、草稿拖到已发货）：不高亮成可放，画成禁止样式，松手时提示原因；自己所在的列不高亮。
   const invalid = Boolean(stageMoveRejection(order, column.dataset.stage));
   const same = state.orders.includes(order) && order.stage === column.dataset.stage;
   column.classList.toggle('drag-invalid', invalid);
@@ -29480,7 +29483,7 @@ document.getElementById('orderForm')?.addEventListener('click', e => {
   requestAnimationFrame(() => form.querySelector('.order-section[data-more]')?.scrollIntoView?.({ block:'start', behavior:uiReduceMotion() ? 'auto' : 'smooth' }));
 });
 // ===== 快捷动作：收齐尾款 / 推进到下一阶段（卡片悬停、右键菜单、订单列表），进入已发货时弹运单号小卡。=====
-// 定金单从报价推进到尾款（收到定金在生产），付清后进生产中；全款单直接进生产中；再往后是已发货、已完成。
+// 定金单从报价推进到待发货（收到定金），付清后进生产中；全款单直接进生产中；再往后是已发货、已完成。
 function nextStageFor(order = {}) {
   const stage = normalizeStage(order.stage);
   if (stage === 'quote') return (order.orderType || '定金订单') === '定金订单' && orderDueValue(order) > 0 ? 'balance' : 'production';
@@ -29500,7 +29503,7 @@ function quickAdvanceStage(id) {
 function paidFullSnapshot(order = {}) {
   return { stage:order.stage, paidAmount:order.paidAmount, paidBeforeDeposit:order.paidBeforeDeposit, depositAutoPaid:order.depositAutoPaid };
 }
-// 报价单还没收过定金，一次收的是全款；尾款 / 生产中收的是尾款。
+// 报价单还没收过定金，一次收的是全款；待发货 / 生产中收的是尾款。
 function quickPaidLabel(order = {}) {
   return normalizeStage(order.stage) === 'quote' ? '收齐全款' : '收齐尾款';
 }
@@ -29515,7 +29518,7 @@ function quickMarkPaidFull(id) {
   const before = paidFullSnapshot(order);
   const previousPaid = orderPaidValue(order);
   order.paidAmount = amount;
-  // 真的收齐了：报价 → 尾款时自动记的定金不再算「自动」，之后退回报价也不会被清零。
+  // 真的收齐了：报价 → 待发货时自动记的定金不再算「自动」，之后退回报价也不会被清零。
   delete order.paidBeforeDeposit;
   delete order.depositAutoPaid;
   const stage = normalizeStage(order.stage);
@@ -29738,7 +29741,7 @@ function uiDashboardKpis() {
     // 订单上没有尾款到期日，不说「逾期」：只数已确认订单里「下单超过 30 天还有欠款」的（不含报价单，不看最后修改时间）。
     const aged = dueOrders.filter(o => orderDueAged(o)).length;
     paymentSub.textContent = dueOrders.length ? `历史累计 · 待收 ${dueOrders.length} 笔${aged ? ` · 下单超 ${dueAgeAlertDays} 天未收清 ${aged}` : ''}` : '历史累计 · 没有待收款';
-    paymentSub.title = aged ? `已确认的订单（生产中 / 尾款 / 已发货 / 已完成）里，下单已超过 ${dueAgeAlertDays} 天、还有欠款的有 ${aged} 笔。订单上没有尾款到期日，这不是付款逾期。` : '';
+    paymentSub.title = aged ? `已确认的订单（生产中 / 待发货 / 已发货 / 已完成）里，下单已超过 ${dueAgeAlertDays} 天、还有欠款的有 ${aged} 笔。订单上没有尾款到期日，这不是付款逾期。` : '';
   }
   const tasksSub = document.getElementById('statTasksSub');
   if (tasksSub && typeof buildTaskItems === 'function') {
@@ -30085,8 +30088,8 @@ async function uiDetailSave({ promote = false } = {}) {
       if (status === '部分') uiDetailSetFormValue(form, 'paidAmount', values.paidAmount);
     } else uiDetailSetFormValue(form, 'paidAmount', values.paidAmount);
   }
-  // 改了收款的话，报价 / 尾款阶段的订单按收款情况推进：没收定金留在报价，收到定金进尾款，付清进生产中（和新建订单一样）。
-  // 只改备注等其它字段时阶段不动，避免手动拖到尾款的订单被悄悄退回。
+  // 改了收款的话，报价 / 待发货阶段的订单按收款情况推进：没收定金留在报价，收到定金进待发货，付清进生产中（和新建订单一样）。
+  // 只改备注等其它字段时阶段不动，避免手动拖到待发货的订单被悄悄退回。
   const paymentTouched = values.paidAmount !== undefined && !paidLocked && (
     Number(values.paidAmount || 0) !== Number(orderPaidValue(order) || 0)
     || Number(values.amount || 0) !== Number(order.amount || 0)

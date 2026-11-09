@@ -48,7 +48,7 @@ async function skipTrackingCard(page) {
     let e2 = await h.order(page, 'e2');
     assert.equal(e2.paidAmount, 1000);
     assert.equal(e2.paidBeforeSettle, 300, '载入已发货的单时记下真实已收');
-    assert.equal((await h.order(page, 'e6')).stage, 'balance', '阶段写成「尾款」的单放进尾款');
+    assert.equal((await h.order(page, 'e6')).stage, 'balance', '阶段写成「尾款」的单放进待发货（旧名兼容）');
     assert.equal((await h.order(page, 'e7')).stage, 'production', '阶段写成「 Production 」的单放进生产中');
     assert.equal(await page.locator('#pipeline .board-column[data-stage="balance"] .board-card[data-id="e6"]').count(), 1);
 
@@ -111,7 +111,7 @@ async function skipTrackingCard(page) {
     assert.equal(e2.paidBeforeSettle, undefined);
     assert.equal(e2.logisticsStatus, '未发货');
     assert.equal(e2.shippedAt, '');
-    assert(e2.logs.some(log => /阶段从 已发货 退回 尾款.*已付款恢复为 \$300 USD/.test(log.text)), `退回写进操作记录：${JSON.stringify(e2.logs.slice(0, 2))}`);
+    assert(e2.logs.some(log => /阶段从 已发货 退回 待发货.*已付款恢复为 \$300 USD/.test(log.text)), `退回写进操作记录：${JSON.stringify(e2.logs.slice(0, 2))}`);
 
     // 6. 抽屉阶段条：已完成 → 生产中，还原载入时记下的 200。
     assert.equal((await h.order(page, 'e3')).paidBeforeSettle, 200);

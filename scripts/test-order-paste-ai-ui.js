@@ -289,7 +289,7 @@ async function launch() {
     await runAi(newCustomerText, aiNew);
     const newCard = await resultsText();
     assert.match(newCard, /识别为新客户：Ana Torres/);
-    for (const pill of ['订单类型：定金订单', '定金比例：30%', '已付款：204', '阶段：尾款（按收款）']) assert.ok(newCard.includes(pill), `new customer card misses ${pill}:\n${newCard}`);
+    for (const pill of ['订单类型：定金订单', '定金比例：30%', '已付款：204', '阶段：待发货（按收款）']) assert.ok(newCard.includes(pill), `new customer card misses ${pill}:\n${newCard}`);
     assert.doesNotMatch(newCard, /生产中|stage/i);
     await results.locator('[data-paste-create-customer-order]').click();
     await page.waitForFunction(() => document.getElementById('combinedCustomerOrderModal').classList.contains('open'));
@@ -299,7 +299,7 @@ async function launch() {
     assert.equal(await combined('paidAmount'), '204');
     assert.equal(await combined('currency'), 'USD');
     assert.equal(await page.locator('#combinedCustomerForm [name="name"]').inputValue(), 'Ana Torres');
-    assert.match(await page.locator('#combinedOrderForm [data-stage-hint]').evaluate(el => el.hidden ? '' : el.textContent), /尾款/);
+    assert.match(await page.locator('#combinedOrderForm [data-stage-hint]').evaluate(el => el.hidden ? '' : el.textContent), /待发货/);
     await page.evaluate(() => closeCombinedCustomerOrderModal());
 
     // 同一段 AI 结果直接「填入识别内容」再保存：收到定金 = 尾款。
@@ -327,7 +327,7 @@ async function launch() {
     const germanAi = await resultsText();
     assert.match(germanAi, /识别为新客户：Anna Schmidt/);
     assert.match(germanAi, /已付款：384\.15/);
-    assert.match(germanAi, /阶段：尾款（按收款）/);
+    assert.match(germanAi, /阶段：待发货（按收款）/);
     assert.doesNotMatch(germanAi, /Zwischensumme/);
     await closeOrderModal();
 

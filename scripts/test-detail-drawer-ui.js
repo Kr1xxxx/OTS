@@ -58,7 +58,7 @@ const { chromium } = require('playwright');
     assert.equal(saved.paidAmount,300);
     assert.equal(saved.stage,'balance','a deposit should move a 报价 order to 尾款');
     assert.equal(saved.country,'🇺🇸 美国 United States');
-    assert.match(await page.locator('#detailPills').textContent(),/尾款/,'drawer header still shows the old stage');
+    assert.match(await page.locator('#detailPills').textContent(),/待发货/,'drawer header still shows the old stage');
 
     // 收齐 on a 尾款 order moves it to 生产中, and the saved state goes to the server.
     await open('o-balance','payment');

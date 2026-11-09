@@ -126,8 +126,8 @@ const PASTE_FORCE_KEYS = ['createdAt', 'currency', 'paymentChannel', 'productTyp
     }
     assert.equal(seen.at(-1), '370.37', `decimal paid must survive key-by-key typing (saw ${seen.join(' → ')})`);
     assert.ok(!seen.includes('1234.56'), `paid must never jump to the full amount (saw ${seen.join(' → ')})`);
-    assert.equal(await stageHint(), '保存后会按收款自动放到「尾款」');
-    assert.equal(await headerStage(), '尾款');
+    assert.equal(await stageHint(), '保存后会按收款自动放到「待发货」');
+    assert.equal(await headerStage(), '待发货');
     await clickSave();
     await waitSaved();
     assert.deepEqual(await order('Decimal Buyer'), { stage:'balance', amount:1234.56, paidAmount:370.37, depositAmount:370.37, depositPercent:30, orderType:'定金订单' });
@@ -176,7 +176,7 @@ const PASTE_FORCE_KEYS = ['createdAt', 'currency', 'paymentChannel', 'productTyp
     // P1-2：编辑弹窗登记收款也推进阶段（和详情抽屉一致）。
     await openExisting('o-quote');
     await typeInto('paidAmount', '300');
-    assert.equal(await stageHint(), '保存后会按收款自动放到「尾款」');
+    assert.equal(await stageHint(), '保存后会按收款自动放到「待发货」');
     await clickSave();
     await waitSaved();
     assert.equal((await order('o-quote')).stage, 'balance', 'recording the deposit in the edit modal moves 报价 → 尾款');
@@ -289,7 +289,7 @@ const PASTE_FORCE_KEYS = ['createdAt', 'currency', 'paymentChannel', 'productTyp
     assert.equal(await value('orderType'), '定金订单');
     assert.equal(await value('paidAmount'), '300', 'hidden auto-filled paid must not block the recognized value');
     assert.equal(await value('depositAmount'), '300');
-    assert.equal(await stageHint(), '保存后会按收款自动放到「尾款」');
+    assert.equal(await stageHint(), '保存后会按收款自动放到「待发货」');
     await clickSave();
     await waitSaved();
     assert.deepEqual(await order('Paste Buyer'), { stage:'balance', amount:1000, paidAmount:300, depositAmount:300, depositPercent:30, orderType:'定金订单' });
@@ -303,7 +303,7 @@ const PASTE_FORCE_KEYS = ['createdAt', 'currency', 'paymentChannel', 'productTyp
     await page.locator('#combinedOrderForm input[name="paidAmount"]').click();
     await page.keyboard.type('300.5');
     assert.equal(await page.locator('#combinedOrderForm input[name="paidAmount"]').inputValue(), '300.5');
-    assert.equal(await page.locator('#combinedOrderForm [data-stage-hint]').evaluate(el => el.hidden ? '' : el.textContent), '保存后会按收款自动放到「尾款」');
+    assert.equal(await page.locator('#combinedOrderForm [data-stage-hint]').evaluate(el => el.hidden ? '' : el.textContent), '保存后会按收款自动放到「待发货」');
 
     assert.deepEqual(dialogs, [], 'native dialogs are not allowed');
     assert.deepEqual(errors, []);

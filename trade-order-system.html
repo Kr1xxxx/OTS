@@ -8127,8 +8127,10 @@ async function persistFormState(...forms) {
   try {
     const saved = isMacAppMode() ? await flushPendingSave() : await saveState();
     // 版本冲突由弹出的确认框说明并给出「导出 / 重新加载」，这里不再叫人「重试」（重试也存不进去）。
-    if (!saved && !macStorageConflict) {
-      toast(macStorageReadOnly ? '数据库处于只读保护，这次修改没有保存。请先到设置里重新加载数据库。' : '尚未保存到数据库，输入已保留，请重试。', { tone:'error' });
+    if (!saved && macSaveWaitTimedOut && !macStorageReadOnly) {
+      toast('数据库这次保存比平时慢，还在后台继续，输入已保留。', { tone:'warn', desc:'保存状态变成「已保存」前，先别关闭这张表单。' });
+    } else if (!saved && !macStorageConflict) {
+      toast(macStorageReadOnly ?'数据库处于只读保护，这次修改没有保存。请先到设置里重新加载数据库。' : '尚未保存到数据库，输入已保留，请重试。', { tone:'error' });
     }
     return saved;
   } catch (_) {
@@ -8463,13 +8465,28 @@ function syncStateToMacApp({ immediate = false } = {}) {
   scheduleMacSave();
   return Promise.resolve(true);
 }
+// 等保存的地方（表单保存、导入、恢复、退出前）最多等这么久：本地服务卡住时不能一直转圈，
+// 到点按「还没存进去」返回，后台那次保存照常继续，输入保留。
+let macSaveWaitLimitMs = 60000;
+let macSaveWaitTimedOut = false;
 async function flushPendingSave() {
   if (!isMacAppMode()) return true;
   if (!macDataLoaded || macStorageReadOnly) return false;
   queueCurrentMacState();
   window.clearTimeout(macSaveTimer);
   macSaveTimer = 0;
-  const ok = await runMacSaveQueue();
+  macSaveWaitTimedOut = false;
+  // 计时器握着这次等待：等待链不只挂在保存队列内部的 promise 上，页面里 await 它的调用方一定会被叫醒
+  // （以前偶尔整条等待链在保存途中被浏览器当垃圾回收，调用方永远等不到结果）。
+  let timer = 0;
+  const limit = new Promise(resolve => { timer = window.setTimeout(() => { macSaveWaitTimedOut = true; resolve(false); }, macSaveWaitLimitMs); });
+  let ok;
+  try {
+    ok = await Promise.race([runMacSaveQueue(), limit]);
+  } finally {
+    window.clearTimeout(timer);
+  }
+  if (macSaveWaitTimedOut) return false;
   return Boolean(ok && !macSaveLastError && macSaveCompletedVersion >= macSaveRequestedVersion);
 }
 window.flushPendingSave = flushPendingSave;

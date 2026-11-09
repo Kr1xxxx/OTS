@@ -96,6 +96,8 @@ async function pageTests() {
     const customers = { 'Acme Ltd':{ client:'Acme Ltd' }, 'Beta Co':{ client:'Beta Co' }, Gamma:{ client:'Gamma' }, alice:{ client:'alice', email:'a1@x.com', note:'US alice' }, Alice:{ client:'Alice', email:'a2@uk.example', note:'UK Alice', permanentNote:'Always use DHL' } };
     let stored = { app:'trade-order-system', data:{ orders, customers, trashOrders:[{ ...base, id:'o-trash', num:'K9', client:'Acme Ltd', amount:10, stage:'quote' }], demoCleared:true, demoCustomersCleared:true }, revision:0 };
     const errors = [];
+    let releaseSave = null;
+    let heldSave = null;
     page.on('pageerror', error => errors.push(error.message));
     await page.route('**/*', async route => {
       const pathname = new URL(route.request().url()).pathname;
@@ -104,6 +106,7 @@ async function pageTests() {
       if (pathname === '/api/data') response = stored;
       if (pathname === '/api/health') response = { ok:true, storageMode:'sqlite', counts:{ orders:orders.length }, backups:{ sqliteCount:0 } };
       if (pathname === '/api/save') {
+        if (heldSave) await heldSave;
         stored = { ...route.request().postDataJSON().state, revision:stored.revision + 1 };
         response = { ok:true, revision:stored.revision, backup:{ ok:true, skipped:true } };
       }
@@ -166,6 +169,31 @@ async function pageTests() {
     await page.evaluate(() => saveCustomer(document.getElementById('customerForm')));
     const people = await page.evaluate(() => Object.fromEntries(['alice', 'Alice'].map(name => [name, state.customers[name] && { note:state.customers[name].note, permanentNote:state.customers[name].permanentNote || '' }])));
     assert.deepEqual(people, { alice:{ note:'US alice updated', permanentNote:'' }, Alice:{ note:'UK Alice', permanentNote:'Always use DHL' } });
+
+    // A save the local service never answers: the form save still returns (not saved, input kept), and the
+    // background save finishes once the service answers.
+    heldSave = new Promise(resolve => { releaseSave = resolve; });
+    const slow = await page.evaluate(async () => {
+      macSaveWaitLimitMs = 300;
+      openCustomerModal('alice', { viewOnly:false });
+      const form = document.getElementById('customerForm');
+      form.elements.note.value = 'US alice slow';
+      const started = Date.now();
+      await saveCustomer(form);
+      macSaveWaitLimitMs = 60000;
+      return { waited:Date.now() - started, open:document.getElementById('customerModal').classList.contains('open'), note:state.customers.alice.note, toast:[...document.querySelectorAll('.toast-item')].map(el => el.textContent).join(' ') };
+    });
+    assert.ok(slow.waited < 5000, `saveCustomer waited ${slow.waited} ms for a save that never answered`);
+    assert.equal(slow.open, true, 'the form closed although the save had not finished');
+    assert.equal(slow.note, 'US alice slow');
+    assert.match(slow.toast, /还在后台继续/);
+    releaseSave();
+    heldSave = null;
+    await page.waitForFunction(() => !macSaveInFlight && macSaveCompletedVersion >= macSaveRequestedVersion);
+    assert.equal(stored.data.customers.alice.note, 'US alice slow', 'the background save did not finish after the service answered');
+    // Saving again now goes straight through and closes the form.
+    await page.evaluate(() => saveCustomer(document.getElementById('customerForm')));
+    assert.equal(await page.evaluate(() => document.getElementById('customerModal').classList.contains('open')), false);
 
     // Saving one settings card keeps unsaved typing in another card.
     await page.evaluate(() => setPage('settings'));

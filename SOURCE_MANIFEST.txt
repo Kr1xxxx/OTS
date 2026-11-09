@@ -54,6 +54,7 @@ scripts/run-tests.js
 scripts/test-ai-usage.js
 scripts/test-app-icon.js
 scripts/test-audit-v3117.js
+scripts/test-backup-restore.js
 scripts/test-backup-settings.js
 scripts/test-board-drag-ui.js
 scripts/test-board-hold-delete-ui.js
@@ -98,6 +99,7 @@ scripts/test-global-search.js
 scripts/test-html-injection-ui.js
 scripts/test-image-attachment-preparation.js
 scripts/test-image-upload-progress-ui.js
+scripts/test-import-restore-ui.js
 scripts/test-logistics-page-ui.js
 scripts/test-mac-only-ui.js
 scripts/test-mac-titlebar-ui.js

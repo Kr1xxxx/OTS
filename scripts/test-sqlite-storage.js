@@ -120,13 +120,16 @@ async function main() {
   assert(fs.readFileSync(copiedImage,'utf8') === 'test-invoice-bytes', 'backup attachment mismatch');
   const backupsBeforeFailure = fs.readdirSync(path.join(testDir,'backups')).filter(name=>name.endsWith('.sqlite')).sort();
   fs.unlinkSync(imagePath);
-  const failedBackup = await request('/api/manual-backup', {method:'POST',body:{},allowError:true});
-  assert(failedBackup.status >= 400 && failedBackup.data.ok === false, 'missing attachment must not report a complete backup');
+  // A missing attachment no longer aborts the whole backup (report 25 P1-3): the database is still backed up,
+  // the missing images are listed next to it and named in a warning.
+  const warnedBackup = await request('/api/manual-backup', {method:'POST',body:{},allowError:true});
+  assert(warnedBackup.status === 200 && warnedBackup.data.ok === true && fs.existsSync(warnedBackup.data.file), 'a missing attachment must not block the database backup');
   const missingOrderNum = (await request('/api/data')).data.orders[0].num;
-  assert(failedBackup.data.missingAttachments?.some(item => item.orderNum === missingOrderNum && item.files === 1), 'failed backup must name the order whose attachment is missing');
-  assert(failedBackup.data.message.includes(missingOrderNum), 'backup error message must name the order');
-  assert(JSON.stringify(fs.readdirSync(path.join(testDir,'backups')).filter(name=>name.endsWith('.sqlite')).sort()) === JSON.stringify(backupsBeforeFailure), 'failed backup changed retained snapshots');
-  assert(!fs.readdirSync(path.join(testDir,'backups')).some(name=>name.includes('.partial')), 'failed backup left partial files');
+  assert(warnedBackup.data.missingAttachments?.some(item => item.orderNum === missingOrderNum && item.files === 1), 'the backup warning must name the order whose attachment is missing');
+  assert(warnedBackup.data.warning.includes(missingOrderNum), 'backup warning must name the order');
+  assert(JSON.parse(fs.readFileSync(warnedBackup.data.file + '.missing.json', 'utf8')).count === 1, 'missing attachments are listed next to the backup');
+  assert(fs.readdirSync(path.join(testDir,'backups')).filter(name=>name.endsWith('.sqlite')).length === backupsBeforeFailure.length + 1, 'backup with a missing attachment must still be written');
+  assert(!fs.readdirSync(path.join(testDir,'backups')).some(name=>name.includes('.partial')), 'backup left partial files');
   fs.copyFileSync(copiedImage,imagePath);
   fs.utimesSync(imagePath,new Date(0),new Date(0));
   const deleteResult = await request('/api/delete-attachments', {method:'POST',body:{urls:['/attachments/' + imageRelative]}});

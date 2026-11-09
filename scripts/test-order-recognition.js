@@ -788,7 +788,7 @@ for (const address of ['27 Sample Crescent Floor 2', 'Sample Rd.', 'Unit 1208', 
 {
   context.state = {orders:[], customers:{}};
   const realStageDef = context.stageDef;
-  context.stageDef = stage => ({ name: { quote:'报价', balance:'尾款', production:'生产中', shipment:'已发货' }[stage] || stage });
+  context.stageDef = stage => ({ name: { quote:'报价', balance:'待发货', production:'生产中', shipment:'已发货' }[stage] || stage });
   const german = 'Hallo, hier ist Anna\n2x Body Wave Perücke 24 Zoll\nZwischensumme: 1.180,50 €\nVersand: 100,00 €\nGesamt: 1.280,50 € (ca. 1,390 USD)\nAnzahlung 30% per Überweisung bezahlt\nLieferadresse: Anna Schmidt, Hauptstraße 12, 10115 Berlin';
   const de = context.analyzePasteText(german).extracted;
   assert.equal(de.amount, 1280.5, 'European 1.280,50 must read as 1280.5, not the subtotal or the USD conversion');
@@ -817,7 +817,7 @@ for (const address of ['27 Sample Crescent Floor 2', 'Sample Rd.', 'Unit 1208', 
   assert.equal(paid.paymentMentioned, undefined);
   assert.equal(context.pasteStageHint(paid), '生产中（按收款）');
   // AI 给的定金单：收到定金 = 尾款；没收定金 = 报价；有物流单号 = 已发货。
-  assert.equal(context.pasteStageHint({ amount:680, orderType:'定金订单', paidAmount:204 }), '尾款（按收款）');
+  assert.equal(context.pasteStageHint({ amount:680, orderType:'定金订单', paidAmount:204 }), '待发货（按收款）');
   assert.equal(context.pasteStageHint({ amount:680, orderType:'定金订单' }), '报价（聊天没提付款）');
   assert.equal(context.pasteStageHint({ amount:680 }, '定金订单'), '报价（聊天没提付款）');
   assert.equal(context.pasteStageHint({ amount:680, paymentMentioned:true }, '定金订单'), '报价（聊天没写付了多少）');
@@ -827,7 +827,7 @@ for (const address of ['27 Sample Crescent Floor 2', 'Sample Rd.', 'Unit 1208', 
   assert.equal(fromAi.depositPercent, undefined);
   assert.equal(fromAi.paidAmount, 204);
   assert.equal(context.pasteOrderFieldLabel('depositPercent'), '定金比例');
-  assert.equal(context.pasteOrderFieldText('stage', 'balance'), '尾款');
+  assert.equal(context.pasteOrderFieldText('stage', 'balance'), '待发货');
   assert.equal(context.pasteOrderFieldText('fullPaymentStatus', '部分'), '部分已付');
   context.stageDef = realStageDef;
 }

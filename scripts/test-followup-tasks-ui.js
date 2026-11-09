@@ -144,7 +144,7 @@ const contrast = page => page.evaluate(() => {
     // 行标题用客户显示名；收款行写账龄，不再重复金额。
     const payRow = page.locator('#taskList .task[data-task-id="payment-b1"]');
     assert.match(await payRow.locator('.task-title').innerText(), /^Alpha Hair（Ann）/);
-    assert.match(await payRow.locator('.task-sub').innerText(), /K9001 · 尾款 · 下单 40 天/);
+    assert.match(await payRow.locator('.task-sub').innerText(), /K9001 · 待发货 · 下单 40 天/);
     assert.equal(rows.indexOf('payment-b1') < rows.indexOf('payment-e1'), true, '收款按账龄排：欠得久的在前');
 
     // 2. 带文字的完成按钮，浅色 / 深色都 ≥ 3:1。

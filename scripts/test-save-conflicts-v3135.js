@@ -27,9 +27,9 @@ const base = { currency:'USD', logisticsStatus:'未发货', createdAt:`${month}-
 const seedOrders = [1, 2, 3, 4].map(n => ({ ...base, id:`o${n}`, num:`K${n}`, client:`Buyer ${n}`, note:`原备注 o${n}` }));
 const seedCustomers = Object.fromEntries([1, 2, 3, 4].map(n => [`Buyer ${n}`, { client:`Buyer ${n}`, note:'' }]));
 
-function startServer(dataDir, port) {
+function startServer(dataDir, port, extraEnv = {}) {
   const child = spawn(process.execPath, [path.join(root, 'mac-app', 'server.js')], {
-    env:{ ...process.env, TRADE_API_TOKEN:token, TRADE_APP_NO_OPEN:'1', TRADE_APP_DATA_DIR:dataDir, TRADE_APP_PORT:String(port), TRADE_EXPORT_NO_REVEAL:'1', TRADE_EXPORT_DIR:path.join(dataDir, '__downloads') },
+    env:{ ...process.env, ...extraEnv, TRADE_API_TOKEN:token, TRADE_APP_NO_OPEN:'1', TRADE_APP_DATA_DIR:dataDir, TRADE_APP_PORT:String(port), TRADE_EXPORT_NO_REVEAL:'1', TRADE_EXPORT_DIR:path.join(dataDir, '__downloads') },
     stdio:['ignore', 'pipe', 'pipe']
   });
   let log = '';
@@ -361,7 +361,9 @@ async function main() {
     await D.close();
 
     // P2-2: a second server process on the same data folder reports the database revision, not its own stale copy.
-    second = startServer(dataDir, freePortSync());
+    // Since V3.136 a second server is refused by the data-folder lock (test-mac-app-v3136); this check bypasses
+    // the lock on purpose, for an older version still running alongside.
+    second = startServer(dataDir, freePortSync(), { TRADE_ALLOW_SHARED_DATA_DIR:'1' });
     await second.ready;
     await setNote(A, 'o1', '第二个进程之前');
     const revision = (await request('/api/revision')).data.revision;

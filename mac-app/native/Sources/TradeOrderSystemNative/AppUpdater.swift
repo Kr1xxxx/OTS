@@ -37,18 +37,86 @@ enum UpdateStatus {
 @MainActor
 final class AppUpdater {
     private let policy = UpdatePolicy(owner: "Kr1xxxx", repository: "OTS")
-    private let prepareToQuit: @MainActor (@escaping @MainActor (Bool) -> Void) -> Void
+    private let prepareToQuit: @MainActor (@escaping @MainActor (String?) -> Void) -> Void
     private let quit: @MainActor () -> Void
     private let report: @MainActor (UpdateStatus) -> Void
+    private let confirmInstall: @MainActor (String, String) async -> Bool
+    private let unsavedFormsBlocker: @MainActor () async -> String?
     private var busy = false
+    /// A click while a check is already running is answered once that check ends, not dropped.
+    private var pendingUserCheck = false
+    /// Newest version seen; re-sent to the page after every load (a reload used to lose the 有更新 mark).
+    private var lastAvailable: String?
+    /// A version that failed to start and was rolled back is not offered again during this run.
+    private var skippedVersion: AppVersion?
+    private var lastCompletedCheck: Date?
+    /// Automatic checks run at most this often; a failed one is retried by the next scheduled tick.
+    static let automaticCheckInterval: TimeInterval = 6 * 3600
+    /// Download (~40 MB) + unpacked copy (~120 MB) + the old app kept until the new one starts.
+    private static let requiredFreeBytes: Int64 = 400_000_000
+    private static let stagingDefaultsKey = "PendingUpdateStaging"
 
-    /// prepareToQuit flushes pending saves and reports whether it is safe to quit.
-    init(prepareToQuit: @escaping @MainActor (@escaping @MainActor (Bool) -> Void) -> Void,
+    /// prepareToQuit flushes pending saves and backs up the database; it hands back nil when
+    /// it is safe to quit, otherwise the reason the update has to stop.
+    init(prepareToQuit: @escaping @MainActor (@escaping @MainActor (String?) -> Void) -> Void,
          quit: @escaping @MainActor () -> Void,
-         report: @escaping @MainActor (UpdateStatus) -> Void) {
+         report: @escaping @MainActor (UpdateStatus) -> Void,
+         confirmInstall: @escaping @MainActor (String, String) async -> Bool,
+         unsavedFormsBlocker: @escaping @MainActor () async -> String?) {
         self.prepareToQuit = prepareToQuit
         self.quit = quit
         self.report = report
+        self.confirmInstall = confirmInstall
+        self.unsavedFormsBlocker = unsavedFormsBlocker
+    }
+
+    /// Where the app keeps its data; the installer script and the new version meet here.
+    nonisolated static var supportDirectory: URL {
+        if let custom = ProcessInfo.processInfo.environment["TRADE_APP_DATA_DIR"], !custom.isEmpty {
+            return URL(fileURLWithPath: custom, isDirectory: true)
+        }
+        return FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Application Support/TradeOrderSystem", isDirectory: true)
+    }
+
+    /// Called once at launch: removes a download left behind when the app quit mid-download.
+    /// A folder that already holds the installer script belongs to a running install; it is left alone.
+    func cleanupInterruptedDownload() {
+        guard let path = UserDefaults.standard.string(forKey: Self.stagingDefaultsKey) else { return }
+        UserDefaults.standard.removeObject(forKey: Self.stagingDefaultsKey)
+        let staging = URL(fileURLWithPath: path, isDirectory: true)
+        guard !FileManager.default.fileExists(atPath: staging.appendingPathComponent("install-update.sh").path) else { return }
+        try? FileManager.default.removeItem(at: staging)
+    }
+
+    /// Called after every page load:
+    /// - the first load after an update tells the installer script the new version works;
+    /// - a rollback by the script is explained once, and that version is not offered again this run;
+    /// - a known newer version is shown on the button again.
+    func pageDidLoad() {
+        let support = Self.supportDirectory
+        let manager = FileManager.default
+        if let current = currentVersion {
+            let pending = support.appendingPathComponent("update-pending-\(current)")
+            if manager.fileExists(atPath: pending.path) {
+                try? Data().write(to: support.appendingPathComponent("update-ok-\(current)"))
+                try? manager.removeItem(at: pending)
+            }
+        }
+        let rolledBack = support.appendingPathComponent("update-rolled-back")
+        if let text = try? String(contentsOf: rolledBack, encoding: .utf8) {
+            try? manager.removeItem(at: rolledBack)
+            let lines = text.split(separator: "\n").map { String($0).trimmingCharacters(in: .whitespaces) }
+            let failed = lines.count > 0 ? lines[0] : ""
+            let restored = lines.count > 1 ? lines[1] : ""
+            let stage = lines.count > 2 ? lines[2] : ""
+            if let version = AppVersion(failed) { skippedVersion = version }
+            if lastAvailable == failed { lastAvailable = nil }
+            let what = stage == "install" ? "没能装进“应用程序”文件夹" : "没能正常启动"
+            report(.failed("新版本 V\(failed) \(what)，已自动恢复到 V\(restored)。这次运行期间不再提示这个版本；详细记录在 ~/Library/Logs/TradeOrderSystem-update.log。"))
+            return
+        }
+        if !busy, let lastAvailable { report(.available(lastAvailable)) }
     }
 
     private var currentVersion: AppVersion? {
@@ -63,20 +131,30 @@ final class AppUpdater {
         #endif
     }
 
-    /// userInitiated: a click installs straight away; the launch check only flags the button.
+    /// userInitiated: a click (button or menu) asks before installing; automatic checks only flag
+    /// the button, and run at most every `automaticCheckInterval` unless the last one failed.
     func checkForUpdates(userInitiated: Bool) {
-        guard !busy else { return }
+        guard !busy else {
+            if userInitiated { pendingUserCheck = true }
+            return
+        }
+        if !userInitiated, let last = lastCompletedCheck,
+           Date().timeIntervalSince(last) < Self.automaticCheckInterval {
+            return
+        }
         busy = true
         if userInitiated { report(.checking) }
         Task { @MainActor in
             var installing = false
-            defer { if !installing { self.busy = false } }
+            defer { if !installing { self.finishCheck() } }
             do {
                 guard let current = currentVersion else { throw UpdateError.message("无法读取当前版本号。") }
                 let found = try await latestRelease(current: current)
                 let latest = found.version
+                lastCompletedCheck = Date()
 
                 guard latest > current else {
+                    lastAvailable = nil
                     if userInitiated { report(.latest("\(current)")) }
                     return
                 }
@@ -84,15 +162,43 @@ final class AppUpdater {
                     throw UpdateError.message("V\(latest) 没有适用于这台 Mac（\(Self.architecture)）的安装包。")
                 }
                 guard userInitiated else {
+                    if latest != skippedVersion {
+                        lastAvailable = "\(latest)"
+                        report(.available("\(latest)"))
+                    }
+                    return
+                }
+                lastAvailable = "\(latest)"
+                try preflightInstallLocation()
+                // Unsaved forms stop the update before 40 MB are downloaded, not after.
+                if let blocker = await unsavedFormsBlocker() { throw UpdateError.message(blocker) }
+                guard await confirmInstall("\(latest)", found.notes) else {
                     report(.available("\(latest)"))
                     return
                 }
-                try preflightInstallLocation()
+                try checkFreeSpace()
                 installing = true
                 await install(asset, version: latest)
             } catch {
                 if userInitiated { report(.failed(error.localizedDescription)) }
             }
+        }
+    }
+
+    private func finishCheck() {
+        busy = false
+        if pendingUserCheck {
+            pendingUserCheck = false
+            checkForUpdates(userInitiated: true)
+        }
+    }
+
+    private func checkFreeSpace() throws {
+        let folder = Bundle.main.bundleURL.resolvingSymlinksInPath().deletingLastPathComponent()
+        guard let values = try? folder.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]),
+              let free = values.volumeAvailableCapacityForImportantUsage else { return }
+        if free < Self.requiredFreeBytes {
+            throw UpdateError.message("磁盘空间不足：更新需要约 \(Self.requiredFreeBytes / 1_000_000) MB，现在只剩 \(max(0, free) / 1_000_000) MB。请清理后再试。")
         }
     }
 
@@ -121,7 +227,7 @@ final class AppUpdater {
 
     /// API first (it carries asset digests), direct then via proxy. If every API attempt is
     /// refused or unreachable, read the version from the public release page, which has no quota.
-    private func latestRelease(current: AppVersion) async throws -> (version: AppVersion, asset: UpdateAsset?) {
+    private func latestRelease(current: AppVersion) async throws -> (version: AppVersion, asset: UpdateAsset?, notes: String) {
         var request = URLRequest(url: policy.latestReleaseURL, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         request.setValue(userAgent(current), forHTTPHeaderField: "User-Agent")
@@ -135,7 +241,8 @@ final class AppUpdater {
                     guard let release = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                           let tag = release["tag_name"] as? String,
                           let latest = AppVersion(tag) else { throw UpdateError.message("无法读取最新版本信息。") }
-                    return (latest, policy.selectAsset(fromRelease: release, architecture: Self.architecture)?.asset)
+                    let notes = release["body"] as? String ?? ""
+                    return (latest, policy.selectAsset(fromRelease: release, architecture: Self.architecture)?.asset, notes)
                 }
                 status = code
             } catch let error as UpdateError {
@@ -146,7 +253,7 @@ final class AppUpdater {
         }
         for session in Self.checkSessions {
             if let fallback = try? await latestFromReleasePage(current: current, session: session) {
-                return (fallback.version, fallback.asset)
+                return (fallback.version, fallback.asset, "")
             }
         }
         throw UpdateError.message(status == 0 ? "连不上 GitHub，请检查网络后再试。" : UpdatePolicy.checkFailureMessage(status: status))
@@ -187,6 +294,8 @@ final class AppUpdater {
                 for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: bundle, create: true
             )
             staging = workDir
+            // Recorded so the next launch can remove a half download if the app quits now.
+            UserDefaults.standard.set(workDir.path, forKey: Self.stagingDefaultsKey)
             let archive = workDir.appendingPathComponent(asset.name)
             let download = ProgressDownload(destination: archive) { [weak self] progress in
                 Task { @MainActor in self?.report(.downloading(label, progress)) }
@@ -201,15 +310,19 @@ final class AppUpdater {
             try Self.checkBundle(newApp, version: version, bundleIdentifier: Bundle.main.bundleIdentifier)
 
             report(.saving)
-            prepareToQuit { [weak self] safe in
+            let previous = currentVersion.map { "\($0)" } ?? ""
+            prepareToQuit { [weak self] blocker in
                 guard let self else { return }
-                guard safe else {
-                    self.fail("数据还没确认保存，已取消本次更新，请稍后再试。", cleaning: workDir)
+                if let blocker {
+                    self.fail(blocker, cleaning: workDir)
                     return
                 }
                 do {
-                    // The script deletes workDir (download, unpacked copy, old app) after relaunch.
-                    try AppUpdater.launchInstaller(newApp: newApp, target: bundle, staging: workDir)
+                    // The script keeps the old app until the new one reports a loaded page, then
+                    // deletes workDir; otherwise it puts the old app back and reopens it.
+                    try AppUpdater.launchInstaller(newApp: newApp, target: bundle, staging: workDir,
+                                                   newVersion: label, previousVersion: previous)
+                    UserDefaults.standard.removeObject(forKey: Self.stagingDefaultsKey)
                     self.report(.restarting)
                     self.quit()
                 } catch {
@@ -223,7 +336,9 @@ final class AppUpdater {
 
     private func fail(_ message: String, cleaning staging: URL?) {
         if let staging { try? FileManager.default.removeItem(at: staging) }
+        UserDefaults.standard.removeObject(forKey: Self.stagingDefaultsKey)
         busy = false
+        pendingUserCheck = false
         report(.failed(message))
     }
 
@@ -267,8 +382,7 @@ final class AppUpdater {
               AppVersion(raw) == version else {
             throw UpdateError.message("安装包信息与发布版本不一致，已取消更新。")
         }
-        let localSettings = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Application Support/TradeOrderSystem/feishu-settings.json")
+        let localSettings = supportDirectory.appendingPathComponent("feishu-settings.json")
         if let blocker = UpdatePolicy.notificationConfigBlocker(
             localConfigurationExists: FileManager.default.fileExists(atPath: localSettings.path),
             incomingConfigurationVersion: (info["OTSFeishuSettingsVersion"] as? NSNumber)?.intValue ?? 0
@@ -277,37 +391,58 @@ final class AppUpdater {
         }
     }
 
+    /// The tool's own error text is added to the message ("No space left on device" used to
+    /// surface only as 解压安装包失败).
     nonisolated private static func run(_ tool: String, _ arguments: [String], failure: String) throws {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: tool)
         process.arguments = arguments
+        let errorPipe = Pipe()
         process.standardOutput = FileHandle.nullDevice
-        process.standardError = FileHandle.nullDevice
+        process.standardError = errorPipe
         try process.run()
+        let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
-        guard process.terminationStatus == 0 else { throw UpdateError.message(failure) }
+        guard process.terminationStatus == 0 else {
+            let detail = (String(data: errorData, encoding: .utf8) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !detail.isEmpty else { throw UpdateError.message(failure) }
+            let hint = detail.lowercased().contains("no space") ? "磁盘空间不足。" : ""
+            throw UpdateError.message("\(failure)\(hint)（\(String(detail.suffix(200)))）")
+        }
     }
 
     /// Paths reach the script as arguments, never interpolated into its text.
-    private static func launchInstaller(newApp: URL, target: URL, staging: URL) throws {
+    private static func launchInstaller(newApp: URL, target: URL, staging: URL,
+                                        newVersion: String, previousVersion: String) throws {
         let script = staging.appendingPathComponent("install-update.sh")
         try installerScript.write(to: script, atomically: true, encoding: .utf8)
+        let support = supportDirectory
+        try FileManager.default.createDirectory(at: support, withIntermediateDirectories: true)
         let log = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Logs/TradeOrderSystem-update.log")
         FileManager.default.createFile(atPath: log.path, contents: nil)
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/zsh")
-        process.arguments = [script.path, String(ProcessInfo.processInfo.processIdentifier), newApp.path, target.path, staging.path]
+        process.arguments = [script.path, String(ProcessInfo.processInfo.processIdentifier), newApp.path, target.path,
+                             staging.path, support.path, newVersion, previousVersion]
         let output = try FileHandle(forWritingTo: log)
         process.standardOutput = output
         process.standardError = output
         try process.run()
     }
 
+    /// Swap, relaunch, then wait for the new version to load its page (it writes update-ok-<version>).
+    /// No word within 120 s: stop it, put the old app back, reopen it and leave update-rolled-back,
+    /// which the old version explains on its next page load. The old app is only deleted after the
+    /// new one has reported in. scripts/test-mac-app-v3136.js runs this text under bash with stubs.
     private static let installerScript = """
     #!/bin/zsh
     set -u
-    PID="$1"; NEW_APP="$2"; TARGET="$3"; STAGING="$4"
+    PID="$1"; NEW_APP="$2"; TARGET="$3"; STAGING="$4"; MARKERS="$5"; NEW_VERSION="$6"; OLD_VERSION="$7"
+    OK="$MARKERS/update-ok-$NEW_VERSION"
+    PENDING="$MARKERS/update-pending-$NEW_VERSION"
+    ROLLED_BACK="$MARKERS/update-rolled-back"
+    WAIT_SECONDS="${OTS_UPDATE_CONFIRM_SECONDS:-120}"
     echo "[$(date)] waiting for $PID to quit"
     for _ in {1..600}; do
       kill -0 "$PID" 2>/dev/null || break
@@ -323,14 +458,43 @@ final class AppUpdater {
     fi
     if ! mv "$NEW_APP" "$TARGET"; then
       echo "cannot install new app; restoring"
+      printf '%s\\n%s\\n%s\\n' "$NEW_VERSION" "$OLD_VERSION" "install" > "$ROLLED_BACK"
       mv "$BACKUP" "$TARGET" && rm -rf "$STAGING"
       open "$TARGET"; exit 1
     fi
     xattr -dr com.apple.quarantine "$TARGET" 2>/dev/null
-    echo "[$(date)] installed; relaunching"
+    rm -f "$OK"
+    echo "$OLD_VERSION" > "$PENDING"
+    echo "[$(date)] installed V$NEW_VERSION; relaunching and waiting up to ${WAIT_SECONDS}s for it to load"
     open "$TARGET"
-    sleep 5
-    rm -rf "$STAGING"
+    for _ in $(seq 1 $(( WAIT_SECONDS * 2 ))); do
+      [ -f "$OK" ] && break
+      sleep 0.5
+    done
+    if [ -f "$OK" ]; then
+      echo "[$(date)] V$NEW_VERSION started; removing the previous version"
+      rm -f "$OK" "$PENDING"
+      rm -rf "$STAGING"
+      exit 0
+    fi
+    echo "[$(date)] V$NEW_VERSION did not report a loaded page; rolling back to V$OLD_VERSION"
+    pkill -f "$TARGET/Contents/" 2>/dev/null
+    for _ in {1..100}; do
+      pgrep -f "$TARGET/Contents/" >/dev/null 2>&1 || break
+      sleep 0.1
+    done
+    pkill -9 -f "$TARGET/Contents/" 2>/dev/null && sleep 1
+    rm -rf "$STAGING/failed.app"
+    if mv "$TARGET" "$STAGING/failed.app" && mv "$BACKUP" "$TARGET"; then
+      printf '%s\\n%s\\n%s\\n' "$NEW_VERSION" "$OLD_VERSION" "started" > "$ROLLED_BACK"
+      rm -f "$PENDING"
+      open "$TARGET"
+      rm -rf "$STAGING"
+      echo "[$(date)] restored V$OLD_VERSION"
+      exit 1
+    fi
+    echo "[$(date)] rollback failed; the previous version is kept at $BACKUP"
+    exit 1
     """
 }
 

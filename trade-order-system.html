@@ -4423,14 +4423,17 @@ html[data-theme] .top-actions { flex:0 0 auto; }
 @media (max-width: 1320px) { html[data-theme] .world-clock-strip { display:none; } }
 
 @media (min-width: 821px) {
-html[data-theme] .sidebar { width:var(--sidebar); background:var(--surface-soft); border-right:0; box-shadow:none; padding:18px 12px 14px; gap:18px; overflow:auto; }
+/* 821–1080px 也保留侧栏（旧规则在 1080px 以下把它整列藏掉；Mac App 放大到 105% 以上、窗口稍窄时就会没有任何导航）。 */
+html[data-theme] .sidebar { display:flex; width:var(--sidebar); background:var(--surface-soft); border-right:0; box-shadow:none; padding:18px 12px 14px; gap:18px; overflow:auto; }
 html[data-theme] .logo { height:auto; padding:0 8px; border:0; justify-content:flex-start; }
 /* Mac App 原生窗口：左上角红黄绿按钮压在侧边栏顶上，品牌区往下让出标题栏高度 */
 html.mac-native-window[data-theme] .sidebar { padding-top:calc(44px / var(--ui-zoom, 1)); }
+/* 全屏时没有红黄绿按钮，不用再让出标题栏高度。 */
+html.mac-native-window.mac-fullscreen[data-theme] .sidebar { padding-top:18px; }
 /* 界面大小只在 Mac App 里能调（靠原生 pageZoom）；按下的那档直接铺白底，不用滑块。 */
 html:not(.mac-native-window) .ui-zoom-card { display:none; }
-html[data-theme] .ui-zoom-seg button[aria-pressed="true"] { background:var(--surface-bg); box-shadow:0 1px 2px oklch(0% 0 0 / .1); }
-html[data-theme="dark"] .ui-zoom-seg button[aria-pressed="true"] { background:var(--surface-raised); }
+html[data-theme] :is(.ui-zoom-seg, .theme-mode-seg) button[aria-pressed="true"] { background:var(--surface-bg); box-shadow:0 1px 2px oklch(0% 0 0 / .1); }
+html[data-theme="dark"] :is(.ui-zoom-seg, .theme-mode-seg) button[aria-pressed="true"] { background:var(--surface-raised); }
 html[data-theme] .nav { padding:0; gap:14px; flex:1; position:relative; isolation:isolate; }
 html[data-theme] .nav-group { display:flex; flex-direction:column; gap:2px; }
 html[data-theme] .nav-item { min-height:38px; padding:9px 12px; border-radius:14px; gap:10px; color:var(--gray-600); font-weight:500; background:transparent; box-shadow:none; transform:none;
@@ -4469,6 +4472,9 @@ html[data-theme] .app-update-btn:hover:not(:disabled) { background:var(--accent)
 html[data-theme] .app-update-btn.is-available { border-color:var(--accent); color:var(--accent); }
 html[data-theme] .app-update-btn.is-busy { cursor:progress; border-color:var(--accent); color:var(--gray-900); }
 html[data-theme] .app-update-btn.is-error { border-color:var(--s-red); color:var(--s-red); }
+/* 浅色下强调色、红色的字在透明底上不到 4.5:1：换深一档。 */
+html[data-theme="light"] .app-update-btn.is-available { color:color-mix(in oklab, var(--accent) 72%, #000); }
+html[data-theme="light"] .app-update-btn.is-error { color:color-mix(in oklab, var(--s-red) 72%, #000); }
 html[data-theme] .app-update-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 /* 分析：月份切换和产品筛选在卡片外，五张数字卡，对比说明横幅，两两并排的分析卡 */
 html[data-theme] .analysis-page { display:flex; flex-direction:column; gap:16px; }
@@ -5947,8 +5953,8 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.135，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.135</div>
-      <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
+      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.136，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.136</div>
+      <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会先问一句，再下载并重启" aria-label="检查更新：有新版本会先问一句，再下载并重启" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse is-busy" id="savePulse" aria-live="polite"><i></i><span>读取中</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
     </div>
@@ -6812,8 +6818,12 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
               <div><strong>订单弹窗样式</strong><div class="muted">卡片：分区卡片；A：单栏；B：左侧粘贴识别；C：紧凑行。</div></div>
               <div class="modal-style-picker" role="group" aria-label="订单弹窗样式"><span>弹窗</span><div class="modal-style-seg"><i class="seg-glide" aria-hidden="true"></i><button type="button" data-modal-style-choice="" title="分区卡片（原样式）" aria-label="弹窗样式：卡片">卡片</button><button type="button" data-modal-style-choice="a" title="A 单栏：所有字段一列排下来" aria-label="弹窗样式：A 单栏">A</button><button type="button" data-modal-style-choice="b" title="B 左侧粘贴：左边贴聊天记录识别，右边填字段" aria-label="弹窗样式：B 左侧粘贴">B</button><button type="button" data-modal-style-choice="c" title="C 紧凑行：标签在左，顶部分区标签跳转" aria-label="弹窗样式：C 紧凑行">C</button></div></div>
             </div>
+            <div class="settings-card theme-mode-card">
+              <div><strong>深浅色</strong><div class="muted">跟随系统：Mac 切换深色 / 浅色时，这里跟着变；选了浅色或深色就固定不变。</div></div>
+              <div class="modal-style-picker" role="group" aria-label="深浅色"><span>主题</span><div class="modal-style-seg theme-mode-seg"><button type="button" data-theme-mode-choice="system">跟随系统</button><button type="button" data-theme-mode-choice="light">浅色</button><button type="button" data-theme-mode-choice="dark">深色</button></div></div>
+            </div>
             <div class="settings-card ui-zoom-card">
-              <div><strong>界面大小</strong><div class="muted">原型是把 1440×920 的窗口缩小放进浏览器看的，所以显得更紧凑；默认 85% 和原型一致。也可以用 ⌘- / ⌘+ / ⌘0。</div></div>
+              <div><strong>界面大小</strong><div class="muted">原型是把 1440×920 的窗口缩小放进浏览器看的，所以显得更紧凑；默认 85% 和原型一致。也可以用 ⌘- / ⌘+ 调整（70%–120%），⌘0 回到默认 85%。</div><div class="muted ui-zoom-current" hidden></div></div>
               <div class="modal-style-picker" role="group" aria-label="界面大小"><span>缩放</span><div class="modal-style-seg ui-zoom-seg"><button type="button" data-ui-zoom-choice="0.75">75%</button><button type="button" data-ui-zoom-choice="0.8">80%</button><button type="button" data-ui-zoom-choice="0.85">85%</button><button type="button" data-ui-zoom-choice="0.9">90%</button><button type="button" data-ui-zoom-choice="1">100%</button></div></div>
             </div>
           </div>
@@ -9185,6 +9195,19 @@ window.otsFlushBeforeQuit = async () => {
   quitBlockedByForms = unsaved.length || !saved ? { at:Date.now(), unsaved, saved, reason:saved ? '' : otsSaveBlockReason() } : null;
   return unsaved.length ? false : saved;
 };
+// Mac 壳安装更新、换包之前调用：数据已经存完（otsFlushBeforeQuit 返回 true）后，强制备份一份「安装更新前」的数据库，
+// 新版本启动时万一改坏了数据，也有一份刚刚的快照。返回 true，或者没备份成功的原因（Mac 壳据此取消这次更新）。
+window.otsBackupBeforeUpdate = async () => {
+  if (!isMacAppMode() || !macDataLoaded) return true;
+  try {
+    const res = await apiFetch('/api/backup-before-change', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ reason:'update' }) });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok) return true;
+    return data.message || `HTTP ${res.status}`;
+  } catch (error) {
+    return error.message || '备份失败';
+  }
+};
 function otsSaveBlockReason() {
   if (macStorageConflict || macPendingMerge) return 'conflict';
   if (macSaveWaitTimedOut || macSaveLastErrorKind === 'timeout') return 'slow';
@@ -9209,22 +9232,23 @@ function macStateEnvelope(payload = {}) {
   return { state: unpackDataFile(source), revision: Number.isFinite(revision) ? revision : 0 };
 }
 let appVersionUpdatedAtMs = NaN;
+// 时间取自包里页面文件的修改时间：发版时打包的那一刻（解压时保留），不是这台 Mac 装上它的时间，所以叫「发布」。
 function refreshAppVersionTooltip() {
   const badge = document.querySelector('.app-version');
   if (!badge) return;
-  let title = '更新时间未知';
+  let title = '发布时间未知';
   if (Number.isFinite(appVersionUpdatedAtMs)) {
     const elapsed = Date.now() - appVersionUpdatedAtMs;
     const minutes = Math.floor(elapsed / 60000);
-    const age = elapsed < 0 ? '更新时间待确认'
-      : minutes < 1 ? '刚刚更新'
-      : minutes < 60 ? `${minutes} 分钟前更新`
-      : minutes < 1440 ? `${Math.floor(minutes / 60)} 小时前更新`
-      : `${Math.floor(minutes / 1440)} 天前更新`;
+    const age = elapsed < 0 ? '发布时间待确认'
+      : minutes < 1 ? '刚刚发布'
+      : minutes < 60 ? `${minutes} 分钟前发布`
+      : minutes < 1440 ? `${Math.floor(minutes / 60)} 小时前发布`
+      : `${Math.floor(minutes / 1440)} 天前发布`;
     const date = new Date(appVersionUpdatedAtMs);
     const pad = value => String(value).padStart(2, '0');
     const exact = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-    title = `${age}\n更新时间：${exact}`;
+    title = `${age}\n发布时间：${exact}`;
   }
   badge.title = title;
   badge.setAttribute('aria-label', `${badge.textContent.trim()}，${title.replace(/\n/g, '，')}`);
@@ -9343,23 +9367,38 @@ window.macCheckRemoteRevision = macCheckRemoteRevision;
 window.setInterval(() => macCheckRemoteRevision(), 45000);
 window.addEventListener('focus', () => macCheckRemoteRevision());
 document.addEventListener('visibilitychange', () => { if (!document.hidden) macCheckRemoteRevision(); });
+// 深浅色：没手动选过就跟随系统（并监听系统切换）；只有用户点了月亮/太阳或在设置里选了浅色/深色才记下来。
+// 以前第一次打开就把当时的系统外观写进 localStorage，之后系统换成深色，页面也一直是浅色。
+const themeSystemQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+function themeMode() {
+  const saved = safeStorage.getItem(themeKey);
+  return saved === 'dark' || saved === 'light' ? saved : 'system';
+}
 function applyTheme(theme) {
   const safeTheme = theme === 'dark' ? 'dark' : 'light';
   document.documentElement.dataset.theme = safeTheme;
-  safeStorage.setItem(themeKey, safeTheme);
   const btn = document.getElementById('themeBtn');
   if (btn) {
     btn.innerHTML = `<svg class="ui-icon" aria-hidden="true"><use href="#i-${safeTheme === 'dark' ? 'sun' : 'moon'}"/></svg>`;
     btn.title = safeTheme === 'dark' ? '切换白天模式' : '切换夜晚模式';
   }
+  const mode = themeMode();
+  document.querySelectorAll('[data-theme-mode-choice]').forEach(choice => choice.setAttribute('aria-pressed', String(choice.dataset.themeModeChoice === mode)));
+  // Mac App：原生弹窗、菜单、附件窗口跟页面用同一套深浅色。
+  try { window.webkit?.messageHandlers?.appTheme?.postMessage({ theme:mode === 'system' ? 'system' : safeTheme }); } catch (_) {}
+}
+function setThemeMode(mode) {
+  if (mode === 'dark' || mode === 'light') safeStorage.setItem(themeKey, mode);
+  else safeStorage.removeItem(themeKey);
+  initTheme();
 }
 function initTheme() {
-  const saved = safeStorage.getItem(themeKey);
-  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  applyTheme(saved || (prefersDark ? 'dark' : 'light'));
+  const mode = themeMode();
+  applyTheme(mode === 'system' ? (themeSystemQuery?.matches ? 'dark' : 'light') : mode);
 }
+themeSystemQuery?.addEventListener?.('change', () => { if (themeMode() === 'system') initTheme(); });
 function toggleTheme() {
-  applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+  setThemeMode(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
 }
 function normalizeAiSettings(raw = {}) {
   const rawModel = String(raw.model || defaultAiSettings.model).trim();
@@ -23635,7 +23674,7 @@ async function undoDataReplacement(previous, appliedJson, label) {
 // 设置 → 数据管理 →「从备份恢复…」：展开备份目录里的每一份（时间、原因、大小）；点「恢复…」先看这份备份和现在数据的对比，
 // 确认后由本地服务一次做完（先把现在的数据另存一份「恢复前」备份，再换库、并回附件），然后页面重新加载。
 // 读库失败（身份标记不符、数据库文件不见了）时这里照样能用；换电脑时先「选择备份目录…」选到旧备份所在的文件夹。
-const backupReasonLabels = { change:'合并 / 删除客户前', import:'导入前', reset:'恢复示例前', restore:'恢复前' };
+const backupReasonLabels = { change:'合并 / 删除客户前', import:'导入前', reset:'恢复示例前', restore:'恢复前', update:'安装更新前' };
 const restoredNoticeKey = 'ots-restored-backup';
 function backupTimeText(ms) {
   const date = new Date(Number(ms) || 0);
@@ -29916,7 +29955,7 @@ function uiNotifOpenTarget(card) {
     if (macSaveLastError && !macStorageReadOnly && typeof flushPendingSave === 'function') flushPendingSave();
     return;
   }
-  // 新版本 → 焦点放到右上角「更新」上（更新会重启 App，不替用户点）。
+  // 新版本 → 焦点放到左下角「更新」上，并发起检查：Mac App 找到新版本后会先弹确认，不会直接重启。
   if (id.startsWith('update-')) {
     uiToggleNotifs(false);
     const btn = document.getElementById('appUpdateBtn');
@@ -29924,7 +29963,8 @@ function uiNotifOpenTarget(card) {
       btn.focus();
       btn.classList.remove('ui-pop-in'); void btn.offsetWidth; btn.classList.add('ui-pop-in');
       setTimeout(() => btn.classList.remove('ui-pop-in'), 600);
-    } else toast('请在 Mac App 里点右上角「更新」');
+      if (window.webkit?.messageHandlers?.appUpdate) requestAppUpdate();
+    } else toast('请在 Mac App 里点左下角的「更新」');
   }
 }
 document.getElementById('notifList')?.addEventListener('click', e => {
@@ -30068,19 +30108,46 @@ try { uiApplyModalStyle(localStorage.getItem('ots-modal-style-v1')); } catch (_)
 function uiApplyUiZoom(value) {
   const zoom = Number(value) > 0 ? Number(value) : 1;
   document.documentElement.style.setProperty('--ui-zoom', String(zoom));
-  document.querySelectorAll('[data-ui-zoom-choice]').forEach(btn => btn.setAttribute('aria-pressed', String(Math.abs(Number(btn.dataset.uiZoomChoice) - zoom) < 0.001)));
+  let matched = false;
+  document.querySelectorAll('[data-ui-zoom-choice]').forEach(btn => {
+    const on = Math.abs(Number(btn.dataset.uiZoomChoice) - zoom) < 0.001;
+    matched = matched || on;
+    btn.setAttribute('aria-pressed', String(on));
+  });
+  // ⌘- / ⌘+ 能到 70%、95%、105%–120% 这些档，五个按钮里没有：写出当前是多少，免得一档都没按下、看不出现在多大。
+  const current = document.querySelector('.ui-zoom-current');
+  if (current) {
+    current.hidden = matched;
+    current.textContent = matched ? '' : `当前 ${Math.round(zoom * 100)}%（快捷键调的）`;
+  }
   return zoom;
 }
-window.otsUiZoomChanged = zoom => uiApplyUiZoom(zoom);
+// 原生改了缩放（⌘- / ⌘+ / ⌘0、菜单，或者设置页点了一档后的回调）：应用并短暂提示。设置页刚提示过同一档就不再提示。
+let uiZoomLastToast = { zoom:0, at:0 };
+window.otsUiZoomChanged = zoom => {
+  const applied = uiApplyUiZoom(zoom);
+  const now = Date.now();
+  if (Math.abs(applied - uiZoomLastToast.zoom) > 0.001 || now - uiZoomLastToast.at > 1500) uiToast(`界面大小：${Math.round(applied * 100)}%`);
+  uiZoomLastToast = { zoom:applied, at:now };
+  return applied;
+};
 document.querySelector('.ui-zoom-seg')?.addEventListener('click', e => {
   const btn = e.target.closest('[data-ui-zoom-choice]');
   const handler = window.webkit?.messageHandlers?.uiZoom;
   if (!btn || !handler) return;
   handler.postMessage({ zoom:Number(btn.dataset.uiZoomChoice) });
-  uiApplyUiZoom(btn.dataset.uiZoomChoice);
+  const applied = uiApplyUiZoom(btn.dataset.uiZoomChoice);
   uiToast(`界面大小：${btn.textContent}`);
+  uiZoomLastToast = { zoom:applied, at:Date.now() };
 });
 uiApplyUiZoom(window.__otsUiZoom);
+document.querySelector('.theme-mode-seg')?.addEventListener('click', e => {
+  const btn = e.target.closest('[data-theme-mode-choice]');
+  if (!btn) return;
+  setThemeMode(btn.dataset.themeModeChoice);
+  uiToast(`深浅色：${btn.textContent}`);
+});
+initTheme();
 // 新版 UI：长表单弹窗（新建订单 / 客户）的分步导航：左侧编号分区、完成打勾、已填 N 项、底部摘要，和原型一致。
 // 注意：订单表单里有 name="id" 的隐藏域，form.id 会拿到那个 input，所以一律用 getAttribute('id')。
 function uiStepNavConfig(form) {
@@ -31285,7 +31352,7 @@ function uiBellRing(unread) {
 }
 // ===== 新版 UI 交互 结束 =====
 // Mac App 的原生更新器负责检查、下载、校验、替换并重启；网页里只发起请求，
-// 并把它回传的进度画在「更新」按钮上（不弹窗、不确认）。
+// 并把它回传的进度画在「更新」按钮上。找到新版本时原生会借 nativeDialog 先问一句再安装。
 let appUpdateResetTimer = 0;
 let appUpdateLastError = { message: '', at: 0 };
 function requestAppUpdate() {
@@ -31327,33 +31394,44 @@ function nativeDialog({ title = '', message = '', sub = '软件更新', confirmT
   }
   return appConfirm({ title, sub, message, confirmText, cancelText, danger }).then(result => result.confirmed);
 }
+// 按钮很窄（侧栏底部和版本号、保存状态挤一行）：按钮上最多 3 个字，完整说明放进 title 和 aria-label，读屏能听到当前状态。
 function otsAppUpdateStatus(status) {
   const btn = document.getElementById('appUpdateBtn');
   if (!btn || !status) return;
   const label = btn.querySelector('span') || btn;
   const busy = ['checking','downloading','verifying','saving','restarting'].includes(status.state);
   const progress = status.state === 'downloading' ? Math.max(0, Math.min(1, Number(status.progress) || 0)) : (busy && status.state !== 'checking' ? 1 : 0);
+  const pct = Math.round(progress * 100);
+  const version = status.version ? `V${status.version}` : '';
   const text = {
-    checking: '检查中…',
-    downloading: `下载 ${Math.round(progress * 100)}%`,
-    verifying: '校验中…',
-    saving: '保存中…',
-    restarting: '重启中…',
-    latest: '已是最新',
-    available: `更新 ${status.version || ''}`,
-    error: '更新失败'
+    checking: '检查中',
+    downloading: `${pct}%`,
+    verifying: '校验中',
+    saving: '准备中',
+    restarting: '重启中',
+    latest: '已最新',
+    available: '有更新',
+    error: '失败'
   }[status.state] || '更新';
+  const description = {
+    checking: '正在检查更新',
+    downloading: `正在下载新版本 ${version}：${pct}%`,
+    verifying: '正在校验安装包',
+    saving: '准备重启：正在确认数据都已保存',
+    restarting: '正在重启以完成更新',
+    latest: `当前 ${version} 已是最新版本`,
+    available: `有新版本 ${version}，点一下会先确认，再下载并重启`,
+    error: `更新失败：${status.message || '未知原因'}`
+  }[status.state] || '检查更新：有新版本会先问一句，再下载并重启';
   clearTimeout(appUpdateResetTimer);
   label.textContent = text;
-  btn.style.setProperty('--p', `${Math.round(progress * 100)}%`);
+  btn.style.setProperty('--p', `${pct}%`);
   btn.classList.toggle('is-busy', busy);
   btn.classList.toggle('is-available', status.state === 'available');
   btn.classList.toggle('is-error', status.state === 'error');
   btn.setAttribute('aria-busy', busy ? 'true' : 'false');
-  btn.title = status.state === 'error' ? `更新失败：${status.message || '未知原因'}`
-    : status.state === 'available' ? `发现新版本 V${status.version || ''}，点一下直接下载并重启`
-    : status.state === 'latest' ? `当前 V${status.version || ''} 已是最新版本`
-    : '检查更新：有新版本会下载并自动重装重启';
+  btn.title = description;
+  btn.setAttribute('aria-label', description);
   // 同一条失败原因短时间内只提示一次（连点两下、菜单和按钮各点一次时不叠两张一样的提示）。
   if (status.state === 'error' && status.message) {
     const now = Date.now();
@@ -31365,7 +31443,7 @@ function otsAppUpdateStatus(status) {
     if (reason !== appUpdateLastError.message || now - appUpdateLastError.at > 15000) toast(block ? reason : `更新失败：${reason}`, { tone:'error' });
     appUpdateLastError = { message: reason, at: now };
   }
-  if (status.state === 'available' && typeof uiNotifLogEvent === 'function') uiNotifLogEvent({ id:`update-${status.version || ''}`, kind:'info', title:`发现新版本 V${status.version || ''}`, sub:'点右上角「更新」会自动下载、重装并重启', pill:'更新' });
+  if (status.state === 'available' && typeof uiNotifLogEvent === 'function') uiNotifLogEvent({ id:`update-${status.version || ''}`, kind:'info', title:`发现新版本 V${status.version || ''}`, sub:'点左下角的「更新」，确认后会自动下载、重装并重启', pill:'更新' });
   if (status.state === 'latest' || status.state === 'error') {
     appUpdateResetTimer = setTimeout(() => otsAppUpdateStatus({state:'idle'}), status.state === 'error' ? 6000 : 3000);
   } else if (status.state === 'checking') {

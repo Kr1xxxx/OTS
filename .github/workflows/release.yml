@@ -1,57 +1,94 @@
 name: Release
 
-# Publishes the Mac app to GitHub Releases whenever VERSION changes on main
-# (or on demand). The in-app updater reads releases/latest from this repo.
+# Publishes the Mac app to GitHub Releases. The in-app updater reads releases/latest from this repo,
+# so every release reaches every user within minutes. Gates, in order:
+# 1. CI passed for this exact commit on main (the release used to run in parallel with CI and
+#    shipped several versions whose CI had failed);
+# 2. VERSION names a version that has no release yet;
+# 3. the packaged app's own Node starts its server.js, /api/health passes and the page loads.
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
-    paths:
-      - VERSION
-      - .github/workflows/release.yml
   workflow_dispatch:
 
 permissions:
   contents: write
+  actions: read
 
 concurrency:
   group: release
   cancel-in-progress: false
 
 jobs:
-  mac:
-    # 手动触发也只从 main 发版，别把其他分支上没合并的代码发给所有人。
-    if: github.ref == 'refs/heads/main'
-    runs-on: macos-15
-    timeout-minutes: 30
+  gate:
+    # 只从 main 发版；CI 失败、或是 PR 触发的 CI，一律不发。
+    if: >-
+      (github.event_name == 'workflow_run'
+        && github.event.workflow_run.conclusion == 'success'
+        && github.event.workflow_run.event == 'push'
+        && github.event.workflow_run.head_branch == 'main')
+      || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
     env:
       GH_TOKEN: ${{ github.token }}
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+    outputs:
+      sha: ${{ steps.version.outputs.sha }}
+      version: ${{ steps.version.outputs.version }}
+      publish: ${{ steps.version.outputs.publish }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
+      - name: Require a green CI run for this commit
+        # 手动触发时也要求这个提交的 CI 已经通过。
+        run: |
+          CONCLUSION="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$SHA&event=push&per_page=1" --jq '.workflow_runs[0].conclusion // ""')"
+          echo "CI for $SHA: ${CONCLUSION:-none}"
+          if [ "$CONCLUSION" != "success" ]; then
+            echo "::error::CI has not passed for $SHA; not publishing."
+            exit 1
+          fi
       - name: Read version
         id: version
         run: |
           VERSION="$(tr -d '[:space:]' < VERSION)"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
           if gh release view "v$VERSION" >/dev/null 2>&1; then
             echo "Release v$VERSION already exists; bump VERSION to publish a new one."
-            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
           fi
+
+  mac:
+    needs: gate
+    if: needs.gate.outputs.publish == 'true'
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ needs.gate.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
       - uses: actions/setup-node@v4
-        if: steps.version.outputs.exists != 'true'
         with:
           node-version: 22
           cache: npm
-      - if: steps.version.outputs.exists != 'true'
-        run: npm ci
-      - if: steps.version.outputs.exists != 'true'
-        run: npx playwright install chromium
+      - run: npm ci
+      - run: npx playwright install chromium
+      - name: Native core tests (version compare, update policy)
+        run: npm run test:native
       - name: Build app (ad-hoc signed)
-        if: steps.version.outputs.exists != 'true'
         run: ./mac-app/build-native-mac-app.sh
       - name: Package zip (updater) and dmg (first install)
-        if: steps.version.outputs.exists != 'true'
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
           ARCH="$(uname -m)"
           mkdir -p dist dmg-root
           ZIP="dist/TradeOrderSystem-$VERSION-mac-$ARCH.zip"
@@ -62,11 +99,16 @@ jobs:
           hdiutil create -volname "外贸订单跟进系统 V$VERSION" -srcfolder dmg-root -ov -format UDZO \
             "dist/TradeOrderSystem-$VERSION-mac-$ARCH.dmg"
           ls -lh dist
-      - name: Publish release
-        if: steps.version.outputs.exists != 'true'
+      - name: Smoke test the packaged app (from the zip users download)
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
+          ARCH="$(uname -m)"
+          rm -rf smoke && mkdir smoke
+          ditto -x -k "dist/TradeOrderSystem-$VERSION-mac-$ARCH.zip" smoke
+          codesign --verify --deep --strict smoke/TradeOrderSystem.app
+          node scripts/smoke-test-app-bundle.js --app smoke/TradeOrderSystem.app
+      - name: Publish release
+        run: |
           gh release create "v$VERSION" dist/* \
-            --target "$GITHUB_SHA" \
+            --target "${{ needs.gate.outputs.sha }}" \
             --title "OTS V$VERSION" \
             --generate-notes

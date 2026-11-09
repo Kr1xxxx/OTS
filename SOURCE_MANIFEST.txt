@@ -51,6 +51,7 @@ scripts/helpers/whatsapp-fixture.js
 scripts/lint.js
 scripts/make-rounded-app-icon.swift
 scripts/run-tests.js
+scripts/smoke-test-app-bundle.js
 scripts/test-ai-usage.js
 scripts/test-app-icon.js
 scripts/test-audit-v3117.js
@@ -103,6 +104,7 @@ scripts/test-image-attachment-preparation.js
 scripts/test-image-upload-progress-ui.js
 scripts/test-import-restore-ui.js
 scripts/test-logistics-page-ui.js
+scripts/test-mac-app-v3136.js
 scripts/test-mac-only-ui.js
 scripts/test-mac-titlebar-ui.js
 scripts/test-menu-popovers-ui.js

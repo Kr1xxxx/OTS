@@ -22,6 +22,15 @@ final class DragRegionView: NSView {
     }
 
     override func mouseDown(with event: NSEvent) {
+        // 连按两下：按「系统设置 › 桌面与程序坞 › 连按窗口标题栏以…」缩放或最小化，和普通标题栏一样。
+        if event.clickCount == 2 {
+            switch UserDefaults.standard.string(forKey: "AppleActionOnDoubleClick") {
+            case "Minimize": window?.miniaturize(nil)
+            case "None": break
+            default: window?.zoom(nil)
+            }
+            return
+        }
         window?.performDrag(with: event)
     }
 }
@@ -39,6 +48,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     nonisolated(unsafe) private var serverProcess: Process?
     nonisolated(unsafe) private var serverOutput = ""
     nonisolated(unsafe) private var stopping = false
+    /// Recent automatic restarts of the local server; more than 3 in 5 minutes stops retrying.
+    nonisolated(unsafe) private var serverRestarts: [Date] = []
 
     private var localIdentity: LocalServiceIdentity?
     private var originPolicy: LocalOriginPolicy?
@@ -48,7 +59,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     private var terminationInProgress = false
     private var terminationReplyPending = false
     private var flushAttemptID: UUID?
+    private var dialogProbeID: UUID?
     private var checkedForUpdatesAtLaunch = false
+    /// The web content process crashed and the page was reloaded; say so once it is back.
+    private var reloadedAfterCrash = false
+    /// Exit code of server.js when another running copy holds the same data folder.
+    nonisolated private static let serverLockedExitCode: Int32 = 75
+    /// Automatic update checks tick this often; AppUpdater itself skips a tick within 6 hours of a good check.
+    private static let updateCheckTick: TimeInterval = 30 * 60
 
     /// 界面缩放（像浏览器 ⌘-/⌘+）：原型是 1440×920 窗口缩到浏览器里看的，所以默认 85% 让软件和原型一样紧凑。
     private static let uiZoomKey = "uiZoom"
@@ -69,9 +87,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         prepareToQuit: { [unowned self] completion in self.prepareForUpdateRelaunch(completion) },
         quit: { [unowned self] in
             self.allowTermination = true
-            NSApp.terminate(nil)
+            // ⌘Q pressed while the update was saving: answer that request instead of starting another.
+            if self.terminationReplyPending {
+                self.terminationReplyPending = false
+                NSApp.reply(toApplicationShouldTerminate: true)
+            } else {
+                NSApp.terminate(nil)
+            }
         },
-        report: { [unowned self] status in self.showUpdateStatus(status) }
+        report: { [unowned self] status in self.showUpdateStatus(status) },
+        confirmInstall: { [unowned self] version, notes in await self.confirmUpdate(version: version, notes: notes) },
+        unsavedFormsBlocker: { [unowned self] in await self.unsavedFormsBlocker() }
     )
 
     /// Hands updater progress to the page, which draws it on the 更新 button.
@@ -83,9 +109,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // 单实例：已经有一份在运行（比如在 DMG 里又打开了一份），把那一份叫到前面，自己退出。
+        // 两份同时开会各起一个服务、写同一个数据库，保存永远冲突，还会轮流改写端口。
+        if let identifier = Bundle.main.bundleIdentifier {
+            let me = ProcessInfo.processInfo.processIdentifier
+            if let other = NSRunningApplication.runningApplications(withBundleIdentifier: identifier)
+                .first(where: { $0.processIdentifier != me && !$0.isTerminated }) {
+                other.activate(options: [])
+                allowTermination = true
+                NSApp.terminate(nil)
+                return
+            }
+        }
         createMainMenu()
         createWindow()
+        updater.cleanupInterruptedDownload()
         startLocalServer()
+        scheduleAutomaticUpdateCheck()
+    }
+
+    /// Long-running sessions still hear about new versions (the app often stays open for a week).
+    private func scheduleAutomaticUpdateCheck() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.updateCheckTick) { [weak self] in
+            guard let self else { return }
+            if self.appHasLoaded { self.updater.checkForUpdates(userInitiated: false) }
+            self.scheduleAutomaticUpdateCheck()
+        }
+    }
+
+    func applicationDidBecomeActive(_ notification: Notification) {
+        guard appHasLoaded, checkedForUpdatesAtLaunch else { return }
+        updater.checkForUpdates(userInitiated: false)
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -94,7 +148,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         if allowTermination { return .terminateNow }
-        if terminationInProgress { return .terminateLater }
+        if terminationInProgress {
+            // A quit or an update is already saving: remember this request and answer it when that
+            // finishes (it used to stay unanswered, leaving the app stuck "quitting").
+            terminationReplyPending = true
+            if updatePreparing { showPageToast("正在准备更新，请稍候…") }
+            return .terminateLater
+        }
         beginTermination(replyToApplication: true)
         return .terminateLater
     }
@@ -102,10 +162,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         if allowTermination { return true }
         guard sender === window else { return true }
-        if !terminationInProgress {
+        if updatePreparing {
+            showPageToast("正在准备更新，请稍候…")
+        } else if !terminationInProgress {
             beginTermination(replyToApplication: false)
         }
         return false
+    }
+
+    func windowDidEnterFullScreen(_ notification: Notification) { setFullScreenClass(true) }
+    func windowDidExitFullScreen(_ notification: Notification) { setFullScreenClass(false) }
+
+    /// 全屏时没有红黄绿按钮，侧栏顶部不用再让出标题栏高度。
+    private func setFullScreenClass(_ on: Bool) {
+        webView?.evaluateJavaScript("document.documentElement.classList.toggle('mac-fullscreen', \(on))", completionHandler: nil)
+    }
+
+    private func showPageToast(_ text: String) {
+        guard appHasLoaded, let webView,
+              let data = try? JSONSerialization.data(withJSONObject: [text]),
+              let json = String(data: data, encoding: .utf8) else { return }
+        webView.evaluateJavaScript("window.uiToast && window.uiToast(\(json)[0])", completionHandler: nil)
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -125,63 +202,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         config.userContentController.add(self, name: "windowDragRegions")
         config.userContentController.add(self, name: "appUpdate")
         config.userContentController.add(self, name: "uiZoom")
-        config.userContentController.addUserScript(WKUserScript(
-            source: "window.__otsUiZoom = \(uiZoom);",
-            injectionTime: .atDocumentStart,
-            forMainFrameOnly: true
-        ))
-        let dragBridgeScript = WKUserScript(
-            source: """
-            (() => {
-              if (window.__tradeOrderWindowDragRegionsInstalled) return;
-              window.__tradeOrderWindowDragRegionsInstalled = true;
-              const handler = window.webkit?.messageHandlers?.windowDragRegions;
-              if (!handler) return;
-              const toRect = element => {
-                const rect = element.getBoundingClientRect();
-                return { x: rect.left, y: rect.top, width: rect.width, height: rect.height };
-              };
-              let scheduled = false;
-              const report = () => {
-                scheduled = false;
-                const region = document.querySelector('.topbar-left-drag-region');
-                if (!region) return;
-                const topbar = region.closest('.topbar');
-                // 弹窗、抽屉、通知面板打开时不留拖动区，免得盖住它们顶部的按钮。
-                if (document.querySelector('.modal-backdrop.open, .notif-panel:not([hidden])')) {
-                  handler.postMessage({ region: toRect(region), regions: [], exclusions: [] });
-                  return;
-                }
-                // 整条顶栏（含上下留白）和侧栏顶部的标志区都能拖动窗口；按钮、输入框、搜索框除外。
-                const regionRect = topbar ? toRect(topbar) : toRect(region);
-                const regions = [regionRect];
-                const brand = document.querySelector('.sidebar .logo');
-                if (brand) regions.push(toRect(brand));
-                const exclusions = [...(topbar || region).querySelectorAll('input, button, select, textarea, a, [contenteditable="true"], .search, .global-search-panel, .top-actions')]
-                  .map(toRect);
-                handler.postMessage({ region: regionRect, regions, exclusions });
-              };
-              const scheduleReport = () => {
-                if (scheduled) return;
-                scheduled = true;
-                requestAnimationFrame(report);
-              };
-              const start = () => {
-                const region = document.querySelector('.topbar-left-drag-region');
-                if (!region) return;
-                new ResizeObserver(scheduleReport).observe(region);
-                new MutationObserver(scheduleReport).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class', 'hidden'] });
-                window.addEventListener('resize', scheduleReport, { passive: true });
-                scheduleReport();
-              };
-              if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
-              else start();
-            })();
-            """,
-            injectionTime: .atDocumentEnd,
-            forMainFrameOnly: true
-        )
-        config.userContentController.addUserScript(dragBridgeScript)
+        config.userContentController.add(self, name: "appTheme")
+        installUserScripts(config.userContentController)
 
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = self
@@ -221,8 +243,102 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         self.window = window
     }
 
+    /// Zoom first (document start), then the drag-region bridge. Re-run whenever the zoom changes:
+    /// the zoom script text is fixed when added, so a reload used to get the zoom from launch time.
+    private func installUserScripts(_ controller: WKUserContentController) {
+        controller.removeAllUserScripts()
+        controller.addUserScript(WKUserScript(
+            source: "window.__otsUiZoom = \(uiZoom);",
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true
+        ))
+        controller.addUserScript(WKUserScript(
+            source: Self.dragBridgeSource,
+            injectionTime: .atDocumentEnd,
+            forMainFrameOnly: true
+        ))
+    }
+
+    private static let dragBridgeSource = """
+    (() => {
+      if (window.__tradeOrderWindowDragRegionsInstalled) return;
+      window.__tradeOrderWindowDragRegionsInstalled = true;
+      const handler = window.webkit?.messageHandlers?.windowDragRegions;
+      if (!handler) return;
+      const toRect = element => {
+        const rect = element.getBoundingClientRect();
+        return { x: rect.left, y: rect.top, width: rect.width, height: rect.height };
+      };
+      let scheduled = false;
+      const report = () => {
+        scheduled = false;
+        const region = document.querySelector('.topbar-left-drag-region');
+        if (!region) return;
+        const topbar = region.closest('.topbar');
+        // 弹窗、抽屉、通知面板打开时不留拖动区，免得盖住它们顶部的按钮。
+        if (document.querySelector('.modal-backdrop.open, .notif-panel:not([hidden])')) {
+          handler.postMessage({ region: toRect(region), regions: [], exclusions: [] });
+          return;
+        }
+        // 整条顶栏（含上下留白）和侧栏顶部的标志区都能拖动窗口；按钮、输入框、搜索框除外。
+        const regionRect = topbar ? toRect(topbar) : toRect(region);
+        const regions = [regionRect];
+        const brand = document.querySelector('.sidebar .logo');
+        if (brand) {
+          const brandRect = brand.getBoundingClientRect();
+          regions.push(toRect(brand));
+          // 侧栏顶上给红黄绿让出的那一条（Logo 上面）也能拖，和普通标题栏一样。
+          const sidebar = brand.closest('.sidebar');
+          const sidebarRect = sidebar ? sidebar.getBoundingClientRect() : null;
+          if (sidebarRect && brandRect.top - sidebarRect.top > 1) {
+            regions.push({ x: sidebarRect.left, y: sidebarRect.top, width: sidebarRect.width, height: brandRect.top - sidebarRect.top });
+          }
+        }
+        const exclusions = [...(topbar || region).querySelectorAll('input, button, select, textarea, a, [contenteditable="true"], .search, .global-search-panel, .top-actions')]
+          .map(toRect);
+        // 打开的下拉、右键菜单伸进顶栏时，那一块是点菜单，不是拖窗口。
+        document.querySelectorAll('.app-select-popover:not([hidden]), [role="menu"]:not([hidden]), [role="listbox"]:not([hidden])')
+          .forEach(element => exclusions.push(toRect(element)));
+        handler.postMessage({ region: regionRect, regions, exclusions });
+      };
+      const scheduleReport = () => {
+        if (scheduled) return;
+        scheduled = true;
+        requestAnimationFrame(report);
+      };
+      const start = () => {
+        const region = document.querySelector('.topbar-left-drag-region');
+        if (!region) return;
+        new ResizeObserver(scheduleReport).observe(region);
+        new MutationObserver(scheduleReport).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class', 'hidden'] });
+        window.addEventListener('resize', scheduleReport, { passive: true });
+        scheduleReport();
+      };
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
+      else start();
+    })();
+    """
+
+    /// Only the main window's top frame, on the local app origin, may drive the native side
+    /// (an attachment window shares the configuration and its handlers).
+    private func isFromAppPage(_ message: WKScriptMessage) -> Bool {
+        guard let webView, message.webView === webView, message.frameInfo.isMainFrame,
+              let url = webView.url else { return false }
+        return originPolicy?.contains(url) == true
+    }
+
     func userContentController(_ userContentController: WKUserContentController,
                                didReceive message: WKScriptMessage) {
+        guard isFromAppPage(message) else { return }
+        if message.name == "appTheme" {
+            // 原生弹窗、菜单、附件窗口跟页面用同一套深浅色；跟随系统时交还给系统。
+            switch (message.body as? [String: Any])?["theme"] as? String {
+            case "dark": NSApp.appearance = NSAppearance(named: .darkAqua)
+            case "light": NSApp.appearance = NSAppearance(named: .aqua)
+            default: NSApp.appearance = nil
+            }
+            return
+        }
         if message.name == "uiZoom" {
             guard let url = webView?.url, originPolicy?.contains(url) == true else { return }
             let body = message.body as? [String: Any]
@@ -276,9 +392,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
 
         let appMenuItem = NSMenuItem()
         let appMenu = NSMenu()
+        appMenu.addItem(NSMenuItem(title: "关于外贸订单跟进系统", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: ""))
+        appMenu.addItem(NSMenuItem.separator())
+        let settingsItem = NSMenuItem(title: "设置…", action: #selector(openSettingsFromMenu(_:)), keyEquivalent: ",")
+        settingsItem.target = self
+        appMenu.addItem(settingsItem)
         let updateItem = NSMenuItem(title: "检查更新…", action: #selector(checkForUpdatesFromMenu(_:)), keyEquivalent: "")
         updateItem.target = self
         appMenu.addItem(updateItem)
+        appMenu.addItem(NSMenuItem.separator())
+        appMenu.addItem(NSMenuItem(title: "隐藏外贸订单跟进系统", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h"))
+        let hideOthers = NSMenuItem(title: "隐藏其他", action: #selector(NSApplication.hideOtherApplications(_:)), keyEquivalent: "h")
+        hideOthers.keyEquivalentModifierMask = [.option, .command]
+        appMenu.addItem(hideOthers)
+        appMenu.addItem(NSMenuItem(title: "全部显示", action: #selector(NSApplication.unhideAllApplications(_:)), keyEquivalent: ""))
         appMenu.addItem(NSMenuItem.separator())
         appMenu.addItem(NSMenuItem(title: "退出外贸订单跟进系统", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         appMenuItem.submenu = appMenu
@@ -312,7 +439,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         viewMenuItem.submenu = viewMenu
         mainMenu.addItem(viewMenuItem)
 
+        // 「窗口」菜单：⌘M、⌘W、⌃⌘F 靠菜单项才生效（附件窗口以前只能用鼠标关）。关闭主窗口 = 退出软件。
+        let windowMenuItem = NSMenuItem()
+        let windowMenu = NSMenu(title: "窗口")
+        windowMenu.addItem(NSMenuItem(title: "最小化", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m"))
+        windowMenu.addItem(NSMenuItem(title: "缩放", action: #selector(NSWindow.performZoom(_:)), keyEquivalent: ""))
+        let fullScreenItem = NSMenuItem(title: "进入全屏幕", action: #selector(NSWindow.toggleFullScreen(_:)), keyEquivalent: "f")
+        fullScreenItem.keyEquivalentModifierMask = [.control, .command]
+        windowMenu.addItem(fullScreenItem)
+        windowMenu.addItem(NSMenuItem(title: "关闭窗口", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w"))
+        windowMenu.addItem(NSMenuItem.separator())
+        windowMenu.addItem(NSMenuItem(title: "前置全部窗口", action: #selector(NSApplication.arrangeInFront(_:)), keyEquivalent: ""))
+        windowMenuItem.submenu = windowMenu
+        mainMenu.addItem(windowMenuItem)
+        NSApp.windowsMenu = windowMenu
+
         NSApp.mainMenu = mainMenu
+    }
+
+    @objc private func openSettingsFromMenu(_ sender: Any?) {
+        window?.makeKeyAndOrderFront(nil)
+        guard appHasLoaded else { return }
+        webView?.evaluateJavaScript("window.setPage && window.setPage('settings')", completionHandler: nil)
     }
 
     @objc private func zoomInFromMenu(_ sender: Any?) { setUiZoom(uiZoom + 0.05) }
@@ -325,6 +473,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         let zoom = Self.clampZoom(value)
         UserDefaults.standard.set(zoom, forKey: Self.uiZoomKey)
         guard let webView else { return }
+        installUserScripts(webView.configuration.userContentController)
         webView.pageZoom = CGFloat(zoom)
         webView.evaluateJavaScript("window.__otsUiZoom = \(zoom); window.otsUiZoomChanged && window.otsUiZoomChanged(\(zoom));")
     }
@@ -396,11 +545,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         }
     }
 
+    /// WebKit's page process died (memory pressure, a WebKit bug): reload instead of a blank window.
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        guard webView === self.webView, let identity = localIdentity else { return }
+        appHasLoaded = false
+        reloadedAfterCrash = true
+        loadApp(identity: identity)
+    }
+
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         guard webView === self.webView,
               let url = webView.url,
               originPolicy?.contains(url) == true else { return }
         appHasLoaded = true
+        setFullScreenClass(window?.styleMask.contains(.fullScreen) == true)
+        if reloadedAfterCrash {
+            reloadedAfterCrash = false
+            showPageToast("页面意外关闭，已重新载入")
+        }
+        updater.pageDidLoad()
         if !checkedForUpdatesAtLaunch {
             checkedForUpdatesAtLaunch = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
@@ -413,21 +576,100 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         updater.checkForUpdates(userInitiated: true)
     }
 
+    private var updatePreparing = false
+
     /// Same save flush as quitting, but a failed save cancels the update instead of asking.
-    private func prepareForUpdateRelaunch(_ completion: @escaping @MainActor (Bool) -> Void) {
+    /// After the save, the database is backed up ("安装更新前"), so a new version that damages
+    /// data on its first start still leaves a fresh copy. A failed backup cancels the update.
+    private func prepareForUpdateRelaunch(_ completion: @escaping @MainActor (String?) -> Void) {
         guard !terminationInProgress else {
-            completion(false)
+            completion("正在退出软件，已取消本次更新。")
             return
         }
         terminationInProgress = true
+        updatePreparing = true
         flushPendingSave { [weak self] result in
-            self?.terminationInProgress = false
-            if case .success = result {
-                completion(true)
-            } else {
-                completion(false)
+            guard let self else { return }
+            guard case .success = result else {
+                self.finishUpdatePreparation(blocker: "数据还没确认保存，已取消本次更新。", completion: completion)
+                return
+            }
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                let blocker = await self.backupBeforeUpdate()
+                self.finishUpdatePreparation(blocker: blocker, completion: completion)
             }
         }
+    }
+
+    private func finishUpdatePreparation(blocker: String?, completion: @escaping @MainActor (String?) -> Void) {
+        terminationInProgress = false
+        updatePreparing = false
+        completion(blocker)
+        // The update did not quit the app (cancelled, or the installer failed to start): a ⌘Q pressed
+        // meanwhile is answered "no" so AppKit is not left waiting.
+        if !allowTermination && terminationReplyPending {
+            terminationReplyPending = false
+            NSApp.reply(toApplicationShouldTerminate: false)
+        }
+    }
+
+    @MainActor
+    private func backupBeforeUpdate() async -> String? {
+        guard appHasLoaded, let webView else { return nil }
+        do {
+            let value = try await webView.callAsyncJavaScript(
+                "if (typeof window.otsBackupBeforeUpdate !== 'function') return true; return await window.otsBackupBeforeUpdate();",
+                arguments: [:],
+                in: nil,
+                contentWorld: .page
+            )
+            if (value as? Bool) == true { return nil }
+            let reason = (value as? String) ?? "未知原因"
+            return "更新前的数据备份没有完成（\(reason)），已取消本次更新。"
+        } catch {
+            return "更新前的数据备份没有完成（\(error.localizedDescription)），已取消本次更新。"
+        }
+    }
+
+    /// Asked before every install (button, menu or notification): what changes, and that the app restarts.
+    @MainActor
+    private func confirmUpdate(version: String, notes: String) async -> Bool {
+        let current = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        var message = "当前是 V\(current)。安装时会先保存并备份数据，然后关闭软件、换上新版本并重新打开，大约需要一分钟。"
+        // Plain loop with explicit types: the chained map/filter version was too slow for the type checker.
+        var lines: [String] = []
+        for rawLine in notes.split(separator: "\n") {
+            var line: String = String(rawLine).trimmingCharacters(in: .whitespaces)
+            if line.isEmpty || line.hasPrefix("**Full Changelog**") { continue }
+            if line.hasPrefix("## ") { line = String(line.dropFirst(3)) }
+            if line.count > 120 { line = String(line.prefix(120)) + "…" }
+            lines.append(line)
+        }
+        if !lines.isEmpty {
+            message += "\n\n这个版本的改动：\n" + lines.prefix(5).joined(separator: "\n")
+        }
+        return await presentDialog(AppDialog(
+            title: "发现新版本 V\(version)",
+            message: message,
+            sub: "软件更新",
+            confirmText: "现在安装并重启",
+            cancelText: "以后再说"
+        ))
+    }
+
+    /// Unsaved forms stop an update before anything is downloaded.
+    @MainActor
+    private func unsavedFormsBlocker() async -> String? {
+        guard appHasLoaded, let webView else { return nil }
+        let value = try? await webView.callAsyncJavaScript(
+            "return typeof window.otsUnsavedForms === 'function' ? window.otsUnsavedForms() : [];",
+            arguments: [:],
+            in: nil,
+            contentWorld: .page
+        )
+        guard let forms = value as? [String], !forms.isEmpty else { return nil }
+        return "\(forms.joined(separator: "、")) 里还有没保存的修改，已取消本次更新。请先保存或关闭，再点「更新」。"
     }
 
     private func startLocalServer() {
@@ -468,6 +710,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
 
             let probe = waitForHealthyServer(identity: identity, process: process, timeout: 12)
             if probe.healthy {
+                watchServer(process, node: node, server: server, resources: resources, identity: identity)
                 UserDefaults.standard.set(identity.port, forKey: serverPortDefaultsKey)
                 DispatchQueue.main.async { [weak self] in
                     guard let self, !self.shouldStopServer() else { return }
@@ -480,6 +723,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             lastFailure = probe.message
             terminate(process, timeout: 0.75)
             clearServerProcess(if: process)
+            // Another copy of the app holds the data folder: a new port will not help.
+            if !process.isRunning, process.terminationStatus == Self.serverLockedExitCode {
+                lastFailure = "另一个外贸订单跟进系统正在使用这份数据。请先退出另一个窗口，再点「重试」。"
+                break
+            }
         }
 
         let diagnostic = recentServerOutput()
@@ -503,6 +751,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             if let value = parentEnvironment[key] { environment[key] = value }
         }
         environment["TRADE_APP_NO_OPEN"] = "1"
+        // The server exits by itself when this app is gone (force quit, crash), instead of
+        // staying behind on the port and the database.
+        environment["TRADE_APP_EXIT_WITH_PARENT"] = "1"
         environment["TRADE_APP_PORT"] = String(identity.port)
         environment["TRADE_API_TOKEN"] = identity.apiToken
         environment["TRADE_INSTANCE_NONCE"] = identity.instanceNonce
@@ -517,6 +768,55 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         captureOutput(from: outputPipe.fileHandleForReading)
         captureOutput(from: errorPipe.fileHandleForReading)
         return process
+    }
+
+    /// The local server died while the app is running: start it again on the same port with the same
+    /// token, so the page keeps working and its pending save retries. If that port fails, start over
+    /// (new port, page reloads). More than 3 restarts in 5 minutes: stop and say so.
+    nonisolated private func watchServer(_ process: Process, node: String, server: URL, resources: URL,
+                                         identity: LocalServiceIdentity) {
+        process.terminationHandler = { [weak self] ended in
+            let pid = ended.processIdentifier
+            let status = ended.terminationStatus
+            self?.startupQueue.async { [weak self] in
+                self?.restartServerIfNeeded(endedPID: pid, status: status, node: node, server: server,
+                                            resources: resources, identity: identity)
+            }
+        }
+    }
+
+    nonisolated private func restartServerIfNeeded(endedPID: Int32, status: Int32, node: String, server: URL,
+                                                   resources: URL, identity: LocalServiceIdentity) {
+        processLock.lock()
+        let isCurrent = serverProcess?.processIdentifier == endedPID
+        let stopped = stopping
+        let now = Date()
+        serverRestarts = serverRestarts.filter { now.timeIntervalSince($0) < 300 }
+        let allowed = serverRestarts.count < 3
+        if isCurrent && !stopped && allowed { serverRestarts.append(now) }
+        processLock.unlock()
+        guard isCurrent, !stopped else { return }
+        guard allowed else {
+            let diagnostic = recentServerOutput()
+            DispatchQueue.main.async { [weak self] in
+                guard let self, !self.shouldStopServer() else { return }
+                let detail = diagnostic.isEmpty ? "" : "\n\n\(diagnostic)"
+                self.showError("本地数据服务反复意外退出（状态 \(status)），已停止自动重启。\(detail)")
+            }
+            return
+        }
+        let process = configuredServerProcess(node: node, server: server, resources: resources, identity: identity)
+        do {
+            try process.run()
+            setServerProcess(process)
+            if waitForHealthyServer(identity: identity, process: process, timeout: 12).healthy {
+                watchServer(process, node: node, server: server, resources: resources, identity: identity)
+                return
+            }
+            terminate(process, timeout: 0.75)
+            clearServerProcess(if: process)
+        } catch {}
+        launchServerWithRetries(node: node, server: server, resources: resources)
     }
 
     nonisolated private func captureOutput(from handle: FileHandle) {
@@ -679,14 +979,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             cancelText: "返回软件",
             danger: true
         )
-        // A save that timed out may mean the page is stuck, so that case keeps the system alert.
+        // A save that timed out may mean the page is stuck: ask the page first (2 s). If it answers,
+        // the prompt is the page's own dialog like every other one; only a frozen page gets NSAlert.
         if (error as? TerminationError) == .saveTimedOut {
-            completeTermination(shouldTerminate: request.runNativeAlert())
+            probePageDialog(timeout: 2) { [weak self] responsive in
+                guard let self else { return }
+                if responsive {
+                    Task { @MainActor [weak self] in
+                        guard let self else { return }
+                        self.completeTermination(shouldTerminate: await self.presentDialog(request))
+                    }
+                } else {
+                    self.completeTermination(shouldTerminate: request.runNativeAlert())
+                }
+            }
             return
         }
         Task { @MainActor [weak self] in
             guard let self else { return }
             self.completeTermination(shouldTerminate: await self.presentDialog(request))
+        }
+    }
+
+    /// Whether the page still runs script and offers its dialog, answered within `timeout`.
+    private func probePageDialog(timeout: TimeInterval, completion: @escaping (Bool) -> Void) {
+        guard appHasLoaded, let webView else {
+            completion(false)
+            return
+        }
+        let probeID = UUID()
+        dialogProbeID = probeID
+        DispatchQueue.main.asyncAfter(deadline: .now() + timeout) { [weak self] in
+            guard self?.dialogProbeID == probeID else { return }
+            self?.dialogProbeID = nil
+            completion(false)
+        }
+        Task { @MainActor [weak self] in
+            let value = try? await webView.callAsyncJavaScript(
+                "return typeof window.nativeDialog === 'function';",
+                arguments: [:],
+                in: nil,
+                contentWorld: .page
+            )
+            guard self?.dialogProbeID == probeID else { return }
+            self?.dialogProbeID = nil
+            completion((value as? Bool) == true)
         }
     }
 
@@ -768,12 +1105,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         }
     }
 
+    /// Startup failure: 重试 starts the local server again; 退出 quits (it used to leave an empty window).
     private func showError(_ message: String) {
         let alert = NSAlert()
         alert.messageText = "外贸订单跟进系统无法启动"
         alert.informativeText = message
         alert.alertStyle = .critical
-        alert.runModal()
+        alert.addButton(withTitle: "重试")
+        alert.addButton(withTitle: "退出")
+        if alert.runModal() == .alertFirstButtonReturn {
+            startLocalServer()
+        } else {
+            allowTermination = true
+            NSApp.terminate(nil)
+        }
     }
 }
 
@@ -814,6 +1159,14 @@ struct AppDialog: Sendable {
         alert.messageText = title
         alert.informativeText = message
         alert.alertStyle = danger ? .critical : .informational
+        // A dangerous choice (仍然退出) is never the default: 返回软件 comes first and takes Return,
+        // like the page's dialog, whose focus starts on the cancel button.
+        if danger && !cancelText.isEmpty {
+            alert.addButton(withTitle: cancelText)
+            let confirm = alert.addButton(withTitle: confirmText)
+            confirm.hasDestructiveAction = true
+            return alert.runModal() == .alertSecondButtonReturn
+        }
         alert.addButton(withTitle: confirmText)
         if !cancelText.isEmpty { alert.addButton(withTitle: cancelText) }
         return alert.runModal() == .alertFirstButtonReturn

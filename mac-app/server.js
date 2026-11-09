@@ -2003,9 +2003,9 @@ function trackingCarrierStatusPatch(carrier, message, checkedAt = new Date().toI
 
 async function checkDhlApiStatus() {
   const settings = readTrackingSettings();
-  if (settings.dhlApiEnabled !== '是') return { ok: false, label: 'DHL', message: 'DHL API 未开启' };
+  if (settings.dhlApiEnabled !== '是') return { ok: false, disabled: true, label: 'DHL', message: 'DHL API 未开启' };
   const apiKey = process.env.DHL_API_KEY || settings.dhlApiKey || '';
-  if (!apiKey) return { ok: false, label: 'DHL', message: 'DHL API Key 未保存' };
+  if (!apiKey) return { ok: false, disabled: true, label: 'DHL', message: 'DHL API Key 未保存' };
   const checkedAt = new Date().toISOString();
   try {
     const response = await requestJsonResponse(`${dhlTrackingEndpoint}?trackingNumber=0000000000`, {
@@ -2029,8 +2029,8 @@ async function checkDhlApiStatus() {
 
 async function checkFedExApiStatus() {
   const settings = readTrackingSettings();
-  if (settings.fedexApiEnabled !== '是') return { ok: false, label: 'FedEx', message: 'FedEx API 未开启' };
-  if (!settings.fedexApiKey || !settings.fedexApiSecret) return { ok: false, label: 'FedEx', message: 'FedEx API Key 或 Secret 未保存' };
+  if (settings.fedexApiEnabled !== '是') return { ok: false, disabled: true, label: 'FedEx', message: 'FedEx API 未开启' };
+  if (!settings.fedexApiKey || !settings.fedexApiSecret) return { ok: false, disabled: true, label: 'FedEx', message: 'FedEx API Key 或 Secret 未保存' };
   const checkedAt = new Date().toISOString();
   try {
     const token = await fedexToken(settings);
@@ -2044,8 +2044,8 @@ async function checkFedExApiStatus() {
 
 async function checkAiApiStatus() {
   const settings = readAiSettings();
-  if (settings.enabled !== '是') return { ok: false, label: 'AI', message: 'AI 识别未开启' };
-  if (!(process.env.AI_API_KEY || readAiApiKey())) return { ok: false, label: 'AI', message: 'AI API Key 未保存' };
+  if (settings.enabled !== '是') return { ok: false, disabled: true, label: 'AI', message: 'AI 识别未开启' };
+  if (!(process.env.AI_API_KEY || readAiApiKey())) return { ok: false, disabled: true, label: 'AI', message: 'AI API Key 未保存' };
   const checkedAt = new Date().toISOString();
   const result = await queryAiChat({
     testOnly: true,

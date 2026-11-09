@@ -5370,6 +5370,8 @@ html[data-theme] .bell-btn { position:relative; }
 html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); }
 @keyframes uiWiggle { 0%,100% { transform:rotate(0); } 25% { transform:rotate(-14deg); } 50% { transform:rotate(10deg); } 75% { transform:rotate(-6deg); } }
 .bell-badge { position:absolute; top:3px; right:2px; min-width:16px; height:16px; padding:0 4px; border-radius:999px; background:var(--s-red); color:#fff; font-size:10px; font-weight:600; line-height:16px; text-align:center; box-shadow:0 0 0 2px var(--page-bg); animation:uiPop var(--motion-spring) var(--ease-spring); }
+/* 深色主题的 --s-red 调得很亮，配白字只有 2.65:1：红点换深一点的红。 */
+html[data-theme="dark"] .bell-badge { background:oklch(55% .2 25); }
 .notif-scrim { position:fixed; inset:0; z-index:85; background:transparent; }
 .notif-panel { position:fixed; top:12px; right:12px; bottom:12px; z-index:86; width:min(440px, calc(100vw - 24px)); display:flex; flex-direction:column; gap:12px; padding:20px 16px 12px;
   background:var(--surface-bg); border:1px solid var(--surface-border); border-radius:var(--radius-panel); box-shadow:var(--floating-shadow); animation:uiNotifIn var(--motion-slow) var(--ease-drawer); }
@@ -5378,10 +5380,11 @@ html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); 
 .notif-head { display:flex; align-items:center; gap:4px; padding:0 4px; }
 .notif-head > div { flex:1; display:flex; align-items:center; gap:10px; }
 .notif-head h2 { margin:0; font:600 20px/1.2 var(--display); letter-spacing:-.02em; color:var(--gray-900); }
-.notif-unread { padding:2px 10px; border-radius:999px; background:var(--accent-tint); color:var(--accent); font-size:12px; font-weight:500; white-space:nowrap; }
+.notif-unread { padding:2px 10px; border-radius:999px; background:var(--accent-tint); color:color-mix(in oklab, var(--accent) 82%, #000); font-size:12px; font-weight:500; white-space:nowrap; }
+html[data-theme="dark"] .notif-unread { color:var(--accent); }
 .notif-unread[hidden] { display:none; }
 #notifReadAll:disabled { opacity:.45; pointer-events:none; }
-.notif-tabs .segment-option .c { margin-left:4px; color:var(--gray-500); font-variant-numeric:tabular-nums; }
+.notif-tabs .segment-option .c { margin-left:4px; color:var(--gray-600); font-variant-numeric:tabular-nums; }
 .notif-tabs .segment-option.active .c { color:var(--gray-700); }
 .notif-tabs { width:100%; }
 .notif-list { flex:1; min-height:0; overflow:auto; display:flex; flex-direction:column; gap:8px; padding:2px; }
@@ -5389,8 +5392,13 @@ html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); 
   transition:background var(--motion-fast) var(--ease), opacity var(--motion-med) var(--ease), transform var(--motion-spring) var(--ease-spring); animation:uiRise .4s var(--ease-out) backwards; animation-delay:calc(var(--i, 0) * 35ms); }
 .notif-card:hover { background:var(--surface-soft); }
 .notif-card:active { transform:scale(.98); transition-duration:var(--motion-instant); }
-.notif-card.is-read { opacity:.55; }
-.notif-ic { width:32px; height:32px; border-radius:10px; display:grid; place-items:center; background:var(--accent-tint); color:var(--accent); }
+/* 已读：不再整张卡降透明度（副标题、时间只剩 2.1:1）。标题变细、图标变淡，未读卡的图标角上有一个强调色圆点。 */
+.notif-card.is-read .notif-body b { font-weight:500; color:var(--gray-700); }
+.notif-card.is-read .notif-ic { opacity:.6; }
+.notif-ic { position:relative; width:32px; height:32px; border-radius:10px; display:grid; place-items:center; background:var(--accent-tint); color:var(--accent); }
+.notif-card:not(.is-read) .notif-ic::after { content:''; position:absolute; top:-3px; right:-3px; width:9px; height:9px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 2px var(--surface-bg); }
+/* 订单动态（自己的操作）：中性灰，不算未读。 */
+.notif-card.is-quiet .notif-ic { background:var(--gray-100); color:var(--gray-600); }
 .notif-ic .ui-icon { width:16px; height:16px; }
 .notif-card.is-error .notif-ic { background:var(--red-50); color:var(--s-red); }
 .notif-card.is-success .notif-ic { background:var(--green-50); color:var(--s-green); }
@@ -5401,12 +5409,21 @@ html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); 
 .notif-body small { font-size:12px; color:var(--gray-500); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .notif-meta { display:flex; flex-direction:column; align-items:flex-end; gap:4px; font-size:11px; color:var(--gray-500); white-space:nowrap; font-variant-numeric:tabular-nums; }
 .notif-pill { padding:1px 8px; border-radius:999px; background:var(--gray-100); color:var(--gray-600); font-size:11px; }
-.notif-pill.is-info { background:color-mix(in oklab, #2563eb 12%, transparent); color:#2563eb; }
+.notif-pill.is-info { background:color-mix(in oklab, var(--s-blue) 12%, transparent); color:var(--notif-info-ink, var(--s-blue)); }
+.notif-pill.is-quiet { background:var(--gray-100); color:var(--gray-600); }
+.notif-ok { color:var(--notif-ok-ink, var(--s-green)); }
 .notif-pill.is-error { background:var(--red-50); color:var(--s-red); }
 .notif-pill.is-success { background:var(--green-50); color:var(--s-green); }
 .notif-pill.is-warn { background:color-mix(in oklab, var(--s-amber) var(--s-tint), transparent); color:var(--notif-warn-ink, var(--s-amber)); }
-:root { --notif-warn-ink:oklch(48% .13 70); }
-html[data-theme="dark"] { --notif-warn-ink:var(--s-amber); }
+:root { --notif-warn-ink:oklch(48% .13 70); --notif-info-ink:oklch(46% .15 255); --notif-ok-ink:oklch(45% .15 150); }
+html[data-theme="dark"] { --notif-warn-ink:var(--s-amber); --notif-info-ink:var(--s-blue); --notif-ok-ink:var(--s-green); }
+/* 分组小标题（今天 / 昨天 / 更早）和列表末尾的「显示更多」 */
+.notif-group { position:sticky; top:-2px; z-index:1; margin:2px 0 -2px; padding:4px 6px; background:var(--surface-bg); color:var(--gray-600); font-size:12px; font-weight:600; }
+.notif-more { flex:none; padding:10px; border:1px dashed var(--surface-border); border-radius:var(--radius); background:none; color:var(--gray-700); font-size:12.5px; cursor:pointer; }
+.notif-more:hover { background:var(--surface-soft); }
+.notif-empty-all { display:block; margin:8px auto 0; }
+/* 面板开着时提示框让到面板左边，不压在底部的卡片上（窄窗口面板占满宽度，照旧）。 */
+@media (min-width: 900px) { html[data-theme] .toast.beside-notif { right:calc(min(440px, 100vw - 24px) + 24px); } }
 /* A renewal card: the name shortens with … and the countdown always stays whole on the right. */
 .notif-body b.notif-tl { display:flex; align-items:baseline; gap:8px; }
 .notif-t { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -5917,7 +5934,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.129，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.129</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.130，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.130</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -5940,7 +5957,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
     </div>
     <div class="world-clock-strip" id="worldClockStrip" aria-label="主要时区时间"></div>
     <div class="top-actions">
-      <button class="btn btn-ghost btn-icon bell-btn" id="notifBtn" type="button" title="通知" aria-label="通知" aria-haspopup="dialog" aria-controls="notifPanel" aria-expanded="false"><svg class="ui-icon" aria-hidden="true"><use href="#i-bell"/></svg><span class="bell-badge" id="notifBadge" hidden></span></button>
+      <button class="btn btn-ghost btn-icon bell-btn" id="notifBtn" type="button" title="通知" aria-label="通知" aria-haspopup="dialog" aria-controls="notifPanel" aria-expanded="false"><svg class="ui-icon" aria-hidden="true"><use href="#i-bell"/></svg><span class="bell-badge" id="notifBadge" aria-hidden="true" hidden></span></button>
       <button class="btn btn-ghost btn-icon theme-btn" id="themeBtn" title="切换白天/夜晚模式"><svg class="ui-icon" aria-hidden="true"><use href="#i-moon"/></svg></button>
       <button class="btn" id="topNewCustomerBtn" title="新建客户" aria-label="新建客户"><svg class="ui-icon" aria-hidden="true"><use href="#i-user-plus"/></svg><span>新建客户</span></button>
       <button class="btn btn-primary" id="newOrderBtn" title="新建订单" aria-label="新建订单"><svg class="ui-icon" aria-hidden="true"><use href="#i-plus"/></svg><span>新建订单</span></button>
@@ -7465,17 +7482,17 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
 
 <div class="toast" id="toast"></div>
 <div class="notif-scrim" id="notifScrim" hidden></div>
-<aside class="notif-panel" id="notifPanel" tabindex="-1" role="dialog" aria-modal="false" aria-labelledby="notifTitle" hidden>
+<aside class="notif-panel" id="notifPanel" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="notifTitle" hidden>
   <div class="notif-head">
     <div><h2 id="notifTitle">通知</h2><span class="notif-unread" id="notifUnread"></span></div>
     <button class="btn btn-ghost" type="button" id="notifReadAll">全部已读</button>
     <button class="btn btn-ghost btn-icon" type="button" id="notifClose" aria-label="关闭通知"><svg class="ui-icon" aria-hidden="true"><use href="#i-x"/></svg></button>
   </div>
-  <div class="segment-control compact notif-tabs" id="notifTabs">
-    <button class="segment-option active" type="button" data-notif-tab="all">全部</button>
-    <button class="segment-option" type="button" data-notif-tab="error">错误</button>
-    <button class="segment-option" type="button" data-notif-tab="success">成功</button>
-    <button class="segment-option" type="button" data-notif-tab="info">提示</button>
+  <div class="segment-control compact notif-tabs" id="notifTabs" role="group" aria-label="按类型筛选">
+    <button class="segment-option active" type="button" data-notif-tab="all" aria-pressed="true">全部</button>
+    <button class="segment-option" type="button" data-notif-tab="error" aria-pressed="false">错误</button>
+    <button class="segment-option" type="button" data-notif-tab="success" aria-pressed="false">成功</button>
+    <button class="segment-option" type="button" data-notif-tab="info" aria-pressed="false">提示</button>
   </div>
   <div class="notif-list" id="notifList"></div>
 </aside>
@@ -7888,7 +7905,7 @@ function renderOrderDetailNotification(order = {}) {
     ? `<button class="btn btn-small" type="button" data-retry-order-notification="${escapeAttr(order.id)}">重新发送</button>`
     : '';
   return `
-    <section class="detail-section">
+    <section class="detail-section" data-order-notification-section>
       <div class="detail-section-title">飞书群通知</div>
       <div class="order-notification-detail">
         <div class="order-notification-detail-row"><div>${badge}</div>${retry}</div>
@@ -7919,7 +7936,7 @@ function applyOrderNotificationResult(orderId = '', result = {}) {
   const updated = { ...current, feishuNotification:next, logs };
   state.orders[index] = updated;
   if ((next.status === 'failed' || next.status === 'sent') && typeof uiNotifLogEvent === 'function') {
-    uiNotifLogEvent({ id:`feishu-${orderId}-${next.status}-${next.sentAt || next.updatedAt || ''}`, kind:next.status === 'failed' ? 'error' : 'success', title:next.status === 'failed' ? '飞书群消息发送失败' : '飞书群消息已发送', sub:`${clientDisplayName(current.client)} · ${current.num}${next.status === 'failed' ? ` · ${next.error || '可在订单记录里重试'}` : next.chatName ? ` · ${next.chatName}` : ''}`, pill:'飞书', orderId, tab:'records' });
+    uiNotifLogEvent({ id:`feishu-${orderId}-${next.status}-${next.sentAt || next.updatedAt || ''}`, kind:next.status === 'failed' ? 'error' : 'success', title:next.status === 'failed' ? '飞书群消息发送失败' : '飞书群消息已发送', sub:`${clientDisplayName(current.client)} · ${current.num}${next.status === 'failed' ? ` · ${next.error || '可在订单信息里重新发送'}` : next.chatName ? ` · ${next.chatName}` : ''}`, pill:'飞书', orderId, tab:'info' });
   }
   return updated;
 }
@@ -8148,6 +8165,8 @@ let macSaveLoopPromise = null;
 let macQueuedStateJson = '';
 let macPersistedStateJson = '';
 let macSaveLastError = '';
+// 这次保存失败最早是什么时候（铃铛里补的那张「数据保存失败」卡用它当时间）。
+let macSaveLastErrorAt = '';
 let macSaveInFlight = false;
 let macBackupWarning = '';
 // 合并 / 删除客户要明确告诉服务端（WhatsApp 聊天跟着合并走、删除的客户不被猜成改名）：跟着下一次保存一起发。
@@ -8320,12 +8339,17 @@ async function runMacSaveQueue() {
         if (feedback.warning && !macBackupWarning) toast(feedback.message, { tone:'warn' });
         macBackupWarning = feedback.message;
         setMacStorageStatus(result.storageMode || 'sqlite', feedback.warning ? 'warning' : 'saved', feedback.message || `数据库已保存 · 版本 ${macStorageRevision} · ${new Date().toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}`);
+        // 又存进去了：铃铛里的「数据保存失败」标成已恢复、已读，红点不再因为它亮着。
+        macSaveLastErrorAt = '';
+        if (typeof uiNotifResolve === 'function') uiNotifResolve('save-');
       } catch (error) {
         // 这次没存进去：合并 / 删除的说明放回队列，跟着下一次保存再发。
         macPendingCustomerOps.unshift(...customerOps.filter(op => op.state === 'pending'));
         macSaveLastError = error.message || '数据库保存失败';
+        if (!macSaveLastErrorAt) macSaveLastErrorAt = nowText();
         setMacStorageStatus('sqlite', 'error', macSaveLastError);
-        if (typeof uiNotifLogEvent === 'function') uiNotifLogEvent({ id:`save-${normalizeDate(new Date().toISOString())}-${macSaveLastError}`, kind:'error', title:'数据保存失败', sub:macSaveLastError, pill:'保存' });
+        // 恢复过的同一个错误再出现，原卡重新变成未读；还没恢复时自动重试不再一遍遍记。
+        if (typeof uiNotifLogEvent === 'function') uiNotifLogEvent({ id:`save-${normalizeDate(new Date().toISOString())}-${macSaveLastError}`, kind:'error', title:'数据保存失败', sub:macSaveLastError, pill:'保存', repeat:'reopen' });
         if (error.conflict) {
           macSaveErrorToastAt = Date.now();
           if (!promptMacStorageConflict()) toast(macSaveLastError, { tone:'error', desc:'可在设置里导出这次的修改，再重新加载最新数据' });
@@ -9172,6 +9196,10 @@ async function refreshAiUsage(page = aiUsagePage) {
     btn.setAttribute('aria-label',btn.title.replace(/\n/g,'，'));
   }
 }
+// 服务端对「未开启 / Key 未保存」回 disabled:true；旧版本存下来的结果没有这个字段，按原文认。
+function apiStatusDisabled(item = {}) {
+  return item.disabled === true || (item.ok === false && /未开启|未启用|未保存/.test(String(item.message || '')));
+}
 function loadApiStatuses() {
   try { return JSON.parse(localStorage.getItem(apiStatusKey) || '{}') || {}; } catch (_) { return {}; }
 }
@@ -9196,16 +9224,18 @@ function apiStatusTitle(kind, item = {}) {
 function renderApiStatusLights() {
   const statuses = loadApiStatuses();
   // 侧栏不再常驻接口状态：只有检测异常时在「设置」上亮一个红点，点进去直达接口状态页。
-  const anyBad = Object.values(statuses).some(item => item && item.ok === false);
+  // 没开启 / 没填 Key 的接口不算异常：灰色「未开启」，不亮红点（以前点一下没用的 FedEx 就永久挂一个红色「异常」）。
+  const anyBad = Object.values(statuses).some(item => item && item.ok === false && !apiStatusDisabled(item));
   ['navSettingsAlert', 'settingsApiAlert'].forEach(id => { const dot = document.getElementById(id); if (dot) dot.hidden = !anyBad; });
   document.querySelectorAll('[data-api-check]').forEach(btn => {
     const kind = btn.dataset.apiCheck;
     const item = statuses[kind] || {};
     const stateEl = btn.querySelector('.api-status-state');
+    const off = item.ok === false && apiStatusDisabled(item);
     btn.classList.toggle('ok', item.ok === true);
-    btn.classList.toggle('bad', item.ok === false);
+    btn.classList.toggle('bad', item.ok === false && !off);
     btn.classList.remove('checking');
-    if (stateEl) stateEl.textContent = item.ok === true ? '正常' : item.ok === false ? '异常' : '未测';
+    if (stateEl) stateEl.textContent = item.ok === true ? '正常' : off ? '未开启' : item.ok === false ? '异常' : '未测';
     btn.title = apiStatusTitle(kind, item);
     btn.setAttribute('aria-label', apiStatusTitle(kind, item));
   });
@@ -9257,7 +9287,8 @@ async function checkApiStatus(kind) {
       body: JSON.stringify({ kind })
     });
     const data = await res.json().catch(() => ({}));
-    item = { ok: data.ok === true, message: data.message || (data.ok ? '连接正常' : '检测失败'), checkedAt: data.checkedAt || checkedAt, accountingWarning:data.accountingWarning || '' };
+    item = { ok: data.ok === true, disabled: data.disabled === true, message: data.message || (data.ok ? '连接正常' : '检测失败'), checkedAt: formatApiTime(data.checkedAt || checkedAt), accountingWarning:data.accountingWarning || '' };
+    item.disabled = !item.ok && apiStatusDisabled(item);
   } catch (error) {
     item = { ok: false, message: error.message || '检测失败', checkedAt };
   }
@@ -9265,7 +9296,9 @@ async function checkApiStatus(kind) {
   statuses[kind] = item;
   saveApiStatuses(statuses);
   renderApiStatusLights();
-  if (!item.ok && typeof uiNotifLogEvent === 'function') uiNotifLogEvent({ id:`api-${kind}-${item.checkedAt || ''}`, kind:'error', title:`${apiStatusNames[kind] || kind} 接口异常`, sub:item.message || '检测失败', pill:'接口', time:item.checkedAt || '' });
+  // 同一个错误只留一张卡：再出现时更新时间和次数、重新算未读；恢复（或者是没开启）时把这个接口的错误卡收尾。
+  if (item.ok || item.disabled) { if (typeof uiNotifResolve === 'function') uiNotifResolve(`api-${kind}-`); }
+  else if (typeof uiNotifLogEvent === 'function') uiNotifLogEvent({ id:uiNotifApiId(kind, item.message), kind:'error', title:`${apiStatusNames[kind] || kind} 接口异常`, sub:item.message || '检测失败', pill:'接口', time:item.checkedAt || nowText(), repeat:'unread' });
   uiRenderNotifs();
   if (kind === 'ai') await refreshAiUsage();
   toast(`${apiStatusNames[kind] || kind}：${item.message}${item.accountingWarning ? ` · ${item.accountingWarning}` : ''}`);
@@ -14579,7 +14612,9 @@ function renderGlobalSearchPanel({ forceOpen = false } = {}) {
       <span>↑ ↓ 选择 · Enter 打开 · Esc 关闭${query ? ` · 共 ${allGlobalSearchResults.length} 条结果` : ' · ⌘K 或 / 随时打开搜索'}</span>
       ${query && allGlobalSearchResults.length ? `<button class="global-search-all-btn" type="button" data-open-full-search>查看全部搜索结果 <span>${allGlobalSearchResults.length}</span></button>` : ''}
     </div>`;
-  if (forceOpen || document.activeElement === input || query) {
+  // 通知面板开着时不再弹开：输入后马上 Tab 到铃铛回车，延迟到的这次重画会把刚收起的搜索结果又打开、压在遮罩下面。
+  const notifOpen = document.getElementById('notifPanel')?.hidden === false;
+  if (!notifOpen && (forceOpen || document.activeElement === input || query)) {
     panel.classList.add('open');
     input.setAttribute('aria-expanded', 'true');
   }
@@ -18393,7 +18428,10 @@ function applyTrackingResultToOneOrder(order, clean, result) {
   const newStatus = mapped;
   if (newStatus && newStatus !== oldStatus && typeof uiNotifLogEvent === 'function') {
     const title = undo ? '已签收 · 已移到已完成' : `物流${oldStatus ? `从「${oldStatus}」` : ''}变为「${newStatus}」`;
-    uiNotifLogEvent({ id:`logistics-${order.id}-${clean}-${newStatus}-${normalizeDate(updatedAt) || ''}`, kind:newStatus === '异常' ? 'error' : newStatus === '已签收' ? 'success' : 'info', title, sub:`${clientDisplayName(order.client)} · ${order.num} · ${clean}${raw ? ` · ${raw}` : ''}${undo ? ' · 客户没收到可以拖回已发货' : ''}`, pill:'物流', orderId:order.id, tab:'logistics', time:updatedAt });
+    // id 带旧状态和承运商时间（到分钟）：同一天「异常 → 运输中 → 异常」第二次异常也要记（以前只带日期，被当成重复吞掉）。
+    // 卡片时间是 App 发现它的时间，承运商时间放进副标题：补查到的两天前的变化不会沉到列表底下。
+    const carrierAt = typeof orderListWhen === 'function' ? orderListWhen(updatedAt) : updatedAt;
+    uiNotifLogEvent({ id:`logistics-${order.id}-${clean}-${oldStatus}-${newStatus}-${updatedAt}`, kind:newStatus === '异常' ? 'error' : newStatus === '已签收' ? 'success' : 'info', title, sub:`${clientDisplayName(order.client)} · ${order.num} · ${clean}${raw ? ` · ${raw}` : ''} · 承运商时间 ${carrierAt}${undo ? ' · 客户没收到可以拖回已发货' : ''}`, pill:'物流', orderId:order.id, tab:'logistics', time:nowText() });
   }
   return undo;
 }
@@ -27619,8 +27657,9 @@ function uiAfterPageChange(changed) {
   setTimeout(() => page?.classList.remove('page-enter'), 900);
 }
 // 打开搜索前先收起其他浮层（通知、下拉、客户菜单、看板菜单、更多筛选），不然它们盖在搜索结果上、点结果点不中。
-function closeTransientLayers() {
-  if (document.getElementById('notifPanel') && !document.getElementById('notifPanel').hidden) uiToggleNotifs(false);
+// 打开通知面板时也调它（keepNotifs），把别的浮层收起来。
+function closeTransientLayers({ keepNotifs = false } = {}) {
+  if (!keepNotifs && document.getElementById('notifPanel') && !document.getElementById('notifPanel').hidden) uiToggleNotifs(false);
   closeAppSelectMenu();
   closeClientMenus();
   if (typeof uiCloseBoardMenu === 'function') uiCloseBoardMenu();
@@ -28056,13 +28095,31 @@ document.addEventListener('focusin', e => {
 });
 // 通知面板：只放「发生过的事」——保存失败、接口异常、物流状态变化、飞书群消息结果、发现新版本，加上近 3 天的订单动态。
 // 待办（加急/收款/跟进/复购）留在工作台的待办列表里，不再混进通知。事件和已读状态都只记在本机 localStorage。
+// 红点、「N 条未读」和摇铃只算 App 自己发现、要人处理的事（物流变化、自动完成、飞书失败、保存 / 接口失败、新版本、续费）。
+// 订单动态和飞书「已发送」几乎都是自己刚做的操作：照样按时间列出来，但不算未读、不摇铃（quiet），
+// 不然每拖一张卡、每存一次单红点都 +1，真正的物流异常混在里面看不出来。
 // 用函数属性存当前标签：render() 可能在脚本末尾这段执行前就调用 uiRenderNotifs。
 function uiNotifTab(next) { if (next) uiNotifTab.value = next; return uiNotifTab.value || 'all'; }
+// 一次显示多少条：超过的在列表末尾「显示更多」，每次多 40 条；打开面板、切页签时回到 40。
+function uiNotifLimit(next) { if (next) uiNotifLimit.value = next; return uiNotifLimit.value || 40; }
 function uiNotifRead() {
   try { return new Set(JSON.parse(localStorage.getItem('ots-notif-read-v1') || '[]')); } catch (_) { return new Set(); }
 }
+// 已读集合存之前先剔掉已经不存在的条目，再留最后 400 个；Set 按「最近一次标已读」排（uiNotifMarkRead 先删再加）。
+// 以前按第一次读的顺序截断：读过 400 个别的 id 以后，还挂在面板上的旧卡（续费、常驻的接口卡）突然变回未读、铃铛再摇。
+// 续费提醒的 id 留着：续费数据可能还没读出来，不能当成已经不存在。订单动态不算未读，不用记。
 function uiNotifSaveRead(set) {
-  try { localStorage.setItem('ots-notif-read-v1', JSON.stringify([...set].slice(-400))); } catch (_) { /* 本机存储不可用时只是不记已读 */ }
+  try {
+    const events = new Set(uiNotifEvents().map(item => item.id));
+    const live = new Set(uiNotifItems().map(item => item.id));
+    const keep = [...set].filter(id => typeof id === 'string' && !id.startsWith('log-') && (events.has(id) || live.has(id) || id.startsWith('renew')));
+    localStorage.setItem('ots-notif-read-v1', JSON.stringify(keep.slice(-400)));
+  } catch (_) { /* 本机存储不可用时只是不记已读 */ }
+}
+function uiNotifMarkRead(ids, read = true) {
+  const set = uiNotifRead();
+  ids.forEach(id => { set.delete(id); if (read) set.add(id); });
+  uiNotifSaveRead(set);
 }
 function uiNotifLogText(log) {
   return typeof log === 'string' ? log : String(log?.text || '');
@@ -28070,58 +28127,143 @@ function uiNotifLogText(log) {
 function uiNotifEvents() {
   try { return (JSON.parse(localStorage.getItem('ots-notif-events-v1') || '[]') || []).filter(item => item && item.id); } catch (_) { return []; }
 }
+// 已读（或已恢复）的事件留 30 天；没读的一直留着。新版本卡在升级到那个版本以后就不再显示。
+function uiNotifStale(event, read, now = Date.now()) {
+  if (/^update-/.test(event.id) && uiNotifVersionDone(event.id.slice(7))) return true;
+  // 旧版本把「未开启 / Key 未保存」也记成了接口异常，那些卡不再显示。
+  if (/^api-/.test(event.id) && /未开启|未启用|未保存/.test(String(event.sub || ''))) return true;
+  if (!(read.has(event.id) || event.resolvedAt)) return false;
+  const at = parseDate(event.resolvedAt || event.time).getTime();
+  return at > 0 && now - at > 30 * 86400000;
+}
+function uiNotifVersionDone(version) {
+  const current = String(document.querySelector('.app-version')?.textContent || '').replace(/^\s*V/i, '').trim();
+  const a = current.split('.').map(Number);
+  const b = String(version || '').split('.').map(Number);
+  if (!current || a.some(Number.isNaN) || b.some(Number.isNaN)) return false;
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0);
+  }
+  return true;
+}
 function uiNotifSaveEvents(list) {
-  try { localStorage.setItem('ots-notif-events-v1', JSON.stringify(list.slice(-200))); } catch (_) { /* 本机存储不可用时通知只活在当前会话 */ }
+  const read = uiNotifRead();
+  const kept = list.filter(item => !uiNotifStale(item, read));
+  try { localStorage.setItem('ots-notif-events-v1', JSON.stringify(kept.slice(-200))); } catch (_) { /* 本机存储不可用时通知只活在当前会话 */ }
+}
+// 接口错误按「接口 + 错误原文」只记一张卡（以前 id 带检测时间，连点 3 次状态灯就是 3 张一样的卡）。
+function uiNotifApiId(kind, message) {
+  return `api-${kind}-${String(message || '检测失败').slice(0, 120)}`;
 }
 // 记一条事件通知。同一个 id 只记一次（比如同一次检测失败、同一个版本号），所以调用方把能区分这次事件的信息拼进 id。
+// repeat:'unread'：再出现时更新时间、次数，重新算未读（接口错误）；repeat:'reopen'：只有已经恢复过的才重新打开（保存失败，
+// 还没恢复时每 3 秒的自动重试不再一遍遍刷）。
 function uiNotifLogEvent(event = {}) {
   if (!event || !event.title) return false;
   const id = String(event.id || `evt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`);
   const list = uiNotifEvents();
-  if (list.some(item => item.id === id)) return false;
-  list.push({ id, kind:['error','success','info'].includes(event.kind) ? event.kind : 'info', tone:event.tone || '', title:String(event.title), sub:String(event.sub || ''), pill:String(event.pill || ''), orderId:event.orderId || '', tab:event.tab || '', time:event.time || nowText() });
-  uiNotifSaveEvents(list);
+  const at = list.findIndex(item => item.id === id);
+  if (at >= 0) {
+    const old = list[at];
+    if (!event.repeat || (event.repeat === 'reopen' && !old.resolvedAt)) return false;
+    list.splice(at, 1);
+    list.push({ ...old, sub:String(event.sub || old.sub || ''), time:event.time || nowText(), count:(Number(old.count) || 1) + 1, resolvedAt:'' });
+    uiNotifSaveEvents(list);
+    uiNotifMarkRead([id], false);
+  } else {
+    list.push({ id, kind:['error','success','info'].includes(event.kind) ? event.kind : 'info', tone:event.tone || '', title:String(event.title), sub:String(event.sub || ''), pill:String(event.pill || ''), orderId:event.orderId || '', tab:event.tab || '', time:event.time || nowText() });
+    uiNotifSaveEvents(list);
+  }
   if (typeof uiRenderNotifs === 'function') uiRenderNotifs();
   return true;
 }
+// 出错的事恢复了（保存又存进去了、接口检测正常了）：同类还没收尾的卡写上「已恢复」并标成已读。
+function uiNotifResolve(prefix) {
+  const list = uiNotifEvents();
+  const hit = list.filter(item => item.id.startsWith(prefix) && !item.resolvedAt);
+  if (!hit.length) return false;
+  const at = nowText();
+  hit.forEach(item => { item.resolvedAt = at; });
+  uiNotifSaveEvents(list);
+  uiNotifMarkRead(hit.map(item => item.id));
+  if (typeof uiRenderNotifs === 'function') uiRenderNotifs();
+  return true;
+}
+// 全部条目，按显示顺序：3 天内的续费、今天的事、其余续费、更早的事。不再截成 40 条：红点和未读数按全部算，
+// 面板一次显示 40 条，其余在末尾「显示更多」。
 function uiNotifItems() {
   const items = [];
-  const seenApi = new Set();
+  const read = uiNotifRead();
+  const now = Date.now();
+  const eventAt = new Map();
   uiNotifEvents().reverse().forEach(event => {
-    if (event.pill === '接口') seenApi.add(event.id);
-    items.push(event);
+    if (uiNotifStale(event, read, now)) return;
+    // 飞书「已发送」是自己保存订单的结果，不算未读；「发送失败」照旧算。
+    items.push(event.pill === '飞书' && event.kind === 'success' ? { ...event, quiet:true } : event);
+    if (event.orderId) eventAt.set(event.orderId, [...(eventAt.get(event.orderId) || []), parseDate(event.time).getTime()]);
   });
   // 还没恢复的保存失败 / 接口异常即使事件记录丢了也要露出来（事件 id 一致，不会重复）。
-  if (macSaveLastError && !items.some(item => item.id === `save-${normalizeDate(new Date().toISOString())}-${macSaveLastError}`)) {
-    items.unshift({ id:`save-${normalizeDate(new Date().toISOString())}-${macSaveLastError}`, kind:'error', title:'数据保存失败', sub:macSaveLastError, pill:'保存', time:'' });
+  const saveId = macSaveLastError ? `save-${normalizeDate(new Date().toISOString())}-${macSaveLastError}` : '';
+  if (saveId && !items.some(item => item.id === saveId)) {
+    items.unshift({ id:saveId, kind:'error', title:'数据保存失败', sub:macSaveLastError, pill:'保存', time:macSaveLastErrorAt || nowText() });
   }
   Object.entries(loadApiStatuses()).forEach(([kind, item]) => {
-    if (item && item.ok === false && !seenApi.has(`api-${kind}-${item.checkedAt || ''}`)) items.push({ id:`api-${kind}-${item.checkedAt || ''}`, kind:'error', title:`${apiStatusNames[kind] || kind} 接口异常`, sub:item.message || '检测失败', pill:'接口', time:item.checkedAt || '' });
+    if (!item || item.ok !== false || apiStatusDisabled(item)) return;
+    const id = uiNotifApiId(kind, item.message);
+    if (!items.some(event => event.id === id)) items.push({ id, kind:'error', title:`${apiStatusNames[kind] || kind} 接口异常`, sub:item.message || '检测失败', pill:'接口', time:item.checkedAt ? formatApiTime(item.checkedAt) : '' });
   });
   // 续费提醒不占 40 条的名额（以前订单动态一多，快到期的续费被挤出列表）：3 天内的（含已过期）按天数排在最上面，
   // 其余跟在今天的事件之后。
   const renewals = typeof subscriptionReminders === 'function' ? subscriptionReminders() : [];
-  const since = Date.now() - 3 * 86400000;
+  const since = now - 3 * 86400000;
   // 飞书发送结果已经作为事件记过了，别再把同一条日志当成「订单已更新」重复露出来。
   state.orders.filter(o => parseDate(o.updated) >= since && !/^飞书群消息/.test(uiNotifLogText((o.logs || [])[0]))).sort((a, b) => parseDate(b.updated) - parseDate(a.updated)).slice(0, 8).forEach(o => {
-    items.push({ id:`log-${o.id}-${o.updated}`, kind:'success', title:uiNotifLogText((o.logs || [])[0]) || '订单已更新', sub:`${clientDisplayName(o.client)} · ${o.num}`, pill:stageDef(o.stage).name, orderId:o.id, time:o.updated });
+    const log = (o.logs || [])[0];
+    const updatedAt = parseDate(o.updated).getTime();
+    // 这次改 updated 没写日志（比如物流状态变了）：最新一条日志是旧事，别配上新时间再报一遍。
+    const logAt = log && typeof log === 'object' && log.time ? parseDate(log.time).getTime() : 0;
+    if (logAt > 0 && Math.abs(updatedAt - logAt) > 60000) return;
+    // 同一张单同一时间已经有事件卡（物流变化、UPS / 签收自动完成）：一件事只出一张卡。
+    if ((eventAt.get(o.id) || []).some(at => Math.abs(at - updatedAt) <= 120000)) return;
+    items.push({ id:`log-${o.id}-${o.updated}`, kind:'info', label:'订单', quiet:true, title:uiNotifLogText(log) || '订单已更新', sub:`${clientDisplayName(o.client)} · ${o.num} · ${stageDef(o.stage).name}`, orderId:o.id, time:o.updated });
   });
-  const stamp = item => parseDate(item.time) || 0;
+  const stamp = item => parseDate(item.time).getTime() || 0;
   const byDays = (a, b) => (a.days ?? 0) - (b.days ?? 0);
   const urgent = renewals.filter(item => (item.days ?? 0) <= 3).sort(byDays);
   const later = renewals.filter(item => (item.days ?? 0) > 3).sort(byDays);
-  const rest = items.sort((a, b) => stamp(b) - stamp(a)).slice(0, 40);
-  const todayStart = parseDate(normalizeDate(new Date().toISOString())) || 0;
+  const rest = items.sort((a, b) => stamp(b) - stamp(a));
+  const todayStart = parseDate(normalizeDate(new Date().toISOString())).getTime() || 0;
   const cut = rest.findIndex(item => stamp(item) < todayStart);
   const at = cut < 0 ? rest.length : cut;
   return [...urgent, ...rest.slice(0, at), ...later, ...rest.slice(at)];
 }
+function uiNotifIsRead(item, read) { return Boolean(item.quiet || read.has(item.id)); }
+// 卡片时间：本机时间「今天 / 昨天 HH:MM」，今年的写「MM-DD HH:MM」，不是今年的带年份。
+// 服务端回来的 ISO（UTC）也先换成本机时间（以前早上 7:30 的接口错误写成前一天的日期，也不写时间）。
+function uiNotifWhen(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  const pad = n => String(n).padStart(2, '0');
+  const year = String(new Date().getFullYear());
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    if (text === normalizeDate(new Date().toISOString())) return '今天';
+    return text.slice(0, 4) === year ? text.slice(5) : text;
+  }
+  const d = parseDate(text);
+  if (d.getFullYear() <= 1970) return text;
+  const local = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  if (local.slice(0, 4) !== year) return local;
+  return typeof orderListWhen === 'function' ? orderListWhen(local) : local.slice(5);
+}
 function uiRenderNotifs() {
   const items = uiNotifItems();
   const read = uiNotifRead();
-  const unread = items.filter(item => !read.has(item.id)).length;
+  const unread = items.filter(item => !uiNotifIsRead(item, read)).length;
   const badge = document.getElementById('notifBadge');
   if (badge) { badge.hidden = !unread; badge.textContent = unread > 9 ? '9+' : String(unread); }
+  // 读屏读铃铛时带上未读数（红点在 aria-label 下面读不到）。
+  const bell = document.getElementById('notifBtn');
+  if (bell) bell.setAttribute('aria-label', unread ? `通知，${unread} 条未读` : '通知');
   if (typeof uiBellRing === 'function') uiBellRing(unread);
   const panel = document.getElementById('notifPanel');
   if (!panel || panel.hidden) return;
@@ -28132,39 +28274,69 @@ function uiRenderNotifs() {
   const readAll = document.getElementById('notifReadAll');
   if (readAll) readAll.disabled = !unread;
   const tabNames = { all:'全部', error:'错误', success:'成功', info:'提示' };
+  const tab = uiNotifTab();
   document.querySelectorAll('#notifTabs [data-notif-tab]').forEach(btn => {
     const key = btn.dataset.notifTab;
-    btn.classList.toggle('active', key === uiNotifTab());
+    btn.classList.toggle('active', key === tab);
+    btn.setAttribute('aria-pressed', String(key === tab));
     btn.innerHTML = `${tabNames[key] || btn.textContent}<span class="c">${key === 'all' ? items.length : items.filter(item => item.kind === key).length}</span>`;
   });
-  const list = items.filter(item => uiNotifTab() === 'all' || item.kind === uiNotifTab());
+  const list = items.filter(item => tab === 'all' || item.kind === tab);
   const icons = { error:'alert', success:'check', info:'info' };
-  const pillLabel = item => item.kind === 'error' ? '错误' : item.kind === 'success' ? '成功' : item.tone === 'warn' ? '提醒' : '提示';
-  const when = value => {
-    const text = String(value || '').trim();
-    if (!text) return '';
-    if (/^\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}/.test(text)) return typeof orderListWhen === 'function' ? orderListWhen(text) : text.slice(5, 16);
-    const today = normalizeDate(new Date().toISOString());
-    return text === today ? '今天' : text.slice(5, 10);
-  };
-  const cardHtml = item => `<button class="notif-card is-${item.kind}${item.tone ? ` is-${item.tone}` : ''}${read.has(item.id) ? ' is-read' : ''}" type="button" data-notif-id="${escapeAttr(item.id)}" data-order-id="${escapeAttr(item.orderId || '')}" data-sub-id="${escapeAttr(item.subId || '')}" data-tab="${escapeAttr(item.tab || '')}">
+  const pillLabel = item => item.label || (item.kind === 'error' ? '错误' : item.kind === 'success' ? '成功' : item.tone === 'warn' ? '提醒' : '提示');
+  const cardHtml = item => {
+    const isRead = uiNotifIsRead(item, read);
+    const label = pillLabel(item);
+    const suffix = `${item.pill && item.pill !== label ? ` · ${escapeAttr(item.pill)}` : ''}${Number(item.count) > 1 ? ` ×${Number(item.count)}` : ''}`;
+    const full = `${item.title}${item.pill && item.pill !== label ? ` · ${item.pill}` : ''}${Number(item.count) > 1 ? ` ×${Number(item.count)}` : ''}${item.countdown ? ` · ${item.countdown}` : ''}${item.sub ? `\n${item.sub}` : ''}`;
+    const time = item.timeLabel || uiNotifWhen(item.time);
+    return `<button class="notif-card is-${item.kind}${item.tone ? ` is-${item.tone}` : ''}${item.quiet ? ' is-quiet' : ''}${isRead ? ' is-read' : ''}" type="button" title="${escapeAttr(full)}" data-notif-id="${escapeAttr(item.id)}" data-order-id="${escapeAttr(item.orderId || '')}" data-sub-id="${escapeAttr(item.subId || '')}" data-tab="${escapeAttr(item.tab || '')}">
       <span class="notif-ic">${uiIcon(item.tone === 'warn' ? 'bolt' : icons[item.kind])}</span>
-      <span class="notif-body"><b${item.countdown ? ' class="notif-tl"' : ''}>${item.countdown ? `<span class="notif-t">${escapeAttr(item.title)}${item.pill && item.pill !== pillLabel(item) ? ` · ${escapeAttr(item.pill)}` : ''}</span><span class="notif-cd">${escapeAttr(item.countdown)}</span>` : `${escapeAttr(item.title)}${item.pill && item.pill !== pillLabel(item) ? ` · ${escapeAttr(item.pill)}` : ''}`}</b><small>${escapeAttr(item.sub)}</small>
-        <span class="notif-foot">${item.timeLabel ? `<time>${escapeAttr(item.timeLabel)}</time>` : item.time ? `<time>${escapeAttr(when(item.time))}</time>` : ''}<span class="notif-pill is-${item.kind}${item.tone ? ` is-${item.tone}` : ''}">${pillLabel(item)}</span></span></span>
+      <span class="notif-body">${isRead ? '' : '<span class="visually-hidden">未读，</span>'}<b${item.countdown ? ' class="notif-tl"' : ''}>${item.countdown ? `<span class="notif-t">${escapeAttr(item.title)}${suffix}</span><span class="notif-cd">${escapeAttr(item.countdown)}</span>` : `${escapeAttr(item.title)}${suffix}`}</b><small>${escapeAttr(item.sub)}</small>
+        <span class="notif-foot">${time ? `<time>${escapeAttr(time)}</time>` : ''}<span class="notif-pill is-${item.kind}${item.tone ? ` is-${item.tone}` : ''}${item.quiet ? ' is-quiet' : ''}">${escapeAttr(label)}</span>${item.resolvedAt ? `<span class="notif-ok">已恢复 ${escapeAttr(uiNotifWhen(item.resolvedAt))}</span>` : ''}</span></span>
     </button>`;
-  uiPatchNotifList(document.getElementById('notifList'), list.map(item => ({ key:item.id, html:cardHtml(item) })));
+  };
+  // 今天 / 昨天 / 更早 分组：续费提醒算今天（它们排在今天那段里）。只有一组时不加小标题。
+  const todayStart = parseDate(normalizeDate(new Date().toISOString())).getTime() || 0;
+  const groupOf = item => {
+    if (item.subId) return 'today';
+    const at = parseDate(item.time).getTime() || 0;
+    return at >= todayStart ? 'today' : at >= todayStart - 86400000 ? 'yesterday' : 'earlier';
+  };
+  const groupNames = { today:'今天', yesterday:'昨天', earlier:'更早' };
+  const shown = list.slice(0, uiNotifLimit());
+  const multi = new Set(shown.map(groupOf)).size > 1;
+  const entries = [];
+  let group = '';
+  shown.forEach(item => {
+    const g = groupOf(item);
+    if (multi && g !== group) entries.push({ key:`§group-${g}`, html:`<div class="notif-group" data-notif-key="§group-${g}">${groupNames[g]}</div>` });
+    group = g;
+    entries.push({ key:item.id, html:cardHtml(item) });
+  });
+  const more = list.length - shown.length;
+  if (more > 0) entries.push({ key:'§more', html:`<button class="notif-more" type="button" data-notif-key="§more" data-notif-more>还有 ${more} 条更早的通知 · 显示更多</button>` });
+  // 筛选后是空的：说清楚是筛选造成的，给一个回到「全部」的按钮。
+  const empty = tab !== 'all' && items.length
+    ? `<div class="notif-empty">「${tabNames[tab] || tab}」里没有通知<button class="btn btn-ghost notif-empty-all" type="button" data-notif-show-all>查看全部 ${items.length} 条</button></div>`
+    : '<div class="notif-empty">这里没有通知</div>';
+  uiPatchNotifList(document.getElementById('notifList'), entries, empty);
 }
 // 通知列表按 id 增量更新：内容没变的卡片保留原来的节点，不重播入场动画。以前每次 uiRenderNotifs（render()、
 // 窗口获得焦点后重读续费、记一条事件……面板开着时一会儿一次）都整片 innerHTML 重写，所有卡片被换成新节点、
 // 重新从透明升起：正在点的那张卡在点下去之前被换掉，或者还在动画里（macOS 上偶发点不到）。
-function uiPatchNotifList(box, entries) {
+// 卡片用 data-notif-id 当键，分组小标题和「显示更多」用 data-notif-key。
+function uiPatchNotifList(box, entries, emptyHtml = '<div class="notif-empty">这里没有通知</div>') {
   if (!box) return;
+  const keyOf = el => el.dataset.notifId ?? el.dataset.notifKey;
   if (!entries.length) {
-    if (!box.querySelector(':scope > .notif-empty') || box.children.length !== 1) box.innerHTML = '<div class="notif-empty">这里没有通知</div>';
+    if (box._notifEmpty !== emptyHtml || box.children.length !== 1 || !box.querySelector(':scope > .notif-empty')) box.innerHTML = emptyHtml;
+    box._notifEmpty = emptyHtml;
     return;
   }
+  box._notifEmpty = '';
   box.querySelector(':scope > .notif-empty')?.remove();
-  const current = new Map([...box.children].filter(el => el.dataset.notifId !== undefined).map(el => [el.dataset.notifId, el]));
+  const current = new Map([...box.children].filter(el => keyOf(el) !== undefined).map(el => [keyOf(el), el]));
   const template = document.createElement('template');
   let fresh = 0;
   const nodes = entries.map(({ key, html }) => {
@@ -28203,12 +28375,27 @@ function uiToggleNotifs(open) {
   const scrim = document.getElementById('notifScrim');
   if (!panel) return;
   const next = open ?? panel.hidden;
+  // 打开前收起搜索结果、下拉和菜单（键盘 Tab 到铃铛回车打开时，搜索结果以前还开着、被遮罩盖住）。
+  if (next && panel.hidden) {
+    if (typeof closeGlobalSearchPanel === 'function') closeGlobalSearchPanel();
+    if (typeof closeTransientLayers === 'function') closeTransientLayers({ keepNotifs:true });
+  }
   panel.hidden = !next;
   scrim.hidden = !next;
   document.getElementById('notifBtn')?.setAttribute('aria-expanded', String(next));
+  // 面板开着时提示框往左让开，不压在面板底部的卡片上。
+  document.getElementById('toast')?.classList.toggle('beside-notif', next);
   // 打开面板、切页签时清空列表，卡片照常依次升起；面板开着期间的后台重画只做增量更新。
-  if (next) { const box = document.getElementById('notifList'); if (box) box.textContent = ''; uiRenderNotifs(); panel.focus(); }
-  else document.getElementById('notifBtn')?.focus();
+  if (next) {
+    // 上次停在一个现在是空的筛选上：回到「全部」（以前重开停在「错误 0」，红点却是 9+）。
+    const tab = uiNotifTab();
+    if (tab !== 'all' && !uiNotifItems().some(item => item.kind === tab)) uiNotifTab('all');
+    uiNotifLimit(40);
+    const box = document.getElementById('notifList');
+    if (box) box.textContent = '';
+    uiRenderNotifs();
+    panel.focus();
+  } else document.getElementById('notifBtn')?.focus();
 }
 document.getElementById('notifBtn')?.addEventListener('click', () => uiToggleNotifs());
 document.getElementById('notifClose')?.addEventListener('click', () => uiToggleNotifs(false));
@@ -28216,10 +28403,33 @@ document.getElementById('notifScrim')?.addEventListener('click', () => uiToggleN
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && !e.defaultPrevented && !isImeKeyEvent(e) && !document.getElementById('notifPanel')?.hidden) uiToggleNotifs(false);
 });
+// 键盘：面板开着时 Tab / Shift+Tab 在面板里转圈，不走到被遮住的侧栏；列表里 ↑↓ / Home / End 在卡片之间移动。
+document.getElementById('notifPanel')?.addEventListener('keydown', e => {
+  const panel = e.currentTarget;
+  if (e.key === 'Tab' && !e.altKey && !e.ctrlKey && !e.metaKey) {
+    const stops = [...panel.querySelectorAll('button:not([disabled]), a[href], input, [tabindex]:not([tabindex="-1"])')].filter(el => el.getClientRects().length);
+    if (!stops.length) return;
+    const first = stops[0];
+    const last = stops[stops.length - 1];
+    const active = document.activeElement;
+    if (e.shiftKey && (active === first || active === panel || !panel.contains(active))) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && (active === last || !panel.contains(active))) { e.preventDefault(); first.focus(); }
+    return;
+  }
+  if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key) || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+  const list = document.getElementById('notifList');
+  const cards = [...list.querySelectorAll('.notif-card, .notif-more')];
+  if (!cards.length || !list.contains(document.activeElement)) return;
+  const index = cards.indexOf(document.activeElement);
+  const target = e.key === 'Home' ? 0 : e.key === 'End' ? cards.length - 1 : Math.max(0, Math.min(cards.length - 1, index + (e.key === 'ArrowDown' ? 1 : -1)));
+  e.preventDefault();
+  cards[target].focus();
+});
 document.getElementById('notifTabs')?.addEventListener('click', e => {
   const tab = e.target.closest('[data-notif-tab]');
   if (!tab) return;
   uiNotifTab(tab.dataset.notifTab);
+  uiNotifLimit(40);
   const box = document.getElementById('notifList');
   if (box) box.textContent = '';
   uiRenderNotifs();
@@ -28227,18 +28437,14 @@ document.getElementById('notifTabs')?.addEventListener('click', e => {
 document.getElementById('notifReadAll')?.addEventListener('click', () => {
   const before = uiNotifRead();
   const read = new Set(before);
-  uiNotifItems().forEach(item => read.add(item.id));
+  uiNotifItems().forEach(item => { if (!item.quiet) { read.delete(item.id); read.add(item.id); } });
   uiNotifSaveRead(read);
   uiRenderNotifs();
   toast('已全部标为已读', { undo:() => { uiNotifSaveRead(before); uiRenderNotifs(); } });
 });
-document.getElementById('notifList')?.addEventListener('click', e => {
-  const card = e.target.closest('[data-notif-id]');
-  if (!card) return;
-  const read = uiNotifRead();
-  read.add(card.dataset.notifId);
-  uiNotifSaveRead(read);
-  uiRenderNotifs();
+// 点卡片：标成已读，再去能处理这件事的地方。
+function uiNotifOpenTarget(card) {
+  const id = card.dataset.notifId || '';
   if (card.dataset.subId && typeof findSubscription === 'function' && findSubscription(card.dataset.subId)) {
     uiToggleNotifs(false);
     setPage('subscriptions');
@@ -28247,9 +28453,78 @@ document.getElementById('notifList')?.addEventListener('click', e => {
   }
   if (card.dataset.orderId && state.orders.some(o => o.id === card.dataset.orderId)) {
     uiToggleNotifs(false);
+    // 飞书卡去「订单信息」页签底部的「重新发送」（以前跳到「记录」页签，那里没有这个按钮）；旧记录里存的是 records。
+    if (id.startsWith('feishu-')) {
+      openOrderDetail(card.dataset.orderId, { tab:'info' });
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const body = document.getElementById('orderDetailBody');
+        const target = body?.querySelector('[data-retry-order-notification]') || body?.querySelector('[data-order-notification-section]');
+        if (!target) return;
+        target.scrollIntoView({ block:'center' });
+        if (target.matches('button')) target.focus({ preventScroll:true });
+      }));
+      return;
+    }
     openOrderDetail(card.dataset.orderId, { tab:card.dataset.tab || '' });
+    return;
   }
+  // 接口异常 → 设置「接口状态」，焦点放在这个接口的状态灯上，回车就能再检测一次。
+  const api = /^api-(dhl|fedex|ai)-/.exec(id);
+  if (api) {
+    uiToggleNotifs(false);
+    setPage('settings');
+    uiSettingsTab('api');
+    document.querySelector(`[data-settings-panel="api"] [data-api-check="${api[1]}"]`)?.focus();
+    return;
+  }
+  // 保存失败 → 设置「数据管理」（数据库状态在那里）；还在失败就马上再试一次。
+  if (id.startsWith('save-')) {
+    uiToggleNotifs(false);
+    setPage('settings');
+    uiSettingsTab('data');
+    if (macSaveLastError && !macStorageReadOnly && typeof flushPendingSave === 'function') flushPendingSave();
+    return;
+  }
+  // 新版本 → 焦点放到右上角「更新」上（更新会重启 App，不替用户点）。
+  if (id.startsWith('update-')) {
+    uiToggleNotifs(false);
+    const btn = document.getElementById('appUpdateBtn');
+    if (btn && btn.getClientRects().length) {
+      btn.focus();
+      btn.classList.remove('ui-pop-in'); void btn.offsetWidth; btn.classList.add('ui-pop-in');
+      setTimeout(() => btn.classList.remove('ui-pop-in'), 600);
+    } else toast('请在 Mac App 里点右上角「更新」');
+  }
+}
+document.getElementById('notifList')?.addEventListener('click', e => {
+  if (e.target.closest('[data-notif-show-all]')) {
+    uiNotifTab('all');
+    uiNotifLimit(40);
+    const box = document.getElementById('notifList');
+    if (box) box.textContent = '';
+    uiRenderNotifs();
+    box?.querySelector('.notif-card')?.focus();
+    return;
+  }
+  if (e.target.closest('[data-notif-more]')) {
+    const first = document.querySelectorAll('#notifList .notif-card').length;
+    uiNotifLimit(uiNotifLimit() + 40);
+    uiRenderNotifs();
+    // 焦点放到新露出来的第一张卡上（按钮被挪到末尾或者已经没有了）。
+    document.querySelectorAll('#notifList .notif-card')[first]?.focus();
+    return;
+  }
+  const card = e.target.closest('.notif-card[data-notif-id]');
+  if (!card) return;
+  if (!card.classList.contains('is-quiet')) uiNotifMarkRead([card.dataset.notifId]);
+  uiRenderNotifs();
+  uiNotifOpenTarget(card);
 });
+// 另一个窗口（同一个源）标了已读、记了新事件，这边的红点跟着变；窗口回到前台时也重算一次。
+window.addEventListener('storage', e => {
+  if (e.key === null || /^ots-notif-/.test(e.key) || e.key === apiStatusKey) uiRenderNotifs();
+});
+window.addEventListener('focus', () => uiRenderNotifs());
 uiRenderNotifs();
 // 续费提醒按日期算：启动时读一次续费数据，之后每小时刷新一次铃铛。
 refreshSubscriptionReminders();

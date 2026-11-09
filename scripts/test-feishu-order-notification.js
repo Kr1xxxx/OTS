@@ -11,7 +11,7 @@ const seedFile = path.join(root, 'trade-order-data.json');
 const testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'trade-order-feishu-test-'));
 const fakeCli = path.join(testDir, 'fake-lark-cli.js');
 const cliLog = path.join(testDir, 'fake-lark-calls.jsonl');
-const failureMarker = path.join(testDir, 'failed-once');
+const envLog = path.join(testDir, 'fake-lark-env.jsonl');
 const port = require('./helpers/free-port').freePortSync();
 const baseUrl = `http://127.0.0.1:${port}`;
 const apiToken = `feishu-test-${process.pid}`;
@@ -109,6 +109,8 @@ async function main() {
   const failed = await rawRequest('/api/order-notification', { method: 'POST', body: { orderId: 'o-feishu-fail' } });
   assert.equal(failed.status, 503);
   assert.equal(failed.data.status, 'failed');
+  assert.equal(failed.data.error, '飞书服务暂时不可用，可稍后重试', 'an unknown lark-cli error read from stderr stays the generic retryable message');
+  assert.equal(failed.data.retryable, true);
   assert.equal(JSON.stringify(failed.data).includes(testDir), false, 'error leaked an absolute path');
   assert.equal(JSON.stringify(failed.data).includes('TEST_AUTH_TOKEN'), false, 'error leaked CLI output');
 
@@ -130,7 +132,8 @@ async function main() {
   await waitForHealth();
   const upgraded = await request('/api/order-notification', { method:'POST', body:{ orderId:'o-feishu-upgrade' } });
   assert.equal(upgraded.status, 'sent');
-  const latest = readCliCalls().filter(args => args.includes('+messages-send')).at(-1);
+  const sends = readCliCalls().filter(args => args.includes('+messages-send'));
+  const latest = sends[sends.length - 1];
   assertExplicitBotIdentity(latest);
   assert.equal(valueAfter(latest, '--chat-id'), settings.chatId, 'application replacement must retain the local target');
   assert.deepEqual(JSON.parse(fs.readFileSync(settingsFile, 'utf8')), settings, 'upgrade must not overwrite local configuration');
@@ -142,10 +145,14 @@ async function main() {
   const callCount = readCliCalls().length;
   const unconfigured = await rawRequest('/api/order-notification', { method:'POST', body:{ orderId:'o-feishu-no-config' } });
   assert.equal(unconfigured.status, 503);
-  assert.equal(unconfigured.data.message, '飞书机器人配置不可用');
+  assert.match(unconfigured.data.message, /还没有配置飞书/);
+  assert.equal(unconfigured.data.errorKind, 'config');
   assert.equal(readCliCalls().length, callCount, 'missing settings must never invoke a placeholder identity or group');
   const sentWithMissingConfig = await request('/api/order-notification', { method:'POST', body:{ orderId:'o-feishu-success' } });
   assert.equal(sentWithMissingConfig.alreadySent, true, 'configuration failure must not resend an already delivered order');
+  const envKeys = fs.readFileSync(envLog, 'utf8').trim().split('\n').flatMap(line => JSON.parse(line));
+  assert.ok(envKeys.length, 'fake lark-cli recorded its environment');
+  assert.deepEqual(envKeys.filter(key => /^TRADE_|^FAKE_|^OTS_/.test(key)), [], 'lark-cli must not receive the local API token, port or data directory');
   console.log('Feishu order notification passed: rich text, bot identity, idempotency, retry, local settings across app replacement, and safe missing configuration.');
 }
 
@@ -170,27 +177,33 @@ function testOrder(id, num, fileUrl) {
   };
 }
 
+// The fake follows the real lark-cli contract: success envelope on stdout, error envelope on stderr
+// with a non-zero exit. OTS passes lark-cli only a short allow-list of environment variables, so the
+// fake finds its log and markers next to itself instead of through the environment.
 function writeFakeCli() {
   const source = `#!/usr/bin/env node
 const fs = require('node:fs');
+const path = require('node:path');
+const dir = path.dirname(fs.realpathSync(__filename));
 const args = process.argv.slice(2);
-fs.appendFileSync(process.env.FAKE_LARK_LOG, JSON.stringify(args) + '\\n');
+fs.appendFileSync(path.join(dir, 'fake-lark-calls.jsonl'), JSON.stringify(args) + '\\n');
+fs.appendFileSync(path.join(dir, 'fake-lark-env.jsonl'), JSON.stringify(Object.keys(process.env)) + '\\n');
+// exitCode instead of process.exit(): on macOS a pipe write can still be pending when the process exits.
+const ok = data => { process.stdout.write(JSON.stringify({ ok:true, identity:'bot', data }) + '\\n'); process.exitCode = 0; };
+const fail = (code, error) => { process.stderr.write(JSON.stringify({ ok:false, error }) + '\\n'); process.exitCode = code; };
 if (args.includes('images') && args.includes('create')) {
-  console.log(JSON.stringify({ ok:true, identity:'bot', data:{ image_key:'img_v3_test_order' } }));
-  process.exit(0);
-}
-if (args.includes('+messages-send')) {
+  ok({ image_key:'img_v3_test_order' });
+} else if (args.includes('+messages-send')) {
   const markdown = args[args.indexOf('--markdown') + 1] || '';
-  if (markdown.includes('TEST-FAIL-002') && !fs.existsSync(process.env.FAKE_LARK_FAILURE_MARKER)) {
-    fs.writeFileSync(process.env.FAKE_LARK_FAILURE_MARKER, '1');
-    console.log(JSON.stringify({ ok:false, error:{ message:'TEST_AUTH_TOKEN /private/tmp/private-profile.json' } }));
-    process.exit(3);
+  if (markdown.includes('TEST-FAIL-002') && !fs.existsSync(path.join(dir, 'failed-once'))) {
+    fs.writeFileSync(path.join(dir, 'failed-once'), '1');
+    fail(3, { type:'api_error', message:'TEST_AUTH_TOKEN /private/tmp/private-profile.json' });
+  } else {
+    ok({ chat_id:'oc_test', create_time:'2026-08-18 17:45:00', message_id:'om_test_' + Date.now() });
   }
-  console.log(JSON.stringify({ ok:true, identity:'bot', data:{ chat_id:'oc_test', create_time:'2026-08-18 17:45:00', message_id:'om_test_' + Date.now() } }));
-  process.exit(0);
+} else {
+  fail(2, { type:'validation', message:'unsupported fake command' });
 }
-console.log(JSON.stringify({ ok:false, error:{ message:'unsupported fake command' } }));
-process.exit(2);
 `;
   fs.writeFileSync(fakeCli, source, { mode: 0o700 });
 }
@@ -220,8 +233,6 @@ function startServer() {
       TRADE_API_TOKEN: apiToken,
       TRADE_INSTANCE_NONCE: `feishu-instance-${process.pid}`,
       TRADE_LARK_CLI: fakeCli,
-      FAKE_LARK_LOG: cliLog,
-      FAKE_LARK_FAILURE_MARKER: failureMarker,
       PATH: '/usr/bin:/bin'
     },
     stdio: ['ignore', 'pipe', 'pipe']

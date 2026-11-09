@@ -1569,6 +1569,7 @@ html[data-theme="dark"] .tag-neutral {
 .roadmap-event.archive .roadmap-dot { background: var(--gray-500); }
 .detail-attachment { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border: 1px solid var(--gray-200); border-radius: 12px; background: var(--white); }
 .detail-attachment small { color: var(--gray-500); }
+.detail-attachment-note { min-width: 0; max-width: 55%; overflow-wrap: anywhere; font-size: 12px; text-align: right; }
 .modal-head {
   position: sticky; top: 0; background: color-mix(in srgb, var(--surface-bg) 94%, transparent); z-index: 2; padding: 18px 20px; border-bottom: 1px solid var(--surface-border);
   backdrop-filter: blur(12px);
@@ -5953,7 +5954,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.136，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.136</div>
+      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.137，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.137</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会先问一句，再下载并重启" aria-label="检查更新：有新版本会先问一句，再下载并重启" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse is-busy" id="savePulse" aria-live="polite"><i></i><span>读取中</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -7882,14 +7883,18 @@ if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 function isMacAppMode() {
   return location.protocol === 'http:' && ['127.0.0.1', 'localhost'].includes(location.hostname);
 }
+// 本机服务启动跳转时把令牌放在地址的 #ots-token= 后面（不会发给服务器）：读出来存进 sessionStorage，地址换回 #dashboard。
+// 会话 cookie 只够取页面和附件图片，所有 /api/* 都靠这个令牌（X-Trade-Token）。
 function consumeTradeApiToken() {
   let token = '';
   try {
     const url = new URL(window.location.href);
-    token = String(url.searchParams.get('token') || sessionStorage.getItem(apiTokenStorageKey) || '').trim();
+    const hashToken = url.hash.startsWith('#ots-token=') ? decodeURIComponent(url.hash.slice('#ots-token='.length)) : '';
+    token = String(hashToken || url.searchParams.get('token') || sessionStorage.getItem(apiTokenStorageKey) || '').trim();
     if (token) sessionStorage.setItem(apiTokenStorageKey, token);
-    if (url.searchParams.has('token')) {
+    if (url.searchParams.has('token') || url.hash.startsWith('#ots-token=')) {
       url.searchParams.delete('token');
+      if (url.hash.startsWith('#ots-token=')) url.hash = '#dashboard';
       history.replaceState(history.state, '', `${url.pathname}${url.search}${url.hash}`);
     }
   } catch (_) {}
@@ -9284,6 +9289,8 @@ async function loadMacAppState() {
       render();
     } else {
       const failure = await res.json().catch(() => ({}));
+      // 401：这个标签页没有令牌（例如浏览器模式下手动新开的标签页），只能用启动地址重新打开。
+      if (res.status === 401) throw new Error('本机数据服务没有认出这个页面：请关掉它，用启动时给出的地址重新打开');
       throw new Error(failure.message || `数据库读取失败 HTTP ${res.status}`);
     }
     const healthRes = await apiFetch('/api/health', { cache: 'no-store' });
@@ -10768,7 +10775,7 @@ function orderDueUsd(order = {}, rateRows = ecbHistoricalRates) {
 }
 async function loadEcbHistoricalRates() {
   try {
-    const response = await fetch('/api/ecb-rates', { cache:'no-store' });
+    const response = await apiFetch('/api/ecb-rates', { cache:'no-store' });
     const data = await response.json();
     if (!response.ok || !data.ok || !Array.isArray(data.rates)) throw new Error(data.message || `HTTP ${response.status}`);
     ecbHistoricalRates = data.rates;
@@ -12519,7 +12526,16 @@ function hasPaidSignalText(text = '') {
   if (/还没付|没有付|没付|未付|待付|等我付|明天付|下周付|晚点付|稍后付|定金|首付|预付|一半|\b(?:not|never)\s+(?:yet\s+)?paid\b|\bhaven'?t\s+(?:yet\s+)?paid\b|\bunpaid\b|\b(?:will|going\s+to|gonna|can|could|let\s+me|i'?ll)\s+pay\b|\bpay\s+(?:tomorrow|later|next|soon)\b|\b(?:deposit|down\s+payment|partial|half|anzahlung|anticipo|acompte|acconto)\b|\bnoch\s+nicht\b/.test(lower)) return false;
   return /已付|已经付|付了|付过了|付款了|付清|已收款|收到款|已到账|到账了|已转账|\bpaid\b|\btransferred\b|\bsent\s+(?:the\s+|you\s+the\s+)?(?:payment|money)\b|\bbezahlt\b|\buberwiesen\b|\bpagado\b|\bpagato\b|\bpaye\b|\bverse\b/.test(lower);
 }
-function analyzePasteText(text) {
+// 识别前先把 300 个字符以上、中间没有空白的长串（带跟踪参数的链接、内嵌图片的 base64）换成一个空格：
+// 这些串里没有要识别的东西，留着会让邮箱、地址这些正则在一个「词」里来回扫，粘一大段时页面卡住好几秒。
+// 每行最多看前 4000 个字符（没有换行的大段网页文字）。只给识别用；返回的原文、备注照旧用用户粘贴的原文。
+const pasteRecognitionLineLimit = 4000;
+function pasteTextForRecognition(text) {
+  return String(text ?? '').replace(/\S{300,}/g, ' ').split('\n')
+    .map(line => line.length > pasteRecognitionLineLimit ? line.slice(0, pasteRecognitionLineLimit) : line).join('\n');
+}
+function analyzePasteText(originalText) {
+  const text = pasteTextForRecognition(originalText);
   const trackingNumber = findTrackingInText(text);
   const carrierHint = carrierHintFromTrackingText(text);
   // 没写币种就留空：以前兜底写 USD，会把 EUR 订单 / EUR 客户的币种静默改成美元。需要默认值时由填表那一步按客户档案、设置决定。
@@ -12536,7 +12552,7 @@ function analyzePasteText(text) {
     ...partialPayment,
     trackingNumber,
     carrier: trackingNumber ? (carrierHint || detectCarrier(trackingNumber)) : '',
-    note: findExplicitNoteInText(text, 'order')
+    note: findExplicitNoteInText(originalText, 'order')
   };
   Object.keys(extracted).forEach(key => {
     if (!extracted[key]) delete extracted[key];
@@ -12548,7 +12564,7 @@ function analyzePasteText(text) {
   const automaticClientMatch = isAutomaticClientMatch(clientMatches[0]) ? clientMatches[0] : null;
   if (!extracted.client && automaticClientMatch) extracted.client = automaticClientMatch.client.client;
   if (!extracted.country && automaticClientMatch?.client?.country) extracted.country = normalizeCountry(automaticClientMatch.client.country);
-  return { text, extracted, orderMatches, clientMatches };
+  return { text:originalText, extracted, orderMatches, clientMatches };
 }
 // 粘贴识别卡片、填表确认框里的字段名，和订单表单上的叫法一致。
 function pasteOrderFieldLabel(key) {
@@ -13583,7 +13599,7 @@ function deobfuscateEmailText(text = '') {
   return String(text || '')
     .replace(/[＠﹫]/g, '@')
     .replace(/[．｡]/g, '.')
-    .replace(new RegExp(`\\b([a-z0-9._%+-]+)[ \\t]+at[ \\t]+([a-z0-9-]+(?:[ \\t]+dot[ \\t]+[a-z0-9-]+)*)[ \\t]+dot[ \\t]+(${tld})`, 'gi'),
+    .replace(new RegExp(`\\b([a-z0-9._%+-]{1,64})[ \\t]+at[ \\t]+([a-z0-9-]+(?:[ \\t]+dot[ \\t]+[a-z0-9-]+)*)[ \\t]+dot[ \\t]+(${tld})`, 'gi'),
       (m, local, domain, suffix) => `${local}@${domain.replace(/[ \t]+dot[ \t]+/gi, '.')}.${suffix}`)
     // @ 两边的空格只在后面确实是「域名.后缀」时去掉：「IG @nia.lashbar」这类社交账号不拼成邮箱。
     .replace(new RegExp(`([a-z0-9._%+-])[ \\t]*@[ \\t]*(?=[a-z0-9-]+(?:\\.[a-z0-9-]+)*\\.${tld})`, 'gi'), '$1@')
@@ -13608,7 +13624,7 @@ function sellerSideEmails(text = '') {
   const source = deobfuscateEmailText(decodePasteEntities(String(text || '')));
   const found = new Set(findEmailsInText(sellerSideCustomerLines(text).join('\n')).map(value => value.toLowerCase()));
   // 「send the deposit to sales@…」「pay to …」「付到这个邮箱 …」：钱是付给我方的，这个邮箱是我方的收款邮箱。
-  const email = '([A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,})';
+  const email = '([A-Z0-9._%+-]{1,64}@[A-Z0-9.-]{1,253}\\.[A-Z]{2,63})';
   [new RegExp(`\\b(?:send|sent|sending|pay|paid|paying|transfer(?:red)?|wire[sd]?|remit(?:ted)?)\\b[^\\n@]{0,40}?\\bto\\s*[:：]?\\s*${email}`, 'gi'),
     new RegExp(`(?:付到|打到|转到|汇到|付款到|付给|转给|打款到)[^\\n@]{0,12}?${email}`, 'gi')]
     .forEach(pattern => { for (const match of source.matchAll(pattern)) found.add(normalizeCustomerEmail(match[1]).toLowerCase()); });
@@ -13634,7 +13650,7 @@ function supersededCustomerEmails(text = '') {
   const seen = [];
   lines.forEach(line => {
     const emails = findEmailsInText(line).map(value => value.toLowerCase());
-    for (const match of line.matchAll(/([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})\s*[,，]?\s*(?:not|instead of|不是)\s*([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/gi)) wrong.add(normalizeCustomerEmail(match[2]).toLowerCase());
+    for (const match of line.matchAll(/([A-Z0-9._%+-]{1,64}@[A-Z0-9.-]{1,253}\.[A-Z]{2,63})\s*[,，]?\s*(?:not|instead of|不是)\s*([A-Z0-9._%+-]{1,64}@[A-Z0-9.-]{1,253}\.[A-Z]{2,63})/gi)) wrong.add(normalizeCustomerEmail(match[2]).toLowerCase());
     if (emails.length && /\b(?:sorry|typo|wrong|correct(?:ion|ed)?|actually|i meant|mistake)\b|写错|打错|更正|应该是|改成/i.test(line)) {
       emails.forEach(right => seen.forEach(earlier => { if (earlier !== right && distance(earlier, right) <= 3) wrong.add(earlier); }));
     }
@@ -13648,7 +13664,7 @@ function customerExcludedEmails(text = '') {
   return new Set([...sellerSideEmails(text), ...supersededCustomerEmails(text), ...customerOwnEmailSet()]);
 }
 function findEmailsInText(text) {
-  return Array.from(new Set((deobfuscateEmailText(decodePasteEntities(String(text || ''))).match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/ig) || [])
+  return Array.from(new Set((deobfuscateEmailText(decodePasteEntities(String(text || ''))).match(/[A-Z0-9._%+-]{1,64}@[A-Z0-9.-]{1,253}\.[A-Z]{2,63}/ig) || [])
     .map(normalizeCustomerEmail)
     .filter(Boolean)));
 }
@@ -13768,7 +13784,7 @@ function findCustomerPhoneInText(text) {
 }
 function findPaymentEmailInText(text) {
   const lines = String(text || '').split(/\n+/).map(line => line.trim()).filter(Boolean);
-  const explicit = lines.map(line => line.match(/(?:付款邮箱|收款邮箱|paypal|payment\s*email|pay\s*email)[:：\s]+([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i)).find(Boolean);
+  const explicit = lines.map(line => line.match(/(?:付款邮箱|收款邮箱|paypal|payment\s*email|pay\s*email)[:：\s]+([A-Z0-9._%+-]{1,64}@[A-Z0-9.-]{1,253}\.[A-Z]{2,63})/i)).find(Boolean);
   if (explicit) return explicit[1].trim();
   return '';
 }
@@ -13822,21 +13838,20 @@ function isSpainAddressText(value = '') {
   return /\b(?:0[1-9]|[1-4]\d|5[0-2])\d{3}\b/.test(text) && /\b(?:espana|spain|madrid|barcelona|valencia|sevilla|zaragoza|malaga|murcia|palma|bilbao|alicante|cordoba|valladolid|mostoles)\b/.test(text);
 }
 const usStateNamePattern = 'Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West Virginia|Wisconsin|Wyoming|District of Columbia';
-const canadaProvinceNamePattern = 'Alberta|British Columbia|Manitoba|New Brunswick|Newfoundland and Labrador|Nova Scotia|Ontario|Prince Edward Island|Quebec|Saskatchewan|Northwest Territories|Nunavut|Yukon';
 function isUsCityStateZipText(value = '') {
   const text = String(value || '').trim();
-  if (!text) return false;
+  // 没有 5 位数字就不可能是「城市, 州 邮编」：先用这个便宜的检查挡掉长段落，别让下面的正则在每个词首都试一遍州名。
+  if (!text || !/\d{5}/.test(text)) return false;
   const statePart = `(?:[A-Z]{2}|${usStateNamePattern})`;
-  const cityStateZip = new RegExp(`\\b[A-Za-z .'-]+,?\\s+${statePart}\\s+\\d{5}(?:-\\d{4})?\\b`, 'i');
+  const cityStateZip = new RegExp(`\\b[A-Za-z .'-]{1,40},?\\s+${statePart}\\s+\\d{5}(?:-\\d{4})?\\b`, 'i');
   return cityStateZip.test(text);
 }
 function isCanadaProvincePostalText(value = '') {
   const text = String(value || '').trim();
   if (!text) return false;
-  const provincePart = `(?:AB|BC|MB|NB|NL|NS|NT|NU|ON|PE|QC|SK|YT|${canadaProvinceNamePattern})`;
   const postalPart = '[ABCEGHJ-NPRSTVXY]\\d[ABCEGHJ-NPRSTV-Z][ -]?\\d[ABCEGHJ-NPRSTV-Z]\\d';
-  return new RegExp(`\\b(?:[A-Za-z .'-]+,\\s*)?${provincePart}\\s+${postalPart}\\b`, 'i').test(text)
-    || new RegExp(`\\b${postalPart}\\b`, 'i').test(text);
+  // 「省份 邮编」能匹配时，单独的邮编一定也能匹配：只看邮编就够了（以前先试带城市、省份的长正则，长段落里很慢）。
+  return new RegExp(`\\b${postalPart}\\b`, 'i').test(text);
 }
 function isUkPostcodeText(value = '') {
   const text = String(value || '').trim();
@@ -13889,7 +13904,7 @@ function cleanCustomerNameCandidate(value = '') {
   if (!text) return '';
   text = text
     .replace(/^(?:客户(?:名称|名)?|公司(?:名称)?|联系人|联系姓名|收件人|姓名|customer(?:\s*name)?|client|company(?:\s*name)?|contact(?:\s*name)?|recipient|receiver|name)\s*[:：-]\s*/i, '')
-    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/ig, ' ')
+    .replace(/[A-Z0-9._%+-]{1,64}@[A-Z0-9.-]{1,253}\.[A-Z]{2,63}/ig, ' ')
     .replace(/\b(?:tel|phone|mobile|whats\s*app|whatsapp)\b\s*[:：-]?\s*/ig, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -13911,7 +13926,7 @@ function customerNameFromMixedLine(line = '') {
   if (!text) return '';
   const patterns = [
     /^(.{2,90}?)(?:\s+|(?=\+\d))\+?\d[\d \t().-]{1,}(?:\s*,|\s+\d{1,6}\s+|$)/i,
-    /^(.{2,90}?)\s+[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i,
+    /^(.{2,90}?)\s+[A-Z0-9._%+-]{1,64}@[A-Z0-9.-]{1,253}\.[A-Z]{2,63}/i,
     /^(.{2,90}?)\s+\d{1,6}\s+(?=.*[A-Za-z])[\w\s.'#-]{3,90}/i
   ];
   for (const pattern of patterns) {
@@ -13986,21 +14001,21 @@ function inlineCustomerAddressBlock(text) {
       const address = intlPhoneAddressMatch[3].replace(/\s*,\s*/g, ', ').replace(/\s+/g, ' ').trim();
       if (name && address && !isOrderInfoLine(name)) return { name, address, phone };
     }
-    const emailPhoneAddressMatch = line.match(new RegExp(`^([A-Za-z][A-Za-z\\s.'-]{2,70}?)\\s+(?:[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\s+)?(\\+?1?\\s*(?:\\(?\\d{3}\\)?[\\s.-]*)\\d{3}[\\s.-]?\\d{4})\\s+(\\d{1,6}\\s+.+?(?:\\b[A-Za-z .'-]+,?\\s+${statePart},?\\s+\\d{5}(?:-\\d{4})?|\\b(?:United States|USA|US|美国)\\b).*)$`, 'i'));
+    const emailPhoneAddressMatch = line.match(new RegExp(`^([A-Za-z][A-Za-z\\s.'-]{2,70}?)\\s+(?:[A-Z0-9._%+-]{1,64}@[A-Z0-9.-]{1,253}\\.[A-Z]{2,63}\\s+)?(\\+?1?\\s*(?:\\(?\\d{3}\\)?[\\s.-]*)\\d{3}[\\s.-]?\\d{4})\\s+(\\d{1,6}\\s+.+?(?:\\b[A-Za-z .'-]{1,40},?\\s+${statePart},?\\s+\\d{5}(?:-\\d{4})?|\\b(?:United States|USA|US|美国)\\b).*)$`, 'i'));
     if (emailPhoneAddressMatch) {
       const name = emailPhoneAddressMatch[1].replace(/\s+/g, ' ').trim();
       const phone = emailPhoneAddressMatch[2].replace(/\s+/g, ' ').trim();
       const address = emailPhoneAddressMatch[3].replace(/\s*,\s*/g, ', ').replace(/\s+/g, ' ').trim();
       if (name && address && !isOrderInfoLine(name)) return { name, address, phone };
     }
-    const phoneAddressMatch = line.match(new RegExp(`^([A-Za-z][A-Za-z\\s.'-]{2,70}?)\\s+(\\+?\\d[\\d\\s().-]{8,})\\s*,\\s*(\\d{1,6}\\s+.+?\\b[A-Za-z .'-]+,?\\s+${statePart},?\\s+\\d{5}(?:-\\d{4})?(?:,?\\s+(?:United States|USA|US|美国))?)$`, 'i'));
+    const phoneAddressMatch = line.match(new RegExp(`^([A-Za-z][A-Za-z\\s.'-]{2,70}?)\\s+(\\+?\\d[\\d\\s().-]{8,})\\s*,\\s*(\\d{1,6}\\s+.+?\\b[A-Za-z .'-]{1,40},?\\s+${statePart},?\\s+\\d{5}(?:-\\d{4})?(?:,?\\s+(?:United States|USA|US|美国))?)$`, 'i'));
     if (phoneAddressMatch) {
       const name = phoneAddressMatch[1].replace(/\s+/g, ' ').trim();
       const phone = phoneAddressMatch[2].replace(/\s+/g, ' ').trim();
       const address = phoneAddressMatch[3].replace(/\s*,\s*/g, ', ').replace(/\s+/g, ' ').trim();
       if (name && address && !isOrderInfoLine(name)) return { name, address, phone };
     }
-    const match = line.match(new RegExp(`^([A-Za-z][A-Za-z\\s.'-]{2,70}?)\\s+(\\d{1,6}\\s+.+?${streetSuffix}\\b.*?\\b[A-Za-z .'-]+,?\\s+${statePart}\\s+\\d{5}(?:-\\d{4})?)$`, 'i'));
+    const match = line.match(new RegExp(`^([A-Za-z][A-Za-z\\s.'-]{2,70}?)\\s+(\\d{1,6}\\s+.+?${streetSuffix}\\b.*?\\b[A-Za-z .'-]{1,40},?\\s+${statePart}\\s+\\d{5}(?:-\\d{4})?)$`, 'i'));
     if (!match) continue;
     const name = match[1].replace(/\s+/g, ' ').trim();
     const address = match[2].replace(/\s+/g, ' ').trim();
@@ -14182,7 +14197,7 @@ function findCustomerPaymentMethodFieldInText(text) {
 function findCustomerPaymentEmailFieldInText(text) {
   const lines = customerPasteLines(text);
   const explicit = labeledCustomerValue(lines, [
-    /^(?:付款邮箱|收款邮箱|paypal\s*邮箱|paypal\s*email|payment\s*email|pay\s*email)\s*[:：-]\s*([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})$/i
+    /^(?:付款邮箱|收款邮箱|paypal\s*邮箱|paypal\s*email|payment\s*email|pay\s*email)\s*[:：-]\s*([A-Z0-9._%+-]{1,64}@[A-Z0-9.-]{1,253}\.[A-Z]{2,63})$/i
   ]);
   if (explicit) return explicit;
   return findPaymentEmailInText(text);
@@ -14276,7 +14291,7 @@ function isLocalStreetLine(line = '') {
     || /^(?:unit|flat|apt|apartment|suite|ste|floor|fl|bldg|building|level|house\s*no)\b\.?\s*[\w#/.-]+/i.test(text)
     || /^(?:p\.?\s*o\.?\s*box|c\/o)\b/i.test(text)
     || /^(?:via|viale|piazza|corso|largo|rue|chemin|calle|avenida|rua|strada)\s+\p{L}.*\d/iu.test(text)
-    || /\p{L}+(?:straße|strasse|str\.|weg|gasse|platz|allee)\s*\d+\w?/iu.test(text);
+    || /\p{L}{1,40}(?:straße|strasse|str\.|weg|gasse|platz|allee)\s*\d+\w?/iu.test(text);
 }
 function isLocalTailAddressLine(line = '') {
   const text = String(line || '').trim();
@@ -14378,7 +14393,7 @@ function localCustomerEmails(segments, text) {
   let sameEmailForPayment = false;
   segments.forEach(segment => {
     const emails = findEmailsInText(segment.value);
-    const context = segment.value.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/ig, ' ');
+    const context = segment.value.replace(/[A-Z0-9._%+-]{1,64}@[A-Z0-9.-]{1,253}\.[A-Z]{2,63}/ig, ' ');
     if (/(?:paypal|zelle|付款|pay).{0,20}same\s*email|same\s*email.{0,20}(?:paypal|zelle|付款|pay)/i.test(segment.value)) sameEmailForPayment = true;
     if (!emails.length) return;
     const isPayment = segment.field === 'paymentEmail'
@@ -14439,7 +14454,7 @@ function localCustomerCountry(text = '', addresses = []) {
   const inAddress = findCountryInText(addressText.replace(/\+\d[\d \t().-]*/g, ''));
   if (inAddress) return inAddress;
   if (/\b(?:NSW|VIC|QLD|TAS|ACT)\s+\d{4}\b/.test(addressText)) return normalizeCountry('Australia');
-  if (/\p{L}+(?:straße|strasse)\b/iu.test(addressText)) return normalizeCountry('Germany');
+  if (/\p{L}{1,40}(?:straße|strasse)\b/iu.test(addressText)) return normalizeCountry('Germany');
   if (isCanadaProvincePostalText(addressText)) return normalizeCountry('Canada');
   if (isUsCityStateZipText(addressText)) return normalizeCountry('United States');
   if (isUkPostcodeText(addressText)) return normalizeCountry('United Kingdom');
@@ -14453,14 +14468,15 @@ function localCustomerCountry(text = '', addresses = []) {
 }
 function localCustomerPaymentMethod(text = '') {
   // 多种付款方式时取最先提到的，例如 "Western Union, sometimes PayPal"；卖家问的 "Payment by paypal?" 也算
-  const lower = normalizeSearchText(decodePasteEntities(String(text || '')).replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/ig, ' '));
+  const lower = normalizeSearchText(decodePasteEntities(String(text || '')).replace(/[A-Z0-9._%+-]{1,64}@[A-Z0-9.-]{1,253}\.[A-Z]{2,63}/ig, ' '));
   const positions = [
     ['阿里巴巴', /阿里|\balibaba\b/], ['Paypal', /\bpaypal\b/], ['西联', /西联|\bwestern(?:\s+union)?\b/], ['Zelle', /\bzelle\b/],
     ['信用卡', /信用卡|\bcredit\s+card\b|\bvisa\b|\bmastercard\b|\bcard\b/], ['TT', /\btt\b|\bt\/t\b|\bwire(?:\s+transfer)?\b|\bbank\s+transfer\b|银行转账|电汇|\buberweisung\b|\bbonifico\b|\bvirement\b|\btransferencia\b/]
   ].map(([value, re]) => ({ value, index:lower.search(re) })).filter(item => item.index >= 0).sort((a, b) => a.index - b.index);
   return positions[0]?.value || findCustomerPaymentMethodFieldInText(text);
 }
-function analyzeCustomerPasteText(text) {
+function analyzeCustomerPasteText(originalText) {
+  const text = pasteTextForRecognition(originalText);
   const clientMatches = matchClientsFromPaste(text);
   const bestClient = isAutomaticClientMatch(clientMatches[0]) ? clientMatches[0].client : null;
   const local = localCustomerContactFields(text);
@@ -14490,12 +14506,12 @@ function analyzeCustomerPasteText(text) {
     level: findCustomerLevelInText(text),
     repurchaseCycle: findRepurchaseCycleInText(text),
     tags: findCustomerTagsInText(text).join(', '),
-    note: findExplicitNoteInText(text, 'customer')
+    note: findExplicitNoteInText(originalText, 'customer')
   };
   Object.keys(extracted).forEach(key => {
     if (!extracted[key]) delete extracted[key];
   });
-  return { text, extracted, clientMatches };
+  return { text:originalText, extracted, clientMatches };
 }
 const customerPasteLabels = { name:'客户', country:'国家', contact:'联系人', contacts:'联系人', phone:'电话', phones:'电话', email:'邮箱', emails:'邮箱', address:'地址', addresses:'地址', currency:'币种', productType:'产品', paymentMethod:'付款', paymentEmail:'付款邮箱', level:'等级', repurchaseCycle:'复购', tags:'标签', note:'备注' };
 // 药丸按客户表单的分区顺序排：基本资料 → 联系方式 → 收款与等级 → 跟进 → 备注（以前按对象键的顺序，付款、备注排在联系人前面）。
@@ -15192,7 +15208,7 @@ function normalizeAiCustomerResult(raw = {}, sourceText = '') {
     const paymentWords = /paypal|zelle|付款|收款|\bpay(?:ment)?\b|send\s+from|pays?\s+via/i;
     const listedAsContact = Boolean(fields.paymentEmail) && source.split(/\r?\n/).some(line => {
       const lineEmails = findEmailsInText(line);
-      return lineEmails.some(value => folded(value) === folded(fields.paymentEmail)) && !paymentWords.test(deobfuscateEmailText(line).replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/ig, ' '));
+      return lineEmails.some(value => folded(value) === folded(fields.paymentEmail)) && !paymentWords.test(deobfuscateEmailText(line).replace(/[A-Z0-9._%+-]{1,64}@[A-Z0-9.-]{1,253}\.[A-Z]{2,63}/ig, ' '));
     });
     if (fields.paymentEmail && contactOnlyEmails.length && !listedAsContact) multi.emails = contactOnlyEmails;
   } else {
@@ -16478,6 +16494,11 @@ function safeAttachmentHref(value = '') {
   const url = String(value || '').trim();
   return /^(?:https?:\/\/|\/attachments\/|data:image\/|blob:)/i.test(url) ? url : '';
 }
+function looksLikeUnsafeAttachmentLink(value = '') {
+  const text = String(value || '').trim();
+  if (!text || safeAttachmentHref(text)) return false;
+  return /^[a-z][a-z0-9+.-]*:\/\//i.test(text) || /^\s*(?:javascript|vbscript|data|file)\s*:/i.test(text);
+}
 function renderOrderAttachments(list = []) {
   const form = document.getElementById('orderForm');
   if (form?.elements.attachmentsJson) form.elements.attachmentsJson.value = JSON.stringify(list);
@@ -16735,17 +16756,24 @@ function detailItem(label, value, wide = false, valueClass = '') {
 }
 function renderDetailAttachments(list = []) {
   if (!list.length) return '<div class="muted">暂无附件 / 凭证记录。</div>';
-  return list.map((item, index) => `
+  // 和订单弹窗同一个规则：只有 http(s)、本机附件、图片地址才给「打开」，javascript: 之类、普通备注显示成文字。
+  return list.map(item => {
+    const href = safeAttachmentHref(item.fileUrl || item.link);
+    const open = href
+      ? `<a class="btn btn-small" href="${escapeAttr(href)}" target="_blank" rel="noopener">打开</a>`
+      : (item.link ? `<span class="muted detail-attachment-note">${escapeAttr(item.link)}</span>` : '<span class="muted">无链接</span>');
+    return `
     <div class="detail-attachment">
       ${item.thumbUrl ? attachmentPreviewButton(item, 'attachment') : ''}
       <div>
         <div class="detail-value">${escapeAttr(item.name || item.type || '未命名凭证')}</div>
         <small>${escapeAttr(item.type || '其他')} · ${escapeAttr(item.time || '-')}${item.size ? ` · ${formatBytes(item.size)}` : ''}${item.optimizer ? ` · ${escapeAttr(item.optimizer)}` : ''}</small>
       </div>
-      ${item.fileUrl || item.link ? `<a class="btn btn-small" href="${escapeAttr(item.fileUrl || item.link)}" target="_blank" rel="noopener">打开</a>` : '<span class="muted">无链接</span>'}
+      ${open}
       ${item.fileUrl ? `<button class="btn btn-small" type="button" data-open-attachment-folder="${escapeAttr(item.fileUrl)}">文件夹</button>` : ''}
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 // 抽屉「物流」页：所有批次（单号、承运商、状态、发货日、最近更新、复制 / 官网 / 更新），订单层面的汇总，
 // 补一批运单号的入口和「部分发货」开关；交期一直显示。以前只显示第一批，状态和发货日只有加急单才有，没发货的单整页空白。
@@ -27758,6 +27786,12 @@ document.getElementById('addAttachmentBtn').addEventListener('click', () => {
   const link = linkInput.value.trim();
   if (!name && !link) {
     toast('请填写文件名称或链接');
+    return;
+  }
+  // 看着像链接（带「协议:」）却不是 http(s) 的，不收：javascript: 之类点开会在软件里执行。普通备注照存。
+  if (looksLikeUnsafeAttachmentLink(link)) {
+    toast('链接要以 https:// 开头', { tone:'warn' });
+    linkInput.focus();
     return;
   }
   const list = orderAttachmentsFromForm(form);

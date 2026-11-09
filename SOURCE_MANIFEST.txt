@@ -127,6 +127,7 @@ scripts/test-save-confirmation.js
 scripts/test-save-conflict-ui.js
 scripts/test-save-conflicts-v3135.js
 scripts/test-save-ui.js
+scripts/test-server-security-v3137.js
 scripts/test-server-security.js
 scripts/test-settings-sidebar-ui.js
 scripts/test-shipments-partial-ui.js

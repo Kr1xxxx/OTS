@@ -15,7 +15,10 @@ function argument(name) {
   return index >= 0 ? process.argv[index + 1] : '';
 }
 
-async function smokeTest({ resources, node }) {
+async function smokeTest({ resources: resourcesArg, node: nodeArg }) {
+  // 子进程的 cwd 是包里的 Resources：相对路径的 node / server.js 会按新的 cwd 去找（ENOENT），一律先转成绝对路径。
+  const resources = path.resolve(resourcesArg);
+  const node = path.isAbsolute(nodeArg) || !/[\\/]/.test(nodeArg) ? nodeArg : path.resolve(nodeArg);
   for (const file of ['server.js', 'trade-order-system.html']) {
     if (!fs.existsSync(path.join(resources, file))) throw new Error(`包里缺少 ${file}：${resources}`);
   }
@@ -73,8 +76,8 @@ async function smokeTest({ resources, node }) {
 module.exports = { smokeTest };
 
 if (require.main === module) {
-  const app = argument('--app');
-  const resources = argument('--resources') || (app ? path.join(app, 'Contents', 'Resources') : '');
+  const app = argument('--app') ? path.resolve(argument('--app')) : '';
+  const resources = argument('--resources') ? path.resolve(argument('--resources')) : (app ? path.join(app, 'Contents', 'Resources') : '');
   if (!resources) {
     console.error('用法：node scripts/smoke-test-app-bundle.js --app <TradeOrderSystem.app> | --resources <目录>');
     process.exit(2);

@@ -95,7 +95,9 @@ async function main() {
   assert.equal(bootstrap.status, 303);
   assert.match(bootstrap.headers.get('set-cookie') || '', /HttpOnly/i);
   assert.match(bootstrap.headers.get('set-cookie') || '', /SameSite=Strict/i);
-  assert.equal(bootstrap.headers.get('location'), '/trade-order-system.html#dashboard');
+  // 令牌放在 # 后面交给页面；cookie 的值不是令牌（V3.137，报告 29 P2-1）。
+  assert.equal(bootstrap.headers.get('location'), `/trade-order-system.html#ots-token=${encodeURIComponent(apiToken)}`);
+  assert.ok(!String(bootstrap.headers.get('set-cookie') || '').includes(apiToken), 'session cookie must not carry the API token');
   assert.match(bootstrap.headers.get('content-security-policy') || '', /frame-ancestors 'none'/);
   const sessionCookie = String(bootstrap.headers.get('set-cookie') || '').split(';', 1)[0];
   const appDocument = await rawRequest('/trade-order-system.html', {
@@ -108,7 +110,7 @@ async function main() {
     authenticated: false,
     headers: { Cookie: sessionCookie }
   });
-  assert.equal(cookieData.status, 200);
+  assert.equal(cookieData.status, 401, 'the page session cookie must not unlock /api/*');
 
   const migratedSettings = JSON.parse(fs.readFileSync(path.join(testDir, 'ai-settings.json'), 'utf8'));
   assert.equal(Object.hasOwn(migratedSettings, 'apiKey'), false, 'legacy settings still contained an API key');

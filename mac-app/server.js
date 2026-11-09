@@ -56,6 +56,10 @@ const fedexApiHostOverride = loopbackOverride(process.env.OTS_FEDEX_API_HOST);
 const apiToken = String(process.env.TRADE_API_TOKEN || crypto.randomBytes(32).toString('base64url'));
 const instanceNonce = String(process.env.TRADE_INSTANCE_NONCE || crypto.randomBytes(24).toString('base64url'));
 const apiSessionCookie = 'trade_api_session';
+// 页面会话 cookie 的值不是 API 令牌，而是由令牌算出来的另一个值：cookie 不分端口，127.0.0.1 上别的端口的服务也会收到它。
+// 这个值只能取页面本身和 /attachments/ 的图片，调不了任何 /api/*；/api/* 只认 X-Trade-Token / Bearer。
+// 由令牌派生（不是另起随机数）：Mac App 用同一个令牌重启服务后，页面里的附件图片照样能显示。
+const pageSessionValue = crypto.createHmac('sha256', apiToken).update('ots-page-session-v1').digest('base64url');
 const defaultBodyLimit = 1024 * 1024;
 const saveBodyLimit = 16 * 1024 * 1024;
 const exportBodyLimit = 64 * 1024 * 1024;
@@ -172,7 +176,7 @@ function writeExportFile(name, text) {
     throw friendly === error ? httpError(500, '导出文件没有写成功') : friendly;
   }
   if (process.platform === 'darwin' && process.env.TRADE_EXPORT_NO_REVEAL !== '1') {
-    spawn('/usr/bin/open', ['-R', target], { detached: true, stdio: 'ignore' }).unref();
+    openDetached(['-R', target]);
   }
   return { ok: true, path: target, name: path.basename(target) };
 }
@@ -269,17 +273,38 @@ function emptyDataPayload() {
   };
 }
 
+// 附件的链接 / 文件地址：javascript:、vbscript:、file:、非图片的 data: 点开会在软件里执行或读本机文件，导入和接口写入时一律去掉。
+// 普通备注（「发票在邮箱里」）和 http(s)、本机附件、图片地址照存；页面显示时还会再按 safeAttachmentHref 过一遍。
+const unsafeAttachmentLinkPattern = /^[\s\u0000-\u001f]*(?:javascript|vbscript|file|data(?![\s\u0000-\u001f]*:[\s\u0000-\u001f]*image\/(?:png|jpe?g|webp|avif|gif)[;,]))[\s\u0000-\u001f]*:/i;
+function stripUnsafeAttachmentLinks(order) {
+  if (!order || typeof order !== 'object' || !Array.isArray(order.attachments)) return;
+  order.attachments.forEach(item => {
+    if (!item || typeof item !== 'object') return;
+    ['link', 'fileUrl', 'thumbUrl'].forEach(key => {
+      if (typeof item[key] === 'string' && unsafeAttachmentLinkPattern.test(item[key])) item[key] = '';
+    });
+  });
+}
+
+// 用 /usr/bin/open 打开文件夹 / 地址，不等它结束。spawn 失败（没有这个程序）只记一笔：以前没有 error 监听，整个服务会崩掉。
+function openDetached(args) {
+  const child = spawn('/usr/bin/open', args, { detached: true, stdio: 'ignore' });
+  child.once('error', error => console.error(`open failed: ${error.code || error.message}`));
+  child.unref();
+}
+
 function normalizeDataPayload(raw) {
   const wrapper = raw && raw.data && Array.isArray(raw.data.orders)
     ? raw
     : { app: 'trade-order-system', version: 'legacy', exportedAt: new Date().toISOString(), data: raw };
   const data = wrapper?.data;
-  if (!data || !Array.isArray(data.orders)) throw httpError(400, 'missing orders');
+  if (!data || !Array.isArray(data.orders)) throw httpError(400, '数据里没有订单列表（orders），没有保存');
   orderBuckets.forEach(key => {
     if (!Array.isArray(data[key])) data[key] = [];
   });
   if (!data.customers || typeof data.customers !== 'object' || Array.isArray(data.customers)) data.customers = {};
   if (!Array.isArray(data.trackingLookups)) data.trackingLookups = [];
+  orderBuckets.forEach(key => data[key].forEach(stripUnsafeAttachmentLinks));
   return {
     app: String(wrapper.app || 'trade-order-system'),
     version: String(wrapper.version || 'sqlite-1'),
@@ -2099,15 +2124,48 @@ const defaultAiSettings = {
   lastTestStatus: '尚未测试连接'
 };
 
+// 设置里的一个文字字段：只认文字（数字也行），别的类型（对象、数组）当没填；超长的截断。读旧文件、写新值都过这一步。
+function settingText(value, max, fallback = '') {
+  if (typeof value !== 'string' && typeof value !== 'number') return fallback;
+  const text = String(value).trim();
+  return text ? text.slice(0, max) : fallback;
+}
+// 设置接口收到的字段：类型不对、长度超了回 400（说清是哪个字段），别原样写进设置文件。不认识的字段不管（读写时会被丢掉）。
+function assertSettingFields(body, limits) {
+  for (const [key, max] of Object.entries(limits)) {
+    if (!Object.hasOwn(body, key)) continue;
+    const value = body[key];
+    if (value === null || value === undefined) continue;
+    if (typeof value !== 'string' && typeof value !== 'number') throw httpError(400, `${key} 必须是文字`);
+    if (String(value).length > max) throw httpError(400, `${key} 太长了（最多 ${max} 个字符）`);
+  }
+}
+const aiSettingLimits = { enabled: 10, provider: 20, baseUrl: 500, model: 200, apiKey: 1000, lastTestAt: 64, lastTestStatus: 500 };
+const trackingSettingLimits = {
+  dhlApiEnabled: 10, dhlApiKey: 1000, fedexApiEnabled: 10, fedexApiKey: 1000, fedexApiSecret: 1000, fedexEnv: 10,
+  autoDhlUpdate: 10, autoRunTimes: 100, lastCheckedAt: 64, lastStatus: 500, lastDhlCheckedAt: 64, lastDhlStatus: 500,
+  lastFedexCheckedAt: 64, lastFedexStatus: 500, lastAutoRunAt: 64, lastAutoRunSlot: 64, lastAutoOkCount: 12, lastAutoFailCount: 12
+};
+// 自动更新时间：逗号分隔的「时:分」，例如 09:00,18:00；空着用默认值。
+function assertAutoRunTimes(value) {
+  if (value === undefined || value === null) return;
+  const parts = String(value).split(/[,，]/).map(item => item.trim()).filter(Boolean);
+  const valid = parts.every(item => {
+    const match = item.match(/^(\d{1,2}):(\d{2})$/);
+    return match && Number(match[1]) < 24 && Number(match[2]) < 60;
+  });
+  if (!valid || parts.length > 6) throw httpError(400, '自动更新时间要写成 09:00,18:00 这样');
+}
+
 function normalizeAiSettings(raw = {}) {
-  const rawModel = String(raw.model || defaultAiSettings.model).trim();
+  const rawModel = settingText(raw.model, aiSettingLimits.model, defaultAiSettings.model);
   return {
     enabled: raw.enabled === '是' ? '是' : '否',
     provider: raw.provider === 'zhipu' ? 'zhipu' : 'custom',
-    baseUrl: String(raw.baseUrl || defaultAiSettings.baseUrl).trim().replace(/\/+$/, ''),
+    baseUrl: settingText(raw.baseUrl, aiSettingLimits.baseUrl, defaultAiSettings.baseUrl).replace(/\/+$/, ''),
     model: rawModel,
-    lastTestAt: String(raw.lastTestAt || ''),
-    lastTestStatus: String(raw.lastTestStatus || defaultAiSettings.lastTestStatus)
+    lastTestAt: settingText(raw.lastTestAt, aiSettingLimits.lastTestAt),
+    lastTestStatus: settingText(raw.lastTestStatus, aiSettingLimits.lastTestStatus, defaultAiSettings.lastTestStatus)
   };
 }
 
@@ -2208,17 +2266,17 @@ function normalizeTrackingSettings(raw = {}) {
     fedexApiSecret: String(raw.fedexApiSecret || '').trim(),
     fedexEnv: raw.fedexEnv === 'prod' ? 'prod' : 'test',
     autoDhlUpdate: raw.autoDhlUpdate === '否' ? '否' : '是',
-    autoRunTimes: String(raw.autoRunTimes || defaultTrackingSettings.autoRunTimes).trim() || defaultTrackingSettings.autoRunTimes,
-    lastCheckedAt: raw.lastCheckedAt || '',
-    lastStatus: raw.lastStatus || defaultTrackingSettings.lastStatus,
-    lastDhlCheckedAt: raw.lastDhlCheckedAt || '',
-    lastDhlStatus: raw.lastDhlStatus || defaultTrackingSettings.lastDhlStatus,
-    lastFedexCheckedAt: raw.lastFedexCheckedAt || '',
-    lastFedexStatus: raw.lastFedexStatus || defaultTrackingSettings.lastFedexStatus,
-    lastAutoRunAt: raw.lastAutoRunAt || '',
-    lastAutoRunSlot: raw.lastAutoRunSlot || '',
-    lastAutoOkCount: Number(raw.lastAutoOkCount || 0),
-    lastAutoFailCount: Number(raw.lastAutoFailCount || 0)
+    autoRunTimes: settingText(raw.autoRunTimes, trackingSettingLimits.autoRunTimes, defaultTrackingSettings.autoRunTimes),
+    lastCheckedAt: settingText(raw.lastCheckedAt, trackingSettingLimits.lastCheckedAt),
+    lastStatus: settingText(raw.lastStatus, trackingSettingLimits.lastStatus, defaultTrackingSettings.lastStatus),
+    lastDhlCheckedAt: settingText(raw.lastDhlCheckedAt, trackingSettingLimits.lastDhlCheckedAt),
+    lastDhlStatus: settingText(raw.lastDhlStatus, trackingSettingLimits.lastDhlStatus, defaultTrackingSettings.lastDhlStatus),
+    lastFedexCheckedAt: settingText(raw.lastFedexCheckedAt, trackingSettingLimits.lastFedexCheckedAt),
+    lastFedexStatus: settingText(raw.lastFedexStatus, trackingSettingLimits.lastFedexStatus, defaultTrackingSettings.lastFedexStatus),
+    lastAutoRunAt: settingText(raw.lastAutoRunAt, trackingSettingLimits.lastAutoRunAt),
+    lastAutoRunSlot: settingText(raw.lastAutoRunSlot, trackingSettingLimits.lastAutoRunSlot),
+    lastAutoOkCount: Number(raw.lastAutoOkCount || 0) || 0,
+    lastAutoFailCount: Number(raw.lastAutoFailCount || 0) || 0
   };
 }
 
@@ -2373,10 +2431,13 @@ async function readJsonBody(req, fallback) {
   return value;
 }
 
-function tokenMatches(candidate = '') {
+function secretMatches(candidate, secret) {
   const supplied = Buffer.from(String(candidate || ''));
-  const expected = Buffer.from(apiToken);
+  const expected = Buffer.from(secret);
   return supplied.length === expected.length && crypto.timingSafeEqual(supplied, expected);
+}
+function tokenMatches(candidate = '') {
+  return secretMatches(candidate, apiToken);
 }
 
 function cookieValue(req, name) {
@@ -2395,11 +2456,24 @@ function requestToken(req) {
   const authorization = String(req.headers.authorization || '');
   const match = authorization.match(/^Bearer\s+(.+)$/i);
   if (match) return match[1].trim();
-  return cookieValue(req, apiSessionCookie);
+  return '';
 }
 
 function requestIsAuthorized(req) {
   return tokenMatches(requestToken(req));
+}
+
+// 浏览器带来的页面会话 cookie：只用于取页面和附件图片。
+function requestHasPageSession(req) {
+  return secretMatches(cookieValue(req, apiSessionCookie), pageSessionValue);
+}
+
+// 浏览器发的请求带 Sec-Fetch-Site：别的站点、或同一台机器上别的端口（同站）的页面发来的一律拒绝，
+// 例如 <img src="http://127.0.0.1:端口/api/track?..."> 借用户的 DHL 密钥查询。本页（same-origin）、地址栏直接打开（none）、
+// 以及不带这个头的本机程序（测试、Mac App 原生请求）照常。
+function validateFetchSite(req) {
+  const site = String(req.headers['sec-fetch-site'] || '').trim().toLowerCase();
+  if (site === 'same-site' || site === 'cross-site') throw httpError(403, 'cross-site request rejected');
 }
 
 function requestIsLoopback(req) {
@@ -2435,7 +2509,7 @@ function requireJsonContentType(req, pathname) {
 }
 
 function sessionCookieHeader() {
-  return `${apiSessionCookie}=${encodeURIComponent(apiToken)}; HttpOnly; SameSite=Strict; Path=/`;
+  return `${apiSessionCookie}=${encodeURIComponent(pageSessionValue)}; HttpOnly; SameSite=Strict; Path=/`;
 }
 
 // 失败时错误上带 statusCode / retryAfter / timeout，给物流查询归类（限流、查不到、超时、未授权）用。
@@ -3175,6 +3249,7 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://127.0.0.1:${port}`);
     validateHost(req);
     validateOrigin(req);
+    validateFetchSite(req);
     const isAppDocument = req.method === 'GET' && (url.pathname === '/' || url.pathname === '/trade-order-system.html');
     if (isAppDocument && url.searchParams.has('token')) {
       if (!tokenMatches(url.searchParams.get('token'))) throw httpError(401, 'invalid API session token');
@@ -3182,8 +3257,9 @@ const server = http.createServer(async (req, res) => {
       for (const [key, value] of url.searchParams) {
         if (key !== 'token') redirectTarget.searchParams.append(key, value);
       }
+      // 令牌放在地址的 # 后面交给页面：# 后的内容不会发给服务器、也不进 Referer；页面读出后存进 sessionStorage，再把地址换回 #dashboard。
       return send(res, 303, '', 'text/plain; charset=utf-8', {
-        Location: `${redirectTarget.pathname}${redirectTarget.search}#dashboard`,
+        Location: `${redirectTarget.pathname}${redirectTarget.search}#ots-token=${encodeURIComponent(apiToken)}`,
         'Set-Cookie': sessionCookieHeader()
       });
     }
@@ -3218,7 +3294,10 @@ const server = http.createServer(async (req, res) => {
       }
       return send(res, integrity.ok ? 200 : 500, JSON.stringify(health));
     }
-    if (!requestIsAuthorized(req)) throw httpError(401, 'API session token required');
+    const pageResource = req.method === 'GET' && !url.pathname.startsWith('/api/');
+    if (!requestIsAuthorized(req) && !(pageResource && requestHasPageSession(req))) {
+      throw httpError(401, 'API session token required');
+    }
     requireJsonContentType(req, url.pathname);
     if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/trade-order-system.html')) {
       return send(res, 200, fs.readFileSync(htmlFile), 'text/html; charset=utf-8');
@@ -3369,7 +3448,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && url.pathname === '/api/open-data-folder') {
       ensureStorage();
-      spawn('/usr/bin/open', [supportDir], { detached: true, stdio: 'ignore' }).unref();
+      openDetached([supportDir]);
       return send(res, 200, JSON.stringify({ ok: true, path: supportDir }));
     }
     if (req.method === 'POST' && url.pathname === '/api/open-attachment-folder') {
@@ -3380,7 +3459,7 @@ const server = http.createServer(async (req, res) => {
       if (!folder.startsWith(path.resolve(attachmentsDir) + path.sep)) {
         return send(res, 400, JSON.stringify({ ok: false, message: 'unsupported folder' }));
       }
-      spawn('/usr/bin/open', [folder], { detached: true, stdio: 'ignore' }).unref();
+      openDetached([folder]);
       return send(res, 200, JSON.stringify({ ok: true, path: folder }));
     }
     if (req.method === 'POST' && url.pathname === '/api/delete-attachments') {
@@ -3414,16 +3493,24 @@ const server = http.createServer(async (req, res) => {
         return send(res, 400, JSON.stringify({ ok: false, message: 'unsupported url' }));
       }
       await new Promise((resolve, reject) => {
-        const child = spawn('/usr/bin/open', [target], { stdio: 'ignore' });
+        // 交给 open 的是解析过的地址（和白名单检查的是同一个），不是原始字符串。
+        const child = spawn('/usr/bin/open', [parsed.href], { stdio: 'ignore' });
         child.once('error', reject);
         child.once('close', code => code === 0 ? resolve() : reject(new Error(`open exited ${code}`)));
       });
       return send(res, 200, JSON.stringify({ ok: true }));
     }
     if (req.method === 'GET' && url.pathname === '/api/track') {
-      const number = cleanTracking(url.searchParams.get('number'));
-      const carrier = url.searchParams.get('carrier') || detectCarrier(number);
-      if (!number) return send(res, 400, JSON.stringify({ ok: false, message: 'missing tracking number' }));
+      const rawNumber = String(url.searchParams.get('number') || '');
+      // 运单号最长也就三十来位：超长的不发给承运商；承运商只认这三家，不把调用方写的任意文字原样回显。
+      if (rawNumber.length > 80) throw httpError(400, '物流单号太长');
+      const number = cleanTracking(rawNumber);
+      if (!number) return send(res, 400, JSON.stringify({ ok: false, message: '缺少物流单号' }));
+      if (number.length > 40) throw httpError(400, '物流单号太长');
+      const requestedCarrier = String(url.searchParams.get('carrier') || '').trim();
+      const knownCarrier = { dhl: 'DHL', fedex: 'FedEx', ups: 'UPS' }[requestedCarrier.toLowerCase()];
+      if (requestedCarrier && !knownCarrier) throw httpError(400, '承运商只支持 DHL、FedEx、UPS');
+      const carrier = knownCarrier || detectCarrier(number);
       let result;
       try {
         result = carrier === 'UPS'
@@ -3463,6 +3550,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && url.pathname === '/api/ai-settings') {
       const body = await readJsonBody(req);
+      assertSettingFields(body, aiSettingLimits);
       return send(res, 200, JSON.stringify(writeAiSettings(body)));
     }
     if (req.method === 'POST' && url.pathname === '/api/ai-chat') {
@@ -3476,6 +3564,8 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && url.pathname === '/api/tracking-settings') {
       const body = await readJsonBody(req);
+      assertSettingFields(body, trackingSettingLimits);
+      assertAutoRunTimes(body.autoRunTimes);
       const current = readTrackingSettings();
       const next = { ...body };
       if (!String(next.dhlApiKey || '').trim() && current.dhlApiKey) next.dhlApiKey = current.dhlApiKey;
@@ -3516,7 +3606,7 @@ server.on('error', error => {
 server.listen(port, '127.0.0.1', () => {
   const target = `http://127.0.0.1:${port}/trade-order-system.html?token=${encodeURIComponent(apiToken)}#dashboard`;
   if (process.env.TRADE_APP_NO_OPEN !== '1') {
-    spawn('/usr/bin/open', [target], { detached: true, stdio: 'ignore' }).unref();
+    openDetached([target]);
   }
 });
 

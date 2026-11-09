@@ -106,6 +106,7 @@ scripts/test-modal-accessibility.js
 scripts/test-modal-close-guard-ui.js
 scripts/test-multi-shipments.js
 scripts/test-new-order-stage.js
+scripts/test-notif-panel-ui.js
 scripts/test-order-list-page.js
 scripts/test-order-list-ui-fixes.js
 scripts/test-order-modal-history.js

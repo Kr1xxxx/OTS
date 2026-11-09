@@ -120,7 +120,7 @@ async function pageTests() {
     for (const num of ['K1', 'K9']) {
       await page.evaluate(n => { openOrder(''); const form = document.getElementById('orderForm'); form.elements.client.value = 'New Buyer'; form.elements.amount.value = '50'; form.elements.num.value = n; }, num);
       const before = await page.evaluate(() => state.orders.length);
-      await page.evaluate(() => upsertOrder(document.getElementById('orderForm')));
+      await page.evaluate(() => { window.__otsPending = upsertOrder(document.getElementById('orderForm')); return window.__otsPending; });
       assert.equal(await page.evaluate(() => state.orders.length), before, `order number ${num} was saved twice`);
       assert.match(await toastText(), new RegExp(`订单号 ${num} 已被`));
       await page.evaluate(() => closeOrder());
@@ -128,14 +128,14 @@ async function pageTests() {
     // A blank (spaces only) customer name does not save a formal order.
     await page.evaluate(() => { openOrder(''); const form = document.getElementById('orderForm'); form.elements.client.value = '   '; form.elements.amount.value = '50'; });
     const countBeforeBlank = await page.evaluate(() => state.orders.length);
-    await page.evaluate(() => upsertOrder(document.getElementById('orderForm')));
+    await page.evaluate(() => { window.__otsPending = upsertOrder(document.getElementById('orderForm')); return window.__otsPending; });
     assert.equal(await page.evaluate(() => state.orders.length), countBeforeBlank, 'a spaces-only customer name saved an order');
     await page.evaluate(() => closeOrder());
 
     // The detail drawer refuses a negative amount instead of saving it.
     await page.evaluate(() => openOrderDetail('o-dep'));
     await page.evaluate(() => { const el = document.querySelector('#orderDetailBody [data-dedit="amount"]'); el.value = '-500'; el.dispatchEvent(new Event('input', { bubbles:true })); });
-    await page.evaluate(() => uiDetailSave());
+    await page.evaluate(() => { window.__otsPending = uiDetailSave(); return window.__otsPending; });
     assert.deepEqual(await page.evaluate(() => { const o = state.orders.find(x => x.id === 'o-dep'); return [o.amount, o.paidAmount, o.stage]; }), [1000, 300, 'balance']);
     await page.evaluate(() => closeOrderDetail());
 
@@ -166,14 +166,16 @@ async function pageTests() {
     // Case-variant customers: editing "alice" no longer overwrites the separate "Alice" profile.
     await page.evaluate(() => openCustomerModal('alice', { viewOnly:false }));
     await page.locator('#customerForm [name="note"]').fill('US alice updated');
-    await page.evaluate(() => saveCustomer(document.getElementById('customerForm')));
+    await page.evaluate(() => { window.__otsPending = saveCustomer(document.getElementById('customerForm')); return window.__otsPending; });
     const people = await page.evaluate(() => Object.fromEntries(['alice', 'Alice'].map(name => [name, state.customers[name] && { note:state.customers[name].note, permanentNote:state.customers[name].permanentNote || '' }])));
     assert.deepEqual(people, { alice:{ note:'US alice updated', permanentNote:'' }, Alice:{ note:'UK Alice', permanentNote:'Always use DHL' } });
 
     // A save the local service never answers: the form save still returns (not saved, input kept), and the
     // background save finishes once the service answers.
     heldSave = new Promise(resolve => { releaseSave = resolve; });
-    const slow = await page.evaluate(async () => {
+    // The page keeps a strong reference to the promise Playwright awaits (window.__otsPending), so a save that
+    // never settles shows up as a timeout rather than "Resulting promise was garbage collected".
+    const slow = await page.evaluate(() => { window.__otsPending = (async () => {
       macSaveWaitLimitMs = 300;
       openCustomerModal('alice', { viewOnly:false });
       const form = document.getElementById('customerForm');
@@ -182,7 +184,7 @@ async function pageTests() {
       await saveCustomer(form);
       macSaveWaitLimitMs = 60000;
       return { waited:Date.now() - started, open:document.getElementById('customerModal').classList.contains('open'), note:state.customers.alice.note, toast:[...document.querySelectorAll('.toast-item')].map(el => el.textContent).join(' ') };
-    });
+    })(); return window.__otsPending; });
     assert.ok(slow.waited < 5000, `saveCustomer waited ${slow.waited} ms for a save that never answered`);
     assert.equal(slow.open, true, 'the form closed although the save had not finished');
     assert.equal(slow.note, 'US alice slow');
@@ -192,7 +194,7 @@ async function pageTests() {
     await page.waitForFunction(() => !macSaveInFlight && macSaveCompletedVersion >= macSaveRequestedVersion);
     assert.equal(stored.data.customers.alice.note, 'US alice slow', 'the background save did not finish after the service answered');
     // Saving again now goes straight through and closes the form.
-    await page.evaluate(() => saveCustomer(document.getElementById('customerForm')));
+    await page.evaluate(() => { window.__otsPending = saveCustomer(document.getElementById('customerForm')); return window.__otsPending; });
     assert.equal(await page.evaluate(() => document.getElementById('customerModal').classList.contains('open')), false);
 
     // Saving one settings card keeps unsaved typing in another card.

@@ -1,4 +1,4 @@
-# Order Track System (OTS) V3.136
+# Order Track System (OTS) V3.137
 
 Local macOS trade-order and customer management, SQLite storage, logistics/AI helpers, and the KME WhatsApp customer-sync Chrome extension. This is a privacy-sanitized **source export**, not a production database or installed application.
 
@@ -43,6 +43,8 @@ TRADE_APP_DATA_DIR="$OTS_DEV_DATA_DIR" TRADE_APP_PORT=47829 npm start
 ```
 
 Open the startup URL printed by the server; the URL contains a local session token and must not be shared. If the port is occupied, choose a different one. Without TRADE_APP_DATA_DIR the application uses the current user's normal Application Support directory: do not run an unreviewed source export against live data.
+
+In browser mode the API token lives only in the tab that opened the startup URL (it is handed over in the `#` part of the redirect and kept in that tab's sessionStorage). The session cookie can load the page and attachment images but cannot call any `/api/*` route, and requests sent from other sites or other ports on 127.0.0.1 (`Sec-Fetch-Site: same-site` / `cross-site`) are refused. A tab opened by hand without the startup URL cannot load data; open the startup URL again. Even so, avoid opening untrusted local services in the same browser while OTS runs; for daily use prefer the Mac app.
 
 The bundled seed contains **three synthetic demo orders**, not an empty production database. Both seed files are intentionally identical and contain only example.com email addresses; no tracking numbers are supplied.
 

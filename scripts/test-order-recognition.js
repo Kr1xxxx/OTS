@@ -61,6 +61,7 @@ const context = vm.createContext({
   currencyDefs: [{ code: 'USD' }, { code: 'EUR' }, { code: 'GBP' }, { code: 'CNY' }, { code: 'AUD' }, { code: 'CAD' }],
   usStateNamePattern: 'Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West Virginia|Wisconsin|Wyoming|District of Columbia',
   canadaProvinceNamePattern: 'Alberta|British Columbia|Manitoba|New Brunswick|Newfoundland and Labrador|Nova Scotia|Ontario|Prince Edward Island|Quebec|Saskatchewan|Northwest Territories|Nunavut|Yukon',
+  pasteRecognitionLineLimit: 4000,
   state: { orders: [], customers: {} },
   defaultOrderSettings: { defaultProductType: '假发', defaultPaymentChannel: 'Paypal', defaultOrderType: '全款订单' },
   defaultAiSettings: { enabled: '否', provider: 'zhipu', apiKey: '', apiKeySaved: false, apiKeyMask: '', baseUrl: 'https://example.test/v1', model: 'glm-4.7-flashx', lastTestAt: '', lastTestStatus: '尚未测试连接' }
@@ -126,6 +127,7 @@ vm.runInContext(html.match(/^const customerPasteFieldOrder = .*;$/m)[0].replace(
   'canonicalCountry',
   'customerCountryFromInput',
   'findExplicitNoteInText',
+  'pasteTextForRecognition',
   'analyzePasteText',
   'deobfuscateEmailText',
   'sellerSideCustomerLines',

@@ -1838,7 +1838,12 @@ html[data-theme="dark"] .binary-option.active {
 .order-notification-option small { color: var(--gray-500); font-size: 11px; font-weight: 600; line-height: 1.35; }
 .order-notification-detail { display: grid; gap: 8px; }
 .order-notification-detail-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-.order-notification-detail-meta { color: var(--gray-600); font-size: 12px; line-height: 1.5; }
+.order-notification-detail-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--gray-600); font-size: 12px; line-height: 1.5; }
+.order-notification-detail-note { color: var(--gray-600); font-size: 12px; line-height: 1.5; }
+.order-notification-option small.is-warning, .detail-switch small.is-warning { color: var(--orange-700, var(--orange-600)); }
+.feishu-status { display: grid; gap: 6px; margin-bottom: 12px; color: var(--gray-700); font-size: 13px; line-height: 1.5; }
+.feishu-status-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.api-feishu-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; color: var(--gray-700); font-size: 13px; }
 .order-notification-detail-error { color: var(--orange-600); font-size: 12px; font-weight: 600; }
 .history { display: flex; flex-direction: column; gap: 10px; }
 .log { display: grid; grid-template-columns: 10px 1fr; gap: 10px; }
@@ -5498,6 +5503,7 @@ html[data-theme] .order-table-money { font-family:var(--sans); font-size:14px; f
 html[data-theme] .order-table td.col-money .order-table-due-line { display:block; margin-top:4px; color:var(--s-amber); font-size:11.5px; font-weight:500; white-space:nowrap; font-variant-numeric:tabular-nums; }
 html[data-theme] .order-table-feishu { color:var(--s-green); white-space:nowrap; }
 html[data-theme] .order-table-feishu.failed { color:var(--s-orange, var(--s-red)); }
+html[data-theme] .order-table-feishu.sending { color:var(--gray-500); }
 html[data-theme] .order-table td.col-order .order-table-sub { white-space:nowrap; }
 html[data-theme] .order-table-paybar { display:block; height:4px; margin:7px 0 0 auto; width:64px; border-radius:4px; background:var(--gray-100); overflow:hidden; }
 html[data-theme] .order-table-paybar i { display:block; height:100%; border-radius:inherit; background:var(--accent); }
@@ -5939,7 +5945,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.133，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.133</div>
+      <div class="app-version" tabindex="0" title="更新时间未知" aria-label="V3.134，更新时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.134</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会下载并自动重装重启" aria-label="检查更新" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse" id="savePulse" aria-live="polite"><i></i><span>已保存</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -6490,6 +6496,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
           <button class="settings-menu-item" type="button" data-settings-tab="exchange">汇率设置</button>
           <button class="settings-menu-item" type="button" data-settings-tab="tracking-api">物流追踪</button>
           <button class="settings-menu-item" type="button" data-settings-tab="ai">AI 识别</button>
+          <button class="settings-menu-item" type="button" data-settings-tab="feishu">飞书通知</button>
           <button class="settings-menu-item" type="button" data-settings-tab="api">接口状态<i class="menu-alert" id="settingsApiAlert" hidden></i></button>
           <button class="settings-menu-item" type="button" data-settings-tab="appearance">外观</button>
         </aside>
@@ -6747,6 +6754,44 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
                 <button class="api-status-dot" type="button" data-api-check="fedex" title="FedEx API：未检测"><span class="api-status-name">FedEx</span><span class="api-status-state">未测</span></button>
                 <button class="api-status-dot" type="button" data-api-check="ai" title="AI API：未检测" onmouseenter="refreshAiUsage()" onfocus="refreshAiUsage()"><span class="api-status-name">AI 识别</span><span class="api-status-state">未测</span></button>
               </div>
+              <div class="api-feishu-line"><span id="apiFeishuLine">飞书通知：读取中…</span><button class="btn btn-small" type="button" data-open-feishu-settings>飞书设置</button></div>
+            </div>
+          </div>
+          <div class="settings-panel" data-settings-panel="feishu">
+            <div class="section-head">
+              <div>
+                <div class="section-title">飞书通知</div>
+                <div class="section-meta">新订单第一次正式保存时，把客户和订单摘要发到飞书群；机器人身份和群 ID 只存在这台 Mac 上</div>
+              </div>
+            </div>
+            <div class="settings-card">
+              <div class="feishu-status" id="feishuSettingsStatus" role="status" aria-live="polite"><div class="feishu-status-row"><span class="tag tag-gray">读取中…</span></div></div>
+              <form class="settings-form" id="feishuSettingsForm" autocomplete="off">
+                <div class="field">
+                  <label for="feishuProfile">lark-cli profile</label>
+                  <input id="feishuProfile" name="profile" placeholder="例如 ots-bot" spellcheck="false" autocapitalize="off">
+                </div>
+                <div class="field">
+                  <label for="feishuChatName">群名称</label>
+                  <input id="feishuChatName" name="chatName" placeholder="例如 外贸订单通知群">
+                </div>
+                <div class="field span-2">
+                  <label for="feishuChatId">群 ID</label>
+                  <input id="feishuChatId" name="chatId" placeholder="oc_ 开头" spellcheck="false" autocapitalize="off">
+                </div>
+                <div class="field span-2">
+                  <label for="feishuCliPath">lark-cli 路径（一般不用填）</label>
+                  <input id="feishuCliPath" name="cliPath" placeholder="自动查找 ~/.local/bin、/opt/homebrew/bin、/usr/local/bin、nvm、Volta" spellcheck="false" autocapitalize="off">
+                </div>
+                <div class="exchange-note span-2">profile 是用 lark-cli config init 配置机器人时起的名字；群 ID 在飞书群设置里能找到（oc_ 开头）。已保存的 profile 和群 ID 不再显示，留空表示不改。配置只存在这台 Mac 的数据目录（仅本人可读），不进备份和导出文件；保存后马上生效，不用重启。</div>
+                <div class="span-2" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+                  <div class="ai-status-line" id="feishuTestStatus" role="status" aria-live="polite">保存后可以发一条测试消息到群里</div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <button class="btn" id="testFeishuBtn" type="button">测试连接</button>
+                    <button class="btn btn-primary" type="submit">保存飞书设置</button>
+                  </div>
+                </div>
+              </form>
             </div>
           </div>
           <div class="settings-panel" data-settings-panel="appearance">
@@ -7841,6 +7886,7 @@ function apiFetch(resource, options = {}) {
 window.tradeApiFetch = apiFetch;
 function normalizeFeishuNotification(raw = {}) {
   const status = ['sending','sent','failed','skipped'].includes(raw?.status) ? raw.status : 'skipped';
+  const sentFields = raw?.sentFields && typeof raw.sentFields === 'object' && !Array.isArray(raw.sentFields) ? raw.sentFields : null;
   return {
     requested: raw?.requested === true,
     status,
@@ -7848,20 +7894,99 @@ function normalizeFeishuNotification(raw = {}) {
     sentAt: String(raw?.sentAt || ''),
     messageId: String(raw?.messageId || ''),
     error: String(raw?.error || ''),
-    updatedAt: String(raw?.updatedAt || '')
+    errorKind: String(raw?.errorKind || ''),
+    updatedAt: String(raw?.updatedAt || ''),
+    ...(sentFields ? { sentFields } : {})
   };
 }
-// 「保存后发送到飞书群」记住上次的选择（只记在本机），不用每单手动取消。
+// 本机飞书配置的状态（只有配没配好、原因和群名，profile 和群 ID 不会到页面上）。null = 还没读到 / 不是 Mac App。
+let feishuStatus = null;
+// 复制出来、还没保存过的单（只在本次打开 App 期间记着）：第一次保存按新单处理，开关照常显示。
+const feishuPendingCopies = new Set();
+function feishuKnownUnconfigured() { return feishuStatus?.configured === false; }
+// 「保存后发送到飞书群」记住上次的选择（只记在本机），不用每单手动取消。没配置飞书时一律不勾：勾了也发不出去，每单都会报失败。
 const feishuChoiceKey = 'ots-feishu-send-v1';
 function feishuDefaultChecked() {
+  if (feishuKnownUnconfigured()) return false;
   try { return localStorage.getItem(feishuChoiceKey) !== '0'; } catch (_) { return true; }
 }
 function rememberFeishuChoice(checked) {
+  // 没配置时默认不勾，不能把这次的「不勾」记下来：配好之后还应回到用户原来的选择。
+  if (feishuKnownUnconfigured()) return;
   try { localStorage.setItem(feishuChoiceKey, checked ? '1' : '0'); } catch (_) { /* 本机存储不可用时只在本次生效 */ }
 }
 function shouldRequestOrderNotification(existing = null, isDraft = false, checked = false) {
   if (isDraft || !checked) return false;
   return !existing || existing.isDraft === true;
+}
+const feishuUnconfiguredHint = '还没配置飞书：到「设置 → 飞书通知」填写后才能发';
+// 三处发送开关的小字：没配置时写明去哪里配，不再让用户勾了以后每单报失败。
+function syncFeishuNotificationHints() {
+  const unconfigured = feishuKnownUnconfigured();
+  document.querySelectorAll('#orderFeishuNotificationField small, #combinedOrderForm .order-notification-option small, #detailFeishuField small').forEach(small => {
+    if (!small.dataset.defaultHint) small.dataset.defaultHint = small.textContent;
+    small.textContent = unconfigured ? feishuUnconfiguredHint : small.dataset.defaultHint;
+    small.classList.toggle('is-warning', unconfigured);
+  });
+}
+function renderFeishuSettingsStatus() {
+  const box = document.getElementById('feishuSettingsStatus');
+  const apiLine = document.getElementById('apiFeishuLine');
+  const status = feishuStatus;
+  let tag = '<span class="tag tag-gray">读取中…</span>';
+  let detail = '';
+  let plain = '飞书通知：读取中…';
+  if (!isMacAppMode()) {
+    tag = '<span class="tag tag-gray">只在 Mac App 里可用</span>';
+    plain = '飞书通知：只在 Mac App 里可用';
+  } else if (status && status.ok === false) {
+    tag = '<span class="tag tag-orange">读不到状态</span>';
+    detail = escapeAttr(status.message || '本机服务没有回应');
+    plain = '飞书通知：读不到状态';
+  } else if (status?.configured) {
+    tag = '<span class="tag tag-green">已配置</span>';
+    detail = `目标群：${escapeAttr(status.chatName || '')}${status.cli?.found ? '' : ' · <strong>这台 Mac 上找不到 lark-cli</strong>'}`;
+    plain = `飞书通知：已配置（${status.chatName || ''}）${status.cli?.found ? '' : ' · 找不到 lark-cli'}`;
+  } else if (status?.state === 'invalid') {
+    tag = '<span class="tag tag-orange">配置文件有问题</span>';
+    detail = escapeAttr(status.reason || '');
+    plain = `飞书通知：配置文件有问题（${status.reason || ''}）`;
+  } else if (status) {
+    tag = '<span class="tag tag-gray">未配置</span>';
+    detail = '填写下面三项并保存后才会发群消息；新订单的「保存后发送到飞书群」默认不勾';
+    plain = '飞书通知：未配置';
+  }
+  const extra = status?.configured
+    ? `${status.lastSentAt ? `<div>上次成功发送：${escapeAttr(status.lastSentAt)}</div>` : ''}${status.lastError ? `<div class="order-notification-detail-error">最近一次失败：${escapeAttr(status.lastError)}</div>` : ''}`
+    : '';
+  if (box) box.innerHTML = `<div class="feishu-status-row">${tag}<span>${detail}</span></div>${extra}`;
+  if (apiLine) apiLine.textContent = plain;
+  const form = document.getElementById('feishuSettingsForm');
+  if (form && status && status.ok !== false) {
+    form.elements.profile.placeholder = status.profileSaved ? '已保存（不显示），留空表示不改' : '例如 ots-bot';
+    form.elements.chatId.placeholder = status.chatIdSaved ? '已保存（不显示），留空表示不改' : 'oc_ 开头';
+    if (document.activeElement !== form.elements.chatName && !form.elements.chatName.dataset.touched) form.elements.chatName.value = status.chatName || '';
+    if (document.activeElement !== form.elements.cliPath && !form.elements.cliPath.dataset.touched) form.elements.cliPath.value = status.cliPath || '';
+  }
+  const testBtn = document.getElementById('testFeishuBtn');
+  if (testBtn && testBtn.dataset.morph !== 'busy') testBtn.disabled = !status?.configured;
+}
+async function refreshFeishuStatus() {
+  if (!isMacAppMode()) {
+    renderFeishuSettingsStatus();
+    return null;
+  }
+  try {
+    const res = await apiFetch('/api/feishu-settings', { cache:'no-store' });
+    const data = await res.json().catch(() => ({}));
+    // 测试里的假服务端回 { ok:true }，不带 configured：当成「不知道」，不改开关的默认值。
+    feishuStatus = res.ok && typeof data.configured === 'boolean' ? data : (res.ok ? null : { ok:false, message:data.message || '' });
+  } catch (_) {
+    feishuStatus = null;
+  }
+  renderFeishuSettingsStatus();
+  syncFeishuNotificationHints();
+  return feishuStatus;
 }
 async function requestOrderNotification(orderId = '') {
   try {
@@ -7871,23 +7996,43 @@ async function requestOrderNotification(orderId = '') {
       body: JSON.stringify({ orderId })
     });
     const data = await res.json().catch(() => ({}));
+    // 另一个窗口 / 上一次请求还在发：不是失败，等它的结果。
+    if (res.status === 409 && data.status === 'sending') return { ok:false, status:'sending', pending:true, chatName:data.chatName || '' };
     if (!res.ok || data.ok === false) {
       return {
         ok: false,
         status: 'failed',
-        chatName: data.chatName || '订单通知群（待配置）',
-        error: data.error || data.message || '飞书服务暂时不可用，可稍后重试'
+        chatName: data.chatName || '',
+        error: data.error || data.message || '飞书服务暂时不可用，可稍后重试',
+        errorKind: data.errorKind || ''
       };
     }
     return data;
   } catch (_) {
-    return { ok:false, status:'failed', chatName:'订单通知群（待配置）', error:'飞书服务暂时不可用，可稍后重试' };
+    // 没收到回应（网络、WebView 超时）：服务端可能还在发、甚至已经发出，不能记成「失败」，等一会儿再查结果。
+    return { ok:false, status:'sending', pending:true, unknown:true };
   }
+}
+async function fetchOrderNotificationStatus(orderId = '') {
+  try {
+    const res = await apiFetch(`/api/order-notification?orderId=${encodeURIComponent(orderId)}`, { cache:'no-store' });
+    const data = await res.json().catch(() => ({}));
+    return res.ok ? data : null;
+  } catch (_) { return null; }
 }
 async function persistOrderBeforeNotification(orderId = '', requested = true) {
   if (!requested || !isMacAppMode()) return null;
   if (!await flushPendingSave()) return null;
   return requestOrderNotification(orderId);
+}
+// 结果还没出来（409 / 没收到回应）：每 4 秒问一次服务端，最多 3 分钟。
+async function waitForOrderNotificationResult(orderId = '', { intervalMs = 4000, tries = 45 } = {}) {
+  for (let i = 0; i < tries; i += 1) {
+    await new Promise(resolve => setTimeout(resolve, intervalMs));
+    const status = await fetchOrderNotificationStatus(orderId);
+    if (status && ['sent', 'failed'].includes(status.status)) return status;
+  }
+  return { ok:false, status:'failed', errorKind:'unknown', error:'没收到发送结果：请先看一眼群里有没有这张单，再决定是否重新发送' };
 }
 function renderFeishuNotificationBadge(order = {}, short = false) {
   const notification = normalizeFeishuNotification(order.feishuNotification);
@@ -7895,7 +8040,7 @@ function renderFeishuNotificationBadge(order = {}, short = false) {
   if (short) {
     if (notification.status === 'sent') return '<span class="order-table-feishu sent" title="飞书群消息已发送"> · 已发群</span>';
     if (notification.status === 'failed') return '<span class="order-table-feishu failed" title="飞书群消息发送失败"> · 发群失败</span>';
-    if (notification.status === 'sending') return '<span class="order-table-feishu" title="飞书群消息发送中"> · 发群中</span>';
+    if (notification.status === 'sending') return '<span class="order-table-feishu sending" title="飞书群消息发送中"> · 发群中</span>';
     return '';
   }
   if (notification.status === 'sent') return '<span class="tag tag-green">群消息已发送</span>';
@@ -7903,31 +8048,82 @@ function renderFeishuNotificationBadge(order = {}, short = false) {
   if (notification.status === 'sending') return '<span class="tag tag-gray">群消息发送中</span>';
   return '';
 }
+// 群消息发出后，消息里的字段（金额、备注、地址…）又改过：列出改了哪些，群里仍是发出时的内容。
+const feishuFieldLabels = { client:'客户名称', num:'订单号', email:'邮箱', phone:'手机号', address:'收货地址', amount:'订单金额', paymentChannel:'付款方式', note:'订单备注' };
+function feishuNotificationChangedFields(order = {}, notification = normalizeFeishuNotification(order.feishuNotification)) {
+  const sent = notification.sentFields;
+  if (notification.status !== 'sent' || !sent) return [];
+  const customer = state.customers?.[order.client] || {};
+  const text = value => String(value ?? '').trim();
+  const amount = Number(order.amount || 0);
+  const current = {
+    client: text(order.client),
+    num: text(order.num),
+    email: text(customer.email),
+    phone: text(customer.phone),
+    address: text(customer.address),
+    amount: `${String(order.currency || 'USD').trim().toUpperCase() || 'USD'} ${Number.isFinite(amount) ? amount.toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 }) : '0.00'}`,
+    paymentChannel: text(order.paymentChannel),
+    note: text(order.note)
+  };
+  return Object.keys(feishuFieldLabels).filter(key => key in sent && text(sent[key]) !== current[key]).map(key => feishuFieldLabels[key]);
+}
 function renderOrderDetailNotification(order = {}) {
   const notification = normalizeFeishuNotification(order.feishuNotification);
-  if (!['sending','sent','failed'].includes(notification.status)) return '';
-  const badge = renderFeishuNotificationBadge(order);
+  // 草稿不发群；正式单就算没发过（新建时没勾、复制出来的）也显示这一块，能补发。
+  if (order.isDraft === true && !['sending','sent','failed'].includes(notification.status)) return '';
+  const badge = renderFeishuNotificationBadge(order) || '<span class="tag tag-gray">未发送到飞书群</span>';
   const time = notification.status === 'sent' && notification.sentAt
     ? `<span>发送时间：${escapeAttr(notification.sentAt)}</span>`
     : '';
   const error = notification.status === 'failed' && notification.error
     ? `<div class="order-notification-detail-error">${escapeAttr(notification.error)}</div>`
     : '';
-  const retry = notification.status === 'failed'
+  const unconfigured = feishuKnownUnconfigured() && notification.status !== 'sent';
+  const action = notification.status === 'failed'
     ? `<button class="btn btn-small" type="button" data-retry-order-notification="${escapeAttr(order.id)}">重新发送</button>`
+    : notification.status === 'skipped' && order.isDraft !== true && !unconfigured
+      ? `<button class="btn btn-small" type="button" data-retry-order-notification="${escapeAttr(order.id)}">发送到飞书群</button>`
+      : '';
+  const setup = unconfigured || ['config', 'cli-missing', 'cli-start', 'profile'].includes(notification.errorKind)
+    ? `<button class="btn btn-small" type="button" data-open-feishu-settings>${unconfigured ? '去设置飞书' : '检查飞书设置'}</button>`
+    : '';
+  const target = notification.status === 'skipped'
+    ? `<span>${unconfigured ? escapeAttr(feishuUnconfiguredHint) : '新建时没有选择发送；可以现在发一次（同一张单只会发一条）'}</span>`
+    : `<span>目标群：${escapeAttr(notification.chatName)}</span>`;
+  const changed = feishuNotificationChangedFields(order, notification);
+  const stale = changed.length
+    ? `<div class="order-notification-detail-note">发出后改过${escapeAttr(changed.join('、'))}，群里仍是 ${escapeAttr(notification.sentAt || '发送时')} 的内容（目前只在首次正式保存时发群）</div>`
     : '';
   return `
-    <section class="detail-section" data-order-notification-section>
+    <section class="detail-section" data-order-notification-section data-order-id="${escapeAttr(order.id)}" tabindex="-1">
       <div class="detail-section-title">飞书群通知</div>
       <div class="order-notification-detail">
-        <div class="order-notification-detail-row"><div>${badge}</div>${retry}</div>
-        <div class="order-notification-detail-meta"><span>目标群：${escapeAttr(notification.chatName)}</span>${time}</div>
+        <div class="order-notification-detail-row"><div>${badge}</div><div class="order-action-group">${setup}${action}</div></div>
+        <div class="order-notification-detail-meta">${target}${time}</div>
         ${error}
+        ${stale}
       </div>
     </section>
   `;
 }
-function applyOrderNotificationResult(orderId = '', result = {}) {
+// 只就地换掉抽屉里这张单的「飞书群通知」一块：不重画整个抽屉、不切到别的单，正在输入的内容和焦点都不动。
+function refreshOrderNotificationSection(orderId = '') {
+  const drawer = document.getElementById('orderDetailDrawer');
+  if (!drawer?.classList.contains('open') || detailOrderId !== orderId) return;
+  const section = document.querySelector('#orderDetailBody [data-order-notification-section]');
+  const order = state.orders.find(item => item.id === orderId);
+  if (!section || !order) return;
+  const hadFocus = section.contains(document.activeElement);
+  const holder = document.createElement('div');
+  holder.innerHTML = renderOrderDetailNotification(order).trim();
+  const next = holder.firstElementChild;
+  if (!next) return;
+  section.replaceWith(next);
+  // 焦点原来在这一块里（点了「重新发送」）：留在这一块，不掉到 body。
+  if (hadFocus) (next.querySelector('button') || next).focus({ preventScroll:true });
+}
+function applyOrderNotificationResult(orderId = '', result = {}, { log = true } = {}) {
   const index = state.orders.findIndex(order => order.id === orderId);
   if (index < 0) return null;
   const current = state.orders[index];
@@ -7935,6 +8131,8 @@ function applyOrderNotificationResult(orderId = '', result = {}) {
   const next = normalizeFeishuNotification({
     ...previous,
     ...result,
+    // 服务端没给群名（没收到回应等）：保留原来的，不改写成「待配置」。
+    chatName: result.chatName || previous.chatName,
     requested: true,
     updatedAt: nowText()
   });
@@ -7944,45 +8142,81 @@ function applyOrderNotificationResult(orderId = '', result = {}) {
       ? `飞书群消息发送失败：${next.error || '可稍后重试'}`
       : '飞书群消息发送中';
   const existingTopLog = normalizeLog(current.logs?.[0], current.updated || nowText()).text;
-  const logs = existingTopLog === text ? current.logs : [{ time:nowText(), text }, ...(current.logs || [])];
+  const logs = !log || existingTopLog === text ? current.logs : [{ time:nowText(), text }, ...(current.logs || [])];
   const updated = { ...current, feishuNotification:next, logs };
   state.orders[index] = updated;
-  if ((next.status === 'failed' || next.status === 'sent') && typeof uiNotifLogEvent === 'function') {
+  if (log && (next.status === 'failed' || next.status === 'sent') && typeof uiNotifLogEvent === 'function') {
     uiNotifLogEvent({ id:`feishu-${orderId}-${next.status}-${next.sentAt || next.updatedAt || ''}`, kind:next.status === 'failed' ? 'error' : 'success', title:next.status === 'failed' ? '飞书群消息发送失败' : '飞书群消息已发送', sub:`${clientDisplayName(current.client)} · ${current.num}${next.status === 'failed' ? ` · ${next.error || '可在订单信息里重新发送'}` : next.chatName ? ` · ${next.chatName}` : ''}`, pill:'飞书', orderId, tab:'info' });
   }
   return updated;
 }
+// 订单已经存进数据库后再发群：在后台跑，保存不等飞书。结果回来只更新这张单的状态、铃铛和抽屉里那一块，另给一条提示。
 async function completeOrderNotification(orderId = '', requested = false, successText = '订单已创建') {
   if (!requested) {
     toast(successText);
     return null;
   }
-  const result = await persistOrderBeforeNotification(orderId, true);
+  const label = () => state.orders.find(item => item.id === orderId)?.num || '这张单';
+  let result = await persistOrderBeforeNotification(orderId, true);
   if (!result) {
-    toast('订单尚未写入本机数据库，未发送群消息');
+    applyOrderNotificationResult(orderId, { status:'failed', error:'订单尚未写入本机数据库，没有发送：保存成功后可以重新发送' });
+    render();
+    refreshOrderNotificationSection(orderId);
+    toast(`${label()} 尚未写入本机数据库，未发送群消息`, { tone:'error' });
     return null;
+  }
+  if (result.pending) result = await waitForOrderNotificationResult(orderId);
+  if (result.alreadySent) {
+    // 这张单以前就发过（例如发过以后存成草稿又转回正式）：没有重发，不再记一条「已发送」日志。
+    applyOrderNotificationResult(orderId, result, { log:false });
+    render();
+    refreshOrderNotificationSection(orderId);
+    await flushPendingSave();
+    toast(`${label()} 在 ${result.sentAt || '之前'} 已经发过群，这次没有重发`, { tone:'info' });
+    return result;
   }
   applyOrderNotificationResult(orderId, result);
   render();
+  refreshOrderNotificationSection(orderId);
   await flushPendingSave();
-  toast(result.status === 'sent' ? `${successText}，群消息已发送` : `${successText}，群消息发送失败`);
+  if (result.status === 'sent') toast(`${label()} 群消息已发送${result.skippedImages ? `（${result.skippedImages} 张图片没附上）` : ''}`);
+  else toast(`${label()} 群消息发送失败`, { tone:'error', desc:result.error || '' });
   return result;
 }
 async function retryOrderNotification(orderId = '') {
   const order = state.orders.find(item => item.id === orderId);
-  if (!order || normalizeFeishuNotification(order.feishuNotification).status !== 'failed') return false;
-  order.feishuNotification = normalizeFeishuNotification({ ...order.feishuNotification, requested:true, status:'sending', error:'' });
+  const current = normalizeFeishuNotification(order?.feishuNotification);
+  if (!order || order.isDraft === true || !['failed', 'skipped'].includes(current.status)) return false;
+  // 上次超时 / 没收到结果：消息可能已经发出，先请用户看一眼群（超过 1 小时飞书不再去重，会发第二条）。
+  if (current.status === 'failed' && ['timeout', 'unknown'].includes(current.errorKind)) {
+    const choice = await appConfirm({
+      title:'重新发送群消息？',
+      sub:'上次没收到发送结果',
+      message:'上次发送没有收到结果，消息可能已经发到群里了。请先在群里确认没有这张单，再重新发送；超过 1 小时再发，群里会出现两条。',
+      confirmText:'群里没有，重新发送',
+      cancelText:'先去看看'
+    });
+    if (!choice.confirmed) return false;
+  }
+  const fresh = state.orders.find(item => item.id === orderId);
+  if (!fresh) return false;
+  fresh.feishuNotification = normalizeFeishuNotification({ ...fresh.feishuNotification, requested:true, status:'sending', error:'', errorKind:'' });
   render();
-  const result = await persistOrderBeforeNotification(orderId, true);
+  refreshOrderNotificationSection(orderId);
+  let result = await persistOrderBeforeNotification(orderId, true);
+  if (result?.pending) result = await waitForOrderNotificationResult(orderId);
   if (!result) {
     applyOrderNotificationResult(orderId, { status:'failed', error:'订单状态尚未写入本机数据库，请稍后重试' });
   } else {
-    applyOrderNotificationResult(orderId, result);
+    applyOrderNotificationResult(orderId, result, { log:!result.alreadySent });
   }
   render();
   await flushPendingSave();
-  openOrderDetail(orderId);
-  toast(result?.status === 'sent' ? '群消息已重新发送' : '群消息发送仍然失败');
+  // 只刷新这张单抽屉里的那一块；用户已经切到别的单就不动它（以前会强行切回来，另一张单没保存的输入被丢掉）。
+  refreshOrderNotificationSection(orderId);
+  const label = fresh.num || '这张单';
+  if (result?.status === 'sent') toast(current.status === 'skipped' ? `${label} 群消息已发送` : `${label} 群消息已重新发送`);
+  else toast(`${label} 群消息发送仍然失败`, { tone:'error', desc:result?.error || '' });
   return result?.status === 'sent';
 }
 async function fetchMacAiSettings() {
@@ -8589,6 +8823,8 @@ async function loadMacAppState() {
     await refreshAiUsage();
     const trackingSettings = await fetchMacTrackingSettings();
     if (trackingSettings) safeStorage.setItem(trackingApiSettingsKey, JSON.stringify(trackingSettings));
+    // 飞书配置状态不挡首屏：读到后更新设置页、接口状态和三处发送开关的默认值。
+    refreshFeishuStatus();
     macDataLoaded = true;
     macStorageReadOnly = false;
     macSaveLastError = '';
@@ -16406,7 +16642,7 @@ function openOrderDetail(id, { tab = '' } = {}) {
   const feishuField = document.getElementById('detailFeishuField');
   if (feishuField) {
     const sameDraft = drawerOpen && feishuField.dataset.orderId === id && !feishuField.hidden;
-    feishuField.hidden = !draftActive;
+    feishuField.hidden = !draftActive || order.feishuNotification?.status === 'sent';
     feishuField.dataset.orderId = id;
     const toggle = document.getElementById('detailFeishuToggle');
     if (toggle && !sameDraft) toggle.checked = typeof feishuDefaultChecked === 'function' ? feishuDefaultChecked() : true;
@@ -21489,7 +21725,11 @@ function openOrder(id) {
   fields.note.value = order.note || '';
   const notificationField = document.getElementById('orderFeishuNotificationField');
   const notificationCheckbox = fields.sendFeishuNotification;
-  const notificationEligible = !id || order.isDraft === true;
+  // 复制出来的单在第一次保存前也是新单：显示开关，保存时按新单发群（以前当成编辑已有订单，永远不发）。
+  const pendingCopy = !!id && typeof feishuPendingCopies !== 'undefined' && feishuPendingCopies.has(id);
+  if (pendingCopy) form.dataset.pendingNewOrder = 'true';
+  // 已经发过群的单（发过以后又存成草稿）不再显示「仅首次」开关：服务端也不会重发。
+  const notificationEligible = (!id || order.isDraft === true || pendingCopy) && order.feishuNotification?.status !== 'sent';
   if (notificationField) notificationField.style.display = notificationEligible ? '' : 'none';
   if (notificationCheckbox) notificationCheckbox.checked = notificationEligible && (typeof feishuDefaultChecked !== 'function' || feishuDefaultChecked());
   renderOrderAttachments(order.attachments || []);
@@ -21961,7 +22201,12 @@ async function saveCombinedCustomerOrder() {
   delete orderForm.dataset.saving;
   closeCombinedCustomerOrderModal();
   render();
-  await completeOrderNotification(order.id, notificationRequested, `客户和订单已保存${orderStageSaveNote(order, orderData.stage, pendingOrder || null)}`);
+  const combinedText = `客户和订单已保存${orderStageSaveNote(order, orderData.stage, pendingOrder || null)}`;
+  if (!notificationRequested) toast(combinedText);
+  else {
+    toast(`${combinedText}，正在发送群消息…`);
+    completeOrderNotification(order.id, true, combinedText).catch(() => {});
+  }
   } finally { delete orderForm.dataset.saving; }
 }
 async function upsertOrder(form, options = {}) {
@@ -21975,9 +22220,9 @@ async function upsertOrder(form, options = {}) {
   const data = { ...Object.fromEntries(new FormData(form).entries()), shipments:orderShipmentsFromForm(form), ...(options.extraData || {}) };
   // 没勾的复选框不在 FormData 里：「还有批次没发」要按勾选状态明确交进去，取消勾选才存得下来。
   if (form.elements.partialShipment) data.partialShipment = form.elements.partialShipment.checked;
-  const isEdit = !!editingId;
   const isDraft = !!options.draft;
   const existing = state.orders.find(o => o.id === (editingId || form.dataset.pendingOrderId)) || null;
+  const isEdit = !!editingId && !form.dataset.pendingNewOrder;
   // 只填空格能骗过「必填」：正式订单的客户名去掉空格后不能是空的。
   if (!isDraft && !String(data.client || '').trim()) {
     form.elements.client?.focus();
@@ -22012,13 +22257,18 @@ async function upsertOrder(form, options = {}) {
     return false;
   }
   if (typeof failedSaveForget === 'function') failedSaveForget(form);
+  if (typeof feishuPendingCopies !== 'undefined') feishuPendingCopies.delete(order.id);
   delete form.dataset.saving;
   closeOrder({ cleanupTemp: false });
   render();
   // noteStage：抽屉保存时按保存前的阶段说明阶段变化（抽屉先把推断的阶段写进了表单，拿表单的阶段比较就什么都不说了）。
   const successText = `${isDraft ? '订单草稿已保存' : (isEdit ? '订单已保存' : '订单已创建')}${orderStageSaveNote(order, options.noteStage ?? data.stage, existing)}`;
   if (isDraft || !notificationRequested) toast(successText, typeof orderSaveFollowUpAction === 'function' ? orderSaveFollowUpAction(order, existing) : undefined);
-  else await completeOrderNotification(order.id, true, successText);
+  else {
+    // 订单已经在数据库里：马上告诉用户、按钮马上恢复。群消息在后台发，结果另给一条提示（以前要等飞书，最长几分钟）。
+    toast(`${successText}，正在发送群消息…`, typeof orderSaveFollowUpAction === 'function' ? orderSaveFollowUpAction(order, existing) : undefined);
+    completeOrderNotification(order.id, true, successText).catch(() => {});
+  }
   return true;
   } finally { delete form.dataset.saving; }
 }
@@ -22075,6 +22325,7 @@ function duplicateOrder() {
     logs:[{ time:nowText(), text:`由订单 ${src.num || ''} 复制生成` }]
   };
   state.orders.unshift(copy);
+  if (typeof feishuPendingCopies !== 'undefined') feishuPendingCopies.add(copy.id);
   orderListCurrentPage = 1;
   closeOrder();
   render();
@@ -26725,6 +26976,12 @@ document.getElementById('detailEditBtn').addEventListener('click', async () => {
   openOrder(id);
 });
 document.getElementById('orderDetailDrawer').addEventListener('click', e => {
+  if (e.target.closest('[data-open-feishu-settings]')) {
+    e.preventDefault();
+    e.stopPropagation();
+    openFeishuSettingsFromDrawer();
+    return;
+  }
   const retryNotificationBtn = e.target.closest('[data-retry-order-notification]');
   if (retryNotificationBtn) {
     e.preventDefault();
@@ -27210,8 +27467,98 @@ document.querySelector('.settings-menu').addEventListener('click', e => {
   document.querySelectorAll('[data-settings-tab]').forEach(item => item.classList.toggle('active', item === btn));
   document.querySelectorAll('[data-settings-panel]').forEach(panel => panel.classList.toggle('active', panel.dataset.settingsPanel === tab));
   if (tab === 'ai') refreshAiUsage();
+  if (tab === 'feishu') refreshFeishuStatus();
 });
 document.getElementById('refreshAiUsageBtn').addEventListener('click', () => refreshAiUsage());
+// ===== 设置 → 飞书通知 =====
+function openFeishuSettings() {
+  setPage('settings');
+  uiSettingsTab('feishu');
+  refreshFeishuStatus();
+  requestAnimationFrame(() => document.getElementById('feishuProfile')?.focus({ preventScroll:true }));
+}
+async function openFeishuSettingsFromDrawer() {
+  if (typeof uiDetailConfirmLeave === 'function' && !await uiDetailConfirmLeave('飞书设置')) return;
+  closeOrderDetail();
+  openFeishuSettings();
+}
+document.addEventListener('click', e => {
+  const btn = e.target.closest?.('[data-open-feishu-settings]');
+  if (!btn || btn.closest('#orderDetailDrawer')) return;
+  e.preventDefault();
+  openFeishuSettings();
+});
+document.getElementById('feishuSettingsForm')?.addEventListener('input', e => {
+  if (['chatName', 'cliPath'].includes(e.target?.name)) e.target.dataset.touched = '1';
+});
+document.getElementById('feishuSettingsForm')?.addEventListener('submit', async e => {
+  e.preventDefault();
+  const form = e.currentTarget;
+  const line = document.getElementById('feishuTestStatus');
+  if (!isMacAppMode()) {
+    toast('飞书通知只在 Mac App 里可用', { tone:'info' });
+    return;
+  }
+  const btn = form.querySelector('button[type="submit"]');
+  if (btn?.dataset.morph === 'busy') return;
+  const body = {
+    profile: form.elements.profile.value,
+    chatName: form.elements.chatName.value,
+    chatId: form.elements.chatId.value,
+    cliPath: form.elements.cliPath.value
+  };
+  uiMorph(btn, 'busy', '保存中…');
+  try {
+    const res = await apiFetch('/api/feishu-settings', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify(body) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || typeof data.configured !== 'boolean') {
+      const reason = data.message || `HTTP ${res.status}`;
+      if (line) line.textContent = `没有保存：${reason}`;
+      toast('飞书设置没有保存', { tone:'error', desc:reason });
+      return;
+    }
+    feishuStatus = data;
+    // profile 和群 ID 不留在页面上：清空输入框，占位文字写「已保存」。
+    form.elements.profile.value = '';
+    form.elements.chatId.value = '';
+    delete form.elements.chatName.dataset.touched;
+    delete form.elements.cliPath.dataset.touched;
+    renderFeishuSettingsStatus();
+    syncFeishuNotificationHints();
+    if (line) line.textContent = data.configured ? '已保存，马上生效。可以点「测试连接」发一条测试消息' : `已保存，但还不能发送：${data.reason || ''}`;
+    toast(data.configured ? '飞书设置已保存，马上生效' : '飞书设置已保存', data.configured && !data.cli?.found ? { tone:'error', desc:'这台 Mac 上找不到 lark-cli，可以填写它的完整路径' } : undefined);
+  } catch (_) {
+    if (line) line.textContent = '没有保存：本机服务没有回应';
+    toast('飞书设置没有保存', { tone:'error', desc:'本机服务没有回应' });
+  } finally {
+    uiMorph(btn, 'idle');
+  }
+});
+document.getElementById('testFeishuBtn')?.addEventListener('click', async e => {
+  const btn = e.currentTarget;
+  const line = document.getElementById('feishuTestStatus');
+  if (btn.dataset.morph === 'busy') return;
+  uiMorph(btn, 'busy', '发送中…');
+  if (line) line.textContent = '正在发一条测试消息…';
+  try {
+    const res = await apiFetch('/api/feishu-test', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:'{}' });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok) {
+      if (line) line.textContent = `连接正常：测试消息已发到「${data.chatName || ''}」（${data.sentAt || ''}）`;
+      toast('飞书测试消息已发送');
+    } else {
+      const reason = data.message || `HTTP ${res.status}`;
+      if (line) line.textContent = `连接失败：${reason}`;
+      toast('飞书测试没有成功', { tone:'error', desc:reason });
+    }
+  } catch (_) {
+    if (line) line.textContent = '连接失败：本机服务没有回应';
+    toast('飞书测试没有成功', { tone:'error', desc:'本机服务没有回应' });
+  } finally {
+    uiMorph(btn, 'idle');
+    refreshFeishuStatus();
+  }
+});
 document.getElementById('aiUsagePrev').addEventListener('click', () => refreshAiUsage(aiUsagePage - 1));
 document.getElementById('aiUsageNext').addEventListener('click', () => refreshAiUsage(aiUsagePage + 1));
 document.getElementById('aiUsageModel').addEventListener('change', e => {
@@ -30143,6 +30490,9 @@ async function uiDetailSave({ promote = false } = {}) {
     return;
   }
   failedSaveForget(body);
+  // 保存期间用户可能已经换到另一张单：只刷新还停在这张单上的抽屉，别的单不动（以前会强行切回来，另一张单没保存的输入被丢掉）。
+  const drawerStillHere = detailOrderId === id && document.getElementById('orderDetailDrawer')?.classList.contains('open');
+  if (!drawerStillHere) return;
   uiDetailMarkClean();
   if (state.orders.some(o => o.id === id)) openOrderDetail(id);
 }

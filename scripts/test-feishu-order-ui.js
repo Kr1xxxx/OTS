@@ -46,7 +46,11 @@ const context = vm.createContext({
   closeOrder() {},
   openOrder() {},
   render() {},
-  toast() {}
+  toast() {},
+  feishuStatus: null,
+  feishuPendingCopies: new Set(),
+  feishuUnconfiguredHint: '还没配置飞书',
+  feishuFieldLabels: { client:'客户名称', num:'订单号', email:'邮箱', phone:'手机号', address:'收货地址', amount:'订单金额', paymentChannel:'付款方式', note:'订单备注' }
 });
 
 [
@@ -55,6 +59,9 @@ const context = vm.createContext({
   'normalizeFeishuNotification',
   'renderFeishuNotificationBadge',
   'renderOrderDetailNotification',
+  'feishuKnownUnconfigured',
+  'feishuDefaultChecked',
+  'feishuNotificationChangedFields',
   'duplicateOrder'
 ].forEach(name => vm.runInContext(extractFunction(name), context));
 
@@ -77,6 +84,14 @@ evaluate('duplicateOrder()');
 assert.equal(context.state.orders[0].num, 'SO-COPY');
 assert.equal(context.state.orders[0].feishuNotification.status, 'skipped', 'duplicated order must not inherit sent status');
 assert.equal(context.state.orders[0].feishuNotification.requested, false);
+assert.equal(context.feishuPendingCopies.has(context.state.orders[0].id), true, 'a copy is a new order until its first save');
+context.localStorage = { getItem:() => '1' };
+assert.equal(evaluate('feishuDefaultChecked()'), true, 'remembered choice applies while the status is unknown');
+context.feishuStatus = { configured:false };
+assert.equal(evaluate('feishuDefaultChecked()'), false, 'not configured: the send switch defaults to off');
+context.feishuStatus = { configured:true };
+assert.equal(evaluate('feishuDefaultChecked()'), true);
+context.feishuStatus = null;
 
 (async () => {
   notificationCalls = [];
@@ -114,6 +129,18 @@ assert.equal(context.state.orders[0].feishuNotification.requested, false);
   assert.doesNotMatch(sentDetail, /data-retry-order-notification/);
   assert.match(failedDetail, /data-retry-order-notification="o2"/);
   assert.match(failedDetail, /&lt;secret&gt;/, 'detail error must be escaped');
+  const skippedDetail = evaluate(`renderOrderDetailNotification({ id:'o3', feishuNotification:{ status:'skipped' } })`);
+  assert.match(skippedDetail, /未发送到飞书群/);
+  assert.match(skippedDetail, /data-retry-order-notification="o3"[^>]*>发送到飞书群/, 'an unsent formal order can be sent from the drawer');
+  assert.equal(evaluate(`renderOrderDetailNotification({ id:'o4', isDraft:true, feishuNotification:{ status:'skipped' } })`), '', 'drafts do not offer sending');
+  context.feishuStatus = { configured:false };
+  const unconfiguredDetail = evaluate(`renderOrderDetailNotification({ id:'o5', feishuNotification:{ status:'skipped' } })`);
+  assert.doesNotMatch(unconfiguredDetail, /data-retry-order-notification/, 'no send button while Feishu is not configured');
+  assert.match(unconfiguredDetail, /data-open-feishu-settings/);
+  context.feishuStatus = null;
+  context.state.customers = { Ann:{ email:'ann@example.com' } };
+  const staleDetail = evaluate(`renderOrderDetailNotification({ id:'o6', client:'Ann', num:'K1', amount:120, currency:'USD', paymentChannel:'TT', note:'new note', feishuNotification:{ status:'sent', sentAt:'2026-11-08 10:00:00', sentFields:{ client:'Ann', num:'K1', email:'ann@example.com', phone:'', address:'', amount:'USD 100.00', paymentChannel:'TT', note:'old' } } })`);
+  assert.match(staleDetail, /发出后改过订单金额、订单备注/, 'edits after sending are pointed out');
 
   assert.match(html, /renderFeishuNotificationBadge\(order\)/, 'order list must render notification status');
   assert.match(html, /renderOrderDetailNotification\(order\)/, 'order detail must render notification status');

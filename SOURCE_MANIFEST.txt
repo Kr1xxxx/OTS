@@ -87,8 +87,10 @@ scripts/test-detail-drawer-draft-ui.js
 scripts/test-detail-drawer-ui.js
 scripts/test-ecb-exchange.js
 scripts/test-events-copy-levels-ui.js
+scripts/test-feishu-cli-errors.js
 scripts/test-feishu-order-notification.js
 scripts/test-feishu-order-ui.js
+scripts/test-feishu-settings-ui.js
 scripts/test-feishu-settings.js
 scripts/test-follow-reminder.js
 scripts/test-followup-tasks-ui.js

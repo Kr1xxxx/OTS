@@ -60,6 +60,21 @@ async function main() {
   assert.equal(fallback.fallback, true);
   assert.deepEqual(readSavedAttachment(fallback.fileUrl), originalImage);
 
+  // 页面送来的是本机压缩版：TinyPNG 失败时存的就是它，标成「本机压缩」。
+  const local = await saveAttachment('LOCAL-COMPRESSED', { compressed: true });
+  assert.equal(local.optimized, false);
+  assert.equal(local.optimizer, '本机压缩');
+  assert.equal(local.compressed, true);
+  assert.deepEqual(readSavedAttachment(local.fileUrl), originalImage);
+
+  // TinyPNG 压出来反而更大：留页面送来的那份，不换成更大的。
+  tinifyMode = 'success';
+  const small = Buffer.from(optimizedImage.subarray(0, 20));
+  const kept = await saveAttachment('TINIFY-BIGGER', { compressed: true }, small);
+  assert.equal(kept.optimized, false);
+  assert.equal(kept.optimizer, '本机压缩');
+  assert.deepEqual(readSavedAttachment(kept.fileUrl), small);
+
   console.log('TinyPNG compression test passed: optimized save, protected secret, and local fallback verified.');
 }
 
@@ -116,7 +131,7 @@ function startTradeServer() {
   });
 }
 
-async function saveAttachment(orderId) {
+async function saveAttachment(orderId, extra = {}, image = originalImage) {
   const response = await fetch(`${tradeBaseUrl}/api/attachments`, {
     method: 'POST',
     headers: {
@@ -127,7 +142,8 @@ async function saveAttachment(orderId) {
       orderId,
       fileName: 'order.png',
       mimeType: 'image/png',
-      data: `data:image/png;base64,${originalImage.toString('base64')}`
+      data: `data:image/png;base64,${image.toString('base64')}`,
+      ...extra
     })
   });
   const data = await response.json();

@@ -2212,16 +2212,6 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
 .customer-due-amount { color: var(--red-600); font-weight: 600; }
 .customer-row-action { justify-self: end; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; color: var(--green-700); font-size: 17px; font-weight: 600; background: color-mix(in srgb, var(--green-50) 60%, var(--white)); border: 1px solid color-mix(in srgb, var(--green-500) 18%, var(--gray-200)); }
 .customer-cell-main { display: grid; gap: 2px; }
-.customer-profile-metrics {
-  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin: 0;
-}
-.customer-metric-card {
-  min-width: 0; padding: 10px; border: 1px solid var(--gray-200); border-radius: 10px;
-  background: color-mix(in srgb, var(--green-50) 30%, var(--white)); display: grid; gap: 5px;
-}
-.customer-metric-card span { color: var(--gray-500); font-size: 11px; font-weight: 600; }
-.customer-metric-card strong { color: var(--gray-900); font-size: 15px; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.customer-metric-card small { color: var(--gray-500); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .customer-row.head {
   position: sticky; top: 0; z-index: 1; min-height: 38px; color: var(--gray-500); font-size: 12px;
   font-weight: 600; background: color-mix(in srgb, var(--gray-50) 78%, var(--white));
@@ -2254,7 +2244,6 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
 .customer-duplicate-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .customer-modal-shell { width: min(1120px, 100%); }
 .customer-modal-body { padding: 14px 16px 16px; gap: 12px; }
-.customer-detail-view { display: grid; gap: 10px; }
 .customer-view-mode #customerEditWorkspace { display: none; }
 .customer-edit-mode #customerDetailView { display: none; }
 .customer-edit-workspace { display: grid; gap: 12px; }
@@ -2289,50 +2278,16 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
 }
 :is(#customerForm, #combinedCustomerForm) .binary-option:focus-visible { outline: 2px solid var(--semantic-primary); outline-offset: -2px; }
 :is(#customerForm, #combinedCustomerForm) .app-select-button { font-weight: 500; }
-.customer-detail-hero {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center;
-  padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--green-500) 20%, var(--gray-200)); border-radius: 14px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--green-50) 66%, var(--white)), var(--white) 62%);
-}
-.customer-detail-identity { min-width: 0; display: grid; gap: 5px; }
-.customer-detail-name-line { min-width: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.customer-detail-name { color: var(--gray-900); font-size: 20px; font-weight: 600; line-height: 1.2; }
-.customer-detail-identity-meta { display: flex; gap: 10px; flex-wrap: wrap; color: var(--gray-500); font-size: 12px; }
-.customer-detail-hero-tags { display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
-.customer-detail-info-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.whatsapp-details { border:1px solid var(--gray-200); border-radius:12px; padding:12px 14px; background:var(--white); }
-.whatsapp-details summary { cursor:pointer; font-size:14px; font-weight: 600; color:var(--gray-800); }
-.whatsapp-details [hidden] { display:none !important; }
-.whatsapp-details .whatsapp-toolbar { display:flex; gap:10px; align-items:center; justify-content:space-between; margin:12px 0; flex-wrap:wrap; }
+.whatsapp-panel [hidden] { display:none !important; }
+.whatsapp-panel .whatsapp-toolbar { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
 .whatsapp-thread { display:flex; flex-direction:column; gap:12px; max-height:400px; overflow:auto; padding:12px; background:var(--surface-soft); border-radius:8px; }
 .whatsapp-message { align-self:flex-start; width:fit-content; max-width:85%; padding:10px 12px; border:1px solid var(--gray-200); border-radius:10px; background:var(--white); color:var(--gray-800); }
 .whatsapp-message.out { align-self:flex-end; background:color-mix(in srgb, var(--semantic-primary) 8%, var(--white)); }
 .whatsapp-message p { margin:5px 0; white-space:pre-wrap; overflow-wrap:anywhere; font-size:13px; }
 .whatsapp-message small { display:block; color:var(--gray-500); font-size:11px; overflow-wrap:anywhere; }
-.customer-info-card { min-width: 0; padding: 10px 12px; border: 1px solid var(--gray-200); border-radius: 12px; background: var(--white); }
-.customer-info-title { color: var(--gray-900); font-size: 12px; font-weight: 600; margin-bottom: 7px; }
-.customer-info-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
-.customer-info-title-row .customer-info-title { margin-bottom: 0; }
-.copy-customer-address-btn { min-height: 26px; padding: 3px 8px; font-size: 11px; white-space: nowrap; }
-.customer-info-list { display: grid; gap: 6px; }
-.customer-info-row { min-width: 0; display: grid; grid-template-columns: 68px minmax(0, 1fr); gap: 8px; font-size: 12px; line-height: 1.4; }
-.customer-info-row span { color: var(--gray-500); font-weight: 600; }
-.customer-info-row strong { min-width: 0; color: var(--gray-800); font-weight: 600; word-break: break-word; }
-.customer-value-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
-.customer-value-line + .customer-value-line { margin-top: 4px; }
-.customer-value-text { min-width: 0; overflow-wrap: anywhere; word-break: normal; }
-.customer-value-copy { padding: 1px 8px; border: 1px solid var(--gray-200); border-radius: 999px; background: transparent; color: var(--gray-600); font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; }
-.customer-value-copy:hover { color: var(--semantic-primary); border-color: currentColor; }
-.customer-value-copy.is-copied { color: var(--semantic-paid); border-color: currentColor; }
-.customer-copy-label { width: fit-content; padding: 0; border: 0; background: transparent; color: var(--gray-500); font: inherit; font-weight: 600; text-align: left; cursor: pointer; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
+.customer-copy-label { width: fit-content; padding: 0; border: 0; background: transparent; color: var(--gray-500); font: inherit; text-align: left; cursor: pointer; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
 .customer-copy-label:hover { color: var(--semantic-primary); }
 .customer-copy-label:focus-visible { outline: 2px solid var(--semantic-primary); outline-offset: 3px; border-radius: 3px; }
-.customer-note-text { color: var(--gray-700); font-size: 12px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
-.customer-permanent-note-card {
-  border-color: color-mix(in srgb, var(--orange-500) 30%, var(--gray-200));
-  background: color-mix(in srgb, var(--orange-50) 56%, var(--white));
-}
-.customer-permanent-note-card .customer-info-title { color: var(--orange-700); }
 .customer-contact-methods-field { align-self: start; }
 .customer-contact-methods-field fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 .customer-contact-methods-field legend { margin-bottom: 6px; color: var(--gray-700); font-size: 12px; font-weight: 600; }
@@ -2355,25 +2310,7 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
   background: color-mix(in srgb, var(--orange-50) 68%, var(--white)); color: var(--gray-800);
   font-size: 12px; line-height: 1.55; white-space: pre-wrap; word-break: break-word;
 }
-.customer-detail-lower { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(320px, .75fr); gap: 8px; align-items: start; }
-.customer-detail-section { min-width: 0; padding: 10px 12px; border: 1px solid var(--gray-200); border-radius: 12px; background: color-mix(in srgb, var(--surface-soft) 48%, var(--white)); }
-.customer-detail-section-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
-.customer-detail-section-title { color: var(--gray-900); font-size: 13px; font-weight: 600; }
-.customer-detail-section-meta { color: var(--gray-500); font-size: 11px; }
-.customer-detail-order-list { display: grid; gap: 4px; max-height: 256px; overflow: auto; overscroll-behavior: contain; }
-.customer-detail-order-row {
-  display: grid; grid-template-columns: 98px minmax(100px, 1fr) 78px 112px 28px; gap: 7px; align-items: center;
-  min-height: 38px; padding: 6px 7px; border: 1px solid color-mix(in srgb, var(--gray-200) 80%, transparent); border-radius: 9px; background: var(--white); font-size: 11px;
-}
-.customer-detail-order-row button { width: 28px; height: 28px; padding: 0; }
-.customer-detail-order-main { min-width: 0; display: grid; gap: 1px; }
-.customer-detail-order-main strong, .customer-detail-order-main small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.customer-detail-order-main small { color: var(--gray-500); }
-.customer-detail-roadmap { max-height: 256px; overflow: auto; overscroll-behavior: contain; }
-.customer-detail-roadmap .roadmap-card { padding: 7px 9px; }
-.customer-detail-roadmap .roadmap-day { padding-bottom: 10px; }
 .customer-name-contact { color: var(--gray-500); font-weight: 600; }
-.customer-mini-id { color: var(--gray-400); font-size: 12px; font-weight: 600; }
 .level-tag { display: inline-flex; align-items: center; gap: 4px; width: fit-content; border-radius: 4px; padding: 1px 5px; font-size: 11px; font-weight: 600; background: var(--purple-50); color: var(--purple-500); }
 .level-icon {
   flex: 0 0 auto; width: 15px; height: 15px; display: inline-grid; place-items: center;
@@ -2860,9 +2797,6 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
   .world-clock-strip { display: none; }
 }
 @media (max-width: 900px) {
-  .customer-detail-info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .customer-note-card, .customer-permanent-note-card { grid-column: 1 / -1; }
-  .customer-profile-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .order-detail-overview, .order-detail-primary-grid, .order-detail-secondary-grid, .order-detail-bottom { grid-template-columns: 1fr; }
   .detail-grid.order-detail-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .order-list-page-head { align-items: flex-start; flex-direction: column; }
@@ -2905,16 +2839,10 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
   .customer-toolbar .search { width: 100%; }
   .customer-workspace-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .customer-summary-item:last-child { grid-column: 1 / -1; }
-  .customer-detail-info-grid, .customer-detail-lower { grid-template-columns: 1fr; }
-  .customer-detail-hero { grid-template-columns: 1fr; }
-  .customer-detail-hero-tags { justify-content: flex-start; }
-  .customer-profile-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .customer-edit-workspace .form-grid { grid-template-columns: 1fr; }
   .customer-trade-preference-grid,
   .customer-contact-preference-panel,
   #combinedCustomerForm .customer-trade-preference-grid { grid-template-columns: 1fr; }
-  .customer-detail-order-row { grid-template-columns: 84px minmax(90px, 1fr) 72px 28px; }
-  .customer-detail-order-row > div:nth-child(4) { grid-column: 2 / 4; }
   .customer-duplicate-alerts { grid-template-columns: 1fr; }
   .analysis-kpi-grid, .analysis-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .business-kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -4156,7 +4084,7 @@ html[data-theme] :is(.tag-wig, .tag-lash, .tag-pay-alibaba, .tag-pay-paypal, .ta
 html[data-theme] .tag-purple { background:var(--accent-tint); color:var(--accent); }
 
 /* 去掉旧版的装饰渐变和光斑，卡片一律纯色 + 细边 */
-html[data-theme] :is(.logistics-card, .price-history-row, .price-history-row.pinned, .detail-hero, .report-stat, .target-hero, .chart-panel, .customer-groups, .customer-toolbar, .customer-detail-hero, .rate-status-card, .combined-column, .order-detail-customer-hero) { background:var(--surface-bg); }
+html[data-theme] :is(.logistics-card, .price-history-row, .price-history-row.pinned, .detail-hero, .report-stat, .target-hero, .chart-panel, .customer-groups, .customer-toolbar, .rate-status-card, .combined-column, .order-detail-customer-hero) { background:var(--surface-bg); }
 html[data-theme] :is(.order-detail-body, .order-form, .combined-modal-body) { background:var(--surface-soft); }
 html[data-theme] :is(.order-modal .modal-head, .combined-modal .modal-head, .modal-head) { background:var(--surface-bg); border-bottom:1px solid var(--hairline); }
 html[data-theme] :is(.order-section, .order-section.primary) { background:var(--surface-bg); border:1px solid var(--surface-border); border-radius:var(--radius); box-shadow:none; }
@@ -4275,7 +4203,7 @@ html[data-theme] .target-history-fill { box-shadow:none; }
 html[data-theme] .target-history-fill::after { display:none; }
 html[data-theme] .target-history-fill.empty { background:transparent; }
 html[data-theme] .target-history-track { background:var(--gray-100); box-shadow:none; }
-html[data-theme] :is(.target-hero, .target-setup, .rate-status-card, .customer-detail-hero) { border-color:var(--surface-border); box-shadow:none; }
+html[data-theme] :is(.target-hero, .target-setup, .rate-status-card) { border-color:var(--surface-border); box-shadow:none; }
 @media (min-width: 821px) { html[data-theme] .board-columns { grid-template-columns:none; grid-auto-flow:column; grid-auto-columns:minmax(196px, 1fr); width:100%; min-width:0; } }
 /* ===== 新版 UI：外壳与基础组件（OTS UI 规范）。选择器统一加 html[data-theme] 前缀，盖过旧的深色专用规则。 ===== */
 .ui-icon, .nav-icon.ui-icon { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; flex:none; }
@@ -5627,6 +5555,105 @@ html[data-theme] .mbody > .customer-modal-body.customer-view-mode { padding:2px 
 html[data-theme] .mbody:has(> .customer-view-mode) { grid-template-columns:minmax(0,1fr); }
 html[data-theme] .mbody:has(> .customer-view-mode) .mnav { display:none; }
 html[data-theme] .mbody:has(> .mnav.is-empty) { grid-template-columns:minmax(0,1fr); }
+/* 客户只读档案（V3.139，方案 C）：左边一条档案栏放联系方式、收货地址、交易偏好、客户管理；右边是永久备注、数字卡、客户备注和标签页
+   （关联订单 / 客户动态 / WhatsApp 聊天记录）。以前四张等宽小卡，详细地址被挤成一百来像素的窄列。 */
+html[data-theme] .customer-modal-state { order:3; font-size:12px; color:var(--gray-500); white-space:nowrap; }
+html[data-theme] .customer-modal-state:empty { display:none; }
+html[data-theme] .customer-modal-tags { display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding-top:3px; }
+html[data-theme] .customer-modal-tags .level-tag { min-height:24px; padding:0 10px; border:1px solid var(--surface-border); background:var(--surface-bg); color:var(--gray-700); font-size:12px; }
+html[data-theme] .customer-modal-tags .level-tag:has(.level-icon) { padding-left:5px; border-color:transparent; background:var(--accent-tint); color:var(--accent); }
+html[data-theme] .customer-modal-tags .level-tag .level-icon { border-radius:50%; background:var(--accent); color:var(--on-accent, #fff); }
+html[data-theme] .customer-modal-tags .level-tag.is-paid { border-color:transparent; background:color-mix(in oklab, var(--s-green) var(--s-tint), transparent); color:var(--s-green); }
+html[data-theme] .customer-view-mode #customerDetailView { flex:1 0 auto; display:grid; grid-template-columns:304px minmax(0, 1fr); gap:16px; align-items:stretch; }
+html[data-theme] .customer-detail-rail { min-width:0; display:flex; flex-direction:column; padding:18px 20px; border:1px solid var(--surface-border); border-radius:18px; background:var(--surface-bg); box-shadow:0 1px 2px oklch(0% 0 0 / .04); }
+html[data-theme] .customer-rail-section { display:flex; flex-direction:column; gap:8px; padding:14px 0; border-top:1px solid var(--hairline); }
+html[data-theme] .customer-rail-section:first-child { padding-top:0; border-top:0; }
+html[data-theme] .customer-rail-section:last-child { padding-bottom:0; }
+html[data-theme] .customer-info-title { margin:0 0 2px; color:var(--gray-900); font-size:14px; font-weight:600; line-height:20px; }
+html[data-theme] .customer-rail-row { display:flex; align-items:flex-start; gap:8px; min-width:0; color:var(--gray-900); font-size:13px; line-height:20px; }
+html[data-theme] .customer-rail-row > .ui-icon { width:15px; height:15px; margin-top:2.5px; color:var(--gray-500); }
+html[data-theme] .customer-rail-row.is-labelled .customer-copy-label { flex:none; }
+html[data-theme] .customer-rail-values { flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; font-weight:500; }
+html[data-theme] .customer-value-line { display:flex; align-items:flex-start; gap:6px; min-width:0; }
+html[data-theme] .customer-value-text { flex:0 1 auto; min-width:0; overflow-wrap:anywhere; }
+html[data-theme] .customer-value-primary { flex:none; margin-top:1px; padding:0 7px; border-radius:999px; background:var(--gray-100); color:var(--gray-600); font-size:11px; font-weight:500; line-height:18px; }
+html[data-theme] .customer-value-copy { flex:none; width:22px; height:22px; margin:-1px 0 -1px auto; padding:0; border:0; border-radius:999px; background:transparent; color:var(--gray-500); display:grid; place-items:center; cursor:pointer; transition:color var(--motion-fast) var(--ease), background var(--motion-fast) var(--ease); }
+html[data-theme] .customer-value-copy:hover { color:var(--gray-900); background:var(--gray-100); }
+html[data-theme] .customer-value-copy:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+html[data-theme] .customer-value-copy .ui-icon { grid-area:1 / 1; width:14px; height:14px; transition:transform var(--motion-spring) var(--ease-spring), opacity var(--motion-fast); }
+html[data-theme] .customer-value-copy .ui-icon:last-child { opacity:0; transform:scale(.4); stroke-width:2.2; }
+html[data-theme] .customer-value-copy.is-copied { color:var(--s-green); }
+html[data-theme] .customer-value-copy.is-copied .ui-icon:first-child { opacity:0; transform:scale(.4); }
+html[data-theme] .customer-value-copy.is-copied .ui-icon:last-child { opacity:1; transform:none; }
+html[data-theme] .customer-rail-missing { color:var(--gray-500); font-size:12px; line-height:18px; }
+html[data-theme] .customer-rail-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:2px; }
+html[data-theme] .customer-rail-head .customer-info-title { margin:0; color:var(--gray-900); }
+html[data-theme] .customer-rail-country { min-width:0; color:var(--gray-600); font-size:13px; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+html[data-theme] .customer-rail-address { margin:0; color:var(--gray-900); font-size:14px; line-height:22px; font-weight:500; white-space:pre-wrap; overflow-wrap:anywhere; }
+html[data-theme] .customer-rail-address .customer-value-primary { display:inline-block; margin:0 6px 0 0; vertical-align:1px; }
+html[data-theme] :is(.customer-rail-address, .customer-rail-country, .customer-rail-kv > strong).is-empty { color:var(--gray-500); font-weight:400; }
+html[data-theme] .copy-customer-address-btn { width:100%; height:34px; min-height:34px; margin-top:4px; justify-content:center; font-size:13px; }
+html[data-theme] .customer-rail-kv { display:flex; align-items:baseline; justify-content:space-between; gap:12px; min-width:0; font-size:13px; line-height:20px; }
+html[data-theme] .customer-rail-kv > :is(span, .customer-copy-label) { flex:none; color:var(--gray-500); }
+html[data-theme] .customer-rail-kv > strong { min-width:0; color:var(--gray-900); font-weight:500; text-align:right; overflow-wrap:anywhere; }
+html[data-theme] .customer-detail-main { min-width:0; display:flex; flex-direction:column; gap:16px; }
+html[data-theme] .customer-detail-main > div:empty { display:none; }
+html[data-theme] .customer-permanent-note-card { display:flex; flex-direction:column; gap:4px; padding:12px 16px; border:1px solid color-mix(in oklab, var(--s-orange) 36%, var(--surface-border)); border-radius:14px; background:color-mix(in oklab, var(--s-orange) 9%, var(--surface-bg)); }
+html[data-theme] .customer-permanent-note-card .customer-info-title { margin:0; color:color-mix(in oklab, var(--s-orange) 78%, var(--gray-900)); font-size:13px; }
+html[data-theme] .customer-permanent-note-card .customer-note-text { color:var(--gray-800); }
+html[data-theme] .customer-permanent-note-card.is-empty { flex-direction:row; flex-wrap:wrap; align-items:baseline; column-gap:10px; padding:10px 16px; }
+html[data-theme] .customer-permanent-note-card.is-empty .customer-note-text { color:var(--gray-600); }
+html[data-theme] .customer-note-text { color:var(--gray-700); font-size:13px; line-height:21px; white-space:pre-wrap; overflow-wrap:anywhere; }
+html[data-theme] .customer-note-text.is-empty { color:var(--gray-500); }
+html[data-theme] .customer-info-card { min-width:0; display:flex; flex-direction:column; gap:4px; padding:16px 20px; border:1px solid var(--surface-border); border-radius:18px; background:var(--surface-bg); box-shadow:0 1px 2px oklch(0% 0 0 / .04); }
+html[data-theme] .customer-profile-metrics { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:12px; margin:0; }
+html[data-theme] .customer-metric-card { display:flex; flex-direction:column; gap:3px; padding:12px 14px; border:1px solid var(--surface-border); border-radius:16px; background:var(--surface-bg); }
+html[data-theme] .customer-metric-card span { color:var(--gray-500); font-size:12px; line-height:17px; }
+html[data-theme] .customer-metric-card strong { color:var(--gray-900); font-family:var(--display); font-size:17px; line-height:22px; font-weight:600; font-variant-numeric:tabular-nums; }
+html[data-theme] .customer-metric-card strong:not(.summary-money) { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+html[data-theme] .customer-metric-card strong.summary-money { font-size:clamp(13px, 12cqw, 17px); line-height:22px; }
+html[data-theme] .customer-metric-card strong.customer-due-amount { color:var(--s-amber); }
+html[data-theme] .customer-metric-card small { color:var(--gray-500); font-size:12px; line-height:17px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+html[data-theme] .customer-detail-tabs-card { flex:1 1 0; min-width:0; min-height:280px; overflow:hidden; display:flex; flex-direction:column; border:1px solid var(--surface-border); border-radius:18px; background:var(--surface-bg); box-shadow:0 1px 2px oklch(0% 0 0 / .04); }
+html[data-theme] .customer-detail-tabs-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; column-gap:16px; padding:0 20px; border-bottom:1px solid var(--hairline); }
+html[data-theme] .customer-detail-tabs { margin-top:0; gap:22px; min-width:0; }
+html[data-theme] .customer-detail-tabs button { padding:12px 0; display:inline-flex; align-items:center; gap:6px; }
+html[data-theme] .customer-detail-tabs button:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; border-radius:6px; }
+html[data-theme] .customer-detail-tab-count { min-width:18px; padding:0 5px; border-radius:999px; background:var(--accent-tint); color:var(--accent); font-size:11px; font-weight:600; line-height:18px; text-align:center; font-variant-numeric:tabular-nums; }
+html[data-theme] .customer-detail-tab-count:empty { display:none; }
+html[data-theme] .customer-detail-section-meta { color:var(--gray-500); font-size:12px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+/* 标签页卡片占满右栏剩下的高度，内容多了在卡片里滚（档案栏和数字卡不跟着跑）；订单 5 笔以上、客户动态、聊天记录时卡片留高一些。 */
+html[data-theme] .customer-detail-tabs-card:has(#customerDetailOrdersPanel:not([hidden]) .customer-detail-order-row:nth-child(5), #customerRoadmapSection:not([hidden]), #customerWhatsAppDetails:not([hidden])) { min-height:480px; }
+html[data-theme] .customer-detail-panel { flex:1; min-width:0; min-height:0; padding:6px 20px 14px; overflow:auto; overscroll-behavior:contain; }
+html[data-theme] .customer-detail-panel[hidden] { display:none; }
+html[data-theme] .customer-detail-panel > .empty { padding:28px 0; }
+html[data-theme] .customer-detail-order-list { display:flex; flex-direction:column; }
+html[data-theme] .customer-detail-order-row { display:grid; grid-template-columns:112px minmax(0, 1fr) auto minmax(96px, auto) 28px; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--hairline); font-size:13px; line-height:19px; }
+html[data-theme] .customer-detail-order-row:last-child { border-bottom:0; }
+html[data-theme] .customer-detail-order-main { min-width:0; display:flex; flex-direction:column; }
+html[data-theme] .customer-detail-order-main strong { color:var(--gray-900); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+html[data-theme] .customer-detail-order-main:first-child strong { font-family:var(--mono); }
+html[data-theme] .customer-detail-order-main small { color:var(--gray-500); font-size:12px; line-height:17px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+html[data-theme] .customer-detail-order-main small.paid-amount { color:var(--s-green); font-weight:400; }
+html[data-theme] .customer-detail-order-main small.customer-due-amount { color:var(--s-amber); font-weight:500; }
+html[data-theme] .customer-detail-order-money { align-items:flex-end; text-align:right; }
+html[data-theme] .customer-detail-order-money strong { font-weight:600; font-variant-numeric:tabular-nums; }
+html[data-theme] .customer-detail-order-row .tag { padding:2px 10px; font-size:12px; white-space:nowrap; }
+html[data-theme] .customer-detail-order-row .btn { width:28px; height:28px; min-height:28px; padding:0; color:var(--gray-600); }
+html[data-theme] .customer-detail-order-row .btn .ui-icon { width:14px; height:14px; stroke-width:2; }
+html[data-theme] .customer-detail-roadmap { padding-top:8px; }
+html[data-theme] .customer-detail-roadmap .roadmap-card { padding:7px 9px; }
+html[data-theme] .customer-detail-roadmap .roadmap-day { padding-bottom:10px; }
+html[data-theme] .whatsapp-panel { display:flex; flex-direction:column; gap:12px; padding-top:14px; overflow:hidden; }
+html[data-theme] .whatsapp-panel .whatsapp-thread { flex:1; min-height:120px; max-height:none; border-radius:14px; }
+@media (max-width: 860px) {
+  html[data-theme] .customer-view-mode #customerDetailView { grid-template-columns:minmax(0, 1fr); }
+  html[data-theme] .customer-detail-order-row { grid-template-columns:minmax(0, 1fr) minmax(0, 1fr) 28px; row-gap:6px; }
+  html[data-theme] .customer-detail-order-row > .tag { justify-self:start; grid-column:1; }
+  html[data-theme] .customer-detail-order-money { grid-column:2; }
+  html[data-theme] .customer-detail-order-row .btn { grid-column:3; grid-row:1 / span 2; }
+}
+@media (max-width: 520px) { html[data-theme] .customer-profile-metrics { grid-template-columns:repeat(2, minmax(0, 1fr)); } }
 html[data-theme] .customer-edit-workspace { display:flex; flex-direction:column; gap:12px; }
 html[data-theme] .customer-edit-workspace > .order-section .customer-edit-form-grid { grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px; }
 html[data-theme] .customer-edit-workspace > .order-section .customer-trade-preference-grid { gap:12px; }
@@ -5921,6 +5948,9 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
 <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9-9-9Z"/><path d="M7.5 7.5h.01"/></symbol>
 <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
 <symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.8-3.5 3.6-5.5 7-5.5s6.2 2 7 5.5"/></symbol>
+<symbol id="i-phone" viewBox="0 0 24 24"><path d="M6.5 3h3l1.5 4.5-2 1.4a12 12 0 0 0 6.1 6.1l1.4-2 4.5 1.5v3a2.5 2.5 0 0 1-2.7 2.5A17.5 17.5 0 0 1 4 5.7 2.5 2.5 0 0 1 6.5 3z"/></symbol>
+<symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 8 8 5.5L20 8"/></symbol>
 </svg>
 <aside class="sidebar">
   <div class="logo">
@@ -5954,7 +5984,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.137，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.137</div>
+      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.139，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.139</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会先问一句，再下载并重启" aria-label="检查更新：有新版本会先问一句，再下载并重启" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse is-busy" id="savePulse" aria-live="polite"><i></i><span>读取中</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -7192,6 +7222,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
       <div class="modal-badge" aria-hidden="true"><svg class="ui-icon"><use href="#i-user-plus"/></svg></div>
       <div class="modal-head-text">
         <div class="order-num" id="customerModalSub">客户档案</div>
+        <div class="customer-modal-state" id="customerModalState"></div>
         <div class="modal-title" id="customerModalTitle">编辑客户</div>
         <div class="muted" id="customerModalDesc">客户主档，订单、物流和复购提醒都会引用这里</div>
       </div>
@@ -7207,29 +7238,33 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
     <form class="modal-body customer-modal-body" id="customerForm" novalidate>
       <input type="hidden" name="originalName">
       <div class="customer-detail-view" id="customerDetailView">
-        <div id="customerDetailHero"></div>
-        <div class="customer-profile-metrics" id="customerProfileMetrics"></div>
-        <div class="customer-detail-info-grid" id="customerDetailInfoGrid"></div>
-        <details class="whatsapp-details" id="customerWhatsAppDetails">
-          <summary>WhatsApp 聊天记录</summary>
-          <div class="whatsapp-toolbar"><span class="muted" id="customerWhatsAppMeta">从 Chrome 客户同步插件保存到本机</span><button class="btn btn-small" type="button" id="customerWhatsAppRefresh">刷新记录</button></div>
-          <div class="whatsapp-thread" id="customerWhatsAppThread" aria-live="polite"></div>
-          <div class="whatsapp-toolbar"><small class="muted">按采集顺序展示 · 时间沿用 WhatsApp 网页 · 媒体原文件尚未同步</small><button class="btn btn-small" type="button" id="customerWhatsAppMore" hidden>加载更早采集的记录</button></div>
-        </details>
-        <div class="customer-detail-lower">
-          <section class="customer-detail-section">
-            <div class="customer-detail-section-head">
-              <div class="customer-detail-section-title">关联订单</div>
-              <div class="customer-detail-section-meta" id="customerDetailOrdersMeta"></div>
+        <aside class="customer-detail-rail" id="customerDetailInfoGrid" aria-label="客户资料"></aside>
+        <div class="customer-detail-main">
+          <div id="customerDetailPermanentNote"></div>
+          <div class="customer-profile-metrics" id="customerProfileMetrics"></div>
+          <div id="customerDetailNote"></div>
+          <section class="customer-detail-tabs-card">
+            <div class="customer-detail-tabs-head">
+              <nav class="order-detail-tabs customer-detail-tabs" id="customerDetailTabs" role="tablist" aria-label="客户档案分区">
+                <button type="button" role="tab" data-customer-detail-tab="orders" aria-selected="true">关联订单<span class="customer-detail-tab-count" id="customerDetailOrdersCount"></span></button>
+                <button type="button" role="tab" data-customer-detail-tab="activity" aria-selected="false">客户动态</button>
+                <button type="button" role="tab" data-customer-detail-tab="whatsapp" aria-selected="false">WhatsApp 聊天记录</button>
+                <i class="tab-line" aria-hidden="true"></i>
+              </nav>
+              <div class="customer-detail-section-meta" id="customerDetailOrdersMeta" data-customer-detail-meta="orders"></div>
+              <div class="customer-detail-section-meta" data-customer-detail-meta="activity" hidden>资料、订单与跟进记录</div>
             </div>
-            <div class="customer-detail-order-list" id="customerDetailOrders"></div>
-          </section>
-          <section class="customer-detail-section" id="customerRoadmapSection">
-            <div class="customer-detail-section-head">
-              <div class="customer-detail-section-title">客户动态</div>
-              <div class="customer-detail-section-meta">资料、订单与跟进记录</div>
+            <div class="customer-detail-panel" data-customer-detail-panel="orders" id="customerDetailOrdersPanel">
+              <div class="customer-detail-order-list" id="customerDetailOrders"></div>
             </div>
-            <div class="customer-history customer-detail-roadmap" id="customerHistoryList"></div>
+            <div class="customer-detail-panel" data-customer-detail-panel="activity" id="customerRoadmapSection" hidden>
+              <div class="customer-history customer-detail-roadmap" id="customerHistoryList"></div>
+            </div>
+            <div class="customer-detail-panel whatsapp-panel" data-customer-detail-panel="whatsapp" id="customerWhatsAppDetails" hidden>
+              <div class="whatsapp-toolbar"><span class="muted" id="customerWhatsAppMeta">从 Chrome 客户同步插件保存到本机</span><button class="btn btn-small" type="button" id="customerWhatsAppRefresh">刷新记录</button></div>
+              <div class="whatsapp-thread" id="customerWhatsAppThread" aria-live="polite"></div>
+              <div class="whatsapp-toolbar"><small class="muted">按采集顺序展示 · 时间沿用 WhatsApp 网页 · 媒体原文件尚未同步</small><button class="btn btn-small" type="button" id="customerWhatsAppMore" hidden>加载更早采集的记录</button></div>
+            </div>
           </section>
         </div>
       </div>
@@ -20815,7 +20850,7 @@ function renderCustomerProfileMetrics(name = '') {
     <div class="customer-metric-card"><span>已收款</span><strong class="summary-money">${summaryMoney(record.paid, 'USD')}</strong><small>${record.total ? `${Math.round(record.paid / record.total * 100)}% 已收` : '暂无收款'}</small></div>
     <div class="customer-metric-card"><span>待收款</span><strong class="summary-money ${record.due > 0 ? 'customer-due-amount' : ''}">${summaryMoney(record.due, 'USD')}</strong><small>${record.due > 0 ? '需要跟进' : '暂无待收'}</small></div>
     <div class="customer-metric-card"><span>最近订单</span><strong>${escapeAttr(record.latestOrder?.num || '暂无')}</strong><small>${escapeAttr(record.latestOrder ? `${stageDef(record.latestOrder.stage).name} · ${record.latestOrderDate}` : '还没有订单')}</small></div>
-    <div class="customer-metric-card"><span>复购提醒</span><strong>${escapeAttr(record.repurchaseDate || repurchase)}</strong><small>${escapeAttr(!record.repurchaseCycle ? '未设置提醒' : !record.repurchaseDate ? '有进行中的订单，发货后再算' : record.nextFollow && record.nextFollow === record.repurchaseDate ? '已推迟到这天' : `每 ${record.repurchaseCycle} 天，从上次发货算`)}</small></div>
+    <div class="customer-metric-card"><span>复购提醒</span><strong>${escapeAttr(record.repurchaseDate || repurchase)}</strong><small title="${escapeAttr(!record.repurchaseCycle ? '' : !record.repurchaseDate ? '有进行中的订单，发货后再算' : '')}">${escapeAttr(!record.repurchaseCycle ? '未设置提醒' : !record.repurchaseDate ? '有进行中的订单，发货后再算' : record.nextFollow && record.nextFollow === record.repurchaseDate ? '已推迟到这天' : `每 ${record.repurchaseCycle} 天，从上次发货算`)}</small></div>
   `;
 }
 let whatsappReadSequence = 0;
@@ -20854,78 +20889,80 @@ async function loadCustomerWhatsApp(older = false) {
     if (!older) thread.textContent = '';
   } finally { if (sequence === whatsappReadSequence) more.disabled = false; }
 }
-document.getElementById('customerWhatsAppDetails').addEventListener('toggle', event => { if (event.target.open) loadCustomerWhatsApp(); });
 document.getElementById('customerWhatsAppRefresh').addEventListener('click', () => loadCustomerWhatsApp());
 document.getElementById('customerWhatsAppMore').addEventListener('click', () => loadCustomerWhatsApp(true));
 function renderCustomerDetailView(name = '', data = {}) {
   whatsappReadSequence++;
   whatsappReadRows = []; whatsappReadBefore = null;
-  const whatsappDetails = document.getElementById('customerWhatsAppDetails');
-  whatsappDetails.open = false; whatsappDetails.dataset.customer = name;
+  const whatsappPanel = document.getElementById('customerWhatsAppDetails');
+  whatsappPanel.dataset.customer = name;
   document.getElementById('customerWhatsAppThread').textContent = '';
+  document.getElementById('customerWhatsAppMeta').textContent = '从 Chrome 客户同步插件保存到本机';
+  document.getElementById('customerWhatsAppMore').hidden = true;
   const record = normalizeCustomerContactFields(customerWorkspaceRecord({ client:name, ...data }));
-  const hero = document.getElementById('customerDetailHero');
   const info = document.getElementById('customerDetailInfoGrid');
   const ordersEl = document.getElementById('customerDetailOrders');
   const ordersMeta = document.getElementById('customerDetailOrdersMeta');
-  const contact = record.contacts?.[0] || cleanContactValue(record.contact || '', record.address || '') || '未填写';
-  const renderValues = (values, fallback = '未填写') => values?.length
-    ? values.map(value => escapeAttr(value)).join('<br>')
-    : fallback;
-  // 电话、邮箱每一条后面一个复制按钮（点完显示「已复制」1.5 秒），有多条时第一条标「主要」。
-  const renderCopyValues = (values, label) => values?.length
-    ? values.map((value, index) => `<span class="customer-value-line"><span class="customer-value-text">${escapeAttr(value)}</span>${values.length > 1 && index === 0 ? '<span class="customer-multi-primary-badge">主要</span>' : ''}<button class="customer-value-copy" type="button" data-copy-customer-value="${escapeAttr(value)}" aria-label="复制${label} ${escapeAttr(value)}">复制</button></span>`).join('')
-    : '未填写';
-  if (hero) hero.innerHTML = `
-    <div class="customer-detail-hero">
-      <div class="customer-detail-identity">
-        <div class="customer-detail-name-line"><span class="customer-mini-id">${record.customerId}</span><span class="customer-detail-name">${escapeAttr(clientDisplayName(record.client))}</span></div>
-        <div class="customer-detail-identity-meta"><span>${escapeAttr(record.country || '国家未填写')}</span><span>联系人：${escapeAttr(contact)}</span><span>${escapeAttr(record.phone || '电话未填写')}</span><span>${escapeAttr(customerEmailSummary(record))}</span></div>
-      </div>
-      <div class="customer-detail-hero-tags">${renderTagChips(record.tags.slice(0, 4), record.level)}${record.total > 0 && record.due === 0 ? '<span class="level-tag">已收全款</span>' : ''}</div>
-    </div>`;
+  const ordersCount = document.getElementById('customerDetailOrdersCount');
+  const icon = id => `<svg class="ui-icon" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+  // 标题栏：客户编号、只读状态，第二行放等级 / 标签（以前正文里还有一张重复的姓名卡）。
+  document.getElementById('customerModalSub').textContent = record.customerId;
+  document.getElementById('customerModalState').textContent = '客户完整档案 · 只读';
+  document.getElementById('customerModalDesc').innerHTML = `<span class="customer-modal-tags">${renderTagChips(record.tags.slice(0, 4), record.level)}${record.total > 0 && record.due === 0 ? '<span class="level-tag is-paid">已收全款</span>' : ''}</span>`;
+  // 左档案栏。联系方式：有内容的各占一行（电话、邮箱每条带复制，点完图标变对勾 1.5 秒；多条时第一条标「主要」），没填的并成最后一行。
+  const legacyContact = cleanContactValue(record.contact || '', record.address || '');
+  const contacts = record.contacts?.length ? record.contacts : (legacyContact ? [legacyContact] : []);
+  const contactMethods = renderCustomerContactMethods(record);
+  const valueLines = (values, label = '') => values.map((value, index) => `<span class="customer-value-line"><span class="customer-value-text">${escapeAttr(value)}</span>${values.length > 1 && index === 0 ? '<span class="customer-value-primary">主要</span>' : ''}${label ? `<button class="customer-value-copy" type="button" data-copy-customer-value="${escapeAttr(value)}" title="复制${label}" aria-label="复制${label} ${escapeAttr(value)}">${icon('copy')}${icon('check')}</button>` : ''}</span>`).join('');
+  const railRow = (id, label, html) => `<div class="customer-rail-row" title="${label}">${icon(id)}<span class="visually-hidden">${label}</span><div class="customer-rail-values">${html}</div></div>`;
+  const contactRows = [
+    contacts.length ? railRow('user', '联系人', valueLines(contacts)) : '',
+    record.phones?.length ? railRow('phone', '联系电话', valueLines(record.phones, '电话')) : '',
+    record.emails?.length ? railRow('mail', '邮箱', valueLines(record.emails, '邮箱')) : '',
+    contactMethods !== '未设置' ? railRow('chat', '联系方式', `<span class="customer-value-line"><span class="customer-value-text">${escapeAttr(contactMethods)}</span></span>`) : '',
+    record.alibabaId ? `<div class="customer-rail-row is-labelled"><button class="customer-copy-label" type="button" data-copy-customer-detail="alibabaId" title="点击复制阿里 ID">阿里 ID</button><div class="customer-rail-values"><span class="customer-value-line"><span class="customer-value-text">${escapeAttr(record.alibabaId)}</span></span></div></div>` : ''
+  ].filter(Boolean).join('');
+  const missing = [
+    [contacts.length, '联系人'], [record.phones?.length, '电话'], [record.emails?.length, '邮箱'],
+    [contactMethods !== '未设置', '联系方式'], [record.alibabaId, '阿里 ID']
+  ].filter(([filled]) => !filled).map(([, label]) => label);
+  const kv = (label, value, empty = '未设置') => `<div class="customer-rail-kv"><span>${label}</span><strong class="${value ? '' : 'is-empty'}">${escapeAttr(value || empty)}</strong></div>`;
   if (info) info.innerHTML = `
-    <section class="customer-info-card">
-      <div class="customer-info-title-row">
-        <div class="customer-info-title">联系与地址</div>
-        <button class="btn btn-small copy-customer-address-btn" type="button" data-copy-customer-address>复制地址信息</button>
-      </div>
-      <div class="customer-info-list">
-        <div class="customer-info-row"><span>联系人</span><strong>${renderValues(record.contacts, escapeAttr(contact))}</strong></div>
-        <div class="customer-info-row"><span>联系电话</span><strong>${renderCopyValues(record.phones, '电话')}</strong></div>
-        <div class="customer-info-row"><span>邮箱</span><strong>${renderCopyValues(record.emails, '邮箱')}</strong></div>
-        <div class="customer-info-row"><span>联系方式</span><strong>${escapeAttr(renderCustomerContactMethods(record))}</strong></div>
-        <div class="customer-info-row"><button class="customer-copy-label" type="button" data-copy-customer-detail="alibabaId" title="点击复制阿里 ID">阿里 ID</button><strong>${escapeAttr(record.alibabaId || '未填写')}</strong></div>
-        <div class="customer-info-row"><span>国家地区</span><strong>${escapeAttr(record.country || '未填写')}</strong></div>
-        <div class="customer-info-row"><button class="customer-copy-label" type="button" data-copy-customer-detail="addresses" title="点击复制全部地址">详细地址</button><strong>${renderValues(record.addresses)}</strong></div>
-      </div>
+    <section class="customer-rail-section">
+      <div class="customer-info-title">联系方式</div>
+      ${contactRows}
+      ${missing.length ? `<div class="customer-rail-missing">未填写：${missing.join('、')}</div>` : ''}
     </section>
-    <section class="customer-info-card">
+    <section class="customer-rail-section">
+      <div class="customer-rail-head">
+        <button class="customer-copy-label customer-info-title" type="button" data-copy-customer-detail="addresses" title="点击复制全部地址">收货地址</button>
+        <span class="customer-rail-country ${record.country ? '' : 'is-empty'}">${escapeAttr(record.country || '国家未填写')}</span>
+      </div>
+      ${record.addresses?.length ? record.addresses.map((address, index) => `<p class="customer-rail-address">${record.addresses.length > 1 && index === 0 ? '<span class="customer-value-primary">主要</span>' : ''}${escapeAttr(address)}</p>`).join('') : '<p class="customer-rail-address is-empty">地址未填写</p>'}
+      <button class="btn btn-small copy-customer-address-btn" type="button" data-copy-customer-address>${icon('copy')}复制地址信息</button>
+    </section>
+    <section class="customer-rail-section">
       <div class="customer-info-title">交易偏好</div>
-      <div class="customer-info-list">
-        <div class="customer-info-row"><span>默认币种</span><strong>${escapeAttr(record.currency || 'USD')}</strong></div>
-        <div class="customer-info-row"><span>收款方式</span><strong>${escapeAttr(record.paymentMethod || '未设置')}</strong></div>
-        <div class="customer-info-row"><button class="customer-copy-label" type="button" data-copy-customer-detail="paymentEmail" title="点击复制付款邮箱">付款邮箱</button><strong>${escapeAttr(record.paymentEmail || '未填写')}</strong></div>
-        <div class="customer-info-row"><span>产品类型</span><strong>${escapeAttr(record.productType || '未设置')}</strong></div>
-      </div>
+      ${kv('默认币种', record.currency || 'USD')}
+      ${kv('收款方式', record.paymentMethod)}
+      ${kv('产品类型', record.productType)}
+      <div class="customer-rail-kv"><button class="customer-copy-label" type="button" data-copy-customer-detail="paymentEmail" title="点击复制付款邮箱">付款邮箱</button><strong class="${record.paymentEmail ? '' : 'is-empty'}">${escapeAttr(record.paymentEmail || '未填写')}</strong></div>
     </section>
-    <section class="customer-info-card">
+    <section class="customer-rail-section">
       <div class="customer-info-title">客户管理</div>
-      <div class="customer-info-list">
-        <div class="customer-info-row"><span>客户等级</span><strong>${escapeAttr(record.level || '自动判断')}</strong></div>
-        <div class="customer-info-row"><span>负责人</span><strong>${escapeAttr(record.owner || '未分配')}</strong></div>
-        <div class="customer-info-row"><span>复购周期</span><strong>${record.repurchaseCycle ? `${escapeAttr(record.repurchaseCycle)} 天` : '未设置'}</strong></div>
-        <div class="customer-info-row"><span>下次跟进</span><strong>${escapeAttr(record.repurchaseDate || '未设置')}</strong></div>
-      </div>
-    </section>
-    <section class="customer-info-card customer-note-card">
-      <div class="customer-info-title">客户备注</div>
-      <div class="customer-note-text">${escapeAttr(record.note || '暂无备注')}</div>
-    </section>
-    <section class="customer-info-card customer-permanent-note-card">
-      <div class="customer-info-title">客户永久备注 · 每笔订单显示</div>
-      <div class="customer-note-text">${escapeAttr(record.permanentNote || '未设置永久备注')}</div>
+      ${kv('客户等级', record.level, '自动判断')}
+      ${kv('负责人', record.owner, '未分配')}
+      ${kv('复购周期', record.repurchaseCycle ? `${record.repurchaseCycle} 天` : '')}
+      ${kv('下次跟进', record.repurchaseDate)}
     </section>`;
+  // 右侧：永久备注（每笔订单都会带上，放最上面）、数字卡、客户备注、标签页。
+  const permanentEl = document.getElementById('customerDetailPermanentNote');
+  if (permanentEl) permanentEl.innerHTML = record.permanentNote
+    ? `<section class="customer-permanent-note-card"><div class="customer-info-title">客户永久备注 · 每笔订单显示</div><div class="customer-note-text">${escapeAttr(record.permanentNote)}</div></section>`
+    : '<section class="customer-permanent-note-card is-empty"><div class="customer-info-title">客户永久备注</div><div class="customer-note-text">未设置 · 设置后每笔订单都会显示</div></section>';
+  const noteEl = document.getElementById('customerDetailNote');
+  if (noteEl) noteEl.innerHTML = `<section class="customer-info-card customer-note-card"><div class="customer-info-title">客户备注</div><div class="customer-note-text ${record.note ? '' : 'is-empty'}">${escapeAttr(record.note || '暂无备注')}</div></section>`;
+  if (ordersCount) ordersCount.textContent = record.orderCount ? String(record.orderCount) : '';
   if (ordersMeta) ordersMeta.textContent = `${record.orderCount} 个订单 · ${summaryMoney(record.total, 'USD')}`;
   if (ordersEl) ordersEl.innerHTML = record.sortedOrders.length ? record.sortedOrders.map(order => {
     const currency = order.currency || 'USD';
@@ -20933,12 +20970,45 @@ function renderCustomerDetailView(name = '', data = {}) {
     return `<div class="customer-detail-order-row">
       <div class="customer-detail-order-main"><strong>${escapeAttr(order.num || '-')}</strong><small>${escapeAttr(normalizeDate(order.createdAt || order.updated) || '-')}</small></div>
       <div class="customer-detail-order-main"><strong>${escapeAttr(order.productType || '产品未设')}</strong><small>${escapeAttr(order.paymentChannel || '收款未设')}</small></div>
-      <span class="tag tag-blue">${escapeAttr(stageDef(order.stage).name)}</span>
-      <div class="customer-detail-order-main"><strong>${money(order.amount || 0, currency)}</strong><small class="${due > 0 ? 'customer-due-amount' : 'paid-amount'}">${due > 0 ? `待收 ${money(due, currency)}` : '已收全款'}</small></div>
-      <button class="btn btn-small" type="button" data-customer-detail-order="${escapeAttr(order.id)}" aria-label="查看订单 ${escapeAttr(order.num || '')}">›</button>
+      <span class="tag ${stageDef(order.stage).tag}">${escapeAttr(stageDef(order.stage).name)}</span>
+      <div class="customer-detail-order-main customer-detail-order-money"><strong>${money(order.amount || 0, currency)}</strong><small class="${due > 0 ? 'customer-due-amount' : 'paid-amount'}">${due > 0 ? `待收 ${money(due, currency)}` : '已收全款'}</small></div>
+      <button class="btn btn-small" type="button" data-customer-detail-order="${escapeAttr(order.id)}" aria-label="查看订单 ${escapeAttr(order.num || '')}"><svg class="ui-icon" aria-hidden="true"><use href="#i-chev"/></svg></button>
     </div>`;
   }).join('') : '<div class="empty">这个客户还没有订单。</div>';
   renderCustomerProfileMetrics(name);
+  uiCustomerDetailTab('orders', true);
+}
+// 只读档案右下的标签页：关联订单 / 客户动态 / WhatsApp 聊天记录。和订单抽屉的标签页同一套样式和键盘操作（←/→/Home/End）。
+function uiCustomerDetailTab(tab = 'orders', instant = false) {
+  const nav = document.getElementById('customerDetailTabs');
+  const view = document.getElementById('customerDetailView');
+  if (!nav || !view) return;
+  const panels = [...view.querySelectorAll('[data-customer-detail-panel]')];
+  if (!panels.some(panel => panel.dataset.customerDetailPanel === tab)) tab = 'orders';
+  // 页签的 ARIA：选中的那个可 Tab 聚焦（其它用 ←/→ 切换），页签和面板互相关联。
+  nav.querySelectorAll('[data-customer-detail-tab]').forEach(btn => {
+    const selected = btn.dataset.customerDetailTab === tab;
+    btn.setAttribute('aria-selected', String(selected));
+    btn.tabIndex = selected ? 0 : -1;
+    btn.id = `customerDetailTab-${btn.dataset.customerDetailTab}`;
+    btn.setAttribute('aria-controls', panels.find(panel => panel.dataset.customerDetailPanel === btn.dataset.customerDetailTab)?.id || '');
+  });
+  panels.forEach(panel => {
+    panel.hidden = panel.dataset.customerDetailPanel !== tab;
+    panel.setAttribute('role', 'tabpanel');
+    panel.setAttribute('aria-labelledby', `customerDetailTab-${panel.dataset.customerDetailPanel}`);
+  });
+  view.querySelectorAll('[data-customer-detail-meta]').forEach(meta => { meta.hidden = meta.dataset.customerDetailMeta !== tab; });
+  const active = nav.querySelector(`[data-customer-detail-tab="${tab}"]`);
+  const line = nav.querySelector('.tab-line');
+  if (active && line) {
+    if (instant) line.style.transition = 'none';
+    line.style.width = `${active.offsetWidth}px`;
+    line.style.transform = `translateX(${active.offsetLeft}px)`;
+    if (instant) requestAnimationFrame(() => { line.style.transition = ''; });
+  }
+  // 聊天记录点到这一页才读（每次点进来都重新读一遍，和以前展开折叠块一样）。
+  if (tab === 'whatsapp' && !instant) loadCustomerWhatsApp();
 }
 function setCustomerModalMode(editMode = false, { isNew = false } = {}) {
   const form = document.getElementById('customerForm');
@@ -20958,7 +21028,12 @@ function setCustomerModalMode(editMode = false, { isNew = false } = {}) {
   if (newOrderBtn) newOrderBtn.style.display = isNew ? 'none' : '';
   const deleteBtn = document.getElementById('customerDeleteBtn');
   if (deleteBtn) deleteBtn.style.display = viewOnly ? '' : 'none';
-  document.getElementById('customerModalSub').textContent = isNew ? '新客户档案' : (viewOnly ? '客户完整档案 · 只读' : '编辑客户档案');
+  // 只读时标题栏的编号、状态和标签由 renderCustomerDetailView 填；新建 / 编辑回到说明文字。
+  document.getElementById('customerModalSub').textContent = isNew ? '新客户档案' : (viewOnly ? '客户档案' : '编辑客户档案');
+  if (!viewOnly) {
+    document.getElementById('customerModalState').textContent = '';
+    document.getElementById('customerModalDesc').textContent = '客户主档，订单、物流和复购提醒都会引用这里';
+  }
 }
 function openCustomerModal(name = '', { viewOnly = true } = {}) {
   const form = document.getElementById('customerForm');
@@ -21019,8 +21094,6 @@ function openCustomerModal(name = '', { viewOnly = true } = {}) {
   document.getElementById('customerModalTitle').textContent = isNew ? '新建客户' : (data.client || name);
   if (!isNew) renderCustomerDetailView(data.client || name, data);
   else renderCustomerProfileMetrics('');
-  const roadmapSection = document.getElementById('customerRoadmapSection');
-  if (roadmapSection) roadmapSection.style.display = isNew ? 'none' : '';
   if (isNew) {
     const historyEl = document.getElementById('customerHistoryList');
     if (historyEl) historyEl.innerHTML = '';
@@ -21034,6 +21107,8 @@ function openCustomerModal(name = '', { viewOnly = true } = {}) {
   const focusTarget = shouldViewOnly ? document.getElementById('customerDetailEditBtn') : form.elements.name;
   if (modalEl) modalEl.__initialFocus = focusTarget;
   setModalOpenState('customerModal', true);
+  // 弹窗显示出来以后才量得到页签的宽度：下划线在这里摆到「关联订单」下面。
+  if (shouldViewOnly) uiCustomerDetailTab('orders', true);
   if (wasOpen) requestAnimationFrame(() => { if (modalEl?.classList.contains('open') && focusTarget?.getClientRects().length) focusTarget.focus({ preventScroll:true }); });
   resetModalScroll('#customerModal');
   // 弹窗本来就开着、换成另一位客户或回到只读：自己重新取快照（观察器只在遮罩 class 变化时取）。
@@ -27942,7 +28017,6 @@ document.addEventListener('click', e => {
 document.getElementById('closeCustomerModalBtn').addEventListener('click', () => uiCloseCustomerGuarded());
 document.getElementById('customerDetailEditBtn').addEventListener('click', () => {
   setCustomerModalMode(true);
-  document.getElementById('customerModalSub').textContent = '编辑客户档案';
   resetModalScroll('#customerModal');
   // 「编辑资料」按钮自己被藏起来了：焦点交给客户名称，不掉到页面上。
   document.getElementById('customerForm')?.elements.name?.focus({ preventScroll:true });
@@ -27962,8 +28036,7 @@ document.getElementById('customerModal').addEventListener('click', async e => {
     if (!await copyText(valueCopyBtn.dataset.copyCustomerValue, '已复制')) return;
     clearTimeout(valueCopyBtn._resetTimer);
     valueCopyBtn.classList.add('is-copied');
-    valueCopyBtn.textContent = '已复制';
-    valueCopyBtn._resetTimer = setTimeout(() => { valueCopyBtn.classList.remove('is-copied'); valueCopyBtn.textContent = '复制'; }, 1500);
+    valueCopyBtn._resetTimer = setTimeout(() => valueCopyBtn.classList.remove('is-copied'), 1500);
     return;
   }
   const detailCopyBtn = e.target.closest('[data-copy-customer-detail]');
@@ -28011,6 +28084,21 @@ document.getElementById('customerModal').addEventListener('click', async e => {
 document.getElementById('combinedSaveBtn')?.addEventListener('click', saveCombinedCustomerOrder);
 document.getElementById('combinedCloseBtn')?.addEventListener('click', () => uiCloseCombinedGuarded());
 document.getElementById('combinedCustomerOrderModal')?.addEventListener('click', e => { if (e.target.id === 'combinedCustomerOrderModal') uiCloseCombinedGuarded(); });
+document.getElementById('customerDetailTabs')?.addEventListener('click', e => {
+  const btn = e.target.closest('[data-customer-detail-tab]');
+  if (btn) uiCustomerDetailTab(btn.dataset.customerDetailTab);
+});
+document.getElementById('customerDetailTabs')?.addEventListener('keydown', e => {
+  const btn = e.target.closest('[data-customer-detail-tab]');
+  if (!btn) return;
+  const tabs = [...e.currentTarget.querySelectorAll('[data-customer-detail-tab]')];
+  const index = tabs.indexOf(btn);
+  const next = { ArrowRight:tabs[(index + 1) % tabs.length], ArrowLeft:tabs[(index - 1 + tabs.length) % tabs.length], Home:tabs[0], End:tabs[tabs.length - 1] }[e.key];
+  if (!next) return;
+  e.preventDefault();
+  uiCustomerDetailTab(next.dataset.customerDetailTab);
+  next.focus();
+});
 document.getElementById('customerHistoryList')?.addEventListener('click', e => {
   const btn = e.target.closest('[data-customer-roadmap-filter]');
   if (!btn) return;

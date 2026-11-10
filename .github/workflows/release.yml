@@ -79,7 +79,9 @@ jobs:
           ref: ${{ needs.gate.outputs.sha }}
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # Pinned: this Node is copied into the app as node-runtime. While it stays the same,
+          # in-app updates download only the ~2 MB -lite.zip; a new Node means one ~39 MB update.
+          node-version: 22.23.4
           cache: npm
       - run: npm ci
       - run: npx playwright install chromium
@@ -87,18 +89,8 @@ jobs:
         run: npm run test:native
       - name: Build app (ad-hoc signed)
         run: ./mac-app/build-native-mac-app.sh
-      - name: Package zip (updater) and dmg (first install)
-        run: |
-          ARCH="$(uname -m)"
-          mkdir -p dist dmg-root
-          ZIP="dist/TradeOrderSystem-$VERSION-mac-$ARCH.zip"
-          ditto -c -k --sequesterRsrc --keepParent mac-app/TradeOrderSystem.app "$ZIP"
-          (cd dist && shasum -a 256 "$(basename "$ZIP")" > "$(basename "$ZIP").sha256")
-          ditto mac-app/TradeOrderSystem.app dmg-root/TradeOrderSystem.app
-          ln -s /Applications dmg-root/Applications
-          hdiutil create -volname "外贸订单跟进系统 V$VERSION" -srcfolder dmg-root -ov -format UDZO \
-            "dist/TradeOrderSystem-$VERSION-mac-$ARCH.dmg"
-          ls -lh dist
+      - name: Package zips (updater, full + small) and dmg (first install)
+        run: ./scripts/package-mac-release.sh mac-app/TradeOrderSystem.app dist "$VERSION" --dmg
       - name: Smoke test the packaged app (from the zip users download)
         run: |
           ARCH="$(uname -m)"

@@ -78,6 +78,12 @@ function checkReleaseWorkflow() {
   assert.match(yml, /node scripts\/smoke-test-app-bundle\.js --app/, 'the packaged app is started before publishing');
   assert.ok(yml.indexOf('smoke-test-app-bundle') < yml.indexOf('gh release create'), 'smoke test runs before publishing');
   assert.match(yml, /--target "\$\{\{ needs\.gate\.outputs\.sha \}\}"/, 'the release is tagged at the tested commit');
+  // V3.142: every release also carries the ~2 MB -lite.zip, proven to rebuild the same signed app.
+  assert.match(yml, /scripts\/package-mac-release\.sh mac-app\/TradeOrderSystem\.app dist/, 'release packages the small update zip');
+  assert.match(yml, /node-version: 22\.\d+\.\d+/, 'bundled Node is pinned so small updates keep matching');
+  const pkg = read('scripts/package-mac-release.sh');
+  assert.match(pkg, /-lite\.zip/);
+  assert.match(pkg, /codesign --verify --deep --strict "\$CHECK_APP"\s*\n\s*diff -r "\$APP" "\$CHECK_APP"/, 'small zip + runtime must equal the full app');
 }
 
 function checkNativeSources() {
@@ -114,7 +120,11 @@ function checkNativeSources() {
     'tool error text kept': /readDataToEndOfFile\(\)/,
     'interrupted download cleaned up': /func cleanupInterruptedDownload\(\)/,
     'new version reports in': /update-ok-\\\(current\)/,
-    'rollback explained': /update-rolled-back/
+    'rollback explained': /update-rolled-back/,
+    'small update package first': /if let lite \{ assembled = await prepareFromLite/,
+    'runtime digest checked before copying': /sha256\(of: nodeRuntime\) == wanted/,
+    'stalled download resumes': /NSURLSessionDownloadTaskResumeData/,
+    'download speed reported': /payload\["speed"\]/
   };
   for (const [label, pattern] of Object.entries(expectUpdater)) assert.match(updater, pattern, `AppUpdater.swift: ${label}`);
   // The two Swift files must stay balanced (no Swift compiler here): brackets in code only, skipping
@@ -394,6 +404,22 @@ async function checkUpdateButton(browser, server) {
       }
     }
     if (theme === 'light') {
+      // Download details in the tooltip; a download that will take minutes warns once per version.
+      const slow = await page.evaluate(() => {
+        const toasts = () => document.body.innerText.split('下载较慢').length - 1;
+        const before = toasts();
+        window.otsAppUpdateStatus({ state:'downloading', version:'9.1', progress:0.02, received:820000, total:39156950, speed:40960 });
+        const title = document.getElementById('appUpdateBtn').title;
+        appUpdateDownload.startedAt -= 10000;
+        window.otsAppUpdateStatus({ state:'downloading', version:'9.1', progress:0.03, received:1200000, total:39156950, speed:40960 });
+        window.otsAppUpdateStatus({ state:'downloading', version:'9.1', progress:0.04, received:1600000, total:39156950, speed:40960 });
+        const fast = appUpdateDownloadDetail({ received:1048576, total:2135449, speed:2097152 });
+        window.otsAppUpdateStatus({ state:'idle' });
+        return { title, warned: toasts() - before, fast };
+      });
+      assert.match(slow.title, /下载新版本 V9\.1：2%（801 KB \/ 37\.3 MB，40 KB\/s，约 16 分钟）/, slow.title);
+      assert.equal(slow.warned, 1, 'slow download warns exactly once');
+      assert.equal(slow.fast, '1.0 MB / 2.0 MB，2.0 MB/s，不到 1 分钟');
       // Bell copy points at the real button (bottom left), not the top right.
       // Always one version ahead of this build: the bell only announces a version newer than the running one.
       const [major, minor] = read('VERSION').trim().split('.').map(Number);

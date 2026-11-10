@@ -126,7 +126,7 @@ async function moneyAndRateTests(browser) {
     const { page, context, errors } = await openBoard(browser, { orders, customers }, { ecbRates:rates, port:47982 });
     try {
       await page.waitForFunction(() => ecbHistoricalRates.length > 0);
-      await page.evaluate(() => setPage('customers'));
+      await page.evaluate(() => { setPage('customers'); });
       const cells = await page.locator('#customerList .customer-cell-money').allInnerTexts();
       const amounts = cells.join(' ').match(/[\d,]+\.\d+/g) || [];
       assert.ok(amounts.length >= 2, `expected converted amounts in the customer list, got ${JSON.stringify(cells)}`);
@@ -183,8 +183,9 @@ async function moneyAndRateTests(browser) {
       assert.equal(first.ms, 15000, 'the first retry comes 15 seconds after a failed load');
       assert.match(first.sub, /2 单 · 草稿不计 · 1 单缺汇率未计入/, 'the dashboard says one order is not converted');
       assert.deepEqual(await page.evaluate(() => [1, 2, 3, 8, 20].map(ecbRatesRetryDelay)), [15000, 30000, 60000, 1800000, 1800000], 'retries back off and stop growing at 30 minutes');
-      await page.evaluate(() => window.__longTimers.shift().fn());
-      await page.waitForFunction(() => ecbHistoricalRates.length > 0);
+      // Only start the retry (its promise is not handed back to Playwright, see boardAndLogTests) and wait for what it does.
+      await page.evaluate(() => { window.__longTimers.shift().fn(); });
+      await page.waitForFunction(() => ecbHistoricalRates.length > 0 && window.__longTimers.length === 1);
       assert.equal(rateCalls, 2);
       const after = await page.evaluate(() => ({ sub:document.getElementById('statAmountSub').textContent, next:window.__longTimers.map(item => item.ms) }));
       assert.equal(after.sub.includes('缺汇率'), false, 'the note goes away once the rates are in');
@@ -263,7 +264,7 @@ async function boardAndLogTests(browser) {
   const { page, context, errors, dialogs } = await openBoard(browser, { orders, customers:{ 'Plain Buyer':{} } }, { port:47986 });
   try {
     // New order through the real form: the log reads 「新建订单」.
-    await page.evaluate(() => openOrder(''));
+    await page.evaluate(() => { openOrder(''); });
     await page.waitForSelector('#orderModal.open');
     await page.fill('#orderForm input[name="client"]', 'Plain Buyer');
     await page.keyboard.press('Escape');
@@ -279,7 +280,7 @@ async function boardAndLogTests(browser) {
     await h.clearToasts(page);
     const taskId = await page.evaluate(() => buildTaskItems().find(item => item.orderId === 'o-task')?.id);
     assert.ok(taskId, 'the overdue order has a task');
-    await page.evaluate(id => markTaskDone(id), taskId);
+    await page.evaluate(id => { markTaskDone(id); }, taskId);
     assert.equal(await page.evaluate(() => state.orders.find(o => o.id === 'o-task').logs.filter(item => item.text.startsWith('待办已处理')).length), 1);
     await page.evaluate(() => { state.orders = JSON.parse(JSON.stringify(state.orders)); });
     await h.clickUndo(page, 'Task Buyer');

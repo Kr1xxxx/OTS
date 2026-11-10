@@ -268,8 +268,10 @@ async function boardAndLogTests(browser) {
     await page.fill('#orderForm input[name="client"]', 'Plain Buyer');
     await page.keyboard.press('Escape');
     await page.fill('#orderForm input[name="amount"]', '250');
-    const saved = await page.evaluate(() => upsertOrder(document.getElementById('orderForm')));
-    assert.equal(saved, true);
+    // Only start the save: handing upsertOrder's promise back to Playwright now and then ends in
+    // "Resulting promise was garbage collected". The next lines wait until the order is really in the state and saved.
+    await page.evaluate(() => { upsertOrder(document.getElementById('orderForm')); });
+    await page.waitForFunction(() => state.orders.some(o => o.client === 'Plain Buyer' && Number(o.amount) === 250) && !document.getElementById('orderModal').classList.contains('open'));
     const firstLog = await page.evaluate(() => state.orders.find(o => o.client === 'Plain Buyer' && Number(o.amount) === 250).logs.at(-1).text);
     assert.equal(firstLog, '新建订单', 'a new order is logged once, without repeating itself');
 

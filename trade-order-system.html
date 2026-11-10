@@ -6007,7 +6007,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.143，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.143</div>
+      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.144，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.144</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会先问一句，再下载并重启" aria-label="检查更新：有新版本会先问一句，再下载并重启" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse is-busy" id="savePulse" aria-live="polite"><i></i><span>读取中</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -7070,7 +7070,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
             <div class="field"><label>链接 / 备注</label><input id="attachmentLink" data-dirty-track placeholder="粘贴链接或填写文件名"></div>
             <button class="btn" type="button" id="addAttachmentBtn">添加</button>
           </div>
-          <div class="attachment-paste-hint">在订单弹窗内直接粘贴图片，会通过 TinyPNG 优化后保存为本机附件；服务不可用时自动保留本地原图，不写入订单主数据。</div>
+          <div class="attachment-paste-hint">在订单弹窗内直接粘贴图片，会先在本机压缩（最长边 2560 像素）再保存为附件，原图不保留；配置了 TinyPNG 时再压一遍，取更小的那份。图片不写入订单主数据。</div>
           <div class="image-upload-list" id="orderImageUploads" aria-label="图片上传进度"></div>
           <div class="attachment-list" id="attachmentList"></div>
         </div>
@@ -9368,6 +9368,7 @@ async function loadMacAppState() {
     macStorageReadOnly = false;
     macSaveLastError = '';
     readOnlyBaselineJson = null;
+    scheduleExistingImageCompression();
     const reloadPanel = document.getElementById('macStorageReloadActions');
     if (reloadPanel) reloadPanel.hidden = true;
     // 启动时检查一次 UPS 满 5 天规则；之后由每分钟的定时检查接着看。
@@ -16649,21 +16650,47 @@ function canvasToBlob(canvas, type = 'image/png', quality = .92) {
     canvas.toBlob(blob => resolve(blob), type, quality);
   });
 }
-async function compressImageFile(file, { maxSide = 3200, quality = .94, type = 'image/png' } = {}) {
+// 订单图片只存压缩版、原图不留（用户规则，2026-11-10）：最长边 2560 像素；WebKit 能编 WebP 就用 WebP，
+// 编不了（Safari 的 toBlob 会悄悄退回 PNG）就用 JPEG，透明的地方先垫白。没缩放、原文件本来就比压出来的小
+// （已经压过的 JPEG / 很小的截图），原文件就是最小的那份，直接用它。
+const attachmentImageMaxSide = 2560;
+const attachmentImageQuality = .82;
+const attachmentThumbMaxSide = 720;
+const attachmentThumbQuality = .8;
+async function encodeCompactCanvas(canvas, quality) {
+  const webp = await canvasToBlob(canvas, 'image/webp', quality);
+  if (webp && /^image\/webp$/i.test(webp.type)) return webp;
+  const flat = document.createElement('canvas');
+  flat.width = canvas.width;
+  flat.height = canvas.height;
+  const ctx = flat.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, flat.width, flat.height);
+  ctx.drawImage(canvas, 0, 0);
+  return canvasToBlob(flat, 'image/jpeg', quality);
+}
+async function compactImageBlob(file, { maxSide = attachmentImageMaxSide, quality = attachmentImageQuality } = {}) {
   const img = await imageFromFile(file);
-  const scale = Math.min(1, maxSide / Math.max(img.naturalWidth || img.width, img.naturalHeight || img.height));
-  const width = Math.max(1, Math.round((img.naturalWidth || img.width) * scale));
-  const height = Math.max(1, Math.round((img.naturalHeight || img.height) * scale));
+  const naturalWidth = img.naturalWidth || img.width;
+  const naturalHeight = img.naturalHeight || img.height;
+  if (!naturalWidth || !naturalHeight) throw new Error('图片读取失败');
+  const scale = Math.min(1, maxSide / Math.max(naturalWidth, naturalHeight));
   const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
+  canvas.width = Math.max(1, Math.round(naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(naturalHeight * scale));
   const ctx = canvas.getContext('2d', { alpha: true });
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(img, 0, 0, width, height);
-  let blob = await canvasToBlob(canvas, type, quality);
-  if (!blob) blob = await canvasToBlob(canvas, 'image/jpeg', quality);
-  return blob || file;
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const blob = await encodeCompactCanvas(canvas, quality);
+  const keepsOriginal = scale === 1 && /^image\/(?:avif|png|jpe?g|webp)$/i.test(String(file?.type || ''))
+    && Number(file.size) > 0 && (!blob || file.size <= blob.size);
+  if (keepsOriginal) return file;
+  if (!blob) throw new Error('图片压缩失败');
+  return blob;
+}
+function attachmentImageExtension(type = '') {
+  return /avif/i.test(type) ? 'avif' : /jpe?g/i.test(type) ? 'jpg' : /webp/i.test(type) ? 'webp' : 'png';
 }
 function orderAttachmentBucket(form = document.getElementById('orderForm')) {
   return String(form?.elements?.num?.value || form?.elements?.id?.value || `draft-${Date.now()}`)
@@ -16747,20 +16774,19 @@ async function saveCompressedImageAttachment(file, imageIndex = 1, onProgress = 
   if (!isMacAppMode()) throw new Error('图片附件需要在安装版 App 内保存到本机文件夹。');
   const attachmentName = orderAttachmentImageName(imageIndex);
   const bucket = orderAttachmentBucket();
-  onProgress?.(5, '读取图片');
-  const supportedOriginal = /^image\/(?:avif|png|jpe?g|webp)$/i.test(String(file?.type || ''));
-  const imageBlob = supportedOriginal
-    ? file
-    : await compressImageFile(file, { maxSide: 4800, quality: .96, type: 'image/webp' });
-  const thumbBlob = await compressImageFile(file, { maxSide: 720, quality: .9, type: 'image/webp' });
+  onProgress?.(5, '压缩图片');
+  // 交给本机服务的只有压缩版：原图只在这一页的内存里，不上传、不落盘。
+  const imageBlob = await compactImageBlob(file, { maxSide: attachmentImageMaxSide, quality: attachmentImageQuality });
+  const thumbBlob = await compactImageBlob(file, { maxSide: attachmentThumbMaxSide, quality: attachmentThumbQuality });
   onProgress?.(25, '准备上传');
   const body = {
     orderId: bucket,
-    fileName: `${attachmentName}.${/avif/i.test(imageBlob.type) ? 'avif' : /jpe?g/i.test(imageBlob.type) ? 'jpg' : /webp/i.test(imageBlob.type) ? 'webp' : 'png'}`,
-    mimeType: imageBlob.type || 'image/png',
+    fileName: `${attachmentName}.${attachmentImageExtension(imageBlob.type)}`,
+    mimeType: imageBlob.type || 'image/jpeg',
     data: await blobToDataUrl(imageBlob),
-    thumbMimeType: thumbBlob.type || imageBlob.type || 'image/webp',
-    thumbData: await blobToDataUrl(thumbBlob)
+    thumbMimeType: thumbBlob.type || imageBlob.type || 'image/jpeg',
+    thumbData: await blobToDataUrl(thumbBlob),
+    compressed: true
   };
   onProgress?.(40, '上传中');
   const data = await uploadAttachmentImage(body, onProgress);
@@ -16773,13 +16799,98 @@ async function saveCompressedImageAttachment(file, imageIndex = 1, onProgress = 
 	    thumbUrl: data.thumbUrl,
 	    size: data.size || imageBlob.size,
 	    optimized: Boolean(data.optimized),
-	    optimizer: data.optimizer || '本地原图',
+	    optimizer: data.optimizer || '本机压缩',
+	    compressed: true,
 	    fallback: Boolean(data.fallback),
 	    compressionCount: Number(data.compressionCount || 0),
 	    time: nowText(),
 	    temporary: true
 	  };
 	}
+// 以前存下的原图（没配 TinyPNG 时一直是原图）启动后在后台补压一次：压出来明显更小才换成压缩版，
+// 订单里的链接改指新文件并照常保存；旧原图没人引用后由附件清理删掉（备份里还引用它时等备份轮换完）。
+// 订单弹窗开着、或这张图所在订单正在抽屉里看时先停手，下次启动再接着做；一张失败只跳过那一张。
+let existingImageCompressionTimer = 0;
+let existingImageCompressionRunning = false;
+function scheduleExistingImageCompression(delayMs = 15000) {
+  if (!isMacAppMode() || (navigator.webdriver && !window.otsForceImageCompression)) return;
+  clearTimeout(existingImageCompressionTimer);
+  existingImageCompressionTimer = setTimeout(() => {
+    compressExistingOrderImages().then(result => { if (result?.stopped) scheduleExistingImageCompression(60000); }).catch(() => {});
+  }, delayMs);
+}
+function uncompressedOrderImageUrls() {
+  const urls = new Set();
+  macOrderBuckets.forEach(bucket => (state[bucket] || []).forEach(order => (order?.attachments || []).forEach(item => {
+    if (!item || typeof item !== 'object' || item.compressed || item.optimized || item.temporary) return;
+    if (typeof item.fileUrl === 'string' && item.fileUrl.startsWith('/attachments/')) urls.add(item.fileUrl);
+  })));
+  return [...urls];
+}
+function orderImageCompressionBlocked(fileUrl) {
+  if (!macDataLoaded || macStorageReadOnly) return true;
+  if (document.getElementById('orderModal')?.classList.contains('open')) return true;
+  if (!detailOrderId) return false;
+  return macOrderBuckets.some(bucket => (state[bucket] || []).some(order => order?.id === detailOrderId
+    && (order.attachments || []).some(item => item?.fileUrl === fileUrl)));
+}
+function applyCompressedOrderImage(fileUrl, patch) {
+  let changed = 0;
+  macOrderBuckets.forEach(bucket => (state[bucket] || []).forEach(order => {
+    if (!Array.isArray(order?.attachments)) return;
+    order.attachments = order.attachments.map(item => {
+      if (!item || item.fileUrl !== fileUrl) return item;
+      changed += 1;
+      const next = { ...item, ...patch };
+      if (patch.fileUrl && (!item.link || item.link === fileUrl)) next.link = patch.fileUrl;
+      return next;
+    });
+  }));
+  return changed;
+}
+async function compressExistingOrderImages() {
+  if (existingImageCompressionRunning) return { done:0, stopped:false };
+  existingImageCompressionRunning = true;
+  let done = 0;
+  try {
+    for (const fileUrl of uncompressedOrderImageUrls()) {
+      if (orderImageCompressionBlocked(fileUrl)) return { done, stopped:true };
+      let patch = null;
+      try {
+        const res = await fetch(fileUrl, { credentials:'same-origin', cache:'no-store' });
+        if (!res.ok) continue;
+        const original = await res.blob();
+        const compact = await compactImageBlob(original, { maxSide: attachmentImageMaxSide, quality: attachmentImageQuality });
+        if (compact === original || compact.size >= original.size * .9) {
+          patch = { compressed:true };
+        } else {
+          const thumb = await compactImageBlob(original, { maxSide: attachmentThumbMaxSide, quality: attachmentThumbQuality });
+          const parts = new URL(fileUrl, location.origin).pathname.split('/').slice(2).map(part => decodeURIComponent(part));
+          const baseName = String(parts.at(-1) || 'image').replace(/\.[^.]+$/, '');
+          const data = await uploadAttachmentImage({
+            orderId: parts.length > 1 ? parts[0] : 'draft',
+            fileName: `${baseName}.${attachmentImageExtension(compact.type)}`,
+            mimeType: compact.type || 'image/jpeg',
+            data: await blobToDataUrl(compact),
+            thumbMimeType: thumb.type || 'image/jpeg',
+            thumbData: await blobToDataUrl(thumb),
+            compressed: true
+          });
+          patch = { fileUrl:data.fileUrl, thumbUrl:data.thumbUrl, size:data.size || compact.size, optimized:Boolean(data.optimized), optimizer:data.optimizer || '本机压缩', compressed:true };
+        }
+      } catch (_) { continue; }
+      // 上传期间有人打开了这张图的订单：新文件留给附件清理，订单不动。
+      if (orderImageCompressionBlocked(fileUrl)) return { done, stopped:true };
+      if (applyCompressedOrderImage(fileUrl, patch)) {
+        done += 1;
+        saveState();
+      }
+    }
+    return { done, stopped:false };
+  } finally {
+    existingImageCompressionRunning = false;
+  }
+}
 async function handleOrderImagePaste(e) {
   const modal = document.getElementById('orderModal');
   if (!modal?.classList.contains('open')) return;

@@ -1086,7 +1086,12 @@ async function saveAttachmentImage(body = {}) {
   const dir = path.join(attachmentsDir, orderId);
   fs.mkdirSync(dir, { recursive: true });
   const sourceImage = parseImageDataUrl(body.data);
-  const image = await optimizeAttachmentWithTinify(sourceImage);
+  // 页面只送来本机压缩过的图（原图不落盘）；配了 TinyPNG 再压一遍，结果更大就留本机压缩版。
+  const tinified = await optimizeAttachmentWithTinify(sourceImage);
+  const image = tinified.optimized && tinified.buffer.length >= sourceImage.buffer.length
+    ? { ...sourceImage, optimized: false, fallback: false, compressionCount: tinified.compressionCount }
+    : tinified;
+  const locallyCompressed = body.compressed === true;
   if (image.buffer.length > 64 * 1024 * 1024) throw new Error('image too large');
   const base = safeFilePart(path.parse(body.fileName || 'clipboard').name);
   const ext = extensionForMime(image.mime);
@@ -1115,7 +1120,8 @@ async function saveAttachmentImage(body = {}) {
     size: image.buffer.length,
     thumbSize,
     optimized: image.optimized,
-    optimizer: image.optimized ? 'TinyPNG' : '本地原图',
+    optimizer: image.optimized ? 'TinyPNG' : locallyCompressed ? '本机压缩' : '本地原图',
+    compressed: locallyCompressed || image.optimized,
     fallback: image.fallback,
     compressionCount: image.compressionCount
   };

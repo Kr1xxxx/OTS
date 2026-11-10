@@ -18,8 +18,10 @@ const { chromium } = require('playwright');
       attachmentRequests++;
       const body = JSON.parse(Buffer.concat(chunks).toString());
       assert.equal(req.headers['x-trade-token'], 'ui-test-token');
-      assert.equal(body.mimeType, 'image/png');
-      assert(body.data.startsWith('data:image/png;base64,'));
+      // 只上传本机压缩版（WebP / JPEG，或本来就更小的原 PNG），并带上 compressed 标记。
+      assert.match(body.mimeType, /^image\/(?:webp|jpeg|png)$/);
+      assert(body.data.startsWith(`data:${body.mimeType};base64,`));
+      assert.equal(body.compressed, true);
       if (attachmentRequests === 1) {
         await new Promise(resolve => { releaseUpload = resolve; });
         res.writeHead(200, { 'Content-Type':'application/json' });

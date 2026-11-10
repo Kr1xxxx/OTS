@@ -98,6 +98,7 @@ jobs:
           ditto -x -k "dist/TradeOrderSystem-$VERSION-mac-$ARCH.zip" smoke
           codesign --verify --deep --strict smoke/TradeOrderSystem.app
           node scripts/smoke-test-app-bundle.js --app smoke/TradeOrderSystem.app
+          node scripts/smoke-test-real-app.js --app smoke/TradeOrderSystem.app
       - name: Publish release
         run: |
           gh release create "v$VERSION" dist/* \

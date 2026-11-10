@@ -42,6 +42,9 @@ jobs:
       - run: python3 -m pip install --break-system-packages Pillow
       - name: Build app (ad-hoc signed, not installed)
         run: ./mac-app/build-native-mac-app.sh
+      # The only check that runs the real window (Swift host + WKWebView); everything in npm test uses Chromium.
+      - name: Built app starts and its page reports in (real WKWebView)
+        run: node scripts/smoke-test-real-app.js --app mac-app/TradeOrderSystem.app
       # 每个 UI 测试各开一个 Chromium，4 个并发在 CI 机器上会把计时类断言挤超时（每次挂的测试都不一样）；减到 2 个并发，测试一个不少。
       - run: npm test
         env:

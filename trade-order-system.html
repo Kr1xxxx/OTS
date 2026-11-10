@@ -9305,6 +9305,18 @@ function setAppVersionUpdatedAt(value) {
   appVersionUpdatedAtMs = typeof value === 'string' && value.trim() ? Date.parse(value) : NaN;
   refreshAppVersionTooltip();
 }
+// 告诉 Mac 壳「这一版真的跑起来了」：主脚本从头执行到尾没有抛错，并且读完数据库后画出了界面。
+// 更新器装完新版本后等的就是这一句，120 秒内等不到就退回旧版本（以前页面一加载完就算成功，
+// 主脚本一启动就报错、窗口一片空白的版本也会被当成更新成功）。
+// 读库失败但页面自己进了只读保护也算跑起来了：那是数据的问题，退回旧版本解决不了，反而装不上能修它的新版本。
+let appScriptCompleted = false;
+let appFirstLoadDrawn = false;
+let appBootReported = false;
+function reportAppBooted() {
+  if (appBootReported || !appScriptCompleted || !appFirstLoadDrawn) return;
+  appBootReported = true;
+  try { window.webkit?.messageHandlers?.appBooted?.postMessage({ booted:true }); } catch (_) {}
+}
 async function loadMacAppState() {
   if (!isMacAppMode()) {
     // 浏览器直接打开（不是 Mac App）：没有数据库要读，状态点照旧写「已保存」。
@@ -9374,6 +9386,8 @@ async function loadMacAppState() {
     toast('数据库读取失败，当前已进入只读保护，绝不会覆盖本机数据', { tone:'error', desc:'可在 设置 → 数据管理 里点「重新读取数据库」，或从备份恢复' });
   }
   render();
+  appFirstLoadDrawn = true;
+  reportAppBooted();
   if (typeof shouldScrollTopAfterRefresh !== 'undefined' && shouldScrollTopAfterRefresh) {
     scrollWorkspaceToTop('auto', true);
   }
@@ -31533,6 +31547,9 @@ function otsAppUpdateStatus(status) {
   }
 }
 window.otsAppUpdateStatus = otsAppUpdateStatus;
+// 必须是主脚本的最后一句：执行到这里说明上面没有任何一句在启动时抛错（见 reportAppBooted）。
+appScriptCompleted = true;
+reportAppBooted();
 </script>
 </body>
 </html>

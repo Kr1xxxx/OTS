@@ -201,6 +201,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         config.preferences.javaScriptCanOpenWindowsAutomatically = true
         config.userContentController.add(self, name: "windowDragRegions")
         config.userContentController.add(self, name: "appUpdate")
+        config.userContentController.add(self, name: "appBooted")
         config.userContentController.add(self, name: "uiZoom")
         config.userContentController.add(self, name: "appTheme")
         installUserScripts(config.userContentController)
@@ -350,6 +351,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         if message.name == "appUpdate" {
             guard let url = webView?.url, originPolicy?.contains(url) == true else { return }
             updater.checkForUpdates(userInitiated: true)
+            return
+        }
+        if message.name == "appBooted" {
+            // 页面主脚本跑完并且读库后画出了界面：更新后的第一次，据此告诉安装脚本「新版本能用」。
+            guard let url = webView?.url, originPolicy?.contains(url) == true else { return }
+            updater.pageDidBoot()
             return
         }
         guard message.name == "windowDragRegions",

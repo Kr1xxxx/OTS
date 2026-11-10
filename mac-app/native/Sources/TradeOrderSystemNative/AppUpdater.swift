@@ -104,20 +104,26 @@ final class AppUpdater {
         try? FileManager.default.removeItem(at: staging)
     }
 
+    /// The page says its script ran to the end and drew the app from the database (message
+    /// "appBooted"). The first time after an update, that tells the installer script the new
+    /// version works. A page that merely finished loading does not count: a script that throws
+    /// on start leaves a blank window, and the installer must roll that back.
+    func pageDidBoot() {
+        guard let current = currentVersion else { return }
+        let support = Self.supportDirectory
+        let manager = FileManager.default
+        let pending = support.appendingPathComponent("update-pending-\(current)")
+        guard manager.fileExists(atPath: pending.path) else { return }
+        try? Data().write(to: support.appendingPathComponent("update-ok-\(current)"))
+        try? manager.removeItem(at: pending)
+    }
+
     /// Called after every page load:
-    /// - the first load after an update tells the installer script the new version works;
     /// - a rollback by the script is explained once, and that version is not offered again this run;
     /// - a known newer version is shown on the button again.
     func pageDidLoad() {
         let support = Self.supportDirectory
         let manager = FileManager.default
-        if let current = currentVersion {
-            let pending = support.appendingPathComponent("update-pending-\(current)")
-            if manager.fileExists(atPath: pending.path) {
-                try? Data().write(to: support.appendingPathComponent("update-ok-\(current)"))
-                try? manager.removeItem(at: pending)
-            }
-        }
         let rolledBack = support.appendingPathComponent("update-rolled-back")
         if let text = try? String(contentsOf: rolledBack, encoding: .utf8) {
             try? manager.removeItem(at: rolledBack)
@@ -504,7 +510,8 @@ final class AppUpdater {
         try process.run()
     }
 
-    /// Swap, relaunch, then wait for the new version to load its page (it writes update-ok-<version>).
+    /// Swap, relaunch, then wait for the new version's page to report that it booted (pageDidBoot
+    /// writes update-ok-<version>).
     /// No word within 120 s: stop it, put the old app back, reopen it and leave update-rolled-back,
     /// which the old version explains on its next page load. The old app is only deleted after the
     /// new one has reported in. scripts/test-mac-app-v3136.js runs this text under bash with stubs.
@@ -538,7 +545,7 @@ final class AppUpdater {
     xattr -dr com.apple.quarantine "$TARGET" 2>/dev/null
     rm -f "$OK"
     echo "$OLD_VERSION" > "$PENDING"
-    echo "[$(date)] installed V$NEW_VERSION; relaunching and waiting up to ${WAIT_SECONDS}s for it to load"
+    echo "[$(date)] installed V$NEW_VERSION; relaunching and waiting up to ${WAIT_SECONDS}s for it to start"
     open "$TARGET"
     for _ in $(seq 1 $(( WAIT_SECONDS * 2 ))); do
       [ -f "$OK" ] && break
@@ -550,7 +557,7 @@ final class AppUpdater {
       rm -rf "$STAGING"
       exit 0
     fi
-    echo "[$(date)] V$NEW_VERSION did not report a loaded page; rolling back to V$OLD_VERSION"
+    echo "[$(date)] V$NEW_VERSION did not report a working page; rolling back to V$OLD_VERSION"
     pkill -f "$TARGET/Contents/" 2>/dev/null
     for _ in {1..100}; do
       pgrep -f "$TARGET/Contents/" >/dev/null 2>&1 || break

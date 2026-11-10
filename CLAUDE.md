@@ -20,8 +20,9 @@ The lint has no warnings level worth keeping: a finding is fixed or the rule is 
 
 ## Rules that are easy to break
 
-- The app runs in WebKit (WKWebView); every UI test runs in Chromium, and `npm run test:webkit` only simulates WebKit's focus behaviour inside Chromium. A green test run does not show that focus, IME, selection, drag or downloads work in the real app.
+- The app runs in WebKit (WKWebView); every UI test in `npm test` runs in Chromium, and `npm run test:webkit` only simulates WebKit's focus behaviour inside Chromium. The one check in the real window is `scripts/smoke-test-real-app.js` (macOS CI and before every release): the built app starts and its page reports in. It does not show that focus, IME, selection, drag or downloads work.
 - The page saves by posting the whole state to `/api/save` with `baseRevision` and `saveId`. A 409 means another window saved first; the page merges and retries. Do not add a second write path for order or customer data.
+- An update counts as installed only when the page posts `appBooted` (last statement of the main script plus the first draw from the database, see `reportAppBooted`); otherwise the installer rolls back after 120 s. Keep `appScriptCompleted = true; reportAppBooted();` as the last statements of the main script.
 - Functions the Swift host calls by name must keep their names: `otsFlushBeforeQuit`, `flushPendingSave`, `otsBackupBeforeUpdate`, `otsUnsavedForms`, `nativeDialog`, `otsAppUpdateStatus`, `uiToast`, `setPage`, `otsUiZoomChanged`.
 - Many tests pull a function out of the HTML by name and run it in `vm`. Renaming or moving a function means updating those tests in the same change.
 - Tests must not depend on the current version number or on wall-clock dates.

@@ -77,6 +77,10 @@ function checkReleaseWorkflow() {
   assert.match(yml, /ref: \$\{\{ needs\.gate\.outputs\.sha \}\}/, 'the build checks out the commit CI tested');
   assert.match(yml, /node scripts\/smoke-test-app-bundle\.js --app/, 'the packaged app is started before publishing');
   assert.ok(yml.indexOf('smoke-test-app-bundle') < yml.indexOf('gh release create'), 'smoke test runs before publishing');
+  // The package is also opened for real (Swift host + WKWebView) and must confirm a working page.
+  assert.match(yml, /node scripts\/smoke-test-real-app\.js --app smoke\/TradeOrderSystem\.app/, 'the packaged app is opened in its own window before publishing');
+  assert.ok(yml.indexOf('smoke-test-real-app') < yml.indexOf('gh release create'), 'real app check runs before publishing');
+  assert.match(read('.github/workflows/ci.yml'), /node scripts\/smoke-test-real-app\.js --app mac-app\/TradeOrderSystem\.app/, 'CI opens the built app on macOS');
   assert.match(yml, /--target "\$\{\{ needs\.gate\.outputs\.sha \}\}"/, 'the release is tagged at the tested commit');
   // V3.142: every release also carries the ~2 MB -lite.zip, proven to rebuild the same signed app.
   assert.match(yml, /scripts\/package-mac-release\.sh mac-app\/TradeOrderSystem\.app dist/, 'release packages the small update zip');
@@ -113,7 +117,9 @@ function checkNativeSources() {
     'startup error offers retry': /addButton\(withTitle: "重试"\)/,
     'backup before update': /otsBackupBeforeUpdate/,
     'install is confirmed first': /confirmText: "现在安装并重启"/,
-    'periodic update checks': /scheduleAutomaticUpdateCheck\(\)/
+    'periodic update checks': /scheduleAutomaticUpdateCheck\(\)/,
+    'page boot message is listened for': /userContentController\.add\(self, name: "appBooted"\)/,
+    'page boot confirms the update': /message\.name == "appBooted" \{[\s\S]{0,300}updater\.pageDidBoot\(\)/
   };
   for (const [label, pattern] of Object.entries(expectMain)) assert.match(main, pattern, `main.swift: ${label}`);
   const expectUpdater = {
@@ -131,6 +137,13 @@ function checkNativeSources() {
     'download speed reported': /payload\["speed"\]/
   };
   for (const [label, pattern] of Object.entries(expectUpdater)) assert.match(updater, pattern, `AppUpdater.swift: ${label}`);
+  // The update is confirmed by the page's boot report, never by a page that merely finished loading
+  // (a script that throws on start still "loads"). scripts/test-app-boot-report-ui.js covers the page side.
+  const bootBody = updater.slice(updater.indexOf('func pageDidBoot()'), updater.indexOf('func pageDidLoad()'));
+  const loadBody = updater.slice(updater.indexOf('func pageDidLoad()'), updater.indexOf('private var currentVersion'));
+  assert.match(bootBody, /update-pending-\\\(current\)[\s\S]*update-ok-\\\(current\)/, 'AppUpdater.swift: the boot report writes update-ok');
+  assert.ok(loadBody.length > 200 && !/update-ok|update-pending/.test(loadBody), 'AppUpdater.swift: a finished page load alone confirms nothing');
+  assert.doesNotMatch(main.slice(main.indexOf('didFinish navigation')), /pageDidBoot/, 'main.swift: didFinish does not confirm the update');
   // The two Swift files must stay balanced (no Swift compiler here): brackets in code only, skipping
   // comments and string literals but counting the code inside string interpolations \( … ).
   for (const [name, text] of [['main.swift', main], ['AppUpdater.swift', updater]]) {

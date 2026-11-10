@@ -395,9 +395,12 @@ async function checkUpdateButton(browser, server) {
     }
     if (theme === 'light') {
       // Bell copy points at the real button (bottom left), not the top right.
-      await page.evaluate(() => window.otsAppUpdateStatus({ state:'available', version:'3.138' }));
+      // The bell only announces a version newer than the running one, so the offered version follows VERSION.
+      const [major, minor] = fs.readFileSync(path.join(root, 'VERSION'), 'utf8').trim().split('.').map(Number);
+      const offered = `${major}.${minor + 1}`;
+      await page.evaluate(version => window.otsAppUpdateStatus({ state:'available', version }), offered);
       await h.click(page, '#notifBtn', 'bell');
-      await page.waitForFunction(() => document.getElementById('notifList')?.textContent.includes('V3.138'));
+      await page.waitForFunction(version => document.getElementById('notifList')?.textContent.includes(`V${version}`), offered);
       const bell = await page.locator('#notifList').textContent();
       assert.match(bell, /左下角/);
       assert.doesNotMatch(bell, /右上角/);

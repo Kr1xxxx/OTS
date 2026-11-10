@@ -64,6 +64,9 @@ else
 fi
 chmod +x "$NODE_RUNTIME"
 "$NODE_RUNTIME" -e 'require("node:sqlite")' >/dev/null
+# The in-app updater copies the running app's runtime into a small update package when
+# this digest matches (see AppUpdater.prepareFromLite), so most updates are ~2 MB, not ~39 MB.
+NODE_RUNTIME_SHA256="$(shasum -a 256 "$NODE_RUNTIME" | cut -d' ' -f1)"
 
 sips -z 16 16 "$ROOT/mac-app/AppIcon-1024.png" --out "$ICONSET/icon_16x16.png" >/dev/null
 sips -z 32 32 "$ROOT/mac-app/AppIcon-1024.png" --out "$ICONSET/icon_16x16@2x.png" >/dev/null
@@ -102,6 +105,8 @@ cat > "$CONTENTS/Info.plist" <<PLIST
   <string>$APP_VERSION</string>
   <key>CFBundleVersion</key>
   <string>$BUILD_VERSION</string>
+  <key>OTSNodeRuntimeSHA256</key>
+  <string>$NODE_RUNTIME_SHA256</string>
   <key>OTSFeishuSettingsVersion</key>
   <integer>1</integer>
   <key>LSMinimumSystemVersion</key>

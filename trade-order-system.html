@@ -6007,7 +6007,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.140，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.140</div>
+      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.141，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.141</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会先问一句，再下载并重启" aria-label="检查更新：有新版本会先问一句，再下载并重启" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse is-busy" id="savePulse" aria-live="polite"><i></i><span>读取中</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -31545,6 +31545,36 @@ function uiBellRing(unread) {
 // 并把它回传的进度画在「更新」按钮上。找到新版本时原生会借 nativeDialog 先问一句再安装。
 let appUpdateResetTimer = 0;
 let appUpdateLastError = { message: '', at: 0 };
+// 下载慢的提示每个版本只弹一次；开始时间用来等速度稳定（前几秒的速度不准）。
+let appUpdateDownload = { version: '', startedAt: 0, warned: false };
+function appUpdateBytes(bytes) {
+  const n = Math.max(0, Number(bytes) || 0);
+  return n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`;
+}
+// 「14.5 / 39.2 MB，85 KB/s，约 5 分钟」；原生端没给字节数时（旧版或刚开始）返回空串。
+function appUpdateDownloadDetail(status) {
+  const total = Number(status.total) || 0;
+  if (total <= 0) return '';
+  const received = Math.min(total, Number(status.received) || 0);
+  const speed = Number(status.speed) || 0;
+  const parts = [`${appUpdateBytes(received)} / ${appUpdateBytes(total)}`];
+  if (speed > 0) {
+    parts.push(`${appUpdateBytes(speed)}/s`);
+    const left = (total - received) / speed;
+    parts.push(left < 60 ? '不到 1 分钟' : `约 ${Math.ceil(left / 60)} 分钟`);
+  }
+  return parts.join('，');
+}
+function appUpdateWarnIfSlow(status) {
+  const version = status.version || '';
+  if (appUpdateDownload.version !== version) appUpdateDownload = { version, startedAt: Date.now(), warned: false };
+  const total = Number(status.total) || 0, received = Number(status.received) || 0, speed = Number(status.speed) || 0;
+  if (appUpdateDownload.warned || total <= 0 || speed <= 0 || Date.now() - appUpdateDownload.startedAt < 8000) return;
+  const minutes = Math.ceil((total - received) / speed / 60);
+  if (minutes < 3) return;
+  appUpdateDownload.warned = true;
+  toast(`更新包下载较慢（${appUpdateBytes(speed)}/s，还要约 ${minutes} 分钟）。可以继续用软件，下完会自动校验并重启；开着代理的话，切到全局模式通常快很多。`, { tone:'info' });
+}
 function requestAppUpdate() {
   const btn = document.getElementById('appUpdateBtn');
   if (btn?.classList.contains('is-busy')) return;
@@ -31593,6 +31623,7 @@ function otsAppUpdateStatus(status) {
   const progress = status.state === 'downloading' ? Math.max(0, Math.min(1, Number(status.progress) || 0)) : (busy && status.state !== 'checking' ? 1 : 0);
   const pct = Math.round(progress * 100);
   const version = status.version ? `V${status.version}` : '';
+  const detail = status.state === 'downloading' ? appUpdateDownloadDetail(status) : '';
   const text = {
     checking: '检查中',
     downloading: `${pct}%`,
@@ -31605,7 +31636,7 @@ function otsAppUpdateStatus(status) {
   }[status.state] || '更新';
   const description = {
     checking: '正在检查更新',
-    downloading: `正在下载新版本 ${version}：${pct}%`,
+    downloading: `正在下载新版本 ${version}：${pct}%${detail ? `（${detail}）` : ''}`,
     verifying: '正在校验安装包',
     saving: '准备重启：正在确认数据都已保存',
     restarting: '正在重启以完成更新',
@@ -31622,6 +31653,7 @@ function otsAppUpdateStatus(status) {
   btn.setAttribute('aria-busy', busy ? 'true' : 'false');
   btn.title = description;
   btn.setAttribute('aria-label', description);
+  if (status.state === 'downloading') appUpdateWarnIfSlow(status);
   // 同一条失败原因短时间内只提示一次（连点两下、菜单和按钮各点一次时不叠两张一样的提示）。
   if (status.state === 'error' && status.message) {
     const now = Date.now();

@@ -60,11 +60,15 @@ async function main() {
     const original = Buffer.from(pngBase64, 'base64');
     fs.mkdirSync(path.join(dataDir, 'attachments', 'K26110101'), { recursive:true });
     fs.writeFileSync(path.join(dataDir, 'attachments', 'K26110101', 'K26110101-1.png'), original);
+    fs.mkdirSync(path.join(dataDir, 'attachments', 'K26110103'), { recursive:true });
+    fs.writeFileSync(path.join(dataDir, 'attachments', 'K26110103', 'K26110103-1.png'), original);
+    const otherUrl = '/attachments/K26110103/K26110103-1.png';
     const oldUrl = '/attachments/K26110101/K26110101-1.png';
     const seed = {
       orders:[
         { ...base, id:'o1', num:'K26110101', client:'Alice Baker', attachments:[{ name:'K26110101-1', type:'图片附件', link:oldUrl, fileUrl:oldUrl, thumbUrl:oldUrl, size:original.length, optimized:false, optimizer:'本地原图' }] },
-        { ...base, id:'o2', num:'K26110102', client:'Bob Lee', attachments:[] }
+        { ...base, id:'o2', num:'K26110102', client:'Bob Lee', attachments:[] },
+        { ...base, id:'o3', num:'K26110103', client:'Bob Lee', attachments:[{ name:'K26110103-1', type:'图片附件', link:otherUrl, fileUrl:otherUrl, thumbUrl:otherUrl, size:original.length, optimized:false, optimizer:'本地原图' }, { name:'gone', type:'图片附件', link:'/attachments/K26110103/gone.png', fileUrl:'/attachments/K26110103/gone.png', optimizer:'本地原图' }] }
       ],
       trashOrders:[], deletedOrders:[],
       customers:{ 'Alice Baker':{ client:'Alice Baker' }, 'Bob Lee':{ client:'Bob Lee' } },
@@ -104,6 +108,50 @@ async function main() {
     assert.equal(compact.height, 1280);
     assert.equal(compact.smallKept, true, '本来就更小的小图原样用');
 
+    // 1b. 大图本来就是压得很狠的 JPEG：缩小重编反而更大时，不能存成比原文件更大的图。
+    const tight = await page.evaluate(async () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 3200; canvas.height = 2400;
+      const ctx = canvas.getContext('2d');
+      const image = ctx.createImageData(3200, 2400);
+      for (let i = 0; i < image.data.length; i += 4) { const v = (i * 2654435761) >>> 24; image.data[i] = v; image.data[i + 1] = 255 - v; image.data[i + 2] = v ^ 85; image.data[i + 3] = 255; }
+      ctx.putImageData(image, 0, 0);
+      const source = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', .15));
+      const result = await compactImageBlob(source);
+      return { source:source.size, result:result.size };
+    });
+    assert.ok(tight.result <= tight.source, `压缩结果不能比原文件大：${tight.result} vs ${tight.source}`);
+
+    // 1c. WKWebView 编不了 WebP（toBlob 悄悄退回 PNG）：改用 JPEG，透明处垫白。
+    const fallback = await page.evaluate(async () => {
+      const realToBlob = HTMLCanvasElement.prototype.toBlob;
+      HTMLCanvasElement.prototype.toBlob = function (callback, type, quality) {
+        return realToBlob.call(this, callback, /webp/i.test(String(type)) ? 'image/png' : type, quality);
+      };
+      canvasWebpSupported = null;
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 3000; canvas.height = 1000;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#c03030'; ctx.fillRect(1500, 0, 1500, 1000);
+        const png = await new Promise(resolve => realToBlob.call(canvas, resolve, 'image/png'));
+        const result = await compactImageBlob(png);
+        const img = await imageFromFile(result);
+        const check = document.createElement('canvas');
+        check.width = img.naturalWidth; check.height = img.naturalHeight;
+        const checkCtx = check.getContext('2d');
+        checkCtx.drawImage(img, 0, 0);
+        return { type:result.type, width:img.naturalWidth, corner:[...checkCtx.getImageData(10, 10, 1, 1).data], remembered:canvasWebpSupported };
+      } finally {
+        HTMLCanvasElement.prototype.toBlob = realToBlob;
+        canvasWebpSupported = null;
+      }
+    });
+    assert.equal(fallback.type, 'image/jpeg', 'WebP 编不了就用 JPEG');
+    assert.equal(fallback.width, 2560);
+    assert.ok(fallback.corner.slice(0, 3).every(value => value > 240), `透明处垫白：${fallback.corner}`);
+    assert.equal(fallback.remembered, false, '记住 WebP 编不了，之后不再白编');
+
     // 2. 订单弹窗开着：补压停手，订单不动。
     await page.evaluate(() => openOrder('o2'));
     await page.waitForFunction(() => document.getElementById('orderModal')?.classList.contains('open'));
@@ -111,6 +159,19 @@ async function main() {
     assert.deepEqual(blocked, { done:0, stopped:true });
     assert.equal(await page.evaluate(() => state.orders.find(order => order.id === 'o1').attachments[0].fileUrl), oldUrl);
     await page.evaluate(() => { document.getElementById('orderModal').classList.remove('open'); });
+
+    // 2b. 抽屉里开着 o1：只跳过 o1 这张，别的照做；文件已经没了的那张记下来以后不再取。
+    await page.evaluate(() => openOrderDetail('o1'));
+    await page.waitForFunction(() => document.getElementById('orderDetailDrawer')?.classList.contains('open'));
+    assert.deepEqual(await page.evaluate(() => compressExistingOrderImages()), { done:1, stopped:true });
+    const o3 = await page.evaluate(() => state.orders.find(order => order.id === 'o3').attachments);
+    assert.notEqual(o3[0].fileUrl, '/attachments/K26110103/K26110103-1.png', 'o3 的图照常补压');
+    assert.equal(o3[1].compressFailed, true, '文件没了的记下来');
+    assert.equal(await page.evaluate(() => state.orders.find(order => order.id === 'o1').attachments[0].fileUrl), oldUrl, '抽屉里开着的单不动');
+
+    // 2c. 关掉抽屉后不再挡（以前关了抽屉 detailOrderId 还留着，补压一直停着）。
+    await page.evaluate(() => closeOrderDetail());
+    await page.waitForFunction(() => !document.getElementById('orderDetailDrawer')?.classList.contains('open'));
 
     // 3. 补压以前的原图：链接改指压缩版、存进数据库，文件更小、最长边 2560。
     const result = await page.evaluate(() => compressExistingOrderImages());

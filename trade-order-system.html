@@ -16657,9 +16657,14 @@ const attachmentImageMaxSide = 2560;
 const attachmentImageQuality = .82;
 const attachmentThumbMaxSide = 720;
 const attachmentThumbQuality = .8;
+// null = 还没试过；第一次编 WebP 退回别的格式就记下来，之后直接走 JPEG，不再白编一遍 PNG。
+let canvasWebpSupported = null;
 async function encodeCompactCanvas(canvas, quality) {
-  const webp = await canvasToBlob(canvas, 'image/webp', quality);
-  if (webp && /^image\/webp$/i.test(webp.type)) return webp;
+  if (canvasWebpSupported !== false) {
+    const webp = await canvasToBlob(canvas, 'image/webp', quality);
+    if (webp && /^image\/webp$/i.test(webp.type)) { canvasWebpSupported = true; return webp; }
+    if (webp) canvasWebpSupported = false;
+  }
   const flat = document.createElement('canvas');
   flat.width = canvas.width;
   flat.height = canvas.height;
@@ -16682,10 +16687,14 @@ async function compactImageBlob(file, { maxSide = attachmentImageMaxSide, qualit
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-  const blob = await encodeCompactCanvas(canvas, quality);
-  const keepsOriginal = scale === 1 && /^image\/(?:avif|png|jpe?g|webp)$/i.test(String(file?.type || ''))
-    && Number(file.size) > 0 && (!blob || file.size <= blob.size);
-  if (keepsOriginal) return file;
+  let blob = await encodeCompactCanvas(canvas, quality);
+  const sourceUsable = /^image\/(?:avif|png|jpe?g|webp)$/i.test(String(file?.type || '')) && Number(file.size) > 0;
+  // 缩小后反而比原文件大（原图本来就是压得很狠的 JPEG）：降一档质量再试；还是更大就用原文件（字节数才是占的空间）。
+  if (blob && scale < 1 && sourceUsable && blob.size > file.size) {
+    const retry = await encodeCompactCanvas(canvas, Math.min(quality, .6));
+    if (retry && retry.size < blob.size) blob = retry;
+  }
+  if (sourceUsable && (!blob || file.size <= blob.size)) return file;
   if (!blob) throw new Error('图片压缩失败');
   return blob;
 }
@@ -16822,17 +16831,18 @@ function scheduleExistingImageCompression(delayMs = 15000) {
 function uncompressedOrderImageUrls() {
   const urls = new Set();
   macOrderBuckets.forEach(bucket => (state[bucket] || []).forEach(order => (order?.attachments || []).forEach(item => {
-    if (!item || typeof item !== 'object' || item.compressed || item.optimized || item.temporary) return;
+    if (!item || typeof item !== 'object' || item.compressed || item.optimized || item.compressFailed || item.temporary) return;
     if (typeof item.fileUrl === 'string' && item.fileUrl.startsWith('/attachments/')) urls.add(item.fileUrl);
   })));
   return [...urls];
 }
+// 'stop'：读写不了或订单弹窗开着，整轮停下；'skip'：只是这张图的订单正在抽屉里开着，先跳过这张。
 function orderImageCompressionBlocked(fileUrl) {
-  if (!macDataLoaded || macStorageReadOnly) return true;
-  if (document.getElementById('orderModal')?.classList.contains('open')) return true;
-  if (!detailOrderId) return false;
+  if (!macDataLoaded || macStorageReadOnly) return 'stop';
+  if (document.getElementById('orderModal')?.classList.contains('open')) return 'stop';
+  if (!detailOrderId || !document.getElementById('orderDetailDrawer')?.classList.contains('open')) return '';
   return macOrderBuckets.some(bucket => (state[bucket] || []).some(order => order?.id === detailOrderId
-    && (order.attachments || []).some(item => item?.fileUrl === fileUrl)));
+    && (order.attachments || []).some(item => item?.fileUrl === fileUrl))) ? 'skip' : '';
 }
 function applyCompressedOrderImage(fileUrl, patch) {
   let changed = 0;
@@ -16852,41 +16862,58 @@ async function compressExistingOrderImages() {
   if (existingImageCompressionRunning) return { done:0, stopped:false };
   existingImageCompressionRunning = true;
   let done = 0;
+  let deferred = false;
   try {
     for (const fileUrl of uncompressedOrderImageUrls()) {
-      if (orderImageCompressionBlocked(fileUrl)) return { done, stopped:true };
+      const blocked = orderImageCompressionBlocked(fileUrl);
+      if (blocked === 'stop') return { done, stopped:true };
+      if (blocked === 'skip') { deferred = true; continue; }
       let patch = null;
+      let original = null;
       try {
         const res = await fetch(fileUrl, { credentials:'same-origin', cache:'no-store' });
-        if (!res.ok) continue;
-        const original = await res.blob();
-        const compact = await compactImageBlob(original, { maxSide: attachmentImageMaxSide, quality: attachmentImageQuality });
-        if (compact === original || compact.size >= original.size * .9) {
-          patch = { compressed:true };
-        } else {
-          const thumb = await compactImageBlob(original, { maxSide: attachmentThumbMaxSide, quality: attachmentThumbQuality });
-          const parts = new URL(fileUrl, location.origin).pathname.split('/').slice(2).map(part => decodeURIComponent(part));
-          const baseName = String(parts.at(-1) || 'image').replace(/\.[^.]+$/, '');
-          const data = await uploadAttachmentImage({
-            orderId: parts.length > 1 ? parts[0] : 'draft',
-            fileName: `${baseName}.${attachmentImageExtension(compact.type)}`,
-            mimeType: compact.type || 'image/jpeg',
-            data: await blobToDataUrl(compact),
-            thumbMimeType: thumb.type || 'image/jpeg',
-            thumbData: await blobToDataUrl(thumb),
-            compressed: true
-          });
-          patch = { fileUrl:data.fileUrl, thumbUrl:data.thumbUrl, size:data.size || compact.size, optimized:Boolean(data.optimized), optimizer:data.optimizer || '本机压缩', compressed:true };
-        }
+        // 文件没了（404）记一下，以后不再每次启动都去取；服务暂时没响应就下次再试。
+        if (res.status === 404) patch = { compressFailed:true };
+        else if (!res.ok) continue;
+        else original = await res.blob();
       } catch (_) { continue; }
-      // 上传期间有人打开了这张图的订单：新文件留给附件清理，订单不动。
-      if (orderImageCompressionBlocked(fileUrl)) return { done, stopped:true };
+      if (original) {
+        let compact = null;
+        try { compact = await compactImageBlob(original, { maxSide: attachmentImageMaxSide, quality: attachmentImageQuality }); }
+        catch (_) { patch = { compressFailed:true }; }
+        if (compact && (compact === original || compact.size >= original.size * .9)) {
+          patch = { compressed:true };
+        } else if (compact) {
+          try {
+            const thumb = await compactImageBlob(original, { maxSide: attachmentThumbMaxSide, quality: attachmentThumbQuality });
+            const parts = new URL(fileUrl, location.origin).pathname.split('/').slice(2).map(part => decodeURIComponent(part));
+            const baseName = String(parts.at(-1) || 'image').replace(/\.[^.]+$/, '');
+            const data = await uploadAttachmentImage({
+              orderId: parts.length > 1 ? parts[0] : 'draft',
+              fileName: `${baseName}.${attachmentImageExtension(compact.type)}`,
+              mimeType: compact.type || 'image/jpeg',
+              data: await blobToDataUrl(compact),
+              thumbMimeType: thumb.type || 'image/jpeg',
+              thumbData: await blobToDataUrl(thumb),
+              compressed: true
+            });
+            patch = { fileUrl:data.fileUrl, thumbUrl:data.thumbUrl, size:data.size || compact.size, optimized:Boolean(data.optimized), optimizer:data.optimizer || '本机压缩', compressed:true };
+          } catch (_) { continue; }
+        }
+      }
+      if (!patch) continue;
+      // 处理期间有人打开了这张图的订单：新文件留给附件清理，订单这次不动。
+      const blockedNow = orderImageCompressionBlocked(fileUrl);
+      if (blockedNow === 'stop') return { done, stopped:true };
+      if (blockedNow === 'skip') { deferred = true; continue; }
       if (applyCompressedOrderImage(fileUrl, patch)) {
-        done += 1;
+        if (patch.compressed) done += 1;
         saveState();
       }
+      // 一张一张来，中间让出主线程，界面不卡。
+      await new Promise(resolve => setTimeout(resolve, 150));
     }
-    return { done, stopped:false };
+    return { done, stopped:deferred };
   } finally {
     existingImageCompressionRunning = false;
   }

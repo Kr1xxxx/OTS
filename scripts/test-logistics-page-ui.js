@@ -280,7 +280,13 @@ const risks = page => page.evaluate(() => buildTaskItems().filter(task => String
     carrier.dhl['*'] = { status:429, body:{ title:'Too Many Requests' } };
     carrier.calls.length = 0;
     await page.evaluate(() => { trackingAutoUpdateGapMs = 0; });
-    await page.evaluate(() => runTrackingAutoUpdate('manual'));
+    // Started here and polled for, not handed to page.evaluate as a promise: on macOS CI that now and then ends in
+    // "Resulting promise was garbage collected" although the run finished (same workaround as test-audit-v3117).
+    await page.evaluate(() => {
+      window.__otsAutoRun = null;
+      Promise.resolve(runTrackingAutoUpdate('manual')).then(() => { window.__otsAutoRun = { ok:true }; }, error => { window.__otsAutoRun = { error:String(error?.message || error) }; });
+    });
+    assert.deepEqual(await (await page.waitForFunction(() => window.__otsAutoRun)).jsonValue(), { ok:true });
     assert.deepEqual(carrier.calls.filter(call => call.startsWith('DHL:')), ['DHL:1234567890'], '限流后这一轮剩下的 DHL 单号跳过');
     assert.ok(carrier.calls.includes('FedEx:123456789012'));
     assert.ok(!carrier.calls.some(call => call.endsWith('6666666666')), '草稿的单号不查');

@@ -55,6 +55,7 @@ scripts/smoke-test-app-bundle.js
 scripts/test-ai-usage.js
 scripts/test-app-icon.js
 scripts/test-audit-v3117.js
+scripts/test-audit-v3138.js
 scripts/test-backup-restore.js
 scripts/test-backup-settings.js
 scripts/test-board-drag-ui.js

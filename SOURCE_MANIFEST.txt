@@ -134,6 +134,7 @@ scripts/test-server-security.js
 scripts/test-settings-sidebar-ui.js
 scripts/test-shipments-partial-ui.js
 scripts/test-sqlite-storage.js
+scripts/test-stage-flow-v3141.js
 scripts/test-stage-settle-restore-ui.js
 scripts/test-stage-undo-ui.js
 scripts/test-stats-targets-calendar-ui.js

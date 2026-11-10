@@ -289,8 +289,8 @@ async function launch() {
     assert.equal(await dedit('paidAmount').getAttribute('placeholder'), '定金 300');
     await replaceText(dedit('paidAmount'), '300');
     await saveDrawer();
-    await waitToast('已按收款放到「待发货」');
-    assert.equal((await order('q1')).stage, 'balance');
+    await waitToast('已按收款放到「生产中」');
+    assert.equal((await order('q1')).stage, 'production');
     await closeDrawer();
 
     // ===== 06 P2-3 / P2-6：已发货单已付只读；阶段条按订单类型画、当前阶段不能点 =====
@@ -305,7 +305,7 @@ async function launch() {
     await closeDrawer();
     await openDrawer('b1');
     const depositFlow = await page.locator('#detailStageBar [data-detail-stage]').evaluateAll(list => list.map(btn => btn.dataset.detailStage));
-    assert.deepEqual(depositFlow, ['quote', 'balance', 'production', 'shipment', 'done'], '定金单按「报价 → 尾款 → 生产中」画');
+    assert.deepEqual(depositFlow, ['quote', 'production', 'balance', 'shipment', 'done'], '定金单按看板列的顺序「报价 → 生产中 → 待发货」画');
     await closeDrawer();
 
     // ===== 06 P2-9：客户档案按名字不分大小写找；电话显示出来 =====

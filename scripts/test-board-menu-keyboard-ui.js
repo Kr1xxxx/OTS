@@ -94,15 +94,17 @@ const settledMenuBox = async page => {
     await page.waitForFunction(() => !document.querySelector('.board-menu'));
     assert.equal((await active(page)).card, 'k1', 'Esc 关闭菜单后焦点回到卡片');
 
-    // 4. 键盘推进阶段：菜单里 ↓ 到「推进到生产中」，回车。
+    // 4. 键盘推进阶段：菜单里 ↓ 到「推进到已发货」（待发货的下一列），回车；没有单号，弹出运单号小卡，先跳过。
     await page.keyboard.press('Shift+F10');
     await page.waitForSelector('.board-menu');
     await page.keyboard.press('ArrowDown');
     await page.keyboard.press('ArrowDown');
     assert.equal((await active(page)).menu, 'advance');
     await page.keyboard.press('Enter');
-    await page.waitForFunction(() => state.orders.find(o => o.id === 'k1').stage === 'production');
-    await h.waitToast(page, 'K301 Key Balance 已移动到生产中');
+    await page.waitForFunction(() => state.orders.find(o => o.id === 'k1').stage === 'shipment');
+    await h.waitToast(page, 'K301 Key Balance 已移动到已发货');
+    await page.locator('#trackingQuickCard [data-track-skip]').click();
+    await page.waitForFunction(() => !document.getElementById('trackingQuickCard'));
 
     // 报价单的菜单写「收齐全款」（还没收过定金，不是尾款）。
     await page.locator('#pipeline .board-card[data-id="k2"]').focus();
@@ -111,7 +113,7 @@ const settledMenuBox = async page => {
     assert((await page.locator('.board-menu [role="menuitem"]').allTextContents()).some(text => /^收齐全款 \$800/.test(text.trim())), '报价单写「收齐全款」');
     await page.keyboard.press('Escape');
 
-    // 5. 卡片里的快捷按钮也能用 Tab 走到：Tab → 收齐 → Tab → 推进，回车推进。
+    // 5. 卡片里的快捷按钮也能用 Tab 走到：Tab → 收齐 → Tab → 推进，回车推进（生产中还有尾款没收，下一列是待发货）。
     await page.locator('#pipeline .board-card[data-id="k3"]').focus();
     await page.keyboard.press('Tab');
     assert.equal((await active(page)).quick, 'paid');
@@ -119,9 +121,8 @@ const settledMenuBox = async page => {
     await page.keyboard.press('Tab');
     assert.equal((await active(page)).quick, 'advance');
     await page.keyboard.press('Enter');
-    await page.waitForFunction(() => state.orders.find(o => o.id === 'k3').stage === 'shipment');
-    await page.locator('#trackingQuickCard [data-track-skip]').click();
-    await page.waitForFunction(() => !document.getElementById('trackingQuickCard'));
+    await page.waitForFunction(() => state.orders.find(o => o.id === 'k3').stage === 'balance');
+    assert.equal(await page.locator('#trackingQuickCard').count(), 0, '进待发货不弹运单号小卡');
     // 点「先跳过」后小卡还要淡出 200ms：这段时间它不能再接点击 / 滚轮（以前在 macOS 上第 6 步正好点在淡出的小卡上，
     // 点不到下面的列表）。淡出中的提示也一样，不能挡住下面那条的「撤销」。关掉和检查放在同一次执行里，结果和机器快慢无关。
     const fading = await page.evaluate(() => {

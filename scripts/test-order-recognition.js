@@ -818,8 +818,8 @@ for (const address of ['27 Sample Crescent Floor 2', 'Sample Rd.', 'Unit 1208', 
   assert.equal(paid.fullPaymentStatus, '已付');
   assert.equal(paid.paymentMentioned, undefined);
   assert.equal(context.pasteStageHint(paid), '生产中（按收款）');
-  // AI 给的定金单：收到定金 = 尾款；没收定金 = 报价；有物流单号 = 已发货。
-  assert.equal(context.pasteStageHint({ amount:680, orderType:'定金订单', paidAmount:204 }), '待发货（按收款）');
+  // AI 给的定金单：收到定金 = 生产中；没收定金 = 报价；有物流单号 = 已发货。
+  assert.equal(context.pasteStageHint({ amount:680, orderType:'定金订单', paidAmount:204 }), '生产中（按收款）');
   assert.equal(context.pasteStageHint({ amount:680, orderType:'定金订单' }), '报价（聊天没提付款）');
   assert.equal(context.pasteStageHint({ amount:680 }, '定金订单'), '报价（聊天没提付款）');
   assert.equal(context.pasteStageHint({ amount:680, paymentMentioned:true }, '定金订单'), '报价（聊天没写付了多少）');

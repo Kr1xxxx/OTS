@@ -111,7 +111,7 @@ const PASTE_FORCE_KEYS = ['createdAt', 'currency', 'paymentChannel', 'productTyp
     assert.equal(await value('paidAmount'), '600', 'backspacing the amount must not clamp paid');
     await closeWithoutSaving();
 
-    // P0-2：新建定金单 1234.56，选 30%（370.37），已付款逐键输入 370.37，保存后是尾款、已收 370.37，不是全款付清。
+    // P0-2：新建定金单 1234.56，选 30%（370.37），已付款逐键输入 370.37，保存后是生产中（收到定金）、已收 370.37，不是全款付清。
     await openNew('Decimal Buyer');
     await page.locator('#orderForm [data-binary-value="定金订单"]').click();
     await typeInto('amount', '1234.56', { replace:false });
@@ -126,11 +126,11 @@ const PASTE_FORCE_KEYS = ['createdAt', 'currency', 'paymentChannel', 'productTyp
     }
     assert.equal(seen.at(-1), '370.37', `decimal paid must survive key-by-key typing (saw ${seen.join(' → ')})`);
     assert.ok(!seen.includes('1234.56'), `paid must never jump to the full amount (saw ${seen.join(' → ')})`);
-    assert.equal(await stageHint(), '保存后会按收款自动放到「待发货」');
-    assert.equal(await headerStage(), '待发货');
+    assert.equal(await stageHint(), '保存后会按收款自动放到「生产中」');
+    assert.equal(await headerStage(), '生产中');
     await clickSave();
     await waitSaved();
-    assert.deepEqual(await order('Decimal Buyer'), { stage:'balance', amount:1234.56, paidAmount:370.37, depositAmount:370.37, depositPercent:30, orderType:'定金订单' });
+    assert.deepEqual(await order('Decimal Buyer'), { stage:'production', amount:1234.56, paidAmount:370.37, depositAmount:370.37, depositPercent:30, orderType:'定金订单' });
 
     // P0-2：先填已付款、后填金额，已付款不被清空。超过订单金额只提示；保存时问，选「回去修改」不保存。
     await openNew('Overflow Buyer');
@@ -176,10 +176,10 @@ const PASTE_FORCE_KEYS = ['createdAt', 'currency', 'paymentChannel', 'productTyp
     // P1-2：编辑弹窗登记收款也推进阶段（和详情抽屉一致）。
     await openExisting('o-quote');
     await typeInto('paidAmount', '300');
-    assert.equal(await stageHint(), '保存后会按收款自动放到「待发货」');
+    assert.equal(await stageHint(), '保存后会按收款自动放到「生产中」');
     await clickSave();
     await waitSaved();
-    assert.equal((await order('o-quote')).stage, 'balance', 'recording the deposit in the edit modal moves 报价 → 尾款');
+    assert.equal((await order('o-quote')).stage, 'production', 'recording the deposit in the edit modal moves 报价 → 生产中');
     await openExisting('o-full-quote');
     await page.locator('#orderForm [data-binary-value="已付"]').click();
     await clickSave();
@@ -215,13 +215,13 @@ const PASTE_FORCE_KEYS = ['createdAt', 'currency', 'paymentChannel', 'productTyp
     assert.equal((await order('o-full-drawer')).paidAmount, 500, 'drawer partial payment on a full-payment order is kept');
     await page.evaluate(() => closeOrderDetail());
 
-    // P1-4：尾款单误点「全款订单」：先问（选「不改」什么都不变）；确认后已收保留为部分已付、阶段回报价；
-    // 再点回「定金订单」不再问，已付、定金、比例、尾款原样恢复，保存后数据不变。
+    // P1-4：待发货单误点「全款订单」：先问（选「不改」什么都不变）；确认后已收保留为部分已付，全款单没有待发货，
+    // 货已做好的单放回前一列生产中（V3.141 起不再退回报价）；再点回「定金订单」不再问，已付、定金、比例、待发货原样恢复，保存后数据不变。
     await openExisting('o-toggle');
     await page.locator('#orderForm [data-binary-value="全款订单"]').click();
     await page.waitForFunction(() => document.getElementById('confirmModal').classList.contains('open'));
     assert.equal(await page.locator('#confirmTitle').innerText(), '改成全款订单？');
-    assert.match(await page.locator('#confirmMessage').innerText(), /已收 \$300 USD.*已收金额保留.*部分已付.*阶段改为「报价」/);
+    assert.match(await page.locator('#confirmMessage').innerText(), /已收 \$300 USD.*已收金额保留.*部分已付.*阶段改为「生产中」/);
     await page.locator('#confirmCancelBtn').click();
     await page.waitForFunction(() => !document.getElementById('confirmModal').classList.contains('open'));
     assert.equal(await value('orderType'), '定金订单', '「不改」 keeps the order type');
@@ -233,7 +233,7 @@ const PASTE_FORCE_KEYS = ['createdAt', 'currency', 'paymentChannel', 'productTyp
     await page.waitForFunction(() => !document.getElementById('confirmModal').classList.contains('open'));
     assert.equal(await value('fullPaymentStatus'), '部分');
     assert.equal(await value('paidAmount'), '300');
-    assert.equal(await value('stage'), 'quote', '全款 has no 尾款: not fully paid goes back to 报价, never 生产中');
+    assert.equal(await value('stage'), 'production', '全款 has no 待发货: the goods are made, so the order goes back one column to 生产中, not to 报价');
     await page.locator('#orderForm [data-binary-value="定金订单"]').click();
     assert.equal(await confirmOpen(), false, 'switching back to the saved type restores without asking');
     assert.equal(await value('paidAmount'), '300');
@@ -243,7 +243,7 @@ const PASTE_FORCE_KEYS = ['createdAt', 'currency', 'paymentChannel', 'productTyp
     await waitSaved();
     assert.deepEqual(await order('o-toggle'), { stage:'balance', amount:1000, paidAmount:300, depositAmount:300, depositPercent:30, orderType:'定金订单' });
     // 详情抽屉里改订单类型且已收过钱：和订单弹窗一样先用页面内确认框说明（V3.121，审查 06 P2-2）。
-    // 选「不改」什么都不存；确认后已收 300 保留为全款的部分已付，阶段按收款回到报价，toast 说明放到了哪个阶段。
+    // 选「不改」什么都不存；确认后已收 300 保留为全款的部分已付，全款单没有待发货，阶段放回生产中。
     await page.evaluate(() => openOrderDetail('o-toggle', { tab:'payment' }));
     await page.locator('#orderDetailBody [data-dedit="orderType"]').evaluate(select => {
       select.value = '全款订单';
@@ -252,7 +252,7 @@ const PASTE_FORCE_KEYS = ['createdAt', 'currency', 'paymentChannel', 'productTyp
     await page.locator('#detailSaveBtn').click();
     await page.waitForFunction(() => document.getElementById('confirmModal').classList.contains('open'));
     assert.equal(await page.locator('#confirmTitle').innerText(), '改成全款订单？');
-    assert.match(await page.locator('#confirmMessage').innerText(), /已收 \$300 USD.*阶段改为「报价」/s);
+    assert.match(await page.locator('#confirmMessage').innerText(), /已收 \$300 USD.*阶段改为「生产中」/s);
     await page.locator('#confirmCancelBtn').click();
     await page.waitForFunction(() => !document.getElementById('confirmModal').classList.contains('open'));
     assert.equal((await order('o-toggle')).orderType, '定金订单', '「不改」 saves nothing');
@@ -261,7 +261,7 @@ const PASTE_FORCE_KEYS = ['createdAt', 'currency', 'paymentChannel', 'productTyp
     await page.locator('#confirmOkBtn').click();
     await page.waitForFunction(() => state.orders.find(o => o.id === 'o-toggle').orderType === '全款订单');
     await page.waitForFunction(() => { const s = window.pendingSaveStatus(); return !s.pending && !s.saving; });
-    assert.deepEqual(await order('o-toggle'), { stage:'quote', amount:1000, paidAmount:300, depositAmount:1000, depositPercent:100, orderType:'全款订单' });
+    assert.deepEqual(await order('o-toggle'), { stage:'production', amount:1000, paidAmount:300, depositAmount:1000, depositPercent:100, orderType:'全款订单' });
     await page.evaluate(() => closeOrderDetail());
 
     // P1-5：定金框单独一行，输入框够宽，金额不被截断。
@@ -289,10 +289,10 @@ const PASTE_FORCE_KEYS = ['createdAt', 'currency', 'paymentChannel', 'productTyp
     assert.equal(await value('orderType'), '定金订单');
     assert.equal(await value('paidAmount'), '300', 'hidden auto-filled paid must not block the recognized value');
     assert.equal(await value('depositAmount'), '300');
-    assert.equal(await stageHint(), '保存后会按收款自动放到「待发货」');
+    assert.equal(await stageHint(), '保存后会按收款自动放到「生产中」');
     await clickSave();
     await waitSaved();
-    assert.deepEqual(await order('Paste Buyer'), { stage:'balance', amount:1000, paidAmount:300, depositAmount:300, depositPercent:30, orderType:'定金订单' });
+    assert.deepEqual(await order('Paste Buyer'), { stage:'production', amount:1000, paidAmount:300, depositAmount:300, depositPercent:30, orderType:'定金订单' });
 
     // 新客户 + 订单的合并表单：同一套规则，已付款逐键输入小数不被改写，超额会提示。
     await page.evaluate(() => openCombinedCustomerOrderModal({}));
@@ -303,7 +303,7 @@ const PASTE_FORCE_KEYS = ['createdAt', 'currency', 'paymentChannel', 'productTyp
     await page.locator('#combinedOrderForm input[name="paidAmount"]').click();
     await page.keyboard.type('300.5');
     assert.equal(await page.locator('#combinedOrderForm input[name="paidAmount"]').inputValue(), '300.5');
-    assert.equal(await page.locator('#combinedOrderForm [data-stage-hint]').evaluate(el => el.hidden ? '' : el.textContent), '保存后会按收款自动放到「待发货」');
+    assert.equal(await page.locator('#combinedOrderForm [data-stage-hint]').evaluate(el => el.hidden ? '' : el.textContent), '保存后会按收款自动放到「生产中」');
 
     assert.deepEqual(dialogs, [], 'native dialogs are not allowed');
     assert.deepEqual(errors, []);

@@ -145,13 +145,13 @@ form.elements.orderType.value = '全款订单';
 run(`applyOrderTypeSwitch(testForm, '定金订单', '全款订单', { keepPaid:true })`);
 assert.equal(form.elements.fullPaymentStatus.value, '部分', '带着已收 300 切到全款显示「部分已付」');
 assert.equal(form.elements.paidAmount.value, '300', '切到全款时已收金额保留');
-assert.equal(form.elements.stage.value, 'quote', '全款没有尾款阶段：没收齐回报价，不能变成生产中');
+assert.equal(form.elements.stage.value, 'production', '全款没有待发货阶段：待发货的单货已做好，换成全款放回生产中，不退回报价');
 form.elements.orderType.value = '定金订单';
 run(`applyOrderTypeSwitch(testForm, '全款订单', '定金订单', { keepPaid:true })`);
 assert.equal(form.elements.paidAmount.value, '300', '切回定金恢复已付');
 assert.equal(form.elements.depositAmount.value, '300', '切回定金恢复定金');
 assert.equal(form.elements.depositPercent.value, '30', '切回定金恢复比例');
-assert.equal(form.elements.stage.value, 'balance', '切回定金恢复尾款阶段');
+assert.equal(form.elements.stage.value, 'balance', '切回定金恢复待发货阶段');
 
 // 已保存的全款单（收齐 1000、生产中）改成定金：已收的钱保留，定金重新填。
 form._paymentStash = null;

@@ -16,7 +16,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # The Node the released app bundles (see release.yml); tests run on the same one.
+          node-version-file: .node-version
           cache: npm
       - run: npm ci
       - run: npm run lint
@@ -33,7 +34,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # The Node the released app bundles (see release.yml); tests run on the same one.
+          node-version-file: .node-version
           cache: npm
       - run: npm ci
       - run: npx playwright install chromium

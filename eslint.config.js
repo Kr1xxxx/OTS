@@ -5,11 +5,10 @@ const rules = {
   ...js.configs.recommended.rules,
   'no-unused-vars': ['error', { args: 'none', caughtErrors: 'none' }],
   'no-empty': ['error', { allowEmptyCatch: true }],
-  // Style-level findings; reported, not blocking.
+  // Style-level findings this codebase does not follow.
   'no-useless-escape': 'off',
   'no-control-regex': 'off',
-  'preserve-caught-error': 'off',
-  'no-useless-assignment': 'warn'
+  'preserve-caught-error': 'off'
 };
 
 module.exports = [
@@ -36,10 +35,20 @@ module.exports = [
     rules
   },
   {
-    // The inline <script> of trade-order-system.html, extracted by scripts/lint.js.
+    // Every inline <script> of trade-order-system.html, extracted by scripts/lint.js and linted as one script.
     files: ['.lint/trade-order-system.js'],
     languageOptions: { ecmaVersion: 2024, sourceType: 'script', globals: { ...globals.browser } },
-    // Several unused helpers are still exercised by regression tests; report them until they are cleaned up.
-    rules: { ...rules, 'no-unused-vars': ['warn', { args: 'none', caughtErrors: 'none' }] }
+    rules: {
+      ...rules,
+      // A top-level function nobody calls is dead code and fails the lint. The names below are the
+      // page's entry points that only something outside the page calls: the Mac shell (nativeDialog)
+      // and the regression tests (the rest). Add a name here only for a caller of that kind.
+      'no-unused-vars': ['error', {
+        args: 'none',
+        caughtErrors: 'none',
+        ignoreRestSiblings: true,
+        varsIgnorePattern: '^(nativeDialog|primaryOrderShipment|calendarEventsForMonth|customerFieldsFromCombinedPaste|normalizeAiCustomerFields)$'
+      }]
+    }
   }
 ];

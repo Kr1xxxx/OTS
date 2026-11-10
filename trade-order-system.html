@@ -7667,14 +7667,6 @@ const paymentChannelDefs = [
   { value:'TT', tag:'tag-pay-tt' }
 ];
 
-const demoFieldPresets = [
-  { productType:'假发', paymentChannel:'阿里巴巴' },
-  { productType:'睫毛', paymentChannel:'Paypal' },
-  { productType:'假发', paymentChannel:'TT' },
-  { productType:'睫毛', paymentChannel:'信用卡' },
-  { productType:'假发', paymentChannel:'西联' },
-  { productType:'睫毛', paymentChannel:'Zelle' }
-];
 
 const orderTypeDefs = [
   { value:'全款订单' },
@@ -7909,13 +7901,6 @@ const demoOrders = [
   { id:'o14', productType:'睫毛', paymentChannel:'TT', orderType:'全款订单', depositAmount:20500, depositPercent:100, num:'SO251018022', client:'Pacific North LLC', country:'🇺🇸 美国 United States', amount:20500, paidAmount:20500, currency:'USD', createdAt:'2025-10-18', orderMonth:'2025-10', stage:'done', next:'维护客户复购', owner:'Kris', note:'稳定客户', updated:'2025-11-02 09:20', logs:['订单完成', '已收全款'] }
 ];
 
-const demoTrackingLookups = [
-  { id:'lookup-demo-1', trackingNumber:'9188335262', carrier:'DHL', checkedAt:'2026-04-29 10:35', orderId:'o8', client:'LatAm Supplies S.A.', orderNum:'SO260222017', status:'运输中' },
-  { id:'lookup-demo-2', trackingNumber:'871032796510', carrier:'FedEx', checkedAt:'2026-04-28 16:20', orderId:'o4', client:'Nordic Home AS', orderNum:'SO260415019', status:'已签收' },
-  { id:'lookup-demo-3', trackingNumber:'4538291047', carrier:'DHL', checkedAt:'2026-04-27 09:12', orderId:'o7', client:'Iberia Retail S.L.', orderNum:'SO260305006', status:'派送中' },
-  { id:'lookup-demo-4', trackingNumber:'7624189035', carrier:'DHL', checkedAt:'2026-04-25 14:48', orderId:'o10', client:'Alpine Market AG', orderNum:'SO260129004', status:'已发货' },
-  { id:'lookup-demo-5', trackingNumber:'784512639018', carrier:'FedEx', checkedAt:'2026-04-24 11:05', orderId:'o12', client:'Andes Import Group', orderNum:'SO251220031', status:'异常' }
-];
 
 const demoCustomerProfiles = {
   'ABC Trading Co.': { level:'A级钻石客户', tags:['高复购','重点跟进'], paymentMethod:'阿里巴巴', repurchaseCycle:60, note:'示例：高价值长期客户' },
@@ -10049,12 +10034,6 @@ function monthLabel(month) {
   const [year, monthNum] = month.split('-');
   return `${year}年${Number(monthNum)}月`;
 }
-function shortMonthLabel(month) {
-  if (month === 'all') return '全部';
-  const [year, monthNum] = String(month || '').split('-');
-  if (!year || !monthNum) return monthLabel(month);
-  return `${year.slice(-2)}/${Number(monthNum)}`;
-}
 function monthDayLabel(value) {
   const d = parseDate(value);
   if (d.getFullYear() <= 1970) return '-';
@@ -10645,38 +10624,6 @@ function calendarEventsForMonth(month = activeCalendarMonth) {
   if (!days.length) return [];
   return calendarEventsInRange(days[0], days.at(-1));
 }
-function renderCustomerGrowthChart(customers, endMonth = activeCalendarMonth) {
-  const el = document.getElementById('customerGrowthChart');
-  if (!el) return;
-  const months = monthsBetween(monthOffset(endMonth, -5), endMonth);
-  let total = 0;
-  const counts = months.map(month => {
-    total = customers.filter(c => normalizeMonth(c.date) <= month).length;
-    return { month, total, added: customers.filter(c => normalizeMonth(c.date) === month).length };
-  });
-  const max = Math.max(1, ...counts.map(item => item.total));
-  const points = counts.map((item, index) => {
-    const x = 28 + index * ((300 - 56) / Math.max(1, counts.length - 1));
-    const y = 150 - (item.total / max) * 110;
-    return { ...item, x, y };
-  });
-  const line = points.map(p => `${p.x},${p.y}`).join(' ');
-  el.innerHTML = `
-    <svg viewBox="0 0 300 190" role="img" aria-label="客户增长趋势">
-      <defs>
-        <linearGradient id="customerGrowthFill" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stop-color="#0f8f81" stop-opacity=".22"/>
-          <stop offset="100%" stop-color="#0f8f81" stop-opacity=".03"/>
-        </linearGradient>
-      </defs>
-      <path d="M${points[0]?.x || 28},150 ${points.map(p => `L${p.x},${p.y}`).join(' ')} L${points.at(-1)?.x || 272},150 Z" fill="url(#customerGrowthFill)"/>
-      <polyline points="${line}" fill="none" stroke="#0f8f81" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-      ${points.map(p => `<circle cx="${p.x}" cy="${p.y}" r="4.5" fill="var(--surface-bg)" stroke="#0f8f81" stroke-width="3"/>`).join('')}
-      ${points.map(p => `<text x="${p.x}" y="178" text-anchor="middle" fill="var(--gray-500)" font-size="10" font-weight="800">${monthLabel(p.month).replace('年','/').replace('月','')}</text>`).join('')}
-      ${points.map(p => `<text x="${p.x}" y="${Math.max(16, p.y - 10)}" text-anchor="middle" fill="var(--gray-800)" font-size="10" font-weight="900">${p.total}</text>`).join('')}
-    </svg>
-  `;
-}
 // 日历事件的颜色：下单 / 交期复购 / 跟进 / 收款 / 物流 / 加急异常（含物流风险、过了最晚发出日期）/ 已签收 / 新客户 / 续费。
 // 日历格子、当月日程、当天抽屉用同一张表。
 function calendarEventTone(event = {}) {
@@ -11037,7 +10984,6 @@ function usdPaidTotal(orders) {
 function usdDueTotal(orders) {
   return orders.reduce((sum, order) => sum + orderDueUsd(order), 0);
 }
-let usdToRmbRate = defaultExchangeSettings.fallbackRate;
 function rmbMoney(value) {
   return `¥${Math.round(Number(value || 0)).toLocaleString('en-US')}`;
 }
@@ -11057,10 +11003,6 @@ function exchangeTargetMonth(date = new Date()) {
   const target = new Date(date.getFullYear(), date.getMonth(), 1);
   if (date.getDate() < 2) target.setMonth(target.getMonth() - 1);
   return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}`;
-}
-function loadCachedUsdCnyRate() {
-  usdToRmbRate = exchangeRateForMonth(exchangeTargetMonth());
-  return true;
 }
 function renderExchangeSettings() {
   const settings = getExchangeSettings();
@@ -11085,13 +11027,6 @@ function renderExchangeSettings() {
       </div>
     </div>
   `).join('');
-}
-async function refreshUsdCnyRate({ force = false } = {}) {
-  loadCachedUsdCnyRate();
-  renderStats();
-  renderExchangeSettings();
-  if (force) toast('汇率已改为手动维护');
-  return false;
 }
 function targetForMonth(month) {
   return Number((state.performanceTargets || {})[month] || 0);
@@ -11220,29 +11155,6 @@ function formatApiTime(value) {
   const d = parseDate(value);
   if (d.getFullYear() <= 1970) return nowText();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-}
-function dateKeyInZone(value, zone = 'America/New_York') {
-  const text = String(value || '').trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
-  const d = parseDate(text);
-  if (d.getFullYear() <= 1970) return '';
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: zone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  }).formatToParts(d).reduce((acc, part) => {
-    if (part.type !== 'literal') acc[part.type] = part.value;
-    return acc;
-  }, {});
-  return `${parts.year}-${parts.month}-${parts.day}`;
-}
-function daysBetweenDateKeys(startKey, endKey) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(startKey || '') || !/^\d{4}-\d{2}-\d{2}$/.test(endKey || '')) return null;
-  const start = new Date(`${startKey}T00:00:00Z`);
-  const end = new Date(`${endKey}T00:00:00Z`);
-  const days = Math.round((end - start) / 86400000);
-  return Number.isFinite(days) ? Math.max(0, days) : null;
 }
 function elapsedDayHourParts(startValue, endValue) {
   const start = parseDate(startValue);
@@ -11462,7 +11374,7 @@ function enhanceAppSelect(select) {
     destroyAppSelect(select);
     return;
   }
-  let { wrap, button } = appSelectParts(select);
+  let { wrap } = appSelectParts(select);
   if (!wrap) {
     wrap = document.createElement('div');
     wrap.className = appSelectWrapperClasses(select);
@@ -11472,7 +11384,7 @@ function enhanceAppSelect(select) {
     select._appSelectOriginalAttributes = { tabindex:select.getAttribute('tabindex'), 'aria-hidden':select.getAttribute('aria-hidden') };
     select.tabIndex = -1;
     select.setAttribute('aria-hidden', 'true');
-    button = document.createElement('button');
+    const button = document.createElement('button');
     button.type = 'button';
     button.className = 'app-select-button';
     button.setAttribute('role', 'combobox');
@@ -11747,7 +11659,7 @@ function fillCopyTemplate(template = '', vars = {}) {
 async function copyText(text, message = '已复制') {
   const value = String(text || '').trim();
   if (!value) return false;
-  let copied = false;
+  let copied;
   try {
     await navigator.clipboard.writeText(value);
     copied = true;
@@ -13754,9 +13666,6 @@ function findEmailsInText(text) {
   return Array.from(new Set((deobfuscateEmailText(decodePasteEntities(String(text || ''))).match(/[A-Z0-9._%+-]{1,64}@[A-Z0-9.-]{1,253}\.[A-Z]{2,63}/ig) || [])
     .map(normalizeCustomerEmail)
     .filter(Boolean)));
-}
-function findEmailInText(text) {
-  return findEmailsInText(text)[0] || '';
 }
 // 电话末尾的分机号（ext. 123 / x123 / 分机 123 / 转 123）单独拿出来：不算进号码位数，也不参与比对。
 function splitCustomerPhoneExtension(value = '') {
@@ -16055,7 +15964,6 @@ function normalizeCustomerContactFields(profile = {}) {
     address: addresses[0] || ''
   };
 }
-const customerContactMethodDefs = ['WhatsApp', '邮件', '阿里巴巴', 'iMessage'];
 function normalizeCustomerContactMethod(value = '') {
   const compact = String(value || '').trim().toLocaleLowerCase().replace(/[\s_-]+/g, '');
   if (!compact) return '';
@@ -17247,7 +17155,6 @@ function renderOrderDetailRelatedOrders(record = {}, currentOrderId = '') {
   }).join('')}</div>`;
 }
 function renderOrderDetail(order, source = 'active') {
-  const s = stageDef(normalizeStage(order.stage));
   const product = productTypeDef(order.productType);
   const payment = paymentChannelDef(order.paymentChannel);
   const customer = orderDetailCustomerRecord(order);
@@ -17896,17 +17803,6 @@ function clientInitial(name = '') {
   const first = String(name || '').trim().normalize('NFD').charAt(0).toUpperCase();
   return /^[A-Z]$/.test(first) ? first : '#';
 }
-function renderSelectSegment(selectId, segmentId, labels = {}) {
-  const select = document.getElementById(selectId);
-  const wrap = document.getElementById(segmentId);
-  if (!select || !wrap) return;
-  select.classList.add('segment-source');
-  const current = select.value;
-  wrap.innerHTML = Array.from(select.options).map(option => `
-    <button class="segment-option ${option.value === current ? 'active' : ''}" type="button" data-segment-value="${escapeAttr(option.value)}">${escapeAttr(labels[option.value] || option.textContent)}</button>
-  `).join('');
-  fitSegmentControl(wrap);
-}
 function fitSegmentControl(wrap) {
   if (!wrap) return;
   const count = wrap.querySelectorAll('.segment-option').length;
@@ -18348,7 +18244,7 @@ function targetMonthName(month) {
 // 解析目标金额：去掉空格、千分位、$ / USD / 美元，全角转半角，支持「5万」「5w」「50k」。
 // 解析不了、负数、0 都不保存（以前 Number('') = 0 直接删掉这个月的目标，「5万」存成 $5）。
 function parseTargetAmount(raw = '') {
-  let text = String(raw || '').replace(/[！-～]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0)).replace(/　/g, ' ');
+  let text = String(raw || '').replace(/[！-～]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0)).replace(/\u3000/g, ' ');
   text = text.replace(/[\s,，]/g, '').replace(/^(usd|us\$|\$)/i, '').replace(/(usd|美元|美金|刀)$/i, '').replace(/^\$/, '');
   if (!text) return { ok:false, empty:true, error:'请填写目标金额，例如 50000 或 5万' };
   if (/^-/.test(text)) return { ok:false, error:'目标金额不能是负数；要清除目标请点「清除这个月的目标」' };
@@ -19324,11 +19220,6 @@ async function clearTrackingLookups() {
   saveState();
   renderPriceHistory();
   toast(keepPinned ? `已清除 ${removed.length} 条查询记录，置顶的 ${pinned} 条保留` : `已清除 ${removed.length} 条查询记录`, { undo:() => restoreTrackingLookups(removed) });
-}
-function trackingResultEmoji(value) {
-  if (value === '是') return '✅';
-  if (value === '否') return '❌';
-  return '';
 }
 function trackingStatusTextWithEmoji(text) {
   const value = String(text || '');
@@ -20635,7 +20526,7 @@ function mergedCustomerPermanentNote(primary = {}, secondary = {}, secondaryName
 // 备份失败时再问一次，默认焦点在「取消」；浏览器预览没有本地备份，确认框里也不会说会备份。
 async function backupBeforeCustomerChange(actionLabel = '操作', reason = 'change') {
   if (!isMacAppMode()) return true;
-  let message = '';
+  let message;
   try {
     if (!await flushPendingSave()) throw new Error(macSaveLastError || '还有修改没存进数据库');
     const res = await apiFetch('/api/backup-before-change', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ reason }) });
@@ -21723,35 +21614,6 @@ function existingCustomerKey(name = '') {
   if (!clean) return '';
   return Object.keys(state.customers || {}).find(item => item.toLowerCase() === clean) || '';
 }
-function fillCustomerFieldsForCombinedReview(fields = {}, { overwrite = false } = {}) {
-  const form = document.getElementById('customerForm');
-  if (!form) return;
-  const setField = (key, value, force = overwrite) => {
-    const field = form.elements[key];
-    if (!field || value === undefined || value === null || value === '') return;
-    if (!force && String(field.value || '').trim()) return;
-    field.value = value;
-  };
-  setField('name', fields.name, overwrite);
-  if (fields.country) setField('country', normalizeCountry(fields.country || ''), overwrite);
-  setField('contact', cleanContactValue(fields.contact || '', fields.address || ''), overwrite);
-  setField('phone', normalizeCustomerPhone(fields.phone || ''), overwrite);
-  setField('email', fields.email, overwrite);
-  setField('address', fields.address, overwrite);
-  setField('currency', fields.currency || 'USD', overwrite);
-  if (fields.productType && productTypeDefs.some(item => item.value === fields.productType)) setField('productType', fields.productType, overwrite);
-  const payment = normalizePaymentChannelValue(fields.paymentMethod || '');
-  if (payment && (overwrite || !String(form.elements.paymentMethod?.value || '').trim() || form.elements.paymentMethod?.value === '阿里巴巴')) renderPaymentMethodSelect(payment);
-  setField('paymentEmail', fields.paymentEmail, overwrite);
-  setField('alibabaId', fields.alibabaId, overwrite);
-  setField('level', fields.level, overwrite);
-  setField('repurchaseCycle', fields.repurchaseCycle, overwrite);
-  setField('tags', fields.tags, overwrite);
-  setField('note', fields.note, overwrite);
-  if (overwrite || !form.elements.contact?.value) setCustomerMultiFieldValues(form, fields);
-  if (fields.tags) syncCustomerTags(fields.tags);
-  enhanceBinarySelects(form);
-}
 function fillOrderFieldsForCombinedReview(fields = {}) {
   const form = document.getElementById('orderForm');
   if (!form) return;
@@ -22111,22 +21973,6 @@ function fillClientFromHistory(form) {
   if (fields.currency && fields.currency.value !== currencyBefore) syncDepositPresetControl(form);
   if (isOrderForm) renderOrderClientAutofillSummary(data);
   if (isOrderForm) updateOrderModalSummary();
-}
-function applyOrderDefaults(form) {
-  const settings = { ...defaultOrderSettings, ...(state.orderSettings || {}) };
-  if (form.elements.country) form.elements.country.value = settings.defaultCountry;
-  if (form.elements.currency) form.elements.currency.value = settings.defaultCurrency;
-  if (form.elements.owner) form.elements.owner.value = settings.defaultOwner;
-  if (form.elements.productType) form.elements.productType.value = settings.defaultProductType || '假发';
-  if (form.elements.paymentChannel) form.elements.paymentChannel.value = settings.defaultPaymentChannel || 'Paypal';
-  if (form.elements.orderType) form.elements.orderType.value = settings.defaultOrderType || '定金订单';
-  if (form.elements.depositPercent) form.elements.depositPercent.value = settings.defaultDepositPercent ?? '';
-  if (form.elements.carrier) form.elements.carrier.value = settings.defaultCarrier || 'auto';
-  if (form.elements.urgentOrder) form.elements.urgentOrder.value = settings.defaultUrgentOrder || '否';
-  // 先按订单类型重建阶段选项再选默认阶段，避免旧选项里没有这个阶段时落到报价。
-  if (form.elements.stage) renderStageSelect(form.elements.stage, normalizeStage(settings.defaultStage), form.elements.orderType?.value || '');
-  syncStageOptionsForForm(form);
-  syncDepositFields(form, 'percent');
 }
 function updateDepositFieldVisibility(form) {
   if (!form?.elements?.orderType) return;
@@ -24295,8 +24141,6 @@ function subscriptionTypeVar(type) {
 function subscriptionTypeHtml(type) {
   return `<span class="subs-type" style="--tc:var(${subscriptionTypeVar(type)})">${subscriptionIcon(subscriptionTypeIcons[type] || 'tag')}${escapeAttr(type)}</span>`;
 }
-// 提前提醒的可选天数（-1 = 不提醒）；没选就按续费方式和周期给默认值。
-const subscriptionRemindChoices = [-1, 0, 1, 3, 7, 14, 30, 60];
 function subscriptionDefaultRemindWindow(item) {
   // A window as long as the cycle itself would remind every single day (manual monthly = 30 days,
   // weekly auto = 7 days), so it is capped at a quarter of the cycle; cycles under 4 days get none.
@@ -25611,7 +25455,7 @@ function exportSubscriptionHistoryCsv() {
   const rows = [['日期', '名称', '服务商', '类型', '付款方式', '金额', '币种', '折合人民币', '汇率', '第几次扣费', '扣费周期']]
     .concat(charges.map(event => [event.date, event.item.name, event.item.provider || '', event.term.category, event.term.paymentMethod || '', event.amount.toFixed(2), event.currency,
       event.cny.toFixed(2), event.currency === 'USD' ? rate : 1, event.index + 1, subscriptionCycleLabel(event.term)]));
-  download(`续费扣费记录-${subscriptionLocalDate()}.csv`, `﻿${rows.map(row => row.map(cell).join(',')).join('\n')}\n`);
+  download(`续费扣费记录-${subscriptionLocalDate()}.csv`, `\uFEFF${rows.map(row => row.map(cell).join(',')).join('\n')}\n`);
 }
 function subscriptionGoToDetail(id) {
   // The drawer floats over any page: open it where the user is, so 历史 keeps its months and scroll position.
@@ -27236,7 +27080,6 @@ function setPage(page) {
 }
 
 initTheme();
-loadCachedUsdCnyRate();
 const debouncedRender = debounce(render);
 const debouncedPriceHistory = debounce(renderPriceHistory);
 // 搜索框共用：输入法组字期间（拼音 z → zh → zhang）不重算，组字结束（上屏）后算一次。
@@ -28632,12 +28475,10 @@ document.getElementById('exchangeSettingsForm').addEventListener('submit', async
   });
   settings.fallbackRate = settings.monthlyRates[exchangeTargetMonth()] || defaultExchangeSettings.fallbackRate;
   settings.source = '手动';
-  loadCachedUsdCnyRate();
   render();
   if (!await settingsFormPersist(e.currentTarget)) return;
   toast('汇率设置已保存');
 });
-document.getElementById('refreshExchangeRateBtn')?.addEventListener('click', () => refreshUsdCnyRate({ force: true }));
 document.getElementById('aiSettingsForm')?.addEventListener('submit', async e => {
   e.preventDefault();
   const form = e.currentTarget;
@@ -31484,7 +31325,7 @@ async function uiDetailSave({ promote = false } = {}) {
   const feishu = document.getElementById('detailFeishuToggle');
   if (form.elements.sendFeishuNotification) form.elements.sendFeishuNotification.checked = promote && !!feishu?.checked;
   delete form.dataset.overflowField;
-  let saved = false;
+  let saved;
   uiMorph(saveBtn, 'busy', '保存中…');
   // noteStage：按保存前的阶段说明「已按收款放到某阶段」（抽屉先把推断的阶段写进了表单，拿表单比较就什么都不说了）。
   try { saved = await upsertOrder(form, { draft:keepDraft, noteStage:order.stage }); } finally { uiMorph(saveBtn, 'idle'); }

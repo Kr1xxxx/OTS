@@ -99,6 +99,38 @@ public struct UpdatePolicy: Sendable {
         "TradeOrderSystem-\(version)-mac-\(architecture).zip"
     }
 
+    /// Info.plist key holding the SHA-256 of Contents/Resources/node-runtime.
+    public static let nodeRuntimeDigestKey = "OTSNodeRuntimeSHA256"
+
+    /// The same app without Contents/Resources/node-runtime (~2 MB instead of ~39 MB).
+    /// The bundled Node rarely changes between releases, so the updater copies it from the
+    /// running app when its SHA-256 matches the new Info.plist; otherwise it takes the full zip.
+    public func liteAssetName(version: AppVersion, architecture: String) -> String {
+        "TradeOrderSystem-\(version)-mac-\(architecture)-lite.zip"
+    }
+
+    /// Small archive when the release has one (API JSON). nil for releases made before V3.142.
+    public func selectLiteAsset(fromRelease release: [String: Any], architecture: String) -> UpdateAsset? {
+        guard let tag = release["tag_name"] as? String,
+              let version = AppVersion(tag),
+              let assets = release["assets"] as? [[String: Any]] else { return nil }
+        let wanted = liteAssetName(version: version, architecture: architecture)
+        guard let entry = assets.first(where: { $0["name"] as? String == wanted }),
+              let rawURL = entry["browser_download_url"] as? String,
+              let url = URL(string: rawURL),
+              isTrustedDownload(url) else { return nil }
+        return UpdateAsset(name: wanted, downloadURL: url, sha256: Self.sha256(fromDigest: entry["digest"] as? String))
+    }
+
+    /// Small archive next to a full one found through the release page (no API, so no digest:
+    /// the installer reads the .sha256 sidecar; a release without it simply 404s and falls back).
+    public func liteAsset(besides full: UpdateAsset, version: AppVersion, architecture: String) -> UpdateAsset? {
+        let name = liteAssetName(version: version, architecture: architecture)
+        let url = full.downloadURL.deletingLastPathComponent().appendingPathComponent(name)
+        guard isTrustedDownload(url) else { return nil }
+        return UpdateAsset(name: name, downloadURL: url, sha256: nil)
+    }
+
     /// Only this repository's own release downloads are accepted; GitHub then
     /// redirects to its asset CDN over HTTPS.
     public func isTrustedDownload(_ url: URL) -> Bool {

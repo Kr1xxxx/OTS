@@ -45,3 +45,5 @@ jobs:
         env:
           OTS_TEST_CONCURRENCY: 2
       - run: node scripts/check-release.js --app mac-app/TradeOrderSystem.app
+      - name: Small update package rebuilds the same app
+        run: ./scripts/package-mac-release.sh mac-app/TradeOrderSystem.app "$RUNNER_TEMP/dist" "$(cat VERSION)"

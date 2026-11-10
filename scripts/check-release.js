@@ -42,6 +42,10 @@ assert.equal(buildVersion, String(expectedMajor * 10000 + expectedMinor), 'Info.
 const feishuSettingsVersion = execFileSync('/usr/libexec/PlistBuddy', ['-c', 'Print :OTSFeishuSettingsVersion', plist], { encoding:'utf8' }).trim();
 assert.equal(feishuSettingsVersion, '1', 'App must retain external Feishu configuration support');
 
+const nodeRuntimeDigest = execFileSync('/usr/libexec/PlistBuddy', ['-c', 'Print :OTSNodeRuntimeSHA256', plist], { encoding:'utf8' }).trim();
+const nodeRuntimeActual = require('node:crypto').createHash('sha256').update(fs.readFileSync(path.join(resources, 'node-runtime'))).digest('hex');
+assert.equal(nodeRuntimeDigest, nodeRuntimeActual, 'Info.plist OTSNodeRuntimeSHA256 must match Contents/Resources/node-runtime (small updates rely on it)');
+
 const packageVersion = require(path.join(root, 'package.json')).version;
 assert.equal(packageVersion, `${expectedVersion}.0`, 'package.json version differs from VERSION');
 

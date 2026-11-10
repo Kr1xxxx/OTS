@@ -3,6 +3,14 @@ import CryptoKit
 import Foundation
 import TradeOrderSystemCore
 
+/// Bytes so far, archive size and recent speed; the page shows them in the button's tooltip
+/// and warns once when the download will take minutes.
+struct DownloadStats: Sendable {
+    let received: Int64
+    let total: Int64
+    let bytesPerSecond: Double
+}
+
 /// Checks GitHub Releases, downloads the archive for this Mac, verifies it, then hands
 /// a detached installer script the swap: wait for this process to quit, replace the
 /// bundle in place, relaunch. User data lives in Application Support, not the bundle.
@@ -11,7 +19,7 @@ enum UpdateStatus {
     case checking
     case latest(String)
     case available(String)
-    case downloading(String, Double)
+    case downloading(String, Double, DownloadStats?)
     case verifying
     case saving
     case restarting
@@ -22,7 +30,14 @@ enum UpdateStatus {
         case .checking: return ["state": "checking"]
         case .latest(let version): return ["state": "latest", "version": version]
         case .available(let version): return ["state": "available", "version": version]
-        case .downloading(let version, let progress): return ["state": "downloading", "version": version, "progress": progress]
+        case .downloading(let version, let progress, let stats):
+            var payload: [String: Any] = ["state": "downloading", "version": version, "progress": progress]
+            if let stats {
+                payload["received"] = stats.received
+                payload["total"] = stats.total
+                payload["speed"] = Int(stats.bytesPerSecond.rounded())
+            }
+            return payload
         case .verifying: return ["state": "verifying"]
         case .saving: return ["state": "saving"]
         case .restarting: return ["state": "restarting"]
@@ -52,7 +67,7 @@ final class AppUpdater {
     private var lastCompletedCheck: Date?
     /// Automatic checks run at most this often; a failed one is retried by the next scheduled tick.
     static let automaticCheckInterval: TimeInterval = 6 * 3600
-    /// Download (~40 MB) + unpacked copy (~120 MB) + the old app kept until the new one starts.
+    /// Download (~2 MB, or ~40 MB when the Node runtime changed) + unpacked copy (~120 MB) + the old app kept until the new one starts.
     private static let requiredFreeBytes: Int64 = 400_000_000
     private static let stagingDefaultsKey = "PendingUpdateStaging"
 
@@ -170,7 +185,7 @@ final class AppUpdater {
                 }
                 lastAvailable = "\(latest)"
                 try preflightInstallLocation()
-                // Unsaved forms stop the update before 40 MB are downloaded, not after.
+                // Unsaved forms stop the update before anything is downloaded, not after.
                 if let blocker = await unsavedFormsBlocker() { throw UpdateError.message(blocker) }
                 guard await confirmInstall("\(latest)", found.notes) else {
                     report(.available("\(latest)"))
@@ -178,7 +193,7 @@ final class AppUpdater {
                 }
                 try checkFreeSpace()
                 installing = true
-                await install(asset, version: latest)
+                await install(asset, lite: found.lite, version: latest)
             } catch {
                 if userInitiated { report(.failed(error.localizedDescription)) }
             }
@@ -227,7 +242,7 @@ final class AppUpdater {
 
     /// API first (it carries asset digests), direct then via proxy. If every API attempt is
     /// refused or unreachable, read the version from the public release page, which has no quota.
-    private func latestRelease(current: AppVersion) async throws -> (version: AppVersion, asset: UpdateAsset?, notes: String) {
+    private func latestRelease(current: AppVersion) async throws -> (version: AppVersion, asset: UpdateAsset?, lite: UpdateAsset?, notes: String) {
         var request = URLRequest(url: policy.latestReleaseURL, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         request.setValue(userAgent(current), forHTTPHeaderField: "User-Agent")
@@ -242,7 +257,8 @@ final class AppUpdater {
                           let tag = release["tag_name"] as? String,
                           let latest = AppVersion(tag) else { throw UpdateError.message("无法读取最新版本信息。") }
                     let notes = release["body"] as? String ?? ""
-                    return (latest, policy.selectAsset(fromRelease: release, architecture: Self.architecture)?.asset, notes)
+                    return (latest, policy.selectAsset(fromRelease: release, architecture: Self.architecture)?.asset,
+                            policy.selectLiteAsset(fromRelease: release, architecture: Self.architecture), notes)
                 }
                 status = code
             } catch let error as UpdateError {
@@ -253,7 +269,8 @@ final class AppUpdater {
         }
         for session in Self.checkSessions {
             if let fallback = try? await latestFromReleasePage(current: current, session: session) {
-                return (fallback.version, fallback.asset, "")
+                return (fallback.version, fallback.asset,
+                        policy.liteAsset(besides: fallback.asset, version: fallback.version, architecture: Self.architecture), "")
             }
         }
         throw UpdateError.message(status == 0 ? "连不上 GitHub，请检查网络后再试。" : UpdatePolicy.checkFailureMessage(status: status))
@@ -283,9 +300,12 @@ final class AppUpdater {
         }
     }
 
-    private func install(_ asset: UpdateAsset, version: AppVersion) async {
+    /// The small archive (app without its Node runtime, ~2 MB) is tried first and the running
+    /// app's own runtime is copied in; the full ~39 MB archive is only fetched when that runtime
+    /// differs from the new one or anything about the small route fails.
+    private func install(_ asset: UpdateAsset, lite: UpdateAsset?, version: AppVersion) async {
         let label = "\(version)"
-        report(.downloading(label, 0))
+        report(.downloading(label, 0, nil))
         var staging: URL?
         do {
             let bundle = Bundle.main.bundleURL.resolvingSymlinksInPath()
@@ -296,17 +316,21 @@ final class AppUpdater {
             staging = workDir
             // Recorded so the next launch can remove a half download if the app quits now.
             UserDefaults.standard.set(workDir.path, forKey: Self.stagingDefaultsKey)
-            let archive = workDir.appendingPathComponent(asset.name)
-            let download = ProgressDownload(destination: archive) { [weak self] progress in
-                Task { @MainActor in self?.report(.downloading(label, progress)) }
+            var assembled: URL?
+            if let lite { assembled = await prepareFromLite(lite, label: label, workDir: workDir) }
+            let newApp: URL
+            if let assembled {
+                newApp = assembled
+            } else {
+                report(.downloading(label, 0, nil))
+                let archive = workDir.appendingPathComponent(asset.name)
+                try await download(asset, to: archive, label: label)
+                report(.verifying)
+                let expected = try await expectedChecksum(for: asset)
+                newApp = try await Task.detached(priority: .userInitiated) {
+                    try AppUpdater.verifyAndExtract(archive: archive, into: workDir, sha256: expected, nodeRuntime: nil)
+                }.value
             }
-            try await download.run(asset.downloadURL)
-
-            report(.verifying)
-            let expected = try await expectedChecksum(for: asset)
-            let newApp = try await Task.detached(priority: .userInitiated) {
-                try AppUpdater.verifyAndExtract(archive: archive, into: workDir, sha256: expected)
-            }.value
             try Self.checkBundle(newApp, version: version, bundleIdentifier: Bundle.main.bundleIdentifier)
 
             report(.saving)
@@ -334,6 +358,35 @@ final class AppUpdater {
         }
     }
 
+    private func download(_ asset: UpdateAsset, to archive: URL, label: String) async throws {
+        let transfer = ProgressDownload(destination: archive) { [weak self] progress, stats in
+            Task { @MainActor in self?.report(.downloading(label, progress, stats)) }
+        }
+        try await transfer.run(asset.downloadURL)
+    }
+
+    /// nil means "use the full archive": no small archive in this release, a different Node
+    /// runtime, or any download/verification problem on this route.
+    private func prepareFromLite(_ lite: UpdateAsset, label: String, workDir: URL) async -> URL? {
+        guard let runtime = Bundle.main.resourceURL?.appendingPathComponent("node-runtime"),
+              FileManager.default.isReadableFile(atPath: runtime.path) else { return nil }
+        let liteDir = workDir.appendingPathComponent("lite", isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(at: liteDir, withIntermediateDirectories: true)
+            let archive = liteDir.appendingPathComponent(lite.name)
+            try await download(lite, to: archive, label: label)
+            report(.verifying)
+            let expected = try await expectedChecksum(for: lite)
+            return try await Task.detached(priority: .userInitiated) {
+                try AppUpdater.verifyAndExtract(archive: archive, into: liteDir, sha256: expected, nodeRuntime: runtime)
+            }.value
+        } catch {
+            NSLog("OTS update: small package not usable (%@); downloading the full package", error.localizedDescription)
+            try? FileManager.default.removeItem(at: liteDir)
+            return nil
+        }
+    }
+
     private func fail(_ message: String, cleaning staging: URL?) {
         if let staging { try? FileManager.default.removeItem(at: staging) }
         UserDefaults.standard.removeObject(forKey: Self.stagingDefaultsKey)
@@ -346,7 +399,9 @@ final class AppUpdater {
         if let sha = asset.sha256 { return sha }
         // Older GitHub responses lack `digest`; the workflow also uploads <asset>.sha256.
         let sidecar = URL(string: asset.downloadURL.absoluteString + ".sha256")!
-        let (data, response) = try await URLSession.shared.data(from: sidecar)
+        var request = URLRequest(url: sidecar, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
+        request.setValue("TradeOrderSystem", forHTTPHeaderField: "User-Agent")
+        let (data, response) = try await URLSession.shared.data(for: request)
         guard ((response as? HTTPURLResponse)?.statusCode ?? 0) == 200,
               let sha = UpdatePolicy.sha256(fromDigest: String(data: data, encoding: .utf8)) else {
             throw UpdateError.message("找不到安装包的校验值，已取消更新。")
@@ -354,14 +409,21 @@ final class AppUpdater {
         return sha
     }
 
-    nonisolated private static func verifyAndExtract(archive: URL, into staging: URL, sha256 expected: String) throws -> URL {
-        let handle = try FileHandle(forReadingFrom: archive)
+    nonisolated private static func sha256(of file: URL) throws -> String {
+        let handle = try FileHandle(forReadingFrom: file)
         defer { try? handle.close() }
         var hasher = SHA256()
         while let chunk = try handle.read(upToCount: 1 << 20), !chunk.isEmpty {
             hasher.update(data: chunk)
         }
-        let actual = hasher.finalize().map { String(format: "%02x", $0) }.joined()
+        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// With `nodeRuntime`, the archive is the small one: the running app's runtime goes into
+    /// the new bundle only if its SHA-256 equals the new Info.plist's, and the bundle seal
+    /// (codesign --verify --deep --strict) then covers it like any other file.
+    nonisolated private static func verifyAndExtract(archive: URL, into staging: URL, sha256 expected: String, nodeRuntime: URL?) throws -> URL {
+        let actual = try sha256(of: archive)
         guard actual == expected else { throw UpdateError.message("安装包校验失败（文件可能不完整），已取消更新。") }
 
         let unpacked = staging.appendingPathComponent("unpacked", isDirectory: true)
@@ -370,6 +432,17 @@ final class AppUpdater {
         try run("/usr/bin/ditto", ["-x", "-k", archive.path, unpacked.path], failure: "解压安装包失败。")
         let app = unpacked.appendingPathComponent("TradeOrderSystem.app", isDirectory: true)
         guard FileManager.default.fileExists(atPath: app.path) else { throw UpdateError.message("安装包里没有找到应用。") }
+        if let nodeRuntime {
+            let info = NSDictionary(contentsOf: app.appendingPathComponent("Contents/Info.plist"))
+            guard let wanted = UpdatePolicy.sha256(fromDigest: info?[UpdatePolicy.nodeRuntimeDigestKey] as? String) else {
+                throw UpdateError.message("小更新包没有标明运行环境。")
+            }
+            guard try sha256(of: nodeRuntime) == wanted else {
+                throw UpdateError.message("新版本换了运行环境，需要下载完整安装包。")
+            }
+            let target = app.appendingPathComponent("Contents/Resources/node-runtime")
+            try run("/usr/bin/ditto", ["--noextattr", "--norsrc", nodeRuntime.path, target.path], failure: "复制运行环境失败。")
+        }
         try run("/usr/bin/codesign", ["--verify", "--deep", "--strict", app.path], failure: "新版本签名校验失败，已取消更新。")
         return app
     }
@@ -508,26 +581,71 @@ private enum UpdateError: LocalizedError {
     }
 }
 
-/// URLSession download with byte progress; the file is moved out before the delegate returns.
+/// URLSession download with byte progress, speed, and resume: a connection that goes quiet
+/// for 30 s is dropped and continued from where it stopped (HTTP Range via resume data), up to
+/// four tries, instead of sitting on the same percentage. The file is moved out before the
+/// delegate returns.
 private final class ProgressDownload: NSObject, URLSessionDownloadDelegate, @unchecked Sendable {
+    private static let attempts = 4
+    private static let stallSeconds: TimeInterval = 30
+
     private let destination: URL
-    private let onProgress: @Sendable (Double) -> Void
+    private let onProgress: @Sendable (Double, DownloadStats) -> Void
     private let lock = NSLock()
     private var continuation: CheckedContinuation<Void, Error>?
     private var lastPercent = -1
+    private var lastReport = Date.distantPast
+    /// (time, total bytes) over the last few seconds, for the speed shown to the user.
+    private var samples: [(Date, Int64)] = []
 
-    init(destination: URL, onProgress: @escaping @Sendable (Double) -> Void) {
+    init(destination: URL, onProgress: @escaping @Sendable (Double, DownloadStats) -> Void) {
         self.destination = destination
         self.onProgress = onProgress
     }
 
     func run(_ url: URL) async throws {
+        var resumeData: Data?
+        for attempt in 1...Self.attempts {
+            do {
+                try await runOnce(url, resumeData: resumeData)
+                return
+            } catch let error as DownloadFailure {
+                // A resumed request against an expired CDN link answers 4xx: start over from GitHub.
+                if case .status(let code) = error, resumeData != nil, (400...499).contains(code), attempt < Self.attempts {
+                    resumeData = nil
+                    continue
+                }
+                throw UpdateError.message(error.message)
+            } catch {
+                let nsError = error as NSError
+                let retryable = nsError.domain == NSURLErrorDomain && [
+                    NSURLErrorTimedOut, NSURLErrorNetworkConnectionLost, NSURLErrorCannotConnectToHost,
+                    NSURLErrorNotConnectedToInternet, NSURLErrorDNSLookupFailed, NSURLErrorCannotFindHost,
+                    NSURLErrorSecureConnectionFailed, NSURLErrorResourceUnavailable, NSURLErrorCannotLoadFromNetwork
+                ].contains(nsError.code)
+                guard retryable, attempt < Self.attempts else {
+                    if nsError.code == NSURLErrorTimedOut {
+                        throw UpdateError.message("下载连续 \(Int(Self.stallSeconds)) 秒没有进展，重试 \(Self.attempts) 次后放弃。请检查网络或代理后再点「更新」。")
+                    }
+                    throw error
+                }
+                resumeData = nsError.userInfo[NSURLSessionDownloadTaskResumeData] as? Data ?? resumeData
+                try await Task.sleep(nanoseconds: UInt64(attempt) * 2_000_000_000)
+            }
+        }
+    }
+
+    private func runOnce(_ url: URL, resumeData: Data?) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             lock.lock()
             self.continuation = continuation
             lock.unlock()
-            let session = URLSession(configuration: .ephemeral, delegate: self, delegateQueue: nil)
-            session.downloadTask(with: url).resume()
+            let config = URLSessionConfiguration.ephemeral
+            config.timeoutIntervalForRequest = Self.stallSeconds
+            config.httpAdditionalHeaders = ["User-Agent": "TradeOrderSystem"]
+            let session = URLSession(configuration: config, delegate: self, delegateQueue: nil)
+            let task = resumeData.map { session.downloadTask(withResumeData: $0) } ?? session.downloadTask(with: url)
+            task.resume()
             session.finishTasksAndInvalidate()
         }
     }
@@ -537,17 +655,29 @@ private final class ProgressDownload: NSObject, URLSessionDownloadDelegate, @unc
         guard totalBytesExpectedToWrite > 0 else { return }
         let fraction = min(1, Double(totalBytesWritten) / Double(totalBytesExpectedToWrite))
         let percent = Int(fraction * 100)
+        let now = Date()
         lock.lock()
-        let changed = percent != lastPercent
-        lastPercent = percent
+        samples.append((now, totalBytesWritten))
+        samples.removeAll { now.timeIntervalSince($0.0) > 5 }
+        let first = samples.first!
+        let elapsed = now.timeIntervalSince(first.0)
+        let speed = elapsed > 0.5 ? Double(totalBytesWritten - first.1) / elapsed : 0
+        // Every percent, and at least once a second so a slow download still shows its speed.
+        let due = percent != lastPercent || now.timeIntervalSince(lastReport) >= 1
+        if due {
+            lastPercent = percent
+            lastReport = now
+        }
         lock.unlock()
-        if changed { onProgress(fraction) }
+        if due {
+            onProgress(fraction, DownloadStats(received: totalBytesWritten, total: totalBytesExpectedToWrite, bytesPerSecond: max(0, speed)))
+        }
     }
 
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
         let status = (downloadTask.response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200...299).contains(status) else {
-            finish(UpdateError.message("下载失败（状态 \(status)）。"))
+            finish(DownloadFailure.status(status))
             return
         }
         do {
@@ -560,7 +690,7 @@ private final class ProgressDownload: NSObject, URLSessionDownloadDelegate, @unc
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-        finish(error ?? UpdateError.message("下载没有完成。"))
+        finish(error ?? DownloadFailure.incomplete)
     }
 
     /// Only the first outcome counts; didComplete always follows didFinishDownloading.
@@ -570,5 +700,17 @@ private final class ProgressDownload: NSObject, URLSessionDownloadDelegate, @unc
         continuation = nil
         lock.unlock()
         if let error { pending?.resume(throwing: error) } else { pending?.resume() }
+    }
+}
+
+private enum DownloadFailure: Error {
+    case status(Int)
+    case incomplete
+
+    var message: String {
+        switch self {
+        case .status(let code): return "下载失败（状态 \(code)）。"
+        case .incomplete: return "下载没有完成。"
+        }
     }
 }

@@ -72,6 +72,21 @@ do {
     try verify(updates.releaseFromPage(URL(string: "https://github.com/Kr1xxxx/OTS/releases")!, architecture: "arm64") == nil, "page without a tag was accepted")
     try verify(updates.releaseFromPage(URL(string: "https://github.com/evil/OTS/releases/tag/v9.0")!, architecture: "arm64") == nil, "another repository's release page was trusted")
     try verify(updates.releaseFromPage(URL(string: "https://github.com/Kr1xxxx/OTS/releases/tag/nightly")!, architecture: "arm64") == nil, "non-version tag was accepted")
+    let liteURL = "https://github.com/Kr1xxxx/OTS/releases/download/v3.90/TradeOrderSystem-3.90-mac-arm64-lite.zip"
+    var withLite = release
+    withLite["assets"] = (release["assets"] as! [[String: Any]]) + [["name": "TradeOrderSystem-3.90-mac-arm64-lite.zip", "browser_download_url": liteURL, "digest": "sha256:\(digest)"]]
+    try verify(updates.selectLiteAsset(fromRelease: withLite, architecture: "arm64")?.downloadURL.absoluteString == liteURL, "small update archive was not selected")
+    try verify(updates.selectLiteAsset(fromRelease: withLite, architecture: "arm64")?.sha256 == digest, "small archive digest was not read")
+    try verify(updates.selectAsset(fromRelease: withLite, architecture: "arm64")?.asset.downloadURL.absoluteString == goodURL, "full archive must stay the -arm64.zip, not the lite one")
+    try verify(updates.selectLiteAsset(fromRelease: release, architecture: "arm64") == nil, "release without a small archive must fall back to the full one")
+    var foreignLite = withLite
+    foreignLite["assets"] = [["name": "TradeOrderSystem-3.90-mac-arm64-lite.zip", "browser_download_url": "https://github.com/evil/OTS/releases/download/v3.90/TradeOrderSystem-3.90-mac-arm64-lite.zip"]]
+    try verify(updates.selectLiteAsset(fromRelease: foreignLite, architecture: "arm64") == nil, "another repository's small archive was trusted")
+    if let page {
+        let pageLite = updates.liteAsset(besides: page.asset, version: page.version, architecture: "arm64")
+        try verify(pageLite?.downloadURL.absoluteString == "https://github.com/Kr1xxxx/OTS/releases/download/v3.102/TradeOrderSystem-3.102-mac-arm64-lite.zip", "fallback small archive URL is wrong")
+        try verify(pageLite?.sha256 == nil, "fallback small archive must use the .sha256 sidecar")
+    }
     try verify(UpdatePolicy.checkFailureMessage(status: 403).contains("限制"), "rate limit message missing")
     try verify(UpdatePolicy.sha256(fromDigest: "\(digest)  TradeOrderSystem.zip") == digest, "shasum line was not parsed")
     try verify(UpdatePolicy.sha256(fromDigest: "sha256:1234") == nil, "short digest was accepted")

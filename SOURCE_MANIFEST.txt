@@ -50,6 +50,7 @@ scripts/helpers/free-port.js
 scripts/helpers/whatsapp-fixture.js
 scripts/lint.js
 scripts/make-rounded-app-icon.swift
+scripts/package-mac-release.sh
 scripts/run-tests.js
 scripts/smoke-test-app-bundle.js
 scripts/test-ai-usage.js

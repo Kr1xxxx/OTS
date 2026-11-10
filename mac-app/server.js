@@ -1151,7 +1151,7 @@ function removeEmptyDirs(dir) {
 function cleanupOrphanAttachments({ minAgeMs = 24 * 60 * 60 * 1000 } = {}) {
   ensureStorage();
   if (!fs.existsSync(attachmentsDir)) return { deleted: 0 };
-  let data = {};
+  let data;
   try { data = readCurrentPayload(); } catch (_) { return { deleted: 0 }; }
   let refs;
   try { refs = retainedAttachmentRefs(data); }
@@ -2572,7 +2572,7 @@ function requestJsonResponse(targetUrl, options = {}) {
           else if (encoding.includes('deflate')) buffer = zlib.inflateSync(buffer);
         } catch (_) {}
         const text = buffer.toString('utf8');
-        let data = {};
+        let data;
         try { data = JSON.parse(text || '{}'); } catch (_) { data = { raw: text }; }
         resolve({ status: res.statusCode, data });
       });
@@ -2607,7 +2607,7 @@ function refreshEcbHistoricalRates() {
   if (ecbRefreshPromise) return ecbRefreshPromise;
   ecbRefreshPromise = (async () => {
     const xml = await requestText('https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml', {
-      headers:{ 'User-Agent':'TradeOrderSystem/3.56' }
+      headers:{ 'User-Agent':'TradeOrderSystem' }
     });
     const rates = parseEcbHistoricalRates(xml);
     if (!rates.length) throw new Error('ECB 未返回历史汇率');
@@ -3034,7 +3034,7 @@ async function queryFedExTracking(number) {
   if (settings.fedexApiEnabled !== '是') {
     return { ok: false, status: '待 API 查询', message: 'FedEx API 未开启。' };
   }
-  let token = '';
+  let token;
   try {
     token = await fedexToken(settings);
   } catch (error) {
@@ -3089,87 +3089,6 @@ async function queryFedExTracking(number) {
     rawCarrier: 'FedEx',
     source: 'FedEx API'
   };
-}
-
-function parseBocUsdSellRate(html) {
-  const rows = html.match(/<tr[\s\S]*?<\/tr>/gi) || [];
-  for (const row of rows) {
-    if (!row.includes('美元')) continue;
-    const cells = [...row.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(match =>
-      match[1].replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim()
-    );
-    const sell = Number(cells[3]);
-    if (!Number.isFinite(sell) || sell <= 0) continue;
-    return { rate: sell / 100, rateTime: [cells[6], cells[7]].filter(Boolean).join(' '), rawSell: sell };
-  }
-  return null;
-}
-
-function hasCaptcha(text) {
-  return /验证码|captcha|安全验证|请输入验证码|unusual traffic/i.test(String(text || ''));
-}
-
-function decodeHtmlEntities(text) {
-  return String(text || '')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>');
-}
-
-async function queryBaiduUsdCnyRate() {
-  const html = await requestText('https://www.baidu.com/s?wd=1%E7%BE%8E%E5%85%83%E7%AD%89%E4%BA%8E%E5%A4%9A%E5%B0%91%E4%BA%BA%E6%B0%91%E5%B8%81', {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 TradeOrderSystem/1.0',
-      Accept: 'text/html,application/xhtml+xml'
-    }
-  });
-  if (hasCaptcha(html)) throw new Error('百度汇率页面需要验证码');
-  const text = decodeHtmlEntities(html).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
-  const patterns = [
-    /1\s*美元[^0-9]{0,30}([0-9]\.\d{2,5})\s*人民币/,
-    /美元[^0-9]{0,30}人民币[^0-9]{0,30}([0-9]\.\d{2,5})/,
-    /人民币[^0-9]{0,30}([0-9]\.\d{2,5})/
-  ];
-  for (const pattern of patterns) {
-    const match = text.match(pattern);
-    const rate = Number(match?.[1]);
-    if (Number.isFinite(rate) && rate > 5 && rate < 9) {
-      return {
-        rate,
-        rateTime: new Date().toISOString().slice(0, 16).replace('T', ' '),
-        rawSell: rate * 100,
-        source: '百度实时美元汇率',
-        date: new Date().toISOString().slice(0, 10),
-        fallbackFromBaidu: true
-      };
-    }
-  }
-  throw new Error('未读取到百度美元人民币汇率');
-}
-
-async function queryBocRate(dateText) {
-  const params = new URLSearchParams({ erectDate: dateText, nothing: dateText, pjname: '美元', page: '1' });
-  let bocBlocked = false;
-  try {
-    const html = await requestText(`https://srh.bankofchina.com/search/whpj/search_cn.jsp?${params.toString()}`, {
-      headers: { 'User-Agent': 'Mozilla/5.0 TradeOrderSystem/1.0' }
-    });
-    bocBlocked = hasCaptcha(html);
-    const data = parseBocUsdSellRate(html);
-    if (data) return { ...data, source: '中国银行历史牌价网页', date: dateText };
-  } catch (_) {}
-  try {
-    const baidu = await queryBaiduUsdCnyRate();
-    return { ...baidu, bocCaptcha: bocBlocked, requestedBocDate: dateText };
-  } catch (_) {}
-  const currentHtml = await requestText('https://www.bankofchina.com/sourcedb/whpj/index.html', {
-    headers: { 'User-Agent': 'Mozilla/5.0 TradeOrderSystem/1.0' }
-  });
-  const current = parseBocUsdSellRate(currentHtml);
-  if (!current) throw new Error('未读取到中国银行美元现汇卖出价');
-  return { ...current, source: '中国银行当前牌价网页', date: current.rateTime.split(' ')[0] || dateText, fallbackFromCurrent: true, bocCaptcha: bocBlocked };
 }
 
 // 单实例锁：同一个数据目录只允许一个服务进程（DMG 里再开一份、两个 App 同时开时，两份服务轮流写同一个库，保存永远冲突）。
@@ -3572,12 +3491,6 @@ const server = http.createServer(async (req, res) => {
       if (!String(next.fedexApiKey || '').trim() && current.fedexApiKey) next.fedexApiKey = current.fedexApiKey;
       if (!String(next.fedexApiSecret || '').trim() && current.fedexApiSecret) next.fedexApiSecret = current.fedexApiSecret;
       return send(res, 200, JSON.stringify(writeTrackingSettings(next)));
-    }
-    if (req.method === 'GET' && url.pathname === '/api/exchange-rate') {
-      const date = url.searchParams.get('date');
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) return send(res, 400, JSON.stringify({ ok: false, message: 'invalid date' }));
-      const result = await queryBocRate(date);
-      return send(res, 200, JSON.stringify({ ok: true, requestedDate: date, ...result }));
     }
     if (req.method === 'GET' && url.pathname === '/api/ecb-rates') {
       const result = await queryEcbHistoricalRates();

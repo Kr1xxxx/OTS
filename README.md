@@ -31,7 +31,7 @@ Every time VERSION changes on main and CI has passed for that commit, .github/wo
 
 - First install: open the .dmg from the latest release and drag the app into Applications. The app is ad-hoc signed, not notarized, so macOS blocks the first launch: open System Settings → Privacy & Security and click "Open Anyway" (or run `xattr -dr com.apple.quarantine /Applications/TradeOrderSystem.app`). Updates do not need this again.
 - Updates: a few seconds after launch (and again every few hours while the app stays open) the app checks releases/latest and, if there is a newer version, marks the "更新" button next to the version number in the sidebar ("有更新"). Clicking it, the bell card, or the app menu "检查更新…" first stops if a form has unsaved changes, then asks once ("现在安装并重启 / 以后再说", with the release notes). Installing draws progress on the button while it downloads the zip, checks its SHA-256 against GitHub's asset digest, verifies the bundle id, version and code signature, flushes pending saves and makes a database backup labelled 安装更新前; then the app quits and a small script swaps the bundle in place and reopens it. The old version is deleted only after the new one has loaded its page; if it has not within 120 seconds, the script stops it, puts the old version back, reopens it, and the old version explains what happened (log: ~/Library/Logs/TradeOrderSystem-update.log). A failed update also deletes its temporary files. Data in Application Support is untouched.
-- Publishing a new version: `npm run bump-version -- 3.90`, then `node scripts/update-export-checksums.js`, commit and merge to main. Minor numbers compare as integers, so go 3.89 → 3.90 → 3.91, never 3.9.
+- Publishing a new version: `npm run bump-version -- 3.90`, commit and merge to main. Minor numbers compare as integers, so go 3.89 → 3.90 → 3.91, never 3.9.
 
 ## Safe local development
 
@@ -63,11 +63,10 @@ Tests use stubs or isolated data directories. npm run test:api is an **opt-in li
 - scripts/: automated regression tests and release checks.
 - chrome-extension/whatsapp-sync/: Chrome extension, pinned WA-JS distribution and third-party license.
 - data/demo-data.json and trade-order-data.json: synthetic seed only.
-- docs/export-verification.md: scoped validation and export differences.
 
 ## Public source repository
 
-Repository: https://github.com/Kr1xxxx/OTS . This V3.89 export continues the clean public history; it does not import any commits from the previous private repository. Only files in SOURCE_MANIFEST.txt are published. Never upload generated apps, local databases, attachments, credentials, caches, or the ZIP itself. Before future updates, review the staged diff and repeat privacy checks; .gitignore does not protect values embedded in source or tests.
+Repository: https://github.com/Kr1xxxx/OTS . This repository is public and is the only source of the app. Never upload generated apps, local databases, attachments, credentials, caches, or the ZIP itself. Before future updates, review the staged diff and repeat privacy checks; .gitignore does not protect values embedded in source or tests.
 
 ## Changes since V3.88
 

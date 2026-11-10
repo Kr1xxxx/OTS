@@ -109,7 +109,7 @@ public struct UpdatePolicy: Sendable {
         "TradeOrderSystem-\(version)-mac-\(architecture)-lite.zip"
     }
 
-    /// Small archive when the release has one (API JSON). nil for releases made before V3.141.
+    /// Small archive when the release has one (API JSON). nil for releases made before V3.142.
     public func selectLiteAsset(fromRelease release: [String: Any], architecture: String) -> UpdateAsset? {
         guard let tag = release["tag_name"] as? String,
               let version = AppVersion(tag),

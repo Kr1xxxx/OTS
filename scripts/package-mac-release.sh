@@ -3,7 +3,7 @@
 # Usage: scripts/package-mac-release.sh <TradeOrderSystem.app> <out-dir> <version> [--dmg]
 #   TradeOrderSystem-<v>-mac-<arch>.zip        full app (first install fallback, older updaters)
 #   TradeOrderSystem-<v>-mac-<arch>-lite.zip   same app without Resources/node-runtime (~2 MB);
-#                                              V3.141+ updaters copy their own runtime in when
+#                                              V3.142+ updaters copy their own runtime in when
 #                                              Info.plist OTSNodeRuntimeSHA256 matches
 #   *.zip.sha256                               checksums for the release-page fallback
 #   TradeOrderSystem-<v>-mac-<arch>.dmg        with --dmg

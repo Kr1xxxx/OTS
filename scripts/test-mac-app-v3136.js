@@ -78,7 +78,7 @@ function checkReleaseWorkflow() {
   assert.match(yml, /node scripts\/smoke-test-app-bundle\.js --app/, 'the packaged app is started before publishing');
   assert.ok(yml.indexOf('smoke-test-app-bundle') < yml.indexOf('gh release create'), 'smoke test runs before publishing');
   assert.match(yml, /--target "\$\{\{ needs\.gate\.outputs\.sha \}\}"/, 'the release is tagged at the tested commit');
-  // V3.141: every release also carries the ~2 MB -lite.zip, proven to rebuild the same signed app.
+  // V3.142: every release also carries the ~2 MB -lite.zip, proven to rebuild the same signed app.
   assert.match(yml, /scripts\/package-mac-release\.sh mac-app\/TradeOrderSystem\.app dist/, 'release packages the small update zip');
   assert.match(yml, /node-version: 22\.\d+\.\d+/, 'bundled Node is pinned so small updates keep matching');
   const pkg = read('scripts/package-mac-release.sh');

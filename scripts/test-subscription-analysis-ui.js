@@ -104,7 +104,8 @@ function seededStore() {
     assert.match(await category.locator('.arc-center').innerText(), /每月合计\s*¥168\.98\s*3 项/);
     assert.match(await category.locator('.arc-legend').innerText(), /软件\s*1 项\s*¥21\.23\s*13%\s*AI\s*1 项\s*¥142\.00\s*84%\s*其他\s*1 项\s*¥5\.75\s*3%/);
     await category.locator('.arc-row[data-key="AI"]').hover();
-    await page.waitForTimeout(600);
+    // The centre swaps its copy with an exit animation; on a busy CI Mac the old 「3 项」 can outlive a fixed 600 ms wait.
+    await page.waitForFunction(() => /AI\s*¥142\.00\s*占 84%/.test(document.querySelector('#subsArcCategory .arc-center')?.innerText || ''), null, { timeout: 5000 }).catch(() => {});
     assert.match(await category.locator('.arc-center').innerText(), /AI\s*¥142\.00\s*占 84%/);
     assert.equal(await category.locator('.arc-seg[data-dim]').count(), 2);
     await category.locator('.arc-row[data-key="其他"]').click();

@@ -47,6 +47,7 @@ scripts/check-release.js
 scripts/fixtures/customer-recognition-cases.json
 scripts/helpers/board-page.js
 scripts/helpers/free-port.js
+scripts/helpers/stable-evaluate.js
 scripts/helpers/whatsapp-fixture.js
 scripts/lint.js
 scripts/make-rounded-app-icon.swift
@@ -94,6 +95,7 @@ scripts/test-feishu-order-notification.js
 scripts/test-feishu-order-ui.js
 scripts/test-feishu-settings-ui.js
 scripts/test-feishu-settings.js
+scripts/test-focus-races-ui.js
 scripts/test-follow-reminder.js
 scripts/test-followup-tasks-ui.js
 scripts/test-form-chips-ui.js

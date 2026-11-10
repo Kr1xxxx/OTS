@@ -66,6 +66,11 @@ const { chromium } = require('playwright');
 
     // Mac App 的 WebKit 不处理 blob 下载，导出交给本地服务写进「下载」文件夹。
     await page.locator('#macConflictExportBtn').click();
+    // 等这一次的导出请求本身：上一次导出的「已导出到「下载」文件夹」提示可能还在，只看提示会读早。
+    for (const started = Date.now(); !exportRequest;) {
+      assert.ok(Date.now() - started < 15000, 'the export button sends /api/export-file');
+      await new Promise(resolve => setTimeout(resolve, 20));
+    }
     await page.waitForFunction(()=>document.getElementById('toast')?.textContent.includes('已导出到「下载」文件夹'));
     assert.match(exportRequest.name,/^trade-order-unsaved-\d+\.json$/);
     const exported = JSON.parse(exportRequest.text);

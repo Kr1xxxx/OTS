@@ -8,6 +8,9 @@ const { spawn } = require('node:child_process');
 
 const root = path.resolve(__dirname, '..');
 const scriptsDir = __dirname;
+// page.evaluate that returns a page-side promise waits for it by polling (see the comment in that file): a pending
+// promise handed straight to Playwright was now and then lost on CI ("Resulting promise was garbage collected").
+const stableEvaluate = path.join(scriptsDir, 'helpers', 'stable-evaluate.js');
 
 // Opt-in live requests, never part of the default run.
 const excluded = new Set(['test-tracking-api.js']);
@@ -27,7 +30,7 @@ const tests = [
   ...fs.readdirSync(scriptsDir)
     .filter(name => /^test-.*\.js$/.test(name) && !excluded.has(name))
     .sort()
-    .map(name => ({ name: name.replace(/\.js$/, ''), file: name, command: process.execPath, args: [path.join(scriptsDir, name)] })),
+    .map(name => ({ name: name.replace(/\.js$/, ''), file: name, command: process.execPath, args: ['--require', stableEvaluate, path.join(scriptsDir, name)] })),
   { name: 'native', file: 'native', command: 'swift', args: ['run', 'TradeOrderSystemCoreTests'], cwd: path.join(root, 'mac-app', 'native') }
 ];
 

@@ -4045,6 +4045,11 @@ html[data-theme="dark"] .subs-pill.red.solid { background:oklch(55% .2 25); colo
 .subs-per-edit-sp { width:32px; }
 .subs-opt-note { margin-left:6px; color:var(--a-muted); font-size:11px; font-weight:400; }
 .subs-select { -webkit-appearance:none; appearance:none; padding-right:34px; background-image:linear-gradient(45deg, transparent 50%, var(--a-muted) 50%), linear-gradient(135deg, var(--a-muted) 50%, transparent 50%); background-position:calc(100% - 19px) 50%, calc(100% - 14px) 50%; background-size:5px 5px; background-repeat:no-repeat; cursor:pointer; }
+/* 「提前提醒」下拉经过 app-select 包装后，外层和里面的按钮各画了一遍边框和箭头（框套框、两个箭头）：
+   外层留着输入框的样子，里面的按钮不再画边框、底色，箭头只留按钮上的那个。 */
+.app-select.subs-input { padding:0; background-image:none; }
+.app-select.subs-input .app-select-button { height:100%; min-height:100%; padding:0 14px; border:0; border-radius:inherit; background:transparent; color:inherit; font:inherit; box-shadow:none; }
+.app-select.subs-input:focus-within, .app-select.subs-input.open { border-color:var(--a-accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--a-accent) 20%, transparent); }
 @media (max-width: 760px) {
   .subs-amt small { display:inline; }
   .subs-amt-cyc { display:none; }
@@ -4869,6 +4874,15 @@ html[data-theme] .oc-act:hover { border-color:var(--accent); color:var(--accent)
 html[data-theme] .oc-act .ui-icon { width:12px; height:12px; }
 html[data-theme] .board-card.oc-card:active { transform:scale(.98); transition-duration:.12s; }
 html[data-theme] .oc-r1 { display:flex; align-items:center; gap:6px; min-height:20px; font-size:11.5px; color:var(--gray-500); white-space:nowrap; }
+/* 窄卡片上「加急 / 部分发货」标签、运单 ✓ 会把日期挤出卡片，11-10 只剩「11-1」，看着像 11 月 1 日。
+   放不下时日期整个换到下一行并藏起来（宁可不显示，也不显示半截）；窄窗口里带标签的行再收紧一点间距；
+   订单号太长时省略，不把别的挤走。 */
+html[data-theme] .oc-r1 { flex-wrap:wrap; max-height:20px; overflow:hidden; }
+html[data-theme] .oc-r1 .oc-num { max-width:calc(100% - 46px); overflow:hidden; text-overflow:ellipsis; }
+@media (max-width:1560px) {
+  html[data-theme] .oc-r1:has(.oc-pill) { gap:3px; }
+  html[data-theme] .oc-r1:has(.oc-pill) .oc-pill { padding:0 5px; }
+}
 html[data-theme] .oc-r1 .customer-level-icon, html[data-theme] .oc-r1 [class*="level-icon"] { width:14px; height:14px; font-size:9px; }
 html[data-theme] .oc-date { margin-left:auto; font-variant-numeric:tabular-nums; }
 html[data-theme] .oc-r1 .oc-pill + .oc-date { margin-left:0; }
@@ -4990,6 +5004,8 @@ html[data-theme] .order-detail-stagebar button:not(:disabled):hover { color:var(
 html[data-theme] .order-detail-tabs { position:relative; display:flex; gap:20px; margin-top:16px; overflow-x:auto; scrollbar-width:none; }
 html[data-theme] .order-detail-tabs button { padding:10px 0 12px; border:0; background:transparent; color:var(--gray-500); font:inherit; font-size:14px; white-space:nowrap; cursor:pointer; transition:color var(--motion-fast) var(--ease); }
 html[data-theme] .order-detail-tabs button:hover { color:var(--gray-900); }
+/* 页签条能横向滚动（overflow-x:auto），键盘聚焦的外圈被它裁掉，只剩右边一条紫色竖线：聚焦圈画在页签里面。 */
+html[data-theme] .order-detail-tabs button:focus-visible { outline-offset:-2px; border-radius:6px; }
 html[data-theme] .order-detail-tabs button[aria-selected="true"] { color:var(--gray-900); font-weight:600; }
 html[data-theme] .order-detail-tabs .tab-line { position:absolute; bottom:0; left:0; height:2px; border-radius:2px; background:var(--accent); transition:transform var(--motion-spring) var(--ease-spring), width var(--motion-spring) var(--ease-spring); }
 html[data-theme] .order-detail-body { padding:8px 24px 28px; background:var(--surface-bg); display:block; }
@@ -5449,7 +5465,8 @@ html[data-theme="dark"] { --notif-warn-ink:var(--s-amber); --notif-info-ink:var(
 .notif-cd { flex:none; margin-left:auto; color:var(--notif-warn-ink, var(--s-amber)); font-size:12.5px; font-weight:600; }
 .notif-card.is-error .notif-cd { color:var(--s-red); }
 .notif-empty { padding:48px 0; text-align:center; color:var(--gray-500); font-size:13px; }
-.notif-panel:focus { outline:none; }
+/* 通用的 html[data-theme] :focus-visible 比 .notif-panel:focus 更具体：键盘打开通知时整个面板外面会套一圈紫框。 */
+html[data-theme] .notif-panel:focus, html[data-theme] .notif-panel:focus-visible { outline:none; }
 /* 订单列表：按原型重排，筛选在卡片外，表格单独一张圆角卡片 */
 .visually-hidden { position:absolute !important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
 html[data-theme] .order-table-panel { overflow:visible; border:0; border-radius:0; background:transparent; box-shadow:none; display:flex; flex-direction:column; gap:14px; }
@@ -5954,7 +5971,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.137，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.137</div>
+      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.138，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.138</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会先问一句，再下载并重启" aria-label="检查更新：有新版本会先问一句，再下载并重启" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse is-busy" id="savePulse" aria-live="polite"><i></i><span>读取中</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -10773,17 +10790,31 @@ function orderPaidUsd(order = {}, rateRows = ecbHistoricalRates) {
 function orderDueUsd(order = {}, rateRows = ecbHistoricalRates) {
   return Math.max(0, orderAmountUsd(order, rateRows) - orderPaidUsd(order, rateRows));
 }
+// 失败了隔一会儿再试（15 秒起、逐次加倍、最长半小时一次）：以前只在打开时取一次，那一刻没网或 ECB 连不上，
+// 非美元订单在工作台、订单页、客户页就一直按 $0 算到重启。服务端先交出过期缓存、后台再更新时也过一会儿取新的；
+// 取到最新的之后每 12 小时再取一次，软件开着好几天也能用上新汇率。
+let ecbRatesRetryTimer = null;
+let ecbRatesAttempts = 0;
+function ecbRatesRetryDelay(attempts) {
+  return Math.min(30 * 60000, 15000 * 2 ** Math.min(Math.max(1, attempts) - 1, 7));
+}
 async function loadEcbHistoricalRates() {
+  clearTimeout(ecbRatesRetryTimer);
+  let retryIn = 12 * 60 * 60000;
   try {
     const response = await apiFetch('/api/ecb-rates', { cache:'no-store' });
     const data = await response.json();
     if (!response.ok || !data.ok || !Array.isArray(data.rates)) throw new Error(data.message || `HTTP ${response.status}`);
     ecbHistoricalRates = data.rates;
     ecbRatesLoadedAt = data.updatedAt || '';
+    if (data.stale) retryIn = ecbRatesRetryDelay(ecbRatesAttempts += 1);
+    else ecbRatesAttempts = 0;
     render();
   } catch (error) {
     console.warn('ECB 历史汇率加载失败', error?.message || error);
+    retryIn = ecbRatesRetryDelay(ecbRatesAttempts += 1);
   }
+  ecbRatesRetryTimer = setTimeout(loadEcbHistoricalRates, retryIn);
 }
 function businessAnalysisForMonth(orders = [], month = '', rateRows = ecbHistoricalRates) {
   const formal = orders.filter(order => !order?.isDraft && String(order?.orderMonth || order?.createdAt || order?.updated || '').slice(0, 7) === month);
@@ -11048,7 +11079,8 @@ function daysBetween(from, to = new Date()) {
   if (start.getFullYear() <= 1970) return 0;
   const a = new Date(start.getFullYear(), start.getMonth(), start.getDate());
   const b = new Date(to.getFullYear(), to.getMonth(), to.getDate());
-  return Math.floor((b - a) / 86400000);
+  // 两个本地零点之间差的是整天，但跨夏令时那天只有 23 / 25 小时：四舍五入，不能向下取整（美国、欧洲时区每年有一段会少算一天）。
+  return Math.round((b - a) / 86400000);
 }
 function isDueDate(value) {
   if (!value) return false;
@@ -11071,7 +11103,7 @@ function daysUntil(value) {
   const today = new Date();
   const a = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const b = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  return Math.ceil((b - a) / 86400000);
+  return Math.round((b - a) / 86400000);
 }
 function inTotalRange(order) {
   const range = document.getElementById('totalRange')?.value || 'all';
@@ -12129,7 +12161,7 @@ function findCountryInText(text) {
 // 合计行：Total / Gesamt / Summe / Totale / 合计…；Subtotal、Zwischensumme、小计不算（它们是商品小计，不含运费）。
 // 前后只挡拉丁字母：中文「订单合计」前面紧挨着汉字也要认。
 function pasteTotalLabelPattern() {
-  return '(?<![A-Za-z\\u00C0-\\u024F])(?:grand\\s+total|total(?:e|\\s+amount)?|gesamt(?:betrag|summe|preis)?|summe|importe\\s+total|montant\\s+total|totaal|总计|合计|订单总额|总金额|订单金额)(?![A-Za-z\\u00C0-\\u024F])';
+  return '(?<![A-Za-z\\u00C0-\\u024F])(?:grand\\s+total|total(?:e|\\s+amount)?|(?:order|invoice)\\s+amount|gesamt(?:betrag|summe|preis)?|summe|importe\\s+total|montant\\s+total|totaal|总计|合计|订单总额|总金额|订单金额)(?![A-Za-z\\u00C0-\\u024F])';
 }
 function findCurrencyInText(text) {
   const source = String(text || '');
@@ -12141,7 +12173,7 @@ function findCurrencyInText(text) {
     if (/(?<![a-z])us\$|\$|美元|美金|美刀/i.test(value) || code('usd').test(value)) return 'USD';
     if (/€|欧元/.test(value) || code('eur|euro|euros').test(value)) return 'EUR';
     if (/£|英镑/.test(value) || code('gbp').test(value)) return 'GBP';
-    if (/人民币|¥/.test(value) || code('cny|rmb').test(value)) return 'CNY';
+    if (/人民币|[¥￥]|\d[\t ]*元/.test(value) || code('cny|rmb').test(value)) return 'CNY';
     return currencyDefs.find(c => code(c.code.toLowerCase()).test(value))?.code || '';
   };
   // 好几种币种同时出现时，以合计行的币种为准；合计行括号里的「约合 1,390 USD」只是折算，不算。
@@ -12156,17 +12188,33 @@ function findAmountInText(text) {
   const usd = '(?:(?<![a-z])USD|US\\$|(?<![a-z])\\$|美元|美金|美刀)';
   const eur = '(?:(?<![a-z])EUR(?![a-z])|€|欧元)';
   const gbp = '(?:(?<![a-z])GBP(?![a-z])|£|英镑)';
-  const anyCurrency = `(?:${usd}|${eur}|${gbp}|(?<![a-z])(?:AUD|CAD|CNY|RMB)(?![a-z])|A\\$|C\\$|人民币|¥)`;
+  // 澳元 / 加元 / 人民币和美元、欧元、英镑一样认「币种在前」「币种在后」两种写法：以前只有写在合计行里才认，
+  // 「A$1,500 AUD」「CAD$ 980」「1899 AUD」「12800 元」这些（软件自己显示的也是这种格式）币种认出来了、金额却是空的。
+  const aud = '(?:(?<![a-z])AUD(?![a-z])[\\t ]?\\$?|(?<![a-z])AU?\\$|澳元|澳币)';
+  const cad = '(?:(?<![a-z])CAD(?![a-z])[\\t ]?\\$?|(?<![a-z])CA?\\$|加元|加币)';
+  const cny = '(?:(?<![a-z])(?:CNY|RMB)(?![a-z])|人民币|[¥￥])';
+  const anyCurrency = `(?:${aud}|${cad}|${usd}|${eur}|${gbp}|${cny})`;
+  const currencyPatterns = [
+    { currency:'USD', pattern: new RegExp(`${num}[\\t ]*${usd}`, 'ig') },
+    { currency:'USD', pattern: new RegExp(`${usd}[\\t ]*${num}`, 'ig') },
+    { currency:'EUR', pattern: new RegExp(`${eur}[\\t ]*${num}`, 'ig') },
+    { currency:'EUR', pattern: new RegExp(`${num}[\\t ]*${eur}`, 'ig') },
+    { currency:'GBP', pattern: new RegExp(`${gbp}[\\t ]*${num}`, 'ig') },
+    { currency:'GBP', pattern: new RegExp(`${num}[\\t ]*${gbp}`, 'ig') },
+    { currency:'AUD', pattern: new RegExp(`${aud}[\\t ]*${num}`, 'ig') },
+    { currency:'AUD', pattern: new RegExp(`${num}[\\t ]*${aud}`, 'ig') },
+    { currency:'CAD', pattern: new RegExp(`${cad}[\\t ]*${num}`, 'ig') },
+    { currency:'CAD', pattern: new RegExp(`${num}[\\t ]*${cad}`, 'ig') },
+    { currency:'CNY', pattern: new RegExp(`${cny}[\\t ]*${num}`, 'ig') },
+    { currency:'CNY', pattern: new RegExp(`${num}[\\t ]*(?:${cny}|元)`, 'ig') }
+  ];
+  // 同一段里有两种币种（A$1,500，约合 $980）：金额跟着识别出来的币种走，不能币种写 AUD、金额却取了美元那个数。
+  const preferred = findCurrencyInText(source);
   const patterns = [
     { pattern: new RegExp(`${pasteTotalLabelPattern()}[:：\\t ]*${anyCurrency}?[\\t ]*${num}`, 'ig'), allowShippingLine:true },
     { pattern: new RegExp(`(?:金额)[:：\\t ]*${anyCurrency}?[\\t ]*${num}`, 'ig') },
-    { pattern: new RegExp(`${num}[\\t ]*${usd}`, 'ig') },
-    { pattern: new RegExp(`${usd}[\\t ]*${num}`, 'ig') },
-    { pattern: new RegExp(`${eur}[\\t ]*${num}`, 'ig') },
-    { pattern: new RegExp(`${num}[\\t ]*${eur}`, 'ig') },
-    { pattern: new RegExp(`${gbp}[\\t ]*${num}`, 'ig') },
-    { pattern: new RegExp(`${num}[\\t ]*${gbp}`, 'ig') },
-    { pattern: new RegExp(`(?:(?<![a-z])(?:CNY|RMB)|人民币|¥)[\\t ]*${num}`, 'ig') },
+    ...currencyPatterns.filter(item => item.currency === preferred),
+    ...currencyPatterns.filter(item => item.currency !== preferred),
     { pattern: /(?:阿里(?:巴巴)?|alibaba|paypal|西联|western(?:\s+union)?|zelle|信用卡|credit\s*card|visa|mastercard|t\/t|\btt\b)[\t ]*[:：=]?[\t ]*([0-9][0-9,]*(?:\.\d+)?)(?!\d)/ig }
   ];
   for (const { pattern, allowShippingLine = false } of patterns) {
@@ -17092,7 +17140,7 @@ function renderOrderDetail(order, source = 'active') {
   const contactFields = typeof normalizeCustomerContactFields === 'function' ? normalizeCustomerContactFields(customer) : { phones:[] };
   const phones = (contactFields.phones || []).join('、');
   const rateMissing = (customer.orders || []).some(item => storedCurrency(item.currency) !== 'USD' && typeof ecbUsdRateForOrder === 'function' && !ecbUsdRateForOrder(item));
-  const usdStat = value => rateMissing ? `${money(value, 'USD')} · 汇率未加载` : money(value, 'USD');
+  const usdStat = value => rateMissing ? `${money(value, 'USD', 2)} · 汇率未加载` : money(value, 'USD', 2);
   return `
     <div class="order-detail-panel" data-detail-tab="info">${infoSection}
       <section class="detail-section">
@@ -17783,7 +17831,9 @@ function renderStats() {
     // 原型文案：当月叫「本月订单额」，别的月份写月份（不是今年的带年份），全部范围叫「订单总额」。
     amountLabel.textContent = totalRange === 'all' ? '订单总额' : totalRange === currentMonth ? '本月订单额' : `${dashboardMonthName(totalRange)}订单额`;
     amountValue.textContent = summaryMoney(usdTotal(totalOrders), 'USD');
-    amountSub.textContent = `${totalOrders.length} 单 · 草稿不计`;
+    // 汇率还没取到（或取不到）时，非美元订单折不成美元：写明有几单没算进去，别让人以为订单额就这么多。
+    const unconverted = totalOrders.filter(o => !ecbUsdRateForOrder(o)).length;
+    amountSub.textContent = `${totalOrders.length} 单 · 草稿不计${unconverted ? ` · ${unconverted} 单缺汇率未计入` : ''}`;
   }
   amountValue.classList.toggle('is-paid-mode', paidMode);
   amountValue.setAttribute('aria-pressed', paidMode ? 'true' : 'false');
@@ -20166,7 +20216,12 @@ function markTaskDone(id) {
     else delete state.doneTasks[key];
     if (wasSnoozed) snoozedTasks.add(id);
     const current = order ? state.orders.find(o => o.id === order.id) : null;
-    if (current && log) current.logs = (current.logs || []).filter(item => item !== log);
+    // 按内容找这条记录（只去掉最新的一条）：数据被重新载入 / 合并过以后记录对象换了，按对象比就删不掉，撤销后还留着「待办已处理」。
+    if (current && log) {
+      const logs = current.logs || [];
+      const at = logs.findIndex(item => item === log || (item?.time === log.time && item?.text === log.text));
+      if (at >= 0) current.logs = logs.filter((_, index) => index !== at);
+    }
     saveState();
     render();
     refreshCalendarTaskDrawer();
@@ -20789,7 +20844,7 @@ function renderCustomers() {
         <div class="customer-cell-stack"><strong class="customer-cell-ellipsis" title="${escapeAttr(c.country || '')}">${escapeAttr(orderListCountryShort(c.country) || '国家未填写')}</strong><span class="muted customer-cell-ellipsis" title="${escapeAttr(c.address || '')}">${escapeAttr(c.address || '地址未填写')}</span></div>
         <div class="customer-cell-stack"><div class="customer-tag-stack"><span class="customer-level-pill" title="${escapeAttr(c.level)}">${escapeAttr(String(c.level || '').slice(0, 2))}</span>${visibleTags.map(tag => `<span class="level-tag">${escapeAttr(tag)}</span>`).join('')}${hiddenTagCount ? `<span class="level-tag">+${hiddenTagCount}</span>` : ''}</div><span class="muted customer-cell-ellipsis">${escapeAttr(c.productType || '产品未设')} · ${c.primaryContactMethod ? `首选 ${escapeAttr(c.primaryContactMethod)}` : escapeAttr(c.paymentMethod || '收款未设')}</span></div>
         <div class="customer-cell-stack"><strong>${c.orderCount} 单${c.latestOrder ? ` · ${escapeAttr(c.latestOrder.num || '')}` : ''}</strong><span class="muted customer-cell-ellipsis">${c.latestOrder ? `${escapeAttr(stageDef(c.latestOrder.stage).name)} · ${c.latestOrderDate}` : '暂无订单'}</span></div>
-        <div class="customer-cell-stack customer-cell-money"><strong>${money(c.total, 'USD')}</strong><span class="${c.due > 0 ? 'customer-due-amount' : (c.total > 0 ? 'paid-amount' : 'muted')}">${c.due > 0 ? `待收 ${money(c.due, 'USD')}` : (c.total > 0 ? '已收清' : '暂无成交')}</span></div>
+        <div class="customer-cell-stack customer-cell-money"><strong>${money(c.total, 'USD', 2)}</strong><span class="${c.due > 0 ? 'customer-due-amount' : (c.total > 0 ? 'paid-amount' : 'muted')}">${c.due > 0 ? `待收 ${money(c.due, 'USD', 2)}` : (c.total > 0 ? '已收清' : '暂无成交')}</span></div>
         <div class="customer-cell-stack"><strong>${escapeAttr(c.repurchaseDate || (c.repurchaseCycle ? '发货后计算' : '未设提醒'))}</strong><span class="muted customer-cell-ellipsis">${c.repurchaseCycle ? `每 ${escapeAttr(c.repurchaseCycle)} 天复购` : `更新 ${escapeAttr(c.updated || '-')}`}</span></div>
       </div>
     `;
@@ -22680,7 +22735,8 @@ function buildOrderFromFormData(data = {}, { existing = null, isDraft = false, s
   }
   applyOrderStageInvariants(order, stageValue);
   if (restoreNote) order.logs.unshift({ time:nowText(), text:`阶段从 ${stageDef(existing.stage).name} 退回 ${stageDef(stageValue).name}${restoreNote}` });
-  const changes = orderChangeSummary(existing, order);
+  // 新单没有「改了什么」：以前记录里写成「新建订单：新建订单」。
+  const changes = existing ? orderChangeSummary(existing, order) : [];
   const action = isDraft ? '存为草稿' : (existing ? '保存订单更新' : '新建订单');
   order.logs.unshift({
     time: nowText(),
@@ -22912,6 +22968,10 @@ function duplicateOrder() {
     feishuNotification: normalizeFeishuNotification({ requested:false, status:'skipped' }),
     logs:[{ time:nowText(), text:`由订单 ${src.num || ''} 复制生成` }]
   };
+  // 源单结算 / 自动记定金时留下的标记不属于新单：以前一起带过来，副本以后从「已发货」退回时，
+  // 已收金额会被「还原」成源单当年的数字，保存提示也会凭空写「还没收的按已收齐记」。
+  ['paidBeforeSettle', 'paidBeforeDeposit', 'depositAutoPaid', 'autoDoneHold', 'partialShipment', 'trashedAt', 'deletedAt', 'deletedDoneTasks']
+    .forEach(key => { delete copy[key]; });
   state.orders.unshift(copy);
   if (typeof feishuPendingCopies !== 'undefined') feishuPendingCopies.add(copy.id);
   orderListCurrentPage = 1;

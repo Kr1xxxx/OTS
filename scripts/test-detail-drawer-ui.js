@@ -4,8 +4,8 @@ const path = require('node:path');
 const { chromium } = require('playwright');
 
 // The order detail drawer saves through the order form. Saving must keep the form's
-// rules: a customer is required, and a payment change moves 报价 / 尾款 orders the way a
-// new order would (no deposit = 报价, deposit = 尾款, paid in full = 生产中). Editing a
+// rules: a customer is required, and a payment change moves 报价 orders the way a
+// new order would (no deposit = 报价, deposit or paid in full = 生产中; 待发货 stays). Editing a
 // note alone leaves the stage alone, also when the form last held an order of another type.
 (async () => {
   const browser = await chromium.launch({headless:true});
@@ -50,25 +50,26 @@ const { chromium } = require('playwright');
       await page.waitForFunction(()=>document.getElementById('detailSaveBtn').dataset.mode !== 'busy' && !document.getElementById('orderForm').dataset.saving);
     };
 
-    // Deposit entered on a 报价 order moves it to 尾款; the drawer re-renders on the saved order.
+    // Deposit entered on a 报价 order moves it to 生产中; the drawer re-renders on the saved order.
     await open('o-quote','payment');
     await page.locator('#orderDetailBody [data-dedit="paidAmount"]').fill('300');
     await save();
     let saved = await snapshot('o-quote');
     assert.equal(saved.paidAmount,300);
-    assert.equal(saved.stage,'balance','a deposit should move a 报价 order to 尾款');
+    assert.equal(saved.stage,'production','a deposit should move a 报价 order to 生产中');
     assert.equal(saved.country,'🇺🇸 美国 United States');
-    assert.match(await page.locator('#detailPills').textContent(),/待发货/,'drawer header still shows the old stage');
+    assert.match(await page.locator('#detailPills').textContent(),/生产中/,'drawer header still shows the old stage');
 
-    // 收齐 on a 尾款 order moves it to 生产中, and the saved state goes to the server.
+    // 收齐 on a 待发货 order keeps it there (goods are ready, waiting to ship), and the saved state goes to the server.
     await open('o-balance','payment');
     await page.locator('#orderDetailBody [data-detail-paid-full]').click();
     await save();
     saved = await snapshot('o-balance');
     assert.equal(saved.paidAmount,500);
-    assert.equal(saved.stage,'production','paid in full should move a 尾款 order to 生产中');
+    assert.equal(saved.stage,'balance','paid in full must not move a 待发货 order back to 生产中');
     await page.evaluate(()=>window.flushPendingSave());
-    assert.equal(stored.data.orders.find(item=>item.id==='o-balance').stage,'production');
+    assert.equal(stored.data.orders.find(item=>item.id==='o-balance').paidAmount,500);
+    assert.equal(stored.data.orders.find(item=>item.id==='o-balance').stage,'balance');
 
     // Full-payment orders: 收齐 marks them paid and starts production.
     await open('o-full','payment');
@@ -119,6 +120,6 @@ const { chromium } = require('playwright');
     });
     assert.equal(updateToasts,1,'identical update errors stacked two toasts');
     assert.equal(errors.length,0,errors.join('\n'));
-    console.log('Detail drawer UI passed: payment edits move 报价/尾款 orders, note edits keep the stage (also after a 全款订单 was open), empty customer refused, update button recovers.');
+    console.log('Detail drawer UI passed: payment edits move 报价 orders to 生产中 and keep 待发货, note edits keep the stage (also after a 全款订单 was open), empty customer refused, update button recovers.');
   } finally { await browser.close(); }
 })().catch(error=>{console.error(error);process.exitCode=1;});

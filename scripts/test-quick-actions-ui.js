@@ -57,32 +57,35 @@ const { chromium } = require('playwright');
     assert.equal(await page.evaluate(()=>document.getElementById('orderForm').classList.contains('order-compact')),false,'editing an order shows every section');
     await page.evaluate(()=>closeOrder());
 
-    // Card hover: 收齐 marks the balance paid and moves 尾款 → 生产中; undo restores both.
+    // Card hover: 收齐 marks the balance paid and the order stays in 待发货 (goods are ready, not back to 生产中);
+    // undo restores it. The advance button names the next board column.
     await page.evaluate(()=>setPage('dashboard'));
     const card = page.locator('.board-card[data-id="o-bal"]');
     await card.hover();
-    assert.deepEqual(await card.locator('.oc-act').allTextContents(),['收齐','生产中']);
+    assert.deepEqual(await card.locator('.oc-act').allTextContents(),['收齐','已发货']);
     const paidBtn = await card.locator('[data-quick="paid"]').boundingBox();
     await page.mouse.click(paidBtn.x+paidBtn.width/2,paidBtn.y+paidBtn.height/2);
     await settle();
     let o = await order('o-bal');
     assert.equal(o.paidAmount,1000);
-    assert.equal(o.stage,'production');
+    assert.equal(o.stage,'balance','收齐 in 待发货 keeps the stage');
     assert.match(o.log,/收齐尾款/);
     assert.equal(await page.evaluate(()=>document.getElementById('orderDetailDrawer').classList.contains('open')),false,'a quick action must not open the drawer');
     await page.locator('.toast-undo').first().click();
     await settle();
     o = await order('o-bal');
     assert.equal(o.paidAmount,300,'undo should restore the paid amount');
-    assert.equal(o.stage,'balance','undo should restore the stage');
+    assert.equal(o.stage,'balance','undo should keep the stage');
 
-    // Context menu carries the same two actions; 推进 from 尾款 goes to 生产中.
+    // Context menu carries the same two actions; 推进 from 待发货 goes to 已发货 (the next board column).
     await page.locator('.board-card[data-id="o-bal"]').click({button:'right'});
     const menu = await page.locator('.board-menu [role=menuitem]').allTextContents();
-    assert.ok(menu.some(t=>/收齐尾款/.test(t)) && menu.some(t=>/推进到生产中/.test(t)),`menu lacks quick actions: ${menu.join('|')}`);
+    assert.ok(menu.some(t=>/收齐尾款/.test(t)) && menu.some(t=>/推进到已发货/.test(t)),`menu lacks quick actions: ${menu.join('|')}`);
     await page.locator('.board-menu [data-board-menu="advance"]').click();
     await settle();
-    assert.equal((await order('o-bal')).stage,'production');
+    assert.equal((await order('o-bal')).stage,'shipment');
+    await page.locator('#trackingQuickCard [data-track-skip]').click();
+    await page.waitForFunction(()=>!document.getElementById('trackingQuickCard'));
 
     // Advancing 生产中 → 已发货 without a tracking number shows the small card; Enter saves it, carrier auto-detected.
     await page.evaluate(()=>quickAdvanceStage('o-prod'));
@@ -105,7 +108,7 @@ const { chromium } = require('playwright');
     assert.equal((await order('o-prod')).trackingNumber,'');
 
     // Order list: 操作 column offers the same quick actions and does not open the drawer.
-    await page.evaluate(()=>setPage('order-list'));
+    await page.evaluate(()=>{ const x = state.orders.find(i=>i.id==='o-bal'); x.stage='balance'; x.paidAmount=300; x.logisticsStatus='未发货'; x.shippedAt=''; delete x.paidBeforeSettle; render(); setPage('order-list'); });
     await settle();
     const rowBtn = page.locator('#orderTableBody [data-order-list-quick="advance"][data-order-list-open="o-bal"]');
     assert.equal(await rowBtn.count(),1);
@@ -142,6 +145,6 @@ const { chromium } = require('playwright');
     await page.evaluate(()=>closeOrder());
 
     assert.equal(errors.length,0,errors.join('\n'));
-    console.log('Quick actions UI passed: compact new-order modal, card/menu/list 收齐 + 推进 with undo, tracking card, task deep links, repurchase postpone / ordered.');
+    console.log('Quick actions UI passed: compact new-order modal, card/menu/list 收齐 (待发货 stays) + 推进 in board order with undo, tracking card, task deep links, repurchase postpone / ordered.');
   } finally { await browser.close(); }
 })().catch(error=>{console.error(error);process.exitCode=1;});

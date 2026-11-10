@@ -56,7 +56,7 @@ async function request(route, body) {
   await page.goto(base + '/trade-order-system.html?token=' + token);
   await page.waitForFunction(() => window.pendingSaveStatus?.().loaded);
   await page.evaluate(() => openCustomerModal('Alice'));
-  await page.locator('#customerWhatsAppDetails summary').click();
+  await page.locator('[data-customer-detail-tab="whatsapp"]').click();
   await page.waitForFunction(() => document.getElementById('customerWhatsAppThread').innerText.includes('Hello from fixture'));
   assert.match(await page.locator('#customerWhatsAppThread').innerText(), /<img src=x/);
   assert.equal(await page.locator('#customerWhatsAppThread img').count(), 0);

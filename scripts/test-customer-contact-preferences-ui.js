@@ -87,7 +87,7 @@ const { chromium } = require('playwright');
 
     await page.evaluate(() => openCustomerModal('Priority Buyer'));
     assert.match(await page.locator('#customerDetailInfoGrid').innerText(), /WhatsApp · 备选：邮件、iMessage/);
-    assert.match(await page.locator('#customerDetailInfoGrid').innerText(), /所有订单使用无品牌包装/);
+    assert.match(await page.locator('#customerDetailView').innerText(), /所有订单使用无品牌包装/);
     await page.locator('#customerDetailEditBtn').click();
     await page.locator('#customerForm .customer-primary-contact-field .app-select-button').click();
     // A scroll event queued before the click must not close a stationary menu.

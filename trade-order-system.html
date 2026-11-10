@@ -6007,7 +6007,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.142，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.142</div>
+      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.143，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.143</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会先问一句，再下载并重启" aria-label="检查更新：有新版本会先问一句，再下载并重启" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse is-busy" id="savePulse" aria-live="polite"><i></i><span>读取中</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -17464,7 +17464,12 @@ function renderSettings() {
   }
 }
 function renderClientOptions() {
-  document.querySelectorAll('.client-picker').forEach(picker => renderClientMenu(picker));
+  document.querySelectorAll('.client-picker').forEach(picker => {
+    // 正开着的客户菜单（正在输入、或用方向键 / Tab 在里面选）不在后台整份重画：以前保存回来、数据刷新时的 render()
+    // 会把它换回「全部客户」、焦点掉到页面上，Esc 也回不到输入框。收起后下次打开、或接着输入时会按新数据重画。
+    if (picker.querySelector('.client-menu')?.classList.contains('open')) return;
+    renderClientMenu(picker);
+  });
 }
 function demoOrderIdentity() {
   return {
@@ -25988,7 +25993,14 @@ function openSubscriptionPriceEditor(date) {
   delete subscriptionGlideRects['price-scope'];
   syncSubscriptionPriceEditor();
   setModalOpenState('subscriptionPriceModal', true);
-  setTimeout(() => { form.elements.priceAmount.focus({ preventScroll:true }); form.elements.priceAmount.select(); }, 60);
+  // 打开 60 毫秒内已经点进了别的输入框：不再把光标拉回金额（以前接着打的字会跑进金额框）。
+  const focusAtOpen = document.activeElement;
+  setTimeout(() => {
+    const active = document.activeElement;
+    if (!form.closest('.open') || (active !== focusAtOpen && active !== form.elements.priceAmount && form.contains(active))) return;
+    form.elements.priceAmount.focus({ preventScroll:true });
+    form.elements.priceAmount.select();
+  }, 60);
 }
 function syncSubscriptionPriceEditor() {
   const draft = subscriptionPriceDraft;
@@ -26161,7 +26173,12 @@ function openSubscriptionEditor(id = '', { resubscribe = false, origin = '' } = 
   syncSubscriptionEditorControls();
   renderSubscriptionPreview();
   setModalOpenState('subscriptionEditModal', true);
-  setTimeout(() => form.elements.subName.focus({ preventScroll:true }), 60);
+  // 打开 60 毫秒内已经点进了「备注」等别的输入框：不再把光标拉回「名称」（以前接着打的后几个字会跑进名称）。
+  const focusAtOpen = document.activeElement;
+  setTimeout(() => {
+    const active = document.activeElement;
+    if (form.closest('.open') && (active === focusAtOpen || active === form.elements.subName || !form.contains(active))) form.elements.subName.focus({ preventScroll:true });
+  }, 60);
 }
 // 保存失败时弹窗已经不在：按原来的入口重新打开，再换回用户填的草稿（仍算没保存），并把失败原因写在弹窗里。
 function reopenSubscriptionEditorWithDraft(draft, message = '') {

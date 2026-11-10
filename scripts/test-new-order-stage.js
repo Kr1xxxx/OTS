@@ -59,6 +59,7 @@ vm.runInContext(extractFunction('finiteMoneyOrNull'), context);
 vm.runInContext(extractFunction('restoreAutoPaymentsOnStageExit'), context);
 vm.runInContext(extractFunction('normalizeOrderNum'), context);
 vm.runInContext(extractFunction('inferNewOrderStage'), context);
+vm.runInContext(extractFunction('stageAfterPaymentEdit'), context);
 vm.runInContext(extractFunction('resolveOrderSaveStage'), context);
 vm.runInContext(extractFunction('normalizeOrderShipments'), context);
 vm.runInContext(extractFunction('aggregateShipmentStatus'), context);
@@ -79,7 +80,7 @@ const base = {
 };
 
 assert.equal(build({ ...base, orderType:'定金订单' }).stage, 'quote', '未付定金的新定金订单应保留报价阶段');
-assert.equal(build({ ...base, orderType:'定金订单', paidAmount:300 }).stage, 'balance', '已付定金的新订单应进入尾款');
+assert.equal(build({ ...base, orderType:'定金订单', paidAmount:300 }).stage, 'production', '已付定金的新订单应进入生产中');
 assert.equal(build({ ...base, orderType:'定金订单', paidAmount:1000 }).stage, 'production', '定金订单一次付清应进入生产中');
 assert.equal(build({ ...base, orderType:'全款订单', paidAmount:1000 }).stage, 'production', '新订单付清后应进入生产中工作区');
 assert.equal(build({ ...base, orderType:'全款订单' }).stage, 'quote', '未付款的全款新订单应保留报价阶段');
@@ -92,20 +93,25 @@ assert.equal(
   'quote',
   '编辑已有订单只改别的字段（收款没动）时阶段不动'
 );
-// 编辑弹窗登记收款时和详情抽屉一样按收款推进：没收定金 = 报价，收到定金 = 尾款，付清 = 生产中。
+// 编辑弹窗登记收款时和详情抽屉一样按收款推进：没收定金 = 报价，收到定金或付清 = 生产中；待发货收齐不退回生产中。
 const existingQuote = { id:'o-existing', logs:[], stage:'quote', orderType:'定金订单', amount:1000, paidAmount:0 };
-assert.equal(build({ ...base, orderType:'定金订单', paidAmount:300 }, existingQuote).stage, 'balance', '编辑弹窗填了已收定金应进入尾款');
+assert.equal(build({ ...base, orderType:'定金订单', paidAmount:300 }, existingQuote).stage, 'production', '编辑弹窗填了已收定金应进入生产中');
 assert.equal(build({ ...base, orderType:'定金订单', paidAmount:1000 }, existingQuote).stage, 'production', '编辑弹窗一次收齐应进入生产中');
 const existingFullQuote = { ...existingQuote, orderType:'全款订单' };
 assert.equal(build({ ...base, orderType:'全款订单', paidAmount:1000 }, existingFullQuote).stage, 'production', '全款单在编辑弹窗改成已付应进入生产中');
 const existingBalance = { ...existingQuote, stage:'balance', paidAmount:300 };
-assert.equal(build({ ...base, orderType:'定金订单', stage:'balance', paidAmount:300, note:'只改备注' }, existingBalance).stage, 'balance', '只改备注时尾款单不动');
-assert.equal(build({ ...base, orderType:'定金订单', stage:'balance', paidAmount:1000 }, existingBalance).stage, 'production', '尾款收齐应进入生产中');
+assert.equal(build({ ...base, orderType:'定金订单', stage:'balance', paidAmount:300, note:'只改备注' }, existingBalance).stage, 'balance', '只改备注时待发货单不动');
+assert.equal(build({ ...base, orderType:'定金订单', stage:'balance', paidAmount:1000 }, existingBalance).stage, 'balance', '待发货收齐尾款留在待发货，不退回生产中');
+assert.equal(build({ ...base, orderType:'定金订单', stage:'balance', paidAmount:0 }, existingBalance).stage, 'balance', '待发货单改收款阶段不动');
 assert.equal(build({ ...base, orderType:'定金订单', stage:'quote', paidAmount:300 }, existingQuote, true).stage, 'quote', '用户手动选过阶段时照用户选的');
 assert.equal(build({ ...base, orderType:'定金订单', stage:'production', paidAmount:300 }, existingQuote).stage, 'production', '阶段改成了别的（不知道是否手动）时照选的');
 const existingProduction = { ...existingQuote, stage:'production', orderType:'全款订单', paidAmount:1000 };
-assert.equal(build({ ...base, orderType:'全款订单', stage:'production', paidAmount:0 }, existingProduction).stage, 'production', '生产中及以后的订单改收款不会被自动退回');
-assert.equal(build({ ...base, orderType:'定金订单', paidAmount:300 }, { ...existingQuote, isDraft:true }).stage, 'balance', '草稿转正式单按收款推断');
+assert.equal(build({ ...base, orderType:'全款订单', stage:'production', paidAmount:0 }, existingProduction).stage, 'production', '生产中的全款单改收款不会被自动退回');
+const existingDepositProduction = { ...existingQuote, stage:'production', paidAmount:300 };
+assert.equal(build({ ...base, orderType:'定金订单', stage:'production', paidAmount:600 }, existingDepositProduction).stage, 'production', '生产中的定金单多收一笔阶段不动');
+assert.equal(build({ ...base, orderType:'定金订单', stage:'production', paidAmount:0 }, existingDepositProduction).stage, 'quote', '生产中的定金单已收清零（定金退了）回报价');
+assert.equal(build({ ...base, orderType:'定金订单', stage:'production', amount:1200, paidAmount:0 }, { ...existingDepositProduction, paidAmount:0 }).stage, 'production', '手动拖进生产中、本来就没收钱的单改金额不会被退回');
+assert.equal(build({ ...base, orderType:'定金订单', paidAmount:300 }, { ...existingQuote, isDraft:true }).stage, 'production', '草稿转正式单按收款推断');
 assert.equal(build({ ...base, amount:-100, orderType:'定金订单' }).amount, 0, '负数金额（草稿不经过浏览器校验）收成 0');
 assert.equal(build({ ...base, amount:'1000.005', orderType:'定金订单' }).amount, 1000.01, '金额只留两位小数');
 
@@ -113,9 +119,9 @@ console.log('New order stage tests passed: payment, order type, tracking, manual
 
 vm.runInContext(extractFunction('migrateDepositStage'), context);
 const migrate = order => { context.testOrder = order; return vm.runInContext('migrateDepositStage(testOrder)', context); };
-assert.equal(migrate({ stage:'deposit', paidAmount:300, amount:1000 }), 'balance', '已付定金的旧定金阶段订单应迁到尾款');
+assert.equal(migrate({ stage:'deposit', paidAmount:300, amount:1000 }), 'production', '已付定金的旧定金阶段订单应迁到生产中');
 assert.equal(migrate({ stage:'deposit', paidAmount:1000, amount:1000 }), 'production', '已付清的旧定金阶段订单应迁到生产中');
-assert.equal(migrate({ stage:'deposit', paidAmount:300, amount:1000, orderType:'全款订单' }), 'production', '全款订单没有尾款阶段，付过款进生产中');
+assert.equal(migrate({ stage:'deposit', paidAmount:300, amount:1000, orderType:'全款订单' }), 'production', '全款订单付过款进生产中');
 assert.equal(migrate({ stage:'deposit', paidAmount:0 }), 'quote', '未付款的旧定金阶段订单应迁回报价');
 assert.equal(migrate({ stage:'pi' }), 'quote', '旧 PI 阶段按未付款处理');
 assert.equal(migrate({ stage:'balance', paidAmount:300 }), 'balance', '其他阶段保持不变');

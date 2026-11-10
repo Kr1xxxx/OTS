@@ -49,7 +49,7 @@ function pureFunctionTests() {
   const call = (name, ...args) => context[name](...args);
 
   assert.equal(call('inferNewOrderStage', { selectedStage: 'done', orderType: '定金订单', amount: 100, paidAmount: 100, trackingNumber: '1Z999AA10123456784' }), 'done', '已完成 must not be demoted to 已发货 by a tracking number');
-  assert.equal(call('inferNewOrderStage', { selectedStage: 'quote', orderType: '定金订单', amount: 100, paidAmount: 30, trackingNumber: '' }), 'balance');
+  assert.equal(call('inferNewOrderStage', { selectedStage: 'quote', orderType: '定金订单', amount: 100, paidAmount: 30, trackingNumber: '' }), 'production', '收到定金 = 生产中');
 
   const d = new Date();
   const day = `${String(d.getFullYear()).slice(2)}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
@@ -113,7 +113,7 @@ async function pageTests() {
 
     // A draft saved as a formal order infers its stage from the payment like a new order would.
     const formal = await page.evaluate(() => buildOrderFromFormData({ id: 'o-draft', num: 'K2', client: 'Acme Ltd', amount: 5000, paidAmount: 1500, orderType: '定金订单', stage: 'quote', currency: 'USD' }, { existing: state.orders.find(o => o.id === 'o-draft'), isDraft: false }));
-    assert.equal(formal.stage, 'balance', 'draft with a deposit should become 尾款 when saved as a formal order');
+    assert.equal(formal.stage, 'production', 'draft with a deposit should become 生产中 when saved as a formal order');
     assert.equal(formal.orderMonth, month, 'orderMonth lost on edit');
 
     // Case / whitespace variants of a customer name resolve to the existing profile.

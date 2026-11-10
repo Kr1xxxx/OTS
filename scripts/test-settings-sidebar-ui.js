@@ -103,8 +103,8 @@ const { chromium } = require('playwright');
     await settle();
     const heads = await page.evaluate(()=>[...document.querySelectorAll('.board-column')].map(col=>({stage:col.dataset.stage,sub:col.querySelector('.board-column-sub')?.textContent||''})));
     assert.deepEqual(heads.map(h=>h.stage),['quote','production','balance','shipment']);
-    assert.match(heads.find(h=>h.stage==='balance').sub,/已收定金/);
-    assert.match(heads.find(h=>h.stage==='production').sub,/已付清/);
+    assert.match(heads.find(h=>h.stage==='production').sub,/已收定金/);
+    assert.match(heads.find(h=>h.stage==='balance').sub,/等尾款/);
     assert.ok(heads.every(h=>h.sub),'every column has a subtitle so the four heads share one structure');
     const geo = await page.evaluate(()=>[...document.querySelectorAll('.board-column')].map(col=>{
       const head=col.querySelector('.board-column-head').getBoundingClientRect();

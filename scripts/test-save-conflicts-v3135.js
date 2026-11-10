@@ -118,11 +118,29 @@ async function main() {
     };
     const A = await openPage();
     const B = await openPage();
-    const setNote = (page, id, note) => page.evaluate(([id, note]) => {
+    // Page-side async work (saves, revision checks, exports) is started with run() and its outcome polled for, not handed
+    // back to page.evaluate as a promise: on macOS CI that now and then ends in "Resulting promise was garbage collected"
+    // although the work finished (seen here on macCheckRemoteRevision, V3.141), even with the promise kept on window.
+    // start runs in the page and must pass its promise to __otsTrack instead of returning it.
+    const run = async (page, start, arg) => {
+      await page.evaluate(() => {
+        window.__otsOutcome = null;
+        window.__otsTrack = promise => {
+          window.__otsPending = Promise.resolve(promise);
+          window.__otsPending.then(value => { window.__otsOutcome = { value }; }, error => { window.__otsOutcome = { error:String(error?.message || error) }; });
+        };
+      });
+      await page.evaluate(start, arg);
+      const outcome = await (await page.waitForFunction(() => window.__otsOutcome)).jsonValue();
+      if (outcome.error) throw new Error(outcome.error);
+      return outcome.value;
+    };
+    const setNote = (page, id, note) => run(page, ([id, note]) => {
       const order = state.orders.find(item => item.id === id);
       order.note = note;
-      return window.flushPendingSave();
+      __otsTrack(window.flushPendingSave());
     }, [id, note]);
+    const checkRemote = page => run(page, () => { __otsTrack(window.macCheckRemoteRevision({ force:true })); });
     const confirmOpen = page => page.waitForFunction(() => document.getElementById('confirmModal').classList.contains('open'));
     const confirmClosed = page => page.waitForFunction(() => !document.getElementById('confirmModal').classList.contains('open'));
     const status = page => page.evaluate(() => window.pendingSaveStatus());
@@ -136,13 +154,13 @@ async function main() {
     assert.equal((await dbOrder('o2')).note, 'B 改的 o2');
     assert.equal(await B.evaluate(() => state.orders.find(o => o.id === 'o1').note), 'A 改的 o1', 'B now shows A’s change');
     // A background-style change (a tracking lookup added by an idle window) does not block B's edit either.
-    await A.evaluate(() => { state.trackingLookups.unshift({ id:'lk-1', trackingNumber:'1234567890', carrier:'DHL', status:'查询失败', events:[] }); return window.flushPendingSave(); });
+    await run(A, () => { state.trackingLookups.unshift({ id:'lk-1', trackingNumber:'1234567890', carrier:'DHL', status:'查询失败', events:[] }); __otsTrack(window.flushPendingSave()); });
     assert.equal(await setNote(B, 'o3', 'B 改的 o3'), true);
     assert.equal((await request('/api/data')).data.data.trackingLookups.length, 1);
 
     // P1-2: an idle window follows the database without saving anything itself.
     assert.equal(await setNote(B, 'o4', 'B 改的 o4'), true);
-    assert.equal(await A.evaluate(() => window.macCheckRemoteRevision({ force:true })), true);
+    assert.equal(await checkRemote(A), true);
     assert.equal(await A.evaluate(() => state.orders.find(o => o.id === 'o4').note), 'B 改的 o4');
     assert.equal((await status(A)).revision, (await request('/api/revision')).data.revision);
 
@@ -158,7 +176,7 @@ async function main() {
     await B.waitForFunction(() => !window.pendingSaveStatus().readOnly && !window.pendingSaveStatus().pending);
     assert.equal((await dbOrder('o3')).note, 'B 版 o3');
     // 用那边的 keeps A's value in the database and in B.
-    await A.evaluate(() => window.macCheckRemoteRevision({ force:true }));
+    await checkRemote(A);
     assert.equal(await setNote(A, 'o4', 'A 版 o4'), true);
     assert.equal(await setNote(B, 'o4', 'B 版 o4'), false);
     await confirmOpen(B);
@@ -168,7 +186,7 @@ async function main() {
     assert.equal(await B.evaluate(() => state.orders.find(o => o.id === 'o4').note), 'A 版 o4');
 
     // P1-1: 稍后处理 → read-only. The export holds only the unsaved record and is marked as a conflict export.
-    await A.evaluate(() => window.macCheckRemoteRevision({ force:true }));
+    await checkRemote(A);
     assert.equal(await setNote(A, 'o1', 'A 再改 o1'), true);
     assert.equal(await setNote(B, 'o1', 'B 再改 o1'), false);
     await confirmOpen(B);
@@ -176,7 +194,7 @@ async function main() {
     await confirmClosed(B);
     assert.equal((await status(B)).readOnly, true);
     const downloads = path.join(dataDir, '__downloads');
-    assert.equal(await B.evaluate(() => exportUnsavedMacState()), true);
+    assert.equal(await run(B, () => { __otsTrack(exportUnsavedMacState()); }), true);
     const exportName = fs.readdirSync(downloads).find(name => /^trade-order-unsaved-\d+\.json$/.test(name));
     assert.ok(exportName, 'conflict export file missing');
     const exported = JSON.parse(fs.readFileSync(path.join(downloads, exportName), 'utf8'));
@@ -194,7 +212,7 @@ async function main() {
       await confirmClosed(B);
     }
     // P2-8: quitting while in conflict explains that waiting will not help.
-    assert.equal(await B.evaluate(() => window.otsFlushBeforeQuit()), false);
+    assert.equal(await run(B, () => { __otsTrack(window.otsFlushBeforeQuit()); }), false);
     await B.evaluate(() => { window.__quit = null; window.nativeDialog({ title:'订单数据尚未确认保存', message:'页面报告本次保存没有完成。', sub:'退出软件', confirmText:'仍然退出', cancelText:'返回软件', danger:true }).then(value => { window.__quit = value; }); });
     await confirmOpen(B);
     assert.equal(await B.locator('#confirmTitle').innerText(), '有修改和另一个窗口冲突');
@@ -215,11 +233,15 @@ async function main() {
     assert.equal((await status(B)).readOnly, true, '取消 keeps the page');
 
     // Importing the conflict export into A merges o1 only: A's other saved changes are not reverted.
-    await A.evaluate(text => { window.__importDone = previewImportDataFile(new File([text], 'unsaved.json', { type:'application/json' })); }, JSON.stringify(exported));
+    await A.evaluate(text => {
+      window.__importSettled = null;
+      window.__importDone = previewImportDataFile(new File([text], 'unsaved.json', { type:'application/json' }));
+      window.__importDone.then(() => { window.__importSettled = { error:'' }; }, error => { window.__importSettled = { error:String(error?.message || error) }; });
+    }, JSON.stringify(exported));
     await confirmOpen(A);
     assert.match(await A.locator('#confirmMessage').innerText(), /保存冲突时导出的「没存进去的修改」[\s\S]*订单 K1/);
     await h.click(A, '#confirmOkBtn', '合并导入');
-    await A.evaluate(() => window.__importDone);
+    assert.equal((await (await A.waitForFunction(() => window.__importSettled)).jsonValue()).error, '', 'the import finished without an error');
     await A.waitForFunction(() => !window.pendingSaveStatus().pending);
     assert.equal((await dbOrder('o1')).note, 'B 再改 o1');
     assert.equal((await dbOrder('o4')).note, 'A 版 o4', 'the import must not revert other records');
@@ -227,7 +249,7 @@ async function main() {
     await B.close();
 
     // P1-3: deleting and refreshing right away keeps the deletion.
-    await A.evaluate(() => window.macCheckRemoteRevision({ force:true }));
+    await checkRemote(A);
     await A.evaluate(() => { const order = state.orders.find(o => o.id === 'o2'); state.orders = state.orders.filter(o => o.id !== 'o2'); state.deletedOrders.unshift({ ...order, deletedAt:nowText() }); saveState(); });
     assert.equal(await A.locator('#savePulse').innerText(), '待保存', 'the pulse says 待保存 during the debounce');
     await Promise.all([A.waitForEvent('load'), h.click(A, '#appRefreshBtn', '刷新')]);

@@ -282,15 +282,15 @@ async function launch() {
     assert.equal(await value('amount'), '640');
     await closeOrderModal();
 
-    // 5. AI 识别新客户：卡片和「确认客户和订单」用 AI 的定金比例和已付，阶段按收款是「尾款」，不用 AI 给的「生产中」。
+    // 5. AI 识别新客户：卡片和「确认客户和订单」用 AI 的定金比例和已付，阶段按收款是「生产中」（收到定金），不用 AI 给的「已发货」。
     const newCustomerText = "Hi I'm Ana Torres from Mexico, 2 wigs total 680 usd, I paid 30% deposit 204 by paypal";
-    const aiNew = { client:'Ana Torres', country:'Mexico', amount:680, currency:'USD', orderType:'定金订单', paidAmount:204, depositAmount:204, depositPercent:30, paymentChannel:'Paypal', productType:'假发', stage:'production' };
+    const aiNew = { client:'Ana Torres', country:'Mexico', amount:680, currency:'USD', orderType:'定金订单', paidAmount:204, depositAmount:204, depositPercent:30, paymentChannel:'Paypal', productType:'假发', stage:'shipment' };
     await openNew();
     await runAi(newCustomerText, aiNew);
     const newCard = await resultsText();
     assert.match(newCard, /识别为新客户：Ana Torres/);
-    for (const pill of ['订单类型：定金订单', '定金比例：30%', '已付款：204', '阶段：待发货（按收款）']) assert.ok(newCard.includes(pill), `new customer card misses ${pill}:\n${newCard}`);
-    assert.doesNotMatch(newCard, /生产中|stage/i);
+    for (const pill of ['订单类型：定金订单', '定金比例：30%', '已付款：204', '阶段：生产中（按收款）']) assert.ok(newCard.includes(pill), `new customer card misses ${pill}:\n${newCard}`);
+    assert.doesNotMatch(newCard, /已发货|stage/i);
     await results.locator('[data-paste-create-customer-order]').click();
     await page.waitForFunction(() => document.getElementById('combinedCustomerOrderModal').classList.contains('open'));
     const combined = name => page.locator(`#combinedOrderForm [name="${name}"]`).inputValue();
@@ -299,10 +299,10 @@ async function launch() {
     assert.equal(await combined('paidAmount'), '204');
     assert.equal(await combined('currency'), 'USD');
     assert.equal(await page.locator('#combinedCustomerForm [name="name"]').inputValue(), 'Ana Torres');
-    assert.match(await page.locator('#combinedOrderForm [data-stage-hint]').evaluate(el => el.hidden ? '' : el.textContent), /待发货/);
+    assert.match(await page.locator('#combinedOrderForm [data-stage-hint]').evaluate(el => el.hidden ? '' : el.textContent), /生产中/);
     await page.evaluate(() => closeCombinedCustomerOrderModal());
 
-    // 同一段 AI 结果直接「填入识别内容」再保存：收到定金 = 尾款。
+    // 同一段 AI 结果直接「填入识别内容」再保存：收到定金 = 生产中。
     await openNew();
     await runAi(newCustomerText, aiNew);
     await clickFill('[data-paste-fill-extracted]');
@@ -312,7 +312,7 @@ async function launch() {
     await clickSave();
     await waitSaved();
     saved = await savedOrder(num);
-    assert.equal(saved.stage, 'balance', 'deposit received = balance');
+    assert.equal(saved.stage, 'production', 'deposit received = 生产中');
     assert.equal(saved.paidAmount, 204);
 
     // 6. 德语聊天：本地和 AI 都不把 Zwischensumme 当客户名；本地读出欧洲写法 1.280,50 €。
@@ -327,7 +327,7 @@ async function launch() {
     const germanAi = await resultsText();
     assert.match(germanAi, /识别为新客户：Anna Schmidt/);
     assert.match(germanAi, /已付款：384\.15/);
-    assert.match(germanAi, /阶段：待发货（按收款）/);
+    assert.match(germanAi, /阶段：生产中（按收款）/);
     assert.doesNotMatch(germanAi, /Zwischensumme/);
     await closeOrderModal();
 

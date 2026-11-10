@@ -5532,6 +5532,8 @@ html[data-theme] #deletedOrderList > .empty { margin:16px; }
 }
 /* 长表单弹窗（新建订单 / 客户）：灰底 + 白卡分区、左侧编号导航、底部摘要，和原型一致 */
 html[data-theme] :is(.order-modal, .customer-modal-shell) { width:min(920px, 100%); height:min(800px, calc(100vh - 48px)); max-height:none; display:flex; flex-direction:column; background:var(--surface-soft); }
+/* 客户档案比订单弹窗大一号（V3.140）：左档案栏 + 备注 + 关联订单要一屏看完；窗口不够大时跟着窗口收。 */
+html[data-theme] .customer-modal-shell { width:min(1040px, 100%); height:min(920px, calc(100vh - 24px)); }
 html[data-theme] :is(.order-modal, .customer-modal-shell) .modal-head { position:static; display:flex; flex-direction:row; align-items:center; gap:14px; padding:22px 22px 18px 24px; border-bottom:0; background:transparent; backdrop-filter:none; -webkit-backdrop-filter:none; }
 html[data-theme] .modal-badge { width:46px; height:46px; flex:none; border-radius:15px; display:grid; place-items:center; color:var(--accent); background:var(--accent-tint); }
 html[data-theme] .modal-badge .ui-icon { width:22px; height:22px; }
@@ -5572,7 +5574,7 @@ html[data-theme] .mbody > .customer-modal-body.customer-view-mode { padding:2px 
 html[data-theme] .mbody:has(> .customer-view-mode) { grid-template-columns:minmax(0,1fr); }
 html[data-theme] .mbody:has(> .customer-view-mode) .mnav { display:none; }
 html[data-theme] .mbody:has(> .mnav.is-empty) { grid-template-columns:minmax(0,1fr); }
-/* 客户只读档案（V3.139，方案 C）：左边一条档案栏放联系方式、收货地址、交易偏好、客户管理；右边是永久备注、数字卡、客户备注和标签页
+/* 客户只读档案（V3.139 方案 C，V3.140 放大）：左边一条档案栏放联系方式、收货地址、交易偏好、客户管理；右边是永久备注、数字卡、客户备注和标签页
    （关联订单 / 客户动态 / WhatsApp 聊天记录）。以前四张等宽小卡，详细地址被挤成一百来像素的窄列。 */
 html[data-theme] .customer-modal-state { order:3; font-size:12px; color:var(--gray-500); white-space:nowrap; }
 html[data-theme] .customer-modal-state:empty { display:none; }
@@ -5581,7 +5583,7 @@ html[data-theme] .customer-modal-tags .level-tag { min-height:24px; padding:0 10
 html[data-theme] .customer-modal-tags .level-tag:has(.level-icon) { padding-left:5px; border-color:transparent; background:var(--accent-tint); color:var(--accent); }
 html[data-theme] .customer-modal-tags .level-tag .level-icon { border-radius:50%; background:var(--accent); color:var(--on-accent, #fff); }
 html[data-theme] .customer-modal-tags .level-tag.is-paid { border-color:transparent; background:color-mix(in oklab, var(--s-green) var(--s-tint), transparent); color:var(--s-green); }
-html[data-theme] .customer-view-mode #customerDetailView { flex:1 0 auto; display:grid; grid-template-columns:304px minmax(0, 1fr); gap:16px; align-items:stretch; }
+html[data-theme] .customer-view-mode #customerDetailView { flex:1 0 auto; display:grid; grid-template-columns:320px minmax(0, 1fr); gap:16px; align-items:stretch; }
 html[data-theme] .customer-detail-rail { min-width:0; display:flex; flex-direction:column; padding:18px 20px; border:1px solid var(--surface-border); border-radius:18px; background:var(--surface-bg); box-shadow:0 1px 2px oklch(0% 0 0 / .04); }
 html[data-theme] .customer-rail-section { display:flex; flex-direction:column; gap:8px; padding:14px 0; border-top:1px solid var(--hairline); }
 html[data-theme] .customer-rail-section:first-child { padding-top:0; border-top:0; }
@@ -5631,7 +5633,7 @@ html[data-theme] .customer-metric-card strong:not(.summary-money) { overflow:hid
 html[data-theme] .customer-metric-card strong.summary-money { font-size:clamp(13px, 12cqw, 17px); line-height:22px; }
 html[data-theme] .customer-metric-card strong.customer-due-amount { color:var(--s-amber); }
 html[data-theme] .customer-metric-card small { color:var(--gray-500); font-size:12px; line-height:17px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-html[data-theme] .customer-detail-tabs-card { flex:1 1 0; min-width:0; min-height:280px; overflow:hidden; display:flex; flex-direction:column; border:1px solid var(--surface-border); border-radius:18px; background:var(--surface-bg); box-shadow:0 1px 2px oklch(0% 0 0 / .04); }
+html[data-theme] .customer-detail-tabs-card { flex:1 1 0; min-width:0; min-height:calc(68px + clamp(2, var(--customer-order-rows, 2), 7) * 57px); overflow:hidden; display:flex; flex-direction:column; border:1px solid var(--surface-border); border-radius:18px; background:var(--surface-bg); box-shadow:0 1px 2px oklch(0% 0 0 / .04); }
 html[data-theme] .customer-detail-tabs-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; column-gap:16px; padding:0 20px; border-bottom:1px solid var(--hairline); }
 html[data-theme] .customer-detail-tabs { margin-top:0; gap:22px; min-width:0; }
 html[data-theme] .customer-detail-tabs button { padding:12px 0; display:inline-flex; align-items:center; gap:6px; }
@@ -5639,8 +5641,9 @@ html[data-theme] .customer-detail-tabs button:focus-visible { outline:2px solid 
 html[data-theme] .customer-detail-tab-count { min-width:18px; padding:0 5px; border-radius:999px; background:var(--accent-tint); color:var(--accent); font-size:11px; font-weight:600; line-height:18px; text-align:center; font-variant-numeric:tabular-nums; }
 html[data-theme] .customer-detail-tab-count:empty { display:none; }
 html[data-theme] .customer-detail-section-meta { color:var(--gray-500); font-size:12px; font-variant-numeric:tabular-nums; white-space:nowrap; }
-/* 标签页卡片占满右栏剩下的高度，内容多了在卡片里滚（档案栏和数字卡不跟着跑）；订单 5 笔以上、客户动态、聊天记录时卡片留高一些。 */
-html[data-theme] .customer-detail-tabs-card:has(#customerDetailOrdersPanel:not([hidden]) .customer-detail-order-row:nth-child(5), #customerRoadmapSection:not([hidden]), #customerWhatsAppDetails:not([hidden])) { min-height:480px; }
+/* 标签页卡片占满右栏剩下的高度，内容多了在卡片里滚（档案栏和数字卡不跟着跑）。最小高度按订单笔数算（每行 57px，2–7 行），
+   订单少的客户不占多余的地方，整份档案才能一屏看完；客户动态、聊天记录时卡片留高一些。 */
+html[data-theme] .customer-detail-tabs-card:has(#customerRoadmapSection:not([hidden]), #customerWhatsAppDetails:not([hidden])) { min-height:480px; }
 html[data-theme] .customer-detail-panel { flex:1; min-width:0; min-height:0; padding:6px 20px 14px; overflow:auto; overscroll-behavior:contain; }
 html[data-theme] .customer-detail-panel[hidden] { display:none; }
 html[data-theme] .customer-detail-panel > .empty { padding:28px 0; }
@@ -5665,6 +5668,8 @@ html[data-theme] .whatsapp-panel { display:flex; flex-direction:column; gap:12px
 html[data-theme] .whatsapp-panel .whatsapp-thread { flex:1; min-height:120px; max-height:none; border-radius:14px; }
 @media (max-width: 860px) {
   html[data-theme] .customer-view-mode #customerDetailView { grid-template-columns:minmax(0, 1fr); }
+  /* 窄窗口里订单行折成两层（约 99px 一行），卡片的最小高度跟着换算。 */
+  html[data-theme] .customer-detail-tabs-card { min-height:calc(68px + clamp(2, var(--customer-order-rows, 2), 5) * 99px); }
   html[data-theme] .customer-detail-order-row { grid-template-columns:minmax(0, 1fr) minmax(0, 1fr) 28px; row-gap:6px; }
   html[data-theme] .customer-detail-order-row > .tag { justify-self:start; grid-column:1; }
   html[data-theme] .customer-detail-order-money { grid-column:2; }
@@ -5720,6 +5725,7 @@ html[data-theme] .mbody:has(> .customer-view-mode) ~ .customer-modal-foot { disp
   html[data-theme] .mbody > .customer-modal-body, html[data-theme]:not([data-modal-style]) .mbody > .order-form { padding:2px 14px 14px; }
   html[data-theme] .modal-foot .df-sum { display:none; }
   html[data-theme] :is(.order-modal, .customer-modal-shell) { height:min(800px, calc(100vh - 24px)); }
+  html[data-theme] .customer-modal-shell { height:min(920px, calc(100vh - 24px)); }
 }
 html[data-theme] .modal-foot .order-action-group:last-child { margin-left:auto; }
 @media (max-width: 860px) {
@@ -6001,7 +6007,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.139，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.139</div>
+      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.140，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.140</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会先问一句，再下载并重启" aria-label="检查更新：有新版本会先问一句，再下载并重启" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse is-busy" id="savePulse" aria-live="polite"><i></i><span>读取中</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -21018,6 +21024,8 @@ function renderCustomerDetailView(name = '', data = {}) {
   const noteEl = document.getElementById('customerDetailNote');
   if (noteEl) noteEl.innerHTML = `<section class="customer-info-card customer-note-card"><div class="customer-info-title">客户备注</div><div class="customer-note-text ${record.note ? '' : 'is-empty'}">${escapeAttr(record.note || '暂无备注')}</div></section>`;
   if (ordersCount) ordersCount.textContent = record.orderCount ? String(record.orderCount) : '';
+  // 标签页卡片的最小高度跟着订单笔数走（CSS 里按每行 57px 算，2–7 行），订单少时不留一大块空白。
+  ordersEl?.closest('.customer-detail-tabs-card')?.style.setProperty('--customer-order-rows', String(record.sortedOrders.length));
   if (ordersMeta) ordersMeta.textContent = `${record.orderCount} 个订单 · ${summaryMoney(record.total, 'USD')}`;
   if (ordersEl) ordersEl.innerHTML = record.sortedOrders.length ? record.sortedOrders.map(order => {
     const currency = order.currency || 'USD';

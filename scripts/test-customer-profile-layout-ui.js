@@ -8,13 +8,21 @@ const data = {
   orders:[
     { ...base, id:'v1', num:'K26102001', client:'Vanessa Kroon', amount:1502, paidAmount:1502, stage:'production', createdAt:day(3) },
     { ...base, id:'v2', num:'K26091502', client:'Vanessa Kroon', amount:1479, paidAmount:1479, stage:'done', createdAt:day(2) },
-    { ...base, id:'e1', num:'K26100009', client:'Empty Co', amount:0, paidAmount:0, stage:'quote', createdAt:day(4) }
+    { ...base, id:'e1', num:'K26100009', client:'Empty Co', amount:0, paidAmount:0, stage:'quote', createdAt:day(4) },
+    { ...base, id:'n1', num:'K26110902', client:'Long Note Co', amount:775.6, paidAmount:775.6, stage:'production', createdAt:day(5) },
+    { ...base, id:'n2', num:'S026081002', client:'Long Note Co', amount:523, paidAmount:523, stage:'done', createdAt:day(1) }
   ],
   customers:{
     'Vanessa Kroon':{
       client:'Vanessa Kroon', country:'🇪🇸 西班牙 Spain', emails:['vanessa@example.com', 'second@example.com'], email:'vanessa@example.com',
       phones:['+34 600 000 000'], phone:'+34 600 000 000', addresses:[address], address, currency:'USD', paymentMethod:'阿里巴巴',
       level:'C级白金客户', tags:['批发'], owner:'Kris', note:'普通备注', permanentNote:'只用无品牌包装'
+    },
+    // 用户实际反馈的那类客户：十行备注 + 两笔订单，在 1102×912 的窗口（Mac App 85% 缩放下的常见大小）里要一屏看完。
+    'Long Note Co':{
+      client:'Long Note Co', country:'🇺🇸 美国 United States', addresses:['1030 slater road apartment 111 Durham NC 27703'], address:'1030 slater road apartment 111 Durham NC 27703',
+      currency:'USD', paymentMethod:'阿里巴巴', level:'D级黄金客户', owner:'Kris',
+      note:'20inch 135\n22inch 148\n24inch 195\nShipping 30 alibaba fee 15\nTotal 523\n\n接发\n\nLong Note Co\n1030 slater road apartment 111 Durham NC 27703'
     }
   }
 };
@@ -104,6 +112,26 @@ const openProfile = async (page, name) => {
     assert.ok(await page.locator('#customerDetailView').isHidden());
     await page.evaluate(() => closeCustomerModal());
 
+    // 弹窗比订单弹窗大一号（1040×920），窗口不够高时上下各留 12px。
+    await openProfile(page, 'Long Note Co');
+    const shell = await box(page, '#customerModal .modal');
+    assert.equal(Math.round(shell.width), 1040);
+    assert.equal(Math.round(shell.bottom - shell.top), 896);
+    await page.evaluate(() => closeCustomerModal());
+
+    // 备注很长、订单两笔的客户：标签页卡片只占两行订单的高度，整份档案不用滚动，两笔订单都看得见。
+    await page.setViewportSize({ width:1102, height:912 });
+    await openProfile(page, 'Long Note Co');
+    const longNote = await page.locator('#customerForm').evaluate(form => ({ extraY:form.scrollHeight - form.clientHeight, extraX:form.scrollWidth - form.clientWidth }));
+    assert.ok(longNote.extraY <= 1, `长备注客户不应出现纵向滚动：多出 ${longNote.extraY}px`);
+    assert.ok(longNote.extraX <= 1);
+    const ordersPanel = await page.locator('#customerDetailOrdersPanel').evaluate(panel => ({ extra:panel.scrollHeight - panel.clientHeight, rows:panel.querySelectorAll('.customer-detail-order-row').length }));
+    assert.deepEqual(ordersPanel, { extra:0, rows:2 }, '两笔订单应完整显示在卡片里');
+    const lastRow = await box(page, '#customerDetailOrders .customer-detail-order-row:last-child');
+    const formBox = await box(page, '#customerForm');
+    assert.ok(lastRow.bottom <= formBox.bottom, '最后一笔订单应在可见范围内');
+    await page.evaluate(() => closeCustomerModal());
+
     // 窄窗口：改成上下一栏，仍然没有横向滚动。
     await page.setViewportSize({ width:700, height:800 });
     await openProfile(page, 'Vanessa Kroon');
@@ -114,7 +142,7 @@ const openProfile = async (page, name) => {
 
     assert.deepEqual(errors, []);
     assert.deepEqual(dialogs, []);
-    console.log('Customer profile layout UI passed: left rail, wide address, one-screen fit, copy feedback, tabs by click and keyboard, edit header reset, narrow layout verified.');
+    console.log('Customer profile layout UI passed: left rail, wide address, one-screen fit (also with a long note at 1102×912), larger shell, copy feedback, tabs by click and keyboard, edit header reset, narrow layout verified.');
   } finally {
     await browser.close();
   }

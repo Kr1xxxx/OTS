@@ -80,7 +80,11 @@ function checkReleaseWorkflow() {
   assert.match(yml, /--target "\$\{\{ needs\.gate\.outputs\.sha \}\}"/, 'the release is tagged at the tested commit');
   // V3.142: every release also carries the ~2 MB -lite.zip, proven to rebuild the same signed app.
   assert.match(yml, /scripts\/package-mac-release\.sh mac-app\/TradeOrderSystem\.app dist/, 'release packages the small update zip');
-  assert.match(yml, /node-version: 22\.\d+\.\d+/, 'bundled Node is pinned so small updates keep matching');
+  // The pin lives in .node-version, read by both workflows, so CI tests the Node the release bundles.
+  assert.match(yml, /node-version-file: \.node-version/, 'bundled Node is pinned so small updates keep matching');
+  assert.match(read('.node-version'), /^\d+\.\d+\.\d+\n$/, 'an exact Node version, not a range');
+  assert.equal(read('.github/workflows/ci.yml').match(/node-version-file: \.node-version/g)?.length, 2, 'both CI jobs use the same Node');
+  assert.doesNotMatch(read('.github/workflows/ci.yml') + yml, /^\s*node-version:/m, 'no second place to pin Node');
   const pkg = read('scripts/package-mac-release.sh');
   assert.match(pkg, /-lite\.zip/);
   assert.match(pkg, /codesign --verify --deep --strict "\$CHECK_APP"\s*\n\s*diff -r "\$APP" "\$CHECK_APP"/, 'small zip + runtime must equal the full app');

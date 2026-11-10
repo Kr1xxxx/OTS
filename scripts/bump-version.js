@@ -41,4 +41,4 @@ for (const [full, text] of pending) {
   fs.writeFileSync(tmp, text);
   fs.renameSync(tmp, full);
 }
-console.log(`Version ${current} → ${next}. Run npm run check, then node scripts/update-export-checksums.js.`);
+console.log(`Version ${current} → ${next}. Run npm run check, then commit.`);

@@ -6,12 +6,13 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 
+const { freePortSync } = require('./helpers/free-port');
 const root = path.resolve(__dirname, '..');
 const serverFile = path.join(root, 'mac-app', 'server.js');
 const seedFile = path.join(root, 'trade-order-data.json');
 const testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'trade-order-tinypng-test-'));
-const tradePort = 53000 + (process.pid % 500);
-const tinifyPort = 53500 + (process.pid % 500);
+const tradePort = freePortSync();
+const tinifyPort = freePortSync();
 const tradeBaseUrl = `http://127.0.0.1:${tradePort}`;
 const tinifyBaseUrl = `http://127.0.0.1:${tinifyPort}`;
 const apiToken = `tinypng-test-${process.pid}`;

@@ -104,20 +104,9 @@ const addMonths = (text, months) => {
     await page.keyboard.type('42');
     assert.equal(await page.locator('#subscriptionNextField').isVisible(), true, 'a new record offers 下次扣费日');
     await click('#subscriptionNext');
-    // A date input orders its parts by the browser's own language (月/日/年 in an English Chromium, 年/月/日 in a
-    // Chinese one) and moves on by itself after each part: step to the first part, type the digits, and try the
-    // next order if the value is not right.
-    const [nextYear, nextMonth, nextDay] = next.split('-');
-    const parts = { y:nextYear, m:nextMonth, d:nextDay };
-    for (const order of ['mdy', 'ymd', 'dmy']) {
-      for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowLeft');
-      await page.keyboard.type([...order].map(key => parts[key]).join(''));
-      if (await page.locator('#subscriptionNext').inputValue() === next) break;
-    }
-    // Typing the parts is the browser's own date field at work, not the page: where none of the three orders
-    // produced the date (WebKit under Playwright), put it into the field directly. The page hears the same
-    // `input` and `change` either way, and that is what the next lines are about.
-    if (await page.locator('#subscriptionNext').inputValue() !== next) await page.locator('#subscriptionNext').fill(next);
+    // The date field takes the date typed as text (the in-app calendar opens beside it); Enter keeps it.
+    await page.keyboard.type(next);
+    await page.keyboard.press('Enter');
     await page.waitForFunction(value => document.getElementById('subscriptionNext').value === value, next);
     assert.equal(await page.locator('#subscriptionStart').inputValue(), addMonths(next, -1), 'the start moves back one cycle');
     // 提前提醒: the in-app select, picked with the mouse.

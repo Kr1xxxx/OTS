@@ -86,6 +86,8 @@ const webkitFocusSim = () => {
     // 1. 订单弹窗客户下拉的 ▾：点一下收起、再点一下打开（以前先被失焦收起再被 click 打开，永远收不起来）。
     await page.locator('#newOrderBtn').click();
     await page.waitForFunction(() => document.getElementById('orderModal').classList.contains('open'));
+    // 新建订单一屏放得下、中间一栏不滚；把收着的分区都展开（和编辑订单一样），1b 才有东西可滚。
+    await page.evaluate(() => uiOrderCompact(document.getElementById('orderForm'), false));
     const clientInput = page.locator('#orderForm .client-picker input[name="client"]');
     const clientMenuOpen = () => page.locator('#orderForm .client-menu').evaluate(n => n.classList.contains('open'));
     await clientInput.click();
@@ -99,14 +101,14 @@ const webkitFocusSim = () => {
     });
     await page.waitForFunction(at => (window.__slideAnim.currentTime || 0) > at + 150, slide);
     assert.deepEqual(await page.evaluate(() => {
-      document.getElementById('orderForm').dispatchEvent(new Event('scroll'));
+      document.querySelector('#orderForm .order-main').dispatchEvent(new Event('scroll'));
       const result = { moving:window.__slideAnim.playState, open:document.querySelector('#orderForm .client-menu').classList.contains('open') };
       window.__slideAnim.cancel();
       return result;
     }), { moving:'running', open:true }, 'a late scroll event while the modal is still sliding in must not close the client menu');
     // 弹窗停下后再来一个迟到的滚动事件：菜单跟着输入框重新定位，不能停在滑动中的旧位置盖住 ▾。
     assert.deepEqual(await page.evaluate(() => {
-      document.getElementById('orderForm').dispatchEvent(new Event('scroll'));
+      document.querySelector('#orderForm .order-main').dispatchEvent(new Event('scroll'));
       const trigger = document.querySelector('#orderForm .client-trigger').getBoundingClientRect();
       const hit = document.elementFromPoint(trigger.left + trigger.width / 2, trigger.top + trigger.height / 2);
       return { open:document.querySelector('#orderForm .client-menu').classList.contains('open'), triggerOnTop:!!hit?.closest('.client-trigger') };
@@ -119,16 +121,16 @@ const webkitFocusSim = () => {
       return { open:menu.classList.contains('open'), gap:Math.round(menu.dataset.placement === 'top' ? input.top - box.bottom : box.top - input.bottom) };
     });
     const scrollForm = by => page.evaluate(by => new Promise(resolve => {
-      const form = document.getElementById('orderForm');
-      form.addEventListener('scroll', () => requestAnimationFrame(resolve), { once:true });
-      form.scrollTop += by;
+      const main = document.querySelector('#orderForm .order-main');
+      main.addEventListener('scroll', () => requestAnimationFrame(resolve), { once:true });
+      main.scrollTop += by;
     }), by);
-    await page.evaluate(() => { document.getElementById('orderForm').scrollTop = 0; });
+    await page.evaluate(() => { document.querySelector('#orderForm .order-main').scrollTop = 0; });
     await scrollForm(30);
     assert.deepEqual(await gap(), { open:true, gap:6 }, 'scrolling the modal a little keeps the client menu open and attached to the field');
     await scrollForm(2000);
     assert.equal(await clientMenuOpen(), false, 'scrolling the field out of the modal closes the client menu');
-    await page.evaluate(() => { document.getElementById('orderForm').scrollTop = 0; });
+    await page.evaluate(() => { document.querySelector('#orderForm .order-main').scrollTop = 0; });
     await clientInput.click();
     assert.equal(await clientMenuOpen(), true, 'focusing the client field again reopens the menu');
     // 1c. 弹窗还在做入场缩放（transform 让它成了 fixed 菜单的定位参照）时打开菜单：菜单照样贴在输入框下面，不往下错开到可视区外。

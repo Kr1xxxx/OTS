@@ -126,12 +126,14 @@ const { chromium } = require('playwright');
       check(`${theme}-${width}菜单边界`, () => assert.ok(bounds.x >= 7 && bounds.x + bounds.width <= width - 7 && bounds.y >= 7 && bounds.y + bounds.height <= height - 7, JSON.stringify(bounds)));
       // Wheel at the list edge must not move its parent form.
       await clientMenu.evaluate(el => { el.scrollTop = el.scrollHeight; });
-      const before = await page.locator('#orderForm').evaluate(el => el.scrollTop);
+      // 表单在宽窗口里滚的是中间一栏，窄窗口里是整个弹窗内容。
+      const formScroll = () => page.evaluate(() => ['.order-body', '.order-main'].map(s => document.querySelector(`#orderForm ${s}`).scrollTop));
+      const before = await formScroll();
       await clientMenu.hover();
       await page.mouse.wheel(0, 500);
       await page.waitForTimeout(100);
-      const after = await page.locator('#orderForm').evaluate(el => el.scrollTop);
-      check(`${theme}-${width}滚动隔离`, () => assert.equal(after, before));
+      const after = await formScroll();
+      check(`${theme}-${width}滚动隔离`, () => assert.deepEqual(after, before));
       if (process.env.UI_SCREENSHOT) {
         await clientMenu.evaluate(el => { el.scrollTop = 0; });
         await page.screenshot({ path:`${process.env.UI_SCREENSHOT}.${theme}-${width}.png` });

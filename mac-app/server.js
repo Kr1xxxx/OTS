@@ -389,21 +389,11 @@ function createDatabaseSchema() {
     );
     CREATE INDEX IF NOT EXISTS idx_tracking_number ON tracking_lookups(tracking_number);
 
-    CREATE TABLE IF NOT EXISTS order_attachments (
-      order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-      position INTEGER NOT NULL,
-      file_url TEXT NOT NULL DEFAULT '',
-      data_json TEXT NOT NULL,
-      PRIMARY KEY(order_id, position)
-    );
-
-    CREATE TABLE IF NOT EXISTS order_logs (
-      order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-      position INTEGER NOT NULL,
-      event_time TEXT NOT NULL DEFAULT '',
-      data_json TEXT NOT NULL,
-      PRIMARY KEY(order_id, position)
-    );
+    -- Until V3.146 every save also copied each order's attachments and log lines into these two tables.
+    -- Nothing ever read them: the order's own data_json is the record. An older version started on this
+    -- database creates them again, empty, and carries on.
+    DROP TABLE IF EXISTS order_attachments;
+    DROP TABLE IF EXISTS order_logs;
 
     CREATE TABLE IF NOT EXISTS app_state (
       key TEXT PRIMARY KEY,
@@ -469,12 +459,6 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision, sav
       updated_at = excluded.updated_at,
       data_json = excluded.data_json
   `);
-  const attachmentInsert = database.prepare(`
-    INSERT INTO order_attachments(order_id, position, file_url, data_json) VALUES(?, ?, ?, ?)
-  `);
-  const logInsert = database.prepare(`
-    INSERT INTO order_logs(order_id, position, event_time, data_json) VALUES(?, ?, ?, ?)
-  `);
   const customerInsert = database.prepare(`
     INSERT INTO customers(name, country, email, contact, updated_at, data_json) VALUES(?, ?, ?, ?, ?, ?)
     ON CONFLICT(name) DO UPDATE SET
@@ -497,8 +481,6 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision, sav
     INSERT INTO app_state(key, data_json) VALUES(?, ?)
     ON CONFLICT(key) DO UPDATE SET data_json = excluded.data_json
   `);
-  const attachmentDelete = database.prepare('DELETE FROM order_attachments WHERE order_id = ?');
-  const logDelete = database.prepare('DELETE FROM order_logs WHERE order_id = ?');
   const orderDelete = database.prepare('DELETE FROM orders WHERE id = ?');
   const customerDelete = database.prepare('DELETE FROM customers WHERE name = ?');
   const lookupDelete = database.prepare('DELETE FROM tracking_lookups WHERE id = ?');
@@ -578,17 +560,6 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision, sav
           String(order.updated || ''),
           orderJson
         );
-      }
-      if (!previous || previous.data_json !== orderJson) {
-        attachmentDelete.run(id);
-        logDelete.run(id);
-        (Array.isArray(order.attachments) ? order.attachments : []).forEach((item, index) => {
-          attachmentInsert.run(id, index, String(item?.fileUrl || item?.link || ''), JSON.stringify(item));
-        });
-        (Array.isArray(order.logs) ? order.logs : []).forEach((item, index) => {
-          const eventTime = typeof item === 'object' && item ? item.time : '';
-          logInsert.run(id, index, String(eventTime || ''), JSON.stringify(item));
-        });
       }
     });
 

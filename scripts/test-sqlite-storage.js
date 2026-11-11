@@ -159,9 +159,32 @@ async function main() {
   await request('/api/save', {method:'POST',body:{state:withoutImage,baseRevision:withoutImage.revision}});
 
   await stopServer();
+  // A database written by V3.146 or earlier carries two tables that were only ever written: per-order copies
+  // of attachments and log lines. Starting on it removes them, and saving and deleting orders still works.
+  const legacyDb = new DatabaseSync(path.join(testDir, 'trade-order-system.sqlite'));
+  legacyDb.exec(`
+    CREATE TABLE order_attachments (order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE, position INTEGER NOT NULL, file_url TEXT NOT NULL DEFAULT '', data_json TEXT NOT NULL, PRIMARY KEY(order_id, position));
+    CREATE TABLE order_logs (order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE, position INTEGER NOT NULL, event_time TEXT NOT NULL DEFAULT '', data_json TEXT NOT NULL, PRIMARY KEY(order_id, position));
+  `);
+  legacyDb.prepare('INSERT INTO order_attachments VALUES(?, 0, ?, ?)').run(payload.data.orders[0].id, '/attachments/legacy.webp', '{}');
+  legacyDb.prepare('INSERT INTO order_logs VALUES(?, 0, ?, ?)').run(payload.data.orders[0].id, '', '{}');
+  legacyDb.close();
   startServer();
   await waitForHealth();
   const afterRestart = await request('/api/data');
+  {
+    const withoutLegacy = new DatabaseSync(path.join(testDir, 'trade-order-system.sqlite'), { readOnly:true });
+    const tables = withoutLegacy.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('order_attachments', 'order_logs')").all();
+    withoutLegacy.close();
+    assert(tables.length === 0, 'the write-only tables of older versions were not removed');
+    const edited = structuredClone(afterRestart);
+    edited.data.orders[0].logs = [...(edited.data.orders[0].logs || []), { time:'2025-01-02 03:04', text:'after the tables are gone' }];
+    const saved = await request('/api/save', { method:'POST', body:{ state:edited, baseRevision:edited.revision } });
+    assert(saved.ok, 'saving an order with attachments and logs failed without the old tables');
+    const reread = await request('/api/data');
+    assert(reread.data.orders[0].logs.at(-1).text === 'after the tables are gone', 'order log lines did not survive in the order record');
+    afterRestart.revision = reread.revision;
+  }
   assert(fs.existsSync(copiedImage), 'cleanup must not erase backup attachments');
   assert(fs.existsSync(imagePath), 'cleanup must preserve attachments referenced by retained backups');
   const restoreDir = path.join(testDir,'restore-verification');

@@ -56,6 +56,30 @@ for (const file of [
   execFileSync(process.execPath, ['--check', path.join(root, file)], { stdio: 'inherit' });
 }
 
+// The main script of the page is one long file by choice; "// #region Name" lines are its table of
+// contents (grep -n '^// #region' trade-order-system.html). They have to pair up and carry a name.
+{
+  const html = fs.readFileSync(path.join(root, 'trade-order-system.html'), 'utf8');
+  let open = '';
+  let count = 0;
+  html.split('\n').forEach((line, index) => {
+    if (!/^\/\/ #(end)?region\b/.test(line)) return;
+    const where = `trade-order-system.html:${index + 1}`;
+    if (line === '// #endregion') {
+      assert.ok(open, `${where}: #endregion without a #region before it`);
+      open = '';
+      return;
+    }
+    const name = /^\/\/ #region (\S.*)$/.exec(line)?.[1];
+    assert.ok(name, `${where}: write "// #region Name" or "// #endregion"`);
+    assert.ok(!open, `${where}: "${name}" starts before "${open}" was closed with // #endregion`);
+    open = name;
+    count += 1;
+  });
+  assert.ok(!open, `trade-order-system.html: region "${open}" is never closed`);
+  assert.ok(count >= 20, 'the main script lost its section markers (// #region)');
+}
+
 // Every module the server loads from its own folder is in the app: the build copies a hand-written
 // list of files, and a module missing from it only fails when the packaged app starts.
 {

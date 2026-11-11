@@ -8,6 +8,12 @@ Local macOS trade-order app. Three parts that ship together:
 
 The repository is public. Business data, attachments, backups, settings files and API keys never go into Git, tests or fixtures; use made-up values.
 
+## Finding code in the page
+
+`grep -n '^// #region' trade-order-system.html` lists the sections of the main script, about fifty, with their line numbers. Read the section, not the file. New code goes into the section it belongs to; a new section gets its own `// #region Name` and `// #endregion` lines (`npm run check` fails when they do not pair up).
+
+The page stays one file on purpose. Splitting it into source files would put a build step in front of every test, the lint and the app build, and the gain would be navigation only: the scripts would still share one global scope, and Git already merges changes to different parts of one file.
+
 ## Before pushing
 
 ```sh

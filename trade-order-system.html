@@ -9766,9 +9766,6 @@ function orderShipmentProgressLabel(order = {}) {
 function orderShipmentSignature(order = {}) {
   return normalizeOrderShipments(order).map(item => item.trackingNumber).sort().join(',');
 }
-function primaryOrderShipment(order = {}) {
-  return normalizeOrderShipments(order)[0] || null;
-}
 // 定金阶段已取消：旧的定金 / PI 订单没付款回报价，收了定金或付清了进生产中（收到定金 = 生产中）。
 function migrateDepositStage(o = {}) {
   if (o.stage !== 'deposit' && o.stage !== 'pi') return o.stage;
@@ -10659,11 +10656,6 @@ function calendarEventsInRange(from, to) {
   // 同一天：提醒在前，再按交期、下单、物流、其它。
   const order = { payment:0, follow:0, logistics:1, ship:0, urgent:0, repurchase:0, deadline:1, order:2, 'repurchase-plan':3, customer:4, subscription:5 };
   return events.sort((a, b) => a.date.localeCompare(b.date) || ((a.taskId ? 0 : 1) - (b.taskId ? 0 : 1)) || ((order[a.type] ?? 6) - (order[b.type] ?? 6)));
-}
-function calendarEventsForMonth(month = activeCalendarMonth) {
-  const days = daysInMonth(month);
-  if (!days.length) return [];
-  return calendarEventsInRange(days[0], days.at(-1));
 }
 // 日历事件的颜色：下单 / 交期复购 / 跟进 / 收款 / 物流 / 加急异常（含物流风险、过了最晚发出日期）/ 已签收 / 新客户 / 续费。
 // 日历格子、当月日程、当天抽屉用同一张表。
@@ -12660,12 +12652,6 @@ function pasteFieldLabels(fields = {}) {
     .join('');
 }
 /* 粘贴识别：只负责准备可编辑草稿，不直接落库创建客户或订单。 */
-function customerFieldsFromCombinedPaste(text = '') {
-  const customerAnalysis = analyzeCustomerPasteText(text);
-  const fields = { ...(customerAnalysis.extracted || {}) };
-  if (fields.contact) fields.contact = cleanContactValue(fields.contact, fields.address || '');
-  return fields.name ? fields : {};
-}
 // recognized：订单粘贴识别的结果（AI 识别过就是 AI 的字段）；不传时按原文跑一遍本地识别。
 function orderFieldsFromCombinedPaste(text = '', customerFields = {}, recognized = null) {
   const extracted = { ...(recognized || analyzePasteText(text).extracted || {}) };
@@ -15174,9 +15160,6 @@ name, country, countrySource, countryEvidence, contacts, phones, emails, address
 
 客户资料：
 ${text}`;
-}
-function normalizeAiCustomerFields(raw = {}, sourceText = '') {
-  return normalizeAiCustomerResult(raw, sourceText).fields;
 }
 // AI 客户结果清洗。返回：
 // - fields：预览用的字段；

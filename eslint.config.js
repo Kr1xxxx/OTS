@@ -40,14 +40,14 @@ module.exports = [
     languageOptions: { ecmaVersion: 2024, sourceType: 'script', globals: { ...globals.browser } },
     rules: {
       ...rules,
-      // A top-level function nobody calls is dead code and fails the lint. The names below are the
-      // page's entry points that only something outside the page calls: the Mac shell (nativeDialog)
-      // and the regression tests (the rest). Add a name here only for a caller of that kind.
+      // A top-level function nobody calls is dead code and fails the lint. nativeDialog is the one
+      // exception: only the Mac shell calls it. A function that only a test calls does not belong
+      // here: the test should call what the page calls.
       'no-unused-vars': ['error', {
         args: 'none',
         caughtErrors: 'none',
         ignoreRestSiblings: true,
-        varsIgnorePattern: '^(nativeDialog|primaryOrderShipment|calendarEventsForMonth|customerFieldsFromCombinedPaste|normalizeAiCustomerFields)$'
+        varsIgnorePattern: '^nativeDialog$'
       }]
     }
   }

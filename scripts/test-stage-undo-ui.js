@@ -66,7 +66,10 @@ const { chromium } = require('playwright');
     assert.equal(partial.logisticsStatus,'已签收','undo overwrote a field edited after the move');
 
     await page.evaluate(()=>{ closeOrderDetail(); setPage('calendar'); });
-    const agenda = await page.evaluate(()=>({events:calendarEventsForMonth(activeCalendarMonth).length,rows:document.querySelectorAll('#calendarAgenda .agenda-row').length}));
+    const agenda = await page.evaluate(()=>{
+      const days = daysInMonth(activeCalendarMonth);
+      return {events:calendarEventsInRange(days[0],days.at(-1)).length,rows:document.querySelectorAll('#calendarAgenda .agenda-row').length};
+    });
     assert(agenda.events > 20,`fixture should produce more than 20 agenda entries, got ${agenda.events}`);
     assert.equal(agenda.rows,agenda.events,'calendar agenda hides entries beyond the first 20');
 

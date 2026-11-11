@@ -24,31 +24,31 @@ const root = path.resolve(__dirname, '..');
     });
     await page.goto('http://127.0.0.1:47999/trade-order-system.html');
     await page.waitForFunction(()=>window.pendingSaveStatus?.().loaded);
-    const normalized = await page.evaluate(({raw,source})=>normalizeAiCustomerFields(raw,source),{raw,source});
+    const normalized = await page.evaluate(({raw,source})=>normalizeAiCustomerResult(raw,source).fields,{raw,source});
     assert.equal(normalized.paymentMethod,undefined,'unknown AI payment must not claim Alibaba');
     assert.deepEqual(normalized.phones,['+1 202 555 0101','+1 202 555 0102']);
     assert.deepEqual(normalized.emails,['buyer@example.com','orders@example.com']);
     assert.deepEqual(normalized.addresses,['1600 Amphitheatre Pkwy Mountain View 94043'],'postal-code ending must not be mistaken for an order amount');
     assert.equal(normalized.paymentEmail,'pay@example.com');
-    const duplicatePhones = await page.evaluate(()=>normalizeAiCustomerFields({
+    const duplicatePhones = await page.evaluate(()=>normalizeAiCustomerResult({
       country:'United States', phones:['(202) 555-0116','+1-2025550116','+1 (202) 555 0116','+1 202 555 0117']
-    }, 'United States\n(202) 555-0116\n+1-2025550116\n+1 (202) 555 0116\n+1 202 555 0117'));
+    }, 'United States\n(202) 555-0116\n+1-2025550116\n+1 (202) 555 0116\n+1 202 555 0117').fields);
     assert.deepEqual(duplicatePhones.phones,['+1-2025550116','+1 202 555 0117'],'US local and +1 representations of one number must appear once, preferring the explicit international form');
     assert.equal(duplicatePhones.phone,'+1-2025550116');
-    const uncertainPhones = await page.evaluate(()=>normalizeAiCustomerFields({phones:['+44 202 555 0116','+1 202 555 0116','2025550116']},'+44 202 555 0116\n+1 202 555 0116\n2025550116'));
+    const uncertainPhones = await page.evaluate(()=>normalizeAiCustomerResult({phones:['+44 202 555 0116','+1 202 555 0116','2025550116']},'+44 202 555 0116\n+1 202 555 0116\n2025550116').fields);
     assert.deepEqual(uncertainPhones.phones,['+44 202 555 0116','+1 202 555 0116','2025550116'],'without country evidence, shared suffixes must not merge international numbers');
-    const invented = await page.evaluate(()=>normalizeAiCustomerFields({name:'Google',phone:'+1 202 555 0199',email:'fake@example.com',paymentEmail:'fakepay@example.com'},'1600 Amphitheatre Pkwy Mountain View 94043'));
+    const invented = await page.evaluate(()=>normalizeAiCustomerResult({name:'Google',phone:'+1 202 555 0199',email:'fake@example.com',paymentEmail:'fakepay@example.com'},'1600 Amphitheatre Pkwy Mountain View 94043').fields);
     for(const key of ['name','phone','email','paymentEmail']) assert.equal(invented[key],undefined,`unprovided ${key} must be rejected`);
-    assert.equal(await page.evaluate(()=>normalizeAiCustomerFields({name:'Apple Park'},'Apple Park, One Apple Park Way, Cupertino CA').name),'Apple Park','explicit organization names are not blacklisted');
-    assert.equal(await page.evaluate(()=>normalizeAiCustomerFields({phone:'+44'},'Alex Example +44, 123 Sample Rd PR2 2LE').phone),undefined);
-    assert.equal(await page.evaluate(()=>normalizeAiCustomerFields({addresses:['1600 Amphitheatre Pkwy Mountain View 94043 99999']},'1600 Amphitheatre Pkwy Mountain View 94043').address),undefined,'fabricated address digits must be rejected');
+    assert.equal(await page.evaluate(()=>normalizeAiCustomerResult({name:'Apple Park'},'Apple Park, One Apple Park Way, Cupertino CA').fields.name),'Apple Park','explicit organization names are not blacklisted');
+    assert.equal(await page.evaluate(()=>normalizeAiCustomerResult({phone:'+44'},'Alex Example +44, 123 Sample Rd PR2 2LE').fields.phone),undefined);
+    assert.equal(await page.evaluate(()=>normalizeAiCustomerResult({addresses:['1600 Amphitheatre Pkwy Mountain View 94043 99999']},'1600 Amphitheatre Pkwy Mountain View 94043').fields.address),undefined,'fabricated address digits must be rejected');
     for(const value of ['18 inch lace frontal','123 Example Street, London SW1A 1AA']) {
-      assert.equal(await page.evaluate(value=>normalizeAiCustomerFields({contacts:[value]},value).contact,value),undefined,'array contacts must use scalar identity checks');
+      assert.equal(await page.evaluate(value=>normalizeAiCustomerResult({contacts:[value]},value).fields.contact,value),undefined,'array contacts must use scalar identity checks');
     }
-    assert.equal(await page.evaluate(()=>normalizeAiCustomerFields({addresses:['Total 100 USD']},'Total 100 USD').address),undefined,'an amount followed by currency is not an address');
-    assert.equal(await page.evaluate(()=>normalizeAiCustomerFields({addresses:['100 USD']},'100 USD').address),undefined);
-    assert.equal(await page.evaluate(()=>normalizeAiCustomerFields({address:'123 Example Street, Springfield, IL 62704 1234'},'123 Example Street, Springfield, IL 62704-1234').address),'123 Example Street, Springfield, IL 62704 1234','ZIP+4 separator changes preserve unchanged digits');
-    assert.equal(await page.evaluate(()=>normalizeAiCustomerFields({address:'1 Pariser Platz Berlin 10117'},'1 Pariser Platz Berlin 10117').address),'1 Pariser Platz Berlin 10117','international address ending in postcode is not an amount');
+    assert.equal(await page.evaluate(()=>normalizeAiCustomerResult({addresses:['Total 100 USD']},'Total 100 USD').fields.address),undefined,'an amount followed by currency is not an address');
+    assert.equal(await page.evaluate(()=>normalizeAiCustomerResult({addresses:['100 USD']},'100 USD').fields.address),undefined);
+    assert.equal(await page.evaluate(()=>normalizeAiCustomerResult({address:'123 Example Street, Springfield, IL 62704 1234'},'123 Example Street, Springfield, IL 62704-1234').fields.address),'123 Example Street, Springfield, IL 62704 1234','ZIP+4 separator changes preserve unchanged digits');
+    assert.equal(await page.evaluate(()=>normalizeAiCustomerResult({address:'1 Pariser Platz Berlin 10117'},'1 Pariser Platz Berlin 10117').fields.address),'1 Pariser Platz Berlin 10117','international address ending in postcode is not an amount');
     const prompt = await page.evaluate(()=>aiCustomerPrompt('fixture'));
     assert.doesNotMatch(prompt,/Google|Apple/,'the removed branded example must not appear');
     assert.match(prompt,/countrySource/);

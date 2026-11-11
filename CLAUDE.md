@@ -22,7 +22,7 @@ npm run check   # version numbers agree, required files exist
 npm test        # every scripts/test-*.js; set OTS_TEST_CONCURRENCY=2 on a small machine
 ```
 
-The lint has no warnings level worth keeping: a finding is fixed or the rule is off. An unused top-level function in the page is dead code and fails the lint; the allowlist in `eslint.config.js` is only for entry points called from outside the page (the Swift host, tests).
+The lint has no warnings level worth keeping: a finding is fixed or the rule is off. An unused top-level function in the page is dead code and fails the lint; the allowlist in `eslint.config.js` holds `nativeDialog` only, which the Swift host calls. A function kept alive for a test is still dead code: the test calls what the page calls.
 
 ## Rules that are easy to break
 

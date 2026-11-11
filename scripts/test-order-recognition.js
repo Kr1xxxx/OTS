@@ -194,7 +194,6 @@ vm.runInContext(html.match(/^const customerPasteFieldOrder = .*;$/m)[0].replace(
   'localCustomerCountry',
   'localCustomerPaymentMethod',
   'analyzeCustomerPasteText',
-  'customerFieldsFromCombinedPaste',
   'orderFieldsFromCombinedPaste',
   'combinedPasteCreatePreview',
   'inferNewOrderStage',
@@ -280,7 +279,7 @@ assert.equal(
   '客户与订单联合识别不能把整段原文写入订单备注'
 );
 assert.equal(
-  evaluateJson(`customerFieldsFromCombinedPaste(${JSON.stringify(ordinaryPasteWithoutNote)})`).note,
+  evaluateJson(`combinedPasteCreatePreview(${JSON.stringify(ordinaryPasteWithoutNote)})`).customerFields.note,
   undefined,
   '客户与订单联合识别不能把整段原文写入客户备注'
 );

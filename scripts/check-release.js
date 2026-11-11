@@ -30,6 +30,7 @@ assert(!fs.existsSync(path.join(resources, 'feishu-settings.json')), 'Private Fe
 assertFilesEqual(path.join(root, 'mac-app', 'ai-usage-store.js'), path.join(resources, 'ai-usage-store.js'));
 assertFilesEqual(path.join(root, 'mac-app', 'whatsapp-store.js'), path.join(resources, 'whatsapp-store.js'));
 assertFilesEqual(path.join(root, 'mac-app', 'subscription-store.js'), path.join(resources, 'subscription-store.js'));
+assertFilesEqual(path.join(root, 'mac-app', 'backup-attachments.js'), path.join(resources, 'backup-attachments.js'));
 assertFilesEqual(path.join(root, 'mac-app', 'whatsapp-native-host.js'), path.join(resources, 'whatsapp-native-host.js'));
 assertFilesEqual(path.join(root, 'trade-order-system.html'), path.join(resources, 'trade-order-system.html'));
 assertFilesEqual(path.join(root, 'trade-order-data.json'), path.join(resources, 'trade-order-data.json'));

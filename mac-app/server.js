@@ -11,6 +11,7 @@ const { createWhatsAppStore, renameWhatsAppCustomer, moveWhatsAppChats } = requi
 const { createAiUsageStore } = require('./ai-usage-store');
 const { createSubscriptionStore } = require('./subscription-store');
 const { readFeishuSettings, writeFeishuSettings } = require('./feishu-settings');
+const { createAttachmentCopier } = require('./backup-attachments');
 
 const appName = 'TradeOrderSystem';
 const port = Number(process.env.TRADE_APP_PORT || 47828);
@@ -1687,10 +1688,33 @@ function retainedAttachmentRefs(payload = readCurrentPayload()) {
   }
   return refs;
 }
-function copyBackupAttachments(backupFile) {
+// The newest earlier backup of this database that has an attachments folder: what the next backup can share files with.
+function previousBackupAttachmentsDir(tag = '') {
+  const own = fs.readdirSync(backupDir).map(parseBackupName)
+    .filter(item => item && item.name.endsWith('.sqlite') && (!item.tag || !tag || item.tag === tag))
+    .sort((a, b) => b.at - a.at || (a.name < b.name ? 1 : -1));
+  for (const item of own) {
+    const dir = path.join(backupDir, item.name) + '.attachments';
+    if (fs.existsSync(dir)) return dir;
+  }
+  return '';
+}
+// A backup interrupted halfway (the app was force-quit, the disk went away) leaves its staging files behind; nothing reads them.
+function removeStaleBackupStaging(now = Date.now()) {
+  for (const name of fs.readdirSync(backupDir)) {
+    const base = name.replace(/\.partial(\.attachments)?$/, '');
+    if (base === name || !isOtsBackupFile(base)) continue;
+    const file = path.join(backupDir, name);
+    try {
+      if (now - fs.statSync(file).mtimeMs > 60 * 60 * 1000) fs.rmSync(file, { recursive:true, force:true });
+    } catch (_) {}
+  }
+}
+// Each backup has its own complete attachments folder; a file the previous backup already holds is shared with it, not written again (see backup-attachments.js).
+function copyBackupAttachments(backupFile, previousDir = '') {
   const dir = backupFile + '.attachments';
   fs.mkdirSync(dir, { recursive:true, mode:0o700 });
-  let count = 0;
+  const copier = createAttachmentCopier({ previous: relative => previousDir ? path.join(previousDir, relative) : '' });
   for (const source of backupAttachmentRefs(backupFile)) {
     const relative = path.relative(attachmentsDir, source);
     if (relative.startsWith('..') || path.isAbsolute(relative)) throw new Error('Invalid backup attachment path');
@@ -1698,12 +1722,9 @@ function copyBackupAttachments(backupFile) {
     if (!fs.existsSync(source)) continue;
     const target = path.join(dir, relative);
     fs.mkdirSync(path.dirname(target), { recursive:true, mode:0o700 });
-    // Independent copy (APFS may share immutable blocks), never a hard link.
-    fs.copyFileSync(source, target, fs.constants.COPYFILE_FICLONE);
-    fs.chmodSync(target, 0o600);
-    count += 1;
+    copier.place(source, target, relative);
   }
-  return count;
+  return copier.counts;
 }
 function missingAttachmentReport() {
   // 数据库照常备份；缺的图片按订单列出来，写进备份旁边的 .missing.json，并告诉页面。
@@ -1791,13 +1812,15 @@ function createBackup(force = false, { beforeChange = false, reason = '', rotate
   const backupFile = path.join(backupDir, backupName);
   const stagingFile = backupFile + '.partial';
   const missing = missingAttachmentReport();
+  try { removeStaleBackupStaging(now); } catch (_) {}
   database.exec('PRAGMA wal_checkpoint(FULL)');
   const quoted = stagingFile.replaceAll("'", "''");
-  let attachmentCount;
+  let attachmentCopies;
   try {
+    const previousDir = previousBackupAttachmentsDir(tag);
     database.exec(`VACUUM INTO '${quoted}'`);
     fs.chmodSync(stagingFile, 0o600);
-    attachmentCount = copyBackupAttachments(stagingFile);
+    attachmentCopies = copyBackupAttachments(stagingFile, previousDir);
     if (missing.count) atomicWrite(backupFile + '.missing.json', JSON.stringify({ missingAttachments:missing.orders, count:missing.count }, null, 2));
     fs.renameSync(stagingFile + '.attachments', backupFile + '.attachments');
     fs.renameSync(stagingFile, backupFile);
@@ -1819,7 +1842,8 @@ function createBackup(force = false, { beforeChange = false, reason = '', rotate
   atomicWrite(backupMetaFile, JSON.stringify({ lastBackupAt: now, lastBackupFile: backupFile }, null, 2));
   const summary = backupSummary();
   return {
-    ok:true, file:backupFile, name:backupName, attachmentsDir:backupFile + '.attachments', attachmentCount, rotated,
+    ok:true, file:backupFile, name:backupName, attachmentsDir:backupFile + '.attachments',
+    attachmentCount:attachmentCopies.cloned + attachmentCopies.linked + attachmentCopies.copied, attachmentCopies, rotated,
     sqliteCount:summary.sqliteCount, oldestBackupAt:summary.oldestBackupAt,
     ...(missing.count ? { missingAttachments:missing.orders, warning:missingAttachmentMessage(missing) } : {})
   };

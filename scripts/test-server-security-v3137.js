@@ -296,7 +296,7 @@ async function main() {
   try {
     const resources = path.join(smokeRoot, 'smoke', 'TradeOrderSystem.app', 'Contents', 'Resources');
     fs.mkdirSync(resources, { recursive: true });
-    for (const file of ['server.js', 'feishu-settings.js', 'ai-usage-store.js', 'whatsapp-store.js', 'subscription-store.js', 'whatsapp-native-host.js']) fs.copyFileSync(path.join(root, 'mac-app', file), path.join(resources, file));
+    for (const file of ['server.js', 'feishu-settings.js', 'ai-usage-store.js', 'whatsapp-store.js', 'subscription-store.js', 'backup-attachments.js', 'whatsapp-native-host.js']) fs.copyFileSync(path.join(root, 'mac-app', file), path.join(resources, file));
     for (const file of ['trade-order-system.html', 'trade-order-data.json']) fs.copyFileSync(path.join(root, file), path.join(resources, file));
     fs.symlinkSync(process.execPath, path.join(resources, 'node-runtime'));
     const smokeScript = path.join(__dirname, 'smoke-test-app-bundle.js');

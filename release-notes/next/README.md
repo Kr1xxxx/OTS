@@ -1,11 +1,11 @@
 # Pending release notes
 
 A pull request that changes what the installed app does adds one file here, named after the change
-(`backup-in-background.md`). Write one to three short lines in Chinese, for the person using the
+(`backup-shares-images.md`). Write one to three short lines in Chinese, for the person using the
 app: what they will notice, not how it was done. Each line is at most 100 characters.
 
 ```
-每小时的自动备份改到后台做，保存不再因为备份卡住
+备份不再每次把全部图片重写一遍，只写新增的图片
 ```
 
 Do not change `VERSION` in a pull request. After the merge, once CI has passed on main, the release

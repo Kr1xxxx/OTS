@@ -177,7 +177,19 @@ const h = {
     return { x:box.x + box.width / 2, y:box.y + Math.min(box.height - 20, 160) };
   },
   // 真实鼠标拖拽：按下卡片、分几步移到目标列、（可选）在松手前检查、松手。
+  // 松手后核对 drop 真的落在了目标列上；没有的话当场报错，带上这次拖拽里浏览器派了哪些事件。
   async drag(page, id, stage, { beforeUp = null } = {}) {
+    await page.evaluate(() => {
+      const seen = window.__dragTrace = [];
+      const types = ['dragstart', 'dragenter', 'dragover', 'dragleave', 'drop', 'dragend'];
+      const note = e => {
+        const column = e.target.closest?.('.board-column[data-stage], #trashDrop');
+        const label = `${e.type}:${column ? column.dataset.stage || 'trash' : (e.target.nodeName || '').toLowerCase()}`;
+        if (seen.at(-1) !== label) seen.push(label);
+      };
+      types.forEach(type => document.addEventListener(type, note, true));
+      window.__dragTraceStop = () => types.forEach(type => document.removeEventListener(type, note, true));
+    });
     const from = await h.center(page, `#pipeline .board-card[data-id="${id}"]`);
     await page.mouse.move(from.x, from.y);
     await page.mouse.down();
@@ -188,6 +200,10 @@ const h = {
     if (beforeUp) await beforeUp();
     await page.mouse.up();
     await page.waitForFunction(() => !document.querySelector('#pipeline .dragging, #pipeline .drag-over, #pipeline .drag-invalid'));
+    const trace = await page.evaluate(() => { window.__dragTraceStop(); return window.__dragTrace; });
+    if (!trace.includes(`drop:${stage}`)) {
+      throw new Error(`Dragging ${id} from (${Math.round(from.x)}, ${Math.round(from.y)}) to "${stage}" at (${Math.round(to.x)}, ${Math.round(to.y)}): no drop on that column. Events: ${trace.join(' ') || 'none'}`);
+    }
   },
   // 右键卡片：等菜单是这张卡的、弹出动画停下，之后量菜单里的按钮位置才准。
   async rightClick(page, id) {

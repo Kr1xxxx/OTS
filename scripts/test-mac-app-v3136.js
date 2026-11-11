@@ -88,7 +88,10 @@ function checkReleaseWorkflow() {
   // The pin lives in .node-version, read by both workflows, so CI tests the Node the release bundles.
   assert.match(yml, /node-version-file: \.node-version/, 'bundled Node is pinned so small updates keep matching');
   assert.match(read('.node-version'), /^\d+\.\d+\.\d+\n$/, 'an exact Node version, not a range');
-  assert.equal(read('.github/workflows/ci.yml').match(/node-version-file: \.node-version/g)?.length, 2, 'both CI jobs use the same Node');
+  const ci = read('.github/workflows/ci.yml');
+  const ciJobs = ci.match(/uses: actions\/setup-node@/g)?.length;
+  assert.ok(ciJobs >= 2, 'CI sets up Node in its Linux and macOS jobs');
+  assert.equal(ci.match(/node-version-file: \.node-version/g)?.length, ciJobs, 'every CI job uses the same Node');
   assert.doesNotMatch(read('.github/workflows/ci.yml') + yml, /^\s*node-version:/m, 'no second place to pin Node');
   const pkg = read('scripts/package-mac-release.sh');
   assert.match(pkg, /-lite\.zip/);
@@ -120,6 +123,7 @@ function checkNativeSources() {
     'install is confirmed first': /confirmText: "现在安装并重启"/,
     'periodic update checks': /scheduleAutomaticUpdateCheck\(\)/,
     'page boot message is listened for': /userContentController\.add\(self, name: "appBooted"\)/,
+    'Tab reaches buttons and links': /config\.preferences\.tabFocusesLinks = true/,
     'page boot confirms the update': /message\.name == "appBooted" \{[\s\S]{0,300}updater\.pageDidBoot\(\)/
   };
   for (const [label, pattern] of Object.entries(expectMain)) assert.match(main, pattern, `main.swift: ${label}`);
@@ -550,9 +554,19 @@ async function checkThemeFollowsSystem(browser, server) {
   await again.page.reload();
   await again.page.waitForFunction(() => window.pendingSaveStatus?.().loaded);
   assert.equal(await again.page.evaluate(() => localStorage.getItem('trade-order-system-theme')), null, 'a stale local theme is cleared');
+  // A choice made just before the page goes away is sent on the way out. It used to wait 300 ms for its timer:
+  // the reload came first, and the server's older copy won on the next load. Both in one step, so the timer
+  // cannot run in between.
+  await Promise.all([
+    again.page.waitForEvent('framenavigated'),
+    again.page.evaluate(() => { setThemeMode('light'); location.reload(); }).catch(() => {})
+  ]);
+  await again.page.waitForFunction(() => window.pendingSaveStatus?.().loaded);
+  assert.equal(await again.page.evaluate(() => localStorage.getItem('trade-order-system-theme')), 'light', 'a theme chosen right before a reload is kept');
+  assert.equal(await again.page.evaluate(() => document.documentElement.dataset.theme), 'light');
   assert.deepEqual(again.errors, []);
   await again.context.close();
-  await setServerPrefs(server, { 'ots-accent-v1':null });
+  await setServerPrefs(server, { 'ots-accent-v1':null, 'trade-order-system-theme':null });
 }
 
 (async () => {

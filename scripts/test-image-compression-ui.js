@@ -92,17 +92,34 @@ async function main() {
       const canvas = document.createElement('canvas');
       canvas.width = 3600; canvas.height = 1800;
       const ctx = canvas.getContext('2d');
-      for (let x = 0; x < 3600; x += 30) { ctx.fillStyle = `hsl(${x % 360},60%,50%)`; ctx.fillRect(x, 0, 30, 1800); }
+      // 像照片的图：渐变底上叠一片片柔和的色块。纯色条纹是 PNG 最拿手的，缩小后的 JPEG（WebKit 编不了 WebP 时用它）
+      // 反而比那样的原图大，页面按规则留原图，就测不到压缩了。
+      const sky = ctx.createLinearGradient(0, 0, 3600, 1800);
+      sky.addColorStop(0, '#f4d9c6'); sky.addColorStop(.5, '#8fb7c9'); sky.addColorStop(1, '#2d3a5c');
+      ctx.fillStyle = sky; ctx.fillRect(0, 0, 3600, 1800);
+      for (let i = 0; i < 60; i += 1) {
+        const x = (i * 613) % 3600, y = (i * 397) % 1800, r = 140 + (i * 53) % 320;
+        const blob = ctx.createRadialGradient(x, y, 0, x, y, r);
+        blob.addColorStop(0, `hsla(${(i * 47) % 360},70%,60%,.75)`); blob.addColorStop(1, 'hsla(0,0%,100%,0)');
+        ctx.fillStyle = blob; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+      }
       const big = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
       const result = await compactImageBlob(big);
       const img = await imageFromFile(result);
+      // 同一张图走 JPEG 那条路（真实 App 的 WebKit 编不了 WebP）也要变小。
+      const webpBefore = canvasWebpSupported;
+      canvasWebpSupported = false;
+      const viaJpeg = await compactImageBlob(big);
+      canvasWebpSupported = webpBefore;
       const tiny = document.createElement('canvas');
       tiny.width = 64; tiny.height = 64;
       const small = await new Promise(resolve => tiny.toBlob(resolve, 'image/jpeg', .3));
       const smallResult = await compactImageBlob(small);
-      return { bigSize:big.size, size:result.size, type:result.type, width:img.naturalWidth, height:img.naturalHeight, smallKept:smallResult === small };
+      return { bigSize:big.size, size:result.size, type:result.type, width:img.naturalWidth, height:img.naturalHeight, smallKept:smallResult === small, jpegSize:viaJpeg.size, jpegType:viaJpeg.type };
     });
     assert.ok(compact.size < compact.bigSize, `压缩版应比原图小：${compact.size} vs ${compact.bigSize}`);
+    assert.equal(compact.jpegType, 'image/jpeg');
+    assert.ok(compact.jpegSize < compact.bigSize / 10, `JPEG 那条路也要小得多：${compact.jpegSize} vs ${compact.bigSize}`);
     assert.match(compact.type, /^image\/(?:webp|jpeg)$/, '压缩版是 WebP 或 JPEG');
     assert.equal(compact.width, 2560, '最长边缩到 2560');
     assert.equal(compact.height, 1280);

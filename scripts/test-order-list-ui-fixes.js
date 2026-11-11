@@ -8,6 +8,7 @@
 // 全程用真实键盘和鼠标；等条件，不用固定 sleep。
 const assert = require('node:assert/strict');
 const { launchBrowser, openBoard, h, base, day } = require('./helpers/board-page');
+const { inputMethod } = require('./helpers/input-method');
 
 const rates = [{ date:'2020-01-01', rates:{ USD:1.1, CNY:7.9, GBP:0.86, EUR:1 } }];
 const order = (id, fields) => ({ ...base, id, orderType:'定金订单', paidAmount:0, stage:'quote', ...fields });
@@ -68,14 +69,14 @@ const orders = [
       window.renderOrderListPage = (...args) => { window.__listRenders.push(document.getElementById('orderListSearch').value); return original(...args); };
     });
     await search.click();
-    const cdp = await page.context().newCDPSession(page);
+    const ime = await inputMethod(page);
     for (const text of ['z', 'zh', 'zhang']) {
-      await cdp.send('Input.imeSetComposition', { text, selectionStart:text.length, selectionEnd:text.length });
+      await ime.compose(text);
       await h.waitPageTime(page, 200);
     }
     assert.deepEqual(await page.evaluate(() => window.__listRenders), [], 'list re-rendered while composing');
     assert.equal(await page.locator('#orderTableBody .order-table-empty').count(), 0, 'composing must not flash the empty state');
-    await cdp.send('Input.insertText', { text:'张三' });
+    await ime.commit('张三');
     await waitRows(['o-cny'], 'committed IME text');
     assert.ok(!(await page.evaluate(() => window.__listRenders)).some(value => /[a-z]/.test(value)), 'no render with pinyin letters');
     await clearSearch();

@@ -40,6 +40,9 @@ const { chromium } = require('playwright');
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.route('**/*', async route => {
+      // WebKit under Playwright also hands over the blob: address of a pasted picture; that is the page reading
+      // its own memory, not a request to the server.
+      if (!/^https?:/.test(route.request().url())) return route.continue();
       const pathname = new URL(route.request().url()).pathname;
       if (pathname === '/trade-order-system.html') return route.fulfill({ contentType:'text/html', body:html });
       if (pathname === '/api/data') return route.fulfill({ json:{ app:'trade-order-system', revision:0, data:{ orders:[{ id:'upload-existing', num:'UPLOAD-TEST', client:'Upload Test Buyer', amount:100, paidAmount:0, currency:'USD', stage:'quote', productType:'睫毛', createdAt:'2026-10-03', attachments:Array.from({ length:18 }, (_, index) => ({ name:`Existing ${index}`, link:`https://example.com/${index}`, type:'其他' })) }], customers:{}, demoCleared:true, demoCustomersCleared:true } } });
@@ -74,7 +77,10 @@ const { chromium } = require('playwright');
     });
     const cards = page.locator('#orderImageUploads .image-upload-card');
     await page.waitForFunction(() => document.querySelectorAll('#orderImageUploads [role="progressbar"]').length === 2, null, { timeout:3000 });
-    await page.waitForFunction(() => document.querySelector('#orderImageUploads .image-upload-stage')?.textContent === '优化保存中');
+    await page.waitForFunction(() => document.querySelector('#orderImageUploads .image-upload-stage')?.textContent === '优化保存中').catch(async error => {
+      const seen = await cards.evaluateAll(nodes => nodes.map(node => `${node.dataset.state} ${node.getAttribute('aria-valuenow')}% ${node.querySelector('.image-upload-stage')?.textContent}`));
+      throw new Error(`The first image never reached 优化保存中 (requests the server got: ${attachmentRequests}): ${seen.join(' | ')}\n${error.message}`);
+    });
     assert.equal(await cards.nth(0).getAttribute('data-state'), 'uploading');
     assert(Number(await cards.nth(0).getAttribute('aria-valuenow')) < 100, '不能在服务器确认前显示完成');
     assert.equal(await cards.nth(1).getAttribute('aria-valuenow'), '0', '排队图片不应假装已上传');

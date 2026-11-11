@@ -7658,9 +7658,26 @@ const serverPrefKeys = new Set(['trade-order-system-theme', 'ots-accent-v1', 'ot
 const pendingServerPrefs = new Map();
 let serverPrefsAdopted = false;
 let serverPrefTimer = 0;
+// 还没送到服务的那几项记在本机：页面在送到之前刷新 / 关掉了（改完马上 ⌘R），下次打开时这几项以本机为准接着送，
+// 不让服务里那份旧的把刚选的盖回去。
+const serverPrefsUnsentKey = 'ots-prefs-unsent';
+function unsentServerPrefKeys() {
+  try {
+    const list = JSON.parse(window.localStorage.getItem(serverPrefsUnsentKey) || '[]');
+    return Array.isArray(list) ? list.filter(key => serverPrefKeys.has(key)) : [];
+  } catch (_) { return []; }
+}
+function markServerPrefsUnsent(keys, unsent) {
+  const next = unsent ? [...new Set([...unsentServerPrefKeys(), ...keys])] : unsentServerPrefKeys().filter(key => !keys.includes(key));
+  try {
+    if (next.length) window.localStorage.setItem(serverPrefsUnsentKey, JSON.stringify(next));
+    else window.localStorage.removeItem(serverPrefsUnsentKey);
+  } catch (_) { /* 本机存储不可用 */ }
+}
 function queueServerPref(key, value) {
   if (!serverPrefsAdopted || !serverPrefKeys.has(key)) return;
   pendingServerPrefs.set(key, value);
+  markServerPrefsUnsent([key], true);
   clearTimeout(serverPrefTimer);
   serverPrefTimer = setTimeout(flushServerPrefs, 300);
 }
@@ -7670,17 +7687,26 @@ function flushServerPrefs() {
   if (!pendingServerPrefs.size) return Promise.resolve();
   const set = Object.fromEntries(pendingServerPrefs);
   pendingServerPrefs.clear();
-  return apiFetch('/api/ui-prefs', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ set }), timeoutMs:3000 })
-    .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); })
+  // keepalive：页面正要离开时发出去的这一次不随页面一起取消。
+  return apiFetch('/api/ui-prefs', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ set }), timeoutMs:3000, keepalive:true })
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      markServerPrefsUnsent(Object.keys(set).filter(key => !pendingServerPrefs.has(key)), false);
+    })
     .catch(() => Object.entries(set).forEach(([key, value]) => { if (!pendingServerPrefs.has(key)) pendingServerPrefs.set(key, value); }));
 }
+// 改完不到 300 毫秒页面就刷新 / 关掉：定时器等不到，趁离开前发出去。
+window.addEventListener('pagehide', () => { flushServerPrefs(); });
 // 必须在任何一处读偏好之前执行。页面不是本机服务发出来的（测试、直接打开文件）时 meta 是空的，什么都不做。
 (function adoptServerPrefs() {
   let fromServer = null;
   try { fromServer = JSON.parse(document.querySelector('meta[name="ots-prefs"]')?.content || 'null'); } catch (_) { /* 当作没有 */ }
   if (!fromServer || typeof fromServer !== 'object' || Array.isArray(fromServer)) return;
   serverPrefsAdopted = true;
+  const unsent = new Set(unsentServerPrefKeys());
   serverPrefKeys.forEach(key => {
+    // 上次没送到的：本机这份比服务里的新（没有值 = 特意清掉了）。
+    if (unsent.has(key)) { queueServerPref(key, safeStorage.getItem(key)); return; }
     if (Object.hasOwn(fromServer, key)) {
       try {
         if (fromServer[key] === null) window.localStorage.removeItem(key);
@@ -11824,6 +11850,20 @@ function customerDetailCopyText(record = {}, type = '') {
   if (type === 'addresses') return normalizeCustomerContactFields(record).addresses.join('\n');
   return '';
 }
+// 从哪个控件打开的（关掉时焦点回到那里）。WebKit（真实 App）里点按钮、链接不会让它得到焦点：点完以后「当前焦点」
+// 是 body 或它外层的容器，不是刚点的那个，所以另外记下最后按下的是哪个控件；用键盘打开时仍然是当前焦点。
+const uiLastPress = { el:null, at:0 };
+document.addEventListener('pointerdown', e => {
+  uiLastPress.el = e.target.closest?.('button, a[href], summary, input, select, textarea, [tabindex]') || null;
+  uiLastPress.at = performance.now();
+}, true);
+function uiOpenedFrom() {
+  const active = document.activeElement;
+  const pressed = uiLastPress.el;
+  const focusLeftForPress = !active || active === document.body || active.contains(pressed);
+  if (pressed?.isConnected && performance.now() - uiLastPress.at < 1500 && focusLeftForPress) return pressed;
+  return active && active !== document.body ? active : null;
+}
 function setModalOpenState(modalOrId, open) {
   const modal = typeof modalOrId === 'string' ? document.getElementById(modalOrId) : modalOrId;
   if (!modal) return null;
@@ -11838,7 +11878,7 @@ function setModalOpenState(modalOrId, open) {
   // 提示条留在窗口底部，正好盖住弹窗底部的「保存」（续费弹窗的「重新续费」被盖住一半，macOS 上整个按钮中心都被盖住）。
   if (isOpen !== wasOpen && typeof uiLayoutToasts === 'function' && typeof document === 'object' && document.querySelector?.('#toast .toast-item')) uiLayoutToasts();
   if (canManageFocus && isOpen && !wasOpen) {
-    const active = document.activeElement;
+    const active = typeof uiOpenedFrom === 'function' ? uiOpenedFrom() : document.activeElement;
     modal.__returnFocus = active && active !== document.body && !modal.contains(active) ? active : null;
     window.requestAnimationFrame(() => {
       if (!modal.classList.contains('open') || modal.contains(document.activeElement)) return;
@@ -11857,6 +11897,9 @@ function setModalOpenState(modalOrId, open) {
     if (back && back.isConnected && (modal.contains(document.activeElement) || document.activeElement === document.body)) {
       try { back.focus({ preventScroll:true }); } catch (_) { /* 忽略 */ }
     }
+    // 没有可回去的地方：焦点也不留在已经关掉的弹窗里。Chromium 会在元素看不见后自己收走焦点，WebKit 不会，
+    // 下次打开时就被当成「用户已经在里面操作」，起始焦点不再放。
+    if (modal.contains(document.activeElement)) document.activeElement.blur?.();
   }
   return modal;
 }
@@ -25823,7 +25866,7 @@ function subscriptionPeriodsHtml(item, schedule) {
 function openSubscriptionDetail(id) {
   if (!findSubscription(id)) return;
   const wasOpen = document.getElementById('subscriptionDrawer').classList.contains('open');
-  if (!wasOpen) subscriptionReturnFocus = document.activeElement;
+  if (!wasOpen) subscriptionReturnFocus = uiOpenedFrom();
   if (subscriptionDetailId !== id) subscriptionPeriodsAll = false;
   subscriptionDetailId = id;
   renderSubscriptionDetail({ entering:!wasOpen });
@@ -26303,7 +26346,7 @@ function openSubscriptionEditor(id = '', { resubscribe = false, origin = '' } = 
   }
   subscriptionEditorOrigin = existing && !resubscribe ? origin : '';
   subscriptionDraftClean = JSON.stringify(subscriptionDraft);
-  if (!document.getElementById('subscriptionDrawer').classList.contains('open')) subscriptionReturnFocus = document.activeElement;
+  if (!document.getElementById('subscriptionDrawer').classList.contains('open')) subscriptionReturnFocus = uiOpenedFrom();
   const form = document.getElementById('subscriptionEditForm');
   form.elements.subName.value = subscriptionDraft.name;
   form.elements.subNote.value = subscriptionDraft.note;
@@ -27283,7 +27326,9 @@ const globalSearchPanel = document.getElementById('globalSearchPanel');
 // 输入加 100ms 防抖（以前每个按键同步重算全部客户和订单），输入法组字期间不算。
 // 防抖到点时面板已经按当前输入算过了（这 100ms 里按了 ↑↓ / Enter，syncGlobalSearchPanel 先算了一次），就不再重画：
 // 以前照样重画，刚用 ↑↓ 选中的那条被清掉（机器慢、防抖晚到时偶发）。
+// 这 100ms 里按了 Esc、点到了别处（搜索框已经没有焦点）：面板是用户收起的，不再把它打开。
 const debouncedGlobalSearchRender = debounce(() => {
+  if (document.activeElement !== searchInput) return;
   if (globalSearchPanel.classList.contains('open') && globalSearchRenderedQuery === searchInput.value.trim()) return;
   renderGlobalSearchPanel({ forceOpen:true });
 }, 100);
@@ -28959,7 +29004,9 @@ document.getElementById('pipeline').addEventListener('dragend', e => {
   if (card) card.classList.remove('dragging');
   document.querySelectorAll('.drag-over, .drag-invalid').forEach(el => el.classList.remove('drag-over', 'drag-invalid'));
 });
-document.getElementById('pipeline').addEventListener('dragover', e => {
+// dragenter 和 dragover 一样处理：指针刚进到列里的另一个元素时，WebKit 只派 dragenter、不派 dragover，
+// 这一下没有接住的话它就认为这里不能放，正好在这时松手，卡片不动（标准也要求两个事件都接住）。
+function boardDragOverColumn(e) {
   const column = e.target.closest('.board-column[data-stage], #trashDrop');
   if (!column) return;
   // 外部拖进来的文本 / 文件也拦下（别让浏览器打开文件），但不高亮、松手时不当成订单。
@@ -28972,10 +29019,14 @@ document.getElementById('pipeline').addEventListener('dragover', e => {
   const same = state.orders.includes(order) && order.stage === column.dataset.stage;
   column.classList.toggle('drag-invalid', invalid);
   column.classList.toggle('drag-over', !invalid && !same);
-});
+}
+document.getElementById('pipeline').addEventListener('dragenter', boardDragOverColumn);
+document.getElementById('pipeline').addEventListener('dragover', boardDragOverColumn);
 document.getElementById('pipeline').addEventListener('dragleave', e => {
   const column = e.target.closest('.board-column[data-stage], #trashDrop');
-  if (column && !column.contains(e.relatedTarget)) column.classList.remove('drag-over', 'drag-invalid');
+  // WebKit 的 dragleave 不带 relatedTarget：按指针现在在哪判断是不是真的离开了这一列（列里换了个元素不算）。
+  const movedTo = e.relatedTarget || document.elementFromPoint(e.clientX, e.clientY);
+  if (column && !column.contains(movedTo)) column.classList.remove('drag-over', 'drag-invalid');
 });
 document.getElementById('pipeline').addEventListener('drop', e => {
   const target = e.target.closest('.board-column[data-stage], #trashDrop');

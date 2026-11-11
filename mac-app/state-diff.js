@@ -18,7 +18,10 @@ function orderIndexById(data = {}) {
 }
 // 「当前 → 恢复后」的差别：按订单 id 和客户名比，数出新增、修改、删除，并列出前几个会消失的订单号和客户名。
 function diffStateData(current = {}, next = {}) {
-  const strip = order => JSON.stringify({ ...order, feishuNotification:undefined });
+  // A backup from before customers had ids differs from the current data in those two fields on every record;
+  // that is not a change the restore makes to anything the user sees.
+  const strip = order => JSON.stringify({ ...order, feishuNotification:undefined, customerId:undefined });
+  const profile = record => JSON.stringify(record && typeof record === 'object' && !Array.isArray(record) ? { ...record, id:undefined } : record);
   const before = orderIndexById(current);
   const after = orderIndexById(next);
   const orders = { added:0, changed:0, removed:0, removedNums:[] };
@@ -37,7 +40,7 @@ function diffStateData(current = {}, next = {}) {
   const customers = { added:0, changed:0, removed:0, removedNames:[] };
   Object.keys(nextCustomers).forEach(name => {
     if (!Object.prototype.hasOwnProperty.call(currentCustomers, name)) customers.added += 1;
-    else if (JSON.stringify(currentCustomers[name]) !== JSON.stringify(nextCustomers[name])) customers.changed += 1;
+    else if (profile(currentCustomers[name]) !== profile(nextCustomers[name])) customers.changed += 1;
   });
   Object.keys(currentCustomers).forEach(name => {
     if (Object.prototype.hasOwnProperty.call(nextCustomers, name)) return;

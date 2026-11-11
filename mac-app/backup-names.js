@@ -4,9 +4,9 @@
 // 文件名：trade-order-data-<日期>-<时间>[-<本机数据库 id 前 6 位>][-before-<原因>][-<序号>].sqlite
 // - 数据库 id：两台 Mac 把备份目录选到同一个 iCloud 文件夹时，轮转只删自己的，不删对方的（旧备份没有 id，按自己的算）。
 // - 「-before-<原因>」：操作前强制生成的快照（合并 / 删除客户 change、导入 import、恢复示例 reset、从备份恢复 restore），
-//   安装更新前（update）也强制备份一份。单独保留 90 天（至少最近 20 份），不参与日常轮转。
-const backupReasons = ['change', 'import', 'reset', 'restore', 'update'];
-const otsBackupFileName = /^trade-order-data-(\d{8})-(\d{6})(?:-([0-9a-f]{6}))?(?:-before-(change|import|reset|restore|update))?(?:-\d+)?\.(?:sqlite|json)$/;
+//   安装更新前（update）、新版本第一次启动要给数据补字段前（migrate）也强制备份一份。单独保留 90 天（至少最近 20 份），不参与日常轮转。
+const backupReasons = ['change', 'import', 'reset', 'restore', 'update', 'migrate'];
+const otsBackupFileName = /^trade-order-data-(\d{8})-(\d{6})(?:-([0-9a-f]{6}))?(?:-before-(change|import|reset|restore|update|migrate))?(?:-\d+)?\.(?:sqlite|json)$/;
 function parseBackupName(name = '') {
   const match = otsBackupFileName.exec(name);
   if (!match) return null;

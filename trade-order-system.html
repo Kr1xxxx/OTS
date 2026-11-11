@@ -7998,6 +7998,9 @@ const demoCustomerProfiles = {
   'Vienna Living GmbH': { level:'E级白银客户', tags:['尾款待收'], paymentMethod:'PayPal', repurchaseCycle:90, note:'示例：奥地利尾款提醒客户' },
   'Pacific North LLC': { level:'C级白金客户', tags:['稳定客户'], paymentMethod:'T/T 银行转账', repurchaseCycle:60, note:'示例：美国稳定复购客户' }
 };
+// 示例客户的固定编号写死：两个窗口各自第一次保存示例数据时，同一位示例客户不会拿到两个不同的编号。
+Object.keys(demoCustomerProfiles).forEach((name, index) => { demoCustomerProfiles[name].id = `demo-customer-${String(index + 1).padStart(2, '0')}`; });
+demoOrders.forEach(order => { if (Object.hasOwn(demoCustomerProfiles, order.client)) order.customerId = demoCustomerProfiles[order.client].id; });
 
 const storeKey = 'trade-order-system-v4';
 const themeKey = 'trade-order-system-theme';
@@ -8922,8 +8925,53 @@ function pendingSaveStatus() {
 }
 window.pendingSaveStatus = pendingSaveStatus;
 window.getPendingSaveStatus = pendingSaveStatus;
+// ---- 客户固定编号 ----
+// 每份客户档案有一个固定编号（档案里的 id），这位客户的每张订单带着它（customerId）。名字照旧是到处用的那把钥匙
+//（state.customers 的键、order.client、WhatsApp 聊天）；编号只回答「谁是谁」：同一个编号换了名字就是改名，
+// 服务端按它把聊天跟过去（mac-app/customer-ids.js），不用再从「少了一个名字、多了一个名字」去猜。
+// 编号在保存前由这里补：新建的档案、导入进来没有编号的档案、撤销回来的订单，都不用各自记得去写。
+const validCustomerId = value => typeof value === 'string' && /^[A-Za-z0-9_-]{6,64}$/.test(value);
+function newCustomerId() {
+  const bytes = new Uint8Array(9);
+  crypto.getRandomValues(bytes);
+  return `c${Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('')}`;
+}
+// 只动这两个字段，而且只在缺了或不对的时候动：数据本来就齐的话，一个字都不改（不会凭空多出一次保存）。
+// 两份档案撞了同一个编号（冲突合并后两边各留了一份）：按名字排序，前一份留着，后一份换新的。
+//
+// 给老数据补编号是服务端的事：它在升级后第一次启动时先备份、再一次补齐。备份没做成它就不补，下次启动再试；
+// 这时候页面读到的档案里还有没编号的，页面也不补（customerIdsInDatabase 为 false），不然等于绕过那份备份
+// 把老数据改了。这一段时间里改名照旧按原来的规则认。
+let customerIdsInDatabase = false;
+const customersAllHaveIds = data => Object.values(data?.customers || {}).every(profile => !profile || typeof profile !== 'object' || validCustomerId(profile.id));
+function ensureCustomerIds(data = state) {
+  if (!customerIdsInDatabase) return;
+  const customers = data?.customers && typeof data.customers === 'object' ? data.customers : {};
+  const isProfile = name => Boolean(customers[name]) && typeof customers[name] === 'object';
+  const names = Object.keys(customers).filter(isProfile).sort();
+  const used = new Set();
+  const lacking = names.filter(name => {
+    const id = customers[name].id;
+    if (!validCustomerId(id) || used.has(id)) return true;
+    used.add(id);
+    return false;
+  });
+  lacking.forEach(name => {
+    let id = newCustomerId();
+    while (used.has(id)) id = newCustomerId();
+    used.add(id);
+    customers[name].id = id;
+  });
+  ['orders', 'trashOrders', 'deletedOrders'].forEach(bucket => (Array.isArray(data?.[bucket]) ? data[bucket] : []).forEach(order => {
+    if (!order || typeof order !== 'object') return;
+    const id = Object.hasOwn(customers, String(order.client || '')) && isProfile(order.client) ? customers[order.client].id : '';
+    if (id) { if (order.customerId !== id) order.customerId = id; }
+    else if (Object.hasOwn(order, 'customerId')) delete order.customerId;
+  }));
+}
 function queueCurrentMacState() {
   if (!isMacAppMode() || macStorageMode !== 'ready') return false;
+  ensureCustomerIds();
   const nextJson = JSON.stringify(state);
   if (nextJson !== macQueuedStateJson) {
     macQueuedStateJson = nextJson;
@@ -9244,6 +9292,7 @@ async function runMacSaveQueue() {
 async function macReplaceState(nextState) {
   if (!await flushPendingSave()) throw new Error(macSaveLastError || '还有修改没存进数据库');
   const previous = state;
+  ensureCustomerIds(nextState);
   const snapshotJson = JSON.stringify(nextState);
   state = nextState;
   render();
@@ -9462,6 +9511,7 @@ async function loadMacAppState() {
       const payload = await res.json();
       const loaded = macStateEnvelope(payload);
       state = loaded.state;
+      customerIdsInDatabase = customersAllHaveIds(state);
       macStorageRevision = loaded.revision;
       macPersistedStateJson = JSON.stringify(state);
       macQueuedStateJson = macPersistedStateJson;
@@ -21637,6 +21687,8 @@ function buildCustomerSavePayload(data = {}, previousProfile = {}, oldName = '',
   // 建档日：新建时记下来，以后改资料不动它（日历的「新客户」按它画；以前只有 updated，改一句备注就挪到今天）。
   const createdAt = previousProfile.createdAt || (oldName ? (previousHistory.map(item => String(item?.time || '')).filter(Boolean).sort()[0] || '') : nowText());
   if (createdAt) nextProfile.createdAt = createdAt;
+  // 固定编号跟着这位客户走：改资料、改名字都还是原来那个。
+  if (previousProfile.id) nextProfile.id = previousProfile.id;
   const historyEntry = {
     time: nowText(),
     text: oldName ? customerChangeSummary({ client: oldName, ...previousProfile }, nextProfile) : '新建客户档案'
@@ -23897,8 +23949,19 @@ function mergeImportedState(current, incoming, { updateCustomers = false } = {})
   }));
   next.customers = next.customers || {};
   // 冲突时导出的「没存进去的修改」：文件里的客户就是当时改过的，按文件更新；其它文件只加新客户。
+  // 固定编号以这边现有的为准：同名档案被文件里的覆盖时留着原来的编号；文件里的新客户带着的编号如果这边
+  // 已经有别的客户在用（文件是改名之前导出的那一份），那个编号不跟进来，保存时会给它一个新的。
+  const idsInUse = new Map(Object.entries(next.customers).map(([name, profile]) => [profile?.id, name]).filter(([id]) => id));
   Object.entries(incoming.customers || {}).forEach(([name, profile]) => {
-    if (updateCustomers || !Object.prototype.hasOwnProperty.call(next.customers, name)) next.customers[name] = profile;
+    const existing = Object.prototype.hasOwnProperty.call(next.customers, name) ? next.customers[name] : null;
+    if (existing && !updateCustomers) return;
+    const copy = profile && typeof profile === 'object' ? { ...profile } : profile;
+    if (copy && typeof copy === 'object') {
+      if (existing?.id) copy.id = existing.id;
+      else if (copy.id && idsInUse.has(copy.id) && idsInUse.get(copy.id) !== name) delete copy.id;
+      if (copy.id) idsInUse.set(copy.id, name);
+    }
+    next.customers[name] = copy;
   });
   const lookupIds = new Set((next.trackingLookups || []).map(item => item.id));
   (incoming.trackingLookups || []).forEach(item => {
@@ -24054,7 +24117,7 @@ async function undoDataReplacement(previous, appliedJson, label) {
 // 设置 → 数据管理 →「从备份恢复…」：展开备份目录里的每一份（时间、原因、大小）；点「恢复…」先看这份备份和现在数据的对比，
 // 确认后由本地服务一次做完（先把现在的数据另存一份「恢复前」备份，再换库、并回附件），然后页面重新加载。
 // 读库失败（身份标记不符、数据库文件不见了）时这里照样能用；换电脑时先「选择备份目录…」选到旧备份所在的文件夹。
-const backupReasonLabels = { change:'合并 / 删除客户前', import:'导入前', reset:'恢复示例前', restore:'恢复前', update:'安装更新前' };
+const backupReasonLabels = { change:'合并 / 删除客户前', import:'导入前', reset:'恢复示例前', restore:'恢复前', update:'安装更新前', migrate:'数据升级前' };
 const restoredNoticeKey = 'ots-restored-backup';
 function backupTimeText(ms) {
   const date = new Date(Number(ms) || 0);

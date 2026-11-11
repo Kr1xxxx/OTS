@@ -135,4 +135,12 @@ function moveWhatsAppChats(db, from, to, chats = null) {
 function renameWhatsAppCustomer(db, from, to) {
   return moveWhatsAppChats(db, from, to).length;
 }
-module.exports = { createWhatsAppStore, phoneKey, renameWhatsAppCustomer, moveWhatsAppChats };
+// Several renames that happened together ([{ from, to }]). They are applied as one step, through names no
+// customer can have, so two customers that took each other's name end up with their own chats.
+function renameWhatsAppCustomers(db, renames = []) {
+  if (!renames.length) return;
+  const parked = renames.map((rename, index) => ({ ...rename, parkedAs:`\u0000renaming-${index}` }));
+  parked.forEach(rename => moveWhatsAppChats(db, rename.from, rename.parkedAs));
+  parked.forEach(rename => moveWhatsAppChats(db, rename.parkedAs, rename.to));
+}
+module.exports = { createWhatsAppStore, phoneKey, renameWhatsAppCustomer, renameWhatsAppCustomers, moveWhatsAppChats };

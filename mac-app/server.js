@@ -5,7 +5,7 @@ const os = require('os');
 const crypto = require('crypto');
 const { spawn } = require('child_process');
 const { DatabaseSync } = require('node:sqlite');
-const { createWhatsAppStore, renameWhatsAppCustomer, moveWhatsAppChats } = require('./whatsapp-store');
+const { createWhatsAppStore, renameWhatsAppCustomer, renameWhatsAppCustomers, moveWhatsAppChats } = require('./whatsapp-store');
 const { createAiUsageStore } = require('./ai-usage-store');
 const { createSubscriptionStore } = require('./subscription-store');
 const { readFeishuSettings, writeFeishuSettings } = require('./feishu-settings');
@@ -23,6 +23,7 @@ const { orderBuckets, payloadCounts, diffStateData } = require('./state-diff');
 const { createTinify } = require('./tinify');
 const { createInstanceLock } = require('./instance-lock');
 const { createUiPrefs, pageWithPrefs } = require('./ui-prefs');
+const { validCustomerId, fillCustomerIds, addCustomerIdsOnce, customerRenamesById } = require('./customer-ids');
 
 const appName = 'TradeOrderSystem';
 const port = Number(process.env.TRADE_APP_PORT || 47828);
@@ -537,12 +538,22 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision, sav
     existingCustomers.forEach((_, name) => {
       if (!desiredCustomerNames.has(name)) customerDelete.run(name);
     });
-    // Renames and merges arrive as "old profile removed + its orders moved to a new
-    // name". Follow those moves so WhatsApp chats stay attached to the customer.
+    // A customer keeps its id when the name changes (customer-ids.js): the same id under another name is a
+    // rename, whatever else the save holds, and the WhatsApp chats follow it.
+    const storedProfiles = {};
+    existingCustomers.forEach((json, name) => { Object.defineProperty(storedProfiles, name, { value:JSON.parse(json), enumerable:true }); });
+    // A merge or its undo names its own move, down to the single chats: that one is not read a second time here.
+    const namedMoves = new Set((Array.isArray(explicitMoves) ? explicitMoves : []).map(move => String(move?.from || '')));
+    const renamesById = customerRenamesById(storedProfiles, data.customers).filter(rename => !namedMoves.has(rename.from));
+    const renamedFrom = new Set(renamesById.map(rename => rename.from));
+    const renamedTo = new Set(renamesById.map(rename => rename.to));
+    // What follows reads renames and merges out of the data for profiles without an id (saved by a version
+    // from before ids): "old profile removed + its orders moved to a new name".
     const customerMoves = new Map();
     if (customerInference !== false) desiredOrders.forEach(({ order, id }) => {
       const from = existingOrders.get(id)?.client || '';
       const to = String(order.client || '');
+      if (renamedFrom.has(from) || renamedTo.has(to)) return;
       if (!from || from === to || desiredCustomerNames.has(from) || !existingCustomers.has(from) || !desiredCustomerNames.has(to)) return;
       if (!customerMoves.has(from)) customerMoves.set(from, new Set());
       customerMoves.get(from).add(to);
@@ -552,14 +563,20 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision, sav
     // The page names deleted customers explicitly: their chats stay on the deleted name (undo or restore
     // re-attaches them) and are never guessed into a rename of a customer added in the same save.
     const deletedNames = new Set((Array.isArray(customerDeletes) ? customerDeletes : []).map(name => String(name || '')));
-    const removedNames = [...existingCustomers.keys()].filter(name => !desiredCustomerNames.has(name) && !customerMoves.has(name) && !deletedNames.has(name));
-    const addedNames = [...desiredCustomerNames].filter(name => !existingCustomers.has(name));
-    if (customerInference !== false && removedNames.length === 1 && addedNames.length === 1 && !desiredOrders.some(({ order }) => String(order.client || '') === removedNames[0])) {
+    const removedNames = [...existingCustomers.keys()].filter(name => !desiredCustomerNames.has(name) && !customerMoves.has(name) && !deletedNames.has(name) && !renamedFrom.has(name));
+    const addedNames = [...desiredCustomerNames].filter(name => !existingCustomers.has(name) && !renamedTo.has(name));
+    // With an id on both sides there is nothing to guess: the ids differ (the same id would be a rename above),
+    // so one customer was deleted and another one added.
+    const idsSayTwoCustomers = removedNames.length === 1 && addedNames.length === 1
+      && validCustomerId(storedProfiles[removedNames[0]]?.id) && validCustomerId(data.customers[addedNames[0]]?.id);
+    if (customerInference !== false && removedNames.length === 1 && addedNames.length === 1 && !idsSayTwoCustomers
+      && !desiredOrders.some(({ order }) => String(order.client || '') === removedNames[0])) {
       customerMoves.set(removedNames[0], new Set([addedNames[0]]));
     }
     // Merges and their undo arrive as explicit moves: a merged customer without orders leaves no order
     // move behind, and the target already exists, so neither guess above would see it. An undo names the
     // exact chats the merge moved, so chats that were the target's own stay where they are.
+    renameWhatsAppCustomers(database, renamesById);
     const movedChats = [];
     (Array.isArray(explicitMoves) ? explicitMoves : []).forEach(move => {
       const from = String(move?.from || '');
@@ -775,7 +792,8 @@ function initializeStorage() {
       let sourceFile = '';
       if (fs.existsSync(dataFile)) sourceFile = dataFile;
       else if (fs.existsSync(seedDataFile)) sourceFile = seedDataFile;
-      const payload = sourceFile ? readJson(sourceFile) : emptyDataPayload();
+      const payload = normalizeDataPayload(sourceFile ? readJson(sourceFile) : emptyDataPayload());
+      fillCustomerIds(payload.data);
       const result = writeStateToDatabase(payload, { migration: true });
       // Archive only after the data is in SQLite: a copy left behind by a failed migration would count as
       // "prior SQLite evidence" and block the retry on the next launch.
@@ -793,6 +811,7 @@ function initializeStorage() {
     storageMode = 'sqlite';
     storageError = '';
     try { fs.chmodSync(databaseFile, 0o600); } catch (_) {}
+    giveCustomersIds();
   } catch (error) {
     storageError = error.message || String(error);
     const initialized = (() => { try { return Boolean(metadataValue('initialized', '')); } catch (_) { return false; } })();
@@ -809,6 +828,28 @@ function initializeStorage() {
       }
     }
     storageMode = 'error';
+  }
+}
+
+// A database from before customers had ids (customer-ids.js) gets them once: a full backup first, then every
+// profile and order in one transaction, which either completes or leaves the data as it was. If the backup
+// cannot be made nothing is changed and the next start tries again; until then the app works as before and
+// renames are read the old way. `backup:false` is for a restore, which has just made its own.
+function giveCustomersIds({ backup = true } = {}) {
+  if (storageMode !== 'sqlite' || !database) return;
+  try {
+    let revision = storageRevision;
+    const result = addCustomerIdsOnce(database, {
+      backup: backup ? () => createBackup(true, { reason:'migrate', rotate:false }) : null,
+      insideTransaction: () => {
+        revision = Number(metadataValue('revision', '0')) + 1;
+        setMetadata('revision', String(revision));
+      }
+    });
+    if (!result.ok) throw new Error(result.message);
+    if (result.profiles || result.orders) storageRevision = revision;
+  } catch (error) {
+    console.error(`Customer ids were not added, the data is unchanged: ${error.message || error}`);
   }
 }
 
@@ -1356,6 +1397,9 @@ function restoreFromBackup(name) {
       storageError = '';
       fs.rmSync(migrationErrorFile, { force:true });
       try { fs.chmodSync(databaseFile, 0o600); } catch (_) {}
+      // A backup from before customers had ids: the restored data gets them now.
+      giveCustomersIds({ backup:false });
+      revision = storageRevision;
     } catch (error) {
       try { database?.close(); } catch (_) {}
       database = null;

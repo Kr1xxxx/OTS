@@ -56,6 +56,26 @@ for (const file of [
   execFileSync(process.execPath, ['--check', path.join(root, file)], { stdio: 'inherit' });
 }
 
+// Every module the server loads from its own folder is in the app: the build copies a hand-written
+// list of files, and a module missing from it only fails when the packaged app starts.
+{
+  const buildScript = fs.readFileSync(path.join(root, 'mac-app', 'build-native-mac-app.sh'), 'utf8');
+  const releaseCheck = fs.readFileSync(path.join(root, 'scripts', 'check-release.js'), 'utf8');
+  const seen = new Set();
+  const queue = ['server.js', 'whatsapp-native-host.js'];
+  while (queue.length) {
+    const file = queue.pop();
+    if (seen.has(file)) continue;
+    seen.add(file);
+    const source = fs.readFileSync(path.join(root, 'mac-app', file), 'utf8');
+    for (const match of source.matchAll(/require\('\.\/([\w-]+)(?:\.js)?'\)/g)) queue.push(`${match[1]}.js`);
+  }
+  for (const file of seen) {
+    assert.ok(buildScript.includes(`"$ROOT/mac-app/${file}" "$RESOURCES/${file}"`), `mac-app/${file} is loaded by the server but not copied into the app by build-native-mac-app.sh`);
+    assert.ok(releaseCheck.includes(`'${file}'`), `mac-app/${file} is not compared by scripts/check-release.js`);
+  }
+}
+
 const expectedVersion = fs.readFileSync(path.join(root, 'VERSION'), 'utf8').trim();
 assert.match(expectedVersion, /^\d+\.\d+$/, 'VERSION must use major.minor format');
 assert.equal(require(path.join(root, 'package.json')).version, `${expectedVersion}.0`, 'package.json version differs from VERSION');

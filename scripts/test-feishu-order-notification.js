@@ -122,7 +122,7 @@ async function main() {
   await stopServer();
   const replacement = path.join(testDir, 'replacement-app');
   fs.mkdirSync(replacement);
-  for (const file of ['server.js','feishu-settings.js','ai-usage-store.js','whatsapp-store.js','subscription-store.js']) {
+  for (const file of ['server.js','feishu-settings.js','ai-usage-store.js','whatsapp-store.js','subscription-store.js','backup-attachments.js']) {
     fs.copyFileSync(path.join(root, 'mac-app', file), path.join(replacement, file));
   }
   fs.writeFileSync(path.join(replacement, 'trade-order-system.html'), '<!DOCTYPE html><title>Synthetic replacement</title>');

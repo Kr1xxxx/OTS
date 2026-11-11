@@ -53,6 +53,7 @@ install -m 644 "$ROOT/mac-app/feishu-settings.js" "$RESOURCES/feishu-settings.js
 install -m 644 "$ROOT/mac-app/ai-usage-store.js" "$RESOURCES/ai-usage-store.js"
 install -m 644 "$ROOT/mac-app/whatsapp-store.js" "$RESOURCES/whatsapp-store.js"
 install -m 644 "$ROOT/mac-app/subscription-store.js" "$RESOURCES/subscription-store.js"
+install -m 644 "$ROOT/mac-app/backup-attachments.js" "$RESOURCES/backup-attachments.js"
 install -m 644 "$ROOT/mac-app/whatsapp-native-host.js" "$RESOURCES/whatsapp-native-host.js"
 install -m 644 "$ROOT/trade-order-system.html" "$RESOURCES/trade-order-system.html"
 install -m 644 "$ROOT/trade-order-data.json" "$RESOURCES/trade-order-data.json"

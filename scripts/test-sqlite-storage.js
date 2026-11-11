@@ -118,6 +118,26 @@ async function main() {
   const copiedImage = path.join(backupResult.file + '.attachments', imageRelative);
   assert(fs.existsSync(copiedImage), 'backup must include referenced attachment bytes');
   assert(fs.readFileSync(copiedImage,'utf8') === 'test-invoice-bytes', 'backup attachment mismatch');
+  // The next backup does not write the unchanged attachment again: it clones it (APFS) or shares the previous backup's copy.
+  // Staging files of a backup that was interrupted long ago are cleared; a recent one may still be in use and stays.
+  const staleStaging = path.join(testDir, 'backups', 'trade-order-data-20200101-000000.sqlite.partial');
+  const recentStaging = path.join(testDir, 'backups', 'trade-order-data-20200101-000001.sqlite.partial');
+  for (const file of [staleStaging, recentStaging]) {
+    fs.writeFileSync(file, 'interrupted');
+    fs.mkdirSync(file + '.attachments');
+    fs.writeFileSync(path.join(file + '.attachments', 'left.png'), 'left');
+  }
+  for (const file of [staleStaging, staleStaging + '.attachments']) fs.utimesSync(file, new Date(2020, 0, 1), new Date(2020, 0, 1));
+  const secondBackup = await request('/api/manual-backup', { method: 'POST', body: {} });
+  assert(secondBackup.ok === true && secondBackup.file !== backupResult.file, 'second manual backup missing');
+  assert(secondBackup.attachmentCount === backupResult.attachmentCount && secondBackup.attachmentCopies.copied === 0, `an unchanged attachment was written again: ${JSON.stringify(secondBackup.attachmentCopies)}`);
+  const sharedImage = path.join(secondBackup.file + '.attachments', imageRelative);
+  assert(fs.readFileSync(sharedImage,'utf8') === 'test-invoice-bytes', 'second backup attachment mismatch');
+  assert(fs.statSync(sharedImage).ino !== fs.statSync(imagePath).ino, 'a backup must never share a file with the live attachments folder');
+  if (secondBackup.attachmentCopies.linked) assert(fs.statSync(sharedImage).ino === fs.statSync(copiedImage).ino, 'the unchanged attachment is shared with the previous backup');
+  assert(!fs.existsSync(staleStaging) && !fs.existsSync(staleStaging + '.attachments'), 'staging files of an interrupted backup were left behind');
+  assert(fs.existsSync(recentStaging) && fs.existsSync(recentStaging + '.attachments'), 'staging files that may still be in use were removed');
+  fs.rmSync(recentStaging); fs.rmSync(recentStaging + '.attachments', { recursive:true });
   const backupsBeforeFailure = fs.readdirSync(path.join(testDir,'backups')).filter(name=>name.endsWith('.sqlite')).sort();
   fs.unlinkSync(imagePath);
   // A missing attachment no longer aborts the whole backup (report 25 P1-3): the database is still backed up,

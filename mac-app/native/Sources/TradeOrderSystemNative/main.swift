@@ -199,6 +199,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     private func createWindow() {
         let config = WKWebViewConfiguration()
         config.preferences.javaScriptCanOpenWindowsAutomatically = true
+        // Tab reaches buttons and links, not only text fields. WebKit on macOS leaves them out unless the user
+        // turned on "Keyboard navigation" in System Settings, and then Tab in a dialog jumped from its last text
+        // field to the page behind it: the page's focus traps stand on the dialog's first and last control.
+        config.preferences.tabFocusesLinks = true
         config.userContentController.add(self, name: "windowDragRegions")
         config.userContentController.add(self, name: "appUpdate")
         config.userContentController.add(self, name: "appBooted")

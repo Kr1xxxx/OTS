@@ -11824,6 +11824,20 @@ function customerDetailCopyText(record = {}, type = '') {
   if (type === 'addresses') return normalizeCustomerContactFields(record).addresses.join('\n');
   return '';
 }
+// 从哪个控件打开的（关掉时焦点回到那里）。WebKit（真实 App）里点按钮、链接不会让它得到焦点：点完以后「当前焦点」
+// 是 body 或它外层的容器，不是刚点的那个，所以另外记下最后按下的是哪个控件；用键盘打开时仍然是当前焦点。
+const uiLastPress = { el:null, at:0 };
+document.addEventListener('pointerdown', e => {
+  uiLastPress.el = e.target.closest?.('button, a[href], summary, input, select, textarea, [tabindex]') || null;
+  uiLastPress.at = performance.now();
+}, true);
+function uiOpenedFrom() {
+  const active = document.activeElement;
+  const pressed = uiLastPress.el;
+  const focusLeftForPress = !active || active === document.body || active.contains(pressed);
+  if (pressed?.isConnected && performance.now() - uiLastPress.at < 1500 && focusLeftForPress) return pressed;
+  return active && active !== document.body ? active : null;
+}
 function setModalOpenState(modalOrId, open) {
   const modal = typeof modalOrId === 'string' ? document.getElementById(modalOrId) : modalOrId;
   if (!modal) return null;
@@ -11838,7 +11852,7 @@ function setModalOpenState(modalOrId, open) {
   // 提示条留在窗口底部，正好盖住弹窗底部的「保存」（续费弹窗的「重新续费」被盖住一半，macOS 上整个按钮中心都被盖住）。
   if (isOpen !== wasOpen && typeof uiLayoutToasts === 'function' && typeof document === 'object' && document.querySelector?.('#toast .toast-item')) uiLayoutToasts();
   if (canManageFocus && isOpen && !wasOpen) {
-    const active = document.activeElement;
+    const active = typeof uiOpenedFrom === 'function' ? uiOpenedFrom() : document.activeElement;
     modal.__returnFocus = active && active !== document.body && !modal.contains(active) ? active : null;
     window.requestAnimationFrame(() => {
       if (!modal.classList.contains('open') || modal.contains(document.activeElement)) return;
@@ -25823,7 +25837,7 @@ function subscriptionPeriodsHtml(item, schedule) {
 function openSubscriptionDetail(id) {
   if (!findSubscription(id)) return;
   const wasOpen = document.getElementById('subscriptionDrawer').classList.contains('open');
-  if (!wasOpen) subscriptionReturnFocus = document.activeElement;
+  if (!wasOpen) subscriptionReturnFocus = uiOpenedFrom();
   if (subscriptionDetailId !== id) subscriptionPeriodsAll = false;
   subscriptionDetailId = id;
   renderSubscriptionDetail({ entering:!wasOpen });
@@ -26303,7 +26317,7 @@ function openSubscriptionEditor(id = '', { resubscribe = false, origin = '' } = 
   }
   subscriptionEditorOrigin = existing && !resubscribe ? origin : '';
   subscriptionDraftClean = JSON.stringify(subscriptionDraft);
-  if (!document.getElementById('subscriptionDrawer').classList.contains('open')) subscriptionReturnFocus = document.activeElement;
+  if (!document.getElementById('subscriptionDrawer').classList.contains('open')) subscriptionReturnFocus = uiOpenedFrom();
   const form = document.getElementById('subscriptionEditForm');
   form.elements.subName.value = subscriptionDraft.name;
   form.elements.subNote.value = subscriptionDraft.note;

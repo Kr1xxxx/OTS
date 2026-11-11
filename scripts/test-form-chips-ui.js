@@ -60,7 +60,7 @@ function inspect(selectName) {
       assert.deepEqual(payment.clipped, [], `${theme}: payment chips clipped`);
       assert.equal(payment.pressed, 1, 'exactly one chip pressed');
       const orderType = await page.evaluate(inspect, 'orderType');
-      const inputHeight = await page.evaluate(() => Math.round(document.querySelector('#orderForm input[name="num"]').getBoundingClientRect().height));
+      const inputHeight = await page.evaluate(() => Math.round(document.querySelector('#orderForm input[name="country"]').getBoundingClientRect().height));
       assert(!orderType.chips, 'two options stay a segmented control');
       assert(Math.abs(orderType.height - inputHeight) <= 1, `${theme}: segmented ${orderType.height}px vs input ${inputHeight}px`);
       assert.deepEqual(orderType.clipped, []);

@@ -40,6 +40,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install webkit
+      # The app's window sets tabFocusesLinks, so Tab reaches buttons there. Playwright's WebKit has no such
+      # switch; the system setting "Keyboard navigation" (bit 1 of AppleKeyboardUIMode) does the same for it.
+      - run: defaults write -g AppleKeyboardUIMode -int 2
       - run: npm test
         env:
           OTS_TEST_BROWSER: webkit

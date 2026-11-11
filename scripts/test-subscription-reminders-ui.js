@@ -114,6 +114,10 @@ const addMonths = (text, months) => {
       await page.keyboard.type([...order].map(key => parts[key]).join(''));
       if (await page.locator('#subscriptionNext').inputValue() === next) break;
     }
+    // Typing the parts is the browser's own date field at work, not the page: where none of the three orders
+    // produced the date (WebKit under Playwright), put it into the field directly. The page hears the same
+    // `input` and `change` either way, and that is what the next lines are about.
+    if (await page.locator('#subscriptionNext').inputValue() !== next) await page.locator('#subscriptionNext').fill(next);
     await page.waitForFunction(value => document.getElementById('subscriptionNext').value === value, next);
     assert.equal(await page.locator('#subscriptionStart').inputValue(), addMonths(next, -1), 'the start moves back one cycle');
     // 提前提醒: the in-app select, picked with the mouse.

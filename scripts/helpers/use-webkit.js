@@ -10,3 +10,9 @@ const { chromium, webkit } = require('playwright');
 
 // Chromium-only launch options (executablePath, channel, args) mean nothing to WebKit.
 chromium.launch = (options = {}) => webkit.launch({ headless: options.headless !== false });
+
+// A test that starts another script which opens a browser (scripts/smoke-test-app-bundle.js) gets WebKit there too.
+const requireThis = `--require ${JSON.stringify(__filename)}`;
+if (!String(process.env.NODE_OPTIONS || '').includes(requireThis)) {
+  process.env.NODE_OPTIONS = [process.env.NODE_OPTIONS, requireThis].filter(Boolean).join(' ');
+}

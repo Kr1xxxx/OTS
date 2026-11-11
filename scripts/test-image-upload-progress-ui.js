@@ -74,7 +74,10 @@ const { chromium } = require('playwright');
     });
     const cards = page.locator('#orderImageUploads .image-upload-card');
     await page.waitForFunction(() => document.querySelectorAll('#orderImageUploads [role="progressbar"]').length === 2, null, { timeout:3000 });
-    await page.waitForFunction(() => document.querySelector('#orderImageUploads .image-upload-stage')?.textContent === '优化保存中');
+    await page.waitForFunction(() => document.querySelector('#orderImageUploads .image-upload-stage')?.textContent === '优化保存中').catch(async error => {
+      const seen = await cards.evaluateAll(nodes => nodes.map(node => `${node.dataset.state} ${node.getAttribute('aria-valuenow')}% ${node.querySelector('.image-upload-stage')?.textContent}`));
+      throw new Error(`The first image never reached 优化保存中 (requests the server got: ${attachmentRequests}): ${seen.join(' | ')}\n${error.message}`);
+    });
     assert.equal(await cards.nth(0).getAttribute('data-state'), 'uploading');
     assert(Number(await cards.nth(0).getAttribute('aria-valuenow')) < 100, '不能在服务器确认前显示完成');
     assert.equal(await cards.nth(1).getAttribute('aria-valuenow'), '0', '排队图片不应假装已上传');

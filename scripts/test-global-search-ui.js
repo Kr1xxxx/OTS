@@ -7,6 +7,7 @@
 // - 0 结果不显示「查看全部搜索结果」；面板背景不透明。
 const assert = require('node:assert/strict');
 const { launchBrowser, openBoard, h, base, day } = require('./helpers/board-page');
+const { inputMethod } = require('./helpers/input-method');
 
 const order = (id, fields) => ({ ...base, id, orderType:'定金订单', paidAmount:0, stage:'quote', ...fields });
 const orders = [
@@ -120,13 +121,13 @@ const mod = process.platform === 'darwin' ? 'Meta' : 'Control';
 
     // 7. 输入法组字期间面板不重算。
     await typeQuery('Eli');
-    const cdp = await page.context().newCDPSession(page);
+    const ime = await inputMethod(page);
     for (const text of ['z', 'zh', 'zhang']) {
-      await cdp.send('Input.imeSetComposition', { text, selectionStart:text.length, selectionEnd:text.length });
+      await ime.compose(text);
       await h.waitPageTime(page, 150);
     }
     assert.equal(await page.evaluate(() => globalSearchRenderedQuery), 'Eli', 'panel re-rendered while composing');
-    await cdp.send('Input.insertText', { text:'' });
+    await ime.commit('');
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => !document.getElementById('globalSearchPanel').classList.contains('open'));
 

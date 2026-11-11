@@ -89,5 +89,9 @@ assert.equal(diff.orders.removed, 10);
 assert.deepEqual(diff.orders.removedNums, Array.from({ length:8 }, (_, i) => `PI-gone-${i}`), 'the first eight order numbers that would disappear');
 assert.deepEqual(diff.customers, { added:1, changed:1, removed:1, removedNames:['Customer C'] });
 assert.deepEqual(diffStateData({}, {}), { orders:{ added:0, changed:0, removed:0, removedNums:[] }, customers:{ added:0, changed:0, removed:0, removedNames:[] } });
+// A backup from before customers had ids: the two id fields alone are not a change the user would see.
+const withIds = { orders:[{ ...order('1'), customerId:'made-up-id-1' }], trashOrders:[], deletedOrders:[], customers:{ 'Customer A':{ country:'US', id:'made-up-id-1' } } };
+const withoutIds = { orders:[order('1')], trashOrders:[], deletedOrders:[], customers:{ 'Customer A':{ country:'US' } } };
+assert.deepEqual(diffStateData(withIds, withoutIds), { orders:{ added:0, changed:0, removed:0, removedNums:[] }, customers:{ added:0, changed:0, removed:0, removedNames:[] } });
 
 console.log('Backup names passed: naming, tiered retention, snapshots, other machines left alone; restore preview counts.');

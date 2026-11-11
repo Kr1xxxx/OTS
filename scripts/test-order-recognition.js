@@ -6,7 +6,7 @@ const vm = require('node:vm');
 
 const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'trade-order-system.html'), 'utf8');
-const serverSource = fs.readFileSync(path.join(root, 'mac-app', 'server.js'), 'utf8');
+const { createAppSettings } = require(path.join(root, 'mac-app', 'app-settings.js'));
 const packageVersion = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version;
 const releaseVersion = fs.readFileSync(path.join(root, 'VERSION'), 'utf8').trim();
 class FixedDate extends Date {
@@ -704,7 +704,9 @@ assert.doesNotMatch(html, /rawModel\s*===\s*['"]glm-5\.1['"]/);
 assert.equal((html.match(/defaultOrderType:\s*'全款订单'/g) || []).length, 1);
 assert.match(html, /await saveMacAiSettings\(testSettings\)/);
 assert.doesNotMatch(html, /glm-4\.7-flashx/);
-assert.doesNotMatch(serverSource, /glm-4\.7-flashx/);
+// The server's own default, read with no settings file: not the retired model either.
+const missingDataDir = path.join(root, 'no-such-data-folder');
+assert.notEqual(createAppSettings({ supportDir:missingDataDir, secretsDir:missingDataDir, ensureStorage:() => {} }).readAiSettings().model, 'glm-4.7-flashx');
 assert.match(html, /data-copy-customer-address/);
 assert.match(html, /客户地址、电话和邮箱已复制/);
 assert.match(html, /客户地址未填写/);

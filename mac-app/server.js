@@ -11,8 +11,11 @@ const { createAiUsageStore } = require('./ai-usage-store');
 const { createSubscriptionStore } = require('./subscription-store');
 const { readFeishuSettings, writeFeishuSettings } = require('./feishu-settings');
 const { createAttachmentCopier } = require('./backup-attachments');
-const { requestText, requestJsonResponse } = require('./outbound-http');
+const { requestText } = require('./outbound-http');
 const { createCarrierTracking, cleanTracking, detectCarrier } = require('./carrier-tracking');
+const { httpError } = require('./http-error');
+const { createFeishuNotifier, deliveryPublicFields, larkFailureText } = require('./feishu-notify');
+const { createAiChat } = require('./ai-chat');
 
 const appName = 'TradeOrderSystem';
 const port = Number(process.env.TRADE_APP_PORT || 47828);
@@ -66,6 +69,9 @@ let storageError = '';
 let storageRevision = 0;
 let integrityCache = null;
 const integrityCacheMs = 5 * 60 * 1000;
+const { sendOrderNotification, orderNotificationStatus, publicFeishuStatus, sendFeishuTestMessage } = createFeishuNotifier({
+  currentDatabase:() => database, feishuConfig, attachmentTargetFromUrl, resourcesDir
+});
 
 function loadBackupSettings() {
   backupDir = defaultBackupDir;
@@ -218,13 +224,6 @@ function atomicWrite(file, text) {
     try { fs.rmSync(tmp, { force: true }); } catch (_) {}
     throw error;
   }
-}
-
-function httpError(status, message, details = {}) {
-  const error = new Error(message);
-  error.status = status;
-  Object.assign(error, details);
-  return error;
 }
 
 // 备份目录可以是用户自己选的文件夹（iCloud、网盘），里面可能有别的 .sqlite / .json：轮转、统计、清理附件只认 OTS 自己起的名字。
@@ -389,21 +388,11 @@ function createDatabaseSchema() {
     );
     CREATE INDEX IF NOT EXISTS idx_tracking_number ON tracking_lookups(tracking_number);
 
-    CREATE TABLE IF NOT EXISTS order_attachments (
-      order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-      position INTEGER NOT NULL,
-      file_url TEXT NOT NULL DEFAULT '',
-      data_json TEXT NOT NULL,
-      PRIMARY KEY(order_id, position)
-    );
-
-    CREATE TABLE IF NOT EXISTS order_logs (
-      order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-      position INTEGER NOT NULL,
-      event_time TEXT NOT NULL DEFAULT '',
-      data_json TEXT NOT NULL,
-      PRIMARY KEY(order_id, position)
-    );
+    -- Until V3.146 every save also copied each order's attachments and log lines into these two tables.
+    -- Nothing ever read them: the order's own data_json is the record. An older version started on this
+    -- database creates them again, empty, and carries on.
+    DROP TABLE IF EXISTS order_attachments;
+    DROP TABLE IF EXISTS order_logs;
 
     CREATE TABLE IF NOT EXISTS app_state (
       key TEXT PRIMARY KEY,
@@ -469,12 +458,6 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision, sav
       updated_at = excluded.updated_at,
       data_json = excluded.data_json
   `);
-  const attachmentInsert = database.prepare(`
-    INSERT INTO order_attachments(order_id, position, file_url, data_json) VALUES(?, ?, ?, ?)
-  `);
-  const logInsert = database.prepare(`
-    INSERT INTO order_logs(order_id, position, event_time, data_json) VALUES(?, ?, ?, ?)
-  `);
   const customerInsert = database.prepare(`
     INSERT INTO customers(name, country, email, contact, updated_at, data_json) VALUES(?, ?, ?, ?, ?, ?)
     ON CONFLICT(name) DO UPDATE SET
@@ -497,8 +480,6 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision, sav
     INSERT INTO app_state(key, data_json) VALUES(?, ?)
     ON CONFLICT(key) DO UPDATE SET data_json = excluded.data_json
   `);
-  const attachmentDelete = database.prepare('DELETE FROM order_attachments WHERE order_id = ?');
-  const logDelete = database.prepare('DELETE FROM order_logs WHERE order_id = ?');
   const orderDelete = database.prepare('DELETE FROM orders WHERE id = ?');
   const customerDelete = database.prepare('DELETE FROM customers WHERE name = ?');
   const lookupDelete = database.prepare('DELETE FROM tracking_lookups WHERE id = ?');
@@ -578,17 +559,6 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision, sav
           String(order.updated || ''),
           orderJson
         );
-      }
-      if (!previous || previous.data_json !== orderJson) {
-        attachmentDelete.run(id);
-        logDelete.run(id);
-        (Array.isArray(order.attachments) ? order.attachments : []).forEach((item, index) => {
-          attachmentInsert.run(id, index, String(item?.fileUrl || item?.link || ''), JSON.stringify(item));
-        });
-        (Array.isArray(order.logs) ? order.logs : []).forEach((item, index) => {
-          const eventTime = typeof item === 'object' && item ? item.time : '';
-          logInsert.run(id, index, String(eventTime || ''), JSON.stringify(item));
-        });
       }
     });
 
@@ -1178,486 +1148,6 @@ function cleanupOrphanAttachments({ minAgeMs = 24 * 60 * 60 * 1000 } = {}) {
   walk(attachmentsDir);
   removeEmptyDirs(attachmentsDir);
   return { deleted };
-}
-
-function localDateTime(value = new Date()) {
-  const date = value instanceof Date ? value : new Date(value);
-  const pad = number => String(number).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-}
-
-function notificationIdempotencyKey(orderId = '') {
-  return `trade-order-${crypto.createHash('sha256').update(String(orderId)).digest('hex').slice(0, 32)}`;
-}
-
-// 群消息里客户和订单的文字一律当纯文本：转义 Markdown 记号，去掉控制符和方向控制符（U+202E 会把后面的字倒过来）；
-// 多行的值（地址、备注）从第二行起缩进两个全角空格，行首的 #、-、+、1.、--- 也换成全角，
-// 群里不会出现客户写的标题、列表、分割线、表格，也不会多出一行看起来像字段的「订单金额：…」。
-function escapeLarkMarkdown(value = '') {
-  const lines = String(value ?? '')
-    .replace(/\r\n?/g, '\n')
-    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '')
-    .replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '')
-    .replaceAll('\\', '\\\\')
-    .replace(/([`*_\[\]])/g, '\\$1')
-    .replaceAll('<', '＜')
-    .replaceAll('>', '＞')
-    .replaceAll('~', '～')
-    .replaceAll('|', '｜')
-    .split('\n')
-    .map(line => line.trim());
-  while (lines.length && !lines[0]) lines.shift();
-  while (lines.length && !lines[lines.length - 1]) lines.pop();
-  if (!lines.length) return '未填写';
-  return lines.map((line, index) => {
-    if (!index || !line) return line;
-    const plain = line
-      .replace(/^#{1,6}(?=\s|$)/, marks => '＃'.repeat(marks.length))
-      .replace(/^(?:[-=]\s*){2,}$/, rule => rule.replaceAll('-', '－').replaceAll('=', '＝'))
-      .replace(/^[-+](?=\s)/, mark => (mark === '-' ? '－' : '＋'))
-      .replace(/^(\d{1,9})([.)])(?=\s|$)/, (_, number, mark) => `${number}${mark === '.' ? '．' : '）'}`);
-    return `\u3000\u3000${plain}`;
-  }).join('\n');
-}
-
-function orderNotificationAmount(order = {}) {
-  const currency = String(order.currency || 'USD').trim().toUpperCase() || 'USD';
-  const amount = Number(order.amount || 0);
-  return `${currency} ${Number.isFinite(amount) ? amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}`;
-}
-
-// 群消息里用到的字段（发出时记下来，之后订单改了这些字段，抽屉里提示「群里是旧信息」）。
-function orderNotificationFields({ order, customer }) {
-  const text = value => String(value ?? '').trim();
-  return {
-    client: text(order.client),
-    num: text(order.num),
-    email: text(customer.email),
-    phone: text(customer.phone),
-    address: text(customer.address),
-    amount: orderNotificationAmount(order),
-    paymentChannel: text(order.paymentChannel),
-    note: text(order.note)
-  };
-}
-
-function buildOrderNotificationMarkdown({ order, customer }, imageKeys = [], skippedImages = []) {
-  const lines = [
-    `**客户名称：** ${escapeLarkMarkdown(order.client)}`,
-    `**订单号：** ${escapeLarkMarkdown(order.num)}`,
-    `**邮箱：** ${escapeLarkMarkdown(customer.email)}`,
-    `**手机号：** ${escapeLarkMarkdown(customer.phone)}`,
-    `**收货地址：** ${escapeLarkMarkdown(customer.address)}`,
-    '',
-    `**订单金额：** ${escapeLarkMarkdown(orderNotificationAmount(order))}`,
-    `**付款方式：** ${escapeLarkMarkdown(order.paymentChannel)}`,
-    `**订单备注：** ${escapeLarkMarkdown(order.note)}`
-  ];
-  imageKeys.forEach((item, index) => lines.push('', `![附件 ${item.index || index + 1}](${item.key || item})`));
-  if (skippedImages.length) {
-    lines.push('', `**未能附上的图片：** ${skippedImages.map(item => `附件 ${item.index}（${item.reason}）`).join('、')}`);
-  }
-  return lines.join('\n');
-}
-
-// 测试可以把超时调短（只能更短），不用真的等 45 秒。
-const larkTimeoutMs = Math.min(45000, Math.max(200, Number(process.env.OTS_LARK_TIMEOUT_MS) || 45000));
-const larkImageLimitBytes = 10 * 1024 * 1024;
-const larkFailureText = {
-  config: '还没有配置飞书：到「设置 → 飞书通知」填写后再发送',
-  'cli-missing': '这台 Mac 上找不到 lark-cli：先安装 lark-cli，或在「设置 → 飞书通知」里填写它的完整路径',
-  'cli-start': 'lark-cli 启动失败：检查「设置 → 飞书通知」里的 lark-cli 路径',
-  permission: '飞书机器人缺少权限：到飞书开发者后台给应用开通「以应用身份发消息」（im:message:send_as_bot），有图片时还要开通 im:resource，发布新版本后再重新发送',
-  credential: '飞书凭证失效（token 过期或 App Secret 不对）：在终端运行 lark-cli config init 重新配置这个 profile，再重新发送',
-  profile: 'lark-cli 里没有设置中填写的 profile：检查 profile 名，或在终端运行 lark-cli config init',
-  rate: '飞书限流了：过一两分钟再重新发送',
-  network: '连不上飞书（网络断开或代理不通）：联网后再重新发送',
-  timeout: '飞书 45 秒内没有回应，消息可能已经发到群里：请先看一眼群，再决定是否重新发送',
-  generic: '飞书服务暂时不可用，可稍后重试'
-};
-const larkRetryableKinds = new Set(['rate', 'network', 'timeout', 'generic']);
-
-function larkFailure(kind, { chatName = '', reason = '' } = {}) {
-  let message = larkFailureText[kind] || larkFailureText.generic;
-  if (kind === 'chat') message = `机器人不在「${chatName || '目标群'}」里，或群 ID 不对：先把机器人拉进这个群（或在设置里改群 ID），再重新发送`;
-  if (kind === 'config' && reason && reason !== '还没有配置飞书') message = `飞书配置有问题：${reason}。到「设置 → 飞书通知」改好后再发送`;
-  return httpError(503, message, { larkKind: kind, retryable: larkRetryableKinds.has(kind) });
-}
-
-function larkCliCandidates(config = {}) {
-  const home = os.homedir();
-  const fromEnv = String(process.env.TRADE_LARK_CLI || '').trim();
-  if (fromEnv) return [fromEnv];
-  // 设置里填了路径：只用它，找不到就明说，不悄悄换成别处的另一个 lark-cli。
-  if (config.cliPath) return [config.cliPath];
-  const candidates = [
-    path.join(home, '.local', 'bin', 'lark-cli'),
-    '/opt/homebrew/bin/lark-cli',
-    '/usr/local/bin/lark-cli',
-    path.join(home, '.volta', 'bin', 'lark-cli'),
-    path.join(home, '.npm-global', 'bin', 'lark-cli'),
-    path.join(home, '.bun', 'bin', 'lark-cli'),
-    path.join(home, 'bin', 'lark-cli')
-  ];
-  // nvm：每个 Node 版本各有一个 bin 目录，新版本优先。
-  try {
-    const nvmRoot = path.join(String(process.env.NVM_DIR || '').trim() || path.join(home, '.nvm'), 'versions', 'node');
-    const versionKey = name => name.replace(/^v/, '').split('.').map(part => Number(part) || 0);
-    fs.readdirSync(nvmRoot)
-      .sort((a, b) => {
-        const left = versionKey(a);
-        const right = versionKey(b);
-        for (let i = 0; i < 3; i += 1) if ((right[i] || 0) !== (left[i] || 0)) return (right[i] || 0) - (left[i] || 0);
-        return 0;
-      })
-      .forEach(version => candidates.push(path.join(nvmRoot, version, 'bin', 'lark-cli')));
-  } catch (_) {}
-  return candidates;
-}
-
-// npm 装的是 JS 外壳（用这个 Node 跑，App 的 PATH 里不一定有 node）；make install / Volta 是原生程序，直接运行。
-function resolveLarkCli(config = {}) {
-  const executable = larkCliCandidates(config).find(candidate => {
-    try {
-      if (!fs.statSync(candidate).isFile()) return false;
-      fs.accessSync(candidate, fs.constants.X_OK);
-      return true;
-    } catch (_) { return false; }
-  });
-  if (!executable) return null;
-  let real = executable;
-  try { real = fs.realpathSync(executable); } catch (_) {}
-  let viaNode = /\.[cm]?js$/i.test(real);
-  if (!viaNode) {
-    let descriptor;
-    try {
-      descriptor = fs.openSync(real, fs.constants.O_RDONLY | fs.constants.O_NONBLOCK);
-      const head = Buffer.alloc(256);
-      const length = fs.readSync(descriptor, head, 0, head.length, 0);
-      const firstLine = head.subarray(0, length).toString('latin1').split('\n')[0];
-      viaNode = firstLine.startsWith('#!') && /\bnode\b/.test(firstLine);
-    } catch (_) {
-      viaNode = false;
-    } finally {
-      if (descriptor !== undefined) { try { fs.closeSync(descriptor); } catch (_) {} }
-    }
-  }
-  return viaNode
-    ? { command: process.execPath, prefix: [real], kind: 'node', path: executable }
-    : { command: executable, prefix: [], kind: 'native', path: executable };
-}
-
-// lark-cli 只拿到它用得到的环境变量：本机接口令牌（TRADE_API_TOKEN）、端口、数据目录都不给这个第三方程序。
-function larkCliEnv() {
-  const keep = ['HOME', 'PATH', 'LANG', 'LC_ALL', 'LC_CTYPE', 'TMPDIR', 'USER', 'LOGNAME', 'SHELL', 'TZ',
-    'HTTPS_PROXY', 'HTTP_PROXY', 'NO_PROXY', 'ALL_PROXY', 'https_proxy', 'http_proxy', 'no_proxy', 'all_proxy',
-    'SSL_CERT_FILE', 'SSL_CERT_DIR', 'NODE_EXTRA_CA_CERTS', 'VOLTA_HOME', 'NVM_DIR'];
-  const env = {};
-  keep.forEach(key => { if (typeof process.env[key] === 'string') env[key] = process.env[key]; });
-  Object.keys(process.env).filter(key => /^LARK(SUITE)?_/.test(key)).forEach(key => { env[key] = process.env[key]; });
-  env.PATH = [path.dirname(process.execPath), env.PATH || '/usr/bin:/bin:/usr/sbin:/sbin'].join(path.delimiter);
-  env.LARKSUITE_CLI_NO_UPDATE_NOTIFIER = '1';
-  env.LARKSUITE_CLI_NO_SKILLS_NOTIFIER = '1';
-  return env;
-}
-
-// lark-cli 的约定：成功信封写 stdout，错误信封写 stderr。两边都看，取最后一个 JSON 对象。
-function parseLarkCliResult(output = '') {
-  const text = String(output || '').trim();
-  if (!text) return null;
-  const start = text.lastIndexOf('\n{') >= 0 ? text.lastIndexOf('\n{') + 1 : text.indexOf('{');
-  if (start < 0) return null;
-  try {
-    const parsed = JSON.parse(text.slice(start));
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
-  } catch (_) { return null; }
-}
-
-// 把 lark-cli 的错误归成几类。原文（本机路径、密钥、群 ID）不回给页面、不入库，页面只拿到这一类的中文说明。
-function classifyLarkFailure(result = null, rawText = '') {
-  const error = result && typeof result.error === 'object' && result.error ? result.error : {};
-  const code = Number(error.code || result?.code || 0);
-  const type = String(error.type || '').toLowerCase();
-  const subtype = String(error.subtype || '').toLowerCase();
-  const missing = Array.isArray(error.missing_scopes) ? error.missing_scopes.join(' ') : '';
-  const text = `${type} ${subtype} ${missing} ${String(error.message || '')} ${String(error.hint || '')} ${String(rawText || '').slice(0, 4000)}`.toLowerCase();
-  if ([99991672, 99991679, 99991676].includes(code) || subtype === 'missing_scope' || type === 'permission' || /missing[_ ]scopes?|permission denied|no permission|access denied|scope|权限/.test(text)) return 'permission';
-  if ([230002, 230006, 230001, 232010, 232011].includes(code) || /not in (the )?chat|bot is not in|out of the chat|chat (is )?not (found|exist)|invalid chat|不在群|群不存在/.test(text)) return 'chat';
-  if (/profile/.test(text) && /not found|unknown|no such|does not exist|not exist|不存在/.test(text)) return 'profile';
-  if ([99991661, 99991663, 99991664, 99991665, 99991668, 10014, 10003].includes(code) || type === 'authentication' || type === 'authorization' || /access[_ ]token|tenant[_ ]token|token (is )?(invalid|expired)|credential|app[_ ]?secret|unauthori[sz]ed|invalid app|authentication/.test(text)) return 'credential';
-  if ([99991400, 11232, 429].includes(code) || type === 'rate_limit' || /rate.?limit|too many requests|frequency|频率|限流/.test(text)) return 'rate';
-  if (type === 'network' || /enotfound|econnrefused|econnreset|etimedout|eai_again|enetunreach|ehostunreach|network|no such host|dial tcp|connection (refused|reset)|i\/o timeout|tls handshake|proxyconnect/.test(text)) return 'network';
-  return 'generic';
-}
-
-// 用 npm 装的 lark-cli 是 JS 外壳 + 原生程序：只杀外壳的话原生程序会继续把消息发出去，所以整组进程一起结束。
-function killLarkProcessTree(child) {
-  try { process.kill(-child.pid, 'SIGKILL'); return; } catch (_) {}
-  try { child.kill('SIGKILL'); } catch (_) {}
-}
-
-function runLarkCli(args, { cwd = resourcesDir, timeoutMs = larkTimeoutMs, config = feishuConfig() } = {}) {
-  return new Promise((resolve, reject) => {
-    if (!config.configured) {
-      reject(larkFailure('config', { reason: config.reason }));
-      return;
-    }
-    const cli = resolveLarkCli(config);
-    if (!cli) {
-      reject(larkFailure('cli-missing'));
-      return;
-    }
-    let child;
-    try {
-      child = spawn(cli.command, [...cli.prefix, '--profile', config.profile, ...args, '--as', 'bot'], {
-        cwd,
-        env: larkCliEnv(),
-        stdio: ['ignore', 'pipe', 'pipe'],
-        detached: true
-      });
-    } catch (_) {
-      reject(larkFailure('cli-start'));
-      return;
-    }
-    let stdout = '';
-    let stderr = '';
-    let finished = false;
-    const outputLimit = 1024 * 1024;
-    const timer = setTimeout(() => {
-      if (finished) return;
-      finished = true;
-      killLarkProcessTree(child);
-      reject(larkFailure('timeout'));
-    }, timeoutMs);
-    const collect = target => chunk => {
-      if (target === 'stdout' && stdout.length < outputLimit) stdout += chunk.toString('utf8').slice(0, outputLimit - stdout.length);
-      if (target === 'stderr' && stderr.length < outputLimit) stderr += chunk.toString('utf8').slice(0, outputLimit - stderr.length);
-    };
-    child.stdout.on('data', collect('stdout'));
-    child.stderr.on('data', collect('stderr'));
-    child.once('error', () => {
-      if (finished) return;
-      finished = true;
-      clearTimeout(timer);
-      reject(larkFailure('cli-start'));
-    });
-    child.once('close', code => {
-      if (finished) return;
-      finished = true;
-      clearTimeout(timer);
-      const result = parseLarkCliResult(stdout);
-      if (code === 0 && result?.ok) {
-        resolve(result.data || {});
-        return;
-      }
-      const failure = (result && result.ok === false ? result : null) || parseLarkCliResult(stderr) || result;
-      reject(larkFailure(classifyLarkFailure(failure, `${stderr}\n${failure ? '' : stdout}`), { chatName: config.chatName }));
-    });
-  });
-}
-
-const larkImageFormats = /\.(png|jpe?g|webp|gif|bmp)$/i;
-// 发群前把订单图片整理好：飞书收不下的（AVIF / HEIC 等格式、超过 10 MB）先在本机用 sips 转成 JPEG，
-// 转不了就跳过这一张、文字照发，消息末尾写明哪张没附上。以前一张图就让整条消息永远发不出去。
-function prepareNotificationImages(order = {}, workDir = '') {
-  const files = [];
-  const skipped = [];
-  let index = 0;
-  for (const item of Array.isArray(order.attachments) ? order.attachments : []) {
-    if (!item?.fileUrl || item.fileUrl === item.thumbUrl && !/图片|image/i.test(String(item.type || ''))) continue;
-    index += 1;
-    let target = '';
-    try { target = attachmentTargetFromUrl(item.fileUrl); } catch (_) {}
-    let size = 0;
-    try { const stat = fs.statSync(target); size = stat.isFile() ? stat.size : 0; } catch (_) {}
-    if (!target || !size) {
-      skipped.push({ index, reason: '文件不存在' });
-      continue;
-    }
-    const supported = larkImageFormats.test(target);
-    if (supported && size <= larkImageLimitBytes) {
-      files.push({ file: target, index });
-      continue;
-    }
-    const converted = convertImageForLark(target, workDir, index);
-    if (converted) files.push({ file: converted, index });
-    else skipped.push({ index, reason: supported ? '超过 10 MB' : '格式不支持' });
-  }
-  return { files, skipped };
-}
-
-function convertImageForLark(source, workDir, index) {
-  const sips = '/usr/bin/sips';
-  if (!workDir || !fs.existsSync(sips)) return '';
-  const output = path.join(workDir, `attachment-${index}.jpg`);
-  try {
-    execFileSync(sips, ['-s', 'format', 'jpeg', '-s', 'formatOptions', '80', '-Z', '3000', source, '--out', output], { stdio: 'ignore', timeout: 30000, env: { PATH: '/usr/bin:/bin', HOME: os.homedir() } });
-    const size = fs.statSync(output).size;
-    return size > 0 && size <= larkImageLimitBytes ? output : '';
-  } catch (_) {
-    return '';
-  }
-}
-
-function readOrderNotificationContext(orderId = '') {
-  const id = String(orderId || '').trim();
-  if (!id) throw httpError(400, 'orderId is required');
-  const row = database.prepare("SELECT bucket, data_json FROM orders WHERE id = ?").get(id);
-  if (!row || row.bucket !== 'orders') throw httpError(404, '订单不存在');
-  const order = JSON.parse(row.data_json);
-  if (order.isDraft) throw httpError(409, '草稿订单不能发送群通知');
-  const customerRow = database.prepare('SELECT data_json FROM customers WHERE name = ?').get(String(order.client || ''));
-  const customer = customerRow ? JSON.parse(customerRow.data_json) : {};
-  return { order, customer };
-}
-
-async function uploadLarkImage(file, config) {
-  const result = await runLarkCli([
-    'im', 'images', 'create',
-    '--data', '{"image_type":"message"}',
-    '--file', `./${path.basename(file)}`
-  ], { cwd: path.dirname(file), timeoutMs: larkTimeoutMs, config });
-  if (!String(result.image_key || '').startsWith('img_')) throw larkFailure('generic');
-  return result.image_key;
-}
-
-// 页面看到的发送状态：数据库那一行 + 本机配置里的群名。发送中超过 2 分钟算没完成（可能已经发出）。
-function deliveryPublicFields(row = {}, chatName = '') {
-  const stale = row.status === 'sending' && !(Date.now() - Date.parse(row.started_at || row.updated_at || 0) < 2 * 60 * 1000);
-  let sentFields = null;
-  try { sentFields = row.sent_fields ? JSON.parse(row.sent_fields) : null; } catch (_) {}
-  const errorKind = stale ? 'timeout' : String(row.error_kind || '');
-  return {
-    status: stale ? 'failed' : row.status,
-    chatName,
-    sentAt: row.sent_at || '',
-    messageId: row.message_id || '',
-    error: stale ? '上次发送没有完成，消息可能已经发到群里：请先看一眼群，再决定是否重新发送' : (row.last_error || ''),
-    errorKind,
-    retryable: row.status === 'failed' || stale ? larkRetryableKinds.has(errorKind || 'generic') : false,
-    updatedAt: row.updated_at || '',
-    ...(sentFields && typeof sentFields === 'object' ? { sentFields } : {})
-  };
-}
-
-function deliveryPublicResult(row, extra = {}, chatName = feishuConfig().chatName) {
-  const fields = deliveryPublicFields(row, chatName);
-  return { ok: fields.status === 'sent', ...fields, ...extra };
-}
-
-function orderNotificationStatus(orderId = '') {
-  const id = String(orderId || '').trim();
-  if (!id) throw httpError(400, 'orderId is required');
-  const row = database.prepare('SELECT * FROM notification_deliveries WHERE order_id = ?').get(id);
-  return row ? deliveryPublicResult(row) : { ok: false, status: 'skipped' };
-}
-
-async function sendOrderNotification(orderId = '') {
-  const context = readOrderNotificationContext(orderId);
-  const existing = database.prepare('SELECT * FROM notification_deliveries WHERE order_id = ?').get(context.order.id);
-  const config = feishuConfig();
-  if (existing?.status === 'sent') return deliveryPublicResult(existing, { alreadySent: true }, config.chatName);
-  if (existing?.status === 'sending' && Date.now() - Date.parse(existing.started_at) < 2 * 60 * 1000) {
-    throw httpError(409, '群消息正在发送，请稍候', { publicDetails: { status: 'sending', chatName: config.chatName } });
-  }
-  if (!config.configured) {
-    const failure = larkFailure('config', { reason: config.reason });
-    failure.publicDetails = { status: 'failed', error: failure.message, errorKind: 'config', retryable: false, chatName: config.chatName };
-    throw failure;
-  }
-  const startedAt = new Date().toISOString();
-  const idempotencyKey = existing?.idempotency_key || notificationIdempotencyKey(context.order.id);
-  database.prepare(`
-    INSERT INTO notification_deliveries(
-      order_id, channel, status, idempotency_key, started_at, sent_at, message_id, last_error, updated_at
-    ) VALUES(?, 'feishu_group', 'sending', ?, ?, '', '', '', ?)
-    ON CONFLICT(order_id) DO UPDATE SET
-      status = 'sending', idempotency_key = excluded.idempotency_key,
-      started_at = excluded.started_at, last_error = '', error_kind = '', updated_at = excluded.updated_at
-  `).run(context.order.id, idempotencyKey, startedAt, startedAt);
-  let workDir = '';
-  try {
-    try { workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ots-feishu-')); } catch (_) {}
-    const images = prepareNotificationImages(context.order, workDir);
-    const imageKeys = [];
-    const skippedImages = [...images.skipped];
-    for (const item of images.files) {
-      try {
-        imageKeys.push({ key: await uploadLarkImage(item.file, config), index: item.index });
-      } catch (error) {
-        // 飞书拒收某一张图（格式、尺寸）：跳过它，文字照发。权限、凭证、断网、超时这类整条都发不了的照常报错。
-        if (error.larkKind !== 'generic') throw error;
-        skippedImages.push({ index: item.index, reason: '飞书拒收' });
-      }
-    }
-    skippedImages.sort((a, b) => a.index - b.index);
-    const markdown = buildOrderNotificationMarkdown(context, imageKeys, skippedImages);
-    const result = await runLarkCli([
-      'im', '+messages-send',
-      '--chat-id', config.chatId,
-      '--markdown', markdown,
-      '--idempotency-key', idempotencyKey
-    ], { config });
-    const sentAt = result.create_time || localDateTime();
-    const messageId = String(result.message_id || '');
-    database.prepare(`
-      UPDATE notification_deliveries
-      SET status = 'sent', sent_at = ?, message_id = ?, last_error = '', error_kind = '', sent_fields = ?, updated_at = ?
-      WHERE order_id = ?
-    `).run(sentAt, messageId, JSON.stringify(orderNotificationFields(context)), new Date().toISOString(), context.order.id);
-    const row = database.prepare('SELECT * FROM notification_deliveries WHERE order_id = ?').get(context.order.id);
-    return deliveryPublicResult(row, skippedImages.length ? { skippedImages: skippedImages.length } : {}, config.chatName);
-  } catch (error) {
-    const kind = error.larkKind || 'generic';
-    const safeMessage = error.larkKind ? error.message : larkFailureText.generic;
-    database.prepare(`
-      UPDATE notification_deliveries
-      SET status = 'failed', last_error = ?, error_kind = ?, updated_at = ?
-      WHERE order_id = ?
-    `).run(safeMessage, kind, new Date().toISOString(), context.order.id);
-    throw httpError(Number.isInteger(error.status) ? error.status : 503, safeMessage, {
-      publicDetails: { status: 'failed', error: safeMessage, errorKind: kind, retryable: larkRetryableKinds.has(kind), chatName: config.chatName }
-    });
-  } finally {
-    if (workDir) { try { fs.rmSync(workDir, { recursive: true, force: true }); } catch (_) {} }
-  }
-}
-
-// 设置页看到的飞书状态：只说配没配好、为什么，以及群名；profile 和群 ID 不回给页面。
-function publicFeishuStatus() {
-  const config = feishuConfig();
-  const cli = resolveLarkCli(config);
-  let lastSent = null;
-  let lastFailed = null;
-  try {
-    lastSent = database ? database.prepare("SELECT sent_at FROM notification_deliveries WHERE status = 'sent' ORDER BY updated_at DESC LIMIT 1").get() || null : null;
-    lastFailed = database ? database.prepare("SELECT last_error FROM notification_deliveries WHERE status = 'failed' ORDER BY updated_at DESC LIMIT 1").get() || null : null;
-  } catch (_) {}
-  return {
-    ok: true,
-    configured: config.configured,
-    state: config.state,
-    reason: config.reason,
-    chatName: config.configured ? config.chatName : '',
-    profileSaved: !!config.profile,
-    chatIdSaved: !!config.chatId,
-    cliPath: config.cliPath || '',
-    cli: { found: !!cli, kind: cli ? cli.kind : '' },
-    lastSentAt: lastSent ? lastSent.sent_at || '' : '',
-    lastError: lastFailed ? lastFailed.last_error || '' : ''
-  };
-}
-
-async function sendFeishuTestMessage() {
-  const config = feishuConfig();
-  if (!config.configured) throw larkFailure('config', { reason: config.reason });
-  const result = await runLarkCli([
-    'im', '+messages-send',
-    '--chat-id', config.chatId,
-    '--markdown', `**OTS 测试消息：** 飞书通知已连通（${localDateTime()}）`,
-    '--idempotency-key', `trade-order-test-${crypto.randomBytes(12).toString('hex')}`
-  ], { config });
-  return { ok: true, chatName: config.chatName, sentAt: result.create_time || localDateTime() };
 }
 
 function backupAttachmentRefs(file) {
@@ -2279,6 +1769,7 @@ function writeAiSettings(settings) {
   if (incomingKey) writeAiApiKey(incomingKey);
   return publicAiSettings(next);
 }
+const { queryAiChat, checkAiApiStatus } = createAiChat({ readAiSettings, readAiApiKey:() => process.env.AI_API_KEY || readAiApiKey(), aiUsageStore });
 
 function normalizeTrackingSettings(raw = {}) {
   return {
@@ -2586,100 +2077,6 @@ async function queryEcbHistoricalRates() {
     return { ...cached, cached:true, stale:true };
   }
   return refreshEcbHistoricalRates();
-}
-
-function aiChatEndpoint(baseUrl) {
-  const clean = String(baseUrl || '').trim().replace(/\/+$/, '');
-  if (!clean) return '';
-  return /\/chat\/completions$/.test(clean) ? clean : `${clean}/chat/completions`;
-}
-
-function boundedAiMessages(messages) {
-  if (!Array.isArray(messages)) return [];
-  if (messages.length > 64) throw httpError(400, 'too many AI messages');
-  return messages.map(message => {
-    const role = String(message?.role || 'user');
-    const content = String(message?.content || '');
-    if (content.length > 200000) throw httpError(400, 'AI message is too large');
-    return { ...message, role, content };
-  });
-}
-
-async function queryAiChat(body = {}) {
-  const settings = readAiSettings();
-  const apiKey = process.env.AI_API_KEY || readAiApiKey();
-  if (settings.enabled !== '是') return { ok: false, message: 'AI 识别未启用。' };
-  if (!apiKey) return { ok: false, message: 'AI API Key 未保存。' };
-  if (!settings.baseUrl || !settings.model) return { ok: false, message: 'AI Base URL 或模型名称未设置。' };
-  // 先在本地检查消息：太长 / 太多条时直接回中文提示，不调用上游，也不记一条「请求失败」的费用记录。
-  let messages;
-  try {
-    messages = boundedAiMessages(body.messages);
-  } catch (error) {
-    const tooLarge = /too large/i.test(String(error?.message || ''));
-    return { ok: false, status: 413, message: tooLarge ? '粘贴内容太长：AI 一次最多读 20 万字，请只粘贴和这笔订单有关的部分。' : '一次发给 AI 的消息太多。' };
-  }
-  let response, requestError;
-  const startedAt = Date.now();
-  try {
-    response = await requestJsonResponse(aiChatEndpoint(settings.baseUrl), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      timeout: body.testOnly ? 20000 : 45000,
-      body: JSON.stringify({
-        model: settings.model,
-        messages,
-        // 智谱和 DeepSeek 官方接口都关掉深度思考：识别只要字段，思考会拖慢速度并占用输出额度
-        thinking: settings.provider === 'zhipu' || new URL(settings.baseUrl).hostname === 'api.deepseek.com' ? { type: 'disabled' } : undefined,
-        reasoning: new URL(settings.baseUrl).hostname === 'openrouter.ai' && settings.model === 'deepseek/deepseek-v4.1-flash' ? { enabled: false } : undefined,
-        // DeepSeek 官方接口支持 JSON 模式：识别请求强制返回 JSON 对象，测试连接不用
-        response_format: !body.testOnly && new URL(settings.baseUrl).hostname === 'api.deepseek.com' ? { type: 'json_object' } : undefined,
-        max_tokens: body.testOnly ? 256 : 1024,
-        temperature: Number.isFinite(Number(body.temperature)) ? Number(body.temperature) : 0
-      })
-    });
-  } catch (error) {
-    requestError = error;
-  }
-  let accountingWarning = '';
-  try {
-    aiUsageStore.record({
-      baseUrl:settings.baseUrl, model:settings.model, purpose:body.purpose, testOnly:body.testOnly,
-      durationMs:Date.now() - startedAt,
-      status:!requestError && response.status >= 200 && response.status < 300 && !response.data?.error ? 'success' : 'failed',
-      data:response?.data
-    });
-  } catch (_) {
-    accountingWarning = '本次 AI 费用记录失败，请检查设置中的费用记录。';
-  }
-  if (requestError) {
-    const message = /timeout/i.test(String(requestError?.message || ''))
-      ? 'AI 请求超时，请减少粘贴内容后重试，或稍后再试。'
-      : `AI 请求失败：${requestError?.message || '未知错误'}`;
-    return { ok: false, message, ...(accountingWarning ? { accountingWarning } : {}) };
-  }
-  // 有的中转接口出错也回 200，只在正文里放 error：同样当失败处理（费用记录那边已经这么算）。
-  if (response.status < 200 || response.status >= 300 || response.data?.error) {
-    const error = (typeof response.data.error === 'object' && response.data.error) || response.data.errors?.[0] || {};
-    if (typeof response.data.error === 'string') error.message = response.data.error;
-    return { ok: false, status: response.status, message: error.message || response.data.message || `AI 接口 HTTP ${response.status}`, ...(accountingWarning ? { accountingWarning } : {}) };
-  }
-  return { ok: true, ...response.data, ...(accountingWarning ? { accountingWarning } : {}) };
-}
-
-async function checkAiApiStatus() {
-  const settings = readAiSettings();
-  if (settings.enabled !== '是') return { ok: false, disabled: true, label: 'AI', message: 'AI 识别未开启' };
-  if (!(process.env.AI_API_KEY || readAiApiKey())) return { ok: false, disabled: true, label: 'AI', message: 'AI API Key 未保存' };
-  const checkedAt = new Date().toISOString();
-  const result = await queryAiChat({
-    testOnly: true,
-    temperature: 0,
-    messages: [{ role: 'user', content: 'ping' }]
-  });
-  return result.ok
-    ? { ok: true, label: 'AI', checkedAt, message: 'AI API 可连接', ...(result.accountingWarning ? {accountingWarning:result.accountingWarning} : {}) }
-    : { ok: false, label: 'AI', checkedAt, message: result.message || 'AI 检测失败', ...(result.accountingWarning ? {accountingWarning:result.accountingWarning} : {}) };
 }
 
 async function checkApiStatus(kind) {

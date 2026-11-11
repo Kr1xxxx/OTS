@@ -65,12 +65,17 @@ async function serverTest() {
   const {createAiUsageStore}=require(modulePath);
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'trade-ai-contract-'));
   try {
-    const source=fs.readFileSync(path.join(root,'mac-app/server.js'),'utf8');
     let response={status:200,data:{id:'gen-contract',model:'deepseek/deepseek-v4.1-flash',choices:[{message:{content:'{}'}}],usage:{cost:0.00001234,prompt_tokens:12,completion_tokens:3}}};
-    const context=vm.createContext({URL,Date,fs,path,crypto:require('node:crypto'),process:{env:{},pid:process.pid},readAiSettings:()=>({enabled:'是',provider:'custom',baseUrl:'https://openrouter.ai/api/v1',model:'deepseek/deepseek-v4.1-flash'}),readAiApiKey:()=> 'TEST_KEY',boundedAiMessages:values=>values,requestJsonResponse:async()=>{if(response instanceof Error)throw response;return response;}});
-    vm.runInContext(extract(source,'atomicWrite'),context);
+    const context=vm.createContext({fs,path,crypto:require('node:crypto'),process:{pid:process.pid}});
+    vm.runInContext(extract(fs.readFileSync(path.join(root,'mac-app/server.js'),'utf8'),'atomicWrite'),context);
     context.aiUsageStore=createAiUsageStore({file:path.join(dir,'usage.json'),atomicWrite:context.atomicWrite});
-    for(const name of ['aiChatEndpoint','queryAiChat']) vm.runInContext(extract(source,name),context);
+    // The ledger is swapped for a failing one further down: the chat module always records through this.
+    Object.assign(context,require(path.join(root,'mac-app/ai-chat.js')).createAiChat({
+      readAiSettings:()=>({enabled:'是',provider:'custom',baseUrl:'https://openrouter.ai/api/v1',model:'deepseek/deepseek-v4.1-flash'}),
+      readAiApiKey:()=> 'TEST_KEY',
+      aiUsageStore:{record:entry=>context.aiUsageStore.record(entry)},
+      requestJsonResponse:async()=>{if(response instanceof Error)throw response;return response;}
+    }));
     await context.queryAiChat({messages:[],purpose:'customer'});
     assert.equal(context.aiUsageStore.read().totalCostUsd,0.00001234,'real server request must persist billed cost');
     response=new Error('network timeout');
@@ -86,7 +91,6 @@ async function serverTest() {
     response={status:429,data:{error:{message:'fixture limit'}}};
     const httpFailure=await context.queryAiChat({messages:[]});
     assert(httpFailure.accountingWarning,'upstream HTTP error must retain ledger failure warning');
-    vm.runInContext(extract(source,'checkAiApiStatus'),context);
     response={status:200,data:{choices:[{message:{content:'pong'}}],usage:{cost:0.01}}};
     const connection=await context.checkAiApiStatus();
     assert.equal(connection.ok,true);

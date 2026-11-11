@@ -18,7 +18,7 @@ async function scenario(readOnly, saveOK) {
   let resolveSave;
   const pending = new Promise(resolve => { resolveSave = resolve; });
   const ctx = vm.createContext({
-    state:{customers:{},orders:[]}, macDataLoaded:true, macStorageReadOnly:readOnly, macStorageConflict:false,
+    state:{customers:{},orders:[]}, macStorageMode:readOnly ? 'load-failed' : 'ready', macSaveLastErrorKind:'storage',
     isMacAppMode:()=>true, macSaveLastError:'test disk failure', editingId:null,
     FormData:class { entries() { return [['name','Test Buyer'],['originalName',''],['client','Test Buyer']]; } },
     customerMultiFieldData:()=>({}), customerContactPreferenceData:()=>({}), autoCapitalizeCustomerName:x=>x, customerSaveName:x=>String(x||'').trim(),
@@ -33,7 +33,7 @@ async function scenario(readOnly, saveOK) {
     closeOrder:()=>events.push('closed'), completeOrderNotification:()=>events.push('notified'), rejectDuplicateOrderNum:()=>false,
     confirmOrderPaymentOverflow:async()=>true, orderStageSaveNote:()=>'', syncOrderFormAfterCustomerSave:()=>{}
   });
-  for (const name of ['canSubmitStoredData','persistFormState']) {
+  for (const name of ['macIsReadOnly','macSaveWillRetry','canSubmitStoredData','persistFormState']) {
     if (html.includes(`function ${name}(`)) vm.runInContext(extract(name),ctx);
   }
   vm.runInContext(extract('saveCustomer'),ctx);

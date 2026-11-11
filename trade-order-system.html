@@ -8415,9 +8415,98 @@ async function saveMacTrackingSettings(settings) {
     return null;
   }
 }
-let macDataLoaded = !isMacAppMode();
-let macStorageReadOnly = false;
+// #endregion
+// #region Save engine state and phases
+// 保存引擎的状态都声明在这一段，改保存逻辑先看这里。只管一次提示用的小记录（提示的节流、确认框开没开）
+// 留在用它的函数旁边。
+//
+// 一、数据库这一头是什么状态（macStorageMode），只会是这四种之一，只通过 macSetStorageMode() 改：
+//   loading      刚启动，数据库还没读完：不保存，什么都不会写进数据库
+//   ready        读到了，可以保存
+//   load-failed  读库失败，或读到了但健康检查没过：只读保护，等人点「重新读取数据库」
+//   conflict     另一个窗口先保存了，合并不了或在等人选一边：只读，等人选、导出或重新加载
+//
+// 二、保存走到哪一步（macSavePhase()），由下面的变量算出来，不另存一份：
+//   idle      内存里的数据都已经在数据库里
+//   queued    有修改，在 350 毫秒的防抖里，或排着等发
+//   saving    请求已经发出去（含 409 之后读最新数据来合并、导入时整份替换）
+//   retrying  上次没存进去，会自动再试（网络、服务端暂时出错）
+//   rejected  数据库拒收了这份数据（例如订单号重复）：不自动再试，下一次修改或重画界面时再发
+// 不是 ready 时就是 loading / load-failed / conflict；冲突里两边改了同一处、在等人选一边时是 choosing。
+let macStorageMode = isMacAppMode() ? 'loading' : 'ready';
+// 真实数据读到了没有：读到之前工作台卡片显示骨架，金额页 / 经营分析的「本月为空」兜底也不跑（不能按占位数据判断）。
+// 读到以后即使健康检查没过（load-failed）也保持 true。
+let macStateReady = !isMacAppMode();
+let macStateLoadFailed = false;
+// 数据库里的版本号：保存时带上，服务端发现不是最新的就回 409。
 let macStorageRevision = 0;
+// 队列：数据每变一次 requested 加一，存进去的那一版记到 completed。
+let macSaveRequestedVersion = 0;
+let macSaveCompletedVersion = 0;
+// 排着要存的那一份，和数据库里已有的那一份（合并时的基准，也用来判断「有没有没存进去的修改」）。
+let macQueuedStateJson = '';
+let macPersistedStateJson = '';
+// { json, baseRevision, saveId }：同一份数据、同一个版本号的重试用同一个保存编号。
+let macSaveAttempt = null;
+// 合并 / 删除客户要明确告诉服务端（WhatsApp 聊天跟着合并走、删除的客户不被猜成改名）：跟着下一次保存一起发。
+let macPendingCustomerOps = [];
+// 正在进行的事：350 毫秒防抖、失败后等 3 秒再试、保存队列在跑、/api/save 在路上、导入或恢复示例在整份写库。
+let macSaveTimer = 0;
+let macSaveRetryTimer = 0;
+let macSaveLoopPromise = null;
+let macSaveInFlight = false;
+let macDirectSavePromise = null;
+// 冲突后等人选「用我的 / 用那边的」：{ theirs, revision }。
+let macPendingMerge = null;
+// 上一次失败：给人看的原因；类别（conflict / server-down / timeout / storage / rejected，退出、更新前的提示据此说清楚）；
+// 最早是什么时候（铃铛里补的那张「数据保存失败」卡用它当时间）。存进去以后三个一起清掉，见 macSaveSettled。
+let macSaveLastError = '';
+let macSaveLastErrorKind = '';
+let macSaveLastErrorAt = '';
+
+// 设置页里的两块操作跟着状态走：冲突时给「导出 / 重新加载」，读库失败时给「重新读取数据库」。
+function macSetStorageMode(mode) {
+  macStorageMode = mode;
+  const show = (id, visible) => { const panel = document.getElementById(id); if (panel) panel.hidden = !visible; };
+  show('macStorageConflictActions', mode === 'conflict');
+  show('macStorageReloadActions', mode === 'load-failed');
+}
+function macIsReadOnly() { return macStorageMode === 'load-failed' || macStorageMode === 'conflict'; }
+// 数据库完整读过一遍了（现在可能可写，也可能因为冲突只读）。
+function macHasReadDatabase() { return macStorageMode === 'ready' || macStorageMode === 'conflict'; }
+function macSavePhase() {
+  if (macStorageMode !== 'ready') return macPendingMerge ? 'choosing' : macStorageMode;
+  if (macSaveInFlight || macSaveLoopPromise || macDirectSavePromise) return 'saving';
+  if (macSaveLastError) return macSaveLastErrorKind === 'rejected' ? 'rejected' : 'retrying';
+  return macSaveTimer || macSaveCompletedVersion < macSaveRequestedVersion ? 'queued' : 'idle';
+}
+// 上一次失败属于会自动再试的那种（保存途中问也算，这时 macSavePhase() 是 saving）。
+function macSaveWillRetry() {
+  return macStorageMode === 'ready' && Boolean(macSaveLastError) && macSaveLastErrorKind !== 'rejected';
+}
+// json 这一份已经在数据库里，版本号是 revision。三处成功都走这里：正常保存、409 之后发现其实已经存进去了、
+// 导入时整份替换。铃铛里的「数据保存失败」同时标成已恢复、已读，红点不再因为它亮着。
+function macSaveSettled({ json, revision }) {
+  window.clearTimeout(macSaveRetryTimer);
+  macSaveRetryTimer = 0;
+  macStorageRevision = revision;
+  macPersistedStateJson = json;
+  macSaveLastError = '';
+  macSaveLastErrorKind = '';
+  macSaveLastErrorAt = '';
+  if (typeof uiNotifResolve === 'function') uiNotifResolve('save-');
+}
+// 409 而且合并不了：切成只读。返回给保存流程抛出的错误；服务端回的是英文原文（state revision conflict），
+// 给人看的固定用中文。
+function macEnterConflict() {
+  macSetStorageMode('conflict');
+  const error = new Error(macConflictReadOnlyText);
+  error.conflict = true;
+  error.kind = 'conflict';
+  return error;
+}
+// #endregion
+// #region The state object, list filters, snoozed tasks
 let state = loadState();
 let customerGroupFilter = 'all';
 let logisticsCarrierFilter = 'all';
@@ -8487,17 +8576,13 @@ function saveDashboardAmountMonth(value) {
 function loadState() {
   return normalizeState({ orders: [], doneTasks: {}, demoCleared: true, demoCustomersCleared: true });
 }
-// 真实数据读到了没有：读到之前工作台卡片显示骨架，金额页 / 经营分析的「本月为空」兜底也不跑（不能按占位数据判断）。
-let macStateReady = !isMacAppMode();
-let macStateLoadFailed = false;
-// 另一个窗口（或另一台设备）先保存过：本窗口切成只读，提示语要说清楚是冲突，不是「连接问题」，也别叫人「重试」。
-let macStorageConflict = false;
+// 另一个窗口（或另一台设备）先保存过，本窗口切成只读：提示语要说清楚是冲突，不是「连接问题」，也别叫人「重试」。
 const macConflictReadOnlyText = '另一个窗口刚保存过数据，本窗口已切换为只读，这次修改没有存进数据库。';
 // 读库失败时的只读提示：说出设置里那个按钮真实的名字（以前叫人去点一个根本不存在的「重新加载」）。
 const macReadOnlyText = '数据库处于只读保护，这次修改没有保存。可在 设置 → 数据管理 里点「重新读取数据库」。';
 function canSubmitStoredData() {
-  if (isMacAppMode() && (!macDataLoaded || macStorageReadOnly)) {
-    if (macStorageConflict) {
+  if (isMacAppMode() && macStorageMode !== 'ready') {
+    if (macStorageMode === 'conflict') {
       if (!promptMacStorageConflict()) toast(macConflictReadOnlyText, { tone:'error', desc:'可在设置里导出这次的修改，再重新加载最新数据' });
     } else {
       toast('当前数据库不可写，未提交修改。请先恢复数据库连接。', { tone:'error' });
@@ -8513,12 +8598,12 @@ async function persistFormState(...forms) {
   try {
     const saved = isMacAppMode() ? await flushPendingSave() : await saveState();
     // 版本冲突由弹出的确认框说明并给出「导出 / 重新加载」，这里不再叫人「重试」（重试也存不进去）。
-    if (!saved && macSaveWaitTimedOut && !macStorageReadOnly) {
+    if (!saved && macSaveWaitTimedOut && !macIsReadOnly()) {
       toast('数据库这次保存比平时慢，还在后台继续，输入已保留。', { tone:'warn', desc:'保存状态变成「已保存」前，先别关闭这张表单。' });
-    } else if (!saved && !macStorageConflict) {
+    } else if (!saved && macStorageMode !== 'conflict') {
       // 后台会自动重试的失败（网络、服务端暂时出错）：队列那边已经说了「正在自动重试」，这里不再叫人「请重试」。
-      if (macStorageReadOnly) toast(macReadOnlyText, { tone:'error' });
-      else if (macSaveAutoRetrying) {
+      if (macIsReadOnly()) toast(macReadOnlyText, { tone:'error' });
+      else if (macSaveWillRetry()) {
         if (Date.now() - macSaveErrorToastAt > 1500) toast('这次修改已排队，正在自动重试，输入已保留。', { tone:'warn', desc:macSaveLastError ? `原因：${macSaveLastError}` : '' });
       } else toast('尚未保存到数据库，输入已保留，请重试。', { tone:'error' });
     }
@@ -8590,14 +8675,14 @@ let readOnlySaveToastAt = 0;
 // （以前读库失败、什么都没改，也弹这一句）。
 let readOnlyBaselineJson = null;
 function saveState() {
-  if (!isMacAppMode() || !macDataLoaded || macStorageReadOnly) {
+  if (!isMacAppMode() || macStorageMode !== 'ready') {
     // 只读保护下（读库失败、版本冲突）改动只留在这一屏、没有写进数据库：要说出来，别让人以为已经保存了。
-    if (isMacAppMode() && macStorageReadOnly) {
+    if (isMacAppMode() && macIsReadOnly()) {
       const json = JSON.stringify(state);
       if (readOnlyBaselineJson === null) readOnlyBaselineJson = json;
       if (json !== readOnlyBaselineJson && Date.now() - readOnlySaveToastAt > 5000) {
         readOnlySaveToastAt = Date.now();
-        toast(macStorageConflict ? macConflictReadOnlyText : macReadOnlyText, { tone:'error' });
+        toast(macStorageMode === 'conflict' ? macConflictReadOnlyText : macReadOnlyText, { tone:'error' });
       }
       readOnlyBaselineJson = json;
     }
@@ -8608,24 +8693,9 @@ function saveState() {
 }
 // #endregion
 // #region Saving to the local database: queue, conflicts, merge, flush before quit
-let macSaveTimer = 0;
+// 保存引擎的状态（队列、版本号、上一次失败）声明在「Save engine state and phases」那一段。
 let macSaveErrorToastAt = 0;
-let macSaveRequestedVersion = 0;
-let macSaveCompletedVersion = 0;
-let macSaveLoopPromise = null;
-let macQueuedStateJson = '';
-let macPersistedStateJson = '';
-let macSaveLastError = '';
-// 这次保存失败最早是什么时候（铃铛里补的那张「数据保存失败」卡用它当时间）。
-let macSaveLastErrorAt = '';
-let macSaveInFlight = false;
-// 上一次失败后正在等自动重试（网络、服务端暂时出错）；表单保存的提示据此不再叫人「请重试」。
-let macSaveAutoRetrying = false;
-// 最近一次失败的原因类别：conflict / server-down / timeout / storage / rejected，退出、更新前的提示据此说清楚。
-let macSaveLastErrorKind = '';
 let macBackupWarning = '';
-// 合并 / 删除客户要明确告诉服务端（WhatsApp 聊天跟着合并走、删除的客户不被猜成改名）：跟着下一次保存一起发。
-let macPendingCustomerOps = [];
 let customerStorageOpSeq = 0;
 function queueCustomerStorageOp(op = {}) {
   const entry = { ...op, id:`cop-${Date.now()}-${++customerStorageOpSeq}`, state:'pending', chats:null };
@@ -8687,14 +8757,6 @@ function setMacStorageStatus(mode = 'sqlite', stateText = 'saved', detail = '') 
         : `数据库已连接 · ${new Date().toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}`);
   }
 }
-function showMacStorageConflictActions() {
-  const panel = document.getElementById('macStorageConflictActions');
-  if (panel) panel.hidden = false;
-}
-function hideMacStorageConflictActions() {
-  const panel = document.getElementById('macStorageConflictActions');
-  if (panel) panel.hidden = true;
-}
 // 本窗口相对「上次存进数据库的那份」改了哪些：改过的订单（含移进垃圾箱、已删除的）、改过或新加的客户、新的物流查询记录。
 // 冲突时只导出这些，文件标 scope:'unsaved-conflict'；导入时只按记录合并，不再整库覆盖（以前导出整份旧数据，
 // 拿去导入会把另一个窗口刚存的修改全改回去）。
@@ -8735,7 +8797,7 @@ document.getElementById('macStorageReloadBtn')?.addEventListener('click', async 
   const btn = document.getElementById('macStorageReloadBtn');
   if (btn) { btn.disabled = true; btn.setAttribute('aria-busy', 'true'); }
   try { await loadMacAppState(); } finally { if (btn) { btn.disabled = false; btn.removeAttribute('aria-busy'); } }
-  if (macDataLoaded) toast('已重新读取数据库');
+  if (macStorageMode === 'ready') toast('已重新读取数据库');
 });
 // 刷新页面（左下角刷新按钮、冲突面板的「重新加载最新数据」）：先把排着的保存存完；还有存不进去的修改
 // （重试中、冲突只读、表单没保存）就先问，可以先导出。以前直接 reload，删除后马上刷新、重试中刷新，修改都会丢。
@@ -8744,7 +8806,7 @@ async function guardedPageReload({ scrollTop = false } = {}) {
     if (scrollTop) sessionStorage.setItem(refreshTopKey, '1');
     window.location.reload();
   };
-  if (!isMacAppMode() || !macDataLoaded) return go();
+  if (!isMacAppMode() || !macHasReadDatabase()) return go();
   const saved = await flushPendingSave();
   const unsaved = otsUnsavedForms();
   const localLost = !saved && JSON.stringify(state) !== macPersistedStateJson;
@@ -8753,7 +8815,7 @@ async function guardedPageReload({ scrollTop = false } = {}) {
   if (localLost) {
     const changes = macUnsavedChanges();
     const what = [changes.nums.length ? `订单 ${changes.nums.slice(0, 5).join('、')}${changes.nums.length > 5 ? ' 等' : ''}` : '', changes.names.length ? `客户 ${changes.names.slice(0, 3).join('、')}${changes.names.length > 3 ? ' 等' : ''}` : ''].filter(Boolean).join('；');
-    lines.push(macStorageConflict
+    lines.push(macStorageMode === 'conflict'
       ? `· 本窗口的修改因为和另一个窗口冲突，没有存进数据库${what ? `（${what}）` : ''}`
       : `· 修改还没确认写进数据库${what ? `（${what}）` : ''}${macSaveLastError ? `，原因：${macSaveLastError}` : ''}`);
   }
@@ -8823,8 +8885,9 @@ function promptMacStorageConflict() {
 function pendingSaveStatus() {
   return {
     mode: isMacAppMode() ? 'mac' : 'browser',
-    loaded: macDataLoaded,
-    readOnly: macStorageReadOnly,
+    phase: macSavePhase(),
+    loaded: macHasReadDatabase(),
+    readOnly: macIsReadOnly(),
     saving: macSaveInFlight || Boolean(macSaveTimer),
     pending: macSaveCompletedVersion < macSaveRequestedVersion,
     revision: macStorageRevision,
@@ -8834,7 +8897,7 @@ function pendingSaveStatus() {
 window.pendingSaveStatus = pendingSaveStatus;
 window.getPendingSaveStatus = pendingSaveStatus;
 function queueCurrentMacState() {
-  if (!isMacAppMode() || !macDataLoaded || macStorageReadOnly) return false;
+  if (!isMacAppMode() || macStorageMode !== 'ready') return false;
   const nextJson = JSON.stringify(state);
   if (nextJson !== macQueuedStateJson) {
     macQueuedStateJson = nextJson;
@@ -8843,7 +8906,7 @@ function queueCurrentMacState() {
   return macSaveCompletedVersion < macSaveRequestedVersion;
 }
 function scheduleMacSave() {
-  if (macSaveTimer || macSaveLoopPromise || macStorageReadOnly) return;
+  if (macSaveTimer || macSaveLoopPromise || macIsReadOnly()) return;
   if (!macSaveLastError) setMacStorageStatus('sqlite', 'pending');
   macSaveTimer = window.setTimeout(() => {
     macSaveTimer = 0;
@@ -8852,7 +8915,6 @@ function scheduleMacSave() {
 }
 // 保存请求最多等这么久，超时按网络错误处理（自动重试）；配合保存编号，超时后其实已写入也不会变成假冲突。
 let macSaveRequestTimeoutMs = 20000;
-let macSaveAttempt = null;
 function macNewSaveId() {
   try { if (crypto?.randomUUID) return crypto.randomUUID().replace(/-/g, ''); } catch (_) {}
   return `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
@@ -8991,8 +9053,6 @@ function macConflictLine(item) {
 function macMergeBase() {
   try { return JSON.parse(macPersistedStateJson || '{}') || {}; } catch (_) { return {}; }
 }
-// 冲突后等人选「用我的 / 用那边的」：{ theirs, revision }。
-let macPendingMerge = null;
 // 409 之后：读数据库里最新的一份，和本窗口合并。
 // 'same'：数据库里就是刚才发出去的那份（上一次其实已经存进去了）；'merged'：自动合并好了，接着存；
 // 'conflict'：两边改了同一处，等人选；'failed'：读不到最新数据或没法合并，按原来的只读处理。
@@ -9007,13 +9067,9 @@ async function macMergeAfterConflict({ snapshotJson, targetVersion, customerOps 
   const revision = Number(loaded.revision);
   if (!Number.isFinite(revision)) return 'failed';
   if (macStableJson(normalizeState(JSON.parse(snapshotJson))) === macStableJson(theirs)) {
-    macStorageRevision = revision;
     macSaveCompletedVersion = Math.max(macSaveCompletedVersion, targetVersion);
-    macPersistedStateJson = snapshotJson;
     customerOps.forEach(op => { op.state = 'done'; op.chats = op.chats || []; });
-    macSaveLastError = '';
-    macSaveLastErrorKind = '';
-    macSaveAutoRetrying = false;
+    macSaveSettled({ json:snapshotJson, revision });
     setMacStorageStatus('sqlite', 'saved', `数据库已保存 · 版本 ${macStorageRevision}`);
     failedSaveSettleAfterSave();
     return 'same';
@@ -9045,24 +9101,22 @@ function applyMacMergeChoice(prefer = 'theirs') {
   macPersistedStateJson = JSON.stringify(pending.theirs);
   macStorageRevision = pending.revision;
   macSaveAttempt = null;
-  macStorageReadOnly = false;
-  macStorageConflict = false;
+  macSetStorageMode('ready');
   macSaveLastError = '';
   macSaveLastErrorKind = '';
   macMergeDroppedMine = prefer === 'theirs';
-  hideMacStorageConflictActions();
   macQueuedStateJson = '';
   render();
   toast(prefer === 'mine' ? '已合并：冲突的地方用了本窗口的修改' : '已合并：冲突的地方用了另一个窗口的修改', { tone:'info', desc:'正在保存到数据库' });
 }
 async function runMacSaveQueue() {
   if (macSaveLoopPromise) return macSaveLoopPromise;
-  if (!macDataLoaded || macStorageReadOnly) return false;
+  if (macStorageMode !== 'ready') return false;
   macSaveLoopPromise = (async () => {
     // 导入 / 恢复示例正在整份写库：等它写完（成功后队列里只剩它之后的改动，失败时队列已清空）。
     while (macDirectSavePromise) await macDirectSavePromise.catch(() => {});
     let mergeAttempts = 0;
-    while (macSaveCompletedVersion < macSaveRequestedVersion && !macStorageReadOnly) {
+    while (macSaveCompletedVersion < macSaveRequestedVersion && !macIsReadOnly()) {
       const targetVersion = macSaveRequestedVersion;
       const snapshotJson = macQueuedStateJson;
       const snapshot = JSON.parse(snapshotJson);
@@ -9101,14 +9155,7 @@ async function runMacSaveQueue() {
             const outcome = await macMergeAfterConflict({ snapshotJson, targetVersion, customerOps });
             if (outcome === 'same' || outcome === 'merged') continue;
           }
-          macStorageReadOnly = true;
-          macStorageConflict = true;
-          showMacStorageConflictActions();
-          // 服务端回的是英文原文（state revision conflict），给人看的固定用中文。
-          const error = new Error(macConflictReadOnlyText);
-          error.conflict = true;
-          error.kind = 'conflict';
-          throw error;
+          throw macEnterConflict();
         }
         if (!res.ok || result.ok === false) {
           const error = new Error(result.message || `保存失败 HTTP ${res.status}`);
@@ -9118,20 +9165,13 @@ async function runMacSaveQueue() {
           throw error;
         }
         const savedRevision = Number(result.revision);
-        macStorageRevision = Number.isFinite(savedRevision) ? savedRevision : macStorageRevision + 1;
         macSaveCompletedVersion = targetVersion;
-        macPersistedStateJson = snapshotJson;
         customerOps.forEach(op => {
           op.state = 'done';
           op.chats = (result.movedChats || []).find(item => item.id === op.id)?.chats || [];
         });
-        macSaveLastError = '';
-        macSaveLastErrorKind = '';
-        macSaveAutoRetrying = false;
+        macSaveSettled({ json:snapshotJson, revision:Number.isFinite(savedRevision) ? savedRevision : macStorageRevision + 1 });
         applyMacSaveBackupResult(result);
-        // 又存进去了：铃铛里的「数据保存失败」标成已恢复、已读，红点不再因为它亮着。
-        macSaveLastErrorAt = '';
-        if (typeof uiNotifResolve === 'function') uiNotifResolve('save-');
         // 失败后自动重试成功：表单里留着的失败记录清掉；没有表单在等时也说一句「已恢复」。
         if (!failedSaveSettleAfterSave() && hadError) toast('数据库已恢复保存，刚才的修改都存进去了');
       } catch (error) {
@@ -9149,11 +9189,16 @@ async function runMacSaveQueue() {
         } else if (Date.now() - macSaveErrorToastAt > 10000 || error.rejected) {
           macSaveErrorToastAt = Date.now();
           // 失败提示不能用默认的绿色对勾：被拒绝 / 只读是红色，自动重试中是黄色。
-          toast(macStorageReadOnly || error.rejected ? `数据库没有保存：${macSaveLastError}` : '数据库保存失败，正在自动重试，请先不要关闭软件', { tone:macStorageReadOnly || error.rejected ? 'error' : 'warn', desc:macStorageReadOnly || error.rejected || /自动重试/.test(macSaveLastError) ? '' : `原因：${macSaveLastError}` });
+          const final = macIsReadOnly() || error.rejected;
+          toast(final ? `数据库没有保存：${macSaveLastError}` : '数据库保存失败，正在自动重试，请先不要关闭软件', { tone:final ? 'error' : 'warn', desc:final || /自动重试/.test(macSaveLastError) ? '' : `原因：${macSaveLastError}` });
         }
         // 网络抖动或服务端短暂出错时自动重试，别让修改一直停在内存里；数据本身被拒绝时等下一次修改再存。
-        macSaveAutoRetrying = !macStorageReadOnly && !error.rejected;
-        if (macSaveAutoRetrying) window.setTimeout(() => { if (!macStorageReadOnly && macSaveCompletedVersion < macSaveRequestedVersion) scheduleMacSave(); }, 3000);
+        // 只留一个等待：以前每次失败各定一个，前一次失败留下的会在后来「被拒收」的保存之后把它再发一遍。
+        window.clearTimeout(macSaveRetryTimer);
+        macSaveRetryTimer = macSaveWillRetry() ? window.setTimeout(() => {
+          macSaveRetryTimer = 0;
+          if (!macIsReadOnly() && macSaveCompletedVersion < macSaveRequestedVersion) scheduleMacSave();
+        }, 3000) : 0;
         return false;
       } finally {
         macSaveInFlight = false;
@@ -9170,7 +9215,6 @@ async function runMacSaveQueue() {
 // 失败时（任何状态码）页面回到换之前的样子，不进每 3 秒重试的保存队列——以前导入「1,200」这种金额后保存永远失败，
 // 界面却一直停在导入的数据上，之后的修改也都存不进去。customerInference:false：不按「删 1 加 1」猜客户改名，
 // WhatsApp 聊天不会挂到另一位客户名下。
-let macDirectSavePromise = null;
 async function macReplaceState(nextState) {
   if (!await flushPendingSave()) throw new Error(macSaveLastError || '还有修改没存进数据库');
   const previous = state;
@@ -9189,23 +9233,16 @@ async function macReplaceState(nextState) {
       if (res.status === 409) {
         const latestRevision = Number(result.revision ?? result.currentRevision);
         if (Number.isFinite(latestRevision)) macStorageRevision = latestRevision;
-        macStorageReadOnly = true;
-        macStorageConflict = true;
-        showMacStorageConflictActions();
-        const error = new Error(macConflictReadOnlyText);
-        error.conflict = true;
-        throw error;
+        throw macEnterConflict();
       }
       if (!res.ok || result.ok === false) throw new Error(result.message || `保存失败 HTTP ${res.status}`);
       const savedRevision = Number(result.revision);
-      macStorageRevision = Number.isFinite(savedRevision) ? savedRevision : macStorageRevision + 1;
-      macPersistedStateJson = snapshotJson;
+      macSaveSettled({ json:snapshotJson, revision:Number.isFinite(savedRevision) ? savedRevision : macStorageRevision + 1 });
       // 保存途中又改了别的：那些改动在 nextState 之上，留给保存队列接着存。
       if (JSON.stringify(state) === snapshotJson) {
         macQueuedStateJson = snapshotJson;
         macSaveCompletedVersion = macSaveRequestedVersion;
       }
-      macSaveLastError = '';
       applyMacSaveBackupResult(result);
     } catch (error) {
       state = previous;
@@ -9238,7 +9275,7 @@ function applyMacSaveBackupResult(result = {}) {
   setMacStorageStatus(result.storageMode || 'sqlite', feedback.warning ? 'warning' : 'saved', feedback.message || `数据库已保存 · 版本 ${macStorageRevision} · ${new Date().toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}`);
 }
 function syncStateToMacApp({ immediate = false } = {}) {
-  if (!queueCurrentMacState()) return Promise.resolve(!macStorageReadOnly);
+  if (!queueCurrentMacState()) return Promise.resolve(!macIsReadOnly());
   if (immediate) {
     window.clearTimeout(macSaveTimer);
     macSaveTimer = 0;
@@ -9253,7 +9290,7 @@ let macSaveWaitLimitMs = 60000;
 let macSaveWaitTimedOut = false;
 async function flushPendingSave() {
   if (!isMacAppMode()) return true;
-  if (!macDataLoaded || macStorageReadOnly) return false;
+  if (macStorageMode !== 'ready') return false;
   queueCurrentMacState();
   window.clearTimeout(macSaveTimer);
   macSaveTimer = 0;
@@ -9299,7 +9336,7 @@ function recentQuitBlock() {
 // 先把已经改好的数据存掉；还有表单改了没保存就返回 false：Mac 壳不会直接退出，而是用页面里的确认框
 // 问「不保存，退出 / 继续编辑」（见 nativeDialog）；更新则取消，并在页面里提示是哪几张表单。
 window.otsFlushBeforeQuit = async () => {
-  if (isMacAppMode() && !macDataLoaded) return true;
+  if (isMacAppMode() && !macHasReadDatabase()) return true;
   const saved = await flushPendingSave();
   await flushServerPrefs();
   const unsaved = otsUnsavedForms();
@@ -9311,7 +9348,7 @@ window.otsFlushBeforeQuit = async () => {
 // Mac 壳安装更新、换包之前调用：数据已经存完（otsFlushBeforeQuit 返回 true）后，强制备份一份「安装更新前」的数据库，
 // 新版本启动时万一改坏了数据，也有一份刚刚的快照。返回 true，或者没备份成功的原因（Mac 壳据此取消这次更新）。
 window.otsBackupBeforeUpdate = async () => {
-  if (!isMacAppMode() || !macDataLoaded) return true;
+  if (!isMacAppMode() || !macHasReadDatabase()) return true;
   try {
     const res = await apiFetch('/api/backup-before-change', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ reason:'update' }) });
     const data = await res.json().catch(() => ({}));
@@ -9322,7 +9359,7 @@ window.otsBackupBeforeUpdate = async () => {
   }
 };
 function otsSaveBlockReason() {
-  if (macStorageConflict || macPendingMerge) return 'conflict';
+  if (macStorageMode === 'conflict' || macPendingMerge) return 'conflict';
   if (macSaveWaitTimedOut || macSaveLastErrorKind === 'timeout') return 'slow';
   if (macSaveLastErrorKind === 'server-down') return 'server-down';
   if (macSaveLastErrorKind === 'rejected') return 'rejected';
@@ -9428,19 +9465,17 @@ async function loadMacAppState() {
     if (trackingSettings) storeTrackingApiSettingsLocal(trackingSettings);
     // 飞书配置状态不挡首屏：读到后更新设置页、接口状态和三处发送开关的默认值。
     refreshFeishuStatus();
-    macDataLoaded = true;
-    macStorageReadOnly = false;
+    macSetStorageMode('ready');
     macSaveLastError = '';
+    macSaveLastErrorKind = '';
     readOnlyBaselineJson = null;
     scheduleExistingImageCompression();
-    const reloadPanel = document.getElementById('macStorageReloadActions');
-    if (reloadPanel) reloadPanel.hidden = true;
     // 启动时检查一次 UPS 满 5 天规则；之后由每分钟的定时检查接着看。
     completeDueUpsOrders();
     showRestoredBackupNotice();
   } catch (e) {
-    macDataLoaded = false;
-    macStorageReadOnly = true;
+    // 设置里的「重新读取数据库」按钮跟着这个状态出现（以前提示让人去点，设置里却找不到）。
+    macSetStorageMode('load-failed');
     macSaveLastError = e.message || '数据库读取失败';
     if (!macStateReady) macStateLoadFailed = true;
     const reason = String(e.message || '数据库读取失败');
@@ -9448,9 +9483,6 @@ async function loadMacAppState() {
       ? '数据库文件和本机的身份标记对不上（常见于手动放回备份或换了电脑）'
       : /database is missing/i.test(reason) ? '数据库文件不见了，但本机有备份记录' : reason;
     setMacStorageStatus('sqlite', 'error', `${friendly}。可在下方点「重新读取数据库」，或「从备份恢复…」选一份备份恢复。`);
-    // 设置里给一个真的「重新读取数据库」按钮（以前提示让人去点，设置里却找不到）。
-    const reloadPanel = document.getElementById('macStorageReloadActions');
-    if (reloadPanel) reloadPanel.hidden = false;
     toast('数据库读取失败，当前已进入只读保护，绝不会覆盖本机数据', { tone:'error', desc:'可在 设置 → 数据管理 里点「重新读取数据库」，或从备份恢复' });
   }
   render();
@@ -9466,8 +9498,7 @@ async function loadMacAppState() {
 let macRevisionCheckAt = 0;
 let macRevisionCheckRunning = false;
 function macSaveIdle() {
-  return isMacAppMode() && macDataLoaded && !macStorageReadOnly && !macSaveInFlight && !macSaveTimer && !macSaveLoopPromise
-    && !macDirectSavePromise && macSaveCompletedVersion >= macSaveRequestedVersion && !macPendingMerge;
+  return isMacAppMode() && macSavePhase() === 'idle';
 }
 async function macCheckRemoteRevision({ force = false } = {}) {
   if (!macSaveIdle() || macRevisionCheckRunning || document.hidden) return false;
@@ -16865,7 +16896,7 @@ function uncompressedOrderImageUrls() {
 }
 // 'stop'：读写不了或订单弹窗开着，整轮停下；'skip'：只是这张图的订单正在抽屉里开着，先跳过这张。
 function orderImageCompressionBlocked(fileUrl) {
-  if (!macDataLoaded || macStorageReadOnly) return 'stop';
+  if (macStorageMode !== 'ready') return 'stop';
   if (document.getElementById('orderModal')?.classList.contains('open')) return 'stop';
   if (!detailOrderId || !document.getElementById('orderDetailDrawer')?.classList.contains('open')) return '';
   return macOrderBuckets.some(bucket => (state[bucket] || []).some(order => order?.id === detailOrderId
@@ -19524,7 +19555,7 @@ function orderAutoCompleteCheck(order = {}, today = nowText().slice(0, 10)) {
 }
 // UPS 满 5 天规则：只在启动时和每分钟的定时检查里跑（不再挂在每次 render 上），一张单只推一次。
 function completeDueUpsOrders(today = nowText().slice(0, 10)) {
-  if (isMacAppMode() && (!macDataLoaded || macStorageReadOnly)) return 0;
+  if (isMacAppMode() && macStorageMode !== 'ready') return 0;
   let completed = 0;
   for (const order of state.orders) {
     const check = orderAutoCompleteCheck(order, today);
@@ -24045,7 +24076,7 @@ function restorePreviewMessage(preview) {
 async function macRestoreBackup(name) {
   if (!isMacAppMode() || !name) return;
   // 恢复会换掉整个数据库：先把手上的修改存完，「恢复前」备份里才有它们。读库失败时没有可存的。
-  if (macDataLoaded && !macStorageReadOnly && !await flushPendingSave()) {
+  if (macStorageMode === 'ready' && !await flushPendingSave()) {
     toast(`还有修改没存进数据库，先不恢复：${macSaveLastError || '请稍后再试'}`, { tone:'error' });
     return;
   }
@@ -30296,7 +30327,7 @@ function uiNotifOpenTarget(card) {
     uiToggleNotifs(false);
     setPage('settings');
     uiSettingsTab('data');
-    if (macSaveLastError && !macStorageReadOnly && typeof flushPendingSave === 'function') flushPendingSave();
+    if (macSaveLastError && !macIsReadOnly() && typeof flushPendingSave === 'function') flushPendingSave();
     return;
   }
   // 新版本 → 焦点放到左下角「更新」上，并发起检查：Mac App 找到新版本后会先弹确认，不会直接重启。

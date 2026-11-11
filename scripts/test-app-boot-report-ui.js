@@ -65,7 +65,7 @@ const booted = page => page.evaluate(() => window.__booted.length);
     {
       const { context, page } = await open(browser, { data: route => route.fulfill({ status:500, json:{ ok:false, message:'database is missing' } }) });
       await page.waitForFunction(() => window.__booted.length === 1);
-      assert.equal(await page.evaluate(() => macStorageReadOnly), true);
+      assert.equal(await page.evaluate(() => macStorageMode), 'load-failed');
       await context.close();
     }
 

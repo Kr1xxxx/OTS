@@ -67,7 +67,7 @@ const { chromium } = require('playwright');
     await page.waitForFunction(()=>!document.getElementById('combinedCustomerOrderModal').classList.contains('open'));
     assert.equal(stored.data.orders.length,2,'Combined retry duplicated order');
     assert(stored.data.customers['Combined Test Buyer']);
-    await page.evaluate(()=>{macStorageReadOnly=true;openCustomerModal();});
+    await page.evaluate(()=>{macSetStorageMode('load-failed');openCustomerModal();});
     await page.locator('#customerForm [name="name"]').fill('Must Not Save');
     const before = writes;
     await page.locator('#customerHeaderSaveBtn').click();

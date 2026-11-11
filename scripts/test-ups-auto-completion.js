@@ -68,7 +68,7 @@ const { chromium } = require('playwright');
     await page.evaluate(()=>flushPendingSave());
     assert.equal(saved('young').stage,'done','Open application must check again without relaunch');
     assert.equal(saved('multi-young').stage,'done');
-    await page.evaluate(()=>{macStorageReadOnly=true;state.orders.find(o=>o.id==='future').shippedAt='2026-09-01';});
+    await page.evaluate(()=>{macSetStorageMode('load-failed');state.orders.find(o=>o.id==='future').shippedAt='2026-09-01';});
     await page.clock.runFor(60001);
     assert.equal(await page.evaluate(()=>state.orders.find(o=>o.id==='future').stage),'shipment','Read-only mode must not mutate orders');
     assert.deepEqual(errors,[]);

@@ -40,6 +40,9 @@ const { chromium } = require('playwright');
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.route('**/*', async route => {
+      // WebKit under Playwright also hands over the blob: address of a pasted picture; that is the page reading
+      // its own memory, not a request to the server.
+      if (!/^https?:/.test(route.request().url())) return route.continue();
       const pathname = new URL(route.request().url()).pathname;
       if (pathname === '/trade-order-system.html') return route.fulfill({ contentType:'text/html', body:html });
       if (pathname === '/api/data') return route.fulfill({ json:{ app:'trade-order-system', revision:0, data:{ orders:[{ id:'upload-existing', num:'UPLOAD-TEST', client:'Upload Test Buyer', amount:100, paidAmount:0, currency:'USD', stage:'quote', productType:'睫毛', createdAt:'2026-10-03', attachments:Array.from({ length:18 }, (_, index) => ({ name:`Existing ${index}`, link:`https://example.com/${index}`, type:'其他' })) }], customers:{}, demoCleared:true, demoCustomersCleared:true } } });

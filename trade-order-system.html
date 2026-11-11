@@ -11871,6 +11871,9 @@ function setModalOpenState(modalOrId, open) {
     if (back && back.isConnected && (modal.contains(document.activeElement) || document.activeElement === document.body)) {
       try { back.focus({ preventScroll:true }); } catch (_) { /* 忽略 */ }
     }
+    // 没有可回去的地方：焦点也不留在已经关掉的弹窗里。Chromium 会在元素看不见后自己收走焦点，WebKit 不会，
+    // 下次打开时就被当成「用户已经在里面操作」，起始焦点不再放。
+    if (modal.contains(document.activeElement)) document.activeElement.blur?.();
   }
   return modal;
 }
@@ -27297,7 +27300,9 @@ const globalSearchPanel = document.getElementById('globalSearchPanel');
 // 输入加 100ms 防抖（以前每个按键同步重算全部客户和订单），输入法组字期间不算。
 // 防抖到点时面板已经按当前输入算过了（这 100ms 里按了 ↑↓ / Enter，syncGlobalSearchPanel 先算了一次），就不再重画：
 // 以前照样重画，刚用 ↑↓ 选中的那条被清掉（机器慢、防抖晚到时偶发）。
+// 这 100ms 里按了 Esc、点到了别处（搜索框已经没有焦点）：面板是用户收起的，不再把它打开。
 const debouncedGlobalSearchRender = debounce(() => {
+  if (document.activeElement !== searchInput) return;
   if (globalSearchPanel.classList.contains('open') && globalSearchRenderedQuery === searchInput.value.trim()) return;
   renderGlobalSearchPanel({ forceOpen:true });
 }, 100);
@@ -28973,7 +28978,9 @@ document.getElementById('pipeline').addEventListener('dragend', e => {
   if (card) card.classList.remove('dragging');
   document.querySelectorAll('.drag-over, .drag-invalid').forEach(el => el.classList.remove('drag-over', 'drag-invalid'));
 });
-document.getElementById('pipeline').addEventListener('dragover', e => {
+// dragenter 和 dragover 一样处理：指针刚进到列里的另一个元素时，WebKit 只派 dragenter、不派 dragover，
+// 这一下没有接住的话它就认为这里不能放，正好在这时松手，卡片不动（标准也要求两个事件都接住）。
+function boardDragOverColumn(e) {
   const column = e.target.closest('.board-column[data-stage], #trashDrop');
   if (!column) return;
   // 外部拖进来的文本 / 文件也拦下（别让浏览器打开文件），但不高亮、松手时不当成订单。
@@ -28986,10 +28993,14 @@ document.getElementById('pipeline').addEventListener('dragover', e => {
   const same = state.orders.includes(order) && order.stage === column.dataset.stage;
   column.classList.toggle('drag-invalid', invalid);
   column.classList.toggle('drag-over', !invalid && !same);
-});
+}
+document.getElementById('pipeline').addEventListener('dragenter', boardDragOverColumn);
+document.getElementById('pipeline').addEventListener('dragover', boardDragOverColumn);
 document.getElementById('pipeline').addEventListener('dragleave', e => {
   const column = e.target.closest('.board-column[data-stage], #trashDrop');
-  if (column && !column.contains(e.relatedTarget)) column.classList.remove('drag-over', 'drag-invalid');
+  // WebKit 的 dragleave 不带 relatedTarget：按指针现在在哪判断是不是真的离开了这一列（列里换了个元素不算）。
+  const movedTo = e.relatedTarget || document.elementFromPoint(e.clientX, e.clientY);
+  if (column && !column.contains(movedTo)) column.classList.remove('drag-over', 'drag-invalid');
 });
 document.getElementById('pipeline').addEventListener('drop', e => {
   const target = e.target.closest('.board-column[data-stage], #trashDrop');

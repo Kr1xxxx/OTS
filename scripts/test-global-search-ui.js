@@ -131,6 +131,18 @@ const mod = process.platform === 'darwin' ? 'Meta' : 'Control';
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => !document.getElementById('globalSearchPanel').classList.contains('open'));
 
+    // 7b. 打完字不到 100 毫秒就按 Esc（防抖还没到点）：面板收起后不再自己打开。两步放在页面里一次做完，
+    // 中间不隔一次测试往返，否则机器慢的时候防抖先到，测不到这一段。
+    await page.evaluate(() => {
+      const el = document.getElementById('searchInput');
+      el.focus();
+      el.value = 'Elit';
+      el.dispatchEvent(new InputEvent('input', { bubbles:true, data:'t', inputType:'insertText' }));
+      el.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', code:'Escape', bubbles:true, cancelable:true }));
+    });
+    await h.waitPageTime(page, 300);
+    assert.equal(await page.evaluate(() => document.getElementById('globalSearchPanel').classList.contains('open')), false, 'the debounced search reopened the panel after Escape');
+
     // 8. 通知面板开着按 ⌘K：通知先收起，结果能点中。
     await page.locator('#notifBtn').click();
     await page.waitForFunction(() => !document.getElementById('notifPanel').hidden);

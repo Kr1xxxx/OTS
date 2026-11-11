@@ -61,13 +61,22 @@ function seededStore() {
     assert.equal(new URL(page.url()).hash, '#subs-analysis');
     assert.equal(await page.locator('.nav-item[data-page="subscriptions"]').getAttribute('class'), 'nav-item active', 'the parent item stays lit');
     assert.equal(await sub.locator('.nav-sub-item.active').innerText(), '分析');
-    // Metric cards count up to their totals.
-    await page.waitForTimeout(1200);
-    const kpis = await page.locator('#subsAnalysis .arc-metric').allInnerTexts();
-    assert.match(kpis[0], /本月扣费\s*\+49% 较上月\s*¥211\.00\s*已扣 ¥142 · 待扣 ¥69/);
-    assert.match(kpis[1], /2026 年已付\s*3 笔\s*¥426\.00/);
-    assert.match(kpis[2], /未来 12 个月预计\s*¥2,027\.75/);
-    assert.match(kpis[3], /累计已付\s*¥1,902\.99/);
+    // Numbers count up and labels swap with an animation. What is checked is where they end, so the test waits
+    // for that, not for a fixed time: on a busy Mac a count-up was read at ¥189.07 of ¥211.00 after 1.2 s.
+    const endsOn = async (read, pattern) => {
+      const deadline = Date.now() + 8000;
+      let text = await read();
+      while (!pattern.test(text) && Date.now() < deadline) {
+        await page.waitForTimeout(50);
+        text = await read();
+      }
+      assert.match(text, pattern);
+    };
+    const kpi = index => () => page.locator('#subsAnalysis .arc-metric').nth(index).innerText();
+    await endsOn(kpi(0), /本月扣费\s*\+49% 较上月\s*¥211\.00\s*已扣 ¥142 · 待扣 ¥69/);
+    await endsOn(kpi(1), /2026 年已付\s*3 笔\s*¥426\.00/);
+    await endsOn(kpi(2), /未来 12 个月预计\s*¥2,027\.75/);
+    await endsOn(kpi(3), /累计已付\s*¥1,902\.99/);
 
     // Arc bar chart: 12 months paid + 6 forecast, the headline reads the 12-month average until a month is scrubbed.
     const barBox = page.locator('#subsArcBars');
@@ -84,14 +93,13 @@ function seededStore() {
     const scrub = barBox.locator('.arc-scrubber');
     const plot = await barBox.locator('.arc-bar-plot').boundingBox();
     await page.mouse.move(plot.x + plot.width * (13.5 / 18), plot.y + plot.height / 2);
-    await page.waitForTimeout(400);
-    assert.match(await barBox.locator('.arc-bar-head').evaluate(el => el.textContent), /预计扣费\s*¥397\s*2026年5月/);
+    const barHead = () => barBox.locator('.arc-bar-head').evaluate(el => el.textContent);
+    await endsOn(barHead, /预计扣费\s*¥397\s*2026年5月/);
     assert.equal(await barBox.locator('.arc-bar-mark[data-active]').getAttribute('data-i'), '13');
     assert.equal(await scrub.getAttribute('aria-valuetext'), '2026年5月：¥397（预计）');
     await capture(page, 'analysis-scrub', { clip:{ x:plot.x - 30, y:plot.y - 150, width:plot.width + 110, height:plot.height + 190 } });
     await page.mouse.move(plot.x + plot.width * (11.5 / 18), plot.y + plot.height / 2);
-    await page.waitForTimeout(400);
-    assert.match(await barBox.locator('.arc-bar-head').evaluate(el => el.textContent), /已扣 ¥142 · 待扣 ¥69\s*¥211\s*2026年3月（本月）/);
+    await endsOn(barHead, /已扣 ¥142 · 待扣 ¥69\s*¥211\s*2026年3月（本月）/);
     await page.mouse.move(5, 5);
     await scrub.focus();
     await page.keyboard.press('Home');
@@ -100,19 +108,16 @@ function seededStore() {
 
     // Arc donut: hovering a legend row reads it in the centre, pressing it hides the segment and the rest redistribute.
     const category = page.locator('#subsArcCategory');
-    await page.waitForTimeout(600);
-    assert.match(await category.locator('.arc-center').innerText(), /每月合计\s*¥168\.98\s*3 项/);
-    assert.match(await category.locator('.arc-legend').innerText(), /软件\s*1 项\s*¥21\.23\s*13%\s*AI\s*1 项\s*¥142\.00\s*84%\s*其他\s*1 项\s*¥5\.75\s*3%/);
+    const centre = () => category.locator('.arc-center').innerText();
+    await endsOn(centre, /每月合计\s*¥168\.98\s*3 项/);
+    await endsOn(() => category.locator('.arc-legend').innerText(), /软件\s*1 项\s*¥21\.23\s*13%\s*AI\s*1 项\s*¥142\.00\s*84%\s*其他\s*1 项\s*¥5\.75\s*3%/);
     await category.locator('.arc-row[data-key="AI"]').hover();
-    // The centre swaps its copy with an exit animation; on a busy CI Mac the old 「3 项」 can outlive a fixed 600 ms wait.
-    await page.waitForFunction(() => /AI\s*¥142\.00\s*占 84%/.test(document.querySelector('#subsArcCategory .arc-center')?.innerText || ''), null, { timeout: 5000 }).catch(() => {});
-    assert.match(await category.locator('.arc-center').innerText(), /AI\s*¥142\.00\s*占 84%/);
+    await endsOn(centre, /AI\s*¥142\.00\s*占 84%/);
     assert.equal(await category.locator('.arc-seg[data-dim]').count(), 2);
     await category.locator('.arc-row[data-key="其他"]').click();
     await page.mouse.move(5, 5);
-    await page.waitForTimeout(700);
     assert.equal(await category.locator('.arc-row[data-key="其他"]').getAttribute('aria-pressed'), 'false');
-    assert.match(await category.locator('.arc-center').innerText(), /每月合计\s*¥163\.23\s*2 项/);
+    await endsOn(centre, /每月合计\s*¥163\.23\s*2 项/);
     await category.locator('.arc-row[data-key="其他"]').click();
     await page.mouse.move(5, 5);
     assert.match(await page.locator('#subsArcMethod .arc-legend').innerText(), /信用卡[\s\S]*未填写[\s\S]*支付宝/);

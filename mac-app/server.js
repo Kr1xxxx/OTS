@@ -22,6 +22,7 @@ const { backupReasons, parseBackupName, isOtsBackupFile, timestamp, backupsToRot
 const { orderBuckets, payloadCounts, diffStateData } = require('./state-diff');
 const { createTinify } = require('./tinify');
 const { createInstanceLock } = require('./instance-lock');
+const { createUiPrefs, pageWithPrefs } = require('./ui-prefs');
 
 const appName = 'TradeOrderSystem';
 const port = Number(process.env.TRADE_APP_PORT || 47828);
@@ -45,6 +46,7 @@ const migrationArchiveDir = path.join(supportDir, 'migration-archive');
 const backupMetaFile = path.join(supportDir, 'backup-meta.json');
 const aiUsageStore = createAiUsageStore({ file:path.join(supportDir, 'ai-usage.json'), atomicWrite });
 const secretsDir = path.join(supportDir, 'secrets');
+const uiPrefs = createUiPrefs({ file:path.join(supportDir, 'ui-prefs.json') });
 const storageMarkerFile = path.join(supportDir, 'sqlite-storage.json');
 const migrationErrorFile = path.join(supportDir, 'migration-error.json');
 const feishuSettingsFile = path.join(supportDir, 'feishu-settings.json');
@@ -1473,7 +1475,7 @@ const server = http.createServer(async (req, res) => {
     }
     requireJsonContentType(req, url.pathname);
     if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/trade-order-system.html')) {
-      return send(res, 200, fs.readFileSync(htmlFile), 'text/html; charset=utf-8');
+      return send(res, 200, pageWithPrefs(fs.readFileSync(htmlFile, 'utf8'), uiPrefs.read()), 'text/html; charset=utf-8');
     }
     if (req.method === 'GET' && url.pathname.startsWith('/attachments/')) {
       ensureStorage();
@@ -1602,6 +1604,11 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && url.pathname === '/api/manual-backup') {
       const result = createBackup(true);
       return send(res, result.ok ? 200 : 503, JSON.stringify(result));
+    }
+    if (req.method === 'POST' && url.pathname === '/api/ui-prefs') {
+      const body = await readJsonBody(req);
+      uiPrefs.write(body.set);
+      return send(res, 200, JSON.stringify({ ok:true }));
     }
     if (req.method === 'GET' && url.pathname === '/api/backup-settings') {
       return send(res, 200, JSON.stringify(backupSummary()));

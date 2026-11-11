@@ -491,7 +491,16 @@ async function checkZoomAndTitlebar(browser, server) {
   await context.close();
 }
 
+// The server keeps a copy of the page's preferences (mac-app/ui-prefs.js) and the earlier checks chose a theme.
+async function setServerPrefs(server, set) {
+  const res = await fetch(`http://127.0.0.1:${server.port}/api/ui-prefs`, {
+    method:'POST', headers:{ Authorization:`Bearer ${server.apiToken}`, 'Content-Type':'application/json' }, body:JSON.stringify({ set })
+  });
+  assert.equal(res.status, 200);
+}
+
 async function checkThemeFollowsSystem(browser, server) {
+  await setServerPrefs(server, { 'trade-order-system-theme':null });
   const { context, page, errors } = await openShell(browser, server, { colorScheme:'dark', theme:'' });
   const stored = () => page.evaluate(() => localStorage.getItem('trade-order-system-theme'));
   assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), 'dark', 'no choice yet: follows the system (dark)');
@@ -515,8 +524,35 @@ async function checkThemeFollowsSystem(browser, server) {
   // The moon/sun button still works and is remembered.
   await h.click(page, '#themeBtn', 'theme button');
   assert.equal(await stored(), 'dark');
+  await page.evaluate(() => flushServerPrefs());
   assert.deepEqual(errors, []);
   await context.close();
+
+  // The same data folder opened from a page with nothing in its localStorage, as after the Mac app had to
+  // move to another port: the chosen theme is there from the first paint, and "follow the system" travels too.
+  const moved = await openShell(browser, server, { colorScheme:'light', theme:'' });
+  const movedStored = () => moved.page.evaluate(() => localStorage.getItem('trade-order-system-theme'));
+  assert.equal(await moved.page.evaluate(() => document.documentElement.dataset.theme), 'dark', 'the theme chosen on the old address is kept');
+  assert.equal(await movedStored(), 'dark');
+  await moved.page.evaluate(() => { setPage('settings'); uiSettingsTab('appearance'); });
+  await h.click(moved.page, '[data-theme-mode-choice="system"]', '跟随系统');
+  await h.click(moved.page, '[data-accent-choice="teal"]', '青色');
+  await moved.page.evaluate(() => flushServerPrefs());
+  assert.deepEqual(moved.errors, []);
+  await moved.context.close();
+
+  const again = await openShell(browser, server, { colorScheme:'dark', theme:'' });
+  assert.equal(await again.page.evaluate(() => document.documentElement.dataset.theme), 'dark', 'follows the system again');
+  assert.equal(await again.page.evaluate(() => localStorage.getItem('trade-order-system-theme')), null);
+  assert.equal(await again.page.evaluate(() => document.documentElement.dataset.accent), 'teal', 'the accent travels with the data folder');
+  // A page that still holds a value the user removed elsewhere drops it instead of bringing it back.
+  await again.page.evaluate(() => localStorage.setItem('trade-order-system-theme', 'light'));
+  await again.page.reload();
+  await again.page.waitForFunction(() => window.pendingSaveStatus?.().loaded);
+  assert.equal(await again.page.evaluate(() => localStorage.getItem('trade-order-system-theme')), null, 'a stale local theme is cleared');
+  assert.deepEqual(again.errors, []);
+  await again.context.close();
+  await setServerPrefs(server, { 'ots-accent-v1':null });
 }
 
 (async () => {

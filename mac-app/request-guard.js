@@ -139,7 +139,8 @@ function requireJsonContentType(req, pathname) {
     '/api/open-url', '/api/ai-settings', '/api/ai-chat', '/api/api-status',
     '/api/tracking-settings', '/api/order-notification', '/api/backup-settings',
     '/api/subscriptions/save', '/api/subscriptions/delete', '/api/subscriptions/rate',
-    '/api/subscriptions/options', '/api/export-file', '/api/backup-preview', '/api/restore-backup', '/api/check-attachments'
+    '/api/subscriptions/options', '/api/export-file', '/api/backup-preview', '/api/restore-backup', '/api/check-attachments',
+    '/api/ui-prefs'
   ]);
   if (req.method !== 'POST' || !jsonRoutes.has(pathname)) return;
   const type = String(req.headers['content-type'] || '').split(';', 1)[0].trim().toLowerCase();

@@ -39,6 +39,7 @@
   --overlay:oklch(0% 0 0 / .28);
   --accent-soft:var(--gray-100); --accent-mint:var(--green-50); --accent-rose:var(--red-50); --accent-sky:var(--cyan-50);
   --select-arrow:url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4.5 6.25L8 9.75L11.5 6.25' stroke='%23888' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --date-icon:url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='2.25' y='3.25' width='11.5' height='10.5' rx='2.5' stroke='%23888' stroke-width='1.4'/%3E%3Cpath d='M2.5 6.5h11M5.5 1.75v2.5M10.5 1.75v2.5' stroke='%23888' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
   --display:"Geist", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
   --sans:"Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", "Microsoft YaHei", sans-serif;
   --mono:"Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -62,6 +63,7 @@ html[data-theme="dark"] {
   --floating-shadow:0 22px 55px oklch(0% 0 0 / .34);
   --overlay:oklch(0% 0 0 / .5);
   --select-arrow:url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4.5 6.25L8 9.75L11.5 6.25' stroke='%23aaa' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --date-icon:url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='2.25' y='3.25' width='11.5' height='10.5' rx='2.5' stroke='%23aaa' stroke-width='1.4'/%3E%3Cpath d='M2.5 6.5h11M5.5 1.75v2.5M10.5 1.75v2.5' stroke='%23aaa' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
   color-scheme: dark;
 }
 /* 备选强调色：只换强调色，灰阶和状态色不变。 */
@@ -928,9 +930,7 @@ html[data-theme="dark"] .segment-option.active {
   background-position: right 13px center;
   background-size: 16px 16px;
 }
-.field input[type="date"] { min-height: 42px; text-align: center; }
-.field input[type="date"]::-webkit-datetime-edit { display: flex; justify-content: space-between; width: 100%; padding-right: 8px; }
-.field input[type="date"]::-webkit-calendar-picker-indicator { margin-left: 8px; }
+.field input[data-date-input] { min-height: 42px; }
 .client-picker { position: relative; }
 .client-picker input { padding-right: 34px; }
 .client-trigger {
@@ -3563,6 +3563,94 @@ html[data-theme="dark"] .app-select-option-check { color: var(--cyan-600); }
 @media (max-width: 760px) {
   .app-select-popover { max-height: min(280px, calc(100vh - 20px)); }
 }
+/* 日期字段 + App 自己画的日历（替换系统日期框）。 */
+input[data-date-input] {
+  padding-right: 40px !important;
+  background-image: var(--date-icon) !important;
+  background-repeat: no-repeat !important;
+  background-position: right 13px center !important;
+  background-size: 16px 16px !important;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+}
+input[data-date-input]::placeholder { color: var(--gray-400); }
+.date-picker {
+  position: fixed;
+  z-index: 300;
+  width: 292px;
+  padding: 12px 12px 10px;
+  border: 1px solid var(--surface-border-strong);
+  border-radius: 16px;
+  background: var(--surface-raised);
+  color: var(--gray-800);
+  box-shadow: 0 16px 40px rgba(0,0,0,.14), 0 2px 6px rgba(0,0,0,.06);
+  font-family: var(--sans);
+  user-select: none;
+  -webkit-user-select: none;
+}
+.date-picker[hidden] { display: none; }
+.date-picker.entering { animation: datePickerIn var(--motion-fast) var(--ease-out); }
+.date-picker.entering[data-placement="top"] { animation-name: datePickerInUp; }
+@keyframes datePickerIn { from { opacity: 0; transform: translateY(-4px) scale(.98); } }
+@keyframes datePickerInUp { from { opacity: 0; transform: translateY(4px) scale(.98); } }
+.date-picker button { font: inherit; color: inherit; border: 0; background: transparent; cursor: pointer; outline: 0; }
+.date-picker button:disabled { cursor: default; }
+.date-picker .date-picker-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.date-picker .date-picker-title {
+  display: inline-flex; align-items: center; gap: 4px; height: 32px; padding: 0 8px; margin-left: -4px;
+  border-radius: 9px; font-family: var(--display) !important; font-size: 15px !important; font-weight: 650; letter-spacing: -.01em;
+  font-variant-numeric: tabular-nums; color: var(--gray-900) !important;
+  transition: background var(--motion-fast) ease;
+}
+.date-picker .date-picker-title svg { color: var(--gray-500); transition: transform var(--motion-fast) var(--ease-out); }
+.date-picker[data-mode="months"] .date-picker-title svg { transform: rotate(180deg); }
+.date-picker .date-picker-title:hover { background: var(--gray-100); }
+.date-picker .date-picker-nav { display: flex; gap: 2px; }
+.date-picker .date-picker-step {
+  display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; color: var(--gray-600) !important;
+  transition: background var(--motion-fast) ease, color var(--motion-fast) ease;
+}
+.date-picker .date-picker-step:hover { background: var(--gray-100); color: var(--gray-900) !important; }
+.date-picker .date-picker-weekdays, .date-picker .date-picker-grid.days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.date-picker .date-picker-weekdays span { display: grid; place-items: center; height: 28px; color: var(--gray-500); font-size: 11.5px; font-weight: 600; }
+.date-picker .date-picker-weekdays span:first-child, .date-picker .date-picker-weekdays span:last-child { color: var(--gray-400); }
+.date-picker .date-picker-grid.months { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 4px 0 2px; }
+.date-picker .date-picker-day, .date-picker .date-picker-month {
+  position: relative; display: grid; place-items: center; height: 36px; border-radius: 10px;
+  font-size: 13.5px !important; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--gray-800) !important;
+  transition: background var(--motion-instant) ease, color var(--motion-instant) ease, box-shadow var(--motion-instant) ease;
+}
+.date-picker .date-picker-month { height: 52px; font-size: 14px !important; }
+.date-picker .date-picker-day.out { color: var(--gray-400) !important; }
+.date-picker .date-picker-day:not(:disabled):hover, .date-picker .date-picker-month:not(:disabled):hover { background: var(--gray-100); }
+.date-picker .date-picker-day.today, .date-picker .date-picker-month.today { color: var(--accent) !important; font-weight: 700; }
+.date-picker .date-picker-day.today::after {
+  content: ''; position: absolute; left: 50%; bottom: 5px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: currentColor;
+}
+.date-picker .date-picker-day.selected, .date-picker .date-picker-month.selected,
+.date-picker .date-picker-day.selected:hover, .date-picker .date-picker-month.selected:hover {
+  background: var(--ui-primary, var(--accent)); color: var(--ui-primary-ink, #fff) !important; font-weight: 650;
+  box-shadow: inset 0 1px 0 oklch(100% 0 0 / .22), 0 2px 8px color-mix(in oklab, var(--ui-primary, var(--accent)) 32%, transparent);
+}
+.date-picker.keyboard .date-picker-day.active, .date-picker.keyboard .date-picker-month.active {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.date-picker.keyboard .date-picker-day.selected.active, .date-picker.keyboard .date-picker-month.selected.active {
+  box-shadow: 0 0 0 2px var(--surface-raised), 0 0 0 4px var(--accent);
+}
+.date-picker .date-picker-day:disabled, .date-picker .date-picker-month:disabled { color: var(--gray-300) !important; text-decoration: line-through; text-decoration-color: var(--gray-300); }
+.date-picker .date-picker-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--hairline); }
+.date-picker .date-picker-link {
+  height: 30px; padding: 0 10px; border-radius: 9px; font-size: 13px !important; font-weight: 600; color: var(--accent) !important;
+  transition: background var(--motion-fast) ease;
+}
+.date-picker .date-picker-link.subtle { color: var(--gray-600) !important; font-weight: 500; }
+.date-picker .date-picker-link:not(:disabled):hover { background: color-mix(in oklab, var(--accent) 10%, transparent); }
+.date-picker .date-picker-link.subtle:hover { background: var(--gray-100) !important; }
+.date-picker .date-picker-link:disabled { color: var(--gray-400) !important; }
+html[data-theme="dark"] .date-picker { box-shadow: 0 16px 44px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.28); }
+html[data-theme="dark"] :is(.date-picker-day, .date-picker-month):not(:disabled):not(.selected):hover,
+html[data-theme="dark"] :is(.date-picker .date-picker-title, .date-picker .date-picker-step):hover { background: oklch(30% 0 0); }
 /* Subscriptions page: personal subscriptions kept apart from order data.
    Styled after the new desktop prototype (docs/ui-prototype/ots-ui.html). The --a-* names alias the
    global v2 tokens, so the accent picker and dark theme apply here too. */
@@ -7004,7 +7092,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
           </div>
         </div>
         <div class="field"><label>国家 / 地区</label><input name="country" list="countryOptions" placeholder="输入国家 / 地区筛选"></div>
-        <div class="field"><label>创建日期</label><input name="createdAt" type="date" required></div>
+        <div class="field"><label>创建日期</label><input name="createdAt" type="text" data-date-input autocomplete="off" spellcheck="false" placeholder="选择日期" required></div>
         <div class="client-autofill-summary" id="orderClientAutofillSummary"></div>
         </div>
       </section>
@@ -7086,8 +7174,8 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
         </div>
         <div class="deadline-grid">
         <div class="field"><label>加急订单</label><select name="urgentOrder"><option value="否">否</option><option value="是">是</option></select></div>
-        <div class="field"><label>客户要求收到日期</label><input name="customerRequiredDate" type="date"></div>
-        <div class="field"><label>最晚发出日期</label><input name="latestShipDate" type="date"></div>
+        <div class="field"><label>客户要求收到日期</label><input name="customerRequiredDate" type="text" data-date-input autocomplete="off" spellcheck="false" placeholder="选择日期"></div>
+        <div class="field"><label>最晚发出日期</label><input name="latestShipDate" type="text" data-date-input autocomplete="off" spellcheck="false" placeholder="选择日期"></div>
         </div>
       </section>
 
@@ -7412,7 +7500,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
         <form class="combined-form" id="combinedOrderForm">
           <div class="form-grid">
             <div class="field"><label>订单号</label><input name="num" required></div>
-            <div class="field"><label>创建日期</label><input name="createdAt" type="date" required></div>
+            <div class="field"><label>创建日期</label><input name="createdAt" type="text" data-date-input autocomplete="off" spellcheck="false" placeholder="选择日期" required></div>
             <div class="field">
               <label>订单金额</label>
               <div class="amount-combo">
@@ -7436,8 +7524,8 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
             </div>
             <div class="field"><label>当前阶段</label><select name="stage"></select><div class="field-hint" data-stage-hint hidden></div></div>
             <div class="field"><label>加急订单</label><select name="urgentOrder"><option value="否">否</option><option value="是">是</option></select></div>
-            <div class="field"><label>客户要求收到日期</label><input name="customerRequiredDate" type="date"></div>
-            <div class="field"><label>最晚发出日期</label><input name="latestShipDate" type="date"></div>
+            <div class="field"><label>客户要求收到日期</label><input name="customerRequiredDate" type="text" data-date-input autocomplete="off" spellcheck="false" placeholder="选择日期"></div>
+            <div class="field"><label>最晚发出日期</label><input name="latestShipDate" type="text" data-date-input autocomplete="off" spellcheck="false" placeholder="选择日期"></div>
             <div class="shipment-editor" data-shipment-editor><div class="shipment-editor-head"><div class="shipment-editor-heading"><div class="shipment-editor-title">物流记录</div><div class="shipment-editor-sub">每个物流单号可独立设置承运商和状态</div></div><button class="customer-multi-add" type="button" data-add-shipment>＋物流单号</button></div><div class="shipment-row" data-shipment-primary-row><label class="shipment-field"><span>物流单号</span><input name="trackingNumber" data-shipment-number placeholder="例如 91 8833 5262"></label><label class="shipment-field"><span>承运商</span><select name="carrier" data-shipment-carrier><option value="auto">自动识别</option><option value="DHL">DHL</option><option value="FedEx">FedEx</option><option value="UPS">UPS</option></select></label><label class="shipment-field"><span>物流状态</span><select name="shipmentStatus" data-shipment-status><option>未发货</option><option>已发货</option><option>运输中</option><option>派送中</option><option>已签收</option><option>异常</option></select></label><button class="customer-multi-remove" type="button" data-remove-shipment aria-label="删除这一批物流单号">×</button></div></div>
             <div class="field span-2"><label>订单备注</label><textarea name="note" placeholder="记录客户要求、付款状态、交期变更等"></textarea></div>
             <label class="order-notification-option span-2">
@@ -7535,8 +7623,8 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
           </div>
           <div class="subs-hint" id="subscriptionAmountHint"></div>
         </div>
-        <div class="subs-field"><label for="subscriptionStart">开始日期<em class="subs-req">*</em></label><input class="subs-input" id="subscriptionStart" name="subStart" type="date" min="2000-01-01"><div class="subs-hint" id="subscriptionStartHint"></div></div>
-        <div class="subs-field" id="subscriptionNextField"><label for="subscriptionNext">下次扣费日<small class="subs-opt-note">可选</small></label><input class="subs-input" id="subscriptionNext" name="subNext" type="date" min="2000-01-01"><div class="subs-hint">录入已经在用的服务：填下次哪天扣，开始日期自动往前推一个周期</div></div>
+        <div class="subs-field"><label for="subscriptionStart">开始日期<em class="subs-req">*</em></label><input class="subs-input" id="subscriptionStart" name="subStart" type="text" data-date-input data-date-required autocomplete="off" spellcheck="false" placeholder="选择日期" min="2000-01-01"><div class="subs-hint" id="subscriptionStartHint"></div></div>
+        <div class="subs-field" id="subscriptionNextField"><label for="subscriptionNext">下次扣费日<small class="subs-opt-note">可选</small></label><input class="subs-input" id="subscriptionNext" name="subNext" type="text" data-date-input autocomplete="off" spellcheck="false" placeholder="选择日期" min="2000-01-01"><div class="subs-hint">录入已经在用的服务：填下次哪天扣，开始日期自动往前推一个周期</div></div>
         <div class="subs-field full">
           <span class="subs-label" id="subscriptionCategoryLabel">类型</span>
           <div class="subs-opts" role="group" aria-labelledby="subscriptionCategoryLabel" data-sub-opts="category"></div>
@@ -7561,7 +7649,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
           <span class="subs-label" id="subscriptionStopLabel">预计停止</span>
           <div class="subs-opts" role="group" aria-labelledby="subscriptionStopLabel" data-sub-opts="stop"></div>
           <div class="subs-opt-add" data-sub-stop-custom hidden>
-            <span>扣到</span><input class="subs-input text" id="subscriptionStopDate" name="subStopOn" type="date" aria-label="预计停止日期"><span>为止</span>
+            <span>扣到</span><input class="subs-input text" id="subscriptionStopDate" name="subStopOn" type="text" data-date-input autocomplete="off" spellcheck="false" placeholder="选择日期" aria-label="预计停止日期"><span>为止</span>
           </div>
           <div class="subs-hint" id="subscriptionStopHint"></div>
         </div>
@@ -11753,6 +11841,393 @@ function openAppSelectFromButton(button) {
   else openAppSelectMenu(select);
   return true;
 }
+// #endregion
+// #region Date picker: the in-app calendar behind every date field
+// 日期字段是普通文本框（值仍是 YYYY-MM-DD，读写它的代码不用变），点开是 App 自己画的日历：系统日期框在 Mac App 里弹的是
+// 系统样式的小日历，和 App 的设计对不上。焦点一直留在文本框里：日历上的按钮在 mousedown 时 preventDefault（WebKit 里点按钮
+// 不给焦点，输入框在 mousedown 就失焦），方向键直接移动日历上的日子。听 input / change 的代码和以前一样只看到空值或完整日期。
+const datePickerSelector = 'input[data-date-input]';
+const datePickerWeekdays = ['日', '一', '二', '三', '四', '五', '六'];
+const datePickerView = { year:0, month:0, active:'', mode:'days', keyboard:false };
+let activeDateInput = null;
+let datePickerPopover = null;
+function datePickerIso(year, month, day) {
+  const date = new Date(2000, 0, 1);
+  date.setFullYear(year, month, day);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+function datePickerToday(now = new Date()) {
+  return datePickerIso(now.getFullYear(), now.getMonth(), now.getDate());
+}
+function datePickerParts(iso) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
+  if (!match) return null;
+  const [year, month, day] = [Number(match[1]), Number(match[2]) - 1, Number(match[3])];
+  return datePickerIso(year, month, day) === match[0] ? { year, month, day } : null;
+}
+// 手打的日期：2026-11-12、2026/11/12、2026.11.12、2026年11月12日、20261112；只写月日（11-12、11月12日）按今年。
+// 空着返回 ''，认不出来返回 null。
+function parseDateInputText(text, today = datePickerToday()) {
+  const value = String(text ?? '').trim()
+    .replace(/[０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0))
+    .replace(/[／．－]/g, ch => ({ '／':'/', '．':'.', '－':'-' })[ch])
+    .replace(/\s*日$/, '');
+  if (!value) return '';
+  let match = /^(\d{4})\s*[-/.年\s]\s*(\d{1,2})\s*[-/.月\s]\s*(\d{1,2})$/.exec(value) || /^(\d{4})(\d{2})(\d{2})$/.exec(value);
+  let year;
+  let month;
+  let day;
+  if (match) [year, month, day] = match.slice(1).map(Number);
+  else {
+    match = /^(\d{1,2})\s*[-/.月]\s*(\d{1,2})$/.exec(value);
+    if (!match) return null;
+    year = Number(String(today).slice(0, 4));
+    [month, day] = match.slice(1).map(Number);
+  }
+  if (year < 1900 || year > 2199) return null;
+  const iso = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  return datePickerParts(iso) ? iso : null;
+}
+function dateInputBounds(input) {
+  return {
+    min:datePickerParts(input?.min) ? input.min : '',
+    max:datePickerParts(input?.max) ? input.max : ''
+  };
+}
+function clampPickerDate(iso, { min = '', max = '' } = {}) {
+  if (min && iso < min) return min;
+  if (max && iso > max) return max;
+  return iso;
+}
+function shiftPickerDate(iso, { days = 0, months = 0 } = {}) {
+  const parts = datePickerParts(iso);
+  if (!parts) return iso;
+  if (!months) return datePickerIso(parts.year, parts.month, parts.day + days);
+  const lastDay = new Date(parts.year, parts.month + months + 1, 0).getDate();
+  return datePickerIso(parts.year, parts.month + months, Math.min(parts.day, lastDay));
+}
+function dateInputLabel(input) {
+  const text = input?.getAttribute('aria-label')
+    || input?.labels?.[0]?.textContent
+    || input?.closest('.field, .subs-field')?.querySelector(':scope > label')?.textContent
+    || '';
+  return text.replace(/[*＊]|可选/g, '').trim() || '日期';
+}
+function ensureDatePickerPopover() {
+  if (datePickerPopover?.isConnected) return datePickerPopover;
+  datePickerPopover = document.createElement('div');
+  datePickerPopover.className = 'date-picker';
+  datePickerPopover.id = 'datePickerPopover';
+  datePickerPopover.setAttribute('role', 'dialog');
+  datePickerPopover.hidden = true;
+  datePickerPopover.addEventListener('mousedown', e => e.preventDefault());
+  datePickerPopover.addEventListener('click', handleDatePickerClick);
+  document.body.append(datePickerPopover);
+  return datePickerPopover;
+}
+const datePickerChevron = direction => `<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="${direction < 0 ? 'M9.75 4.5L6.25 8l3.5 3.5' : 'M6.25 4.5L9.75 8l-3.5 3.5'}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+function renderDatePicker() {
+  const input = activeDateInput;
+  if (!input) return;
+  const popover = ensureDatePickerPopover();
+  const view = datePickerView;
+  const bounds = dateInputBounds(input);
+  const today = datePickerToday();
+  const selected = datePickerParts(input.value) ? input.value : '';
+  const months = view.mode === 'months';
+  const title = months ? `${view.year}年` : `${view.year}年${view.month + 1}月`;
+  const unit = months ? '年' : '个月';
+  let cells = '';
+  if (months) {
+    for (let month = 0; month < 12; month += 1) {
+      const start = datePickerIso(view.year, month, 1);
+      const end = datePickerIso(view.year, month + 1, 0);
+      const key = start.slice(0, 7);
+      const disabled = (bounds.min && end < bounds.min) || (bounds.max && start > bounds.max);
+      const classes = ['date-picker-month', key === selected.slice(0, 7) ? 'selected' : '', key === today.slice(0, 7) ? 'today' : '', key === view.active.slice(0, 7) ? 'active' : ''].filter(Boolean).join(' ');
+      cells += `<button type="button" tabindex="-1" class="${classes}" id="datePickerPopover-m-${key}" data-dp-month="${month}"${disabled ? ' disabled' : ''} aria-label="${view.year}年${month + 1}月"${key === selected.slice(0, 7) ? ' aria-current="date"' : ''}>${month + 1}月</button>`;
+    }
+  } else {
+    const offset = new Date(view.year, view.month, 1).getDay();
+    for (let index = 0; index < 42; index += 1) {
+      const iso = datePickerIso(view.year, view.month, 1 - offset + index);
+      const parts = datePickerParts(iso);
+      const disabled = (bounds.min && iso < bounds.min) || (bounds.max && iso > bounds.max);
+      const classes = ['date-picker-day', parts.month !== view.month ? 'out' : '', iso === today ? 'today' : '', iso === selected ? 'selected' : '', iso === view.active ? 'active' : ''].filter(Boolean).join(' ');
+      const label = `${parts.year}年${parts.month + 1}月${parts.day}日 星期${datePickerWeekdays[index % 7]}${iso === today ? '（今天）' : ''}`;
+      cells += `<button type="button" tabindex="-1" class="${classes}" id="datePickerPopover-d-${iso}" data-dp-date="${iso}"${disabled ? ' disabled' : ''} aria-label="${label}"${iso === selected ? ' aria-pressed="true"' : ''}>${parts.day}</button>`;
+    }
+  }
+  const todayDisabled = (bounds.min && today < bounds.min) || (bounds.max && today > bounds.max);
+  popover.classList.toggle('keyboard', view.keyboard);
+  popover.dataset.mode = view.mode;
+  popover.innerHTML = `
+    <div class="date-picker-head">
+      <button type="button" tabindex="-1" class="date-picker-title" data-dp-mode aria-label="${months ? '回到日历' : '按月份选'}">${title}<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4.5 6.25L8 9.75l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <div class="date-picker-nav">
+        <button type="button" tabindex="-1" class="date-picker-step" data-dp-step="-1" aria-label="上一${unit === '年' ? '年' : '个月'}">${datePickerChevron(-1)}</button>
+        <button type="button" tabindex="-1" class="date-picker-step" data-dp-step="1" aria-label="下一${unit === '年' ? '年' : '个月'}">${datePickerChevron(1)}</button>
+      </div>
+    </div>
+    ${months ? '' : `<div class="date-picker-weekdays" aria-hidden="true">${datePickerWeekdays.map(day => `<span>${day}</span>`).join('')}</div>`}
+    <div class="date-picker-grid ${months ? 'months' : 'days'}">${cells}</div>
+    <div class="date-picker-foot">
+      ${input.required || input.hasAttribute('data-date-required') ? '<span></span>' : '<button type="button" tabindex="-1" class="date-picker-link subtle" data-dp-clear>清除</button>'}
+      <button type="button" tabindex="-1" class="date-picker-link" data-dp-today${todayDisabled ? ' disabled' : ''}>今天</button>
+    </div>`;
+  const active = popover.querySelector(months ? `#datePickerPopover-m-${view.active.slice(0, 7)}` : `#datePickerPopover-d-${view.active}`);
+  if (active) input.setAttribute('aria-activedescendant', active.id);
+  else input.removeAttribute('aria-activedescendant');
+}
+// 输入框还在、没被弹窗 / 抽屉的滚动区遮住。
+function dateInputVisible(input) {
+  if (!input?.isConnected) return false;
+  const rect = input.getBoundingClientRect();
+  if (!rect.width && !rect.height) return false;
+  for (let el = input.parentElement; el && el !== document.body && el !== document.documentElement; el = el.parentElement) {
+    const style = getComputedStyle(el);
+    if (!/(auto|scroll|hidden|clip)/.test(`${style.overflowX} ${style.overflowY}`)) continue;
+    const box = el.getBoundingClientRect();
+    if (rect.bottom <= box.top + 2 || rect.top >= box.bottom - 2) return false;
+  }
+  return true;
+}
+function positionDatePicker() {
+  const input = activeDateInput;
+  const popover = datePickerPopover;
+  if (!input || !popover || popover.hidden) return;
+  const rect = input.getBoundingClientRect();
+  const viewport = window.visualViewport;
+  const leftEdge = (viewport?.offsetLeft || 0) + 8;
+  const topEdge = (viewport?.offsetTop || 0) + 8;
+  const rightEdge = leftEdge + (viewport?.width || document.documentElement.clientWidth || window.innerWidth) - 16;
+  const bottomEdge = topEdge + (viewport?.height || document.documentElement.clientHeight || window.innerHeight) - 16;
+  const width = popover.offsetWidth;
+  const height = popover.offsetHeight;
+  const below = bottomEdge - rect.bottom - 6;
+  const above = rect.top - topEdge - 6;
+  const upwards = below < height && above > below;
+  popover.style.left = `${Math.max(leftEdge, Math.min(rect.left, rightEdge - width))}px`;
+  popover.style.top = `${Math.max(topEdge, upwards ? rect.top - height - 6 : rect.bottom + 6)}px`;
+  popover.dataset.placement = upwards ? 'top' : 'bottom';
+}
+function openDatePicker(input, { keyboard = false } = {}) {
+  if (!input?.matches?.(datePickerSelector) || input.disabled || input.readOnly) return;
+  if (activeDateInput && activeDateInput !== input) closeDatePicker();
+  closeAppSelectMenu();
+  closeClientMenus();
+  const bounds = dateInputBounds(input);
+  const active = clampPickerDate(parseDateInputText(input.value) || datePickerToday(), bounds);
+  const parts = datePickerParts(active);
+  Object.assign(datePickerView, { year:parts.year, month:parts.month, active, mode:'days', keyboard });
+  activeDateInput = input;
+  const popover = ensureDatePickerPopover();
+  popover.setAttribute('aria-label', `选择${dateInputLabel(input)}`);
+  popover.hidden = false;
+  input.setAttribute('aria-expanded', 'true');
+  input.setAttribute('aria-controls', popover.id);
+  input.classList.add('date-open');
+  renderDatePicker();
+  positionDatePicker();
+  popover.classList.remove('entering');
+  void popover.offsetWidth;
+  popover.classList.add('entering');
+}
+function closeDatePicker() {
+  const input = activeDateInput;
+  if (!input) return;
+  activeDateInput = null;
+  input.setAttribute('aria-expanded', 'false');
+  input.removeAttribute('aria-activedescendant');
+  input.classList.remove('date-open');
+  if (datePickerPopover) datePickerPopover.hidden = true;
+}
+function dispatchDateInputEvents(input, types) {
+  input._dpDispatching = true;
+  try {
+    types.forEach(type => input.dispatchEvent(new Event(type, { bubbles:true })));
+  } finally {
+    input._dpDispatching = false;
+  }
+}
+// 日历上点的、按回车选的：和在系统日期框里选一样，先 input 再 change。
+function setDateInputValue(input, iso) {
+  if (!input) return;
+  const changed = input.value !== iso || (input._dpCommitted ?? input.value) !== iso;
+  input.value = iso;
+  input._dpAnnounced = iso;
+  input._dpCommitted = iso;
+  if (changed) dispatchDateInputEvents(input, ['input', 'change']);
+}
+// 手打的内容落定（失焦、回车）：认得出就改成 YYYY-MM-DD，认不出就改回原来的日期。
+function settleDateInputText(input) {
+  const before = input._dpCommitted ?? '';
+  const typed = input.value.trim();
+  const parsed = parseDateInputText(typed);
+  const next = parsed === null ? before : parsed;
+  if (parsed === null) toast(`「${typed}」不是有效日期，已改回${before ? ` ${before}` : '空白'}`);
+  input.value = next;
+  const announce = next !== (input._dpAnnounced ?? before);
+  input._dpAnnounced = next;
+  input._dpCommitted = next;
+  return { changed:next !== before, announce };
+}
+function moveDatePickerActive(step) {
+  const view = datePickerView;
+  const next = clampPickerDate(shiftPickerDate(view.active, step), dateInputBounds(activeDateInput));
+  const parts = datePickerParts(next);
+  Object.assign(view, { active:next, year:parts.year, month:view.mode === 'months' ? view.month : parts.month, keyboard:true });
+  renderDatePicker();
+}
+function handleDatePickerClick(e) {
+  const input = activeDateInput;
+  const button = e.target.closest?.('button');
+  if (!input || !button || button.disabled) return;
+  const view = datePickerView;
+  if (button.dataset.dpDate) {
+    setDateInputValue(input, button.dataset.dpDate);
+    closeDatePicker();
+  } else if (button.dataset.dpMonth) {
+    const month = Number(button.dataset.dpMonth);
+    const day = datePickerParts(view.active)?.day || 1;
+    const active = clampPickerDate(datePickerIso(view.year, month, Math.min(day, new Date(view.year, month + 1, 0).getDate())), dateInputBounds(input));
+    Object.assign(view, { mode:'days', month, active });
+    renderDatePicker();
+    positionDatePicker();
+  } else if (button.hasAttribute('data-dp-step')) {
+    const step = Number(button.dataset.dpStep);
+    const active = clampPickerDate(shiftPickerDate(view.active, { months:view.mode === 'months' ? step * 12 : step }), dateInputBounds(input));
+    if (view.mode === 'months') view.year += step;
+    else {
+      const first = datePickerParts(datePickerIso(view.year, view.month + step, 1));
+      Object.assign(view, { year:first.year, month:first.month });
+    }
+    view.active = active;
+    renderDatePicker();
+  } else if (button.hasAttribute('data-dp-mode')) {
+    view.mode = view.mode === 'months' ? 'days' : 'months';
+    renderDatePicker();
+    positionDatePicker();
+  } else if (button.hasAttribute('data-dp-today')) {
+    setDateInputValue(input, datePickerToday());
+    closeDatePicker();
+  } else if (button.hasAttribute('data-dp-clear')) {
+    setDateInputValue(input, '');
+    closeDatePicker();
+  }
+}
+function repositionDatePicker() {
+  if (!activeDateInput) return;
+  if (dateInputVisible(activeDateInput)) positionDatePicker();
+  else closeDatePicker();
+}
+document.addEventListener('focusin', e => {
+  const input = e.target;
+  if (!input?.matches?.(datePickerSelector)) return;
+  const value = parseDateInputText(input.value) || '';
+  input._dpCommitted = value;
+  input._dpAnnounced = value;
+}, true);
+document.addEventListener('focusout', e => {
+  if (e.target === activeDateInput) closeDatePicker();
+}, true);
+document.addEventListener('pointerdown', e => {
+  if (!activeDateInput || e.target === activeDateInput || datePickerPopover?.contains(e.target)) return;
+  closeDatePicker();
+}, true);
+document.addEventListener('click', e => {
+  const input = e.target;
+  if (input?.matches?.(datePickerSelector) && activeDateInput !== input) openDatePicker(input);
+});
+// 打到一半的日期（2026-1）不往下传：和系统日期框一样，听 input 的代码只看到空值或完整的日期。
+document.addEventListener('input', e => {
+  const input = e.target;
+  if (!input?.matches?.(datePickerSelector) || input._dpDispatching) return;
+  const parsed = parseDateInputText(input.value);
+  if (activeDateInput === input && parsed) {
+    const parts = datePickerParts(parsed);
+    Object.assign(datePickerView, { active:parsed, year:parts.year, month:parts.month, mode:'days' });
+    renderDatePicker();
+  }
+  const complete = input.value === '' || parsed === input.value;
+  if (!complete || input.value === input._dpAnnounced) {
+    e.stopImmediatePropagation();
+    return;
+  }
+  input._dpAnnounced = input.value;
+}, true);
+document.addEventListener('change', e => {
+  const input = e.target;
+  if (!input?.matches?.(datePickerSelector) || input._dpDispatching) return;
+  const { changed, announce } = settleDateInputText(input);
+  if (!changed) {
+    e.stopImmediatePropagation();
+    return;
+  }
+  if (announce) dispatchDateInputEvents(input, ['input']);
+}, true);
+document.addEventListener('keydown', e => {
+  const input = e.target;
+  if (!input?.matches?.(datePickerSelector) || isImeKeyEvent(e)) return;
+  const key = normalizeAppSelectKey(e.key);
+  const open = activeDateInput === input;
+  if (!open) {
+    if ((key === 'ArrowDown' || key === 'ArrowUp') && !e.metaKey && !e.ctrlKey && !e.shiftKey) {
+      e.preventDefault();
+      openDatePicker(input, { keyboard:true });
+    } else if (key === 'Enter') {
+      // 回车提交表单前先把手打的日期落定（WebKit 不一定在提交前发 change）。
+      const { changed, announce } = settleDateInputText(input);
+      if (changed) dispatchDateInputEvents(input, announce ? ['input', 'change'] : ['change']);
+    }
+    return;
+  }
+  if (e.metaKey || e.ctrlKey) return;
+  const view = datePickerView;
+  const months = view.mode === 'months';
+  if (key === 'Escape') {
+    e.preventDefault();
+    e.stopPropagation();
+    if (months) {
+      view.mode = 'days';
+      renderDatePicker();
+    } else closeDatePicker();
+    return;
+  }
+  if (key === 'Tab') {
+    closeDatePicker();
+    return;
+  }
+  if (key === 'Enter') {
+    e.preventDefault();
+    e.stopPropagation();
+    if (months) {
+      const parts = datePickerParts(view.active);
+      Object.assign(view, { mode:'days', year:parts.year, month:parts.month });
+      renderDatePicker();
+      positionDatePicker();
+      return;
+    }
+    setDateInputValue(input, view.active);
+    closeDatePicker();
+    return;
+  }
+  // ↑ ↓ 一直移动日历；← → 只在用键盘打开 / 已经在用方向键时移动日历，用鼠标点进来时留给文本框挪光标。
+  const arrows = months
+    ? { ArrowLeft:{ months:-1 }, ArrowRight:{ months:1 }, ArrowUp:{ months:-3 }, ArrowDown:{ months:3 } }
+    : { ArrowLeft:{ days:-1 }, ArrowRight:{ days:1 }, ArrowUp:{ days:-7 }, ArrowDown:{ days:7 } };
+  const pages = { PageUp:{ months:months || e.shiftKey ? -12 : -1 }, PageDown:{ months:months || e.shiftKey ? 12 : 1 } };
+  if ((key === 'ArrowLeft' || key === 'ArrowRight') && !view.keyboard) return;
+  const step = arrows[key] || pages[key];
+  if (!step || e.altKey) return;
+  e.preventDefault();
+  moveDatePickerActive(step);
+}, true);
+document.addEventListener('scroll', e => {
+  if (activeDateInput && !datePickerPopover?.contains(e.target)) repositionDatePicker();
+}, { capture:true, passive:true });
+window.addEventListener('resize', repositionDatePicker);
+window.visualViewport?.addEventListener('resize', repositionDatePicker);
 // #endregion
 // #region Deposit presets, copy templates, modal open state, confirm dialogs
 function depositPercent(amount, depositAmount) {
@@ -17428,8 +17903,8 @@ function renderOrderDetail(order, source = 'active') {
           ${editField('国家 / 地区', 'country', `<input data-dedit="country" list="countryOptions" value="${escapeAttr(countryText)}" placeholder="输入国家 / 地区筛选">`)}
           ${editField('产品类型', 'productType', `<select data-dedit="productType">${editOptions('productType', product.value)}</select>`)}
           ${editField('订单类型', 'orderType', `<select data-dedit="orderType">${editOptions('orderType', order.orderType || '定金订单')}</select>`)}
-          ${editField('客户要求到货', 'customerRequiredDate', `<input type="date" data-dedit="customerRequiredDate" value="${escapeAttr(order.customerRequiredDate || '')}">`)}
-          ${editField('最晚发货', 'latestShipDate', `<input type="date" data-dedit="latestShipDate" value="${escapeAttr(order.latestShipDate || '')}">`)}
+          ${editField('客户要求到货', 'customerRequiredDate', `<input type="text" data-date-input autocomplete="off" spellcheck="false" placeholder="选择日期" data-dedit="customerRequiredDate" value="${escapeAttr(order.customerRequiredDate || '')}">`)}
+          ${editField('最晚发货', 'latestShipDate', `<input type="text" data-date-input autocomplete="off" spellcheck="false" placeholder="选择日期" data-dedit="latestShipDate" value="${escapeAttr(order.latestShipDate || '')}">`)}
           ${editField('下一步', 'next', `<input data-dedit="next" value="${escapeAttr(order.next || '')}" placeholder="例如 发送 PI 和付款链接">`, true)}
           ${editField('本单备注', 'note', `<textarea data-dedit="note" placeholder="记录客户要求、付款状态、交期变更等">${escapeAttr(order.note || '')}</textarea>`, true)}
         </div>
@@ -29603,6 +30078,7 @@ function uiAfterPageChange(changed) {
 function closeTransientLayers({ keepNotifs = false } = {}) {
   if (!keepNotifs && document.getElementById('notifPanel') && !document.getElementById('notifPanel').hidden) uiToggleNotifs(false);
   closeAppSelectMenu();
+  closeDatePicker();
   closeClientMenus();
   if (typeof uiCloseBoardMenu === 'function') uiCloseBoardMenu();
   const more = document.getElementById('orderListMoreFilters');

@@ -15917,11 +15917,24 @@ function scrollWorkspaceToTop(behavior = 'auto', repeat = false) {
   };
   reset();
   if (repeat) {
-    requestAnimationFrame(reset);
-    setTimeout(reset, 80);
-    setTimeout(reset, 240);
+    // The page is put at the top again on the next frame and after 80 and 240 ms, while it is still
+    // laying out. A late pass must not undo what the user did in the meantime: see the listeners below.
+    const frame = requestAnimationFrame(reset);
+    const timers = [setTimeout(reset, 80), setTimeout(reset, 240)];
+    const cancel = () => { cancelAnimationFrame(frame); timers.forEach(clearTimeout); };
+    pendingScrollResets.add(cancel);
+    setTimeout(() => pendingScrollResets.delete(cancel), 260);
   }
 }
+// Someone who switches page and scrolls, clicks or types at once keeps where they are. Until V3.146 a
+// scroll within a quarter second of a page change jumped back to the top, a menu opened in that time
+// was closed by the scroll that jump caused, and a press that began before the jump landed on whatever
+// had moved under the pointer.
+const pendingScrollResets = new Set();
+['wheel', 'touchstart', 'pointerdown', 'keydown'].forEach(type => window.addEventListener(type, () => {
+  pendingScrollResets.forEach(cancel => cancel());
+  pendingScrollResets.clear();
+}, { capture:true, passive:true }));
 function debounce(fn, delay = 120) {
   let timer = 0;
   return (...args) => {

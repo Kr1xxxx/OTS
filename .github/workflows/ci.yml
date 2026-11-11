@@ -27,6 +27,24 @@ jobs:
         env:
           OTS_TEST_CONCURRENCY: 2
 
+  # The app's engine. Every test that opens a browser runs once more in Playwright's WebKit on macOS
+  # (WebKit's Mac port) instead of Chromium. It is not the app's window: see scripts/helpers/use-webkit.js.
+  test-webkit:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install webkit
+      - run: npm test
+        env:
+          OTS_TEST_BROWSER: webkit
+          OTS_TEST_CONCURRENCY: 2
+
   test-macos:
     runs-on: macos-15
     timeout-minutes: 30

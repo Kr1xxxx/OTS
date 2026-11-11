@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 // Runs every regression test and reports all results instead of stopping at the first failure.
 // Usage: node scripts/run-tests.js [name-filter ...]
+//
+// OTS_TEST_BROWSER=webkit runs the tests that open a browser a second time, in Playwright's WebKit instead of
+// Chromium (see helpers/use-webkit.js). The tests that never open one are left out of that run: they would
+// only repeat what the Chromium run showed.
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -11,6 +15,14 @@ const scriptsDir = __dirname;
 // page.evaluate that returns a page-side promise waits for it by polling (see the comment in that file): a pending
 // promise handed straight to Playwright was now and then lost on CI ("Resulting promise was garbage collected").
 const stableEvaluate = path.join(scriptsDir, 'helpers', 'stable-evaluate.js');
+const inWebkit = process.env.OTS_TEST_BROWSER === 'webkit';
+const useWebkit = path.join(scriptsDir, 'helpers', 'use-webkit.js');
+// Tests that open a browser but cannot run in WebKit, each with its reason. A new test runs there by default.
+const notInWebkit = new Map([
+  ['test-whatsapp-chrome.js', 'loads the Chrome extension'],
+  ['test-webkit-interactions-ui.js', 'imitates WebKit inside Chromium']
+]);
+const opensBrowser = name => /require\('playwright'\)|helpers\/board-page/.test(fs.readFileSync(path.join(scriptsDir, name), 'utf8'));
 
 // Opt-in live requests, never part of the default run.
 const excluded = new Set(['test-tracking-api.js']);
@@ -25,14 +37,16 @@ const serial = new Set([
 // Need macOS tools (sips, swift).
 const darwinOnly = new Set(['test-app-icon.js', 'native']);
 
-const tests = [
-  { name: 'check-project', command: process.execPath, args: [path.join(scriptsDir, 'check-project.js')], first: true },
-  ...fs.readdirSync(scriptsDir)
-    .filter(name => /^test-.*\.js$/.test(name) && !excluded.has(name))
-    .sort()
-    .map(name => ({ name: name.replace(/\.js$/, ''), file: name, command: process.execPath, args: ['--require', stableEvaluate, path.join(scriptsDir, name)] })),
-  { name: 'native', file: 'native', command: 'swift', args: ['run', 'TradeOrderSystemCoreTests'], cwd: path.join(root, 'mac-app', 'native') }
-];
+const testFiles = fs.readdirSync(scriptsDir).filter(name => /^test-.*\.js$/.test(name) && !excluded.has(name)).sort();
+const preload = inWebkit ? ['--require', stableEvaluate, '--require', useWebkit] : ['--require', stableEvaluate];
+const tests = inWebkit
+  ? testFiles.filter(opensBrowser)
+    .map(name => ({ name: name.replace(/\.js$/, ''), file: name, command: process.execPath, args: [...preload, path.join(scriptsDir, name)] }))
+  : [
+    { name: 'check-project', command: process.execPath, args: [path.join(scriptsDir, 'check-project.js')], first: true },
+    ...testFiles.map(name => ({ name: name.replace(/\.js$/, ''), file: name, command: process.execPath, args: [...preload, path.join(scriptsDir, name)] })),
+    { name: 'native', file: 'native', command: 'swift', args: ['run', 'TradeOrderSystemCoreTests'], cwd: path.join(root, 'mac-app', 'native') }
+  ];
 
 const filters = process.argv.slice(2);
 const selected = tests.filter(test => !filters.length || filters.some(filter => test.name.includes(filter)));
@@ -42,6 +56,10 @@ const results = [];
 function run(test) {
   if (darwinOnly.has(test.file) && process.platform !== 'darwin') {
     results.push({ test, status: 'skip', ms: 0, output: 'requires macOS' });
+    return Promise.resolve();
+  }
+  if (inWebkit && notInWebkit.has(test.file)) {
+    results.push({ test, status: 'skip', ms: 0, output: notInWebkit.get(test.file) });
     return Promise.resolve();
   }
   const started = Date.now();

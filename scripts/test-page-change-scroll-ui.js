@@ -56,9 +56,29 @@ const scrollTop = page => page.evaluate(() => Math.round(document.scrollingEleme
     await h.waitPageTime(page, 320);
     assert.equal(await scrollTop(page), 300, 'the page jumped after a key press');
 
+    // Input that arrives before the page has heard its own hash change (a busy machine delivers the
+    // press first): the hash change must not start the passes again.
+    await page.evaluate(() => setPage('dashboard'));
+    await h.waitPageTime(page, 400);
+    const order = await page.evaluate(() => {
+      const seen = [];
+      window.addEventListener('hashchange', () => seen.push('hashchange'), { once:true });
+      setPage('customers');
+      window.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true }));
+      seen.push('pointerdown');
+      document.scrollingElement.scrollTop = 300;
+      return new Promise(resolve => setTimeout(() => resolve(seen), 320));
+    });
+    assert.deepEqual(order, ['pointerdown', 'hashchange'], 'the press comes before the hash change in this case');
+    assert.equal(await scrollTop(page), 300, 'the hash change of the page change put the page at the top after a press');
+
+    // Going back in history is a page change like any other.
+    await page.goBack();
+    await page.waitForFunction(() => document.querySelector('.page.active')?.id === 'page-dashboard');
+
     assert.deepEqual(errors, []);
     assert.deepEqual(dialogs, []);
-    console.log('Page change scroll passed: the new page starts at the top; a scroll, press or key right after the change is not undone.');
+    console.log('Page change scroll passed: the new page starts at the top; a scroll, press or key right after the change is not undone; history still changes page.');
   } finally {
     await browser.close();
   }

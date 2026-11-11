@@ -29293,7 +29293,13 @@ document.getElementById('appRefreshBtn').addEventListener('click', () => guarded
 document.querySelectorAll('[data-page]').forEach(btn => {
   btn.addEventListener('click', () => setPage(btn.dataset.page));
 });
-window.addEventListener('hashchange', () => setPage((window.location.hash || '').replace('#', '') || 'dashboard'));
+// setPage writes the hash itself, and that write comes back here a moment later, after any input that
+// was already waiting. The page is showing by then: running setPage again would start a second series
+// of scroll resets, after the input that had stopped the first one (see scrollWorkspaceToTop).
+window.addEventListener('hashchange', () => {
+  const page = (window.location.hash || '').replace('#', '') || 'dashboard';
+  if (document.querySelector('.page.active')?.id !== `page-${page}`) setPage(page);
+});
 
 const levelTooltip = document.createElement('div');
 levelTooltip.className = 'level-tooltip';

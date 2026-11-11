@@ -7634,6 +7634,7 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
 <input type="file" id="dataFileInput" accept="application/json,.json" hidden>
 
 <script>
+// #region Constants, static tables, small shared state
 const safeStorage = {
   getItem(key) { try { return window.localStorage.getItem(key); } catch (_) { return null; } },
   setItem(key, value) { try { window.localStorage.setItem(key, value); } catch (_) { /* 本机存储不可用时只在本次生效 */ } },
@@ -7923,6 +7924,8 @@ const storeKey = 'trade-order-system-v4';
 const themeKey = 'trade-order-system-theme';
 const apiTokenStorageKey = 'trade-order-system-api-token';
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+// #endregion
+// #region Local server access: app mode, API token, apiFetch
 function isMacAppMode() {
   return location.protocol === 'http:' && ['127.0.0.1', 'localhost'].includes(location.hostname);
 }
@@ -7961,6 +7964,8 @@ function apiFetch(resource, options = {}) {
   }).finally(() => clearTimeout(timer));
 }
 window.tradeApiFetch = apiFetch;
+// #endregion
+// #region Feishu order notifications
 function normalizeFeishuNotification(raw = {}) {
   const status = ['sending','sent','failed','skipped'].includes(raw?.status) ? raw.status : 'skipped';
   const sentFields = raw?.sentFields && typeof raw.sentFields === 'object' && !Array.isArray(raw.sentFields) ? raw.sentFields : null;
@@ -8296,6 +8301,8 @@ async function retryOrderNotification(orderId = '') {
   else toast(`${label} 群消息发送仍然失败`, { tone:'error', desc:result?.error || '' });
   return result?.status === 'sent';
 }
+// #endregion
+// #region Settings kept by the local server (AI, tracking)
 async function fetchMacAiSettings() {
   if (!isMacAppMode()) return null;
   try {
@@ -8383,6 +8390,8 @@ const snoozedTasks = {
     return Object.values(this.map()).filter(day => day === today).length;
   }
 };
+// #endregion
+// #region Loading state, form persistence, failed-save bookkeeping
 // 收款提醒点「已催款」后几天再提醒（直到收齐）。
 const paymentRemindAgainDays = 3;
 // 只留今天的「稍后」：昨天及更早的暂缓已经失效，不必再存。
@@ -8544,6 +8553,8 @@ function saveState() {
   readOnlyBaselineJson = null;
   return syncStateToMacApp();
 }
+// #endregion
+// #region Saving to the local database: queue, conflicts, merge, flush before quit
 let macSaveTimer = 0;
 let macSaveErrorToastAt = 0;
 let macSaveRequestedVersion = 0;
@@ -9279,6 +9290,8 @@ function macStateEnvelope(payload = {}) {
   const revision = Number(payload?.revision ?? source?.revision ?? 0);
   return { state: unpackDataFile(source), revision: Number.isFinite(revision) ? revision : 0 };
 }
+// #endregion
+// #region First load from the database and the boot report
 let appVersionUpdatedAtMs = NaN;
 // 时间取自包里页面文件的修改时间：发版时打包的那一刻（解压时保留），不是这台 Mac 装上它的时间，所以叫「发布」。
 function refreshAppVersionTooltip() {
@@ -9432,6 +9445,8 @@ window.macCheckRemoteRevision = macCheckRemoteRevision;
 window.setInterval(() => macCheckRemoteRevision(), 45000);
 window.addEventListener('focus', () => macCheckRemoteRevision());
 document.addEventListener('visibilitychange', () => { if (!document.hidden) macCheckRemoteRevision(); });
+// #endregion
+// #region Theme
 // 深浅色：没手动选过就跟随系统（并监听系统切换）；只有用户点了月亮/太阳或在设置里选了浅色/深色才记下来。
 // 以前第一次打开就把当时的系统外观写进 localStorage，之后系统换成深色，页面也一直是浅色。
 const themeSystemQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
@@ -9465,6 +9480,8 @@ themeSystemQuery?.addEventListener?.('change', () => { if (themeMode() === 'syst
 function toggleTheme() {
   setThemeMode(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
 }
+// #endregion
+// #region Settings normalizers: AI, tracking API, exchange, board cards, order options
 function normalizeAiSettings(raw = {}) {
   const rawModel = String(raw.model || defaultAiSettings.model).trim();
   return {
@@ -9628,6 +9645,8 @@ function normalizeOrderSettings(raw = {}) {
     : defaultOrderSettings.defaultOrderType;
   return settings;
 }
+// #endregion
+// #region Normalizing orders, shipments and the whole state
 function normalizeOrderPaymentInput(data = {}, amountValue = 0, orderTypeValue = '定金订单', stageValue = 'quote') {
   const amount = Math.max(0, Number(amountValue || 0));
   const orderType = orderTypeDefs.some(item => item.value === orderTypeValue) ? orderTypeValue : '定金订单';
@@ -9875,6 +9894,8 @@ function migrateDoneTaskKeys(doneTasks, orders = [], customers = {}) {
   });
   return done;
 }
+// #endregion
+// #region Basics: country, currency, money, tracking numbers, dates
 function normalizeCountry(value) {
   const text = String(value || '').trim();
   if (!text) return '🌐 其他 Other';
@@ -10072,6 +10093,8 @@ function zoneTime(zone) {
     hour12: false
   }).format(new Date());
 }
+// #endregion
+// #region Sidebar widgets: world clocks, AI usage, API status lights, busy buttons
 function renderWorldClocks() {
   const el = document.getElementById('worldClockStrip');
   if (!el) return;
@@ -10255,6 +10278,8 @@ async function checkApiStatus(kind) {
   if (kind === 'ai') await refreshAiUsage();
   toast(`${apiStatusNames[kind] || kind}：${item.message}${item.accountingWarning ? ` · ${item.accountingWarning}` : ''}`);
 }
+// #endregion
+// #region Tasks and reminders: follow-up, dunning, repurchase
 function compactMonthLabel(month) {
   const [year, monthNum] = month.split('-');
   return `${year}年${Number(monthNum)}月`;
@@ -10478,6 +10503,8 @@ function taskDueToday(item) {
   const today = normalizeDate(new Date().toISOString());
   return parseDate(normalizeDate(item.date || today)) <= parseDate(today);
 }
+// #endregion
+// #region Calendar
 // 日历色块上的客户名：用客户显示名（去掉括号里的备注），截断交给 CSS。以前只取第一个词，「Alpha Wigs」「Alpha Lashes」都成了「Alpha」。
 function calendarShortName(client = '') {
   const name = String(clientDisplayName(client) || '').split(/[（(]/)[0].trim();
@@ -10745,6 +10772,8 @@ function renderCalendarPage() {
   grid.innerHTML = weekdays.map(day => `<div class="calendar-weekday">周${day}</div>`).join('') + cells.join('');
   renderCalendarAgenda('calendarAgenda', events);
 }
+// #endregion
+// #region Amounts in USD and RMB, exchange rates, business analysis, monthly targets
 let ecbHistoricalRates = [];
 let ecbRatesLoadedAt = '';
 function ecbUsdRateForOrder(order = {}, rateRows = ecbHistoricalRates) {
@@ -11053,6 +11082,8 @@ function targetRate(actual, goal) {
   const pct = value / goal * 100;
   return value >= goal ? Math.round(pct) : Math.min(99, Math.floor(pct));
 }
+// #endregion
+// #region Date helpers, stage and payment rules (business rules: ask the owner before changing)
 function parseDate(value) {
   const text = String(value || '').trim();
   // 纯日期（2026-10-01）按本地日期解析；原生 Date 会当成 UTC 零点，在 UTC 以西的时区会少一天，
@@ -11231,6 +11262,8 @@ function customerLevelShortLabel(value) {
   const match = text.match(/^([A-F])级(.+?)客户$/);
   return match ? `${match[1]}${match[2]}` : text;
 }
+// #endregion
+// #region Custom select control and floating menus
 function selectButtonLabel(select, option) {
   const text = option.textContent || option.value;
   if (select.name === 'paymentChannel' || select.name === 'defaultPaymentChannel' || select.name === 'paymentMethod') return boardPaymentLabel(text);
@@ -11567,6 +11600,8 @@ function openAppSelectFromButton(button) {
   else openAppSelectMenu(select);
   return true;
 }
+// #endregion
+// #region Deposit presets, copy templates, modal open state, confirm dialogs
 function depositPercent(amount, depositAmount) {
   const total = Number(amount || 0);
   if (!total) return 0;
@@ -11863,6 +11898,8 @@ async function confirmDangerFlow({ title, firstMessage, secondMessage, mathA = 7
   });
   return math.confirmed;
 }
+// #endregion
+// #region Text search and country aliases
 let pasteAssistAnalysis = null;
 let customerPasteAnalysis = null;
 let customerPasteRequestId = 0;
@@ -12097,6 +12134,8 @@ function textContainsCountryAlias(text, alias) {
   }
   return text.includes(normalized);
 }
+// #endregion
+// #region Order paste recognition: local rules, client matching, result cards
 function findCountryInText(text) {
   const lower = normalizeSearchText(text);
   const aliasMap = [
@@ -13225,6 +13264,8 @@ function clientFieldsForPaste(name) {
     ...(product ? { productType: product } : {})
   };
 }
+// #endregion
+// #region AI recognition for orders
 function friendlyAiErrorMessage(error) {
   const message = String(error?.message || error || '').trim();
   if (/abort|timeout|timed out|request timeout/i.test(message)) {
@@ -13560,6 +13601,8 @@ async function runAiPasteAnalysis() {
     }
   }
 }
+// #endregion
+// #region Customer paste recognition: emails, phones, addresses, names
 function normalizeCustomerEmail(value = '') {
   const text = decodePasteEntities(String(value || ''))
     .trim()
@@ -15087,6 +15130,8 @@ async function fillCustomerFieldsFromPaste(fields = {}, { supplementOnly = false
   }
   return { filled, skipped };
 }
+// #endregion
+// #region AI recognition for customers
 function aiCustomerPrompt(text) {
   return `任务：从下面的客户资料或聊天记录中提取客户档案字段，输出一个 json 对象。
 
@@ -15365,6 +15410,8 @@ const globalSearchActionDefs = [
   { action:'new-order', title:'新建订单', icon:'+', keywords:'xjdd xinjian dingdan new order create 新订单 创建订单 添加订单 开单' },
   { action:'new-customer', title:'新建客户', icon:'+', keywords:'xjkh xinjian kehu new customer create 新客户 添加客户 建档' }
 ];
+// #endregion
+// #region Global search and order list filtering
 let allGlobalSearchResults = [];
 let globalSearchRenderedQuery = null;
 let currentGlobalSearchResults = [];
@@ -15757,6 +15804,8 @@ function paginateOrdersForList(orders = [], page = 1, pageSize = 50) {
 function paginateSearchResults(results, page = 1) {
   return paginateOrdersForList(results, page, 50);
 }
+// #endregion
+// #region Render entry, scroll helpers, small utilities
 function renderPageContent(page, { entering = false } = {}) {
   const pages = {
     dashboard: () => { renderMonthSelects(); renderStats(); renderPipeline(); renderTrash(); renderRecentOrders(); renderTasks(); },
@@ -15883,6 +15932,8 @@ function debounce(fn, delay = 120) {
 function escapeAttr(value) {
   return String(value || '').replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
 }
+// #endregion
+// #region Customer fields: contact methods, multi-value fields, tags, levels
 function contactForClient(name = '') {
   const profile = state.customers?.[name] || {};
   const contact = cleanContactValue(profile.contact || '', profile.address || '');
@@ -16251,6 +16302,8 @@ function renderLevelRuleTable() {
     <div class="level-rule-row"><div class="level-rule-name">E级白银客户</div><div>小于 ${fmt(rules.D)} 且订单数大于 1</div><div>多次成交，但累计成交额小于 ${fmt(rules.D)}</div></div>
     <div class="level-rule-row"><div class="level-rule-name">F级青铜客户</div><div>订单数等于 1</div><div>只成交过一次的客户，包括样品单</div></div>`;
 }
+// #endregion
+// #region Timeline (roadmap) and change summaries
 function normalizeLog(item, fallbackTime = '') {
   if (typeof item === 'string') return { text: item, time: fallbackTime || '' };
   return { text: item?.text || '更新订单', time: item?.time || fallbackTime || '' };
@@ -16462,6 +16515,8 @@ function orderShipmentChangeSummary(before = {}, after = {}) {
   was.filter(prev => !now.some(item => item.trackingNumber === prev.trackingNumber)).forEach(prev => lines.push(`删除物流单号：${name(prev)}`));
   return lines;
 }
+// #endregion
+// #region Attachments and image compression
 function orderAttachmentsFromForm(form) {
   try {
     const parsed = JSON.parse(form.elements.attachmentsJson?.value || '[]');
@@ -16883,6 +16938,8 @@ async function handleOrderImagePaste(e) {
     delete form.dataset.uploading;
   }
 }
+// #endregion
+// #region Order detail drawer and attachment preview
 function findOrderRecord(id) {
   const active = state.orders.find(o => o.id === id);
   if (active) return { order: active, source: 'active' };
@@ -17417,6 +17474,8 @@ function closeOrderDetail() {
   setModalOpenState(drawer, false);
   resetModalScroll(drawer);
 }
+// #endregion
+// #region Settings page rendering
 function renderSettingsList(elId, list, type) {
   const el = document.getElementById(elId);
   if (!el) return;
@@ -17522,6 +17581,8 @@ function renderSettings() {
     if (nextAuto) nextAuto.textContent = nextTrackingAutoSlot(tracking);
   }
 }
+// #endregion
+// #region Client picker
 function renderClientOptions() {
   document.querySelectorAll('.client-picker').forEach(picker => {
     // 正开着的客户菜单（正在输入、或用方向键 / Tab 在里面选）不在后台整份重画：以前保存回来、数据刷新时的 render()
@@ -17769,6 +17830,8 @@ function selectClientFromMenu(source, clientName = '') {
   closeClientMenus();
   return true;
 }
+// #endregion
+// #region Dashboard: stats, amount report, targets, charts, board
 function boardCardSettings() {
   state.boardCardSettings = normalizeBoardCardSettings(state.boardCardSettings || {});
   return state.boardCardSettings;
@@ -18689,6 +18752,8 @@ function renderPipeline() {
     </aside>
   `;
 }
+// #endregion
+// #region Order list page, trash, recent and deleted orders
 function renderTrash() {
   const el = document.getElementById('trashDrop');
   if (!el) return;
@@ -18982,6 +19047,8 @@ function renderDeletedOrders() {
     `;
   }).join('');
 }
+// #endregion
+// #region Logistics page and tracking: lookups, carrier queries, auto update, tracking detail
 function logisticsTone(status = '') {
   if (status === '异常') return 'tone-red';
   if (status === '已签收') return 'tone-gray';
@@ -20080,6 +20147,8 @@ async function renderTrackingLookup() {
   draw(true);
   toastTrackingCompletions(completed);
 }
+// #endregion
+// #region Tasks page and task actions
 // 待办列表一次显示 14 条，多出来的在底部写明「还有 N 条」，可以展开。
 const taskListLimit = 14;
 let taskListExpanded = false;
@@ -20378,6 +20447,8 @@ function handleTaskAction(actionName, row) {
   }
   if (actionName === 'done') markTaskDone(id);
 }
+// #endregion
+// #region Customer duplicates, merge and delete
 function normalizeCustomerDuplicateText(value = '') {
   return normalizeSearchText(value).replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 }
@@ -20815,6 +20886,8 @@ async function deleteCustomerProfile(name = '') {
     toast(`已撤销：${name} 的客户档案已恢复`, { group:'customer-change' });
   } });
 }
+// #endregion
+// #region Customers page, profile modal, saving a customer
 function customerWorkspaceRecord(client = {}) {
   const name = client.client || '';
   const orders = state.orders.filter(o => o.client === name && !o.isDraft && orderAmountValue(o) > 0);
@@ -21623,6 +21696,8 @@ async function leaveOrderUnderCustomerModal(sub) {
   closeOrder();
   return !orderModal.classList.contains('open');
 }
+// #endregion
+// #region New customer and order in one step
 function existingCustomerKey(name = '') {
   const clean = String(name || '').trim().toLowerCase();
   if (!clean) return '';
@@ -21795,6 +21870,8 @@ function startCombinedCustomerOrderReview(text = '', correctedCustomerFields = n
   closeCustomerModal(false);
   openCombinedCustomerOrderModal(preview);
 }
+// #endregion
+// #region Order form: stage and payment fields, shipments, order number, saving an order
 function fillStageSelects() {
   document.querySelectorAll('select[name="stage"], select[name="defaultStage"]').forEach(sel => {
     const current = sel.value;
@@ -23066,6 +23143,8 @@ function duplicateOrder() {
   openOrder(copy.id);
   toast(`已复制为新订单 ${copy.num}`, { desc:'可以直接改号码、金额后保存' });
 }
+// #endregion
+// #region Order actions: undo, delete and restore, stage moves, demo data
 // ===== 撤销按订单记版本 =====
 // 同一张单之后又被移动、收齐、撤销、删除或补了运单号，较早那条「撤销」就作废：提示收起，万一还点到也只提示、不改数据。
 // 以前逐个字段比「是不是还等于移动后的值」，同一张单连拖两次再点较早那条撤销，阶段不动、收款却被改回去（生产中、已收 $0）。
@@ -23456,6 +23535,8 @@ async function clearDemoCustomers() {
     toast('已撤销：示例客户已恢复', { group:'customer-change' });
   } });
 }
+// #endregion
+// #region Export, import and replacing all data
 function exportCsv(month = 'all') {
   if (!exportSourceReady()) return Promise.resolve(false);
   const header = ['订单号','客户','国家','创建日期','订单月份','金额','已付款','币种','产品类型','收款方式','订单类型','草稿','加急订单','客户要求收到日期','最晚发出日期','阶段','物流单号','物流汇总','首批发货日','附件数量','备注','更新时间'];
@@ -23843,6 +23924,8 @@ async function undoDataReplacement(previous, appliedJson, label) {
   }
   toast(`已撤销${label}`);
 }
+// #endregion
+// #region Backups and data tools on the settings page
 // ---- 从备份恢复 ----
 // 设置 → 数据管理 →「从备份恢复…」：展开备份目录里的每一份（时间、原因、大小）；点「恢复…」先看这份备份和现在数据的对比，
 // 确认后由本地服务一次做完（先把现在的数据另存一份「恢复前」备份，再换库、并回附件），然后页面重新加载。
@@ -24125,6 +24208,8 @@ const subscriptionState = {
   loaded:false, loading:false, error:'', items:[], usdCnyRate:7.1,
   defaultPaymentMethods:['支付宝', '微信支付', '银行卡', '信用卡', 'PayPal', 'Apple Pay'], customCycles:[], customPaymentMethods:[], customCategories:[]
 };
+// #endregion
+// #region Renewals: data and schedule, pages, analysis, history, editor
 // Weeks are kept as 7 days and years as 12 months, the two units the server stores.
 const subscriptionBuiltInCycles = [{ unit:'day', count:7 }, { unit:'month', count:1 }, { unit:'month', count:3 }, { unit:'month', count:6 }, { unit:'month', count:12 }];
 const subscriptionGlideRects = {};
@@ -27064,6 +27149,8 @@ window.addEventListener('resize', debounce(() => {
   placeSubscriptionGlide(document.getElementById('subsFilter'), 'filter', { jump:true });
   document.querySelectorAll('#subscriptionEditForm [data-sub-segment]').forEach(group => placeSubscriptionGlide(group, `editor-${group.dataset.subSegment}`, { jump:true }));
 }, 80));
+// #endregion
+// #region Navigation and event wiring: page switch, search box, document listeners, settings forms, board drag
 function setPage(page) {
   const normalized = page === 'data' ? 'settings' : page === 'analysis' ? 'amount' : page;
   const target = document.getElementById(`page-${normalized}`) ? normalized : 'dashboard';
@@ -29253,6 +29340,8 @@ renderApiStatusLights();
 setInterval(renderWorldClocks, 60000);
 setInterval(checkDhlAutoUpdateSchedule, 60000);
 setInterval(checkUpsAutoCompletion, 60000);
+// #endregion
+// #region UI layer: toasts, hold to delete, board menu, notifications, modal style, step navigation, zoom
 // ===== 新版 UI 交互 开始 =====
 // 新版 UI：外壳交互（导航滑动高亮、导航计数、换页入场、⌘K 搜索）。只读 state，不改数据。
 function uiReduceMotion() { return document.documentElement.dataset.motion === 'reduce'; }
@@ -30530,6 +30619,8 @@ uiStepNavSetup('orderModal', 'orderForm');
 uiStepNavSetup('customerModal', 'customerForm');
 uiStepNavCloseIcons();
 document.getElementById('customerFooterCancelBtn')?.addEventListener('click', () => document.getElementById('closeCustomerModalBtn')?.click());
+// #endregion
+// #region Close guards for unsaved forms
 // ===== 关闭保护：订单 / 客户弹窗和详情抽屉里有没保存的改动时，关闭、点遮罩、Esc 都先确认；没改动直接关。=====
 function uiFormFingerprint(form) {
   if (!form) return '';
@@ -30687,6 +30778,8 @@ async function uiDetailGuardOrderModal(id, sub) {
   closeOrder();
   return !modal.classList.contains('open');
 }
+// #endregion
+// #region Compact new-order form, quick actions, tracking quick card
 // ===== 新建订单精简模式：只留 识别 / 基础与金额 / 产品与阶段，附件、交期、物流、备注折到「展开更多」；编辑已有订单全部展开。=====
 function uiOrderCompact(form, compact) {
   if (!form) return;
@@ -30917,6 +31010,8 @@ document.addEventListener('keydown', e => {
     first.focus();
   }
 }, true);
+// #endregion
+// #region Dashboard KPIs, day and month rollover, detail drawer editing, effects
 // 新版 UI：工作台数字卡的趋势线、环比、待办分类和目标进度条（数据仍由 renderStats 计算）。
 function uiMonthShift(month, delta) {
   const [y, m] = String(month).split('-').map(Number);
@@ -31551,6 +31646,8 @@ function uiBellRing(unread) {
   bell.classList.remove('ring'); void bell.offsetWidth; bell.classList.add('ring');
   setTimeout(() => bell.classList.remove('ring'), 800);
 }
+// #endregion
+// #region App update status and native dialogs
 // ===== 新版 UI 交互 结束 =====
 // Mac App 的原生更新器负责检查、下载、校验、替换并重启；网页里只发起请求，
 // 并把它回传的进度画在「更新」按钮上。找到新版本时原生会借 nativeDialog 先问一句再安装。
@@ -31685,6 +31782,7 @@ function otsAppUpdateStatus(status) {
   }
 }
 window.otsAppUpdateStatus = otsAppUpdateStatus;
+// #endregion
 // 必须是主脚本的最后一句：执行到这里说明上面没有任何一句在启动时抛错（见 reportAppBooted）。
 appScriptCompleted = true;
 reportAppBooted();

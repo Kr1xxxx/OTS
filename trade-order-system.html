@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="ots-prefs" content="">
 <title>外贸订单跟进系统</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -7635,11 +7636,63 @@ html[data-theme][data-modal-style="c"] .order-form .field-chips { grid-template-
 
 <script>
 // #region Constants, static tables, small shared state
+// 本机存储：读写都经过这里。不可用时（Safari 禁用了站点数据）读到 null、写了只在本次生效。
+// 列在 serverPrefKeys 里的几项同时交给本机服务保管一份，见下面的 adoptServerPrefs。
 const safeStorage = {
   getItem(key) { try { return window.localStorage.getItem(key); } catch (_) { return null; } },
-  setItem(key, value) { try { window.localStorage.setItem(key, value); } catch (_) { /* 本机存储不可用时只在本次生效 */ } },
-  removeItem(key) { try { window.localStorage.removeItem(key); } catch (_) { /* 忽略 */ } }
+  setItem(key, value) {
+    try { window.localStorage.setItem(key, value); } catch (_) { /* 本机存储不可用时只在本次生效 */ }
+    queueServerPref(key, String(value));
+  },
+  removeItem(key) {
+    try { window.localStorage.removeItem(key); } catch (_) { /* 忽略 */ }
+    queueServerPref(key, null);
+  }
 };
+// 主题、强调色、订单弹窗样式、「发送到飞书群」的选择、每日问候、通知列表和已读。
+// localStorage 跟着页面地址走，地址里有端口：上次的端口被占、Mac App 换了端口启动，这些就全没了
+// （主题回到默认，几百条通知全部变回未读）。所以本机服务在数据目录里也存一份，并写进它发出的页面
+// （ots-prefs 这个 meta）：页面一开始就用它盖住 localStorage，之后每次改动两边都写。
+// 服务那边的 null 表示「特意清掉了」（比如主题改回跟随系统），页面这边还留着旧值的话也清掉。
+const serverPrefKeys = new Set(['trade-order-system-theme', 'ots-accent-v1', 'ots-modal-style-v1', 'ots-feishu-send-v1', 'ots-greet-v1', 'ots-notif-read-v1', 'ots-notif-events-v1']);
+const pendingServerPrefs = new Map();
+let serverPrefsAdopted = false;
+let serverPrefTimer = 0;
+function queueServerPref(key, value) {
+  if (!serverPrefsAdopted || !serverPrefKeys.has(key)) return;
+  pendingServerPrefs.set(key, value);
+  clearTimeout(serverPrefTimer);
+  serverPrefTimer = setTimeout(flushServerPrefs, 300);
+}
+// 没发出去的留着，下次有改动时一起发；从不抛错。
+function flushServerPrefs() {
+  clearTimeout(serverPrefTimer);
+  if (!pendingServerPrefs.size) return Promise.resolve();
+  const set = Object.fromEntries(pendingServerPrefs);
+  pendingServerPrefs.clear();
+  return apiFetch('/api/ui-prefs', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ set }), timeoutMs:3000 })
+    .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); })
+    .catch(() => Object.entries(set).forEach(([key, value]) => { if (!pendingServerPrefs.has(key)) pendingServerPrefs.set(key, value); }));
+}
+// 必须在任何一处读偏好之前执行。页面不是本机服务发出来的（测试、直接打开文件）时 meta 是空的，什么都不做。
+(function adoptServerPrefs() {
+  let fromServer = null;
+  try { fromServer = JSON.parse(document.querySelector('meta[name="ots-prefs"]')?.content || 'null'); } catch (_) { /* 当作没有 */ }
+  if (!fromServer || typeof fromServer !== 'object' || Array.isArray(fromServer)) return;
+  serverPrefsAdopted = true;
+  serverPrefKeys.forEach(key => {
+    if (Object.hasOwn(fromServer, key)) {
+      try {
+        if (fromServer[key] === null) window.localStorage.removeItem(key);
+        else window.localStorage.setItem(key, String(fromServer[key]));
+      } catch (_) { /* 本机存储不可用 */ }
+      return;
+    }
+    // 服务还没存过这一项（升级后第一次启动）：把这个地址上已有的交给它。
+    const local = safeStorage.getItem(key);
+    if (local !== null) queueServerPref(key, local);
+  });
+})();
 // 中文输入法候选还没上屏时按的回车 / Esc 是给输入法的，不能当成「确定」「关闭」。
 // Chrome 里这一下 isComposing 为 true；Safari / Mac App（WKWebView）先结束输入法再派 keydown，
 // isComposing 已经是 false，只剩 keyCode 229 能认出来。
@@ -7990,12 +8043,12 @@ function feishuKnownUnconfigured() { return feishuStatus?.configured === false; 
 const feishuChoiceKey = 'ots-feishu-send-v1';
 function feishuDefaultChecked() {
   if (feishuKnownUnconfigured()) return false;
-  try { return localStorage.getItem(feishuChoiceKey) !== '0'; } catch (_) { return true; }
+  return safeStorage.getItem(feishuChoiceKey) !== '0';
 }
 function rememberFeishuChoice(checked) {
   // 没配置时默认不勾，不能把这次的「不勾」记下来：配好之后还应回到用户原来的选择。
   if (feishuKnownUnconfigured()) return;
-  try { localStorage.setItem(feishuChoiceKey, checked ? '1' : '0'); } catch (_) { /* 本机存储不可用时只在本次生效 */ }
+  safeStorage.setItem(feishuChoiceKey, checked ? '1' : '0');
 }
 function shouldRequestOrderNotification(existing = null, isDraft = false, checked = false) {
   if (isDraft || !checked) return false;
@@ -9248,6 +9301,7 @@ function recentQuitBlock() {
 window.otsFlushBeforeQuit = async () => {
   if (isMacAppMode() && !macDataLoaded) return true;
   const saved = await flushPendingSave();
+  await flushServerPrefs();
   const unsaved = otsUnsavedForms();
   // 没存进去的原因也记下：冲突（等也没用，先导出）、服务没响应、正在自动重试。退出 / 更新的提示据此说清楚，
   // 不再一律叫人「确认已保存后再退出」「稍后再试」。
@@ -10173,7 +10227,7 @@ function apiStatusDisabled(item = {}) {
   return item.disabled === true || (item.ok === false && /未开启|未启用|未保存/.test(String(item.message || '')));
 }
 function loadApiStatuses() {
-  try { return JSON.parse(localStorage.getItem(apiStatusKey) || '{}') || {}; } catch (_) { return {}; }
+  try { return JSON.parse(safeStorage.getItem(apiStatusKey) || '{}') || {}; } catch (_) { return {}; }
 }
 function saveApiStatuses(statuses) {
   safeStorage.setItem(apiStatusKey, JSON.stringify(statuses || {}));
@@ -29445,9 +29499,9 @@ document.querySelector('.accent-swatches')?.addEventListener('click', e => {
   const btn = e.target.closest('[data-accent-choice]');
   if (!btn) return;
   const accent = uiApplyAccent(btn.dataset.accentChoice);
-  try { localStorage.setItem('ots-accent-v1', accent); } catch (_) { /* 本机存储不可用时只在本次生效 */ }
+  safeStorage.setItem('ots-accent-v1', accent);
 });
-try { uiApplyAccent(localStorage.getItem('ots-accent-v1')); } catch (_) { uiApplyAccent('violet'); }
+uiApplyAccent(safeStorage.getItem('ots-accent-v1'));
 // 新版 UI：公共组件（Toast 堆叠、状态变形按钮、按住确认）。
 function uiIcon(name) { return `<svg class="ui-icon" aria-hidden="true"><use href="#i-${name}"/></svg>`; }
 // group：同一组（例如同一张订单）只留最新的一条提示，旧的连同它的「撤销」一起收起。
@@ -29854,7 +29908,7 @@ document.addEventListener('focusin', e => {
   if (menu && !menu.contains(e.target)) uiCloseBoardMenu();
 });
 // 通知面板：只放「发生过的事」——保存失败、接口异常、物流状态变化、飞书群消息结果、发现新版本，加上近 3 天的订单动态。
-// 待办（加急/收款/跟进/复购）留在工作台的待办列表里，不再混进通知。事件和已读状态都只记在本机 localStorage。
+// 待办（加急/收款/跟进/复购）留在工作台的待办列表里，不再混进通知。事件和已读状态记在本机存储里，本机服务也存一份（见 serverPrefKeys）。
 // 红点、「N 条未读」和摇铃只算 App 自己发现、要人处理的事（物流变化、自动完成、飞书失败、保存 / 接口失败、新版本、续费）。
 // 订单动态和飞书「已发送」几乎都是自己刚做的操作：照样按时间列出来，但不算未读、不摇铃（quiet），
 // 不然每拖一张卡、每存一次单红点都 +1，真正的物流异常混在里面看不出来。
@@ -29863,7 +29917,7 @@ function uiNotifTab(next) { if (next) uiNotifTab.value = next; return uiNotifTab
 // 一次显示多少条：超过的在列表末尾「显示更多」，每次多 40 条；打开面板、切页签时回到 40。
 function uiNotifLimit(next) { if (next) uiNotifLimit.value = next; return uiNotifLimit.value || 40; }
 function uiNotifRead() {
-  try { return new Set(JSON.parse(localStorage.getItem('ots-notif-read-v1') || '[]')); } catch (_) { return new Set(); }
+  try { return new Set(JSON.parse(safeStorage.getItem('ots-notif-read-v1') || '[]')); } catch (_) { return new Set(); }
 }
 // 已读集合存之前先剔掉已经不存在的条目，再留最后 400 个；Set 按「最近一次标已读」排（uiNotifMarkRead 先删再加）。
 // 以前按第一次读的顺序截断：读过 400 个别的 id 以后，还挂在面板上的旧卡（续费、常驻的接口卡）突然变回未读、铃铛再摇。
@@ -29873,7 +29927,7 @@ function uiNotifSaveRead(set) {
     const events = new Set(uiNotifEvents().map(item => item.id));
     const live = new Set(uiNotifItems().map(item => item.id));
     const keep = [...set].filter(id => typeof id === 'string' && !id.startsWith('log-') && (events.has(id) || live.has(id) || id.startsWith('renew')));
-    localStorage.setItem('ots-notif-read-v1', JSON.stringify(keep.slice(-400)));
+    safeStorage.setItem('ots-notif-read-v1', JSON.stringify(keep.slice(-400)));
   } catch (_) { /* 本机存储不可用时只是不记已读 */ }
 }
 function uiNotifMarkRead(ids, read = true) {
@@ -29885,7 +29939,7 @@ function uiNotifLogText(log) {
   return typeof log === 'string' ? log : String(log?.text || '');
 }
 function uiNotifEvents() {
-  try { return (JSON.parse(localStorage.getItem('ots-notif-events-v1') || '[]') || []).filter(item => item && item.id); } catch (_) { return []; }
+  try { return (JSON.parse(safeStorage.getItem('ots-notif-events-v1') || '[]') || []).filter(item => item && item.id); } catch (_) { return []; }
 }
 // 已读（或已恢复）的事件留 30 天；没读的一直留着。新版本卡在升级到那个版本以后就不再显示。
 function uiNotifStale(event, read, now = Date.now()) {
@@ -29909,7 +29963,7 @@ function uiNotifVersionDone(version) {
 function uiNotifSaveEvents(list) {
   const read = uiNotifRead();
   const kept = list.filter(item => !uiNotifStale(item, read));
-  try { localStorage.setItem('ots-notif-events-v1', JSON.stringify(kept.slice(-200))); } catch (_) { /* 本机存储不可用时通知只活在当前会话 */ }
+  safeStorage.setItem('ots-notif-events-v1', JSON.stringify(kept.slice(-200)));
 }
 // 接口错误按「接口 + 错误原文」只记一张卡（以前 id 带检测时间，连点 3 次状态灯就是 3 张一样的卡）。
 function uiNotifApiId(kind, message) {
@@ -30375,7 +30429,7 @@ document.querySelector('.modal-style-seg')?.addEventListener('click', e => {
   const btn = e.target.closest('[data-modal-style-choice]');
   if (!btn) return;
   const style = uiApplyModalStyle(btn.dataset.modalStyleChoice);
-  try { localStorage.setItem('ots-modal-style-v1', style); } catch (_) { /* 本机存储不可用时只在本次生效 */ }
+  safeStorage.setItem('ots-modal-style-v1', style);
   uiToast(`订单弹窗：${btn.title.split('：')[0]}`, { undoText:'打开看看', undo:() => document.getElementById('newOrderBtn')?.click() });
 });
 document.getElementById('orderModal')?.addEventListener('click', e => {
@@ -30393,7 +30447,7 @@ if (document.getElementById('orderModal')) {
     if (document.getElementById('orderModal').classList.contains('open')) requestAnimationFrame(() => uiOrderSectionTabs());
   }).observe(document.getElementById('orderModal'), { attributes:true, attributeFilter:['class'] });
 }
-try { uiApplyModalStyle(localStorage.getItem('ots-modal-style-v1')); } catch (_) { uiApplyModalStyle(''); }
+uiApplyModalStyle(safeStorage.getItem('ots-modal-style-v1'));
 // 界面大小：Mac App 用原生 pageZoom 缩放（和原型在浏览器里被缩小看是一回事）；原生那边改了会回调 otsUiZoomChanged。
 function uiApplyUiZoom(value) {
   const zoom = Number(value) > 0 ? Number(value) : 1;
@@ -31093,10 +31147,9 @@ document.querySelectorAll('[data-page-link]').forEach(btn => btn.addEventListene
 // 原型：打开软件后右下角问候一次（每天一次），顺便报一下今天的待办构成。
 function uiGreetOnce() {
   const today = normalizeDate(new Date().toISOString());
-  let seen = '';
-  try { seen = localStorage.getItem('ots-greet-v1') || ''; } catch (_) { /* 本机存储不可用时每次启动都问候 */ }
-  if (seen === today || typeof buildTaskItems !== 'function') return;
-  try { localStorage.setItem('ots-greet-v1', today); } catch (_) { /* 忽略 */ }
+  // 本机存储不可用时每次启动都问候。
+  if (safeStorage.getItem('ots-greet-v1') === today || typeof buildTaskItems !== 'function') return;
+  safeStorage.setItem('ots-greet-v1', today);
   // 和「今日待办」卡同一个数：只数今天要处理的；最晚发出日期叫「临近发货期限」，不再算成物流异常。
   const items = todayTaskItems(buildTaskItems());
   const hour = new Date().getHours();

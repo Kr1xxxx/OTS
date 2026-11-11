@@ -85,8 +85,15 @@ assert.equal(context.state.orders[0].num, 'SO-COPY');
 assert.equal(context.state.orders[0].feishuNotification.status, 'skipped', 'duplicated order must not inherit sent status');
 assert.equal(context.state.orders[0].feishuNotification.requested, false);
 assert.equal(context.feishuPendingCopies.has(context.state.orders[0].id), true, 'a copy is a new order until its first save');
-context.localStorage = { getItem:() => '1' };
+// The remembered choice (this used to pass only because the missing key name threw inside a try).
+context.feishuChoiceKey = 'ots-feishu-send-v1';
+const remembered = { 'ots-feishu-send-v1':'1' };
+context.safeStorage = { getItem:key => remembered[key] ?? null };
 assert.equal(evaluate('feishuDefaultChecked()'), true, 'remembered choice applies while the status is unknown');
+remembered['ots-feishu-send-v1'] = '0';
+assert.equal(evaluate('feishuDefaultChecked()'), false, 'a remembered "off" stays off');
+delete remembered['ots-feishu-send-v1'];
+assert.equal(evaluate('feishuDefaultChecked()'), true, 'nothing remembered: on');
 context.feishuStatus = { configured:false };
 assert.equal(evaluate('feishuDefaultChecked()'), false, 'not configured: the send switch defaults to off');
 context.feishuStatus = { configured:true };

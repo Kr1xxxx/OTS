@@ -21,7 +21,7 @@ function extractFunction(source, name) {
 // Payload assertions protect the external API contract, not a source string.
 // Only the external network and credential boundary are replaced with fixtures.
 async function testSurface(surface) {
-  const source = fs.readFileSync(path.join(root, surface === 'server' ? 'mac-app/server.js' : 'trade-order-system.html'), 'utf8');
+  const source = surface === 'server' ? '' : fs.readFileSync(path.join(root, 'trade-order-system.html'), 'utf8');
   let settings, payload, endpoint;
   const result = {choices:[{finish_reason:'stop',message:{content:'{"ok":true}'}}]};
   const context = vm.createContext({
@@ -41,10 +41,13 @@ async function testSurface(surface) {
       return {ok:true,json:async()=>result};
     }
   });
-  for (const name of surface === 'server'
-    ? ['aiChatEndpoint','queryAiChat']
-    : ['aiChatEndpoint','friendlyAiErrorMessage','requestAiChat']) {
-    vm.runInContext(extractFunction(source,name),context);
+  if (surface === 'server') {
+    Object.assign(context, require(path.join(root, 'mac-app/ai-chat.js')).createAiChat({
+      readAiSettings:context.readAiSettings, readAiApiKey:context.readAiApiKey,
+      aiUsageStore:context.aiUsageStore, requestJsonResponse:context.requestJsonResponse
+    }));
+  } else {
+    for (const name of ['aiChatEndpoint','friendlyAiErrorMessage','requestAiChat']) vm.runInContext(extractFunction(source,name),context);
   }
   async function run(baseUrl, selectedModel, provider='custom', testOnly=false) {
     settings={enabled:'是',provider,baseUrl,model:selectedModel,apiKey:'TEST_ONLY_NOT_A_REAL_KEY'};

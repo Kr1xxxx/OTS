@@ -118,7 +118,7 @@ const secretPatterns = [
 ];
 for (const file of [
   'trade-order-system.html',
-  'mac-app/server.js',
+  ...serverFiles().map(name => `mac-app/${name}`),
   'scripts/test-tracking-api.js',
   'docs/project-notes.md',
   '.env.example',

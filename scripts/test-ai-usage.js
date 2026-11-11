@@ -2,19 +2,9 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const vm = require('node:vm');
 const { chromium } = require('playwright');
 const root = path.resolve(__dirname, '..');
-function extract(source, name) {
-  const start = source.search(new RegExp(`(?:async )?function ${name}\\(`));
-  assert(start >= 0, `missing ${name}`);
-  for (let end = source.indexOf('{', start); end < source.length; end++) {
-    if (source[end] !== '}') continue;
-    const code = source.slice(start, end + 1);
-    try { new vm.Script(code); return code; } catch (_) {}
-  }
-  throw new Error(`unclosed ${name}`);
-}
+const { atomicWrite } = require(path.join(root, 'mac-app/file-store.js'));
 async function storeTest() {
   const modulePath = path.join(root, 'mac-app/ai-usage-store.js');
   assert(fs.existsSync(modulePath), 'AI expenses must have a persistent production store');
@@ -22,9 +12,7 @@ async function storeTest() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'trade-ai-usage-'));
   try {
     const file = path.join(dir, 'usage.json');
-    const context = vm.createContext({fs,path,crypto:require('node:crypto'),process});
-    vm.runInContext(extract(fs.readFileSync(path.join(root,'mac-app/server.js'),'utf8'),'atomicWrite'),context);
-    const make = () => createAiUsageStore({file,atomicWrite:context.atomicWrite});
+    const make = () => createAiUsageStore({file,atomicWrite});
     const store = make();
     assert.equal(store.read().totalCostUsd,0);
     const now = '2026-10-06T12:00:00.000Z';
@@ -66,9 +54,8 @@ async function serverTest() {
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'trade-ai-contract-'));
   try {
     let response={status:200,data:{id:'gen-contract',model:'deepseek/deepseek-v4.1-flash',choices:[{message:{content:'{}'}}],usage:{cost:0.00001234,prompt_tokens:12,completion_tokens:3}}};
-    const context=vm.createContext({fs,path,crypto:require('node:crypto'),process:{pid:process.pid}});
-    vm.runInContext(extract(fs.readFileSync(path.join(root,'mac-app/server.js'),'utf8'),'atomicWrite'),context);
-    context.aiUsageStore=createAiUsageStore({file:path.join(dir,'usage.json'),atomicWrite:context.atomicWrite});
+    const context={};
+    context.aiUsageStore=createAiUsageStore({file:path.join(dir,'usage.json'),atomicWrite});
     // The ledger is swapped for a failing one further down: the chat module always records through this.
     Object.assign(context,require(path.join(root,'mac-app/ai-chat.js')).createAiChat({
       readAiSettings:()=>({enabled:'是',provider:'custom',baseUrl:'https://openrouter.ai/api/v1',model:'deepseek/deepseek-v4.1-flash'}),

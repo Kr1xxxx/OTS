@@ -11,11 +11,14 @@ const { createAiUsageStore } = require('./ai-usage-store');
 const { createSubscriptionStore } = require('./subscription-store');
 const { readFeishuSettings, writeFeishuSettings } = require('./feishu-settings');
 const { createAttachmentCopier } = require('./backup-attachments');
-const { requestText } = require('./outbound-http');
 const { createCarrierTracking, cleanTracking, detectCarrier } = require('./carrier-tracking');
 const { httpError } = require('./http-error');
 const { createFeishuNotifier, deliveryPublicFields, larkFailureText } = require('./feishu-notify');
 const { createAiChat } = require('./ai-chat');
+const { atomicWrite, readJson } = require('./file-store');
+const { createRequestGuard, send, readJsonBody, validateFetchSite, requireJsonContentType } = require('./request-guard');
+const { createAppSettings, aiSettingLimits, trackingSettingLimits, assertSettingFields, assertAutoRunTimes, maskSecret } = require('./app-settings');
+const { createEcbRates } = require('./ecb-rates');
 
 const appName = 'TradeOrderSystem';
 const port = Number(process.env.TRADE_APP_PORT || 47828);
@@ -37,15 +40,9 @@ const dataFile = path.join(supportDir, 'trade-order-data.json');
 const databaseFile = path.join(supportDir, 'trade-order-system.sqlite');
 const migrationArchiveDir = path.join(supportDir, 'migration-archive');
 const backupMetaFile = path.join(supportDir, 'backup-meta.json');
-const ecbExchangeCacheFile = path.join(supportDir, 'exchange-rates-cache.json');
-const trackingSettingsFile = path.join(supportDir, 'tracking-settings.json');
-const aiSettingsFile = path.join(supportDir, 'ai-settings.json');
 const aiUsageStore = createAiUsageStore({ file:path.join(supportDir, 'ai-usage.json'), atomicWrite });
 const secretsDir = path.join(supportDir, 'secrets');
-const aiApiKeyFile = path.join(secretsDir, 'ai-api-key');
 const tinifyApiKeyFile = path.join(secretsDir, 'tinypng-api-key');
-const trackingSecretsFile = path.join(secretsDir, 'tracking-credentials.json');
-const trackingSecretKeys = ['dhlApiKey', 'fedexApiKey', 'fedexApiSecret'];
 const storageMarkerFile = path.join(supportDir, 'sqlite-storage.json');
 const migrationErrorFile = path.join(supportDir, 'migration-error.json');
 const feishuSettingsFile = path.join(supportDir, 'feishu-settings.json');
@@ -53,15 +50,7 @@ const feishuSettingsFile = path.join(supportDir, 'feishu-settings.json');
 function feishuConfig() { return readFeishuSettings(feishuSettingsFile); }
 const apiToken = String(process.env.TRADE_API_TOKEN || crypto.randomBytes(32).toString('base64url'));
 const instanceNonce = String(process.env.TRADE_INSTANCE_NONCE || crypto.randomBytes(24).toString('base64url'));
-const apiSessionCookie = 'trade_api_session';
-// 页面会话 cookie 的值不是 API 令牌，而是由令牌算出来的另一个值：cookie 不分端口，127.0.0.1 上别的端口的服务也会收到它。
-// 这个值只能取页面本身和 /attachments/ 的图片，调不了任何 /api/*；/api/* 只认 X-Trade-Token / Bearer。
-// 由令牌派生（不是另起随机数）：Mac App 用同一个令牌重启服务后，页面里的附件图片照样能显示。
-const pageSessionValue = crypto.createHmac('sha256', apiToken).update('ots-page-session-v1').digest('base64url');
-const defaultBodyLimit = 1024 * 1024;
-const saveBodyLimit = 16 * 1024 * 1024;
-const exportBodyLimit = 64 * 1024 * 1024;
-const attachmentBodyLimit = 96 * 1024 * 1024;
+const { tokenMatches, requestIsAuthorized, requestHasPageSession, validateHost, validateOrigin, sessionCookieHeader } = createRequestGuard({ port, apiToken });
 const tinifyEndpoint = String(process.env.TRADE_TINIFY_ENDPOINT || 'https://api.tinify.com/shrink');
 let database = null;
 let storageMode = 'initializing';
@@ -72,6 +61,12 @@ const integrityCacheMs = 5 * 60 * 1000;
 const { sendOrderNotification, orderNotificationStatus, publicFeishuStatus, sendFeishuTestMessage } = createFeishuNotifier({
   currentDatabase:() => database, feishuConfig, attachmentTargetFromUrl, resourcesDir
 });
+const {
+  readAiApiKey, migrateLegacyAiApiKey, publicAiSettings, readAiSettings, writeAiSettings,
+  migrateLegacyTrackingSecrets, readTrackingSettings, writeTrackingSettings
+} = createAppSettings({ supportDir, secretsDir, ensureStorage });
+const { queryAiChat, checkAiApiStatus } = createAiChat({ readAiSettings, readAiApiKey:() => process.env.AI_API_KEY || readAiApiKey(), aiUsageStore });
+const { checkDhlApiStatus, checkFedExApiStatus, queryDhlTracking, queryFedExTracking } = createCarrierTracking({ readTrackingSettings, writeTrackingSettings });
 
 function loadBackupSettings() {
   backupDir = defaultBackupDir;
@@ -193,37 +188,11 @@ function ensureStorage() {
   });
 }
 
-function readJson(file) {
-  return JSON.parse(fs.readFileSync(file, 'utf8'));
-}
 let backupSettingsLoaded = false;
 function loadBackupSettingsOnce() {
   if (backupSettingsLoaded) return;
   backupSettingsLoaded = true;
   loadBackupSettings();
-}
-
-function atomicWrite(file, text) {
-  const tmp = path.join(
-    path.dirname(file),
-    `.${path.basename(file)}.${process.pid}.${crypto.randomBytes(6).toString('hex')}.tmp`
-  );
-  let descriptor;
-  try {
-    descriptor = fs.openSync(tmp, 'wx', 0o600);
-    fs.writeFileSync(descriptor, text);
-    fs.fsyncSync(descriptor);
-    fs.closeSync(descriptor);
-    descriptor = undefined;
-    fs.renameSync(tmp, file);
-    fs.chmodSync(file, 0o600);
-  } catch (error) {
-    if (descriptor !== undefined) {
-      try { fs.closeSync(descriptor); } catch (_) {}
-    }
-    try { fs.rmSync(tmp, { force: true }); } catch (_) {}
-    throw error;
-  }
 }
 
 // 备份目录可以是用户自己选的文件夹（iCloud、网盘），里面可能有别的 .sqlite / .json：轮转、统计、清理附件只认 OTS 自己起的名字。
@@ -1602,482 +1571,13 @@ function checkAttachmentUrls(urls) {
   return { ok:true, missing };
 }
 
-const defaultTrackingSettings = {
-  dhlApiEnabled: '是',
-  dhlApiKey: '',
-  fedexApiEnabled: '是',
-  fedexApiKey: '',
-  fedexApiSecret: '',
-  fedexEnv: 'test',
-  autoDhlUpdate: '是',
-  autoRunTimes: '09:00,18:00',
-  lastCheckedAt: '',
-  lastStatus: '尚未查询',
-  lastDhlCheckedAt: '',
-  lastDhlStatus: '尚未查询',
-  lastFedexCheckedAt: '',
-  lastFedexStatus: '尚未查询',
-  lastAutoRunAt: '',
-  lastAutoRunSlot: '',
-  lastAutoOkCount: 0,
-  lastAutoFailCount: 0
-};
-
 function isAllowedTrackingHost(hostname = '') {
   const host = String(hostname).toLowerCase();
   // 和前端 carrierDefs 的官网一一对应：UPS 单号查不了 API，只能打开官网，以前漏了 ups.com，Mac App 里点「官网查询」没反应。
   return ['dhl.com', 'fedex.com', 'ups.com'].some(domain => host === domain || host.endsWith(`.${domain}`));
 }
 
-const defaultAiSettings = {
-  enabled: '否',
-  provider: 'custom',
-  baseUrl: 'https://openrouter.ai/api/v1',
-  model: 'deepseek/deepseek-v4.1-flash',
-  lastTestAt: '',
-  lastTestStatus: '尚未测试连接'
-};
-
-// 设置里的一个文字字段：只认文字（数字也行），别的类型（对象、数组）当没填；超长的截断。读旧文件、写新值都过这一步。
-function settingText(value, max, fallback = '') {
-  if (typeof value !== 'string' && typeof value !== 'number') return fallback;
-  const text = String(value).trim();
-  return text ? text.slice(0, max) : fallback;
-}
-// 设置接口收到的字段：类型不对、长度超了回 400（说清是哪个字段），别原样写进设置文件。不认识的字段不管（读写时会被丢掉）。
-function assertSettingFields(body, limits) {
-  for (const [key, max] of Object.entries(limits)) {
-    if (!Object.hasOwn(body, key)) continue;
-    const value = body[key];
-    if (value === null || value === undefined) continue;
-    if (typeof value !== 'string' && typeof value !== 'number') throw httpError(400, `${key} 必须是文字`);
-    if (String(value).length > max) throw httpError(400, `${key} 太长了（最多 ${max} 个字符）`);
-  }
-}
-const aiSettingLimits = { enabled: 10, provider: 20, baseUrl: 500, model: 200, apiKey: 1000, lastTestAt: 64, lastTestStatus: 500 };
-const trackingSettingLimits = {
-  dhlApiEnabled: 10, dhlApiKey: 1000, fedexApiEnabled: 10, fedexApiKey: 1000, fedexApiSecret: 1000, fedexEnv: 10,
-  autoDhlUpdate: 10, autoRunTimes: 100, lastCheckedAt: 64, lastStatus: 500, lastDhlCheckedAt: 64, lastDhlStatus: 500,
-  lastFedexCheckedAt: 64, lastFedexStatus: 500, lastAutoRunAt: 64, lastAutoRunSlot: 64, lastAutoOkCount: 12, lastAutoFailCount: 12
-};
-// 自动更新时间：逗号分隔的「时:分」，例如 09:00,18:00；空着用默认值。
-function assertAutoRunTimes(value) {
-  if (value === undefined || value === null) return;
-  const parts = String(value).split(/[,，]/).map(item => item.trim()).filter(Boolean);
-  const valid = parts.every(item => {
-    const match = item.match(/^(\d{1,2}):(\d{2})$/);
-    return match && Number(match[1]) < 24 && Number(match[2]) < 60;
-  });
-  if (!valid || parts.length > 6) throw httpError(400, '自动更新时间要写成 09:00,18:00 这样');
-}
-
-function normalizeAiSettings(raw = {}) {
-  const rawModel = settingText(raw.model, aiSettingLimits.model, defaultAiSettings.model);
-  return {
-    enabled: raw.enabled === '是' ? '是' : '否',
-    provider: raw.provider === 'zhipu' ? 'zhipu' : 'custom',
-    baseUrl: settingText(raw.baseUrl, aiSettingLimits.baseUrl, defaultAiSettings.baseUrl).replace(/\/+$/, ''),
-    model: rawModel,
-    lastTestAt: settingText(raw.lastTestAt, aiSettingLimits.lastTestAt),
-    lastTestStatus: settingText(raw.lastTestStatus, aiSettingLimits.lastTestStatus, defaultAiSettings.lastTestStatus)
-  };
-}
-
-function readAiApiKey() {
-  if (!fs.existsSync(aiApiKeyFile)) return '';
-  try {
-    fs.chmodSync(aiApiKeyFile, 0o600);
-    return fs.readFileSync(aiApiKeyFile, 'utf8').trim();
-  } catch (_) {
-    return '';
-  }
-}
-
-function writeAiApiKey(value) {
-  ensureStorage();
-  const key = String(value || '').trim();
-  if (!key) {
-    try { fs.rmSync(aiApiKeyFile, { force: true }); } catch (_) {}
-    return;
-  }
-  atomicWrite(aiApiKeyFile, `${key}\n`);
-}
-
-function migrateLegacyAiApiKey() {
-  ensureStorage();
-  if (!fs.existsSync(aiSettingsFile)) return;
-  let raw;
-  try { raw = readJson(aiSettingsFile); } catch (_) { return; }
-  if (!raw || typeof raw !== 'object' || !Object.prototype.hasOwnProperty.call(raw, 'apiKey')) return;
-  const legacyKey = String(raw.apiKey || '').trim();
-  if (legacyKey && !readAiApiKey()) {
-    writeAiApiKey(legacyKey);
-    if (readAiApiKey() !== legacyKey) throw new Error('AI API key migration verification failed');
-  }
-  delete raw.apiKey;
-  atomicWrite(aiSettingsFile, JSON.stringify(normalizeAiSettings(raw), null, 2));
-}
-
-function publicAiSettings(settings = readAiSettings()) {
-  const key = process.env.AI_API_KEY || readAiApiKey();
-  return {
-    ...settings,
-    apiKeySaved: Boolean(key),
-    apiKeyMask: maskSecret(key)
-  };
-}
-
-function aiEndpointIdentity(settings = {}) {
-  let endpoint = '';
-  try { endpoint = new URL(String(settings.baseUrl || '')).href.replace(/\/+$/, ''); } catch (_) {}
-  return `${String(settings.provider || '').toLowerCase()}|${endpoint}`;
-}
-
-function assertSafeAiBaseUrl(settings = {}) {
-  let parsed;
-  try { parsed = new URL(String(settings.baseUrl || '')); } catch (_) {
-    throw httpError(400, 'invalid AI base URL');
-  }
-  if (parsed.protocol !== 'https:' || parsed.username || parsed.password) {
-    throw httpError(400, 'AI base URL must use HTTPS without embedded credentials');
-  }
-  if (settings.provider === 'zhipu' && parsed.hostname.toLowerCase() !== 'open.bigmodel.cn') {
-    throw httpError(400, 'Zhipu AI must use the official open.bigmodel.cn endpoint');
-  }
-}
-
-function readAiSettings() {
-  ensureStorage();
-  if (!fs.existsSync(aiSettingsFile)) return { ...defaultAiSettings };
-  try {
-    return normalizeAiSettings(readJson(aiSettingsFile));
-  } catch (_) {
-    return { ...defaultAiSettings };
-  }
-}
-
-function writeAiSettings(settings) {
-  ensureStorage();
-  const current = readAiSettings();
-  const incoming = settings && typeof settings === 'object' ? settings : {};
-  const next = normalizeAiSettings({ ...current, ...incoming });
-  assertSafeAiBaseUrl(next);
-  const endpointChanged = aiEndpointIdentity(current) !== aiEndpointIdentity(next);
-  const incomingKey = String(incoming.apiKey || '').trim();
-  if (endpointChanged) writeAiApiKey('');
-  atomicWrite(aiSettingsFile, JSON.stringify(next, null, 2));
-  if (incomingKey) writeAiApiKey(incomingKey);
-  return publicAiSettings(next);
-}
-const { queryAiChat, checkAiApiStatus } = createAiChat({ readAiSettings, readAiApiKey:() => process.env.AI_API_KEY || readAiApiKey(), aiUsageStore });
-
-function normalizeTrackingSettings(raw = {}) {
-  return {
-    ...defaultTrackingSettings,
-    dhlApiEnabled: raw.dhlApiEnabled === '是' ? '是' : '否',
-    dhlApiKey: String(raw.dhlApiKey || '').trim(),
-    fedexApiEnabled: raw.fedexApiEnabled === '是' ? '是' : '否',
-    fedexApiKey: String(raw.fedexApiKey || '').trim(),
-    fedexApiSecret: String(raw.fedexApiSecret || '').trim(),
-    fedexEnv: raw.fedexEnv === 'prod' ? 'prod' : 'test',
-    autoDhlUpdate: raw.autoDhlUpdate === '否' ? '否' : '是',
-    autoRunTimes: settingText(raw.autoRunTimes, trackingSettingLimits.autoRunTimes, defaultTrackingSettings.autoRunTimes),
-    lastCheckedAt: settingText(raw.lastCheckedAt, trackingSettingLimits.lastCheckedAt),
-    lastStatus: settingText(raw.lastStatus, trackingSettingLimits.lastStatus, defaultTrackingSettings.lastStatus),
-    lastDhlCheckedAt: settingText(raw.lastDhlCheckedAt, trackingSettingLimits.lastDhlCheckedAt),
-    lastDhlStatus: settingText(raw.lastDhlStatus, trackingSettingLimits.lastDhlStatus, defaultTrackingSettings.lastDhlStatus),
-    lastFedexCheckedAt: settingText(raw.lastFedexCheckedAt, trackingSettingLimits.lastFedexCheckedAt),
-    lastFedexStatus: settingText(raw.lastFedexStatus, trackingSettingLimits.lastFedexStatus, defaultTrackingSettings.lastFedexStatus),
-    lastAutoRunAt: settingText(raw.lastAutoRunAt, trackingSettingLimits.lastAutoRunAt),
-    lastAutoRunSlot: settingText(raw.lastAutoRunSlot, trackingSettingLimits.lastAutoRunSlot),
-    lastAutoOkCount: Number(raw.lastAutoOkCount || 0) || 0,
-    lastAutoFailCount: Number(raw.lastAutoFailCount || 0) || 0
-  };
-}
-
-function maskSecret(value = '') {
-  const text = String(value || '').trim();
-  if (!text) return '';
-  if (text.length <= 6) return `${text.slice(0, 1)}***${text.slice(-1)}`;
-  return `${text.slice(0, 3)}******${text.slice(-3)}`;
-}
-
-function readTrackingSecrets() {
-  if (!fs.existsSync(trackingSecretsFile)) return {};
-  try {
-    fs.chmodSync(trackingSecretsFile, 0o600);
-    const raw = readJson(trackingSecretsFile);
-    return Object.fromEntries(trackingSecretKeys.map(key => [key, String(raw?.[key] || '').trim()]));
-  } catch (_) {
-    return {};
-  }
-}
-
-function withoutTrackingSecrets(settings) {
-  const copy = { ...settings };
-  trackingSecretKeys.forEach(key => { delete copy[key]; });
-  return copy;
-}
-
-// Carrier credentials live in secrets/ beside the AI key, not in the plain settings file.
-function migrateLegacyTrackingSecrets() {
-  ensureStorage();
-  if (!fs.existsSync(trackingSettingsFile)) return;
-  let raw;
-  try { raw = readJson(trackingSettingsFile); } catch (_) { return; }
-  if (!raw || typeof raw !== 'object' || !trackingSecretKeys.some(key => Object.hasOwn(raw, key))) return;
-  const stored = readTrackingSecrets();
-  const merged = Object.fromEntries(trackingSecretKeys.map(key => [key, stored[key] || String(raw[key] || '').trim()]));
-  atomicWrite(trackingSecretsFile, JSON.stringify(merged, null, 2));
-  const verified = readTrackingSecrets();
-  if (trackingSecretKeys.some(key => verified[key] !== merged[key])) throw new Error('tracking credential migration verification failed');
-  atomicWrite(trackingSettingsFile, JSON.stringify(withoutTrackingSecrets(raw), null, 2));
-}
-
-function readTrackingSettings() {
-  ensureStorage();
-  let raw = {};
-  if (fs.existsSync(trackingSettingsFile)) {
-    try { raw = readJson(trackingSettingsFile); } catch (_) { raw = {}; }
-  }
-  return normalizeTrackingSettings({ ...raw, ...readTrackingSecrets() });
-}
-
-function writeTrackingSettings(settings) {
-  ensureStorage();
-  const current = readTrackingSettings();
-  const next = normalizeTrackingSettings({ ...current, ...(settings || {}) });
-  atomicWrite(trackingSecretsFile, JSON.stringify(Object.fromEntries(trackingSecretKeys.map(key => [key, next[key]])), null, 2));
-  atomicWrite(trackingSettingsFile, JSON.stringify(withoutTrackingSecrets(next), null, 2));
-  return {
-    ...next,
-    dhlApiKeySaved: Boolean(next.dhlApiKey),
-    fedexApiKeySaved: Boolean(next.fedexApiKey),
-    fedexApiSecretSaved: Boolean(next.fedexApiSecret),
-    dhlApiKeyMask: maskSecret(next.dhlApiKey),
-    fedexApiKeyMask: maskSecret(next.fedexApiKey),
-    fedexApiSecretMask: maskSecret(next.fedexApiSecret),
-    dhlApiKey: '',
-    fedexApiKey: '',
-    fedexApiSecret: ''
-  };
-}
-const { checkDhlApiStatus, checkFedExApiStatus, queryDhlTracking, queryFedExTracking } = createCarrierTracking({ readTrackingSettings, writeTrackingSettings });
-
-function securityHeaders(type = '') {
-  return {
-    'Cache-Control': 'no-store',
-    'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
-    'Cross-Origin-Opener-Policy': 'same-origin',
-    'Cross-Origin-Resource-Policy': 'same-origin',
-    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-    'Referrer-Policy': 'no-referrer',
-    'X-Content-Type-Options': 'nosniff',
-    'X-Frame-Options': 'DENY',
-    ...(type ? { 'Content-Type': type } : {})
-  };
-}
-
-function send(res, status, body, type = 'application/json; charset=utf-8', headers = {}) {
-  res.writeHead(status, { ...securityHeaders(type), ...headers });
-  res.end(body);
-}
-
-function bodyLimitForRequest(req) {
-  let pathname = '';
-  try { pathname = new URL(req.url, `http://127.0.0.1:${port}`).pathname; } catch (_) {}
-  if (pathname === '/api/attachments') return attachmentBodyLimit;
-  if (pathname === '/api/save') return saveBodyLimit;
-  // 导出的正文是「缩进 JSON 再转义一次」，约为保存体积的 1.8 倍：上限单独放宽，别出现「能保存却不能导出」。
-  if (pathname === '/api/export-file') return exportBodyLimit;
-  return defaultBodyLimit;
-}
-
-function readBody(req, limit = bodyLimitForRequest(req)) {
-  return new Promise((resolve, reject) => {
-    const declaredLength = Number(req.headers['content-length'] || 0);
-    if (Number.isFinite(declaredLength) && declaredLength > limit) {
-      req.resume();
-      reject(httpError(413, 'request body too large'));
-      return;
-    }
-    const chunks = [];
-    let bytes = 0;
-    let rejected = false;
-    req.on('data', chunk => {
-      if (rejected) return;
-      bytes += chunk.length;
-      if (bytes > limit) {
-        rejected = true;
-        chunks.length = 0;
-        req.resume();
-        reject(httpError(413, 'request body too large'));
-        return;
-      }
-      chunks.push(chunk);
-    });
-    req.on('end', () => { if (!rejected) resolve(Buffer.concat(chunks).toString('utf8')); });
-    req.on('error', reject);
-  });
-}
-
-// 嵌套太深的 JSON 写库时 JSON.stringify 会栈溢出（500）：读进来就按层数拦下。用显式栈，不递归。
-const maxJsonDepth = 64;
-function jsonTooDeep(value, limit = maxJsonDepth) {
-  const stack = [[value, 1]];
-  while (stack.length) {
-    const [item, depth] = stack.pop();
-    if (!item || typeof item !== 'object') continue;
-    if (depth > limit) return true;
-    for (const key in item) {
-      const child = item[key];
-      if (child && typeof child === 'object') stack.push([child, depth + 1]);
-    }
-  }
-  return false;
-}
-// 请求正文不是 JSON 对象（写错、空正文、null）是调用方的问题，回 400，别当成服务器出错（500）。
-async function readJsonBody(req, fallback) {
-  const text = await readBody(req);
-  if (!text.trim() && fallback !== undefined) return fallback;
-  let value;
-  try { value = JSON.parse(text); } catch (_) { throw httpError(400, '请求内容不是有效的 JSON'); }
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw httpError(400, '请求内容必须是 JSON 对象');
-  if (jsonTooDeep(value)) throw httpError(400, `请求内容嵌套超过 ${maxJsonDepth} 层`);
-  return value;
-}
-
-function secretMatches(candidate, secret) {
-  const supplied = Buffer.from(String(candidate || ''));
-  const expected = Buffer.from(secret);
-  return supplied.length === expected.length && crypto.timingSafeEqual(supplied, expected);
-}
-function tokenMatches(candidate = '') {
-  return secretMatches(candidate, apiToken);
-}
-
-function cookieValue(req, name) {
-  const cookies = String(req.headers.cookie || '').split(';');
-  for (const item of cookies) {
-    const separator = item.indexOf('=');
-    if (separator < 0 || item.slice(0, separator).trim() !== name) continue;
-    try { return decodeURIComponent(item.slice(separator + 1).trim()); } catch (_) { return ''; }
-  }
-  return '';
-}
-
-function requestToken(req) {
-  const headerToken = String(req.headers['x-trade-token'] || '').trim();
-  if (headerToken) return headerToken;
-  const authorization = String(req.headers.authorization || '');
-  const match = authorization.match(/^Bearer\s+(.+)$/i);
-  if (match) return match[1].trim();
-  return '';
-}
-
-function requestIsAuthorized(req) {
-  return tokenMatches(requestToken(req));
-}
-
-// 浏览器带来的页面会话 cookie：只用于取页面和附件图片。
-function requestHasPageSession(req) {
-  return secretMatches(cookieValue(req, apiSessionCookie), pageSessionValue);
-}
-
-// 浏览器发的请求带 Sec-Fetch-Site：别的站点、或同一台机器上别的端口（同站）的页面发来的一律拒绝，
-// 例如 <img src="http://127.0.0.1:端口/api/track?..."> 借用户的 DHL 密钥查询。本页（same-origin）、地址栏直接打开（none）、
-// 以及不带这个头的本机程序（测试、Mac App 原生请求）照常。
-function validateFetchSite(req) {
-  const site = String(req.headers['sec-fetch-site'] || '').trim().toLowerCase();
-  if (site === 'same-site' || site === 'cross-site') throw httpError(403, 'cross-site request rejected');
-}
-
-function requestIsLoopback(req) {
-  const address = String(req.socket?.remoteAddress || '').toLowerCase();
-  return address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1';
-}
-
-function validateHost(req) {
-  if (!requestIsLoopback(req)) throw httpError(403, 'loopback access only');
-  const host = String(req.headers.host || '').toLowerCase();
-  const allowed = new Set([`127.0.0.1:${port}`, `localhost:${port}`]);
-  if (!allowed.has(host)) throw httpError(421, 'unsupported host');
-}
-
-function validateOrigin(req) {
-  const origin = String(req.headers.origin || '').trim();
-  if (!origin) return;
-  const allowed = new Set([`http://127.0.0.1:${port}`, `http://localhost:${port}`]);
-  if (!allowed.has(origin.toLowerCase())) throw httpError(403, 'cross-origin request rejected');
-}
-
-function requireJsonContentType(req, pathname) {
-  const jsonRoutes = new Set([
-    '/api/save', '/api/open-attachment-folder', '/api/delete-attachments', '/api/attachments',
-    '/api/open-url', '/api/ai-settings', '/api/ai-chat', '/api/api-status',
-    '/api/tracking-settings', '/api/order-notification', '/api/backup-settings',
-    '/api/subscriptions/save', '/api/subscriptions/delete', '/api/subscriptions/rate',
-    '/api/subscriptions/options', '/api/export-file', '/api/backup-preview', '/api/restore-backup', '/api/check-attachments'
-  ]);
-  if (req.method !== 'POST' || !jsonRoutes.has(pathname)) return;
-  const type = String(req.headers['content-type'] || '').split(';', 1)[0].trim().toLowerCase();
-  if (type !== 'application/json') throw httpError(415, 'Content-Type must be application/json');
-}
-
-function sessionCookieHeader() {
-  return `${apiSessionCookie}=${encodeURIComponent(pageSessionValue)}; HttpOnly; SameSite=Strict; Path=/`;
-}
-
-// 失败时错误上带 statusCode / retryAfter / timeout，给物流查询归类（限流、查不到、超时、未授权）用。
-function parseEcbHistoricalRates(xml = '') {
-  const supported = new Set(['USD','EUR','GBP','CNY','AUD','CAD']);
-  const rows = [];
-  const dayPattern = /<Cube\s+time=['"](\d{4}-\d{2}-\d{2})['"]>([\s\S]*?)<\/Cube>/g;
-  for (const match of String(xml || '').matchAll(dayPattern)) {
-    const rates = { EUR:1 };
-    const ratePattern = /<Cube\s+currency=['"]([A-Z]{3})['"]\s+rate=['"]([0-9.]+)['"]\s*\/?\s*>/g;
-    for (const rateMatch of match[2].matchAll(ratePattern)) {
-      if (!supported.has(rateMatch[1])) continue;
-      const value = Number(rateMatch[2]);
-      if (Number.isFinite(value) && value > 0) rates[rateMatch[1]] = value;
-    }
-    if (rates.USD) rows.push({ date:match[1], rates });
-  }
-  return rows.sort((a, b) => b.date.localeCompare(a.date));
-}
-
-let ecbRefreshPromise = null;
-function refreshEcbHistoricalRates() {
-  // 同一时间只下载一次：几个窗口同时打开、或者前端重试时，不重复拉整份 ECB 历史。
-  if (ecbRefreshPromise) return ecbRefreshPromise;
-  ecbRefreshPromise = (async () => {
-    const xml = await requestText('https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml', {
-      headers:{ 'User-Agent':'TradeOrderSystem' }
-    });
-    const rates = parseEcbHistoricalRates(xml);
-    if (!rates.length) throw new Error('ECB 未返回历史汇率');
-    const payload = { source:'European Central Bank', updatedAt:new Date().toISOString(), rates };
-    atomicWrite(ecbExchangeCacheFile, JSON.stringify(payload));
-    return payload;
-  })().finally(() => { ecbRefreshPromise = null; });
-  return ecbRefreshPromise;
-}
-
-async function queryEcbHistoricalRates() {
-  const cached = fs.existsSync(ecbExchangeCacheFile) ? (() => {
-    try { return readJson(ecbExchangeCacheFile); } catch (_) { return null; }
-  })() : null;
-  const hasCache = Array.isArray(cached?.rates) && cached.rates.length;
-  const cachedAge = cached?.updatedAt ? Date.now() - Date.parse(cached.updatedAt) : Infinity;
-  if (hasCache && cachedAge < 24 * 60 * 60 * 1000) return { ...cached, cached:true };
-  // 缓存过期：先把旧缓存交出去（历史汇率只多出最近一两天），后台再去 ECB 下载更新。
-  // 以前要等整份历史下载完才返回，每天第一次打开 App 时统计卡要等好几秒、期间非美元订单算 0。
-  if (hasCache) {
-    refreshEcbHistoricalRates().catch(() => {});
-    return { ...cached, cached:true, stale:true };
-  }
-  return refreshEcbHistoricalRates();
-}
+const { queryEcbHistoricalRates } = createEcbRates({ cacheFile:path.join(supportDir, 'exchange-rates-cache.json') });
 
 async function checkApiStatus(kind) {
   if (kind === 'dhl') return checkDhlApiStatus();

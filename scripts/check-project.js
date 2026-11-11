@@ -90,6 +90,11 @@ for (const file of [
   }
 }
 
+// Notes waiting for the next release must be short enough for the update dialog; a bad one would
+// otherwise only fail on main, in the release workflow.
+const noteProblems = require('./prepare-release').checkPendingNotes(root);
+assert.deepEqual(noteProblems, [], `release-notes/next: ${noteProblems.join('; ')}`);
+
 console.log('Project check passed.');
 
 function escapeRegExp(value) {

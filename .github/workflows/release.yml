@@ -4,8 +4,13 @@ name: Release
 # so every release reaches every user within minutes. Gates, in order:
 # 1. CI passed for this exact commit on main (the release used to run in parallel with CI and
 #    shipped several versions whose CI had failed);
-# 2. VERSION names a version that has no release yet;
-# 3. the packaged app's own Node starts its server.js, /api/health passes and the page loads.
+# 2. there is something to publish: notes waiting in release-notes/next/ (the workflow then takes
+#    the next version number and commits it to main), or a VERSION that has no release yet;
+# 3. the packaged app's own Node starts its server.js, /api/health passes and the page loads, and
+#    the app itself opens and its page reports in.
+#
+# Pull requests do not carry version numbers: two of them open at once used to claim the same one.
+# scripts/prepare-release.js has the rules; release-notes/next/README.md says what a PR adds.
 on:
   workflow_run:
     workflows: [CI]
@@ -43,27 +48,75 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.SHA }}
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
       - name: Require a green CI run for this commit
-        # 手动触发时也要求这个提交的 CI 已经通过。
+        # 手动触发时也要求这个提交的 CI 已经通过。发版流程自己提交的「Release V…」只改版本号和更新说明，
+        # 它没有 CI 记录（机器人的推送不触发 CI），看它的上一个提交。
         run: |
-          CONCLUSION="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$SHA&event=push&per_page=1" --jq '.workflow_runs[0].conclusion // ""')"
-          echo "CI for $SHA: ${CONCLUSION:-none}"
+          CHECK="$SHA"
+          if git log -1 --format='%an|%s' "$SHA" | grep -Eq '^github-actions\[bot\]\|Release V[0-9]+\.[0-9]+$'; then
+            CHECK="$(git rev-parse "$SHA^")"
+          fi
+          CONCLUSION="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$CHECK&event=push&per_page=1" --jq '.workflow_runs[0].conclusion // ""')"
+          echo "CI for $CHECK: ${CONCLUSION:-none}"
           if [ "$CONCLUSION" != "success" ]; then
-            echo "::error::CI has not passed for $SHA; not publishing."
+            echo "::error::CI has not passed for $CHECK; not publishing."
             exit 1
           fi
-      - name: Read version
+      - name: Decide the version and commit it
         id: version
         run: |
-          VERSION="$(tr -d '[:space:]' < VERSION)"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
-          if gh release view "v$VERSION" >/dev/null 2>&1; then
-            echo "Release v$VERSION already exists; bump VERSION to publish a new one."
-            echo "publish=false" >> "$GITHUB_OUTPUT"
+          CURRENT="$(tr -d '[:space:]' < VERSION)"
+          # "Not released" has to be GitHub answering 404, not a request that failed: a wrong "no"
+          # would fold the waiting notes into a version users already have.
+          if RELEASE="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/v$CURRENT" --jq .tag_name 2>&1)"; then RELEASED=yes
+          elif printf '%s' "$RELEASE" | grep -q 'HTTP 404'; then RELEASED=no
           else
-            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "::error::Could not find out whether v$CURRENT is released: $RELEASE"
+            exit 1
           fi
+          PLAN="$(node scripts/prepare-release.js --released "$RELEASED")"
+          echo "V$CURRENT released: $RELEASED. Plan: $PLAN"
+          VERSION="$(node -p 'JSON.parse(process.argv[1]).version' "$PLAN")"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [ "$(node -p 'JSON.parse(process.argv[1]).publish' "$PLAN")" != "true" ]; then
+            echo "Nothing to publish: V$CURRENT is released and release-notes/next/ is empty."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$(node -p 'JSON.parse(process.argv[1]).changed' "$PLAN")" != "true" ]; then
+            echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # The version commit goes on top of the commit CI tested, and only while that is still
+          # the tip of main. If main has moved on, the CI run of the newer commit releases instead
+          # (the notes are still waiting there).
+          tip() { git ls-remote origin refs/heads/main | cut -f1; }
+          if [ "$(tip)" != "$SHA" ]; then
+            echo "main has moved on from $SHA; the CI run of the newer commit will release."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          node scripts/check-project.js
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Release V$VERSION"
+          if ! git push origin HEAD:refs/heads/main; then
+            if [ "$(tip)" != "$SHA" ]; then
+              echo "main moved while the release was being prepared; the CI run of the newer commit will release."
+              echo "publish=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "::error::Could not push the version commit to main."
+            exit 1
+          fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "publish=true" >> "$GITHUB_OUTPUT"
 
   mac:
     needs: gate
@@ -100,8 +153,12 @@ jobs:
           node scripts/smoke-test-app-bundle.js --app smoke/TradeOrderSystem.app
           node scripts/smoke-test-real-app.js --app smoke/TradeOrderSystem.app
       - name: Publish release
+        # The notes are what the app shows before installing; without a notes file (a version
+        # bumped by hand) GitHub's generated list of pull requests is used.
         run: |
+          NOTES=(--generate-notes)
+          if [ -s "release-notes/v$VERSION.md" ]; then NOTES=(--notes-file "release-notes/v$VERSION.md"); fi
           gh release create "v$VERSION" dist/* \
             --target "${{ needs.gate.outputs.sha }}" \
             --title "OTS V$VERSION" \
-            --generate-notes
+            "${NOTES[@]}"

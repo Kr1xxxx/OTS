@@ -1,44 +1,52 @@
 #!/usr/bin/env node
 // Usage: npm run bump-version -- 3.90
 // Updates every place check-project/check-release compare against VERSION.
-// Merging the change to main publishes a GitHub Release that installed apps update to.
+// Normally nobody runs this by hand: the release workflow takes the next number when it
+// publishes (scripts/prepare-release.js). Pull requests leave the version alone.
 const fs = require('node:fs');
 const path = require('node:path');
 
-const root = path.resolve(__dirname, '..');
-const next = process.argv[2];
-const current = fs.readFileSync(path.join(root, 'VERSION'), 'utf8').trim();
-if (!/^\d+\.\d+$/.test(next || '')) throw new Error('Usage: npm run bump-version -- <major.minor>, e.g. 3.90');
-// The updater compares versions numerically and builds the asset name from the numbers, so 4.01 would never match 4.1.
-if (/\.0\d/.test(next)) throw new Error(`Minor version must not have a leading zero (${next}); use ${next.replace(/\.0+(\d)/, '.$1')} instead.`);
-if (/^0\d/.test(next)) throw new Error(`Major version must not have a leading zero (${next}).`);
-const [curMajor, curMinor] = current.split('.').map(Number);
-const [major, minor] = next.split('.').map(Number);
-if (major < curMajor || (major === curMajor && minor <= curMinor)) {
-  throw new Error(`New version ${next} must be greater than ${current} (compare minor numerically: 3.90 > 3.89).`);
+function bumpVersion(root, next) {
+  const current = fs.readFileSync(path.join(root, 'VERSION'), 'utf8').trim();
+  if (!/^\d+\.\d+$/.test(next || '')) throw new Error('Usage: npm run bump-version -- <major.minor>, e.g. 3.90');
+  // The updater compares versions numerically and builds the asset name from the numbers, so 4.01 would never match 4.1.
+  if (/\.0\d/.test(next)) throw new Error(`Minor version must not have a leading zero (${next}); use ${next.replace(/\.0+(\d)/, '.$1')} instead.`);
+  if (/^0\d/.test(next)) throw new Error(`Major version must not have a leading zero (${next}).`);
+  const [curMajor, curMinor] = current.split('.').map(Number);
+  const [major, minor] = next.split('.').map(Number);
+  if (major < curMajor || (major === curMajor && minor <= curMinor)) {
+    throw new Error(`New version ${next} must be greater than ${current} (compare minor numerically: 3.90 > 3.89).`);
+  }
+
+  // Every file is checked before any is written, so a file that no longer matches cannot leave a half-bumped tree.
+  const pending = new Map();
+  function edit(file, transform) {
+    const full = path.join(root, file);
+    const before = pending.get(full) ?? fs.readFileSync(full, 'utf8');
+    const after = transform(before);
+    if (after === before) throw new Error(`No version found to update in ${file}`);
+    pending.set(full, after);
+  }
+
+  const escaped = current.replace('.', '\\.');
+  edit('VERSION', () => `${next}\n`);
+  edit('package.json', text => text.replace(`"version": "${current}.0"`, `"version": "${next}.0"`));
+  edit('package-lock.json', text => text.replace(new RegExp(`("name": "trade-order-system",\\s*"version": )"${escaped}\\.0"`, 'g'), `$1"${next}.0"`));
+  edit('trade-order-system.html', text => text
+    .replace(`aria-label="V${current}，`, `aria-label="V${next}，`)
+    .replace(new RegExp(`(class="app-version"[^>]*>)V${escaped}<`), `$1V${next}<`));
+  edit('README.md', text => text.replace(`# Order Track System (OTS) V${current}`, `# Order Track System (OTS) V${next}`));
+  for (const [full, text] of pending) {
+    const tmp = `${full}.bump-${process.pid}.tmp`;
+    fs.writeFileSync(tmp, text);
+    fs.renameSync(tmp, full);
+  }
+  return { current, next };
 }
 
-// Every file is checked before any is written, so a file that no longer matches cannot leave a half-bumped tree.
-const pending = new Map();
-function edit(file, transform) {
-  const full = path.join(root, file);
-  const before = pending.get(full) ?? fs.readFileSync(full, 'utf8');
-  const after = transform(before);
-  if (after === before) throw new Error(`No version found to update in ${file}`);
-  pending.set(full, after);
-}
+module.exports = { bumpVersion };
 
-const escaped = current.replace('.', '\\.');
-edit('VERSION', () => `${next}\n`);
-edit('package.json', text => text.replace(`"version": "${current}.0"`, `"version": "${next}.0"`));
-edit('package-lock.json', text => text.replace(new RegExp(`("name": "trade-order-system",\\s*"version": )"${escaped}\\.0"`, 'g'), `$1"${next}.0"`));
-edit('trade-order-system.html', text => text
-  .replace(`aria-label="V${current}，`, `aria-label="V${next}，`)
-  .replace(new RegExp(`(class="app-version"[^>]*>)V${escaped}<`), `$1V${next}<`));
-edit('README.md', text => text.replace(`# Order Track System (OTS) V${current}`, `# Order Track System (OTS) V${next}`));
-for (const [full, text] of pending) {
-  const tmp = `${full}.bump-${process.pid}.tmp`;
-  fs.writeFileSync(tmp, text);
-  fs.renameSync(tmp, full);
+if (require.main === module) {
+  const { current, next } = bumpVersion(path.resolve(__dirname, '..'), process.argv[2]);
+  console.log(`Version ${current} → ${next}. Run npm run check, then commit.`);
 }
-console.log(`Version ${current} → ${next}. Run npm run check, then commit.`);

@@ -48,13 +48,10 @@ swift build -c release --product TradeOrderSystemNative
 
 mkdir -p "$MACOS" "$RESOURCES" "$ICONSET"
 install -m 755 "$NATIVE/.build/release/TradeOrderSystemNative" "$EXECUTABLE"
-install -m 644 "$ROOT/mac-app/server.js" "$RESOURCES/server.js"
-install -m 644 "$ROOT/mac-app/feishu-settings.js" "$RESOURCES/feishu-settings.js"
-install -m 644 "$ROOT/mac-app/ai-usage-store.js" "$RESOURCES/ai-usage-store.js"
-install -m 644 "$ROOT/mac-app/whatsapp-store.js" "$RESOURCES/whatsapp-store.js"
-install -m 644 "$ROOT/mac-app/subscription-store.js" "$RESOURCES/subscription-store.js"
-install -m 644 "$ROOT/mac-app/backup-attachments.js" "$RESOURCES/backup-attachments.js"
-install -m 644 "$ROOT/mac-app/whatsapp-native-host.js" "$RESOURCES/whatsapp-native-host.js"
+# The server is every .js directly in mac-app/ (scripts/helpers/server-files.js reads the same folder).
+for module in "$ROOT"/mac-app/*.js; do
+  install -m 644 "$module" "$RESOURCES/$(basename "$module")"
+done
 install -m 644 "$ROOT/trade-order-system.html" "$RESOURCES/trade-order-system.html"
 install -m 644 "$ROOT/trade-order-data.json" "$RESOURCES/trade-order-data.json"
 

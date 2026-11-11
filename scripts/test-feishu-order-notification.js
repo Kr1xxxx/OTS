@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
+const { copyServerFiles } = require('./helpers/server-files');
 
 const root = path.resolve(__dirname, '..');
 let serverFile = path.join(root, 'mac-app', 'server.js');
@@ -122,9 +123,7 @@ async function main() {
   await stopServer();
   const replacement = path.join(testDir, 'replacement-app');
   fs.mkdirSync(replacement);
-  for (const file of ['server.js','feishu-settings.js','ai-usage-store.js','whatsapp-store.js','subscription-store.js','backup-attachments.js']) {
-    fs.copyFileSync(path.join(root, 'mac-app', file), path.join(replacement, file));
-  }
+  copyServerFiles(replacement);
   fs.writeFileSync(path.join(replacement, 'trade-order-system.html'), '<!DOCTYPE html><title>Synthetic replacement</title>');
   fs.copyFileSync(seedFile, path.join(replacement, 'trade-order-data.json'));
   serverFile = path.join(replacement, 'server.js');

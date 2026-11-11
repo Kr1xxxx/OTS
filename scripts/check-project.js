@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
+const { serverDir, serverFiles } = require('./helpers/server-files');
 
 const root = path.resolve(__dirname, '..');
 const required = [
@@ -80,23 +81,18 @@ for (const file of [
   assert.ok(count >= 20, 'the main script lost its section markers (// #region)');
 }
 
-// Every module the server loads from its own folder is in the app: the build copies a hand-written
-// list of files, and a module missing from it only fails when the packaged app starts.
+// The app ships every .js directly in mac-app/, and nothing the server loads lives anywhere else:
+// a module outside that folder would work from a checkout and fail in the packaged app.
 {
   const buildScript = fs.readFileSync(path.join(root, 'mac-app', 'build-native-mac-app.sh'), 'utf8');
-  const releaseCheck = fs.readFileSync(path.join(root, 'scripts', 'check-release.js'), 'utf8');
-  const seen = new Set();
-  const queue = ['server.js', 'whatsapp-native-host.js'];
-  while (queue.length) {
-    const file = queue.pop();
-    if (seen.has(file)) continue;
-    seen.add(file);
-    const source = fs.readFileSync(path.join(root, 'mac-app', file), 'utf8');
-    for (const match of source.matchAll(/require\('\.\/([\w-]+)(?:\.js)?'\)/g)) queue.push(`${match[1]}.js`);
-  }
-  for (const file of seen) {
-    assert.ok(buildScript.includes(`"$ROOT/mac-app/${file}" "$RESOURCES/${file}"`), `mac-app/${file} is loaded by the server but not copied into the app by build-native-mac-app.sh`);
-    assert.ok(releaseCheck.includes(`'${file}'`), `mac-app/${file} is not compared by scripts/check-release.js`);
+  assert.ok(buildScript.includes('for module in "$ROOT"/mac-app/*.js; do'), 'build-native-mac-app.sh no longer copies every mac-app/*.js into the app');
+  for (const file of serverFiles()) {
+    execFileSync(process.execPath, ['--check', path.join(serverDir, file)], { stdio: 'inherit' });
+    const source = fs.readFileSync(path.join(serverDir, file), 'utf8');
+    for (const match of source.matchAll(/require\((['"])(\.[^'"]*)\1\)/g)) {
+      assert.match(match[2], /^\.\/[\w-]+(?:\.js)?$/, `mac-app/${file} loads ${match[2]}, which is outside mac-app/ and not in the app`);
+      assert.ok(serverFiles().includes(`${path.basename(match[2], '.js')}.js`), `mac-app/${file} loads ${match[2]}, which does not exist`);
+    }
   }
 }
 

@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
+const { serverDir, serverFiles } = require('./helpers/server-files');
 
 const root = path.resolve(__dirname, '..');
 const appArg = process.argv.indexOf('--app');
@@ -24,14 +25,8 @@ for (const file of [
   assert(fs.existsSync(file), `Missing release artifact: ${file}`);
 }
 
-assertFilesEqual(path.join(root, 'mac-app', 'server.js'), path.join(resources, 'server.js'));
-assertFilesEqual(path.join(root, 'mac-app', 'feishu-settings.js'), path.join(resources, 'feishu-settings.js'));
+for (const file of serverFiles()) assertFilesEqual(path.join(serverDir, file), path.join(resources, file));
 assert(!fs.existsSync(path.join(resources, 'feishu-settings.json')), 'Private Feishu deployment configuration must not be bundled');
-assertFilesEqual(path.join(root, 'mac-app', 'ai-usage-store.js'), path.join(resources, 'ai-usage-store.js'));
-assertFilesEqual(path.join(root, 'mac-app', 'whatsapp-store.js'), path.join(resources, 'whatsapp-store.js'));
-assertFilesEqual(path.join(root, 'mac-app', 'subscription-store.js'), path.join(resources, 'subscription-store.js'));
-assertFilesEqual(path.join(root, 'mac-app', 'backup-attachments.js'), path.join(resources, 'backup-attachments.js'));
-assertFilesEqual(path.join(root, 'mac-app', 'whatsapp-native-host.js'), path.join(resources, 'whatsapp-native-host.js'));
 assertFilesEqual(path.join(root, 'trade-order-system.html'), path.join(resources, 'trade-order-system.html'));
 assertFilesEqual(path.join(root, 'trade-order-data.json'), path.join(resources, 'trade-order-data.json'));
 

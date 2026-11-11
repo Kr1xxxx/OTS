@@ -3,7 +3,7 @@
 Local macOS trade-order app. Three parts that ship together:
 
 - `trade-order-system.html`: the whole frontend (CSS, markup, one large inline script). Canonical; never edit the copy inside a built app.
-- `mac-app/server.js` plus the stores next to it: local HTTP server on loopback, SQLite through `node:sqlite`.
+- `mac-app/server.js` plus the modules next to it: local HTTP server on loopback, SQLite through `node:sqlite`. Every `.js` directly in `mac-app/` ships in the app; a server module loads only Node built-ins and `./` siblings (`npm run check` enforces it). New server code that does not need the server's own state goes into a module, and its tests `require` it instead of cutting functions out of `server.js`.
 - `mac-app/native/`: Swift host (WKWebView window, starts the bundled Node, in-app updater).
 
 The repository is public. Business data, attachments, backups, settings files and API keys never go into Git, tests or fixtures; use made-up values.

@@ -142,7 +142,8 @@ function contrast(fg, bg) {
     await pick('Bob', 'Bob Taylor');
     assert.deepEqual([await field('country'), await field('currency'), await field('paymentChannel')], [UK, 'GBP', 'Paypal'], 'Zelle from Alice must not stick');
     assert.equal(await page.locator('#orderForm [data-deposit-currency]').innerText(), 'GBP');
-    assert.match(await page.locator('#modalSummary').innerText(), /Paypal/);
+    assert.equal(await page.locator('#orderForm [name="paymentChannel"] + .binary-segment .binary-option.active').innerText(), 'Paypal', 'the chip that looks selected is the one that was filled in');
+    assert.match(await page.locator('#modalSummary').innerText(), /Bob Taylor/, 'the preview rail follows the picked customer');
     // 用户自己改过的值不动。
     await page.locator('#orderForm [name="country"]').fill(FR);
     await pick('Lisa', 'Lisa Holland');

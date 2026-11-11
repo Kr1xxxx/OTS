@@ -264,14 +264,22 @@ const PASTE_FORCE_KEYS = ['createdAt', 'currency', 'paymentChannel', 'productTyp
     assert.deepEqual(await order('o-toggle'), { stage:'production', amount:1000, paidAmount:300, depositAmount:1000, depositPercent:100, orderType:'全款订单' });
     await page.evaluate(() => closeOrderDetail());
 
-    // P1-5：定金框单独一行，输入框够宽，金额不被截断。
+    // P1-5：定金输入框够宽，金额不被截断（三栏布局里定金和已付款并排，六位数的定金也放得下）。
     await openNew('Layout Buyer');
     await page.locator('#orderForm [data-binary-value="定金订单"]').click();
     await typeInto('amount', '1234.56', { replace:false });
     await pickPreset(30);
     const geometry = await field('depositAmount').evaluate(el => ({ width:el.getBoundingClientRect().width, fits:el.scrollWidth <= el.clientWidth + 1 }));
-    assert.ok(geometry.width >= 120, `deposit input is wide enough (${geometry.width}px)`);
+    assert.ok(geometry.width >= 90, `deposit input is wide enough (${geometry.width}px)`);
     assert.equal(geometry.fits, true, 'deposit amount is not clipped');
+    const largeFits = await field('depositAmount').evaluate(el => {
+      const typed = el.value;
+      el.value = '123456.78';
+      const fits = el.scrollWidth <= el.clientWidth + 1;
+      el.value = typed;
+      return fits;
+    });
+    assert.equal(largeFits, true, 'a six-figure deposit is not clipped either');
     // P2-2：选了 30% 再改金额，定金跟着比例变，不会悄悄变成 15%。
     await typeInto('amount', '2000');
     assert.equal(await value('depositAmount'), '600');

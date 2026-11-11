@@ -40,7 +40,8 @@ const { chromium } = require('playwright');
     // 1. Sidebar: no swatches / modal picker / API card; they live in settings.
     assert.equal(await page.locator('aside .accent-swatches, aside .modal-style-picker, aside .sidebar-api-card').count(),0,'sidebar must not carry 配色 / 弹窗 / API 检测 any more');
     assert.equal(await page.locator('[data-settings-panel="appearance"] .accent-swatches [data-accent-choice]').count(),6);
-    assert.equal(await page.locator('[data-settings-panel="appearance"] [data-modal-style-choice]').count(),4);
+    // 订单弹窗只有一种样式（三栏）：设置里不再有「订单弹窗样式」那一组。
+    assert.equal(await page.locator('[data-modal-style-choice]').count(),0);
     assert.equal(await page.locator('[data-settings-panel="api"] [data-api-check]').count(),3);
     assert.equal(await page.locator('#navSettingsAlert').isHidden(),true,'no red dot without an API error');
     await page.evaluate(()=>{ saveApiStatuses({dhl:{ok:false,message:'密钥无效',checkedAt:nowText()}}); renderApiStatusLights(); });

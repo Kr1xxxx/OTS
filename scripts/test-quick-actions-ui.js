@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
 
-// Everyday actions in one step: the new-order modal opens compact (3 sections + 展开更多, editing
+// Everyday actions in one step: the new-order modal folds 附件 / 交期 / 物流 / 备注 behind chips (editing
 // shows all), cards / the context menu / list rows offer 收齐尾款 and 推进到下一阶段 (with undo),
 // entering 已发货 without a tracking number shows a small non-blocking card to add one, tasks
 // open the drawer on the matching tab, and repurchase reminders can be postponed
@@ -39,22 +39,30 @@ const { chromium } = require('playwright');
     const order = id => page.evaluate(id=>{ const o = state.orders.find(x=>x.id===id); return {stage:o.stage,paidAmount:o.paidAmount,trackingNumber:o.trackingNumber||'',carrier:o.carrier||'',logisticsStatus:o.logisticsStatus,log:(o.logs[0]||{}).text||''}; }, id);
     const settle = () => page.waitForTimeout(250);
 
-    // New order: 3 steps, folded sections hidden, 展开更多 restores all 8; editing shows everything.
+    // New order: three columns, no step nav; 附件 / 交期 / 物流 / 备注 are folded behind one chip each, and a chip opens only its own section.
+    // Editing shows every section and no chips.
     await page.evaluate(()=>openOrder(''));
-    await page.waitForFunction(()=>document.querySelectorAll('#orderModal .mnav [data-jump]').length === 3);
-    const compact = await page.evaluate(()=>({steps:[...document.querySelectorAll('#orderModal .mnav [data-jump]')].map(b=>b.textContent.trim()),amount:document.querySelector('#orderForm [name="amount"]').offsetParent!==null,note:document.querySelector('#orderForm [name="note"]').offsetParent!==null,toggle:document.querySelector('#orderForm [data-order-more]').offsetParent!==null}));
-    assert.deepEqual(compact.steps,['1粘贴识别','2基础与金额','3产品与阶段']);
-    assert.equal(compact.amount,true,'amount belongs to the merged first section');
-    assert.equal(compact.note,false,'备注 is folded for a new order');
-    assert.equal(compact.toggle,true);
-    await page.locator('#orderForm [data-order-more]').click();
-    await page.waitForFunction(()=>document.querySelectorAll('#orderModal .mnav [data-jump]').length === 8);
-    assert.equal(await page.evaluate(()=>document.querySelector('#orderForm [name="note"]').offsetParent!==null),true);
-    assert.equal(await page.evaluate(()=>document.querySelector('#orderForm .payment-grid').parentElement.dataset.orderSection),'payment','payment grid moves back to its own section');
+    await page.waitForFunction(()=>document.getElementById('orderModal').classList.contains('open'));
+    const visible = sel => page.evaluate(sel=>{ const el = document.querySelector(sel); return !!el && el.offsetParent!==null; }, sel);
+    assert.equal(await page.locator('#orderModal .mnav').count(),0,'the order modal has no step nav');
+    assert.deepEqual(await page.evaluate(()=>[...document.querySelectorAll('#orderModal .order-body > *')].map(el=>el.getAttribute('aria-label') || el.className)),['粘贴识别','modal-body order-main','订单预览']);
+    assert.equal(await visible('#orderForm [name="amount"]'),true);
+    assert.equal(await visible('#orderForm [name="orderDetail"]'),true,'订单详情 is on the first screen');
+    assert.equal(await visible('#orderForm [name="note"]'),false,'备注 is folded for a new order');
+    assert.deepEqual(await page.evaluate(()=>[...document.querySelectorAll('#orderForm [data-order-more]')].filter(el=>el.offsetParent!==null).map(el=>el.textContent.trim())),['附件 / 凭证','交期要求','物流信息','备注']);
+    await page.locator('#orderForm [data-order-more="note"]').click();
+    await page.waitForFunction(()=>document.querySelector('#orderForm [name="note"]').offsetParent!==null);
+    assert.equal(await visible('#orderForm [name="customerRequiredDate"]'),false,'opening 备注 leaves 交期 folded');
+    assert.equal(await visible('#orderForm [data-order-more="note"]'),false,'an opened section loses its chip');
+    assert.equal(await visible('#orderForm [data-order-more="deadline"]'),true);
+    for (const name of ['attachments','deadline','shipment']) await page.locator(`#orderForm [data-order-more="${name}"]`).click();
+    assert.equal(await visible('#orderForm .order-more-toggle'),false,'no chips left once everything is open');
     await page.evaluate(()=>closeOrder());
     await page.evaluate(()=>openOrder('o-bal'));
-    await page.waitForFunction(()=>document.querySelectorAll('#orderModal .mnav [data-jump]').length === 9);
+    await page.waitForFunction(()=>document.getElementById('orderModal').classList.contains('open'));
     assert.equal(await page.evaluate(()=>document.getElementById('orderForm').classList.contains('order-compact')),false,'editing an order shows every section');
+    assert.equal(await visible('#orderForm [name="note"]'),true);
+    assert.equal(await visible('#orderForm .order-more-toggle'),false);
     await page.evaluate(()=>closeOrder());
 
     // Card hover: 收齐 marks the balance paid and the order stays in 待发货 (goods are ready, not back to 生产中);

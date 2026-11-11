@@ -23,7 +23,7 @@ const { chromium } = require('playwright');
     });
     await page.goto('http://127.0.0.1:47999/trade-order-system.html');
     await page.waitForFunction(()=>window.pendingSaveStatus?.().loaded);
-    const normalize = (raw, text) => page.evaluate(({raw,text})=>normalizeAiCustomerFields(raw,text), {raw,text});
+    const normalize = (raw, text) => page.evaluate(({raw,text})=>normalizeAiCustomerResult(raw,text).fields, {raw,text});
 
     const omitted = await normalize({name:'Alex Example'}, source);
     assert.deepEqual(omitted.emails,['Buyer@example.com','orders+sales@example.net'],'Source emails must survive an AI response that omits every email');

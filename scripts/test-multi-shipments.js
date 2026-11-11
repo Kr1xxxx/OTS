@@ -18,7 +18,7 @@ function extractFunction(name) {
 }
 
 const context = vm.createContext({ normalizeDate: value => String(value || '').slice(0, 10) });
-['cleanTracking', 'carrierHintFromTrackingText', 'detectCarrier', 'normalizeOrderShipments', 'primaryOrderShipment']
+['cleanTracking', 'carrierHintFromTrackingText', 'detectCarrier', 'normalizeOrderShipments']
   .forEach(name => vm.runInContext(extractFunction(name), context));
 const evaluate = expression => JSON.parse(JSON.stringify(vm.runInContext(expression, context)));
 
@@ -41,6 +41,6 @@ const multiple = evaluate(`normalizeOrderShipments(${JSON.stringify({
 assert.equal(multiple.length, 2, '重复物流单号应去重');
 assert.equal(multiple[0].carrier, 'UPS');
 assert.equal(multiple[1].status, '已签收');
-assert.deepEqual(evaluate(`primaryOrderShipment({ shipments:${JSON.stringify(multiple)} })`), multiple[0]);
+assert.deepEqual(evaluate(`normalizeOrderShipments({ shipments:${JSON.stringify(multiple)} })`), multiple, '已经整理过的批次再整理一次不变');
 
 console.log('Multi-shipment tests passed: legacy migration, normalization, dedupe, carrier and status verified.');

@@ -84,7 +84,7 @@ const data = {
       ['maria.lopez [at] gmail [dot] com', 'maria.lopez@gmail.com']
     ].map(([written, want]) => {
       const text = `Maria Lopez\nemail: ${written}`;
-      const ai = normalizeAiCustomerFields({ name:'Maria Lopez', emails:[want] }, text);
+      const ai = normalizeAiCustomerResult({ name:'Maria Lopez', emails:[want] }, text).fields;
       return { written, want, ai:ai.emails || null, local:(analyzeCustomerPasteText(text).extracted.email || '').toLowerCase() };
     }));
     variants.forEach(item => {
@@ -95,7 +95,7 @@ const data = {
       sentence:findEmailsInText('I will be at home at 5, call me @ noon. Thanks'),
       afterEmail:findEmailsInText('send to maria@gmail.com. Thanks'),
       dotThanks:findEmailsInText('maria@gmail. Thanks for the quote'),
-      invented:normalizeAiCustomerFields({ name:'Maria Lopez', emails:['made.up@example.org'] }, 'Maria Lopez\nemail: maria.lopez at gmail dot com').emails
+      invented:normalizeAiCustomerResult({ name:'Maria Lopez', emails:['made.up@example.org'] }, 'Maria Lopez\nemail: maria.lopez at gmail dot com').fields.emails
     }));
     assert.deepEqual(plain.sentence, [], '普通句子里的 at / @ 不当成邮箱');
     assert.deepEqual(plain.afterEmail, ['maria@gmail.com']);
@@ -105,9 +105,9 @@ const data = {
     // ---- 付款邮箱同时是客户写明的主邮箱 ----
     const mainPay = await page.evaluate(() => {
       const text = 'Maria Lopez\nEmail: maria@lopez.es (main)\nWork: m.lopez@salon-group.com\nPayPal: same as my main email maria@lopez.es';
-      const ai = normalizeAiCustomerFields({ name:'Maria Lopez', emails:['maria@lopez.es', 'm.lopez@salon-group.com'], paymentEmail:'maria@lopez.es' }, text);
+      const ai = normalizeAiCustomerResult({ name:'Maria Lopez', emails:['maria@lopez.es', 'm.lopez@salon-group.com'], paymentEmail:'maria@lopez.es' }, text).fields;
       const local = analyzeCustomerPasteText(text).extracted;
-      const payOnly = normalizeAiCustomerFields({ paymentEmail:'pay@example.com' }, 'Alex Example\ncontact@example.com\nPaypal: pay@example.com');
+      const payOnly = normalizeAiCustomerResult({ paymentEmail:'pay@example.com' }, 'Alex Example\ncontact@example.com\nPaypal: pay@example.com').fields;
       return { ai:[ai.email, ai.paymentEmail], local:[local.email, local.paymentEmail], payOnly:[payOnly.emails, payOnly.paymentEmail] };
     });
     assert.deepEqual(mainPay.ai, ['maria@lopez.es', 'maria@lopez.es'], 'AI：主邮箱留在联系邮箱第一位');

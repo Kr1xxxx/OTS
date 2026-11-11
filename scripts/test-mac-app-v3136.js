@@ -72,7 +72,7 @@ function checkReleaseWorkflow() {
   assert.doesNotMatch(yml, /^\s*push:/m, 'release no longer starts on its own in parallel with CI');
   assert.match(yml, /github\.event\.workflow_run\.conclusion == 'success'/, 'only a successful CI run releases');
   assert.match(yml, /github\.event\.workflow_run\.head_branch == 'main'/, 'only main releases');
-  assert.match(yml, /actions\/workflows\/ci\.yml\/runs\?head_sha=\$SHA/, 'manual runs also require green CI for the commit');
+  assert.match(yml, /CHECK="\$SHA"[\s\S]{0,400}actions\/workflows\/ci\.yml\/runs\?head_sha=\$CHECK/, 'manual runs also require green CI for the commit');
   assert.match(yml, /needs: gate/, 'the build waits for the gate job');
   assert.match(yml, /ref: \$\{\{ needs\.gate\.outputs\.sha \}\}/, 'the build checks out the commit CI tested');
   assert.match(yml, /node scripts\/smoke-test-app-bundle\.js --app/, 'the packaged app is started before publishing');

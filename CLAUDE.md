@@ -31,9 +31,11 @@ The lint has no warnings level worth keeping: a finding is fixed or the rule is 
 
 ## Versions and releases
 
-- `npm run bump-version -- 3.NN` updates every file that carries the version. Minor numbers compare as integers (3.99 → 3.100).
-- A merge to main that changes `VERSION` is released automatically once CI passes on main. A change that needs no release (tooling, tests, docs) leaves `VERSION` alone.
-- Several threads of work can be open at once: take the next free version from main just before merging, not when starting.
+- A pull request never changes `VERSION`. Several threads of work are open at once, and numbers claimed in branches collided.
+- A change that should reach the installed app adds one file to `release-notes/next/` (see the README there): one to three short lines in Chinese on what the user will notice. The app shows them in the "发现新版本" dialog.
+- After the merge, once CI has passed on main, the release workflow takes the next number (`scripts/prepare-release.js`), commits "Release V3.NN" to main as `github-actions[bot]`, builds and publishes. Pull main before continuing work: that commit is on it.
+- A change that needs no release (tooling, tests, docs) adds no note, and nothing is published.
+- If a release build fails after the number was taken, re-run the failed job of that workflow run (or run the Release workflow by hand on main); do not bump again.
 
 ## Ask the owner first
 

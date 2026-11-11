@@ -140,7 +140,15 @@ const { chromium } = require('playwright');
     assert.equal(await isOpen('confirmModal'),false);
 
     // Hold to delete: pressing on the label text and jittering 2px used to cancel the hold (pointerleave on the span).
-    await page.evaluate(()=>{ openOrderDetail('o1'); window.__held = 0; document.getElementById('detailDeleteBtn').addEventListener('hold-confirm',e=>{ e.stopImmediatePropagation(); window.__held++; },true); });
+    await page.evaluate(()=>{
+      openOrderDetail('o1'); window.__held = 0; document.getElementById('detailDeleteBtn').addEventListener('hold-confirm',e=>{ e.stopImmediatePropagation(); window.__held++; },true);
+      // What can end a hold early, noted for the message below.
+      window.__holdEnds = [];
+      const note = e => window.__holdEnds.push(`${e.type}${e.type === 'visibilitychange' ? `:${document.visibilityState}` : ''}@${Math.round(performance.now())}`);
+      ['pointerup','pointercancel','pointerleave','lostpointercapture'].forEach(type => document.getElementById('detailDeleteBtn').addEventListener(type, note, true));
+      window.addEventListener('blur', note);
+      document.addEventListener('visibilitychange', note);
+    });
     await settle();
     const label = await page.locator('#detailDeleteBtn .hold-label').boundingBox();
     await page.mouse.move(label.x+label.width/2,label.y+label.height/2);
@@ -149,8 +157,9 @@ const { chromium } = require('playwright');
     await page.mouse.move(label.x+label.width/2+2,label.y+label.height/2+1);
     await page.waitForTimeout(200);
     assert.equal(await page.evaluate(()=>document.getElementById('detailDeleteBtn').dataset.holding),'1','hold cancelled by a 2px jitter on the label');
-    await page.waitForTimeout(1600);
-    assert.equal(await page.evaluate(()=>window.__held),1,'hold-confirm should fire after holding on the label');
+    // The hold takes 1.5 s of the page's own clock; wait for it to fire, not for a fixed time on this side.
+    await page.waitForFunction(()=>window.__held === 1 || !document.getElementById('detailDeleteBtn').dataset.holding, null, { timeout:15000 });
+    assert.equal(await page.evaluate(()=>window.__held),1,`hold-confirm should fire after holding on the label; the hold ended early: ${await page.evaluate(()=>`${window.__holdEnds.join(' ') || 'no event seen'}, hidden=${document.hidden}, focused=${document.hasFocus()}, now=${Math.round(performance.now())}`)}`);
     await page.mouse.up();
     // Really leaving the button still cancels.
     const cancelled = await page.evaluate(()=>{ const btn = document.getElementById('detailDeleteBtn'); uiStartHold(btn); btn.dispatchEvent(new PointerEvent('pointerleave',{relatedTarget:document.body})); return !btn.dataset.holding; });

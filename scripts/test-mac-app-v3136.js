@@ -554,9 +554,19 @@ async function checkThemeFollowsSystem(browser, server) {
   await again.page.reload();
   await again.page.waitForFunction(() => window.pendingSaveStatus?.().loaded);
   assert.equal(await again.page.evaluate(() => localStorage.getItem('trade-order-system-theme')), null, 'a stale local theme is cleared');
+  // A choice made just before the page goes away is sent on the way out. It used to wait 300 ms for its timer:
+  // the reload came first, and the server's older copy won on the next load. Both in one step, so the timer
+  // cannot run in between.
+  await Promise.all([
+    again.page.waitForEvent('framenavigated'),
+    again.page.evaluate(() => { setThemeMode('light'); location.reload(); }).catch(() => {})
+  ]);
+  await again.page.waitForFunction(() => window.pendingSaveStatus?.().loaded);
+  assert.equal(await again.page.evaluate(() => localStorage.getItem('trade-order-system-theme')), 'light', 'a theme chosen right before a reload is kept');
+  assert.equal(await again.page.evaluate(() => document.documentElement.dataset.theme), 'light');
   assert.deepEqual(again.errors, []);
   await again.context.close();
-  await setServerPrefs(server, { 'ots-accent-v1':null });
+  await setServerPrefs(server, { 'ots-accent-v1':null, 'trade-order-system-theme':null });
 }
 
 (async () => {

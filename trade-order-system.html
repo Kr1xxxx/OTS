@@ -7658,9 +7658,26 @@ const serverPrefKeys = new Set(['trade-order-system-theme', 'ots-accent-v1', 'ot
 const pendingServerPrefs = new Map();
 let serverPrefsAdopted = false;
 let serverPrefTimer = 0;
+// 还没送到服务的那几项记在本机：页面在送到之前刷新 / 关掉了（改完马上 ⌘R），下次打开时这几项以本机为准接着送，
+// 不让服务里那份旧的把刚选的盖回去。
+const serverPrefsUnsentKey = 'ots-prefs-unsent';
+function unsentServerPrefKeys() {
+  try {
+    const list = JSON.parse(window.localStorage.getItem(serverPrefsUnsentKey) || '[]');
+    return Array.isArray(list) ? list.filter(key => serverPrefKeys.has(key)) : [];
+  } catch (_) { return []; }
+}
+function markServerPrefsUnsent(keys, unsent) {
+  const next = unsent ? [...new Set([...unsentServerPrefKeys(), ...keys])] : unsentServerPrefKeys().filter(key => !keys.includes(key));
+  try {
+    if (next.length) window.localStorage.setItem(serverPrefsUnsentKey, JSON.stringify(next));
+    else window.localStorage.removeItem(serverPrefsUnsentKey);
+  } catch (_) { /* 本机存储不可用 */ }
+}
 function queueServerPref(key, value) {
   if (!serverPrefsAdopted || !serverPrefKeys.has(key)) return;
   pendingServerPrefs.set(key, value);
+  markServerPrefsUnsent([key], true);
   clearTimeout(serverPrefTimer);
   serverPrefTimer = setTimeout(flushServerPrefs, 300);
 }
@@ -7670,17 +7687,26 @@ function flushServerPrefs() {
   if (!pendingServerPrefs.size) return Promise.resolve();
   const set = Object.fromEntries(pendingServerPrefs);
   pendingServerPrefs.clear();
-  return apiFetch('/api/ui-prefs', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ set }), timeoutMs:3000 })
-    .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); })
+  // keepalive：页面正要离开时发出去的这一次不随页面一起取消。
+  return apiFetch('/api/ui-prefs', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ set }), timeoutMs:3000, keepalive:true })
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      markServerPrefsUnsent(Object.keys(set).filter(key => !pendingServerPrefs.has(key)), false);
+    })
     .catch(() => Object.entries(set).forEach(([key, value]) => { if (!pendingServerPrefs.has(key)) pendingServerPrefs.set(key, value); }));
 }
+// 改完不到 300 毫秒页面就刷新 / 关掉：定时器等不到，趁离开前发出去。
+window.addEventListener('pagehide', () => { flushServerPrefs(); });
 // 必须在任何一处读偏好之前执行。页面不是本机服务发出来的（测试、直接打开文件）时 meta 是空的，什么都不做。
 (function adoptServerPrefs() {
   let fromServer = null;
   try { fromServer = JSON.parse(document.querySelector('meta[name="ots-prefs"]')?.content || 'null'); } catch (_) { /* 当作没有 */ }
   if (!fromServer || typeof fromServer !== 'object' || Array.isArray(fromServer)) return;
   serverPrefsAdopted = true;
+  const unsent = new Set(unsentServerPrefKeys());
   serverPrefKeys.forEach(key => {
+    // 上次没送到的：本机这份比服务里的新（没有值 = 特意清掉了）。
+    if (unsent.has(key)) { queueServerPref(key, safeStorage.getItem(key)); return; }
     if (Object.hasOwn(fromServer, key)) {
       try {
         if (fromServer[key] === null) window.localStorage.removeItem(key);

@@ -20,7 +20,7 @@ module.exports = [
   },
   {
     // UI tests pass callbacks that run inside the page and use its globals.
-    files: ['scripts/test-*.js', 'scripts/bench-*.js', 'scripts/helpers/*.js'],
+    files: ['scripts/test-*.js', 'scripts/bench-*.js', 'scripts/helpers/*.js', 'scripts/css-snapshot.js'],
     languageOptions: { globals: { ...globals.browser } },
     rules: { 'no-undef': 'off' }
   },

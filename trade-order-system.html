@@ -12208,8 +12208,11 @@ document.addEventListener('keydown', e => {
       closeCountryMenu();
       return;
     }
-    e.preventDefault();
-    e.stopPropagation();
+    // 识别预览里单独改国家的小编辑框：回车就是改完。选中后照常往下传，让它用选中的国家收起（不用再按一次回车）。
+    if (!input.hasAttribute('data-country-enter-commits')) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     selectCountryOption(input, value);
   } else if (key === 'Tab') closeCountryMenu();
 }, true);
@@ -12439,6 +12442,13 @@ function dispatchDateInputEvents(input, types) {
   } finally {
     input._dpDispatching = false;
   }
+}
+// 表单换了一条记录（程序填的值）：忘掉上次聚焦时记下的「原来的日期」，认不出的手打内容不会改回上一条记录的日期。
+function forgetDateInputText(root) {
+  root.querySelectorAll(datePickerSelector).forEach(input => {
+    delete input._dpCommitted;
+    delete input._dpAnnounced;
+  });
 }
 // 日历上点的、按回车选的：和在系统日期框里选一样，先 input 再 change。
 function setDateInputValue(input, iso) {
@@ -15642,7 +15652,7 @@ function customerPasteEditorHtml(fields) {
   const multiline = ['address','addresses','note'].includes(key);
   return `<div class="customer-paste-field-editor">
     <label for="customerPasteEditValue">修改${customerPasteLabels[key]} · 仅修改本次预览</label>
-    ${multiline ? `<textarea id="customerPasteEditValue" rows="3">${escapeAttr(value || '')}</textarea>` : `<input id="customerPasteEditValue" type="text" value="${escapeAttr(value || '')}" autocomplete="off"${key === 'country' ? ' data-country-input role="combobox" aria-autocomplete="list" aria-expanded="false"' : ''}>`}
+    ${multiline ? `<textarea id="customerPasteEditValue" rows="3">${escapeAttr(value || '')}</textarea>` : `<input id="customerPasteEditValue" type="text" value="${escapeAttr(value || '')}" autocomplete="off"${key === 'country' ? ' data-country-input data-country-enter-commits role="combobox" aria-autocomplete="list" aria-expanded="false"' : ''}>`}
     <div class="customer-paste-field-error" role="alert" data-customer-paste-edit-error></div>
     <div class="paste-result-actions"><button type="button" class="btn btn-small" data-customer-paste-edit-cancel>取消</button><button type="button" class="btn btn-primary btn-small" data-customer-paste-edit-confirm>确认修改</button></div>
   </div>`;
@@ -23628,11 +23638,8 @@ function openOrder(id) {
   fields.urgentOrder.value = order.urgentOrder ? '是' : '否';
   fields.customerRequiredDate.value = order.customerRequiredDate || '';
   fields.latestShipDate.value = order.latestShipDate || '';
-  // 换了一张单：日期框上次被点时记下的「原来的日期」是上一张单的，清掉（认不出的手打内容会改回它）。
-  form.querySelectorAll(datePickerSelector).forEach(input => {
-    delete input._dpCommitted;
-    delete input._dpAnnounced;
-  });
+  // 换了一张单：日期框上次被点时记下的「原来的日期」是上一张单的。
+  forgetDateInputText(form);
   fields.note.value = order.note || '';
   if (fields.orderDetail) fields.orderDetail.value = order.orderDetail || '';
   const notificationField = document.getElementById('orderFeishuNotificationField');

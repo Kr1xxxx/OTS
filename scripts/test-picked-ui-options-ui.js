@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // 用户挑定的五处外观（1C 2B 3C 4B 5B），真实页面 + 真实键盘鼠标：
 // 1. 通知面板开着时后面轻轻压暗、不模糊；
-// 2. 「国家 / 地区」栏的建议列表是 App 自己的菜单：打字筛选（UK 排第一）、↑ ↓ 加回车选中、点一项选中、Esc 只收菜单不关弹窗 / 抽屉，
+// 2. 「国家 / 地区」栏的建议列表是 App 自己的菜单：打字筛选（UK 排第一、高亮第一项，回车选它）、↑ ↓ 加回车选中、点一项选中、Esc 只收菜单不关弹窗 / 抽屉，
 //    列表外的写法照样能填；外框和下拉框的菜单一样，箭头展开时朝上；
 // 3. 订单抽屉里「交期」和「这位客户」的小方块都是灰底、没有边框；
 // 4. 订单、客户、已删除订单没有数据时是图标、标题、说明，能新建的带按钮；
@@ -76,8 +76,10 @@ const orders = [
     await retype(orderCountry, 'uk');
     state = await menu();
     assert.equal(state.items[0], UK, 'UK lists the United Kingdom first, not Ukraine');
-    assert.equal(state.active, '', 'typing alone does not pick anything');
+    assert.equal(state.active, UK, 'typing highlights the first match');
     await page.keyboard.press('ArrowDown');
+    assert.notEqual((await menu()).active, UK, '↓ moves on from the first match');
+    await page.keyboard.press('ArrowUp');
     assert.equal((await menu()).active, UK);
     await page.keyboard.press('Enter');
     assert.equal(await orderCountry.inputValue(), UK, 'Enter picks the highlighted country');
@@ -110,6 +112,13 @@ const orders = [
     await page.keyboard.press('Tab');
     assert.equal((await menu()).open, false, 'Tab closes the menu');
     assert.equal(await orderCountry.inputValue(), 'fra', 'Tab does not pick anything');
+    // 半个名字回车：选中筛出来的第一项，不把半个名字当国家、也不提交订单表单。
+    await retype(orderCountry, 'germ');
+    state = await menu();
+    assert.deepEqual([state.items, state.active], [[DE], DE], 'germ leaves Germany, highlighted');
+    await page.keyboard.press('Enter');
+    assert.equal(await orderCountry.inputValue(), DE, 'Enter on a half-typed name picks the only match');
+    assert.ok(await isOpen('orderModal'), 'Enter on the menu does not save the order');
     await page.evaluate(() => closeOrder());
     await page.waitForFunction(() => !document.getElementById('orderModal').classList.contains('open'));
 
@@ -119,7 +128,6 @@ const orders = [
     const customerCountry = page.locator('#customerForm [name="country"]');
     await retype(customerCountry, 'ger');
     assert.equal((await menu()).items[0], DE);
-    await page.keyboard.press('ArrowDown');
     await page.keyboard.press('Enter');
     assert.equal(await customerCountry.inputValue(), DE);
     await page.keyboard.press('ArrowUp');
@@ -134,9 +142,8 @@ const orders = [
     await page.evaluate(() => openOrderDetail('p1'));
     await page.waitForFunction(() => document.getElementById('orderDetailDrawer').classList.contains('open'));
     const drawerCountry = page.locator('#orderDetailBody [data-dedit="country"]');
-    await retype(drawerCountry, 'fra');
+    await retype(drawerCountry, 'franc');
     assert.equal((await menu()).items[0], FR);
-    await page.keyboard.press('ArrowDown');
     await page.keyboard.press('Enter');
     assert.equal(await drawerCountry.inputValue(), FR);
     assert.ok(await page.evaluate(() => uiDetailUnsaved()), 'picking a country marks the drawer as changed');

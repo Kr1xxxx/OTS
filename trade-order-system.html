@@ -2510,7 +2510,7 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
 .customer-view-mode .customer-multi-remove,
 .customer-view-mode .customer-multi-primary-badge { display: none; }
 .shipment-editor {
-  display: grid; gap: 10px; grid-column: 1 / -1; padding: 12px;
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; grid-column: 1 / -1; padding: 12px;
   border: 1px solid color-mix(in srgb, var(--semantic-primary) 12%, var(--gray-200));
   border-radius: 16px; background: color-mix(in srgb, var(--surface-soft) 74%, var(--white));
 }
@@ -2540,6 +2540,16 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
 .shipment-row-hint[data-tone="error"] { color: var(--red-600); font-weight: 600; }
 .shipment-row.is-duplicate [data-shipment-number] { border-color: var(--red-600); background-color: var(--red-50); }
 .shipment-partial-field { grid-column: 1 / -1; }
+/* 订单弹窗的中栏只有 428 宽，四列排一行放不下（「物流状态」被切掉，＋物流单号和 × 跑到栏外）：物流单号占满第一排，
+   承运商、物流状态和 × 在第二排。
+   窄窗口（760 以下）照旧一项一行。附件那一行同理：四列要 600 多宽，文件名称 + 类型一排，链接 / 备注 + 添加一排。 */
+@media (min-width: 761px) {
+  #orderModal .shipment-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
+  #orderModal .shipment-row > .shipment-field:first-child { grid-column: 1 / -1; }
+  #orderModal .attachment-form { grid-template-columns: minmax(0, 1fr) 150px auto; }
+  #orderModal .attachment-form > .field:nth-child(2) { grid-column: 2 / -1; }
+  #orderModal .attachment-form > .field:nth-child(3) { grid-column: 1 / 3; }
+}
 @media (max-width: 760px) {
   .shipment-editor { padding: 10px; }
   .shipment-editor-head { align-items: flex-start; }
@@ -12091,6 +12101,7 @@ function positionCountryMenu() {
   activeCountryInput._countryMenuAnchor = activeCountryInput.getBoundingClientRect();
 }
 // typing=false（点输入框、按 ↑ ↓）：框里是空的或者正好是列表里的一项，就列出全部并高亮这一项，换一个不用先清空。
+// 按打的字筛出来的列表高亮第一项，回车选它（打 germ 回车就是德国，不会把半个名字当国家存下）。
 function openCountryMenu(input, { typing = false } = {}) {
   if (!input?.matches?.(countryInputSelector) || input.disabled || input.readOnly) return;
   const value = String(input.value || '').trim();
@@ -12109,7 +12120,7 @@ function openCountryMenu(input, { typing = false } = {}) {
   const wasOpen = activeCountryInput === input && !menu.hidden;
   activeCountryInput = input;
   countryMenuItems = items;
-  countryMenuIndex = showAll ? items.indexOf(value) : -1;
+  countryMenuIndex = showAll ? items.indexOf(value) : 0;
   input.setAttribute('aria-expanded', 'true');
   input.setAttribute('aria-controls', menu.id);
   renderCountryMenu();
@@ -12193,7 +12204,7 @@ document.addEventListener('keydown', e => {
   } else if (key === 'Enter') {
     const value = countryMenuItems[countryMenuIndex];
     if (!value) {
-      // 没用 ↑ ↓ 挑过：回车照常（提交、保存编辑），菜单收起。
+      // 没有高亮的项（列出全部、框里的值不在列表里）：回车照常（提交、保存编辑），菜单收起。
       closeCountryMenu();
       return;
     }
@@ -12370,12 +12381,25 @@ function positionDatePicker() {
   const bottomEdge = topEdge + (viewport?.height || document.documentElement.clientHeight || window.innerHeight) - 16;
   const width = popover.offsetWidth;
   const height = popover.offsetHeight;
-  const below = bottomEdge - rect.bottom - 6;
-  const above = rect.top - topEdge - 6;
-  const upwards = below < height && above > below;
-  popover.style.left = `${Math.max(leftEdge, Math.min(rect.left, rightEdge - width))}px`;
-  popover.style.top = `${Math.max(topEdge, upwards ? rect.top - height - 6 : rect.bottom + 6)}px`;
-  popover.dataset.placement = upwards ? 'top' : 'bottom';
+  const clampLeft = left => Math.max(leftEdge, Math.min(left, rightEdge - width));
+  const clampTop = top => Math.max(topEdge, Math.min(top, bottomEdge - height));
+  // 下面放得下放下面，否则上面；上下都放不下（界面 100% 加矮窗口）放到输入框右边或左边，竖直方向夹在窗口里；
+  // 侧边也不够才夹在窗口里、盖住一点输入框，总之不跑出窗口。
+  let placement = 'cover';
+  if (bottomEdge - rect.bottom - 6 >= height) placement = 'bottom';
+  else if (rect.top - topEdge - 6 >= height) placement = 'top';
+  else if (rightEdge - rect.right - 6 >= width) placement = 'right';
+  else if (rect.left - leftEdge - 6 >= width) placement = 'left';
+  const position = {
+    bottom:[clampLeft(rect.left), rect.bottom + 6],
+    top:[clampLeft(rect.left), rect.top - height - 6],
+    right:[rect.right + 6, clampTop(rect.top)],
+    left:[rect.left - width - 6, clampTop(rect.top)],
+    cover:[clampLeft(rect.left), clampTop(rect.bottom + 6)]
+  }[placement];
+  popover.style.left = `${position[0]}px`;
+  popover.style.top = `${position[1]}px`;
+  popover.dataset.placement = placement;
 }
 function openDatePicker(input, { keyboard = false } = {}) {
   if (!input?.matches?.(datePickerSelector) || input.disabled || input.readOnly) return;
@@ -21806,6 +21830,8 @@ async function mergeDuplicateCustomers(primaryName = '', secondaryName = '') {
   delete state.customers[secondaryName];
   state.customers[targetName] = merged;
   const diff = customerChangeDiff(before);
+  // 两边都没建过档案时，拼出来的档案还没有编号，saveState 才补上：先补，撤销时拿来比的才是存下去的样子（以前撤销总说「之后又改动过」）。
+  ensureCustomerIds();
   const mergedJson = JSON.stringify(merged);
   const chatMove = queueCustomerStorageOp({ kind:'move', from:secondaryName, to:targetName });
   const version = ++customerUndoVersion;
@@ -23602,6 +23628,11 @@ function openOrder(id) {
   fields.urgentOrder.value = order.urgentOrder ? '是' : '否';
   fields.customerRequiredDate.value = order.customerRequiredDate || '';
   fields.latestShipDate.value = order.latestShipDate || '';
+  // 换了一张单：日期框上次被点时记下的「原来的日期」是上一张单的，清掉（认不出的手打内容会改回它）。
+  form.querySelectorAll(datePickerSelector).forEach(input => {
+    delete input._dpCommitted;
+    delete input._dpAnnounced;
+  });
   fields.note.value = order.note || '';
   if (fields.orderDetail) fields.orderDetail.value = order.orderDetail || '';
   const notificationField = document.getElementById('orderFeishuNotificationField');
@@ -29006,6 +29037,14 @@ document.addEventListener('click', e => {
   }
   if (activeAppSelect && !e.target.closest('.app-select-popover')) closeAppSelectMenu({ restoreFocus:false });
 }, true);
+// 下拉开着时 Esc 只收起下拉：捕获阶段处理并停止传递，和日历、国家菜单一个规矩。以前挂在冒泡阶段，续费页自己的 Esc
+// 处理注册得更早、先跑，下拉收起的同时把续费编辑弹窗也关了（或者弹出「放弃未保存的修改？」）。
+document.addEventListener('keydown', e => {
+  if (!activeAppSelect || normalizeAppSelectKey(e.key) !== 'Escape' || isImeKeyEvent(e)) return;
+  e.preventDefault();
+  e.stopPropagation();
+  closeAppSelectMenu({ restoreFocus:true });
+}, true);
 document.addEventListener('keydown', e => {
   const button = e.target.closest?.('.app-select-button') || (e.target.closest?.('.app-select-popover') && activeAppSelect ? appSelectParts(activeAppSelect).button : null);
   if (!button) return;
@@ -29013,11 +29052,6 @@ document.addEventListener('keydown', e => {
   if (!select) return;
   const options = appSelectOptionModel(select);
   const key = normalizeAppSelectKey(e.key);
-  if (key === 'Escape' && activeAppSelect === select) {
-    e.preventDefault();
-    closeAppSelectMenu({ restoreFocus:true });
-    return;
-  }
   if (key === 'Tab') {
     if (activeAppSelect === select) closeAppSelectMenu({ restoreFocus:false });
     return;
@@ -32352,6 +32386,13 @@ function uiDetailSetFormValue(form, name, value) {
     if (String(field.value) === next) return;
     field.value = next;
   }
+  // 日期框：程序写进去的值不经过日历的「手打落定」（那里认不出会改回这个框上次被点时留下的日期，可能是另一张单的）。
+  if (field.matches?.(datePickerSelector)) {
+    field._dpCommitted = field.value;
+    field._dpAnnounced = field.value;
+    dispatchDateInputEvents(field, ['input', 'change']);
+    return;
+  }
   field.dispatchEvent(new Event('input', { bubbles:true }));
   field.dispatchEvent(new Event('change', { bubbles:true }));
 }
@@ -32367,6 +32408,18 @@ function uiDetailFieldError(name, text) {
   }
   if (text) toast(text, { tone:'error' });
 }
+// 抽屉里每个日期框按失焦那样落定；返回第一个认不出、已改回原值的框。
+function uiDetailSettleDates(body) {
+  let bad = null;
+  body?.querySelectorAll(datePickerSelector).forEach(input => {
+    const parsed = parseDateInputText(input.value);
+    if (parsed === input.value) return;
+    if (parsed === null) bad ||= input;
+    const { changed, announce } = settleDateInputText(input);
+    if (changed) dispatchDateInputEvents(input, announce ? ['input', 'change'] : ['change']);
+  });
+  return bad;
+}
 // promote：草稿点「转为正式订单」。草稿点「保存」仍存成草稿（以前直接转成正式单，还默认发飞书群）。
 async function uiDetailSave({ promote = false } = {}) {
   const id = detailOrderId;
@@ -32377,6 +32430,12 @@ async function uiDetailSave({ promote = false } = {}) {
   const body = document.getElementById('orderDetailBody');
   const keepDraft = order.isDraft === true && !promote;
   // 什么都没改：不写空记录、不刷新「最近更新」（以前订单会被顶到看板这一列最前面）。
+  // 日期框里手打的内容先落定（⌘S 不让输入框失焦，没有 change）：认得出改成 YYYY-MM-DD，认不出就改回原值、不保存。
+  const badDate = uiDetailSettleDates(body);
+  if (badDate) {
+    uiDetailFieldError(badDate.dataset.dedit, '');
+    return;
+  }
   if (!promote && !uiDetailUnsaved()) {
     toast('没有修改，不用保存', { tone:'info' });
     return;

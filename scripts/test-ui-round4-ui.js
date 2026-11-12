@@ -86,6 +86,21 @@ const waitIdle = page => page.evaluate(() => new Promise(resolve => {
         'the order forms skip the browser bubble');
       const hints = () => page.evaluate(() => Object.fromEntries([...document.querySelectorAll('#orderForm .customer-field-hint')]
         .map(hint => [document.querySelector(`#orderForm [aria-describedby="${hint.id}"]`)?.name || '?', hint.textContent])));
+      // 出错时附上菜单每次被摆位时的样子，CI 上好查。
+      await page.evaluate(() => {
+        const t0 = performance.now();
+        const log = window.__menuLog = [];
+        const at = () => Math.round(performance.now() - t0);
+        ['animationstart', 'animationend', 'animationcancel'].forEach(type => document.addEventListener(type, e => {
+          if (e.target.closest?.('#orderModal')) log.push(`${at()} ${type} ${e.animationName} ${e.target.className}`);
+        }, true));
+        const position = window.positionFloatingMenu;
+        window.positionFloatingMenu = function (menu, ...rest) {
+          const result = position.call(this, menu, ...rest);
+          if (menu.classList.contains('client-menu')) log.push(`${at()} position left=${menu.style.left} rect=${Math.round(menu.getBoundingClientRect().left)} running=${document.getAnimations().filter(a => a.playState !== 'finished').map(a => a.animationName).join(',')}`);
+          return result;
+        };
+      });
       await h.click(page, 'button[type="submit"][form="orderForm"]', 'save order');
       assert.deepEqual(await hints(), { client:'请选择或输入客户', amount:'请填写订单金额' });
       assert.equal(await page.evaluate(() => document.activeElement?.name), 'client', 'focus lands on the first field with a hint');
@@ -100,7 +115,7 @@ const waitIdle = page => page.evaluate(() => new Promise(resolve => {
         return { open:menu.classList.contains('open'), dx:Math.abs(rect.left - input.left), gap:rect.top - input.bottom };
       });
       assert.ok(menuAt.open, 'focusing the empty client field opens the client menu');
-      assert.ok(menuAt.dx <= 2, `the client menu stays under the field after the shake (off by ${menuAt.dx}px)`);
+      assert.ok(menuAt.dx <= 2, `the client menu stays under the field after the shake (off by ${menuAt.dx}px)\n${(await page.evaluate(() => window.__menuLog)).join('\n')}`);
       assert.ok(menuAt.gap >= 0 && menuAt.gap < 20, `the client menu is just below the field (gap ${menuAt.gap}px)`);
       await shot(page, `01-02-order-required-${theme}`);
       await page.keyboard.press('Escape');

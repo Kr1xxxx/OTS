@@ -11972,6 +11972,7 @@ function fixFloatingMenuContainingBlock(menu) {
   menu.style.top = `${top + 100}px`;
   menu.style.left = `${left + 100}px`;
   const moved = menu.getBoundingClientRect();
+  followContainingBlockAnimations(menu);
   const scaleY = (moved.top - now.top) / 100 || 1;
   const scaleX = (moved.left - now.left) / 100 || 1;
   menu.style.top = `${top + (top - now.top) / scaleY}px`;
@@ -11980,6 +11981,19 @@ function fixFloatingMenuContainingBlock(menu) {
   if (menu.dataset.placement === 'top') {
     const bottom = top + menu.offsetHeight;
     menu.style.top = `${parseFloat(menu.style.top) + (bottom - menu.getBoundingClientRect().bottom) / scaleY}px`;
+  }
+}
+// 补偿只在这段动画期间成立：动画一结束（或被打断，比如出错字段的抖动在开始前就被摘掉了 class），所有开着的菜单重新摆一次。
+// 不只靠 animationend 事件：动画还没真正开始就被取消时，有的引擎两个事件都不发。
+const followedMenuAnimations = new WeakSet();
+function followContainingBlockAnimations(menu) {
+  for (let node = menu.parentElement; node && node !== document.body; node = node.parentElement) {
+    if (typeof node.getAnimations !== 'function') continue;
+    node.getAnimations().forEach(animation => {
+      if (followedMenuAnimations.has(animation) || !Number.isFinite(animation.effect?.getComputedTiming?.().endTime)) return;
+      followedMenuAnimations.add(animation);
+      animation.finished.catch(() => {}).then(() => requestAnimationFrame(() => repositionOpenMenus()));
+    });
   }
 }
 function positionAppSelectPopover(select) {

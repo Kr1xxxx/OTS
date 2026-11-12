@@ -5454,8 +5454,10 @@ html[data-theme] .paste-assist.ai-reading .paste-assist-title { background:linea
 html[data-theme] .paste-results > * { animation:uiPop .4s var(--ease-spring) backwards; }
 /* 识别结果填进表单的字段闪一下 */
 html[data-theme] .ui-flash { animation:uiFlash 1.2s var(--ease) both; }
-/* 必填项没填：整个字段左右抖一下 */
-html[data-theme] .field.ui-err { animation:uiShake .4s var(--ease); }
+/* 必填项没填：整个字段左右抖一下。用 left 挪，不用 transform：带 transform 动画的字段会变成里面 position:fixed 菜单（客户菜单、下拉）的定位参照，
+   菜单按它算了补偿；动画还没开始类名就被拿掉时（画面卡住超过 450ms）连 animationend / animationcancel 都不发，菜单就留在窗口左上角。 */
+html[data-theme] .field.ui-err { position:relative; animation:uiShakeField .4s var(--ease); }
+@keyframes uiShakeField { 10%, 90% { left:-1px; } 20%, 80% { left:3px; } 30%, 50%, 70% { left:-5px; } 40%, 60% { left:5px; } }
 /* 状态胶囊变化时弹一下；筛选标签出现时弹出 */
 html[data-theme] .ui-pop-in { animation:uiPop .45s var(--ease-spring) both; }
 html[data-theme] .order-list-filter-chip { animation:uiPop .4s var(--ease-spring) both; }
@@ -11983,8 +11985,8 @@ function fixFloatingMenuContainingBlock(menu) {
     menu.style.top = `${parseFloat(menu.style.top) + (bottom - menu.getBoundingClientRect().bottom) / scaleY}px`;
   }
 }
-// 补偿只在这段动画期间成立：动画一结束（或被打断，比如出错字段的抖动在开始前就被摘掉了 class），所有开着的菜单重新摆一次。
-// 不只靠 animationend 事件：动画还没真正开始就被取消时，有的引擎两个事件都不发。
+// 补偿只在这段动画期间成立：动画一结束（或被打断），所有开着的菜单重新摆一次。
+// 不只靠 animationend 事件：动画还没真正开始就被取消时，两个事件都不发；animation.finished 这时也会结束（reject）。
 const followedMenuAnimations = new WeakSet();
 function followContainingBlockAnimations(menu) {
   for (let node = menu.parentElement; node && node !== document.body; node = node.parentElement) {
@@ -23853,7 +23855,10 @@ const orderRequiredFields = [
   ['amount', input => {
     if (input.validity?.badInput || !String(input.value || '').trim()) return '请填写订单金额';
     return Number(input.value) < 0 ? '金额不能小于 0' : '';
-  }]
+  }],
+  // 定金、已收不是必填，但以前 min="0" 由浏览器拦着负数；novalidate 以后在这里拦（只查看得见的框：全款单没有定金框）。
+  ['depositAmount', input => (String(input.value || '').trim() && Number(input.value) < 0 ? '金额不能小于 0' : '')],
+  ['paidAmount', input => (String(input.value || '').trim() && Number(input.value) < 0 ? '金额不能小于 0' : '')]
 ];
 function orderRequiredFieldError(input) {
   const rule = orderRequiredFields.find(([name]) => name === input?.name);
@@ -23863,7 +23868,7 @@ function validateOrderRequiredFields(form) {
   let first = null;
   orderRequiredFields.forEach(([name]) => {
     const input = form?.querySelector(`[name="${name}"]`);
-    if (!input) return;
+    if (!input || input.disabled || !input.getClientRects().length) return;
     const message = orderRequiredFieldError(input);
     setCustomerFieldHint(input, message, 'error');
     if (message && !first) first = input;
@@ -29225,9 +29230,10 @@ function repositionOpenMenus() {
 }
 window.addEventListener('resize', repositionOpenMenus);
 window.visualViewport?.addEventListener('resize', repositionOpenMenus);
-// 弹窗入场、出错的字段抖一下（.field.ui-err）都是 transform 动画：动画期间这个元素成了里面 position:fixed 菜单的定位参照，
-// fixFloatingMenuContainingBlock 按它算了补偿；动画一停参照没了，补偿还在，菜单就落到窗口左上角（没填客户就保存时的客户菜单）。
+// 弹窗入场、识别结果弹出这些 transform 动画：动画期间这个元素成了里面 position:fixed 菜单的定位参照，
+// fixFloatingMenuContainingBlock 按它算了补偿；动画一停参照没了，补偿还在，菜单就落到窗口左上角。
 // 所以动画结束（或被打断）时，只要它包着某个开着的菜单的锚点，就重新摆一次。
+// 出错的字段抖一下（.field.ui-err）不走这条路：它不用 transform（见那条 CSS 的说明），根本不产生定位参照。
 function menuAnchorsInside(target) {
   const anchors = [
     activeAppSelect ? appSelectParts(activeAppSelect).button : null,

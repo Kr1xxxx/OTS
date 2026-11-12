@@ -75,7 +75,7 @@ const waitIdle = page => page.evaluate(() => new Promise(resolve => {
   const browser = await launchBrowser();
   try {
     for (const theme of ['light', 'dark']) {
-      const { page, errors, dialogs, context } = await openBoard(browser, data, { width:1694, height:1082, theme, port:47995 });
+      const { page, errors, dialogs, context, store } = await openBoard(browser, data, { width:1694, height:1082, theme, port:47995 });
       await page.evaluate(contrastHelpers);
       const light = theme === 'light';
 
@@ -107,7 +107,19 @@ const waitIdle = page => page.evaluate(() => new Promise(resolve => {
       assert.equal(await page.evaluate(() => document.getElementById('orderModal').classList.contains('open')), true, 'nothing was saved');
 
       // ---- 1. 字段抖完以后客户菜单还在输入框下面 ----
-      await page.waitForTimeout(600);
+      // 抖动不用 transform：抖的那一刻去摆菜单，left 也是按窗口算的（以前这时算成 0，全靠动画结束的事件再摆回来，
+      // 画面卡住、动画没开始类名就被拿掉时没有事件，菜单留在左上角）。
+      const duringShake = await page.evaluate(() => {
+        const input = document.querySelector('#orderForm [name="client"]');
+        const field = input.closest('.field');
+        field.classList.add('ui-err');
+        positionClientMenu(activeClientPicker);
+        const off = parseFloat(document.querySelector('#orderForm .client-menu').style.left) - input.getBoundingClientRect().left;
+        field.classList.remove('ui-err');
+        return off;
+      });
+      assert.ok(Math.abs(duringShake) <= 6, `a shaking field is not the menu's containing block (left off by ${duringShake}px)`);
+      await waitIdle(page);
       const menuAt = await page.evaluate(() => {
         const menu = document.querySelector('#orderForm .client-menu');
         const input = document.querySelector('#orderForm [name="client"]').getBoundingClientRect();
@@ -133,6 +145,21 @@ const waitIdle = page => page.evaluate(() => new Promise(resolve => {
       await page.locator('#orderForm [name="amount"]').fill('250');
       await page.locator('#orderForm [name="client"]').fill('Round Four Buyer');
       assert.deepEqual(await hints(), {}, 'fixing the fields removes the hints');
+      // 定金、已收不是必填，负数照样拦（以前靠 min="0"）。
+      await page.evaluate(() => {
+        const type = document.querySelector('#orderForm [name="orderType"]');
+        type.value = '定金订单';
+        type.dispatchEvent(new Event('change', { bubbles:true }));
+      });
+      const deposit = page.locator('#orderForm [name="depositAmount"]');
+      await deposit.waitFor({ state:'visible' });
+      await deposit.fill('-20');
+      const savesBefore = store.saves;
+      await h.click(page, 'button[type="submit"][form="orderForm"]', 'save order');
+      assert.deepEqual(await hints(), { depositAmount:'金额不能小于 0' }, 'a negative deposit is stopped');
+      assert.equal(store.saves, savesBefore, 'nothing was saved');
+      await deposit.fill('100');
+      assert.deepEqual(await hints(), {});
       await page.evaluate(() => closeOrder());
       await page.waitForFunction(() => !document.getElementById('orderModal').classList.contains('open'));
 

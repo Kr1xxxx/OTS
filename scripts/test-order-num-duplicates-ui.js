@@ -55,7 +55,9 @@ const base = { country:'🇺🇸 美国 United States', currency:'USD', amount:1
     await page.goto('http://127.0.0.1:47999/trade-order-system.html');
     await page.waitForFunction(() => window.pendingSaveStatus?.().loaded);
     const numField = page.locator('#orderForm input[name="num"]');
-    const toastTexts = () => page.evaluate(() => [...document.querySelectorAll('#toast .toast-item')].map(item => `${item.className} | ${item.querySelector('.toast-text')?.textContent}`));
+    // is-behind / is-hidden 只说这条提示在提示堆里排第几（后面又来了一条，比如开机的问候），和它是什么提示无关：不算进去。
+    const toastTexts = () => page.evaluate(() => [...document.querySelectorAll('#toast .toast-item')]
+      .map(item => `${[...item.classList].filter(name => !['is-behind', 'is-hidden'].includes(name)).join(' ')} | ${item.querySelector('.toast-text')?.textContent}`));
     const clearToasts = () => page.evaluate(() => document.querySelectorAll('#toast .toast-item').forEach(item => item.remove()));
 
     // 1. 新建：填一个只差大小写的号，离开输入框就规范化、标红并说清楚是哪张单在用；标题号跟着输入走。

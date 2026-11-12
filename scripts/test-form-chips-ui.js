@@ -7,6 +7,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { chromium } = require('playwright');
+const { h } = require('./helpers/board-page');
 
 const root = path.resolve(__dirname, '..');
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ots-form-chips-'));
@@ -52,7 +53,8 @@ function inspect(selectName) {
       await page.goto(`http://127.0.0.1:${port}/trade-order-system.html?token=${token}#dashboard`);
       await page.waitForFunction(() => typeof openOrder === 'function');
       await page.evaluate(t => { document.documentElement.dataset.theme = t; openOrder(); }, theme);
-      await page.waitForTimeout(500);
+      // Measure once the modal has finished growing in (sizes are compared to the pixel).
+      await h.quiet(page);
       const payment = await page.evaluate(inspect, 'paymentChannel');
       assert.equal(payment.count, 6, 'six payment channels');
       assert(payment.chips && payment.fieldChips, `${theme}: payment channel should be a chip group`);
@@ -70,7 +72,7 @@ function inspect(selectName) {
       assert.equal(await page.$eval('#orderForm [data-binary-value="Zelle"]', b => b.getAttribute('aria-pressed')), 'true');
 
       await page.evaluate(() => { closeOrder(); setPage('settings'); document.querySelector('[data-settings-tab="order"]').click(); });
-      await page.waitForTimeout(300);
+      await h.quiet(page);
       const defaults = await page.evaluate(inspect, 'defaultPaymentChannel');
       assert(defaults.chips && defaults.fullRow, `${theme}: default payment channel chips should span the row`);
       assert.deepEqual(defaults.clipped, []);

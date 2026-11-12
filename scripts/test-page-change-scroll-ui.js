@@ -12,54 +12,58 @@ const orders = Array.from({ length:40 }, (_, index) => ({
   ...base, id:`o${index}`, num:`PI-${1000 + index}`, client:`Customer ${index}`, stage:'报价', amount:100 + index, paidAmount:0, createdAt:day(1 + index % 20)
 }));
 const scrollTop = page => page.evaluate(() => Math.round(document.scrollingElement.scrollTop));
+// The passes of the last page change have all run (each is dropped from pendingScrollResets 260 ms after it starts).
+const passesDone = page => page.waitForFunction(() => pendingScrollResets.size === 0);
 
 (async () => {
   const browser = await launchBrowser();
   try {
     const { page, errors, dialogs } = await openBoard(browser, { orders }, { height:700 });
-    await h.waitPageTime(page, 400);
+    await passesDone(page);
 
     // Nothing done by the user: something that moves the page during those 240 ms is still put back.
     const moved = await page.evaluate(() => { setPage('customers'); document.scrollingElement.scrollTop = 300; return document.scrollingElement.scrollTop; });
     assert.equal(moved, 300, 'the customer page is tall enough to scroll in this test');
-    await h.waitPageTime(page, 320);
+    await passesDone(page);
     assert.equal(await scrollTop(page), 0, 'a page change still ends at the top when the user did nothing');
 
     // The user turns the wheel right after switching page: the page stays where they scrolled to. (The wheel
     // itself may move a list under the pointer instead of the page, so the test moves the page directly.)
     await page.mouse.move(700, 400);
     await page.evaluate(() => setPage('dashboard'));
-    await h.waitPageTime(page, 400);
+    await passesDone(page);
     await page.evaluate(() => setPage('customers'));
     await page.mouse.wheel(0, 40);
     await page.evaluate(() => { document.scrollingElement.scrollTop = 300; });
+    // Proving the page is not put back: the late passes would come 80 and 240 ms after the page change.
+    // (Waiting for pendingScrollResets to empty would not show it: the user's input empties it at once.)
     await h.waitPageTime(page, 320);
     assert.ok(await scrollTop(page) >= 300, 'a scroll right after a page change jumped back to the top');
 
     // A press does the same: what is under the pointer when the button goes down is still there when it
     // comes up, whatever moves the page meanwhile.
     await page.evaluate(() => setPage('dashboard'));
-    await h.waitPageTime(page, 400);
+    await passesDone(page);
     await page.evaluate(() => setPage('customers'));
     await page.mouse.down();
     await page.evaluate(() => { document.scrollingElement.scrollTop = 300; });
-    await h.waitPageTime(page, 320);
+    await h.waitPageTime(page, 320); // past the 240 ms pass, as above
     await page.mouse.up();
     assert.equal(await scrollTop(page), 300, 'the page jumped under a pressed pointer');
 
     // A key does too (arrow keys and Page Down scroll the page).
     await page.evaluate(() => setPage('dashboard'));
-    await h.waitPageTime(page, 400);
+    await passesDone(page);
     await page.evaluate(() => setPage('customers'));
     await page.keyboard.press('Shift');
     await page.evaluate(() => { document.scrollingElement.scrollTop = 300; });
-    await h.waitPageTime(page, 320);
+    await h.waitPageTime(page, 320); // past the 240 ms pass, as above
     assert.equal(await scrollTop(page), 300, 'the page jumped after a key press');
 
     // Input that arrives before the page has heard its own hash change (a busy machine delivers the
     // press first): the hash change must not start the passes again.
     await page.evaluate(() => setPage('dashboard'));
-    await h.waitPageTime(page, 400);
+    await passesDone(page);
     const order = await page.evaluate(() => {
       const seen = [];
       window.addEventListener('hashchange', () => seen.push('hashchange'), { once:true });
@@ -67,7 +71,7 @@ const scrollTop = page => page.evaluate(() => Math.round(document.scrollingEleme
       window.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true }));
       seen.push('pointerdown');
       document.scrollingElement.scrollTop = 300;
-      return new Promise(resolve => setTimeout(() => resolve(seen), 320));
+      return new Promise(resolve => setTimeout(() => resolve(seen), 320)); // past the 240 ms pass, as above
     });
     assert.deepEqual(order, ['pointerdown', 'hashchange'], 'the press comes before the hash change in this case');
     assert.equal(await scrollTop(page), 300, 'the hash change of the page change put the page at the top after a press');

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 const { chromium } = require('playwright');
+const { h } = require('./helpers/board-page');
+const { html } = require('./helpers/page-source');
 
 // PM review P1 batch D: 配色 / 弹窗样式 / API 检测 leave the sidebar for 设置 → 外观 / 接口状态 (the
 // sidebar only shows a red dot on an API error and opens that tab), 金额统计 and 分析 are one page
@@ -12,7 +12,6 @@ const { chromium } = require('playwright');
   const browser = await chromium.launch({headless:true});
   try {
     const page = await browser.newPage({viewport:{width:1440,height:920}});
-    const html = fs.readFileSync(path.join(__dirname,'..','trade-order-system.html'),'utf8');
     const ym = offset => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth()+offset); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; };
     const last = ym(-1);
     const base = {currency:'USD',logisticsStatus:'未发货',productType:'假发',orderType:'定金订单',country:'🇺🇸 美国 United States',logs:[]};
@@ -35,7 +34,8 @@ const { chromium } = require('playwright');
     });
     const load = async () => { await page.goto('http://127.0.0.1:47999/trade-order-system.html?token=t'); await page.waitForFunction(()=>window.pendingSaveStatus?.().loaded); };
     await load();
-    const settle = () => page.waitForTimeout(250);
+    // Wait for open / close animations to finish (it used to wait a fixed 250 ms).
+    const settle = () => h.quiet(page);
 
     // 1. Sidebar: no swatches / modal picker / API card; they live in settings.
     assert.equal(await page.locator('aside .accent-swatches, aside .modal-style-picker, aside .sidebar-api-card').count(),0,'sidebar must not carry 配色 / 弹窗 / API 检测 any more');

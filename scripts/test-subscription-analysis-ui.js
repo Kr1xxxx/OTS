@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 // 续费的二级菜单、分析子页和历史子页：数字按扣费周期推算，只读续费数据。
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 const { chromium } = require('playwright');
 const { createSubscriptionStore } = require('../mac-app/subscription-store');
+const { h } = require('./helpers/board-page');
+const { html } = require('./helpers/page-source');
 
-const html = fs.readFileSync(path.resolve(__dirname, '..', 'trade-order-system.html'), 'utf8');
 async function capture(page, name, options = {}) {
   if (!process.env.UI_SCREENSHOT) return;
+  // Pictures for a person to look at, taken only with UI_SCREENSHOT set (never in a test run). The numbers count up
+  // in requestAnimationFrame (arcTween, up to 720 ms), which leaves no signal to wait on; 900 ms covers the longest.
   await page.waitForTimeout(900);
   await page.screenshot({ path:`${process.env.UI_SCREENSHOT}.${name}.png`, ...options });
 }
@@ -63,15 +64,7 @@ function seededStore() {
     assert.equal(await sub.locator('.nav-sub-item.active').innerText(), '分析');
     // Numbers count up and labels swap with an animation. What is checked is where they end, so the test waits
     // for that, not for a fixed time: on a busy Mac a count-up was read at ¥189.07 of ¥211.00 after 1.2 s.
-    const endsOn = async (read, pattern) => {
-      const deadline = Date.now() + 8000;
-      let text = await read();
-      while (!pattern.test(text) && Date.now() < deadline) {
-        await page.waitForTimeout(50);
-        text = await read();
-      }
-      assert.match(text, pattern);
-    };
+    const { endsOn } = h;
     const kpi = index => () => page.locator('#subsAnalysis .arc-metric').nth(index).innerText();
     await endsOn(kpi(0), /本月扣费\s*\+49% 较上月\s*¥211\.00\s*已扣 ¥142 · 待扣 ¥69/);
     await endsOn(kpi(1), /2026 年已付\s*3 笔\s*¥426\.00/);
@@ -122,7 +115,6 @@ function seededStore() {
     await page.mouse.move(5, 5);
     assert.match(await page.locator('#subsArcMethod .arc-legend').innerText(), /信用卡[\s\S]*未填写[\s\S]*支付宝/);
     assert.deepEqual(await page.locator('#subsAnalysis .subs-top-n b').allInnerTexts(), ['ChatGPT Plus', '1Password', '阿里云域名']);
-    await page.waitForTimeout(700);
     await capture(page, 'analysis', { fullPage:true });
 
     // Clicking a segment of the ring jumps to the list filtered to that category (the bottom of the ring is AI).
@@ -172,7 +164,8 @@ function seededStore() {
         await page.evaluate(value => setPage(value), target);
         for (const width of [1360, 900]) {
           await page.setViewportSize({ width, height:900 });
-          await page.waitForTimeout(120);
+          // The bar chart measures its plot again in a ResizeObserver: read the widths once that has run.
+          await h.frames(page);
           const fit = await page.evaluate(id => {
             const el = document.getElementById(`page-${id}`);
             const tooWide = [...el.querySelectorAll('.subs-panel, .arc-metric, .subs-h-row, .subs-toolbar')]

@@ -129,8 +129,8 @@ async function main() {
   });
   const other = await context.newPage();
   await other.goto(`http://127.0.0.1:${otherPort}/`);
+  // 'load' waits for both images, and OTS answers an image only after it has (or has not) asked DHL.
   await other.waitForLoadState('load');
-  await sleep(300);
   assert.equal(dhlHits, 1, 'a page on another 127.0.0.1 port must not make OTS query DHL');
   const leaked = otherPortCookies.join(';').match(/trade_api_session=([^;\s]+)/);
   assert.ok(leaked, 'the other port does see the host cookie (RFC 6265 ignores ports)');

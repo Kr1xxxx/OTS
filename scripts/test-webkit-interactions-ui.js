@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 const { chromium } = require('playwright');
+const { h } = require('./helpers/board-page');
+const { html } = require('./helpers/page-source');
 
 // Mac App（WKWebView / Safari）里才会出现的交互问题，在 Chromium 里按 WebKit 的规则模拟后逐条回归：
 // - 按钮、链接、summary 不接收鼠标焦点：按下时焦点交给最近的可聚焦祖先，没有就直接失焦（relatedTarget 为空）。
@@ -27,7 +27,6 @@ const webkitFocusSim = () => {
   const browser = await chromium.launch({ headless:true });
   try {
     const page = await browser.newPage({ viewport:{ width:1440, height:920 } });
-    const html = fs.readFileSync(path.join(__dirname, '..', 'trade-order-system.html'), 'utf8');
     const today = new Date();
     const month = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
     const base = { currency:'USD', logisticsStatus:'未发货', createdAt:`${month}-01`, orderMonth:month, updated:`${month}-01 09:00`, logs:[], productType:'睫毛', paymentChannel:'Zelle' };
@@ -175,28 +174,25 @@ const webkitFocusSim = () => {
       return out;
     });
     await page.evaluate(() => openOrder(''));
-    await page.waitForTimeout(200);
     const trackingInput = page.locator('#orderForm [data-shipment-number]').first();
     await trackingInput.evaluate(el => el.closest('.order-section')?.classList.remove('is-folded'));
     await trackingInput.fill('1Z999AA10123456784');
     await trackingInput.evaluate(el => el.blur());
-    await page.waitForTimeout(50);
-    assert.equal(await page.locator('#orderForm [data-shipment-carrier]').first().inputValue(), 'UPS');
-    assert.deepEqual(await staleSelects(), [], 'a dropdown shows a different value than it holds after the tracking number was filled');
+    await h.endsOn(() => page.locator('#orderForm [data-shipment-carrier]').first().inputValue(), 'UPS');
+    await h.endsOn(staleSelects, [], 'a dropdown shows a different value than it holds after the tracking number was filled');
     await page.evaluate(() => { const form = document.getElementById('orderForm'); form.elements.currency.value = 'EUR'; form.elements.orderType.value = '全款订单'; });
-    await page.waitForTimeout(50);
-    assert.deepEqual(await staleSelects(), [], 'code-assigned select values (currency / order type) are not shown');
+    await h.endsOn(staleSelects, [], 'code-assigned select values (currency / order type) are not shown');
     await page.evaluate(() => closeOrder());
     for (const id of ['o2', 'o4']) {
       await page.evaluate(id => openOrder(id), id);
-      await page.waitForTimeout(150);
-      assert.deepEqual(await staleSelects(), [], `order ${id} opens with stale dropdown labels`);
+      await h.endsOn(staleSelects, [], `order ${id} opens with stale dropdown labels`);
       await page.evaluate(() => closeOrder());
     }
 
     // 3. 输入法上屏的回车 / Esc 不能被当成「打开结果」「添加」「关闭」。
     await imeKey('#searchInput', 'bob', 'Enter');
-    await page.waitForTimeout(150);
+    // Nothing may open, also not once the search box's 100 ms debounce (debouncedGlobalSearchRender) has drawn the panel.
+    await h.waitPageTime(page, 150);
     assert.equal(await isOpen('customerModal') || await isOpen('orderDetailDrawer'), false, 'IME Enter in global search opened a result');
     await page.evaluate(() => { document.getElementById('searchInput').value = ''; document.getElementById('searchInput').blur(); });
     await page.evaluate(() => { setPage('settings'); uiSettingsTab('customer'); });
@@ -206,7 +202,6 @@ const webkitFocusSim = () => {
     await page.evaluate(() => openOrderDetail('o2'));
     await page.locator('[data-detail-tab-btn="info"]').click();
     await imeKey('#orderDetailBody [data-dedit="note"]', '备注', 'Escape');
-    await page.waitForTimeout(100);
     assert.equal(await isOpen('orderDetailDrawer'), true, 'IME Escape closed the order detail drawer');
     await page.evaluate(() => { uiDetailMarkClean?.(); closeOrderDetail(); });
 
@@ -222,7 +217,7 @@ const webkitFocusSim = () => {
     // 5. 在输入框里拖选文字、松手落到灰色背景上，弹窗不能关（以前直接关掉，没保存的内容就丢了）；真点背景照常关闭。
     await page.evaluate(() => openCustomerModal());
     await page.waitForFunction(() => document.getElementById('customerModal').classList.contains('open'));
-    await page.waitForTimeout(400);
+    await h.quiet(page);
     const nameInput = page.locator('#customerForm input[name="name"]');
     await nameInput.fill('Drag Select Buyer');
     const box = await nameInput.boundingBox();
@@ -231,16 +226,14 @@ const webkitFocusSim = () => {
     await page.mouse.move(box.x + 8, box.y + box.height / 2, { steps:4 });
     await page.mouse.move(6, box.y + box.height / 2, { steps:4 });
     await page.mouse.up();
-    await page.waitForTimeout(150);
     assert.equal(await isOpen('customerModal'), true, 'releasing a text selection over the backdrop closed the customer modal');
     assert.equal(await isOpen('confirmModal'), false, 'releasing a text selection over the backdrop counted as a backdrop click');
     assert.equal(await nameInput.inputValue(), 'Drag Select Buyer');
     await page.evaluate(() => closeCustomerModal());
     await page.evaluate(() => openCustomerModal());
-    await page.waitForTimeout(400);
+    await h.quiet(page);
     await page.mouse.click(6, 460);
-    await page.waitForTimeout(150);
-    assert.equal(await isOpen('customerModal'), false, 'a real click on the backdrop must still close the modal');
+    await h.endsOn(() => isOpen('customerModal'), false, 'a real click on the backdrop must still close the modal');
 
     // 6. 「更多筛选与排序」浮层：里面的下拉能选，点外面 / Esc 收起。
     await page.evaluate(() => setPage('order-list'));
@@ -289,20 +282,21 @@ const webkitFocusSim = () => {
     const logsBefore = await page.evaluate(() => state.orders.find(o => o.id === 'o2').logs.length);
     await page.locator('#detailCopyTextBtn').click();
     await page.locator('#detailCopyMenu [data-copy-text="status"]').click();
-    await page.waitForTimeout(100);
-    assert.match(await toastText(), /复制失败/);
+    await h.endsOn(toastText, /复制失败/);
     assert.notEqual((await page.locator('#detailCopyTextBtn').innerText()).trim(), '已复制');
     assert.equal(await page.evaluate(() => state.orders.find(o => o.id === 'o2').logs.length), logsBefore, 'a failed copy was logged as a follow-up');
     await page.evaluate(() => closeOrderDetail());
 
     // 9. 官网查询：本地服务打不开时退回 window.open，不能把整个页面跳到物流官网。
-    const opened = await page.evaluate(() => {
+    await page.evaluate(() => {
       window.__opened = [];
       window.open = (...args) => { window.__opened.push(args); return null; };
-      const before = location.href;
+      window.__before = location.href;
       openOfficialTracking('1Z999AA10123456784', 'UPS');
-      return new Promise(resolve => setTimeout(() => resolve({ opened:window.__opened, same:location.href === before }), 300));
     });
+    // The local service answers 400, then the page falls back to window.open.
+    await page.waitForFunction(() => window.__opened.length > 0);
+    const opened = await page.evaluate(() => ({ opened:window.__opened, same:location.href === window.__before }));
     assert.equal(opened.same, true, 'the app page navigated away to the carrier site');
     assert.equal(opened.opened.length, 1);
     assert.match(opened.opened[0][0], /^https:\/\/www\.ups\.com\//);

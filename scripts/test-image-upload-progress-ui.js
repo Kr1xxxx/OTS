@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const http = require('node:http');
 const { chromium } = require('playwright');
+const { h } = require('./helpers/board-page');
 
 // Catches premature 100%, missing per-image feedback, lost partial success,
 // and saving/closing a form while its attachment request is still pending.
@@ -88,8 +89,9 @@ const { chromium } = require('playwright');
     await page.locator('#orderImageUploads').scrollIntoViewIfNeeded();
     for (const theme of ['light','dark']) {
       await page.evaluate(theme => applyTheme(theme), theme);
-      await page.waitForTimeout(250); // Allow the existing theme/progress transitions to settle for visual inspection.
-      if (process.env.UI_SCREENSHOT) await page.screenshot({ path:`${process.env.UI_SCREENSHOT}.${theme}.png` });
+      if (!process.env.UI_SCREENSHOT) continue;
+      await h.quiet(page); // Let the theme / progress transitions finish before the picture.
+      await page.screenshot({ path:`${process.env.UI_SCREENSHOT}.${theme}.png` });
     }
     await page.evaluate(() => upsertOrder(document.getElementById('orderForm')));
     assert.equal(saves, 0, '上传中不应保存不完整订单');

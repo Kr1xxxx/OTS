@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 const { chromium } = require('playwright');
 const { createSubscriptionStore } = require('../mac-app/subscription-store');
 const { h } = require('./helpers/board-page');
+const { html } = require('./helpers/page-source');
 
-const html = fs.readFileSync(path.resolve(__dirname, '..', 'trade-order-system.html'), 'utf8');
 async function capture(page, name, options = {}) {
   if (!process.env.UI_SCREENSHOT) return;
+  // Pictures for a person to look at, taken only with UI_SCREENSHOT set (never in a test run): the amounts count up in
+  // requestAnimationFrame (arcTween), which leaves no signal to wait on, so the picture waits out the longest one.
   await page.waitForTimeout(700);
   await page.screenshot({ path:`${process.env.UI_SCREENSHOT}.${name}.png`, ...options });
 }
@@ -187,7 +187,8 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     const before = store.list().items.find(item => item.name === '1Password');
     await hold.hover();
     await page.mouse.down();
-    await page.waitForTimeout(400);
+    // Let go while the fill is on its way: wait until the hold has started filling (it takes subscriptionHoldMs, 1.5 s).
+    await page.waitForFunction(() => /scaleX\(0\.\d*[1-9]/.test(document.querySelector('#subscriptionDrawer .subs-hold-fill')?.style.transform || ''));
     assert.equal(await hold.innerText(), '继续按住…');
     await page.mouse.up();
     await drawer.locator('.subs-hold.shake').waitFor();
@@ -195,7 +196,8 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     assert.equal(store.list().items.length, 3, 'an early release must not delete');
     await hold.hover();
     await page.mouse.down();
-    await page.waitForTimeout(1700);
+    // Hold until the button says it is done (the fill reached the end), then let go like a person would.
+    await drawer.locator('.subs-hold.ok').waitFor();
     await page.mouse.up();
     const deletedToast = toasts.filter({ hasText:'已删除 1Password' });
     await deletedToast.waitFor();
@@ -337,7 +339,8 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
 
     // Subscriptions never reach order data or global search records; only the page entry is searchable.
     await page.locator('#searchInput').fill('ChatGPT');
-    await page.waitForTimeout(250);
+    // The panel draws a typed query after a 100 ms debounce; read it once it shows this query.
+    await page.waitForFunction(() => globalSearchRenderedQuery === 'ChatGPT');
     assert.match(await page.locator('#globalSearchPanel').innerText(), /共 0 条结果/, 'subscription records are not search results');
     await page.locator('#searchInput').fill('续费');
     await page.locator('#globalSearchPanel', { hasText:'续费' }).waitFor();
@@ -350,7 +353,7 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
       await page.evaluate(value => applyTheme(value), theme);
       for (const width of [1360, 900, 390]) {
         await page.setViewportSize({ width, height:900 });
-        await page.waitForTimeout(120);
+        await h.frames(page);
         const overflow = await page.evaluate(() => {
           const pageEl = document.getElementById('page-subscriptions');
           const tooWide = [...pageEl.querySelectorAll('.subs-row, .subs-hero, .subs-toolbar, .subs-seg')]

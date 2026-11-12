@@ -116,6 +116,8 @@ const fixture = {
     // ---- 1. Opening the app on the migrated database: the page has the ids, and writes nothing on its own ----
     await page.evaluate(() => setPage('customers'));
     await page.waitForSelector('.customer-row[data-view-customer="Cedar Wigs"]');
+    // Proving nothing is written: a change would be queued and sent 350 ms later (scheduleMacSave). Let two of those
+    // windows pass, then flush whatever might be queued.
     await h.waitPageTime(page, 700);
     await flush();
     assert.deepEqual(await page.evaluate(() => Object.fromEntries(Object.entries(state.customers).map(([name, profile]) => [name, profile.id]))), idOf);
@@ -223,6 +225,8 @@ const fixture = {
     await page.waitForFunction(() => window.pendingSaveStatus?.().loaded);
     await page.evaluate(() => setPage('customers'));
     await page.waitForSelector('.customer-row[data-view-customer="Cedar Wigs"]');
+    // Proving nothing is written: a change would be queued and sent 350 ms later (scheduleMacSave). Let two of those
+    // windows pass, then flush whatever might be queued.
     await h.waitPageTime(page, 700);
     await flush();
     assert.deepEqual(posted, [], 'reading data without ids saves nothing');

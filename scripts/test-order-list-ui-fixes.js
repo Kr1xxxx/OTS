@@ -72,6 +72,7 @@ const orders = [
     const ime = await inputMethod(page);
     for (const text of ['z', 'zh', 'zhang']) {
       await ime.compose(text);
+      // Proving the list does not redraw while composing: its search runs through debounce() (120 ms by default).
       await h.waitPageTime(page, 200);
     }
     assert.deepEqual(await page.evaluate(() => window.__listRenders), [], 'list re-rendered while composing');

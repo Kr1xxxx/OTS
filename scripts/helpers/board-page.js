@@ -1,10 +1,9 @@
 // Shared setup for the board / stage UI tests: the real page with an in-memory /api/data + /api/save,
 // and real-mouse helpers (mouse.down / move / up for HTML5 drag and drop, real right clicks).
-const fs = require('node:fs');
-const path = require('node:path');
+const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
+const { html } = require('./page-source');
 
-const html = fs.readFileSync(path.join(__dirname, '..', '..', 'trade-order-system.html'), 'utf8');
 const pad = n => String(n).padStart(2, '0');
 const today = new Date();
 const month = `${today.getFullYear()}-${pad(today.getMonth() + 1)}`;
@@ -213,10 +212,51 @@ const h = {
     await h.settle(page, '.board-menu');
     return point;
   },
-  // 等到页面里的时钟走过 ms 毫秒（证明某件事「没有」发生时用；比固定 sleep 少等、不受测试机快慢影响）。
+  // 等到页面里的时钟走过 ms 毫秒。只用来证明某件事在这段时间里「没有」发生（Esc 之后面板没再弹出、没有多发一次保存），
+  // 调用处写明在等页面的哪个计时器、毫秒数从哪来。等「某件事发生」用 endsOn / waitForFunction / quiet，不用它。
   waitPageTime: async (page, ms) => {
     const start = await page.evaluate(() => performance.now());
     await page.waitForFunction(end => performance.now() >= end, start + ms, { polling:50 });
+  },
+  // 读到最终值为止：反复 read()，直到结果符合 expected（正则就 match，否则 deepEqual）或超时，再断言最后读到的那次。
+  // 数字滚动、标签切换、弹窗开关这类「最后会变成什么」的东西用它：机器忙的时候动画跑得慢，固定等待会读到半路的值
+  // （2026-11-11 WebKit 上读到 ¥189.07 / ¥211.00）。读到了就立刻往下走，不多等。
+  endsOn: async (read, expected, message, { timeout = 8000 } = {}) => {
+    const matches = value => {
+      if (expected instanceof RegExp) return expected.test(value);
+      try { assert.deepStrictEqual(value, expected); return true; } catch (_) { return false; }
+    };
+    const deadline = Date.now() + timeout;
+    let value = await read();
+    while (!matches(value) && Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 25));
+      value = await read();
+    }
+    if (expected instanceof RegExp) assert.match(value, expected, message);
+    else assert.deepStrictEqual(value, expected, message);
+  },
+  // 等页面画完 count 帧：布局、ResizeObserver 回调、requestAnimationFrame 里的重画都跑过了（改窗口大小之后量尺寸用）。
+  frames: (page, count = 2) => page.evaluate(n => new Promise(resolve => {
+    const step = left => (left ? requestAnimationFrame(() => step(left - 1)) : resolve());
+    step(n);
+  }), count),
+  // 等页面安静下来：连续两帧没有在跑的（有尽头的）CSS 动画或过渡——弹窗开合、抽屉滑入、提示弹入、菜单缩放。
+  // 代替以前的「等 250 毫秒」：动画跑完就往下走，机器慢就多等。无限循环的动画（加载转圈）不算。
+  // 只管动画；页面里用 setTimeout 推迟的事（确认框 50ms 后才聚焦按钮、保存防抖）要等那件事本身。
+  quiet: async page => {
+    const still = await page.evaluate(() => new Promise(resolve => {
+      const started = performance.now();
+      let calm = 0;
+      const check = () => {
+        const moving = document.getAnimations().filter(a => a.playState === 'running' && a.effect?.getComputedTiming?.().endTime !== Infinity);
+        calm = moving.length ? 0 : calm + 1;
+        if (calm >= 2) return resolve('');
+        if (performance.now() - started > 10000) return resolve(moving.map(a => `${a.animationName || a.transitionProperty || 'animation'} on ${a.effect.target?.outerHTML?.slice(0, 80)}`).join('; '));
+        requestAnimationFrame(check);
+      };
+      requestAnimationFrame(check);
+    }));
+    if (still) throw new Error(`the page kept animating for 10 s: ${still}`);
   }
 };
 

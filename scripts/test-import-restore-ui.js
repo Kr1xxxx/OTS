@@ -211,7 +211,8 @@ const fixture = {
     await h.waitToast(page, '导入没有完成，数据保持导入前的样子：database is locked');
     assert.equal(await page.evaluate(() => state.orders.some(o => o.id === 'n2')), false, 'the page goes back to the data before the import');
     const requestsAfterFailure = saveRequests;
-    await page.waitForTimeout(3600);
+    // A failed save is retried 3000 ms later (macSaveRetryTimer in the save engine): let one retry window pass.
+    await h.waitPageTime(page, 3600);
     assert.equal(saveRequests, requestsAfterFailure, 'a failed import is not retried every 3 seconds');
     await page.unroute('**/api/save');
 

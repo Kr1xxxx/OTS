@@ -9,10 +9,10 @@
 // - A second confirm (Mac shell prompt) over an open discard confirm no longer leaves the first one hanging.
 // - 续费: Esc on the discard confirm closes it once; Esc while saving keeps the editor; price editor asks.
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 const { chromium } = require('playwright');
+const { h } = require('./helpers/board-page');
+const { html } = require('./helpers/page-source');
 const { createSubscriptionStore } = require('../mac-app/subscription-store');
 
 async function launch() {
@@ -24,7 +24,6 @@ async function launch() {
   const browser = await launch();
   try {
     const page = await browser.newPage({ viewport:{ width:1440, height:920 } });
-    const html = fs.readFileSync(path.join(__dirname, '..', 'trade-order-system.html'), 'utf8');
     const today = new Date();
     const month = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
     const base = { currency:'USD', logisticsStatus:'未发货', createdAt:`${month}-01`, orderMonth:month, updated:`${month}-01 09:00`, logs:[], productType:'假发', paymentChannel:'Paypal', owner:'未分配', orderType:'全款订单', paidAmount:0, stage:'quote' };
@@ -41,7 +40,8 @@ async function launch() {
     let failSave = false;
     // 保存请求挂住，直到测试放行：以前固定延迟 1.5 秒，机器忙时后面几步还没做完保存就回来、弹窗已经关了。
     let saveGate = null;
-    let failSubscriptionSave = false;
+    // Set by the test: the next subscription save request waits until the test lets it fail (it is "still saving" until then).
+    let failSubscriptionSave = null;
     const store = createSubscriptionStore(new DatabaseSync(':memory:'));
     store.save({ name:'VPS', note:'', amount:20, currency:'USD', cycleMonths:1, startDate:`${month}-01`, category:'工具效率', color:'#2f6fde' });
     const errors = [];
@@ -61,7 +61,8 @@ async function launch() {
       if (pathname.startsWith('/api/subscriptions')) {
         const body = request.postData() ? JSON.parse(request.postData()) : {};
         if (pathname === '/api/subscriptions/save' && failSubscriptionSave) {
-          await new Promise(resolve => setTimeout(resolve, 1200));
+          failSubscriptionSave.arrived();
+          await failSubscriptionSave.released;
           return route.fulfill({ status:500, json:{ ok:false, message:'TEST 续费保存失败' } });
         }
         try {
@@ -85,7 +86,8 @@ async function launch() {
     await page.waitForFunction(() => window.pendingSaveStatus?.().loaded);
     await page.evaluate(() => window.flushPendingSave());
     const isOpen = id => page.evaluate(id => document.getElementById(id).classList.contains('open'), id);
-    const settle = (ms = 250) => page.waitForTimeout(ms);
+    // Wait for open / close animations to finish (it used to wait a fixed 250 ms).
+    const settle = () => h.quiet(page);
     const type = async (locator, text) => { await locator.click(); await locator.pressSequentially(text, { delay:5 }); };
     const waitSaveError = () => page.waitForFunction(() => window.pendingSaveStatus().error);
     // After the disk is back the 3 s auto retry runs; wait until everything queued is written.
@@ -95,7 +97,7 @@ async function launch() {
       await settle();
       assert.equal(await isOpen('confirmModal'), true, 'closing after a failed save must ask');
       await page.locator('#confirmOkBtn').click();
-      await settle(300);
+      await settle();
     };
 
     // P1-3 new order: the failed save stays in memory (for the retry / export) until 放弃修改 takes it back,
@@ -240,11 +242,11 @@ async function launch() {
     await orderSave.click();
     await page.waitForFunction(() => document.getElementById('orderForm').dataset.saving);
     await page.keyboard.press('Escape');
-    await settle(200);
+    await settle();
     assert.equal(await isOpen('confirmModal'), false, 'no 放弃修改 offer while saving');
     assert.match(await page.locator('#toast').innerText(), /正在保存/);
     await page.locator('#closeModalBtn').click();
-    await settle(200);
+    await settle();
     assert.equal(await isOpen('confirmModal'), false);
     assert.equal(await isOpen('orderModal'), true, 'the form stays open until the save finishes');
     const release = saveGate.release;
@@ -270,7 +272,8 @@ async function launch() {
     assert.match(await page.locator('#confirmMessage').innerText(), /订单 K1001 里改的内容还没保存/);
     assert.equal(await page.locator('#confirmOkBtn').innerText(), '不保存，退出');
     assert.equal(await page.locator('#confirmCancelBtn').innerText(), '继续编辑');
-    assert.equal(await page.evaluate(() => document.activeElement?.id), 'confirmCancelBtn');
+    // appConfirm moves the focus to the safe button 50 ms after it opens.
+    await h.endsOn(() => page.evaluate(() => document.activeElement?.id), 'confirmCancelBtn');
     await page.keyboard.press('Enter');
     await settle();
     assert.equal(await page.evaluate(() => window.__quit), false, '继续编辑 cancels the quit');
@@ -323,40 +326,43 @@ async function launch() {
       window.appConfirm = options => { window.__confirms += 1; return original(options); };
       setPage('subscriptions');
     });
-    await settle(600);
+    await settle();
     await page.locator('#subsAddBtn').click();
-    await settle(400);
+    await settle();
     await type(page.locator('#subscriptionName'), 'Test Sub');
     await page.keyboard.press('Escape');
     await settle();
     assert.equal(await isOpen('confirmModal'), true);
     await page.keyboard.press('Escape');
-    await settle(300);
+    await settle();
     assert.equal(await isOpen('confirmModal'), false, 'Esc must close the discard confirm');
     assert.equal(await isOpen('subscriptionEditModal'), true);
     assert.equal(await page.evaluate(() => window.__confirms), 1, 'one Esc on the confirm must not ask a second time');
     // P2-3: Esc while the save request runs keeps the editor; the failure is shown in it, input kept.
     await type(page.locator('#subscriptionAmount'), '12');
-    failSubscriptionSave = true;
+    failSubscriptionSave = {};
+    const saveArrived = new Promise(resolve => { failSubscriptionSave.arrived = resolve; });
+    failSubscriptionSave.released = new Promise(resolve => { failSubscriptionSave.release = resolve; });
     await page.locator('#subscriptionSaveBtn').click();
-    await settle(200);
+    await saveArrived;
     await page.keyboard.press('Escape');
-    await settle(200);
+    await settle();
     assert.equal(await isOpen('subscriptionEditModal'), true, 'Esc while saving must not close the editor');
     assert.equal(await isOpen('confirmModal'), false);
+    failSubscriptionSave.release();
     await page.waitForFunction(() => /TEST 续费保存失败/.test(document.getElementById('subscriptionEditError').textContent), null, { timeout:8000 });
     assert.equal(await page.locator('#subscriptionName').inputValue(), 'Test Sub');
-    failSubscriptionSave = false;
+    failSubscriptionSave = null;
     await page.keyboard.press('Escape');
     await settle();
     await page.locator('#confirmOkBtn').click();
-    await settle(300);
+    await settle();
     assert.equal(await isOpen('subscriptionEditModal'), false);
     // P2-10: the period price editor asks before dropping a typed price.
     await page.locator('#subsList .subs-row').first().click();
-    await settle(500);
+    await settle();
     await page.locator('#subscriptionDrawer [data-sub-period]').first().click();
-    await settle(300);
+    await settle();
     const price = page.locator('#subscriptionPriceAmount');
     await price.click();
     await page.keyboard.press('ControlOrMeta+A');

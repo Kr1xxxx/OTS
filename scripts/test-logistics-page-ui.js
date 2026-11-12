@@ -23,7 +23,8 @@ const day = offset => { const [y, m, d] = TODAY.split('-').map(Number); const t 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 // ---- 假承运商：按单号返回预设的结果，记下每一次调用 ----
-const carrier = { dhl:{}, fedex:{}, calls:[], tokenCalls:0, delayMs:{} };
+// held[number]: a promise the answer for that number waits on (the query stays busy until the test lets it go).
+const carrier = { dhl:{}, fedex:{}, calls:[], tokenCalls:0, held:{} };
 const dhlOk = (code, description, timestamp, events = []) => ({ status:200, body:{ shipments:[{ status:{ statusCode:code, status:code, description, timestamp }, events }] } });
 function fakeCarrierServer() {
   return http.createServer((req, res) => {
@@ -35,7 +36,7 @@ function fakeCarrierServer() {
       if (url.pathname === '/dhl/track/shipments') {
         const number = url.searchParams.get('trackingNumber');
         carrier.calls.push(`DHL:${number}`);
-        if (carrier.delayMs[number]) await sleep(carrier.delayMs[number]);
+        if (carrier.held[number]) await carrier.held[number];
         const plan = carrier.dhl[number] || carrier.dhl['*'] || dhlOk('transit', 'In transit', new Date().toISOString());
         return reply(plan.status, plan.body, plan.headers);
       }
@@ -331,7 +332,8 @@ const risks = page => page.evaluate(() => buildTaskItems().filter(task => String
     await page.keyboard.insertText('\nK26110501\nUPS 123456789099\nFedEx 3100000004');
     assert.match(await text(page, '#trackingDetect'), /6 个单号 .*识别不了 1/);
     carrier.calls.length = 0;
-    carrier.delayMs['3100000001'] = 700;
+    let releaseFirst;
+    carrier.held['3100000001'] = new Promise(resolve => { releaseFirst = resolve; });
     await clickAt(page, '#trackingLookupBtn');
     await page.waitForFunction(() => document.getElementById('trackingLookupBtn').disabled);
     assert.equal(await page.locator('#trackingLookupBtn').getAttribute('aria-busy'), 'true');
@@ -341,6 +343,7 @@ const risks = page => page.evaluate(() => buildTaskItems().filter(task => String
     await page.mouse.click(busyBtn.x, busyBtn.y);
     await page.locator('#trackingLookupInput').focus();
     await page.keyboard.press('Control+Enter');
+    releaseFirst();
     await page.waitForFunction(() => /查询完成：5 个物流单/.test(document.getElementById('trackingLookupResult').innerText));
     assert.deepEqual(carrier.calls.sort(), ['DHL:3100000001', 'DHL:3100000002', 'DHL:3100000003', 'FedEx:3100000004'], '每个单号只查一次；认不出的不查；订单里选了 UPS 的 12 位单号不按 FedEx 查');
     const queryResult = await text(page, '#trackingLookupResult');
@@ -348,7 +351,9 @@ const risks = page => page.evaluate(() => buildTaskItems().filter(task => String
     assert.match(queryResult, /格式不像 DHL \/ FedEx \/ UPS 单号，没有查询/);
     assert.equal(await page.evaluate(() => state.orders.find(order => order.id === 'u12').stage), 'shipment');
     assert.equal(await page.locator('#trackingLookupInput').inputValue(), '3100000001\t3100000002 / 3100000003\nK26110501\nUPS 123456789099\nFedEx 3100000004', '输入框不被改写，前缀还在');
-    await page.waitForFunction(() => !document.getElementById('trackingLookupBtn').disabled);
+    // 按钮先显示「查询完成」，1.4 秒后（setTrackingLookupButton 的 idleTimer）整个重画回「批量查询」。等它回去再开下一轮：
+    // 正好在重画那一刻按下去，按下和松开落在新旧两个节点上，WebKit 不算一次点击（macOS CI 上碰到过）。
+    await page.waitForFunction(() => !document.getElementById('trackingLookupBtn').dataset.morph);
     // 超过 12 个：查前 12 个，剩下的留在输入框里。
     const fifteen = Array.from({ length:15 }, (_, i) => String(3200000000 + i));
     await page.locator('#trackingLookupInput').fill('');
@@ -405,7 +410,7 @@ const risks = page => page.evaluate(() => buildTaskItems().filter(task => String
 
     // 窄屏不横向滚动。
     await page.setViewportSize({ width:390, height:844 });
-    await page.waitForTimeout(150);
+    await h.frames(page);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true, '390px 下没有横向滚动');
 
     assert.ok(carrier.calls.every(call => /^(DHL|FedEx):/.test(call)), '只调用了本机的假承运商');
@@ -415,9 +420,11 @@ const risks = page => page.evaluate(() => buildTaskItems().filter(task => String
     console.log('Logistics page UI test passed: one in-transit scope for cards / list / sidebar, filters, failures keep the last good result, rate-limit stop, FedEx token reuse, pinned cap, confirm + undo clear, query box parsing / carrier / busy, drawer risk, combo, delivered-complete undo.');
   } finally {
     await browser?.close().catch(() => {});
+    const exited = server.exitCode === null ? new Promise(resolve => server.once('exit', resolve)) : null;
     server.kill('SIGTERM');
     fake.close();
-    await sleep(200);
+    // The data folder goes once the server has let go of its database.
+    if (exited) await Promise.race([exited, sleep(5000)]);
     fs.rmSync(dataDir, { recursive:true, force:true });
   }
 })().catch(error => {

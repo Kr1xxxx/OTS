@@ -13,20 +13,7 @@ const { chromium } = require('playwright');
 const { createWhatsAppStore } = require('../mac-app/whatsapp-store');
 
 const root = path.resolve(__dirname, '..');
-const htmlFile = path.join(root, 'trade-order-system.html');
-const html = fs.readFileSync(htmlFile, 'utf8');
-
-function extractFunction(name) {
-  const start = html.indexOf(`function ${name}(`);
-  assert.ok(start >= 0, `Missing production function: ${name}`);
-  const bodyStart = html.indexOf('{', start);
-  for (let index = bodyStart; index < html.length; index += 1) {
-    if (html[index] !== '}') continue;
-    const candidate = html.slice(start, index + 1);
-    try { new vm.Script(candidate); return candidate; } catch (_) {}
-  }
-  throw new Error(`Could not extract ${name}`);
-}
+const { html, extractFunction } = require('./helpers/page-source');
 
 function pureFunctionTests() {
   // Date-only strings are local dates in every time zone (they used to be UTC midnight, one day early west of UTC).
@@ -157,7 +144,6 @@ async function pageTests() {
     await page.evaluate(() => { window.__undoCount = 0; uiToast('测试', { undo: () => { window.__undoCount += 1; } }); });
     await page.locator('.toast-undo').last().dispatchEvent('click');
     await page.locator('.toast-undo').last().dispatchEvent('click').catch(() => {});
-    await page.waitForTimeout(250);
     assert.equal(await page.evaluate(() => window.__undoCount), 1, 'double-click on 撤销 ran the undo twice');
 
     // Secondary drawers / modals close on Escape and return focus to where it came from.

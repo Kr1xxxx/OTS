@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
+const { h } = require('./helpers/board-page');
 
 // The order detail drawer saves through the order form. Saving must keep the form's
 // rules: a customer is required, and a payment change moves 报价 orders the way a
@@ -99,10 +100,10 @@ const { chromium } = require('playwright');
     await open('o-manual','info');
     await page.locator('#orderDetailBody [data-dedit="client"]').fill('');
     await page.locator('#detailSaveBtn').click();
-    await page.waitForTimeout(300);
+    // The refusal is decided on the click; once its message shows, nothing more is coming.
+    await h.endsOn(()=>page.locator('#toast').textContent(),/请填写客户名称/);
     saved = await snapshot('o-manual');
     assert.equal(saved.client,'Dan','an order was saved without a customer');
-    assert.match(await page.locator('#toast').textContent(),/请填写客户名称/);
 
     // The 更新 button never stays on 检查中… when the native side does not answer.
     const stuck = await page.evaluate(()=>{ otsAppUpdateStatus({state:'checking'}); return document.getElementById('appUpdateBtn').classList.contains('is-busy'); });

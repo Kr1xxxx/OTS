@@ -185,6 +185,8 @@ const fixture = {
     await h.clickUndo(page, '数据文件已导入');
     await h.waitToast(page, '已撤销导入');
     await page.waitForFunction(() => window.pendingSaveStatus().pending === false && !window.pendingSaveStatus().saving);
+    // 换数据那次已经整份写进数据库了：侧栏回到「已保存」，不停在「待保存」（以前要等下一次改动才变回来）。
+    await page.waitForFunction(() => document.getElementById('savePulse').lastElementChild.textContent === '已保存', null, { timeout:5000 });
     saved = (await db());
     assert.deepEqual(saved.orders.map(o => o.num).sort(), ['K26080101', 'K26090101', 'K26100101', 'K26110101'], 'undo brings the replaced orders back');
     assert.ok(saved.customers['Zero Lead'], 'undo brings the removed customer back');

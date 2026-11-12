@@ -286,19 +286,29 @@ async function boardAndLogTests(browser) {
     await h.clickUndo(page, 'Task Buyer');
     await page.waitForFunction(() => !state.orders.find(o => o.id === 'o-task').logs.some(item => item.text.startsWith('待办已处理')));
 
-    // Keyboard focus on the drawer tabs: the ring is drawn inside the tab (the strip clips anything outside it).
+    // Keyboard focus on the drawer tabs: the ring is a rounded box around the label, and it stays inside the strip, which clips anything outside it.
     await page.evaluate(() => { document.querySelectorAll('#toast .toast-item').forEach(el => el.remove()); openOrderDetail('o-plain'); });
     await page.waitForSelector('#orderDetailDrawer.open');
     await page.locator('#detailTabs [data-detail-tab-btn="info"]').focus();
     await page.keyboard.press('ArrowRight');
     const ring = await page.evaluate(() => {
       const tab = document.activeElement;
-      const style = getComputedStyle(tab);
-      return { isTab:tab.matches('#detailTabs [data-detail-tab-btn]'), visible:tab.matches(':focus-visible'), width:parseFloat(style.outlineWidth), offset:parseFloat(style.outlineOffset), style:style.outlineStyle };
+      const strip = document.getElementById('detailTabs').getBoundingClientRect();
+      // The ring is the focused tab's ::before plus 2px of shadow around it; the first and the last tab are the ones next to the strip's edges.
+      const before = getComputedStyle(tab, '::before');
+      const reach = el => {
+        const box = el.getBoundingClientRect();
+        return { left:box.left + parseFloat(before.left) - 2, right:box.right - parseFloat(before.right) + 2, top:box.top + parseFloat(before.top) - 2, bottom:box.bottom - parseFloat(before.bottom) + 2 };
+      };
+      const first = reach(document.querySelector('#detailTabs [data-detail-tab-btn]'));
+      const own = reach(tab);
+      return { isTab:tab.matches('#detailTabs [data-detail-tab-btn]'), visible:tab.matches(':focus-visible'), outline:getComputedStyle(tab).outlineStyle, shadow:before.boxShadow,
+        inside:first.left >= strip.left - 0.5 && own.right <= strip.right + 0.5 && own.top >= strip.top - 0.5 && own.bottom <= strip.bottom + 0.5, first, own, strip:{ left:strip.left, right:strip.right, top:strip.top, bottom:strip.bottom } };
     });
     assert.equal(ring.isTab && ring.visible, true, 'arrow keys move keyboard focus along the drawer tabs');
-    assert.equal(ring.style, 'solid');
-    assert.ok(ring.offset + ring.width <= 0, `the tab focus ring stays inside the tab (offset ${ring.offset}, width ${ring.width})`);
+    assert.equal(ring.outline, 'none', 'the tab draws one ring, not an outline on top of it');
+    assert.match(ring.shadow, /2px/, 'the focused tab has a 2px ring');
+    assert.equal(ring.inside, true, `the tab focus ring stays inside the strip: ${JSON.stringify(ring)}`);
     await page.evaluate(() => closeOrderDetail?.());
 
     // Opening the notification panel from the keyboard does not draw a ring around the whole panel.

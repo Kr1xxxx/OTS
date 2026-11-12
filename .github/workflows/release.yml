@@ -167,10 +167,11 @@ jobs:
     # A failed release used to go unnoticed: run 77 (V3.155) failed in hdiutil and nobody looked for
     # three hours, while main already said 3.155. A failure opens an issue assigned to the owner (or adds
     # to the open one for that version); the next successful publish of that version closes it.
+    # 'cancelled' counts as failed: that is what a mac job that hit its timeout reports.
     needs: [gate, mac]
     if: >-
       always()
-      && (needs.gate.result == 'failure' || needs.mac.result == 'failure' || needs.mac.result == 'success')
+      && (needs.gate.result == 'failure' || needs.mac.result == 'failure' || needs.mac.result == 'cancelled' || needs.mac.result == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -179,7 +180,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
       VERSION: ${{ needs.gate.outputs.version }}
-      FAILED: ${{ needs.gate.result == 'failure' || needs.mac.result == 'failure' }}
+      FAILED: ${{ needs.mac.result != 'success' }}
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
       - name: Open, update or close the release-failure issue

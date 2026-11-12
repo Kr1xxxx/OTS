@@ -73,18 +73,22 @@ const booted = page => page.evaluate(() => window.__booted.length);
     }
 
     // 4. A version whose script throws while starting never reports, wherever it throws.
-    // Each is checked once it has got as far as it ever will (a working page reports at that point at the latest):
-    // the error was thrown and, where the script got to read the database, the answer was drawn or failed to draw.
+    // Each is checked once it has got as far as it ever will (a working page reports at that point at the latest).
+    const threw = (errors, label) => h.endsOn(() => errors.includes('broken build'), true, `${label}: the page did not throw`);
     const brokenPages = {
+      // The script stops at the throw; the read it started already is drawn.
       'throws near the end of the script': {
         body:html.replace('window.otsAppUpdateStatus = otsAppUpdateStatus;', 'window.otsAppUpdateStatus = otsAppUpdateStatus;\nthrow new Error("broken build");'),
-        done:page => page.waitForFunction(() => appFirstLoadDrawn === true)
+        done:async (page, errors, label) => { await threw(errors, label); await page.waitForFunction(() => appFirstLoadDrawn === true); }
       },
+      // Nothing is read, so the throw is the end.
       'throws before the first read': {
         body:html.replace('\nloadMacAppState();\nloadEcbHistoricalRates();', '\nthrow new Error("broken build");\nloadMacAppState();\nloadEcbHistoricalRates();'),
-        done:async () => {}
+        done:(page, errors, label) => threw(errors, label)
       },
-      // The first render after the read throws inside loadMacAppState's try, the one after its catch ends it.
+      // The first render after the read throws inside loadMacAppState's try; the catch marks the load failed and the
+      // render after it throws again, ending loadMacAppState. That last throw is a rejected promise, which WebKit does
+      // not report as a page error, so the failed load is the signal here.
       'cannot draw what it read': {
         body:html.replace('\nfunction render() {', '\nfunction render() {\n  if (macStateReady) throw new Error("broken build");'),
         done:page => page.waitForFunction(() => macStorageMode === 'load-failed')
@@ -93,8 +97,7 @@ const booted = page => page.evaluate(() => window.__booted.length);
     for (const [label, { body, done }] of Object.entries(brokenPages)) {
       assert.notEqual(body, html, `${label}: the page was changed`);
       const { context, page, errors } = await open(browser, { body });
-      await h.endsOn(() => errors.includes('broken build'), true, `${label}: the page did not throw`);
-      await done(page);
+      await done(page, errors, label);
       assert.equal(await booted(page), 0, `${label}: must not report a working app`);
       await context.close();
     }

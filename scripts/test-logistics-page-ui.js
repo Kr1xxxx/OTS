@@ -351,7 +351,9 @@ const risks = page => page.evaluate(() => buildTaskItems().filter(task => String
     assert.match(queryResult, /格式不像 DHL \/ FedEx \/ UPS 单号，没有查询/);
     assert.equal(await page.evaluate(() => state.orders.find(order => order.id === 'u12').stage), 'shipment');
     assert.equal(await page.locator('#trackingLookupInput').inputValue(), '3100000001\t3100000002 / 3100000003\nK26110501\nUPS 123456789099\nFedEx 3100000004', '输入框不被改写，前缀还在');
-    await page.waitForFunction(() => !document.getElementById('trackingLookupBtn').disabled);
+    // 按钮先显示「查询完成」，1.4 秒后（setTrackingLookupButton 的 idleTimer）整个重画回「批量查询」。等它回去再开下一轮：
+    // 正好在重画那一刻按下去，按下和松开落在新旧两个节点上，WebKit 不算一次点击（macOS CI 上碰到过）。
+    await page.waitForFunction(() => !document.getElementById('trackingLookupBtn').dataset.morph);
     // 超过 12 个：查前 12 个，剩下的留在输入框里。
     const fifteen = Array.from({ length:15 }, (_, i) => String(3200000000 + i));
     await page.locator('#trackingLookupInput').fill('');

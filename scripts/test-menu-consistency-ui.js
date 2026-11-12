@@ -72,16 +72,28 @@ const orders = [
     await page.waitForSelector('#customerModal.open');
     const nameInput = page.locator('#customerForm [name="name"]');
     await h.click(page, nameInput, 'customer name');
-    const focused = await nameInput.evaluate(el => { const style = getComputedStyle(el); return { active:document.activeElement === el, outline:style.outlineStyle, border:style.borderTopColor, shadow:style.boxShadow }; });
+    // 边框颜色有过渡：等它走到强调色再量（刚点下去时还是原来的灰色）。
+    const accentBorder = (await accent()).border;
+    const reachesAccent = (locator, what) => locator.evaluate((el, expected) => new Promise((resolve, reject) => {
+      const started = performance.now();
+      const check = () => {
+        const now = getComputedStyle(el).borderTopColor;
+        if (now === expected) return resolve();
+        if (performance.now() - started > 3000) return reject(new Error(`border is ${now}, expected ${expected}`));
+        requestAnimationFrame(check);
+      };
+      check();
+    }), accentBorder).catch(error => assert.fail(`${what}: ${error.message.split('\n')[0]}`));
+    await reachesAccent(nameInput, 'a focused text field has an accent border');
+    const focused = await nameInput.evaluate(el => { const style = getComputedStyle(el); return { active:document.activeElement === el, outline:style.outlineStyle, shadow:style.boxShadow }; });
     assert.equal(focused.active, true);
     assert.equal(focused.outline, 'none', 'a focused text field has one focus style, not an outline around it as well');
-    assert.equal(focused.border, (await accent()).border, 'a focused text field has an accent border');
     assert.notEqual(focused.shadow, 'none', 'a focused text field keeps its soft ring');
     const levelButton = page.locator('#customerForm select[name="level"] + .app-select-button, #customerForm .app-select:has(select[name="level"]) .app-select-button').first();
     await levelButton.scrollIntoViewIfNeeded();
     await h.click(page, levelButton, 'customer level select');
     await page.waitForSelector('.app-select-popover:not([hidden])');
-    assert.equal(await levelButton.evaluate(el => getComputedStyle(el).borderTopColor), (await accent()).border, 'an open select has the same accent border as a focused field');
+    await reachesAccent(levelButton, 'an open select has the same accent border as a focused field');
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => !document.querySelector('.app-select-popover:not([hidden])'));
     await page.evaluate(() => { const modal = document.getElementById('customerModal'); modal.classList.remove('open'); modal.setAttribute('aria-hidden', 'true'); document.body.classList.remove('modal-open'); });

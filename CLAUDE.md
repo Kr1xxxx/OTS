@@ -12,6 +12,12 @@ The repository is public. Business data, attachments, backups, settings files an
 
 `grep -n '^// #region' trade-order-system.html` lists the sections of the main script, about fifty, with their line numbers. Read the section, not the file. New code goes into the section it belongs to; a new section gets its own `// #region Name` and `// #endregion` lines (`npm run check` fails when they do not pair up).
 
+The stylesheet has two layers and keeps them. The first `<style>` is the base layer (older rules, plain selectors). `<style id="ots-ui-v2">` and the smaller blocks after it (`#ots-form-v3`, `#ots-order-modal`) are the layer on top: their rules are written `html[data-theme] …`, and the prefix exists only to outrank the base rule for the same element. Declarations that could never apply have been deleted (proved rule by rule in #99, #101 and #102), so what is left in both layers is live; the layers are not merged because a move between them cannot be proved safe for every state in WebKit. In practice:
+
+- To find a component's styles, grep its class name and read both layers. To change a property, change the declaration that wins today (usually the `html[data-theme]` one), not a base rule it overrides.
+- New rules go into the top layer (the order dialog's into `#ots-order-modal`, the rest into `#ots-ui-v2`) with the `html[data-theme]` prefix. Add no rules to the base layer and no new `!important`.
+- Merging one component's two layers into one rule set happens only inside a PR that changes that component's look on request, not as a refactor of its own.
+
 The page stays one file on purpose. Splitting it into source files would put a build step in front of every test, the lint and the app build, and the gain would be navigation only: the scripts would still share one global scope, and Git already merges changes to different parts of one file.
 
 ## Before pushing

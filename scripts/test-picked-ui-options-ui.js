@@ -112,6 +112,12 @@ const orders = [
     await page.keyboard.press('Tab');
     assert.equal((await menu()).open, false, 'Tab closes the menu');
     assert.equal(await orderCountry.inputValue(), 'fra', 'Tab does not pick anything');
+    // 只点一下列表外的写法（没在打字）：列出匹配的，但不高亮，回车不会把原来填的换掉。
+    await h.click(page, orderCountry, 'order country with an off-list value');
+    state = await menu();
+    assert.deepEqual([state.open, state.items[0], state.active], [true, FR, ''], 'a click lists the matches without picking one');
+    await page.keyboard.press('Escape');
+    assert.equal((await menu()).open, false);
     // 半个名字回车：选中筛出来的第一项，不把半个名字当国家、也不提交订单表单。
     await retype(orderCountry, 'germ');
     state = await menu();

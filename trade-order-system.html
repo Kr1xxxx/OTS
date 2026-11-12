@@ -12102,6 +12102,7 @@ function positionCountryMenu() {
 }
 // typing=false（点输入框、按 ↑ ↓）：框里是空的或者正好是列表里的一项，就列出全部并高亮这一项，换一个不用先清空。
 // 按打的字筛出来的列表高亮第一项，回车选它（打 germ 回车就是德国，不会把半个名字当国家存下）。
+// 只点了一下（框里是列表外的写法，没在打字）不高亮：回车照常，不会把原来填的换成列表里的。
 function openCountryMenu(input, { typing = false } = {}) {
   if (!input?.matches?.(countryInputSelector) || input.disabled || input.readOnly) return;
   const value = String(input.value || '').trim();
@@ -12120,7 +12121,7 @@ function openCountryMenu(input, { typing = false } = {}) {
   const wasOpen = activeCountryInput === input && !menu.hidden;
   activeCountryInput = input;
   countryMenuItems = items;
-  countryMenuIndex = showAll ? items.indexOf(value) : 0;
+  countryMenuIndex = showAll ? items.indexOf(value) : (typing ? 0 : -1);
   input.setAttribute('aria-expanded', 'true');
   input.setAttribute('aria-controls', menu.id);
   renderCountryMenu();
@@ -12204,7 +12205,7 @@ document.addEventListener('keydown', e => {
   } else if (key === 'Enter') {
     const value = countryMenuItems[countryMenuIndex];
     if (!value) {
-      // 没有高亮的项（列出全部、框里的值不在列表里）：回车照常（提交、保存编辑），菜单收起。
+      // 没有高亮的项（没在打字、框里的值不在列表里）：回车照常（提交、保存编辑），菜单收起。
       closeCountryMenu();
       return;
     }
@@ -32436,13 +32437,13 @@ async function uiDetailSave({ promote = false } = {}) {
   if (['detailSaveBtn', 'detailPromoteBtn'].some(btnId => document.getElementById(btnId)?.dataset.morph === 'busy')) return;
   const body = document.getElementById('orderDetailBody');
   const keepDraft = order.isDraft === true && !promote;
-  // 什么都没改：不写空记录、不刷新「最近更新」（以前订单会被顶到看板这一列最前面）。
   // 日期框里手打的内容先落定（⌘S 不让输入框失焦，没有 change）：认得出改成 YYYY-MM-DD，认不出就改回原值、不保存。
   const badDate = uiDetailSettleDates(body);
   if (badDate) {
     uiDetailFieldError(badDate.dataset.dedit, '');
     return;
   }
+  // 什么都没改：不写空记录、不刷新「最近更新」（以前订单会被顶到看板这一列最前面）。
   if (!promote && !uiDetailUnsaved()) {
     toast('没有修改，不用保存', { tone:'info' });
     return;

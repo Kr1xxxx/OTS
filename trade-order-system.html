@@ -12070,11 +12070,8 @@ let activeSuggestInput = null;
 let suggestMenu = null;
 let suggestMenuItems = [];
 let suggestMenuIndex = -1;
-// pickFirst：打字筛出来时高亮第一项、回车选它（答案一定在列表里的框才这样，比如合并目标）。
-function setSuggestItems(input, items = [], { pickFirst = false } = {}) {
-  if (!input) return;
-  input._suggestItems = [...new Set(items.map(item => String(item || '').trim()).filter(Boolean))];
-  input._suggestPickFirst = pickFirst;
+function setSuggestItems(input, items = []) {
+  if (input) input._suggestItems = [...new Set(items.map(item => String(item || '').trim()).filter(Boolean))];
 }
 // 一个框的数据源：全部建议、按输入筛选、菜单的名字（读屏用）。
 function suggestSource(input) {
@@ -12082,7 +12079,7 @@ function suggestSource(input) {
   const items = input._suggestItems || [];
   const label = input.getAttribute('aria-label') || input.labels?.[0]?.textContent.trim()
     || input.closest('.field, .subs-field')?.querySelector('label')?.textContent.trim() || input.placeholder || '建议';
-  return { items, matches:text => suggestListMatches(items, text), label, minWidth:180, pickFirst:Boolean(input._suggestPickFirst) };
+  return { items, matches:text => suggestListMatches(items, text), label, minWidth:180, pickFirst:false };
 }
 // 普通列表的筛选：有一个词以输入开头的排前面，再是包含它的。
 function suggestListMatches(items = [], text = '') {
@@ -12161,8 +12158,8 @@ function positionSuggestMenu() {
 // typing=false（点输入框、按 ↑ ↓）：框里是空的或者正好是列表里的一项，就列出全部并高亮这一项，换一个不用先清空。
 // 按打的字筛出来的列表高亮第一项，回车选它（打 germ 回车就是德国，不会把半个名字当国家存下）；
 // 只点了一下（框里是列表外的写法，没在打字）不高亮：回车照常，不会把原来填的换成列表里的。
-// 高亮第一项只给「答案一定在列表里」的框（国家、合并目标，见 suggestSource 的 pickFirst）：续费服务商可以填新名字，
-// 打 Ali 回车要留下 Ali，不能换成列表里的 Alibaba Cloud。
+// 高亮第一项只给国家栏（suggestSource 的 pickFirst）：续费服务商可以填新名字，打 Ali 回车要留下 Ali，不能换成 Alibaba Cloud；
+// 合并目标打 ada okafor 回车直接进下一步（确认框按不分大小写认人），不用先回车选一下再回车。
 function openSuggestMenu(input, { typing = false } = {}) {
   if (!input?.matches?.(suggestInputSelector) || input.disabled || input.readOnly) return;
   const source = suggestSource(input);
@@ -21948,7 +21945,7 @@ async function mergeCustomerInto(sourceName = '') {
   const input = document.getElementById('confirmInput');
   const resolve = value => others.find(name => name === value) || others.find(name => sameCustomerName(name, value)) || '';
   if (input) {
-    setSuggestItems(input, others, { pickFirst:true });
+    setSuggestItems(input, others);
     input.dataset.suggest = '';
     input.setAttribute('role', 'combobox');
     input.setAttribute('aria-autocomplete', 'list');
@@ -21970,7 +21967,6 @@ async function mergeCustomerInto(sourceName = '') {
       if (activeSuggestInput === input) closeSuggestMenu();
       delete input.dataset.suggest;
       delete input._suggestItems;
-      delete input._suggestPickFirst;
       ['role', 'aria-autocomplete', 'aria-expanded', 'aria-controls', 'aria-activedescendant'].forEach(name => input.removeAttribute(name));
     }
   }

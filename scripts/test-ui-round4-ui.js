@@ -221,7 +221,7 @@ const waitIdle = page => page.evaluate(() => new Promise(resolve => {
       const suggest = () => page.evaluate(() => {
         const el = document.getElementById('suggestMenu');
         return { open:Boolean(el && !el.hidden), items:el ? [...el.querySelectorAll('.app-select-option')].map(o => o.textContent.trim()) : [],
-          label:el?.getAttribute('aria-label') || '' };
+          label:el?.getAttribute('aria-label') || '', active:el?.querySelector('.app-select-option.active')?.textContent.trim() || '' };
       });
       await page.evaluate(() => { subscriptionState.items.push({ id:'probe-sub', name:'Probe', provider:'Cloudflare' }); openSubscriptionEditor(); });
       await page.waitForFunction(() => document.getElementById('subscriptionProvider')?.offsetParent);
@@ -233,6 +233,11 @@ const waitIdle = page => page.evaluate(() => new Promise(resolve => {
       await page.keyboard.press('ArrowDown');
       await page.keyboard.press('Enter');
       assert.equal(await provider.inputValue(), 'Cloudflare');
+      // 服务商可以填新名字：打字筛出来时不高亮第一项，回车不会把打了一半的新名字换成列表里的。
+      await provider.evaluate(el => { el.focus(); el.select(); });
+      await page.keyboard.type('Clou', { delay:5 });
+      menu = await suggest();
+      assert.deepEqual([menu.open, menu.items, menu.active], [true, ['Cloudflare'], ''], 'typing a provider filters the list without picking anything');
       await provider.evaluate(el => { el.focus(); el.select(); });
       await page.keyboard.type('Fresh Host', { delay:5 });
       assert.equal((await suggest()).open, false, 'no menu for a new provider');
@@ -251,6 +256,8 @@ const waitIdle = page => page.evaluate(() => new Promise(resolve => {
       await page.keyboard.type('roun', { delay:5 });
       menu = await suggest();
       assert.deepEqual([menu.open, menu.items, menu.label], [true, ['Round Four Buyer', 'Rounded Corner Ltd'], '并入的客户'], 'typing filters the customers');
+      // 合并目标打字时不高亮：回车直接进下一步（确认框自己按名字认人），不用先选一下。
+      assert.equal(menu.active, '', 'typing does not pick a customer by itself');
       await waitIdle(page);
       await shot(page, `12-merge-target-${theme}`);
       await page.keyboard.press('Escape');

@@ -9,6 +9,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
+const { h } = require('./helpers/board-page');
 
 async function launch() {
   try { return await chromium.launch({ headless:true }); }
@@ -75,11 +76,7 @@ async function launch() {
     const storedOrder = id => stored.data.orders.find(o => o.id === id);
     const waitToast = text => page.waitForFunction(text => [...document.querySelectorAll('#toast .toast-item:not(.leaving)')].some(el => el.textContent.includes(text)), text);
     const dedit = name => page.locator(`#orderDetailBody [data-dedit="${name}"]`);
-    const openDrawer = async (id, tab = 'info') => {
-      await page.evaluate(id => openOrderDetail(id), id);
-      await page.locator(`[data-detail-tab-btn="${tab}"]`).click();
-      await page.waitForFunction(tab => !document.querySelector(`#orderDetailBody [data-detail-tab="${tab}"]`)?.hidden, tab);
-    };
+    const openDrawer = (id, tab = 'info') => h.openDrawer(page, id, tab);
     const closeDrawer = async () => {
       await page.evaluate(() => closeOrderDetail());
       await page.waitForFunction(() => !document.getElementById('orderDetailDrawer').classList.contains('open'));

@@ -95,6 +95,12 @@ function checkReleaseWorkflow() {
   assert.doesNotMatch(read('.github/workflows/ci.yml') + yml, /^\s*node-version:/m, 'no second place to pin Node');
   const pkg = read('scripts/package-mac-release.sh');
   assert.match(pkg, /-lite\.zip/);
+  // Run 77 (V3.155): hdiutil's own size estimate was too small for the app ("No space left on device").
+  assert.match(pkg, /hdiutil create [^\n]*-srcfolder[\s\S]{0,80}-size "\$\{SIZE_MB\}m"/, 'the dmg gets an explicit size, not hdiutil\'s estimate');
+  assert.match(ci, /package-mac-release\.sh [^\n]*--dmg/, 'CI builds the dmg too, so a broken dmg step shows up before the merge');
+  // A failed release opens an issue for the owner instead of waiting for someone to look.
+  assert.match(yml, /notify:\s*\n[\s\S]{0,400}needs: \[gate, mac\][\s\S]{0,300}needs\.mac\.result == 'failure'/, 'a failed release is reported');
+  assert.match(yml, /gh issue create --title "\$TITLE"[^\n]*--assignee "\$GITHUB_REPOSITORY_OWNER"/, 'the issue is assigned to the owner');
   assert.match(pkg, /codesign --verify --deep --strict "\$CHECK_APP"\s*\n\s*diff -r "\$APP" "\$CHECK_APP"/, 'small zip + runtime must equal the full app');
 }
 

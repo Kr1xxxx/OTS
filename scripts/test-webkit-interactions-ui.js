@@ -199,8 +199,7 @@ const webkitFocusSim = () => {
     const tagsBefore = await page.evaluate(() => JSON.stringify(state.customerTags || []));
     await imeKey('#settingsTagInput', '月结', 'Enter');
     assert.equal(await page.evaluate(() => JSON.stringify(state.customerTags || [])), tagsBefore, 'IME Enter added a customer tag');
-    await page.evaluate(() => openOrderDetail('o2'));
-    await page.locator('[data-detail-tab-btn="info"]').click();
+    await h.openDrawer(page, 'o2', 'info');
     await imeKey('#orderDetailBody [data-dedit="note"]', '备注', 'Escape');
     assert.equal(await isOpen('orderDetailDrawer'), true, 'IME Escape closed the order detail drawer');
     await page.evaluate(() => { uiDetailMarkClean?.(); closeOrderDetail(); });

@@ -22,7 +22,7 @@ const orders = [
   try {
     const { page, errors, dialogs, context } = await openBoard(browser, { orders, customers:{ 'Picked Buyer':{ client:'Picked Buyer', country:US, currency:'USD' } } }, { port:47993 });
     const menu = () => page.evaluate(() => {
-      const el = document.getElementById('countryMenu');
+      const el = document.getElementById('suggestMenu');
       const options = el ? [...el.querySelectorAll('.app-select-option')] : [];
       return { open:Boolean(el && !el.hidden), items:options.map(o => o.textContent.trim()), active:el?.querySelector('.app-select-option.active')?.textContent.trim() || '',
         selected:el?.querySelector('.app-select-option.selected')?.textContent.trim() || '' };
@@ -67,7 +67,7 @@ const orders = [
       ensureAppSelectPopover();
       const select = document.querySelector('.app-select-popover');
       select.hidden = false;
-      const value = { country:look(document.getElementById('countryMenu')), select:look(select) };
+      const value = { country:look(document.getElementById('suggestMenu')), select:look(select) };
       select.hidden = true;
       return value;
     });
@@ -90,7 +90,7 @@ const orders = [
     await retype(orderCountry, 'un');
     state = await menu();
     assert.ok(state.items.includes(US) && state.items.includes(UK), `typing filters the list (${state.items.join(' / ')})`);
-    await h.click(page, page.locator('#countryMenu .app-select-option', { hasText:'United States' }), 'United States option');
+    await h.click(page, page.locator('#suggestMenu .app-select-option', { hasText:'United States' }), 'United States option');
     assert.equal(await orderCountry.inputValue(), US, 'clicking an option picks it');
     assert.equal((await menu()).open, false);
 

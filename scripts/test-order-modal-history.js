@@ -49,6 +49,7 @@ const context = vm.createContext({
     defaultUrgentOrder:'否'
   },
   clearPasteAssist() {},
+  clearCustomerFieldHints() {},
   clearOrderImageUploads() {},
   fillStageSelects() {},
   nextOrderNum() { return 'SO99082701'; },

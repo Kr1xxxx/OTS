@@ -53,6 +53,8 @@
 }
 html[data-theme="dark"] {
   --accent:var(--acc-d); --accent-tint:color-mix(in oklab, var(--acc-l) 24%, transparent);
+  /* 暗色的强调色都是浅色（浅紫 #a78bff 等）：压在它上面的字用和主按钮一样的深色（--ui-primary-ink），白字只有 2.7:1。 */
+  --on-accent:var(--ui-primary-ink, oklch(16% .02 285));
   --s-blue:oklch(75% .12 250); --s-amber:oklch(83% .17 80); --s-teal:oklch(78% .1 190);
   --s-green:oklch(78% .18 150); --s-red:oklch(76% .2 25); --s-gray:oklch(70% 0 0); --s-orange:oklch(80% .15 55);
   --s-tint:18%;
@@ -224,11 +226,11 @@ button { cursor: pointer; }
 .global-search-scope { color: var(--gray-500); font-size: 11px; font-weight: 500; }
 .global-search-kind {
   border: 1px solid var(--gray-200); border-radius: 999px; background: var(--gray-50);
-  padding: 3px 7px; color: var(--gray-500); font-size: 10px; font-weight: 600; white-space: nowrap;
+  padding: 3px 7px; color: var(--gray-600); font-size: 11.5px; font-weight: 600; white-space: nowrap;
 }
 .global-search-group + .global-search-group { margin-top: 8px; }
 .global-search-group-title {
-  padding: 5px 7px; color: var(--gray-400); font-size: 10px; font-weight: 600; letter-spacing: .08em;
+  padding: 5px 7px; color: var(--gray-500); font-size: 11.5px; font-weight: 600; letter-spacing: .08em;
 }
 .global-search-result {
   width: 100%; border: 0; border-radius: 13px; background: transparent; color: var(--gray-700);
@@ -252,7 +254,7 @@ button { cursor: pointer; }
 .global-search-foot {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   margin-top: 7px; padding: 9px 7px 2px; border-top: 1px solid var(--gray-100);
-  color: var(--gray-400); font-size: 10px;
+  color: var(--gray-500); font-size: 11.5px;
 }
 .global-search-all-btn {
   border: 0; padding: 4px 0; background: transparent; color: var(--semantic-primary-dark);
@@ -490,7 +492,7 @@ select.inline-select {
   padding: 2px; gap: 2px;
 }
 .segment-control.board-product-filter .segment-option {
-  height: 24px; min-height: 24px; padding: 0 6px; font-size: 10.5px;
+  height: 24px; min-height: 24px; padding: 0 6px; font-size: 11.5px;
 }
 .board-settings-btn {
   flex: 0 0 34px; width: 34px; min-width: 34px; height: 34px; min-height: 34px; padding: 0;
@@ -1485,9 +1487,9 @@ html[data-theme="dark"] .tag-neutral {
 .order-detail-related-order:hover { border-color: color-mix(in srgb, var(--green-500) 38%, var(--gray-200)); background: color-mix(in srgb, var(--green-50) 38%, var(--white)); }
 .order-detail-related-main { min-width: 0; display: grid; gap: 2px; }
 .order-detail-related-main strong, .order-detail-related-main small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.order-detail-related-main small { color: var(--gray-500); font-size: 10px; }
+.order-detail-related-main small { color: var(--gray-500); font-size: 11.5px; }
 .order-detail-related-amount { text-align: right; font-size: 11px; font-weight: 600; white-space: nowrap; }
-.order-detail-related-amount small { display: block; margin-top: 2px; font-size: 9px; }
+.order-detail-related-amount small { display: block; margin-top: 2px; font-size: 11.5px; }
 .order-detail-bottom .detail-timeline { max-height: 220px; overflow: auto; overscroll-behavior: contain; }
 .order-detail-customer-note { color: var(--gray-700); font-size: 11px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
 .modal-backdrop.open .drawer { animation: drawerIn var(--motion-med) var(--ease-out); }
@@ -1703,7 +1705,7 @@ html[data-theme="dark"] .tag-neutral {
 }
 .paste-result-top { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
 .paste-result-title { color: var(--gray-900); font-size: 13px; font-weight: 600; }
-.paste-result-meta { color: var(--gray-500); font-size: 12px; }
+.paste-result-meta { color: var(--gray-500); font-size: 12px; text-wrap: balance; text-wrap: pretty; }
 .paste-field-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .paste-field-pill {
   display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 4px 8px;
@@ -2490,7 +2492,10 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
 .customer-field-hint { grid-column: 1 / -1; margin-top: 2px; color: var(--gray-600); font-size: 12px; line-height: 1.45; overflow-wrap: anywhere; }
 .customer-field-hint[data-tone="error"] { color: var(--semantic-alert); font-weight: 600; }
 .customer-field-hint button { margin-left: 6px; padding: 0; border: 0; background: none; color: var(--accent, var(--orange-600)); font: inherit; font-weight: 600; cursor: pointer; text-decoration: underline; }
-[aria-invalid="true"][data-customer-multi-input], #customerForm [aria-invalid="true"] { border-color: var(--semantic-alert); }
+[aria-invalid="true"][data-customer-multi-input], #customerForm [aria-invalid="true"], :is(#orderForm, #combinedOrderForm) [aria-invalid="true"] { border-color: var(--semantic-alert); }
+/* 订单弹窗表头里的订单号、创建日期是一行「标签 + 框」：提示挂在框下面，不挤开表头。 */
+#orderForm .order-head-field { position: relative; }
+#orderForm .order-head-field .customer-field-hint { position: absolute; top: calc(100% + 4px); right: 0; margin: 0; white-space: nowrap; }
 .customer-multi-row[data-customer-primary-row] { position: relative; }
 .customer-multi-primary-badge { justify-self: start; padding: 1px 7px; border-radius: 999px; background: var(--gray-100); color: var(--gray-600); font-size: 11px; font-weight: 600; }
 .customer-multi-remove.customer-multi-promote { width: auto; padding: 0 8px; font-size: 12px; white-space: nowrap; }
@@ -2502,8 +2507,9 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
 .customer-multi-list { display: grid; gap: 7px; }
 .customer-multi-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 7px; align-items: center; }
 .customer-multi-row textarea { min-height: 64px; resize: vertical; }
-/* 只有一条时行里只有输入框：后两列是空的，两道列间距（14px）还在，输入框右边比旁边的「客户名称」「国家」短一截。 */
-.customer-multi-row:has(> :only-child) { grid-template-columns: minmax(0, 1fr); }
+/* 只有一条时行里只有输入框：后两列是空的，两道列间距（14px）还在，输入框右边比旁边的「客户名称」「国家」短一截。
+   框下面的提示（.customer-field-hint）也在这一行里、另起一行占满：它不算一列，有提示时输入框照样是整行宽。 */
+.customer-multi-row:not(:has(> :not([data-customer-multi-input], .customer-field-hint))) { grid-template-columns: minmax(0, 1fr); }
 .customer-multi-remove { width: 32px; height: 32px; padding: 0; border: 1px solid var(--gray-200); border-radius: 8px; background: var(--surface-bg); color: var(--gray-500); cursor: pointer; font-size: 18px; line-height: 1; }
 .customer-multi-remove:hover { color: var(--red-600); border-color: var(--red-600); background: var(--red-50); }
 .customer-view-mode .customer-multi-add,
@@ -2582,7 +2588,7 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
   min-width: 0; height: 42px; border: 0; outline: 0; background: transparent; color: var(--gray-800);
   padding: 0 12px;
 }
-.tag-manager-add input::placeholder { color: var(--gray-400); }
+.tag-manager-add input::placeholder { color: var(--gray-500); }
 .tag-manager-add .btn {
   height: 42px; border: 0; border-left: 1px solid var(--gray-200); border-radius: 0;
   background: color-mix(in srgb, var(--orange-500) 9%, var(--white)); color: var(--gray-800);
@@ -2676,7 +2682,7 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
 .level-rule-row .level-rule-input { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
 .level-rule-row .level-rule-input input { width:110px; min-width:0; height:30px; padding:0 8px; border:1px solid var(--gray-200); border-radius:8px; background:var(--white); color:var(--gray-900); font-size:12px; }
 .level-rule-row .level-rule-input input:focus { outline:0; border-color:var(--blue-500); box-shadow:0 0 0 3px var(--blue-100); }
-.level-rule-row .level-rule-input small { color:var(--gray-500); }
+.level-rule-row .level-rule-input small { color:var(--gray-500); font-size:11.5px; }
 .level-rule-foot { display:flex; justify-content:flex-end; gap:8px; margin-top:10px; }
 .copy-template-vars { display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 8px; }
 .copy-template-vars code { padding:2px 6px; border-radius:6px; background:var(--surface-soft, var(--gray-100)); color:var(--gray-700); font-size:11px; }
@@ -2694,6 +2700,10 @@ html[data-theme] .order-detail-head .btn.is-copied { background:var(--success-so
   padding: 5px 9px; background: var(--gray-50); color: var(--gray-700); font-size: 12px; font-weight: 600;
 }
 .settings-chip button { border: 0; background: transparent; color: var(--gray-400); font: inherit; font-weight: 600; cursor: pointer; padding: 0; }
+/* 删除叉：点击范围 20×20（负 margin 吃掉多出来的，标签不变高），悬停变红，键盘焦点看得见。 */
+.settings-chip button[data-settings-remove] { display: inline-grid; place-items: center; width: 20px; height: 20px; margin: -4px -5px -4px -3px; border-radius: 999px; color: var(--gray-500); line-height: 1; }
+.settings-chip button[data-settings-remove]:hover { color: var(--s-red); background: color-mix(in oklab, var(--s-red) 12%, transparent); }
+.settings-chip button[data-settings-remove]:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; color: var(--s-red); }
 .data-action {
   display: flex; justify-content: space-between; align-items: center; gap: 14px;
   padding: 14px; border: 1px solid var(--surface-border); border-radius: var(--radius); background: var(--surface-bg);
@@ -3519,8 +3529,8 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
 }
 .deposit-combo .app-select-chevron { width: 10px; height: 10px; flex-basis: 10px; margin-right: 0; }
 .shipment-field .app-select-button { min-height: 42px; }
-/* 国家 / 地区栏的建议菜单（.country-menu）和下拉框的菜单同一个外框。 */
-.app-select-popover, .country-menu {
+/* 带建议的输入框（国家 / 地区、服务商、合并目标）的建议菜单（.suggest-menu）和下拉框的菜单同一个外框。 */
+.app-select-popover, .suggest-menu {
   position: fixed;
   transition-property: none;
   z-index: 300;
@@ -3537,9 +3547,9 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
 }
-.app-select-popover[hidden], .country-menu[hidden] { display: none; }
+.app-select-popover[hidden], .suggest-menu[hidden] { display: none; }
 /* 只淡入，不位移不缩放：菜单的位置是按量出来的矩形摆的（fixFloatingMenuContainingBlock），带 transform 的入场会量错。 */
-:is(.app-select-popover, .country-menu):not([hidden]) { animation: uiMenuFade var(--motion-fast) var(--ease-out); }
+:is(.app-select-popover, .suggest-menu):not([hidden]) { animation: uiMenuFade var(--motion-fast) var(--ease-out); }
 @keyframes uiMenuFade { from { opacity: 0; } }
 .app-select-option {
   width: 100%;
@@ -3584,7 +3594,7 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
 .app-select-option-check { display: grid; place-items: center; color: var(--accent); }
 .app-select-option-check .ui-icon { width: 14px; height: 14px; stroke-width: 2; }
 @media (max-width: 760px) {
-  .app-select-popover, .country-menu { max-height: min(280px, calc(100vh - 20px)); }
+  .app-select-popover, .suggest-menu { max-height: min(280px, calc(100vh - 20px)); }
 }
 /* 日期字段 + App 自己画的日历（替换系统日期框）。 */
 input[data-date-input] {
@@ -4755,7 +4765,11 @@ html[data-theme] .toast-item { position:absolute; right:0; bottom:0; width:100%;
   background:var(--surface-bg); color:var(--gray-900); border:1px solid var(--surface-border); border-radius:var(--radius-panel); box-shadow:var(--floating-shadow); font-size:14px; font-weight:500;
   transform:translateY(calc(var(--i, 0) * -10px)) scale(calc(1 - var(--i, 0) * .05)); transform-origin:bottom center; opacity:calc(1 - var(--i, 0) * .18);
   transition:transform var(--motion-spring) var(--ease-spring), opacity var(--motion-med) var(--ease); animation:uiToastIn var(--motion-spring) var(--ease-spring); }
-html[data-theme] .toast:hover .toast-item { transform:translateY(calc(var(--i, 0) * -58px)); opacity:1; }
+/* 展开：每条往上让开的距离是它前面（更新的）那几条的实际高度加 8px 间距（--lift，uiLayoutToasts 量好写进来），带第二行说明的高提示不再压住上一条。 */
+html[data-theme] .toast:hover .toast-item { transform:translateY(calc(var(--lift, 0px) * -1)); opacity:1; }
+/* 收起：叠在后面的提示只露卡片边，里面的字隐掉（以前露出的那一截正好切在一行字中间）。 */
+html[data-theme] .toast-item > * { transition:opacity var(--motion-med) var(--ease); }
+html[data-theme] .toast:not(:hover) .toast-item.is-behind > * { opacity:0; }
 html[data-theme] .toast-item.is-hidden { opacity:0; pointer-events:none; }
 /* 正在淡出的提示 / 运单号小卡（还在页面里 200ms）：不再接点击和滚轮，免得挡住下面刚露出来的「撤销」、卡片和列表。 */
 html[data-theme] .toast-item.leaving { opacity:0; transform:translateY(12px) scale(.96); transition:transform .18s var(--ease-exit), opacity .18s var(--ease-exit); pointer-events:none; }
@@ -4806,7 +4820,7 @@ html[data-theme] .level-icon::before { content:attr(data-level-letter); width:au
 html[data-theme] .level-tag .level-icon { width:14px; height:14px; font-size:9px; margin-right:2px; }
 
 /* 续费页主按钮用强调色（原型是紫色主按钮） */
-html[data-theme] .subs-scope { --a-primary:var(--accent); --a-primary-hover:color-mix(in oklab, var(--accent) 88%, black); --a-primary-ink:#fff; }
+html[data-theme] .subs-scope { --a-primary:var(--accent); --a-primary-hover:color-mix(in oklab, var(--accent) 88%, black); --a-primary-ink:var(--on-accent); }
 /* 客户管理：顶部五张数字卡，分组和列表分成两张卡，行按原型（头像、国旗国家、等级胶囊、待收琥珀） */
 html[data-theme] #page-customers.active { display:flex; flex-direction:column; gap:20px; }
 html[data-theme] .customer-workspace-summary { display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:16px; border:0; background:transparent; }
@@ -5074,6 +5088,8 @@ html[data-theme] .order-detail-modal .modal-head.order-detail-head { display:fle
 html[data-theme] .order-detail-topline { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 html[data-theme] .order-detail-heading { display:flex; align-items:center; gap:8px; min-width:0; }
 html[data-theme] .order-detail-head .order-num { font-family:var(--mono); font-size:12.5px; color:var(--gray-500); letter-spacing:0; }
+/* 物流进度抽屉顶上的运单号是这个抽屉里最要紧的信息：够深、够大，等宽数字。 */
+html[data-theme] #trackingDetailNum.order-num { font-family:var(--mono); font-size:13px; color:var(--gray-600); font-variant-numeric:tabular-nums; letter-spacing:0; }
 html[data-theme] .order-detail-copy { display:grid; place-items:center; width:24px; height:24px; padding:0; border:0; border-radius:8px; background:transparent; color:var(--gray-500); cursor:pointer; }
 html[data-theme] .order-detail-copy:hover { background:var(--surface-soft); color:var(--gray-900); }
 html[data-theme] .order-detail-copy .ui-icon { width:14px; height:14px; }
@@ -5311,7 +5327,7 @@ html[data-theme] .logistics-query-panel .field { margin:0; }
 html[data-theme] .logistics-query-panel textarea { min-height:84px; height:84px; resize:vertical; border-radius:14px; font-family:var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size:13px; line-height:1.6; }
 html[data-theme] .logistics-query-side { display:flex; flex-direction:column; gap:12px; }
 html[data-theme] .tracking-detect { display:flex; flex-wrap:wrap; align-items:center; gap:6px; min-height:24px; color:var(--gray-500); font-size:12px; }
-html[data-theme] .tracking-detect-empty { color:var(--gray-400); }
+html[data-theme] .tracking-detect-empty { color:var(--gray-500); }
 html[data-theme] #trackingLookupBtn { width:100%; height:38px; border-radius:999px; background:var(--gray-900); color:var(--surface-bg); border-color:transparent; gap:6px; }
 html[data-theme] .logistics-query-panel .exchange-note { grid-column:1 / -1; margin:0; padding:0; border:0; background:transparent; color:var(--gray-500); font-size:12px; font-weight:400; }
 html[data-theme] .logistics-query-panel .tracking-api-mini-status { grid-column:1 / -1; display:flex; flex-wrap:wrap; gap:6px 16px; margin:0; }
@@ -5438,8 +5454,10 @@ html[data-theme] .paste-assist.ai-reading .paste-assist-title { background:linea
 html[data-theme] .paste-results > * { animation:uiPop .4s var(--ease-spring) backwards; }
 /* 识别结果填进表单的字段闪一下 */
 html[data-theme] .ui-flash { animation:uiFlash 1.2s var(--ease) both; }
-/* 必填项没填：整个字段左右抖一下 */
-html[data-theme] .field.ui-err { animation:uiShake .4s var(--ease); }
+/* 必填项没填：整个字段左右抖一下。用 left 挪，不用 transform：带 transform 动画的字段会变成里面 position:fixed 菜单（客户菜单、下拉）的定位参照，
+   菜单按它算了补偿；动画还没开始类名就被拿掉时（画面卡住超过 450ms）连 animationend / animationcancel 都不发，菜单就留在窗口左上角。 */
+html[data-theme] .field.ui-err { position:relative; animation:uiShakeField .4s var(--ease); }
+@keyframes uiShakeField { 10%, 90% { left:-1px; } 20%, 80% { left:3px; } 30%, 50%, 70% { left:-5px; } 40%, 60% { left:5px; } }
 /* 状态胶囊变化时弹一下；筛选标签出现时弹出 */
 html[data-theme] .ui-pop-in { animation:uiPop .45s var(--ease-spring) both; }
 html[data-theme] .order-list-filter-chip { animation:uiPop .4s var(--ease-spring) both; }
@@ -5692,9 +5710,9 @@ html[data-theme] .mnav button.on { color:var(--gray-900); font-weight:600; }
 html[data-theme] .mn-i { width:22px; height:22px; flex:none; border-radius:50%; display:grid; place-items:center; background:var(--surface-bg); border:1px solid var(--surface-border-strong, var(--surface-border)); color:var(--gray-500); font:600 11px/1 var(--mono); transition:background var(--motion-med) var(--ease), color var(--motion-med), border-color var(--motion-med); }
 html[data-theme] .mn-i > * { grid-area:1 / 1; transition:transform var(--motion-spring) var(--ease-spring), opacity var(--motion-fast); }
 html[data-theme] .mn-i .ui-icon { width:12px; height:12px; opacity:0; transform:scale(.4); stroke-width:2.6; }
-html[data-theme] .mnav button.on .mn-i { background:var(--accent); border-color:var(--accent); color:var(--on-accent, #fff); }
+html[data-theme] .mnav button.on .mn-i { background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
 html[data-theme] .mnav button.done .mn-i { background:var(--accent-tint); border-color:transparent; color:var(--accent); }
-html[data-theme] .mnav button.done.on .mn-i { background:var(--accent); color:var(--on-accent, #fff); }
+html[data-theme] .mnav button.done.on .mn-i { background:var(--accent); color:var(--on-accent); }
 html[data-theme] .mnav button.done .mn-i b { opacity:0; transform:scale(.4); }
 html[data-theme] .mnav button.done .mn-i .ui-icon { opacity:1; transform:none; }
 html[data-theme] .mnav-foot { margin-top:auto; padding:14px 10px 0; display:flex; flex-direction:column; gap:8px; font-size:12px; color:var(--gray-500); }
@@ -6317,7 +6335,6 @@ html[data-theme] .order-preview .order-notification-option small { color:var(--g
   </header>
 
   <main class="content">
-    <datalist id="customerMergeTargetOptions"></datalist>
     <section class="page active" id="page-dashboard">
       <section class="stats" id="dashboard">
         <div class="stat clickable" id="activeOrdersStat" role="button" tabindex="0" title="查看进行中的订单"><div class="stat-label">进行中订单</div><div class="stat-value" id="statActive">0</div><div class="stat-sub" id="statActiveSub">未完成的客户订单</div></div>
@@ -7221,7 +7238,7 @@ html[data-theme] .order-preview .order-notification-option small { color:var(--g
 
 <div class="modal-backdrop" id="orderModal" aria-hidden="true">
   <div class="modal order-modal">
-    <form class="order-form" id="orderForm" autocomplete="off">
+    <form class="order-form" id="orderForm" autocomplete="off" novalidate>
       <input type="hidden" name="id">
       <div class="modal-head">
         <div class="modal-badge" aria-hidden="true"><svg class="ui-icon"><use href="#i-list"/></svg></div>
@@ -7674,7 +7691,7 @@ html[data-theme] .order-preview .order-notification-option small { color:var(--g
           </div>
           <span class="tag tag-blue">新订单</span>
         </div>
-        <form class="combined-form" id="combinedOrderForm">
+        <form class="combined-form" id="combinedOrderForm" novalidate>
           <div class="form-grid">
             <div class="field"><label>订单号</label><input name="num" required></div>
             <div class="field"><label>创建日期</label><input name="createdAt" type="text" data-date-input autocomplete="off" spellcheck="false" placeholder="选择日期" required></div>
@@ -7810,7 +7827,7 @@ html[data-theme] .order-preview .order-notification-option small { color:var(--g
             <button class="subs-btn sm" type="button" data-sub-opt-save="category">添加</button><button class="subs-btn sm ghost" type="button" data-sub-opt-cancel="category">取消</button>
           </div>
         </div>
-        <div class="subs-field"><label for="subscriptionProvider">服务商</label><input class="subs-input" id="subscriptionProvider" name="subProvider" maxlength="40" placeholder="例如 Cloudflare、阿里云" autocomplete="off" list="subscriptionProviderList"><datalist id="subscriptionProviderList"></datalist></div>
+        <div class="subs-field"><label for="subscriptionProvider">服务商</label><input class="subs-input" id="subscriptionProvider" name="subProvider" maxlength="40" placeholder="例如 Cloudflare、阿里云" autocomplete="off" data-suggest role="combobox" aria-autocomplete="list" aria-expanded="false"></div>
         <div class="subs-field"><span class="subs-label">续费方式</span><label class="subs-renew"><input type="checkbox" name="subAutoRenew" checked><i aria-hidden="true"></i><span id="subscriptionAutoRenewText">自动续费 <small>到期自动扣费，提前 7 天提醒</small></span></label></div>
         <div class="subs-field"><label for="subscriptionRemind">提前提醒</label><select class="subs-input subs-select" id="subscriptionRemind" name="subRemind"><option value="">默认</option><option value="-1">不提醒</option><option value="0">当天</option><option value="1">提前 1 天</option><option value="3">提前 3 天</option><option value="7">提前 7 天</option><option value="14">提前 14 天</option><option value="30">提前 30 天</option><option value="60">提前 60 天</option></select></div>
         <div class="subs-field full">
@@ -11957,6 +11974,7 @@ function fixFloatingMenuContainingBlock(menu) {
   menu.style.top = `${top + 100}px`;
   menu.style.left = `${left + 100}px`;
   const moved = menu.getBoundingClientRect();
+  followContainingBlockAnimations(menu);
   const scaleY = (moved.top - now.top) / 100 || 1;
   const scaleX = (moved.left - now.left) / 100 || 1;
   menu.style.top = `${top + (top - now.top) / scaleY}px`;
@@ -11965,6 +11983,19 @@ function fixFloatingMenuContainingBlock(menu) {
   if (menu.dataset.placement === 'top') {
     const bottom = top + menu.offsetHeight;
     menu.style.top = `${parseFloat(menu.style.top) + (bottom - menu.getBoundingClientRect().bottom) / scaleY}px`;
+  }
+}
+// 补偿只在这段动画期间成立：动画一结束（或被打断），所有开着的菜单重新摆一次。
+// 不只靠 animationend 事件：动画还没真正开始就被取消时，两个事件都不发；animation.finished 这时也会结束（reject）。
+const followedMenuAnimations = new WeakSet();
+function followContainingBlockAnimations(menu) {
+  for (let node = menu.parentElement; node && node !== document.body; node = node.parentElement) {
+    if (typeof node.getAnimations !== 'function') continue;
+    node.getAnimations().forEach(animation => {
+      if (followedMenuAnimations.has(animation) || !Number.isFinite(animation.effect?.getComputedTiming?.().endTime)) return;
+      followedMenuAnimations.add(animation);
+      animation.finished.catch(() => {}).then(() => requestAnimationFrame(() => repositionOpenMenus()));
+    });
   }
 }
 function positionAppSelectPopover(select) {
@@ -12029,30 +12060,55 @@ function openAppSelectFromButton(button) {
   return true;
 }
 // #endregion
-// #region Country field menu
-// 「国家 / 地区」栏是普通文本框，下面的建议列表是 App 自己画的菜单（外框、选中色和别的下拉一样），不再用系统的 datalist。
-// 菜单只是建议：列表外的写法（Nigeria、阿联酋）照样能填、按原文保存。焦点一直留在文本框里，↑ ↓ 走、回车选、Esc 只收菜单。
-const countryInputSelector = 'input[data-country-input]';
-let activeCountryInput = null;
-let countryMenu = null;
-let countryMenuItems = [];
-let countryMenuIndex = -1;
-function ensureCountryMenu() {
-  if (countryMenu?.isConnected) return countryMenu;
-  countryMenu = document.createElement('div');
-  countryMenu.className = 'country-menu';
-  countryMenu.id = 'countryMenu';
-  countryMenu.setAttribute('role', 'listbox');
-  countryMenu.setAttribute('aria-label', '国家 / 地区');
-  countryMenu.hidden = true;
-  // 点菜单（含滚动条）不让文本框失焦。
-  countryMenu.addEventListener('mousedown', e => e.preventDefault());
-  countryMenu.addEventListener('click', e => {
-    const option = e.target.closest('[data-country-value]');
-    if (option && activeCountryInput) selectCountryOption(activeCountryInput, option.dataset.countryValue);
+// #region Suggestion fields: country and other in-app suggestion menus
+// 带建议的输入框：普通文本框，下面的建议列表是 App 自己画的菜单（外框、选中色和别的下拉一样），不用系统的 datalist。
+// 菜单只是建议：列表外的写法（Nigeria、阿联酋、新服务商）照样能填、按原文保存。焦点一直留在文本框里，↑ ↓ 走、回车选、Esc 只收菜单。
+// 数据源：「国家 / 地区」栏（data-country-input）用国家列表；别的栏写 data-suggest，列表由打开表单 / 弹窗的代码用 setSuggestItems() 交进来
+// （合并客户时选目标客户、续费项的服务商）。
+const suggestInputSelector = 'input[data-country-input], input[data-suggest]';
+let activeSuggestInput = null;
+let suggestMenu = null;
+let suggestMenuItems = [];
+let suggestMenuIndex = -1;
+function setSuggestItems(input, items = []) {
+  if (input) input._suggestItems = [...new Set(items.map(item => String(item || '').trim()).filter(Boolean))];
+}
+// 一个框的数据源：全部建议、按输入筛选、菜单的名字（读屏用）。
+function suggestSource(input) {
+  if (input.matches('[data-country-input]')) return { items:countryDefs, matches:countryMenuMatches, label:'国家 / 地区', minWidth:240, pickFirst:true };
+  const items = input._suggestItems || [];
+  const label = input.getAttribute('aria-label') || input.labels?.[0]?.textContent.trim()
+    || input.closest('.field, .subs-field')?.querySelector('label')?.textContent.trim() || input.placeholder || '建议';
+  return { items, matches:text => suggestListMatches(items, text), label, minWidth:180, pickFirst:false };
+}
+// 普通列表的筛选：有一个词以输入开头的排前面，再是包含它的。
+function suggestListMatches(items = [], text = '') {
+  const needle = normalizeSearchText(String(text || '').trim());
+  if (!needle) return [...items];
+  const starts = [];
+  const contains = [];
+  items.forEach(item => {
+    const hay = normalizeSearchText(item);
+    if (hay.startsWith(needle) || hay.split(' ').some(word => word.startsWith(needle))) starts.push(item);
+    else if (hay.includes(needle)) contains.push(item);
   });
-  document.body.append(countryMenu);
-  return countryMenu;
+  return [...starts, ...contains];
+}
+function ensureSuggestMenu() {
+  if (suggestMenu?.isConnected) return suggestMenu;
+  suggestMenu = document.createElement('div');
+  suggestMenu.className = 'suggest-menu';
+  suggestMenu.id = 'suggestMenu';
+  suggestMenu.setAttribute('role', 'listbox');
+  suggestMenu.hidden = true;
+  // 点菜单（含滚动条）不让文本框失焦。
+  suggestMenu.addEventListener('mousedown', e => e.preventDefault());
+  suggestMenu.addEventListener('click', e => {
+    const option = e.target.closest('[data-suggest-value]');
+    if (option && activeSuggestInput) selectSuggestOption(activeSuggestInput, option.dataset.suggestValue);
+  });
+  document.body.append(suggestMenu);
+  return suggestMenu;
 }
 // 输入什么列什么：认得出的那一项排第一（UK 是英国、不是名字里带 uk 的乌克兰），再是中文名或英文词以它开头的，最后是包含它的。
 function countryMenuMatches(text = '') {
@@ -12070,143 +12126,146 @@ function countryMenuMatches(text = '') {
   });
   return [...(known ? [known] : []), ...starts, ...contains];
 }
-function renderCountryMenu() {
-  const menu = ensureCountryMenu();
-  const input = activeCountryInput;
+function renderSuggestMenu() {
+  const menu = ensureSuggestMenu();
+  const input = activeSuggestInput;
   const current = String(input?.value || '').trim();
-  menu.replaceChildren(...countryMenuItems.map((def, index) => {
+  menu.replaceChildren(...suggestMenuItems.map((value, index) => {
     const item = document.createElement('button');
     item.type = 'button';
     item.tabIndex = -1;
     item.id = `${menu.id}-option-${index}`;
-    item.className = `app-select-option${def === current ? ' selected' : ''}${index === countryMenuIndex ? ' active' : ''}`;
-    item.dataset.countryValue = def;
+    item.className = `app-select-option${value === current ? ' selected' : ''}${index === suggestMenuIndex ? ' active' : ''}`;
+    item.dataset.suggestValue = value;
     item.setAttribute('role', 'option');
-    item.setAttribute('aria-selected', String(def === current));
+    item.setAttribute('aria-selected', String(value === current));
     const label = document.createElement('span');
     label.className = 'app-select-option-label';
-    label.textContent = def;
+    label.textContent = value;
     const check = document.createElement('span');
     check.className = 'app-select-option-check';
-    if (def === current) check.innerHTML = uiIcon('check');
+    if (value === current) check.innerHTML = uiIcon('check');
     item.append(label, check);
     return item;
   }));
-  if (countryMenuIndex >= 0) input?.setAttribute('aria-activedescendant', `${menu.id}-option-${countryMenuIndex}`);
+  if (suggestMenuIndex >= 0) input?.setAttribute('aria-activedescendant', `${menu.id}-option-${suggestMenuIndex}`);
   else input?.removeAttribute('aria-activedescendant');
 }
-function positionCountryMenu() {
-  if (!activeCountryInput || !countryMenu || countryMenu.hidden) return;
-  positionFloatingMenu(countryMenu, activeCountryInput, { minWidth:240, fitContent:true });
-  activeCountryInput._countryMenuAnchor = activeCountryInput.getBoundingClientRect();
+function positionSuggestMenu() {
+  if (!activeSuggestInput || !suggestMenu || suggestMenu.hidden) return;
+  positionFloatingMenu(suggestMenu, activeSuggestInput, { minWidth:suggestSource(activeSuggestInput).minWidth, fitContent:true });
 }
 // typing=false（点输入框、按 ↑ ↓）：框里是空的或者正好是列表里的一项，就列出全部并高亮这一项，换一个不用先清空。
-// 按打的字筛出来的列表高亮第一项，回车选它（打 germ 回车就是德国，不会把半个名字当国家存下）。
+// 按打的字筛出来的列表高亮第一项，回车选它（打 germ 回车就是德国，不会把半个名字当国家存下）；
 // 只点了一下（框里是列表外的写法，没在打字）不高亮：回车照常，不会把原来填的换成列表里的。
-function openCountryMenu(input, { typing = false } = {}) {
-  if (!input?.matches?.(countryInputSelector) || input.disabled || input.readOnly) return;
+// 高亮第一项只给国家栏（suggestSource 的 pickFirst）：续费服务商可以填新名字，打 Ali 回车要留下 Ali，不能换成 Alibaba Cloud；
+// 合并目标打 ada okafor 回车直接进下一步（确认框按不分大小写认人），不用先回车选一下再回车。
+function openSuggestMenu(input, { typing = false } = {}) {
+  if (!input?.matches?.(suggestInputSelector) || input.disabled || input.readOnly) return;
+  const source = suggestSource(input);
   const value = String(input.value || '').trim();
-  const showAll = !typing && (!value || countryDefs.includes(value));
-  const items = countryMenuMatches(showAll ? '' : value);
+  const showAll = !typing && (!value || source.items.includes(value));
+  const items = showAll ? [...source.items] : source.matches(value);
   // 没有匹配、或者框里已经是唯一的那一项：不弹（列表外的写法照样能填）。
   if (!items.length || (typing && items.length === 1 && items[0] === value)) {
-    closeCountryMenu();
+    closeSuggestMenu();
     return;
   }
-  if (activeCountryInput && activeCountryInput !== input) closeCountryMenu();
+  if (activeSuggestInput && activeSuggestInput !== input) closeSuggestMenu();
   closeAppSelectMenu();
   closeClientMenus();
   closeDatePicker();
-  const menu = ensureCountryMenu();
-  const wasOpen = activeCountryInput === input && !menu.hidden;
-  activeCountryInput = input;
-  countryMenuItems = items;
-  countryMenuIndex = showAll ? items.indexOf(value) : (typing ? 0 : -1);
+  const menu = ensureSuggestMenu();
+  const wasOpen = activeSuggestInput === input && !menu.hidden;
+  activeSuggestInput = input;
+  suggestMenuItems = items;
+  suggestMenuIndex = showAll ? items.indexOf(value) : (typing && source.pickFirst ? 0 : -1);
+  menu.setAttribute('aria-label', source.label);
   input.setAttribute('aria-expanded', 'true');
   input.setAttribute('aria-controls', menu.id);
-  renderCountryMenu();
+  renderSuggestMenu();
   menu.hidden = false;
-  positionCountryMenu();
+  positionSuggestMenu();
   if (!wasOpen) menu.scrollTop = 0;
   menu.querySelector('.app-select-option.active')?.scrollIntoView({ block:'nearest' });
   // 弹窗入场动画期间输入框还在动：下一帧再摆一次。
-  requestAnimationFrame(() => { if (activeCountryInput === input) positionCountryMenu(); });
+  requestAnimationFrame(() => { if (activeSuggestInput === input) positionSuggestMenu(); });
 }
-function closeCountryMenu() {
-  const input = activeCountryInput;
+function closeSuggestMenu() {
+  const input = activeSuggestInput;
   if (!input) return;
-  activeCountryInput = null;
-  countryMenuItems = [];
-  countryMenuIndex = -1;
+  activeSuggestInput = null;
+  suggestMenuItems = [];
+  suggestMenuIndex = -1;
   input.setAttribute('aria-expanded', 'false');
   input.removeAttribute('aria-activedescendant');
-  if (countryMenu) countryMenu.hidden = true;
+  if (suggestMenu) suggestMenu.hidden = true;
 }
-function moveCountryMenuActive(step) {
-  if (!countryMenuItems.length) return;
-  countryMenuIndex = countryMenuIndex < 0 ? (step > 0 ? 0 : countryMenuItems.length - 1)
-    : (countryMenuIndex + step + countryMenuItems.length) % countryMenuItems.length;
-  renderCountryMenu();
-  countryMenu.querySelector('.app-select-option.active')?.scrollIntoView({ block:'nearest' });
+function moveSuggestMenuActive(step) {
+  if (!suggestMenuItems.length) return;
+  suggestMenuIndex = suggestMenuIndex < 0 ? (step > 0 ? 0 : suggestMenuItems.length - 1)
+    : (suggestMenuIndex + step + suggestMenuItems.length) % suggestMenuItems.length;
+  renderSuggestMenu();
+  suggestMenu.querySelector('.app-select-option.active')?.scrollIntoView({ block:'nearest' });
 }
-function selectCountryOption(input, value) {
-  closeCountryMenu();
+function selectSuggestOption(input, value) {
+  closeSuggestMenu();
   if (input.value === value) return;
   input.value = value;
   // 订单表单、抽屉编辑、客户表单都听这两个事件（带入币种、标记改过、检查国家）；自己发的 input 不再把菜单打开。
-  input._countryDispatching = true;
+  input._suggestDispatching = true;
   try {
     input.dispatchEvent(new Event('input', { bubbles:true }));
     input.dispatchEvent(new Event('change', { bubbles:true }));
   } finally {
-    input._countryDispatching = false;
+    input._suggestDispatching = false;
   }
 }
-function repositionCountryMenu() {
-  const input = activeCountryInput;
+function repositionSuggestMenu() {
+  const input = activeSuggestInput;
   if (!input) return;
-  if (dateInputVisible(input)) positionCountryMenu();
-  else closeCountryMenu();
+  if (dateInputVisible(input)) positionSuggestMenu();
+  else closeSuggestMenu();
 }
 document.addEventListener('click', e => {
   const input = e.target;
-  if (input?.matches?.(countryInputSelector) && activeCountryInput !== input) openCountryMenu(input);
+  if (input?.matches?.(suggestInputSelector) && activeSuggestInput !== input) openSuggestMenu(input);
 });
 document.addEventListener('input', e => {
   const input = e.target;
-  if (!input?.matches?.(countryInputSelector) || input._countryDispatching) return;
-  if (document.activeElement === input) openCountryMenu(input, { typing:true });
+  if (!input?.matches?.(suggestInputSelector) || input._suggestDispatching) return;
+  if (document.activeElement === input) openSuggestMenu(input, { typing:true });
 });
 document.addEventListener('focusout', e => {
-  if (e.target === activeCountryInput) closeCountryMenu();
+  if (e.target === activeSuggestInput) closeSuggestMenu();
 }, true);
 document.addEventListener('pointerdown', e => {
-  if (!activeCountryInput || e.target === activeCountryInput || countryMenu?.contains(e.target)) return;
-  closeCountryMenu();
+  if (!activeSuggestInput || e.target === activeSuggestInput || suggestMenu?.contains(e.target)) return;
+  closeSuggestMenu();
 }, true);
 // 捕获阶段、比全局的 Esc（关弹窗 / 抽屉）和粘贴识别编辑框自己的回车 / Esc 先跑：菜单开着时这两个键只管菜单。
 document.addEventListener('keydown', e => {
   const input = e.target;
-  if (!input?.matches?.(countryInputSelector) || isImeKeyEvent(e) || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (!input?.matches?.(suggestInputSelector) || isImeKeyEvent(e) || e.metaKey || e.ctrlKey || e.altKey) return;
   const key = normalizeAppSelectKey(e.key);
-  const open = activeCountryInput === input;
+  const open = activeSuggestInput === input;
   if (key === 'ArrowDown' || key === 'ArrowUp') {
     e.preventDefault();
-    if (!open) openCountryMenu(input);
+    if (!open) openSuggestMenu(input);
     // 刚用方向键打开、当前值已经高亮：停在它上面，再按才往下走（和下拉框一样）。
-    if (activeCountryInput === input && (open || countryMenuIndex < 0)) moveCountryMenuActive(key === 'ArrowDown' ? 1 : -1);
+    if (activeSuggestInput === input && (open || suggestMenuIndex < 0)) moveSuggestMenuActive(key === 'ArrowDown' ? 1 : -1);
     return;
   }
   if (!open) return;
   if (key === 'Escape') {
     e.preventDefault();
     e.stopPropagation();
-    closeCountryMenu();
+    closeSuggestMenu();
   } else if (key === 'Enter') {
-    const value = countryMenuItems[countryMenuIndex];
+    const value = suggestMenuItems[suggestMenuIndex];
     if (!value) {
-      // 没有高亮的项（没在打字、框里的值不在列表里）：回车照常（提交、保存编辑），菜单收起。
-      closeCountryMenu();
+      // 没有高亮的项（没在打字、框里的值不在列表里、或者这个框打字时不高亮）：回车照常（提交、保存编辑），菜单收起。
+      closeSuggestMenu();
       return;
     }
     // 识别预览里单独改国家的小编辑框：回车就是改完。选中后照常往下传，让它用选中的国家收起（不用再按一次回车）。
@@ -12214,14 +12273,14 @@ document.addEventListener('keydown', e => {
       e.preventDefault();
       e.stopPropagation();
     }
-    selectCountryOption(input, value);
-  } else if (key === 'Tab') closeCountryMenu();
+    selectSuggestOption(input, value);
+  } else if (key === 'Tab') closeSuggestMenu();
 }, true);
 document.addEventListener('scroll', e => {
-  if (activeCountryInput && !countryMenu?.contains(e.target)) repositionCountryMenu();
+  if (activeSuggestInput && !suggestMenu?.contains(e.target)) repositionSuggestMenu();
 }, { capture:true, passive:true });
-window.addEventListener('resize', repositionCountryMenu);
-window.visualViewport?.addEventListener('resize', repositionCountryMenu);
+window.addEventListener('resize', repositionSuggestMenu);
+window.visualViewport?.addEventListener('resize', repositionSuggestMenu);
 // #endregion
 // #region Date picker: the in-app calendar behind every date field
 // 日期字段是普通文本框（值仍是 YYYY-MM-DD，读写它的代码不用变），点开是 App 自己画的日历：系统日期框在 Mac App 里弹的是
@@ -13778,13 +13837,16 @@ function setPendingCombinedOrderFields(fields = null) {
 function combinedPastePreviewHtml(preview, buttonAttr) {
   if (!preview?.canCreate || preview.customerStatus === 'existing') return '';
   const order = preview.orderFields;
-  // 客户名、币种上面客户资料里已经有了，订单这一行不再重复显示（币种不一样时才显示）。
+  const customer = preview.customerFields;
+  // 客户名、币种、产品、付款方式上面客户资料里已经有了，订单这一行不再重复显示（和客户资料不一样时才显示）。
+  // 客户的「付款」和订单的「收款方式」是同一件事：一样就只留客户那一条。
+  const samePayment = Boolean(order.paymentChannel) && normalizePaymentChannelValue(order.paymentChannel) === normalizePaymentChannelValue(customer.paymentMethod || '');
   const orderSummary = {
     createdAt: order.createdAt,
     amount: order.amount,
-    currency: order.currency !== preview.customerFields.currency ? order.currency : '',
-    productType: order.productType,
-    paymentChannel: order.paymentChannel,
+    currency: order.currency !== customer.currency ? order.currency : '',
+    productType: order.productType !== customer.productType ? order.productType : '',
+    paymentChannel: samePayment ? '' : order.paymentChannel,
     orderType: order.orderType,
     depositPercent: order.orderType === '定金订单' ? order.depositPercent : '',
     paidAmount: order.paidAmount,
@@ -16130,14 +16192,8 @@ async function fillCustomerFieldsFromPaste(fields = {}, { supplementOnly = false
     const hasValue = Boolean(String(field.value || '').trim());
     if (hasValue && sameValue(key, field.value, nextValue)) return;
     if (hasValue && !isDefaultCustomerValue(key, field.value) && !(critical.includes(key) && overwrite)) { note(skipped, key); return; }
-    if (key === 'repurchaseCycle' && field.tagName === 'SELECT' && ![...field.options].some(option => option.value === nextValue)) {
-      // 45 / 75 天这类不在预设里的周期临时补一个选项，不再填成「不提醒」。
-      const option = document.createElement('option');
-      option.value = nextValue;
-      option.textContent = `${nextValue} 天`;
-      option.dataset.customCycle = 'true';
-      field.append(option);
-    }
+    // 45 / 75 天这类不在预设里的周期临时补一个选项，不再填成「不提醒」。
+    if (key === 'repurchaseCycle' && field.tagName === 'SELECT') addRepurchaseCycleOption(field, nextValue);
     if (key === 'currency' && field.tagName === 'SELECT') setCurrencySelectValue(field, nextValue);
     else field.value = nextValue;
     note(filled, key);
@@ -17000,6 +17056,17 @@ function escapeAttr(value) {
 }
 // #endregion
 // #region Customer fields: contact methods, multi-value fields, tags, levels
+// 复购周期下拉只有 30 / 60 / 90 / 180 天：不在里面的（45、75、120）临时补一个选项，按天数插在该在的位置（45 在 30 和 60 之间）。
+function addRepurchaseCycleOption(select, value) {
+  const days = String(value || '').trim();
+  if (!select || !days || [...select.options].some(option => option.value === days)) return;
+  const option = document.createElement('option');
+  option.value = days;
+  option.textContent = `${days} 天`;
+  option.dataset.customCycle = 'true';
+  const after = [...select.options].find(item => item.value && Number(item.value) > Number(days));
+  select.insertBefore(option, after || null);
+}
 function contactForClient(name = '') {
   const profile = state.customers?.[name] || {};
   const contact = cleanContactValue(profile.contact || '', profile.address || '');
@@ -18552,7 +18619,7 @@ function renderSettingsList(elId, list, type) {
   const el = document.getElementById(elId);
   if (!el) return;
   el.innerHTML = list.map(item => `
-    <span class="settings-chip">${escapeAttr(item)}<button type="button" data-settings-remove="${type}" data-value="${escapeAttr(item)}">×</button></span>
+    <span class="settings-chip">${escapeAttr(item)}<button type="button" data-settings-remove="${type}" data-value="${escapeAttr(item)}" aria-label="删除 ${escapeAttr(item)}" title="删除">×</button></span>
   `).join('');
 }
 // 设置页任何一次 render 都会重填所有设置表单：某个表单里有还没保存的输入时先不动它，
@@ -21874,11 +21941,16 @@ async function mergeCustomerInto(sourceName = '') {
     toast('没有别的客户可以合并', { tone:'warn' });
     return;
   }
-  const list = document.getElementById('customerMergeTargetOptions');
-  if (list) list.innerHTML = others.map(name => `<option value="${escapeAttr(name)}"></option>`).join('');
+  // 客户名的建议列表是 App 自己的菜单（和国家栏同一套）：确认框的输入框借用一下，关掉时还原。
   const input = document.getElementById('confirmInput');
   const resolve = value => others.find(name => name === value) || others.find(name => sameCustomerName(name, value)) || '';
-  input?.setAttribute('list', 'customerMergeTargetOptions');
+  if (input) {
+    setSuggestItems(input, others);
+    input.dataset.suggest = '';
+    input.setAttribute('role', 'combobox');
+    input.setAttribute('aria-autocomplete', 'list');
+    input.setAttribute('aria-expanded', 'false');
+  }
   let picked;
   try {
     picked = await appConfirm({
@@ -21891,7 +21963,12 @@ async function mergeCustomerInto(sourceName = '') {
       validate:value => (value && resolve(value) ? true : '没有这位客户，请从列表里选')
     });
   } finally {
-    input?.removeAttribute('list');
+    if (input) {
+      if (activeSuggestInput === input) closeSuggestMenu();
+      delete input.dataset.suggest;
+      delete input._suggestItems;
+      ['role', 'aria-autocomplete', 'aria-expanded', 'aria-controls', 'aria-activedescendant'].forEach(name => input.removeAttribute(name));
+    }
   }
   if (!picked.confirmed) return;
   const target = resolve(picked.value);
@@ -22344,13 +22421,7 @@ function openCustomerModal(name = '', { viewOnly = true } = {}) {
   cycleSelect.querySelectorAll('option[data-custom-cycle]').forEach(option => option.remove());
   const cycleValue = String(data.repurchaseCycle || '');
   // 45 / 75 / 120 这类不在预设里的周期临时补一个选项，否则下拉选不中，保存就被清成「不提醒」。
-  if (cycleValue && ![...cycleSelect.options].some(option => option.value === cycleValue)) {
-    const option = document.createElement('option');
-    option.value = cycleValue;
-    option.textContent = `${cycleValue} 天`;
-    option.dataset.customCycle = 'true';
-    cycleSelect.append(option);
-  }
+  addRepurchaseCycleOption(cycleSelect, cycleValue);
   cycleSelect.value = cycleValue;
   form.elements.note.value = data.note || '';
   form.elements.permanentNote.value = data.permanentNote || '';
@@ -22870,6 +22941,7 @@ function fillCombinedOrderForm(fields = {}, customerFields = {}) {
   if (!form) return;
   const settings = { ...defaultOrderSettings, ...(state.orderSettings || {}) };
   form.reset();
+  clearCustomerFieldHints(form);
   const defaults = {
     num: nextOrderNum(),
     createdAt: normalizeDate(new Date().toISOString()),
@@ -23598,6 +23670,7 @@ function openOrder(id) {
   editingId = id || null;
   clearPasteAssist();
   const form = document.getElementById('orderForm');
+  clearCustomerFieldHints(form);
   delete form.dataset.pendingOrderId;
   delete form.dataset.pendingNewOrder;
   const fields = form.elements;
@@ -23768,6 +23841,47 @@ function orderNumConflictText(num, selfId = '') {
   const same = String(owner.order.num || '') === String(num || '').trim();
   return `订单号 ${normalizeOrderNum(num)} 已被${owner.where}「${clientDisplayName(owner.order.client) || '另一张订单'}」的订单使用${same ? '' : `（那张单写作 ${owner.order.num}，只差大小写、全角或空格）`}，请换一个`;
 }
+// 订单表单（新建 / 编辑订单、新客户 + 订单）不用浏览器自带的必填气泡（英文、系统样式）：表单是 novalidate，
+// 保存时这里查必填项，红字写在字段下面，和客户表单同一种提示（setCustomerFieldHint），焦点落到第一个出错的框、那一格抖一下。
+// 存草稿不查（草稿本来就可以没填完）。
+const orderRequiredFields = [
+  ['num', input => (String(input.value || '').trim() ? '' : '请填写订单号')],
+  ['createdAt', input => (String(input.value || '').trim() ? '' : '请选择创建日期')],
+  ['client', input => (String(input.value || '').trim() ? '' : '请选择或输入客户')],
+  ['amount', input => {
+    if (input.validity?.badInput || !String(input.value || '').trim()) return '请填写订单金额';
+    return Number(input.value) < 0 ? '金额不能小于 0' : '';
+  }],
+  // 定金、已收不是必填，但以前 min="0" 由浏览器拦着负数；novalidate 以后在这里拦（只查看得见的框：全款单没有定金框）。
+  ['depositAmount', input => (String(input.value || '').trim() && Number(input.value) < 0 ? '金额不能小于 0' : '')],
+  ['paidAmount', input => (String(input.value || '').trim() && Number(input.value) < 0 ? '金额不能小于 0' : '')]
+];
+function orderRequiredFieldError(input) {
+  const rule = orderRequiredFields.find(([name]) => name === input?.name);
+  return rule ? rule[1](input) : '';
+}
+function validateOrderRequiredFields(form) {
+  let first = null;
+  orderRequiredFields.forEach(([name]) => {
+    const input = form?.querySelector(`[name="${name}"]`);
+    if (!input || input.disabled || !input.getClientRects().length) return;
+    const message = orderRequiredFieldError(input);
+    setCustomerFieldHint(input, message, 'error');
+    if (message && !first) first = input;
+  });
+  if (!first) return true;
+  first.scrollIntoView?.({ block:'center', behavior:'auto' });
+  first.focus({ preventScroll:true });
+  const field = first.closest('.field');
+  if (field) { field.classList.remove('ui-err'); void field.offsetWidth; field.classList.add('ui-err'); setTimeout(() => field.classList.remove('ui-err'), 450); }
+  return false;
+}
+// 改好了红字就走：打字、从菜单 / 日历选中（会发 input / change）都算。
+['input', 'change'].forEach(type => document.addEventListener(type, e => {
+  const input = e.target;
+  if (input?.getAttribute?.('aria-invalid') !== 'true' || !input.closest('#orderForm, #combinedOrderForm')) return;
+  if (!orderRequiredFieldError(input)) setCustomerFieldHint(input, '');
+}, true));
 function markOrderNumField(field, invalid) {
   const wrap = field?.closest('.field');
   if (!wrap) return;
@@ -24088,7 +24202,7 @@ async function saveCombinedCustomerOrder() {
   orderForm.dataset.saving = 'true';
   try {
   // 客户这一栏和客户弹窗同一套检查：邮箱、电话格式不对给红字，不再静默丢掉。
-  if (!validateCustomerForm(customerForm) || !orderForm.reportValidity()) return;
+  if (!validateCustomerForm(customerForm) || !validateOrderRequiredFields(orderForm)) return;
   const customerData = { ...Object.fromEntries(new FormData(customerForm).entries()), ...customerMultiFieldData(customerForm), ...customerContactPreferenceData(customerForm) };
   const orderData = { ...Object.fromEntries(new FormData(orderForm).entries()), shipments:orderShipmentsFromForm(orderForm) };
   const oldName = customerData.originalName || '';
@@ -27385,7 +27499,7 @@ function openSubscriptionEditor(id = '', { resubscribe = false, origin = '' } = 
   // Providers already typed on other records, so Cloudflare and cloudflare do not both appear.
   const providers = new Map();
   subscriptionState.items.forEach(item => { const name = String(item.provider || '').trim(); if (name && !providers.has(name.toLowerCase())) providers.set(name.toLowerCase(), name); });
-  document.getElementById('subscriptionProviderList').innerHTML = [...providers.values()].map(name => `<option value="${escapeAttr(name)}"></option>`).join('');
+  setSuggestItems(form.elements.subProvider, [...providers.values()]);
   form.querySelectorAll('.subs-field.err').forEach(field => field.classList.remove('err'));
   form.querySelectorAll('[data-sub-opt-add]').forEach(row => closeSubscriptionOptionAdd(row.dataset.subOptAdd));
   form.scrollTop = 0;
@@ -28445,7 +28559,7 @@ function orderListMoreFloating(more) {
 }
 document.addEventListener('pointerdown', e => {
   const more = document.getElementById('orderListMoreFilters');
-  if (!orderListMoreFloating(more) || more.contains(e.target) || e.target.closest?.('.app-select-popover, .country-menu')) return;
+  if (!orderListMoreFloating(more) || more.contains(e.target) || e.target.closest?.('.app-select-popover, .suggest-menu')) return;
   more.open = false;
 }, true);
 document.addEventListener('keydown', e => {
@@ -29005,6 +29119,7 @@ document.getElementById('orderForm').addEventListener('submit', e => {
   const form = e.currentTarget;
   const saveBtn = e.submitter || document.querySelector('button[type="submit"][form="orderForm"]');
   if (form.dataset.saving || form.dataset.uploading || form.dataset.deletingAttachment) { upsertOrder(form); return; }
+  if (!validateOrderRequiredFields(form)) return;
   uiMorph(saveBtn, 'busy', '保存中…');
   upsertOrder(form).finally(() => uiMorph(saveBtn, 'idle'));
 });
@@ -29106,20 +29221,32 @@ document.addEventListener('reset', e => {
 }, true);
 function repositionOpenMenus() {
   if (activeAppSelect) positionAppSelectPopover(activeAppSelect);
-  if (activeCountryInput) positionCountryMenu();
+  if (activeSuggestInput) positionSuggestMenu();
   if (activeClientPicker) positionClientMenu(activeClientPicker);
 }
 window.addEventListener('resize', repositionOpenMenus);
 window.visualViewport?.addEventListener('resize', repositionOpenMenus);
-document.addEventListener('animationend', e => {
-  if (!e.target.matches?.('.modal')) return;
-  // The modal entrance moves its triggers; re-anchor so the next scroll check compares against the settled position.
+// 弹窗入场、识别结果弹出这些 transform 动画：动画期间这个元素成了里面 position:fixed 菜单的定位参照，
+// fixFloatingMenuContainingBlock 按它算了补偿；动画一停参照没了，补偿还在，菜单就落到窗口左上角。
+// 所以动画结束（或被打断）时，只要它包着某个开着的菜单的锚点，就重新摆一次。
+// 出错的字段抖一下（.field.ui-err）不走这条路：它不用 transform（见那条 CSS 的说明），根本不产生定位参照。
+function menuAnchorsInside(target) {
+  const anchors = [
+    activeAppSelect ? appSelectParts(activeAppSelect).button : null,
+    activeSuggestInput,
+    activeClientPicker?.querySelector('input[name="client"]')
+  ];
+  return anchors.some(anchor => anchor && target.contains(anchor));
+}
+['animationend', 'animationcancel'].forEach(type => document.addEventListener(type, e => {
+  if (!(e.target instanceof Element) || (!e.target.matches('.modal') && !menuAnchorsInside(e.target))) return;
+  // The animation moved the triggers; re-anchor so the next scroll check compares against the settled position.
   if (activeAppSelect) activeAppSelectAnchor = appSelectParts(activeAppSelect).button?.getBoundingClientRect() || activeAppSelectAnchor;
   if (activeClientPicker) activeClientPicker._clientMenuAnchor = activeClientPicker.querySelector('input[name="client"]')?.getBoundingClientRect() || activeClientPicker._clientMenuAnchor;
   repositionOpenMenus();
-});
+}));
 document.addEventListener('wheel', e => {
-  const menu = e.target.closest?.('.app-select-popover, .country-menu, .client-menu.open');
+  const menu = e.target.closest?.('.app-select-popover, .suggest-menu, .client-menu.open');
   if (!menu || !e.deltaY) return;
   const atEdge = e.deltaY < 0 ? menu.scrollTop <= 0 : menu.scrollTop + menu.clientHeight >= menu.scrollHeight - 1;
   if (atEdge) e.preventDefault();
@@ -30565,7 +30692,7 @@ function closeTransientLayers({ keepNotifs = false } = {}) {
   if (!keepNotifs && document.getElementById('notifPanel') && !document.getElementById('notifPanel').hidden) uiToggleNotifs(false);
   closeAppSelectMenu();
   closeDatePicker();
-  closeCountryMenu();
+  closeSuggestMenu();
   closeClientMenus();
   if (typeof uiCloseBoardMenu === 'function') uiCloseBoardMenu();
   const more = document.getElementById('orderListMoreFilters');
@@ -30685,7 +30812,15 @@ function uiLayoutToasts() {
   const stack = document.getElementById('toast');
   if (!stack) return;
   const items = [...stack.querySelectorAll('.toast-item:not(.leaving)')].reverse();
-  items.forEach((el, i) => { el.style.setProperty('--i', String(i)); el.classList.toggle('is-hidden', i > 2); });
+  // offsetHeight 不受 transform（叠放时的缩放）影响，量到的是展开后的实际高度。
+  let lift = 0;
+  items.forEach((el, i) => {
+    el.style.setProperty('--i', String(i));
+    el.style.setProperty('--lift', `${lift}px`);
+    lift += el.offsetHeight + 8;
+    el.classList.toggle('is-behind', i > 0);
+    el.classList.toggle('is-hidden', i > 2);
+  });
   stack.classList.toggle('show', items.length > 0);
   stack.classList.toggle('above-foot', !!document.querySelector('.modal-backdrop.open'));
   // 居中的弹窗（客户档案、订单）底部离窗口边还有一段，固定抬高 96px 不够，提示条正好盖住「保存」：
@@ -32059,7 +32194,7 @@ document.addEventListener('keydown', e => {
   const active = document.activeElement;
   // 焦点在这一层外面（背后的页面、或者已经跑出去了）：拉回来。层里自己的弹出菜单（客户下拉等）不管。
   if (!top.contains(active)) {
-    if (active?.closest?.('.app-select-popover, .country-menu, .client-menu')) return;
+    if (active?.closest?.('.app-select-popover, .suggest-menu, .client-menu')) return;
     e.preventDefault();
     (e.shiftKey ? last : first).focus();
   } else if (e.shiftKey && active === first) {

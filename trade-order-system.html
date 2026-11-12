@@ -935,26 +935,35 @@ html[data-theme="dark"] .segment-option.active {
 .client-picker input { padding-right: 34px; }
 .client-trigger {
   position: absolute; top: 1px; right: 1px; bottom: 1px; width: 34px;
-  border: 0; border-left: 1px solid var(--gray-200); background: transparent; color: var(--gray-500);
+  border: 0; background: transparent; color: var(--gray-500);
+  /* 按钮里的字符「▾」不画，换成和所有下拉框一样的折角箭头，展开时翻转。 */
+  display: flex; align-items: center; justify-content: center; font-size: 0;
 }
+.client-trigger::before {
+  content: ''; width: 8px; height: 8px; margin-top: -4px;
+  border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg);
+  transition: transform var(--motion-med) var(--ease-out), margin var(--motion-med) var(--ease-out);
+}
+.client-trigger[aria-expanded="true"]::before { margin-top: 4px; transform: rotate(225deg); }
 .client-menu {
   position: fixed; z-index: 300; right: auto;
   display: none; max-height: 420px; overflow: auto; padding: 6px;
   transition-property: none;
   overscroll-behavior: contain; scrollbar-gutter: stable;
-  border: 1px solid var(--surface-border-strong); border-radius: 12px; background: var(--surface-raised);
-  box-shadow: 0 12px 32px rgba(0,0,0,.16), 0 2px 6px rgba(0,0,0,.06);
+  /* 和其他下拉菜单、右键菜单一个样。 */
+  border: 1px solid var(--surface-border); border-radius: var(--radius); background: var(--surface-bg);
+  box-shadow: var(--floating-shadow);
 }
-.client-menu.open { display: block; }
-.client-menu-head { position: sticky; top: -6px; z-index: 2; padding-top: 6px; background: var(--surface-raised); }
+.client-menu.open { display: block; animation: uiMenuFade var(--motion-fast) var(--ease-out); }
+.client-menu-head { position: sticky; top: -6px; z-index: 2; padding-top: 6px; background: var(--surface-bg); }
 .client-menu-heading { display: flex; justify-content: space-between; gap: 12px; padding: 3px 7px 7px; color: var(--gray-500); font-size: 11px; }
 .client-menu-heading strong { color: var(--gray-700); font-weight: 600; }
-.client-menu-foot { position: sticky; bottom: -6px; margin-top: 4px; padding: 7px; border-top: 1px solid var(--gray-200); background: var(--surface-raised); color: var(--gray-500); font-size: 10px; }
+.client-menu-foot { position: sticky; bottom: -6px; margin-top: 4px; padding: 7px; border-top: 1px solid var(--hairline); background: var(--surface-bg); color: var(--gray-500); font-size: 11px; }
 .client-menu-empty { padding: 18px 8px; color: var(--gray-500); font-size: 12px; line-height: 1.7; }
 .client-menu-empty strong { display: block; color: var(--gray-700); font-weight: 600; }
 .client-letter-filter {
   display: flex; flex-wrap: nowrap; gap: 4px; overflow-x: auto; padding: 2px 1px 7px;
-  background: var(--surface-raised); scrollbar-width: none;
+  background: var(--surface-bg); scrollbar-width: none;
 }
 .client-letter-filter::-webkit-scrollbar { display: none; }
 /* 放不下的字母藏在右边时，边缘渐隐提示还能横着滚（滚轮在字母栏上会横向滚动） */
@@ -968,12 +977,11 @@ html[data-theme="dark"] .segment-option.active {
 .client-letter-btn.active { background: var(--semantic-primary); border-color: var(--semantic-primary); color: #fff; }
 .client-option {
   border: 0; background: transparent; color: var(--gray-800); text-align: left;
-  min-height: 48px; padding: 4px 6px; border-radius: 7px; display: grid; grid-template-columns: minmax(0,1fr) 28px; gap: 6px; align-items: center;
+  min-height: 48px; padding: 4px 6px; border-radius: 10px; display: grid; grid-template-columns: minmax(0,1fr) 28px; gap: 6px; align-items: center;
   cursor: pointer;
 }
-.client-option:hover, .client-option.active { background: var(--gray-100); }
-.client-option.active { box-shadow: inset 2px 0 var(--semantic-primary); }
-.client-option[aria-selected="true"] { background: color-mix(in srgb, var(--semantic-primary) 9%, var(--surface-raised)); }
+.client-option:hover, .client-option.active { background: var(--surface-soft); }
+.client-option[aria-selected="true"] { background: var(--accent-tint); }
 .client-option-main {
   min-width: 0; border: 0; background: transparent; color: inherit; text-align: left;
   padding: 2px 3px; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; column-gap: 8px; row-gap: 2px; border-radius: 5px; overflow: hidden;
@@ -2262,22 +2270,9 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
 .customer-contact-preference-panel .contact-method-checks { min-height: 42px; align-items: center; }
 #combinedCustomerForm .customer-trade-preference-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 #combinedCustomerForm .customer-contact-preference-panel { grid-template-columns: 1fr; gap: 10px; }
-:is(#customerForm, #combinedCustomerForm) { --control-radius: 10px; }
 :is(#customerForm, #combinedCustomerForm) .field > label,
 :is(#customerForm, #combinedCustomerForm) .customer-contact-methods-field legend { font-weight: 600; }
-:is(#customerForm, #combinedCustomerForm) .binary-segment {
-  min-height: 42px; padding: 3px; gap: 3px; border-radius: 10px;
-  border-color: var(--gray-200); background: var(--surface-soft); box-shadow: none;
-}
-:is(#customerForm, #combinedCustomerForm) .binary-option {
-  min-height: 34px; border-radius: 7px; font-size: 14px; font-weight: 600;
-  color: var(--gray-600); box-shadow: none;
-}
-:is(#customerForm, #combinedCustomerForm) .binary-option.active {
-  color: var(--semantic-primary); background: color-mix(in srgb, var(--semantic-primary) 12%, var(--white));
-  box-shadow: none;
-}
-:is(#customerForm, #combinedCustomerForm) .binary-option:focus-visible { outline: 2px solid var(--semantic-primary); outline-offset: -2px; }
+/* 这里以前给客户表单单独写了一套灰底的分段控件和 10px 圆角：现在和订单表单用同一套（ots-form-v3）。 */
 :is(#customerForm, #combinedCustomerForm) .app-select-button { font-weight: 500; }
 .whatsapp-panel [hidden] { display:none !important; }
 .whatsapp-panel .whatsapp-toolbar { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
@@ -3411,10 +3406,11 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
   border-color: var(--surface-border-strong);
   background: color-mix(in srgb, var(--surface-soft) 45%, var(--white));
 }
+/* 展开 / 聚焦的下拉框和聚焦的输入框一个样：强调色边框 + 一圈浅色（以前是黑边灰圈）。 */
 .app-select-button:focus-visible,
 .app-select.open .app-select-button {
-  border-color: var(--semantic-primary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--semantic-primary) 15%, transparent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-tint);
 }
 .app-select-button:disabled {
   cursor: not-allowed;
@@ -3458,9 +3454,10 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
   font-weight: inherit;
   box-shadow: none;
 }
-.app-select.inline-select:focus-within {
-  border-color: var(--semantic-primary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--semantic-primary) 15%, transparent);
+.app-select.inline-select:focus-within,
+.app-select.inline-select.open {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-tint);
 }
 .amount-range-select.app-select { width: 70px; }
 .amount-range-select.app-select .app-select-button { gap: 4px; padding: 0 7px 0 10px; }
@@ -3508,47 +3505,53 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
   display: block;
   max-height: min(320px, calc(100vh - 24px));
   overflow: auto;
+  /* 和看板右键菜单、复制菜单一个样：18px 圆角、浅边框、浮层阴影。 */
   padding: 6px;
-  border: 1px solid var(--surface-border-strong);
-  border-radius: 12px;
-  background: var(--surface-raised);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius);
+  background: var(--surface-bg);
   color: var(--gray-800);
-  box-shadow: 0 12px 32px rgba(0,0,0,.16), 0 2px 6px rgba(0,0,0,.06);
+  box-shadow: var(--floating-shadow);
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
 }
 .app-select-popover[hidden] { display: none; }
+/* 只淡入，不位移不缩放：菜单的位置是按量出来的矩形摆的（fixFloatingMenuContainingBlock），带 transform 的入场会量错。 */
+.app-select-popover:not([hidden]) { animation: uiMenuFade var(--motion-fast) var(--ease-out); }
+@keyframes uiMenuFade { from { opacity: 0; } }
 .app-select-option {
   width: 100%;
-  min-height: 36px;
+  min-height: 34px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 18px;
+  grid-template-columns: minmax(0, 1fr) 16px;
   align-items: center;
   gap: 10px;
-  padding: 7px 9px;
+  padding: 6px 10px;
   border: 0;
-  border-radius: 7px;
+  border-radius: 10px;
   background: transparent;
-  color: var(--gray-700);
+  color: var(--gray-800);
   text-align: left;
   line-height: 1.35;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 400;
   outline: 0;
 }
+.app-select-option + .app-select-option { margin-top: 2px; }
+/* 鼠标悬停和键盘 ↑↓ 走到的那项：浅灰底。 */
 .app-select-option:hover,
 .app-select-option.active {
-  background: var(--gray-100);
+  background: var(--surface-soft);
   color: var(--gray-900);
 }
+/* 当前选中的那项：强调色浅底 + 强调色字 + 对勾，和分段控件的选中块一致。 */
 .app-select-option.selected {
-  background: color-mix(in srgb, var(--semantic-primary) 10%, var(--surface-raised));
-  color: var(--semantic-primary-dark);
+  background: var(--accent-tint);
+  color: var(--accent);
   font-weight: 600;
 }
-.app-select-option.active { box-shadow: inset 2px 0 var(--semantic-primary); }
 .app-select-option:focus-visible {
-  box-shadow: inset 0 0 0 2px var(--semantic-primary);
+  box-shadow: inset 0 0 0 2px var(--accent);
 }
 .app-select-option:disabled { cursor: not-allowed; color: var(--gray-500); opacity: .65; }
 .app-select-option:disabled:hover { background: transparent; }
@@ -3556,12 +3559,8 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
 .app-select-group { padding: 8px 9px 5px; color: var(--gray-500); font-size: 11px; font-weight: 600; }
 .app-select-group:not(:first-child) { margin-top: 5px; border-top: 1px solid var(--gray-200); }
 .app-select-option-label { min-width: 0; overflow-wrap: anywhere; }
-.app-select-option-check { color: var(--semantic-primary); text-align: center; font-weight: 600; }
-html[data-theme="dark"] :is(.app-select-popover, .client-menu) {
-  box-shadow: 0 14px 40px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.24);
-}
-html[data-theme="dark"] .app-select-option.selected,
-html[data-theme="dark"] .app-select-option-check { color: var(--cyan-600); }
+.app-select-option-check { display: grid; place-items: center; color: var(--accent); }
+.app-select-option-check .ui-icon { width: 14px; height: 14px; stroke-width: 2; }
 @media (max-width: 760px) {
   .app-select-popover { max-height: min(280px, calc(100vh - 20px)); }
 }
@@ -3581,11 +3580,12 @@ input[data-date-input]::placeholder { color: var(--gray-400); }
   z-index: 300;
   width: 292px;
   padding: 12px 12px 10px;
-  border: 1px solid var(--surface-border-strong);
-  border-radius: 16px;
-  background: var(--surface-raised);
+  /* 外框和下拉菜单、右键菜单同一套：浅边框、18px 圆角、浮层阴影。 */
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius);
+  background: var(--surface-bg);
   color: var(--gray-800);
-  box-shadow: 0 16px 40px rgba(0,0,0,.14), 0 2px 6px rgba(0,0,0,.06);
+  box-shadow: var(--floating-shadow);
   font-family: var(--sans);
   user-select: none;
   -webkit-user-select: none;
@@ -3638,7 +3638,7 @@ input[data-date-input]::placeholder { color: var(--gray-400); }
   box-shadow: inset 0 0 0 2px var(--accent);
 }
 .date-picker.keyboard .date-picker-day.selected.active, .date-picker.keyboard .date-picker-month.selected.active {
-  box-shadow: 0 0 0 2px var(--surface-raised), 0 0 0 4px var(--accent);
+  box-shadow: 0 0 0 2px var(--surface-bg), 0 0 0 4px var(--accent);
 }
 .date-picker .date-picker-day:disabled, .date-picker .date-picker-month:disabled { color: var(--gray-300) !important; text-decoration: line-through; text-decoration-color: var(--gray-300); }
 .date-picker .date-picker-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--hairline); }
@@ -3650,7 +3650,6 @@ input[data-date-input]::placeholder { color: var(--gray-400); }
 .date-picker .date-picker-link:not(:disabled):hover { background: color-mix(in oklab, var(--accent) 10%, transparent); }
 .date-picker .date-picker-link.subtle:hover { background: var(--gray-100) !important; }
 .date-picker .date-picker-link:disabled { color: var(--gray-400) !important; }
-html[data-theme="dark"] .date-picker { box-shadow: 0 16px 44px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.28); }
 html[data-theme="dark"] :is(.date-picker-day, .date-picker-month):not(:disabled):not(.selected):hover,
 html[data-theme="dark"] :is(.date-picker .date-picker-title, .date-picker .date-picker-step):hover { background: oklch(30% 0 0); }
 /* Subscriptions page: personal subscriptions kept apart from order data.
@@ -4189,6 +4188,8 @@ html[data-theme] .order-detail-customer-hero, html[data-theme] .detail-hero { bo
 /* 选中态：分段/标签/分页统一成灰底上的白色浮起块；数据条和圆点用强调色 */
 html[data-theme] :is(.binary-option.active, .side-chart-tab.active, .chip.active, .client-letter-btn.active) { background:var(--surface-bg); color:var(--gray-900); border-color:transparent; box-shadow:0 1px 2px oklch(0% 0 0 / .08), 0 0 0 .5px oklch(0% 0 0 / .04); }
 html[data-theme="dark"] :is(.binary-option.active, .side-chart-tab.active, .chip.active, .client-letter-btn.active, .segment-option.active) { background:var(--surface-raised); }
+/* 客户菜单本身是白底，上面那种「白底浮起」的选中块在里面看不出来：字母筛选的选中项改用强调色浅底。 */
+html[data-theme] .client-letter-btn.active { background:var(--accent-tint); color:var(--accent); border-color:transparent; box-shadow:none; }
 html[data-theme] :is(.binary-segment, .side-chart-tabs) { background:var(--gray-100); border:0; box-shadow:none; }
 html[data-theme] .order-list-page-buttons button.active { background:var(--semantic-primary); border-color:transparent; color:var(--primary-ink); }
 html[data-theme] :is(.side-bar-fill, .analysis-trend-track span, .analysis-event-fill, .business-product-fill, .legend-dot, .tracking-event-dot, .roadmap-event:first-of-type .roadmap-dot, .history-item:first-child .history-dot) { background:var(--accent); }
@@ -4286,6 +4287,10 @@ html[data-theme] .order-detail-order-amount { color:var(--gray-900); font-family
 html[data-theme] .client-autofill-summary { background:var(--surface-soft); border-color:var(--surface-border); }
 html[data-theme] .customer-multi-add { background:var(--accent-tint); color:var(--accent); border-color:transparent; border-radius:999px; font-weight:500; }
 html[data-theme] .customer-multi-add:hover { background:color-mix(in oklab, var(--accent) 20%, transparent); }
+/* 带「＋电话」按钮的标签行和普通标签一样高（按钮上下各探出几像素），同一行左右两个字段的输入框才对得齐；
+   旁边的字段多加了几行时，这一格不跟着被拉高。 */
+html[data-theme] .customer-multi-field-head { height:18px; margin-bottom:3px; }
+html[data-theme] :is(#customerForm, #combinedCustomerForm) .field { align-content:start; }
 html[data-theme] .paste-assist { background:var(--surface-soft); border-color:var(--surface-border); }
 html[data-theme] .level-tag { background:var(--gray-100); color:var(--gray-700); border-radius:999px; padding:1px 8px; font-weight:500; }
 html[data-theme] .customer-group-item.active, html[data-theme] .customer-group-item[aria-pressed="true"] { background:var(--surface-soft); color:var(--gray-900); box-shadow:none; }
@@ -4423,7 +4428,10 @@ html[data-theme="dark"] .segment-option.active { background:var(--surface-raised
 /* 输入框、下拉 */
 html[data-theme] :is(.field input, .field select, .field textarea, .confirm-input) { border:1px solid var(--surface-border); border-radius:var(--control-radius); background:var(--surface-bg); color:var(--gray-900); }
 html[data-theme] :is(.field input, .field select, .field textarea):hover { border-color:var(--surface-border-strong); }
-html[data-theme] :is(.field input, .field select, .field textarea):focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-tint); }
+html[data-theme] :is(.field input, .field select, .field textarea, .confirm-input):focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-tint); }
+/* 输入框聚焦已经有「强调色边框 + 一圈浅色」：不再叠全局那条 2px 轮廓（文字输入框用鼠标点也算 :focus-visible，
+   每点一个框都是里外两圈）。勾选框、单选框没有自己的聚焦样式，仍用全局轮廓。 */
+html[data-theme] :is(.field input:not([type="checkbox"], [type="radio"]), .field textarea, .confirm-input, .detail-ship-add input, .order-list-search, .detail-note-editor, .paste-assist textarea):focus-visible { outline:none; }
 
 /* 勾选框和单选一律用强调色（规范：强调色用在「开关打开」这类选中状态）。原来卡片设置里是黑色、物流页是系统蓝。 */
 html[data-theme] input:is([type="checkbox"], [type="radio"]) { accent-color:var(--accent); }
@@ -5477,7 +5485,9 @@ html[data-theme] .order-list-more summary::-webkit-details-marker { display:none
 html[data-theme] .order-list-more summary::before { content:''; width:6px; height:6px; border:solid currentColor; border-width:0 1.5px 1.5px 0; transform:rotate(-45deg); transition:transform var(--motion-fast) var(--ease); }
 html[data-theme] .order-list-more[open] summary { margin:0; }
 html[data-theme] .order-list-more[open] summary::before { transform:rotate(45deg); }
-html[data-theme] .order-list-more .order-list-filter-grid { position:absolute; right:0; top:calc(100% + 8px); z-index:30; width:min(520px, 80vw); grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; padding:12px; border:1px solid var(--surface-border); border-radius:18px; background:var(--surface-bg); box-shadow:0 18px 40px -12px oklch(0% 0 0 / .22); animation:uiRise .24s var(--ease-out); }
+html[data-theme] .order-list-more .order-list-filter-grid { position:absolute; right:0; top:calc(100% + 8px); z-index:30; width:min(520px, 80vw); grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; padding:12px; border:1px solid var(--surface-border); border-radius:18px; background:var(--surface-bg); box-shadow:var(--floating-shadow); animation:uiRise .24s var(--ease-out); }
+/* 面板里的六个下拉框和工具栏上的三个一个样：胶囊形、38px 高、13px 深色字（以前是 10px 圆角、12px 灰字）。 */
+html[data-theme] .order-list-more .order-list-filter-grid .inline-select { height:38px; min-height:38px; padding-left:6px; border-radius:999px; font-size:13px; color:var(--gray-900); }
 html[data-theme] #orderListResetBtn { height:38px; padding:0 14px; border-radius:999px; }
 html[data-theme] .order-list-active-filters:not(:empty) { flex-basis:100%; margin:0; }
 html[data-theme] .order-list-filter-chip { border-radius:999px; padding:4px 10px; }
@@ -5485,6 +5495,9 @@ html[data-theme] .order-list-filter-chip { border-radius:999px; padding:4px 10px
 /* 表格卡片 */
 html[data-theme] .order-table-scroll { border:1px solid var(--surface-border); border-radius:22px 22px 0 0; border-bottom:0; background:var(--surface-bg); max-height:calc(100vh - 322px); scrollbar-gutter:auto; }
 html[data-theme] .order-list-pagination { border:1px solid var(--surface-border); border-top:0; border-radius:0 0 22px 22px; background:var(--surface-bg); margin-top:-14px; }
+/* 翻页按钮和别的按钮一样是胶囊形（以前是 8px 圆角的小方块）。 */
+html[data-theme] .order-list-page-buttons button { min-width:30px; padding:0 12px; border-color:var(--surface-border); border-radius:999px; font-size:12px; font-weight:500; }
+html[data-theme] .order-list-page-buttons button.active { padding:0; font-weight:600; }
 html[data-theme] .order-table { min-width:960px; font-size:13px; }
 html[data-theme] .order-table thead th { height:38px; padding:0 10px; box-shadow:0 1px 0 var(--hairline); }
 html[data-theme] .order-table td { height:68px; padding:10px; }
@@ -5609,6 +5622,9 @@ html[data-theme] :is(.order-modal, .customer-modal-shell) .modal-head-actions { 
 html[data-theme] .btn-icon-x { width:34px; height:34px; padding:0; border-color:transparent; background:transparent; color:var(--gray-600); display:inline-grid; place-items:center; border-radius:999px; }
 html[data-theme] .btn-icon-x:hover { background:var(--gray-100); color:var(--gray-900); box-shadow:none; }
 html[data-theme] .btn-icon-x .ui-icon { width:18px; height:18px; }
+html[data-theme] a.btn { text-decoration:none; }
+/* 「客户 + 订单」弹窗里的物流记录框：边框和旁边的输入框同一个深浅（以前掺了 12% 的黑，比别的框都重）。 */
+html[data-theme] #combinedCustomerOrderModal .shipment-editor { border-color:var(--surface-border); }
 
 html[data-theme] .mbody { flex:1; min-height:0; display:grid; grid-template-columns:204px minmax(0,1fr); }
 html[data-theme] .mnav { position:relative; display:flex; flex-direction:column; gap:2px; padding:2px 12px 18px 16px; min-height:0; }
@@ -11838,7 +11854,7 @@ function renderAppSelectPopover(select) {
     }
     const check = document.createElement('span');
     check.className = 'app-select-option-check';
-    check.textContent = option.selected ? '✓' : '';
+    if (option.selected) check.innerHTML = uiIcon('check');
     item.append(label, check);
     items.push(item);
   });
@@ -11849,14 +11865,20 @@ function renderAppSelectPopover(select) {
   if (active) button?.setAttribute('aria-activedescendant', active.id);
   else button?.removeAttribute('aria-activedescendant');
 }
-function positionFloatingMenu(menu, anchor, { minWidth = 0, maxHeight = 320 } = {}) {
+function positionFloatingMenu(menu, anchor, { minWidth = 0, maxHeight = 320, fitContent = false } = {}) {
   const rect = anchor.getBoundingClientRect();
   const viewport = window.visualViewport;
   const leftEdge = (viewport?.offsetLeft || 0) + 8;
   const topEdge = (viewport?.offsetTop || 0) + 8;
   const rightEdge = leftEdge + (viewport?.width || document.documentElement.clientWidth || window.innerWidth) - 16;
   const bottomEdge = topEdge + (viewport?.height || document.documentElement.clientHeight || window.innerHeight) - 16;
-  const width = Math.max(0, Math.min(Math.max(minWidth, rect.width), rightEdge - leftEdge));
+  // 选项比按钮长时（窄按钮下面的「2026年11月 · 本月」）菜单按最长的一项撑开，字不折成两行；太长的才封顶折行。
+  let contentWidth = 0;
+  if (fitContent) {
+    menu.style.width = 'max-content';
+    contentWidth = Math.min(Math.ceil(menu.offsetWidth), 480);
+  }
+  const width = Math.max(0, Math.min(Math.max(minWidth, rect.width, contentWidth), rightEdge - leftEdge));
   menu.style.width = `${width}px`;
   menu.style.left = `${Math.max(leftEdge, Math.min(rect.left, rightEdge - width))}px`;
   menu.style.maxHeight = `${maxHeight}px`;
@@ -11895,7 +11917,7 @@ function positionAppSelectPopover(select) {
   const popover = ensureAppSelectPopover();
   const { button } = appSelectParts(select);
   if (!button || popover.hidden) return;
-  positionFloatingMenu(popover, button, { minWidth:select.closest('.deposit-combo') ? 240 : 180 });
+  positionFloatingMenu(popover, button, { minWidth:select.closest('.deposit-combo') ? 240 : 180, fitContent:true });
 }
 function setActiveAppSelectIndex(index, { scroll = true } = {}) {
   if (!activeAppSelect) return;
@@ -12591,6 +12613,8 @@ function appConfirm({
   input.placeholder = inputPlaceholder || '';
   input.value = '';
   errorEl.textContent = '';
+  // 没有输入框、也没有校验的确认框用不到错误提示那一行：不留它的空位，正文和按钮之间不再多出一截。
+  errorEl.hidden = !inputLabel && !validate;
   setModalOpenState(modal, true);
   // 默认焦点：有输入框给输入框；危险操作（红色按钮）落在安全的「取消 / 继续编辑」上，按回车或空格不会直接丢数据。
   // defaultFocus:'alt' 落在第三个按钮上（客户识别冲突时的「只补空字段」）。
@@ -31349,7 +31373,7 @@ function uiStepNavProgress(form) {
 }
 // 关闭按钮改成原型的图标按钮（id 和行为不变）。确认框右上角的也是 ×（以前写着「关闭」，其实等于「继续编辑」）。
 function uiStepNavCloseIcons() {
-  ['closeModalBtn', 'closeCustomerModalBtn', 'confirmCloseBtn', 'calendarTaskCloseBtn', 'trackingDetailCloseBtn'].forEach(id => {
+  ['closeModalBtn', 'closeCustomerModalBtn', 'confirmCloseBtn', 'calendarTaskCloseBtn', 'trackingDetailCloseBtn', 'boardCardSettingsCloseBtn', 'combinedCloseBtn', 'attachmentPreviewCloseBtn'].forEach(id => {
     const btn = document.getElementById(id);
     if (!btn || btn.classList.contains('btn-icon-x')) return;
     btn.classList.add('btn-icon-x');

@@ -375,7 +375,7 @@ html[data-theme] .board-column-head .board-column-meta { flex: none; }
 .stat-value {
   grid-column: 1 / -1; grid-row: 2; justify-self: start; align-self: center;
   max-width: 100%; margin-top: 0; text-align: left; white-space: nowrap;
-  font-size: clamp(22px, 10cqw, 34px);
+  font-size: clamp(22px, 1.9vw, 32px); font-size: clamp(22px, 10cqw, 34px);
 }
 .stat-sub { grid-column: 1 / -1; grid-row: 3; margin-top: 0; line-height: 1.28; }
 .stat:nth-child(2) .stat-value, .stat:nth-child(5) .stat-value { color: var(--green-600); }
@@ -1272,7 +1272,7 @@ html[data-theme="dark"] .tag-gray {
 }
 .paste-result-top { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
 .paste-result-title { color: var(--gray-900); font-size: 13px; font-weight: 600; }
-.paste-result-meta { color: var(--gray-500); font-size: 12px; text-wrap: pretty; }
+.paste-result-meta { color: var(--gray-500); font-size: 12px; text-wrap: balance; text-wrap: pretty; }
 .paste-field-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .paste-field-pill {
   display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 4px 8px;

@@ -4795,6 +4795,9 @@ html[data-theme] .btn-primary[data-morph="ok"] { background:var(--s-green); colo
 html[data-theme] .btn[data-morph="fail"] { background:var(--red-50); color:var(--s-red); border-color:transparent; }
 html[data-theme] .btn[data-morph="ok"] .ui-icon path { stroke-dasharray:30; stroke-dashoffset:30; animation:uiDraw .4s .05s var(--ease-out) forwards; }
 html[data-theme] .btn:disabled[data-morph] { opacity:1; }
+/* 变形中的按钮过一会儿整个换回原来的内容（setTrackingLookupButton、uiMorph 的 idle）。按下时落在里面的图标或文字上，
+   松开前它们被换掉，WebKit 就不算这一下点击。按下的永远是按钮本身，换内容不影响这次点击。 */
+.btn[data-morph] > * { pointer-events:none; }
 .morph-spin { width:14px; height:14px; border:1.75px solid currentColor; border-right-color:transparent; border-radius:50%; animation:uiSpin .7s linear infinite; flex:none; }
 @keyframes uiSpin { to { transform:rotate(360deg); } }
 @keyframes uiDraw { to { stroke-dashoffset:0; } }
@@ -6304,7 +6307,7 @@ html[data-theme] .order-preview .order-notification-option small { color:var(--g
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.156，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.156</div>
+      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.157，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.157</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会先问一句，再下载并重启" aria-label="检查更新：有新版本会先问一句，再下载并重启" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse is-busy" id="savePulse" aria-live="polite"><i></i><span>读取中</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>

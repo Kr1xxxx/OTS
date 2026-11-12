@@ -351,8 +351,31 @@ const risks = page => page.evaluate(() => buildTaskItems().filter(task => String
     assert.match(queryResult, /格式不像 DHL \/ FedEx \/ UPS 单号，没有查询/);
     assert.equal(await page.evaluate(() => state.orders.find(order => order.id === 'u12').stage), 'shipment');
     assert.equal(await page.locator('#trackingLookupInput').inputValue(), '3100000001\t3100000002 / 3100000003\nK26110501\nUPS 123456789099\nFedEx 3100000004', '输入框不被改写，前缀还在');
-    // 按钮先显示「查询完成」，1.4 秒后（setTrackingLookupButton 的 idleTimer）整个重画回「批量查询」。等它回去再开下一轮：
-    // 正好在重画那一刻按下去，按下和松开落在新旧两个节点上，WebKit 不算一次点击（macOS CI 上碰到过）。
+    // 按钮先显示「查询完成」，1.4 秒后（setTrackingLookupButton 的 idleTimer）整个重画回「批量查询」。正好在重画那一刻
+    // 按下去：按下落在「查询完成」的图标 / 文字上，松开前它们被换掉，WebKit 不算这一下点击（macOS CI 上碰到过）。
+    // 变形中的按钮里面的东西不接鼠标，按下的是按钮本身，这一下照样算。计时器先停住，由测试在按下和松开之间换回去。
+    await page.evaluate(() => clearTimeout(document.getElementById('trackingLookupBtn').idleTimer));
+    assert.equal(await page.locator('#trackingLookupBtn').getAttribute('data-morph'), 'ok');
+    await h.settle(page, '#trackingLookupBtn');
+    const okLabel = await page.locator('#trackingLookupBtn .morph-label').boundingBox();
+    const press = { x:okLabel.x + Math.min(okLabel.width / 2, 12), y:okLabel.y + okLabel.height / 2 };
+    assert.equal(await page.evaluate(p => document.elementFromPoint(p.x, p.y)?.id, press), 'trackingLookupBtn', '「查询完成」里的文字不接鼠标，按下的是按钮');
+    const idleBox = await page.evaluate(() => {
+      const btn = document.getElementById('trackingLookupBtn');
+      const before = btn.innerHTML;
+      btn.innerHTML = btn.dataset.idleHtml;
+      const r = btn.getBoundingClientRect();
+      btn.innerHTML = before;
+      return { x:r.x, y:r.y, width:r.width, height:r.height };
+    });
+    assert.ok(press.x > idleBox.x && press.x < idleBox.x + idleBox.width && press.y > idleBox.y && press.y < idleBox.y + idleBox.height, '按下的点换回「批量查询」后仍在按钮上');
+    carrier.calls.length = 0;
+    await page.mouse.move(press.x, press.y);
+    await page.mouse.down();
+    await page.evaluate(() => setTrackingLookupButton('idle'));
+    await page.mouse.up();
+    await h.endsOn(() => carrier.calls.length, 4, '按钮内容换掉的那一下点击开了新的一轮');
+    await page.waitForFunction(() => !document.getElementById('trackingLookupBtn').disabled && /查询完成：5 个物流单/.test(document.getElementById('trackingLookupResult').innerText));
     await page.waitForFunction(() => !document.getElementById('trackingLookupBtn').dataset.morph);
     // 超过 12 个：查前 12 个，剩下的留在输入框里。
     const fifteen = Array.from({ length:15 }, (_, i) => String(3200000000 + i));

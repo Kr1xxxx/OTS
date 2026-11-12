@@ -12181,7 +12181,8 @@ document.addEventListener('keydown', e => {
   if (key === 'ArrowDown' || key === 'ArrowUp') {
     e.preventDefault();
     if (!open) openCountryMenu(input);
-    if (activeCountryInput === input) moveCountryMenuActive(key === 'ArrowDown' ? 1 : -1);
+    // 刚用方向键打开、当前值已经高亮：停在它上面，再按才往下走（和下拉框一样）。
+    if (activeCountryInput === input && (open || countryMenuIndex < 0)) moveCountryMenuActive(key === 'ArrowDown' ? 1 : -1);
     return;
   }
   if (!open) return;

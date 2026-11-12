@@ -96,6 +96,9 @@ const orders = [
     state = await menu();
     assert.ok(state.open, '↓ opens the menu');
     assert.equal(state.selected, US, 'the current country is marked in the full list');
+    assert.equal(state.active, US, '↓ on a closed menu lands on the current country, not the one after it');
+    await page.keyboard.press('ArrowDown');
+    assert.notEqual((await menu()).active, US, 'the next ↓ moves on');
     await page.keyboard.press('Escape');
     assert.equal((await menu()).open, false, 'Esc closes the menu');
     assert.ok(await isOpen('orderModal'), 'Esc on the menu leaves the order modal open');

@@ -39,6 +39,9 @@
   --overlay:oklch(0% 0 0 / .28);
   --accent-soft:var(--gray-100); --accent-mint:var(--green-50); --accent-rose:var(--red-50); --accent-sky:var(--cyan-50);
   --select-arrow:url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4.5 6.25L8 9.75L11.5 6.25' stroke='%23888' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  /* 国家 / 地区栏的箭头和客户栏的折角一样粗（客户栏是 2px 的边框画的）。 */
+  --combo-arrow:url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 6L8 10L12 6' stroke='%237b7b85' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --combo-arrow-up:url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 10L8 6L12 10' stroke='%237b7b85' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   --date-icon:url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='2.25' y='3.25' width='11.5' height='10.5' rx='2.5' stroke='%23888' stroke-width='1.4'/%3E%3Cpath d='M2.5 6.5h11M5.5 1.75v2.5M10.5 1.75v2.5' stroke='%23888' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
   --display:"Geist", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
   --sans:"Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", "Microsoft YaHei", sans-serif;
@@ -63,6 +66,9 @@ html[data-theme="dark"] {
   --floating-shadow:0 22px 55px oklch(0% 0 0 / .34);
   --overlay:oklch(0% 0 0 / .5);
   --select-arrow:url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4.5 6.25L8 9.75L11.5 6.25' stroke='%23aaa' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  /* 国家 / 地区栏的箭头和客户栏的折角一样粗（客户栏是 2px 的边框画的）。 */
+  --combo-arrow:url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 6L8 10L12 6' stroke='%239c9ca6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --combo-arrow-up:url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 10L8 6L12 10' stroke='%239c9ca6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   --date-icon:url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='2.25' y='3.25' width='11.5' height='10.5' rx='2.5' stroke='%23aaa' stroke-width='1.4'/%3E%3Cpath d='M2.5 6.5h11M5.5 1.75v2.5M10.5 1.75v2.5' stroke='%23aaa' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
   color-scheme: dark;
 }
@@ -852,8 +858,7 @@ html[data-theme="dark"] .segment-option.active {
   background: var(--surface-bg); color: var(--gray-700); font-size: 11px; font-weight: 600;
 }
 .order-table-view:hover { border-color: var(--semantic-primary); color: var(--semantic-primary-dark); }
-.order-table-empty { height: 180px !important; text-align: center !important; color: var(--gray-500); cursor: default; }
-.order-table-empty button { margin-left: 8px; }
+.order-table-empty { padding: 0 !important; text-align: center !important; color: var(--gray-500); cursor: default; }
 .order-list-page-gap { padding: 0 4px; color: var(--gray-400); }
 .order-list-pagination {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
@@ -1375,6 +1380,12 @@ html[data-theme="dark"] .tag-neutral {
   padding: 28px; text-align: center; border: 1px dashed var(--gray-300); border-radius: var(--radius);
   color: var(--gray-500); background: var(--white);
 }
+/* 整页没有数据时（订单、客户、已删除订单）：图标、标题、一句说明，能新建的再加一个按钮。和续费页的 .subs-empty 同一个版式。 */
+.empty-state { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 36px 20px; color: var(--gray-500); font-size: 13px; line-height: 1.5; text-align: center; white-space: normal; }
+.empty-state-ic { display: grid; place-items: center; width: 48px; height: 48px; margin-bottom: 4px; border-radius: 16px; background: var(--accent-tint); color: var(--accent); }
+.empty-state-ic .ui-icon { width: 24px; height: 24px; }
+.empty-state-title { color: var(--gray-900); font-size: 16px; font-weight: 600; }
+.empty-state .btn { margin-top: 6px; }
 .modal-backdrop {
   position: fixed; inset: 0; background: var(--overlay); z-index: 50; display: none;
   align-items: center; justify-content: center; padding: 20px; overscroll-behavior: none;
@@ -2641,17 +2652,17 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
   color: var(--gray-600); font-size: 12px; font-weight: 600;
 }
 .ai-status-line { color: var(--gray-500); font-size: 12px; font-weight: 600; }
+/* 等级规则表和订单表、客户表同一个样子：灰字表头、白底、只有行线。 */
 .level-rule-table {
-  display: grid; border: 1px solid var(--gray-200); border-radius: var(--radius); overflow: hidden; background: var(--white);
+  display: grid; border: 1px solid var(--surface-border); border-radius: var(--radius); overflow: hidden; background: var(--surface-bg);
 }
 .level-rule-row {
-  display: grid; grid-template-columns: 150px minmax(0,1fr) minmax(0,1.2fr); gap: 0;
-  border-bottom: 1px solid var(--gray-200); color: var(--gray-700); font-size: 12px;
+  display: grid; grid-template-columns: 150px minmax(0,1fr) minmax(0,1.2fr); gap: 0; align-items: center;
+  border-bottom: 1px solid var(--hairline); color: var(--gray-700); font-size: 12px;
 }
 .level-rule-row:last-child { border-bottom: 0; }
-.level-rule-row > div { padding: 9px 10px; border-right: 1px solid var(--gray-200); }
-.level-rule-row > div:last-child { border-right: 0; }
-.level-rule-row.head { background: var(--blue-50); color: var(--gray-900); font-weight: 600; }
+.level-rule-row > div { padding: 11px 14px; }
+.level-rule-row.head { background: var(--surface-bg); color: var(--gray-500); font-weight: 500; }
 .level-rule-row .level-rule-input { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
 .level-rule-row .level-rule-input input { width:110px; min-width:0; height:30px; padding:0 8px; border:1px solid var(--gray-200); border-radius:8px; background:var(--white); color:var(--gray-900); font-size:12px; }
 .level-rule-row .level-rule-input input:focus { outline:0; border-color:var(--blue-500); box-shadow:0 0 0 3px var(--blue-100); }
@@ -2667,7 +2678,7 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
 .copy-menu button:disabled { opacity:.45; cursor:not-allowed; }
 .copy-menu button small { color:var(--gray-500); font-size:11px; margin-left:auto; }
 html[data-theme] .order-detail-head .btn.is-copied { background:var(--success-soft, var(--green-50)); color:var(--success, var(--green-700)); border-color:transparent; }
-.level-rule-name { background: color-mix(in srgb, var(--blue-500) 10%, var(--white)); font-weight: 600; color: var(--gray-900); }
+.level-rule-name { font-weight: 600; color: var(--gray-900); }
 .settings-chip {
   display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--gray-200); border-radius: 999px;
   padding: 5px 9px; background: var(--gray-50); color: var(--gray-700); font-size: 12px; font-weight: 600;
@@ -2850,7 +2861,7 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
   .settings-form, .ai-compact-row { grid-template-columns: 1fr; }
   .manual-rate-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .level-rule-row { grid-template-columns: 1fr; }
-  .level-rule-row > div { border-right: 0; border-bottom: 1px solid var(--gray-200); }
+  .level-rule-row > div { border-bottom: 1px solid var(--hairline); }
   .level-rule-row > div:last-child { border-bottom: 0; }
   .filter-panel { grid-template-columns: 1fr; }
   .tracking-api-mini-status { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -3498,7 +3509,8 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
 }
 .deposit-combo .app-select-chevron { width: 10px; height: 10px; flex-basis: 10px; margin-right: 0; }
 .shipment-field .app-select-button { min-height: 42px; }
-.app-select-popover {
+/* 国家 / 地区栏的建议菜单（.country-menu）和下拉框的菜单同一个外框。 */
+.app-select-popover, .country-menu {
   position: fixed;
   transition-property: none;
   z-index: 300;
@@ -3515,9 +3527,9 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
 }
-.app-select-popover[hidden] { display: none; }
+.app-select-popover[hidden], .country-menu[hidden] { display: none; }
 /* 只淡入，不位移不缩放：菜单的位置是按量出来的矩形摆的（fixFloatingMenuContainingBlock），带 transform 的入场会量错。 */
-.app-select-popover:not([hidden]) { animation: uiMenuFade var(--motion-fast) var(--ease-out); }
+:is(.app-select-popover, .country-menu):not([hidden]) { animation: uiMenuFade var(--motion-fast) var(--ease-out); }
 @keyframes uiMenuFade { from { opacity: 0; } }
 .app-select-option {
   width: 100%;
@@ -3562,7 +3574,7 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
 .app-select-option-check { display: grid; place-items: center; color: var(--accent); }
 .app-select-option-check .ui-icon { width: 14px; height: 14px; stroke-width: 2; }
 @media (max-width: 760px) {
-  .app-select-popover { max-height: min(280px, calc(100vh - 20px)); }
+  .app-select-popover, .country-menu { max-height: min(280px, calc(100vh - 20px)); }
 }
 /* 日期字段 + App 自己画的日历（替换系统日期框）。 */
 input[data-date-input] {
@@ -3575,6 +3587,16 @@ input[data-date-input] {
   text-overflow: ellipsis;
 }
 input[data-date-input]::placeholder { color: var(--gray-400); }
+/* 国家 / 地区栏：右边和下拉框一样的箭头，菜单展开时朝上。 */
+input[data-country-input] {
+  padding-right: 40px !important;
+  background-image: var(--combo-arrow) !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  background-size: 16px 16px !important;
+  text-overflow: ellipsis;
+}
+input[data-country-input][aria-expanded="true"] { background-image: var(--combo-arrow-up) !important; }
 .date-picker {
   position: fixed;
   z-index: 300;
@@ -5107,9 +5129,11 @@ html[data-theme] .order-detail-payment-head .value-balance { color:var(--s-amber
 html[data-theme] .order-detail-payment-head .value-paid { color:var(--semantic-paid); }
 html[data-theme] .order-detail-paybar { height:6px; margin:16px 0 10px; border-radius:6px; background:var(--gray-100); overflow:hidden; }
 html[data-theme] .order-detail-paybar i { display:block; height:100%; border-radius:inherit; background:var(--accent); }
-html[data-theme] .order-detail-customer-stat { padding:10px 12px; border-radius:14px; border:0; background:var(--surface-soft); }
-html[data-theme] .order-detail-customer-stat span { font-size:11.5px; font-weight:400; }
-html[data-theme] .order-detail-customer-stat strong { font-size:15px; font-weight:600; }
+/* 抽屉里只读的「标签 + 数」小方块（这位客户、交期）都用灰底，和能填写的描边输入框分得开。 */
+html[data-theme] .order-detail-customer-stats { gap:8px; }
+html[data-theme] :is(.order-detail-customer-stat, .order-detail-panel .detail-grid:not(.order-detail-facts) > .detail-item) { padding:10px 12px; border-radius:14px; border:0; background:var(--surface-soft); }
+html[data-theme] :is(.order-detail-customer-stat span, .order-detail-panel .detail-grid:not(.order-detail-facts) > .detail-item .detail-label) { font-size:11.5px; font-weight:400; }
+html[data-theme] :is(.order-detail-customer-stat strong, .order-detail-panel .detail-grid:not(.order-detail-facts) > .detail-item .detail-value) { font-size:15px; font-weight:600; }
 html[data-theme] .order-detail-related-order { padding:10px 12px; border-radius:14px; border-color:var(--surface-border); background:var(--surface-bg); }
 html[data-theme] .order-detail-related-order:hover { border-color:var(--gray-300, var(--surface-border)); background:var(--surface-soft); }
 html[data-theme="dark"] :is(.order-detail-stagebar i, .order-detail-paybar) { background:var(--gray-200); }
@@ -5419,7 +5443,8 @@ html[data-theme] .bell-btn:hover .ui-icon { animation:uiWiggle .6s var(--ease); 
 .bell-badge { position:absolute; top:3px; right:2px; min-width:16px; height:16px; padding:0 4px; border-radius:999px; background:var(--s-red); color:#fff; font-size:10px; font-weight:600; line-height:16px; text-align:center; box-shadow:0 0 0 2px var(--page-bg); animation:uiPop var(--motion-spring) var(--ease-spring); }
 /* 深色主题的 --s-red 调得很亮，配白字只有 2.65:1：红点换深一点的红。 */
 html[data-theme="dark"] .bell-badge { background:oklch(55% .2 25); }
-.notif-scrim { position:fixed; inset:0; z-index:85; background:transparent; }
+/* 面板开着时后面轻轻压暗（不模糊）：面板和后面的白卡片分得开，后面的内容照样看得清。抽屉和弹窗是压暗加模糊。 */
+.notif-scrim { position:fixed; inset:0; z-index:85; background:color-mix(in oklab, var(--overlay) 40%, transparent); animation:fadeIn var(--motion-med) ease; }
 .notif-panel { position:fixed; top:12px; right:12px; bottom:12px; z-index:86; width:min(440px, calc(100vw - 24px)); display:flex; flex-direction:column; gap:12px; padding:20px 16px 12px;
   background:var(--surface-bg); border:1px solid var(--surface-border); border-radius:var(--radius-panel); box-shadow:var(--floating-shadow); animation:uiNotifIn var(--motion-slow) var(--ease-drawer); }
 .notif-panel[hidden], .notif-scrim[hidden] { display:none; }
@@ -5621,7 +5646,6 @@ html[data-theme] .deleted-amount { display:flex; flex-direction:column; align-it
 html[data-theme] .deleted-time { color:var(--gray-500); font-size:12px; }
 html[data-theme] .deleted-actions { display:flex; justify-content:flex-end; gap:6px; }
 html[data-theme] .deleted-actions .btn { height:30px; min-height:30px; padding:0 14px; border-radius:999px; }
-html[data-theme] #deletedOrderList > .empty { margin:16px; }
 @media (max-width: 820px) {
   html[data-theme] .deleted-panel { overflow-x:auto; }
   html[data-theme] .deleted-row { min-width:820px; }
@@ -6283,7 +6307,6 @@ html[data-theme] .order-preview .order-notification-option small { color:var(--g
   </header>
 
   <main class="content">
-    <datalist id="countryOptions"></datalist>
     <datalist id="customerMergeTargetOptions"></datalist>
     <section class="page active" id="page-dashboard">
       <section class="stats" id="dashboard">
@@ -7231,7 +7254,7 @@ html[data-theme] .order-preview .order-notification-option small { color:var(--g
                 </div>
                 <div class="client-autofill-summary" id="orderClientAutofillSummary"></div>
               </div>
-              <div class="field"><label>国家 / 地区</label><input name="country" list="countryOptions" placeholder="输入国家 / 地区筛选"></div>
+              <div class="field"><label>国家 / 地区</label><input name="country" data-country-input autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" placeholder="输入国家 / 地区筛选"></div>
               <div class="field"><label>产品类型</label><select name="productType"></select></div>
             </div>
             <div class="payment-grid">
@@ -7541,7 +7564,7 @@ html[data-theme] .order-preview .order-notification-option small { color:var(--g
       </div>
       <div class="form-grid customer-edit-form-grid">
         <div class="field"><label>客户名称</label><input name="name" required></div>
-        <div class="field"><label>国家 / 地区</label><input name="country" list="countryOptions" placeholder="输入国家 / 地区筛选"></div>
+        <div class="field"><label>国家 / 地区</label><input name="country" data-country-input autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" placeholder="输入国家 / 地区筛选"></div>
         <div class="field customer-multi-field" data-customer-multi-kind="contacts"><div class="customer-multi-field-head"><label>联系人</label><button class="customer-multi-add" type="button" data-add-customer-value="contacts">＋联系人</button></div><div class="customer-multi-list"><div class="customer-multi-row" data-customer-primary-row><input name="contact" data-customer-multi-input maxlength="120" placeholder="联系人姓名"></div></div></div>
         <div class="field customer-multi-field" data-customer-multi-kind="phones"><div class="customer-multi-field-head"><label>联系电话</label><button class="customer-multi-add" type="button" data-add-customer-value="phones">＋电话</button></div><div class="customer-multi-list"><div class="customer-multi-row" data-customer-primary-row><input name="phone" data-customer-multi-input type="tel" placeholder="例如 +44 7700 900127"></div></div></div>
         <div class="field customer-multi-field" data-customer-multi-kind="emails"><div class="customer-multi-field-head"><label>邮箱</label><button class="customer-multi-add" type="button" data-add-customer-value="emails">＋邮箱</button></div><div class="customer-multi-list"><div class="customer-multi-row" data-customer-primary-row><input name="email" data-customer-multi-input type="email" placeholder="name@example.com"></div></div></div>
@@ -7607,7 +7630,7 @@ html[data-theme] .order-preview .order-notification-option small { color:var(--g
           <input type="hidden" name="originalName">
           <div class="form-grid">
             <div class="field"><label>客户名称</label><input name="name" required></div>
-            <div class="field"><label>国家 / 地区</label><input name="country" list="countryOptions" placeholder="输入国家 / 地区筛选"></div>
+            <div class="field"><label>国家 / 地区</label><input name="country" data-country-input autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" placeholder="输入国家 / 地区筛选"></div>
             <div class="field customer-multi-field" data-customer-multi-kind="contacts"><div class="customer-multi-field-head"><label>联系人</label><button class="customer-multi-add" type="button" data-add-customer-value="contacts">＋联系人</button></div><div class="customer-multi-list"><div class="customer-multi-row" data-customer-primary-row><input name="contact" data-customer-multi-input maxlength="120" placeholder="联系人姓名"></div></div></div>
             <div class="field customer-multi-field" data-customer-multi-kind="phones"><div class="customer-multi-field-head"><label>联系电话</label><button class="customer-multi-add" type="button" data-add-customer-value="phones">＋电话</button></div><div class="customer-multi-list"><div class="customer-multi-row" data-customer-primary-row><input name="phone" data-customer-multi-input type="tel" placeholder="例如 +44 7700 900127"></div></div></div>
             <div class="field customer-multi-field" data-customer-multi-kind="emails"><div class="customer-multi-field-head"><label>邮箱</label><button class="customer-multi-add" type="button" data-add-customer-value="emails">＋邮箱</button></div><div class="customer-multi-list"><div class="customer-multi-row" data-customer-primary-row><input name="email" data-customer-multi-input type="email" placeholder="name@example.com"></div></div></div>
@@ -11996,6 +12019,194 @@ function openAppSelectFromButton(button) {
   return true;
 }
 // #endregion
+// #region Country field menu
+// 「国家 / 地区」栏是普通文本框，下面的建议列表是 App 自己画的菜单（外框、选中色和别的下拉一样），不再用系统的 datalist。
+// 菜单只是建议：列表外的写法（Nigeria、阿联酋）照样能填、按原文保存。焦点一直留在文本框里，↑ ↓ 走、回车选、Esc 只收菜单。
+const countryInputSelector = 'input[data-country-input]';
+let activeCountryInput = null;
+let countryMenu = null;
+let countryMenuItems = [];
+let countryMenuIndex = -1;
+function ensureCountryMenu() {
+  if (countryMenu?.isConnected) return countryMenu;
+  countryMenu = document.createElement('div');
+  countryMenu.className = 'country-menu';
+  countryMenu.id = 'countryMenu';
+  countryMenu.setAttribute('role', 'listbox');
+  countryMenu.setAttribute('aria-label', '国家 / 地区');
+  countryMenu.hidden = true;
+  // 点菜单（含滚动条）不让文本框失焦。
+  countryMenu.addEventListener('mousedown', e => e.preventDefault());
+  countryMenu.addEventListener('click', e => {
+    const option = e.target.closest('[data-country-value]');
+    if (option && activeCountryInput) selectCountryOption(activeCountryInput, option.dataset.countryValue);
+  });
+  document.body.append(countryMenu);
+  return countryMenu;
+}
+// 输入什么列什么：认得出的那一项排第一（UK 是英国、不是名字里带 uk 的乌克兰），再是中文名或英文词以它开头的，最后是包含它的。
+function countryMenuMatches(text = '') {
+  const typed = String(text || '').trim();
+  const needle = normalizeSearchText(typed);
+  if (!needle) return [...countryDefs];
+  const known = customerCountryFromInput(typed);
+  const starts = [];
+  const contains = [];
+  countryDefs.forEach(def => {
+    if (def === known) return;
+    const words = normalizeSearchText(def.replace(/^\S+\s+/u, '')).split(' ');
+    if (words.some(word => word.startsWith(needle)) || words.slice(1).join(' ').startsWith(needle)) starts.push(def);
+    else if (normalizeSearchText(def).includes(needle)) contains.push(def);
+  });
+  return [...(known ? [known] : []), ...starts, ...contains];
+}
+function renderCountryMenu() {
+  const menu = ensureCountryMenu();
+  const input = activeCountryInput;
+  const current = String(input?.value || '').trim();
+  menu.replaceChildren(...countryMenuItems.map((def, index) => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.tabIndex = -1;
+    item.id = `${menu.id}-option-${index}`;
+    item.className = `app-select-option${def === current ? ' selected' : ''}${index === countryMenuIndex ? ' active' : ''}`;
+    item.dataset.countryValue = def;
+    item.setAttribute('role', 'option');
+    item.setAttribute('aria-selected', String(def === current));
+    const label = document.createElement('span');
+    label.className = 'app-select-option-label';
+    label.textContent = def;
+    const check = document.createElement('span');
+    check.className = 'app-select-option-check';
+    if (def === current) check.innerHTML = uiIcon('check');
+    item.append(label, check);
+    return item;
+  }));
+  if (countryMenuIndex >= 0) input?.setAttribute('aria-activedescendant', `${menu.id}-option-${countryMenuIndex}`);
+  else input?.removeAttribute('aria-activedescendant');
+}
+function positionCountryMenu() {
+  if (!activeCountryInput || !countryMenu || countryMenu.hidden) return;
+  positionFloatingMenu(countryMenu, activeCountryInput, { minWidth:240, fitContent:true });
+  activeCountryInput._countryMenuAnchor = activeCountryInput.getBoundingClientRect();
+}
+// typing=false（点输入框、按 ↑ ↓）：框里是空的或者正好是列表里的一项，就列出全部并高亮这一项，换一个不用先清空。
+function openCountryMenu(input, { typing = false } = {}) {
+  if (!input?.matches?.(countryInputSelector) || input.disabled || input.readOnly) return;
+  const value = String(input.value || '').trim();
+  const showAll = !typing && (!value || countryDefs.includes(value));
+  const items = countryMenuMatches(showAll ? '' : value);
+  // 没有匹配、或者框里已经是唯一的那一项：不弹（列表外的写法照样能填）。
+  if (!items.length || (typing && items.length === 1 && items[0] === value)) {
+    closeCountryMenu();
+    return;
+  }
+  if (activeCountryInput && activeCountryInput !== input) closeCountryMenu();
+  closeAppSelectMenu();
+  closeClientMenus();
+  closeDatePicker();
+  const menu = ensureCountryMenu();
+  const wasOpen = activeCountryInput === input && !menu.hidden;
+  activeCountryInput = input;
+  countryMenuItems = items;
+  countryMenuIndex = showAll ? items.indexOf(value) : -1;
+  input.setAttribute('aria-expanded', 'true');
+  input.setAttribute('aria-controls', menu.id);
+  renderCountryMenu();
+  menu.hidden = false;
+  positionCountryMenu();
+  if (!wasOpen) menu.scrollTop = 0;
+  menu.querySelector('.app-select-option.active')?.scrollIntoView({ block:'nearest' });
+  // 弹窗入场动画期间输入框还在动：下一帧再摆一次。
+  requestAnimationFrame(() => { if (activeCountryInput === input) positionCountryMenu(); });
+}
+function closeCountryMenu() {
+  const input = activeCountryInput;
+  if (!input) return;
+  activeCountryInput = null;
+  countryMenuItems = [];
+  countryMenuIndex = -1;
+  input.setAttribute('aria-expanded', 'false');
+  input.removeAttribute('aria-activedescendant');
+  if (countryMenu) countryMenu.hidden = true;
+}
+function moveCountryMenuActive(step) {
+  if (!countryMenuItems.length) return;
+  countryMenuIndex = countryMenuIndex < 0 ? (step > 0 ? 0 : countryMenuItems.length - 1)
+    : (countryMenuIndex + step + countryMenuItems.length) % countryMenuItems.length;
+  renderCountryMenu();
+  countryMenu.querySelector('.app-select-option.active')?.scrollIntoView({ block:'nearest' });
+}
+function selectCountryOption(input, value) {
+  closeCountryMenu();
+  if (input.value === value) return;
+  input.value = value;
+  // 订单表单、抽屉编辑、客户表单都听这两个事件（带入币种、标记改过、检查国家）；自己发的 input 不再把菜单打开。
+  input._countryDispatching = true;
+  try {
+    input.dispatchEvent(new Event('input', { bubbles:true }));
+    input.dispatchEvent(new Event('change', { bubbles:true }));
+  } finally {
+    input._countryDispatching = false;
+  }
+}
+function repositionCountryMenu() {
+  const input = activeCountryInput;
+  if (!input) return;
+  if (dateInputVisible(input)) positionCountryMenu();
+  else closeCountryMenu();
+}
+document.addEventListener('click', e => {
+  const input = e.target;
+  if (input?.matches?.(countryInputSelector) && activeCountryInput !== input) openCountryMenu(input);
+});
+document.addEventListener('input', e => {
+  const input = e.target;
+  if (!input?.matches?.(countryInputSelector) || input._countryDispatching) return;
+  if (document.activeElement === input) openCountryMenu(input, { typing:true });
+});
+document.addEventListener('focusout', e => {
+  if (e.target === activeCountryInput) closeCountryMenu();
+}, true);
+document.addEventListener('pointerdown', e => {
+  if (!activeCountryInput || e.target === activeCountryInput || countryMenu?.contains(e.target)) return;
+  closeCountryMenu();
+}, true);
+// 捕获阶段、比全局的 Esc（关弹窗 / 抽屉）和粘贴识别编辑框自己的回车 / Esc 先跑：菜单开着时这两个键只管菜单。
+document.addEventListener('keydown', e => {
+  const input = e.target;
+  if (!input?.matches?.(countryInputSelector) || isImeKeyEvent(e) || e.metaKey || e.ctrlKey || e.altKey) return;
+  const key = normalizeAppSelectKey(e.key);
+  const open = activeCountryInput === input;
+  if (key === 'ArrowDown' || key === 'ArrowUp') {
+    e.preventDefault();
+    if (!open) openCountryMenu(input);
+    if (activeCountryInput === input) moveCountryMenuActive(key === 'ArrowDown' ? 1 : -1);
+    return;
+  }
+  if (!open) return;
+  if (key === 'Escape') {
+    e.preventDefault();
+    e.stopPropagation();
+    closeCountryMenu();
+  } else if (key === 'Enter') {
+    const value = countryMenuItems[countryMenuIndex];
+    if (!value) {
+      // 没用 ↑ ↓ 挑过：回车照常（提交、保存编辑），菜单收起。
+      closeCountryMenu();
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    selectCountryOption(input, value);
+  } else if (key === 'Tab') closeCountryMenu();
+}, true);
+document.addEventListener('scroll', e => {
+  if (activeCountryInput && !countryMenu?.contains(e.target)) repositionCountryMenu();
+}, { capture:true, passive:true });
+window.addEventListener('resize', repositionCountryMenu);
+window.visualViewport?.addEventListener('resize', repositionCountryMenu);
+// #endregion
 // #region Date picker: the in-app calendar behind every date field
 // 日期字段是普通文本框（值仍是 YYYY-MM-DD，读写它的代码不用变），点开是 App 自己画的日历：系统日期框在 Mac App 里弹的是
 // 系统样式的小日历，和 App 的设计对不上。焦点一直留在文本框里：日历上的按钮在 mousedown 时 preventDefault（WebKit 里点按钮
@@ -15406,7 +15617,7 @@ function customerPasteEditorHtml(fields) {
   const multiline = ['address','addresses','note'].includes(key);
   return `<div class="customer-paste-field-editor">
     <label for="customerPasteEditValue">修改${customerPasteLabels[key]} · 仅修改本次预览</label>
-    ${multiline ? `<textarea id="customerPasteEditValue" rows="3">${escapeAttr(value || '')}</textarea>` : `<input id="customerPasteEditValue" type="text" value="${escapeAttr(value || '')}" autocomplete="off"${key === 'country' ? ' list="countryOptions"' : ''}>`}
+    ${multiline ? `<textarea id="customerPasteEditValue" rows="3">${escapeAttr(value || '')}</textarea>` : `<input id="customerPasteEditValue" type="text" value="${escapeAttr(value || '')}" autocomplete="off"${key === 'country' ? ' data-country-input role="combobox" aria-autocomplete="list" aria-expanded="false"' : ''}>`}
     <div class="customer-paste-field-error" role="alert" data-customer-paste-edit-error></div>
     <div class="paste-result-actions"><button type="button" class="btn btn-small" data-customer-paste-edit-cancel>取消</button><button type="button" class="btn btn-primary btn-small" data-customer-paste-edit-confirm>确认修改</button></div>
   </div>`;
@@ -16608,6 +16819,10 @@ function paginateSearchResults(results, page = 1) {
 }
 // #endregion
 // #region Render entry, scroll helpers, small utilities
+// 整页空状态：图标、标题、说明，action 是按钮的 HTML（没有可新建的就不给）。
+function emptyStateHtml({ icon, title, text, action = '' }) {
+  return `<div class="empty-state"><span class="empty-state-ic">${uiIcon(icon)}</span><div class="empty-state-title">${escapeAttr(title)}</div><div>${escapeAttr(text)}</div>${action}</div>`;
+}
 function renderPageContent(page, { entering = false } = {}) {
   const pages = {
     dashboard: () => { renderMonthSelects(); renderStats(); renderPipeline(); renderTrash(); renderRecentOrders(); renderTasks(); },
@@ -18067,7 +18282,7 @@ function renderOrderDetail(order, source = 'active') {
       <section class="detail-section detail-edit-section">
         <div class="detail-edit-grid">
           ${editField('客户', 'client', `<input data-dedit="client" value="${escapeAttr(order.client || '')}" autocomplete="off">`)}
-          ${editField('国家 / 地区', 'country', `<input data-dedit="country" list="countryOptions" value="${escapeAttr(countryText)}" placeholder="输入国家 / 地区筛选">`)}
+          ${editField('国家 / 地区', 'country', `<input data-dedit="country" data-country-input autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" value="${escapeAttr(countryText)}" placeholder="输入国家 / 地区筛选">`)}
           ${editField('产品类型', 'productType', `<select data-dedit="productType">${editOptions('productType', product.value)}</select>`)}
           ${editField('订单类型', 'orderType', `<select data-dedit="orderType">${editOptions('orderType', order.orderType || '定金订单')}</select>`)}
           ${editField('客户要求到货', 'customerRequiredDate', `<input type="text" data-date-input autocomplete="off" spellcheck="false" placeholder="选择日期" data-dedit="customerRequiredDate" value="${escapeAttr(order.customerRequiredDate || '')}">`)}
@@ -19766,9 +19981,11 @@ function renderOrderListPage() {
   const noOrders = !(state.orders || []).length;
   body.closest('.order-table-panel')?.classList.toggle('no-orders', noOrders);
   if (!page.items.length && noOrders) {
-    body.innerHTML = '<tr><td class="order-table-empty" colspan="9">还没有订单。<button class="btn btn-small btn-primary" type="button" data-order-list-new>新建订单</button></td></tr>';
+    body.innerHTML = `<tr><td class="order-table-empty" colspan="9">${emptyStateHtml({ icon:'list', title:'还没有订单', text:'新建的订单会按阶段排在这里。',
+      action:`<button class="btn btn-small btn-primary" type="button" data-order-list-new>${uiIcon('plus')}新建订单</button>` })}</td></tr>`;
   } else if (!page.items.length) {
-    body.innerHTML = '<tr><td class="order-table-empty" colspan="9">没有符合条件的订单。<button class="btn btn-small" type="button" data-order-list-reset>重置筛选</button></td></tr>';
+    body.innerHTML = `<tr><td class="order-table-empty" colspan="9">${emptyStateHtml({ icon:'search', title:'没有符合条件的订单', text:'换个关键词，或者清掉筛选再看。',
+      action:'<button class="btn btn-small" type="button" data-order-list-reset>重置筛选</button>' })}</td></tr>`;
   } else {
     body.innerHTML = page.items.map(order => {
       const stage = stageDef(order.stage);
@@ -19848,7 +20065,7 @@ function renderDeletedOrders() {
   const list = (state.deletedOrders || []).slice().sort((a, b) => parseDate(b.deletedAt) - parseDate(a.deletedAt));
   document.getElementById('deletedCount').textContent = `${list.length} 个订单`;
   if (!list.length) {
-    el.innerHTML = '<div class="empty">暂无已删除订单。删除后的订单会先保存在这里。</div>';
+    el.innerHTML = emptyStateHtml({ icon:'trash', title:'没有已删除的订单', text:'删除后的订单会先保存在这里，可以恢复。' });
     return;
   }
   el.innerHTML = list.map(o => {
@@ -21830,7 +22047,10 @@ function renderCustomers() {
         <div class="customer-cell-stack"><strong>${escapeAttr(c.repurchaseDate || (c.repurchaseCycle ? '发货后计算' : '未设提醒'))}</strong><span class="muted customer-cell-ellipsis">${c.repurchaseCycle ? `每 ${escapeAttr(c.repurchaseCycle)} 天复购` : `更新 ${escapeAttr(c.updated || '-')}`}</span></div>
       </div>
     `;
-    }).join('') || '<div class="empty">暂无客户数据。</div>'}
+    }).join('') || (baseCustomers.length
+      ? emptyStateHtml({ icon:'search', title:'没有符合条件的客户', text:'换个关键词，或者换一个等级、分组再看。' })
+      : emptyStateHtml({ icon:'users', title:'还没有客户', text:'新建客户，或者保存第一张订单时自动建档。',
+        action:`<button class="btn btn-small btn-primary" type="button" data-new-customer>${uiIcon('plus')}新建客户</button>` }))}
   `;
 }
 function renderCustomerProfileMetrics(name = '') {
@@ -22710,10 +22930,6 @@ function fillStageSelects() {
       if (stageDefs.some(s => s.key === current)) sel.value = current;
     }
   });
-  const countryOptions = document.getElementById('countryOptions');
-  if (countryOptions) {
-    countryOptions.innerHTML = countryDefs.map(c => `<option value="${escapeAttr(c)}"></option>`).join('');
-  }
   document.querySelectorAll('[name="country"], select[name="defaultCountry"]').forEach(sel => {
     const current = sel.value;
     if (sel.tagName === 'SELECT') sel.innerHTML = countryDefs.map(c => `<option value="${c}">${c}</option>`).join('');
@@ -28189,7 +28405,7 @@ function orderListMoreFloating(more) {
 }
 document.addEventListener('pointerdown', e => {
   const more = document.getElementById('orderListMoreFilters');
-  if (!orderListMoreFloating(more) || more.contains(e.target) || e.target.closest?.('.app-select-popover')) return;
+  if (!orderListMoreFloating(more) || more.contains(e.target) || e.target.closest?.('.app-select-popover, .country-menu')) return;
   more.open = false;
 }, true);
 document.addEventListener('keydown', e => {
@@ -28847,6 +29063,7 @@ document.addEventListener('reset', e => {
 }, true);
 function repositionOpenMenus() {
   if (activeAppSelect) positionAppSelectPopover(activeAppSelect);
+  if (activeCountryInput) positionCountryMenu();
   if (activeClientPicker) positionClientMenu(activeClientPicker);
 }
 window.addEventListener('resize', repositionOpenMenus);
@@ -28859,7 +29076,7 @@ document.addEventListener('animationend', e => {
   repositionOpenMenus();
 });
 document.addEventListener('wheel', e => {
-  const menu = e.target.closest?.('.app-select-popover, .client-menu.open');
+  const menu = e.target.closest?.('.app-select-popover, .country-menu, .client-menu.open');
   if (!menu || !e.deltaY) return;
   const atEdge = e.deltaY < 0 ? menu.scrollTop <= 0 : menu.scrollTop + menu.clientHeight >= menu.scrollHeight - 1;
   if (atEdge) e.preventDefault();
@@ -30305,6 +30522,7 @@ function closeTransientLayers({ keepNotifs = false } = {}) {
   if (!keepNotifs && document.getElementById('notifPanel') && !document.getElementById('notifPanel').hidden) uiToggleNotifs(false);
   closeAppSelectMenu();
   closeDatePicker();
+  closeCountryMenu();
   closeClientMenus();
   if (typeof uiCloseBoardMenu === 'function') uiCloseBoardMenu();
   const more = document.getElementById('orderListMoreFilters');
@@ -31798,7 +32016,7 @@ document.addEventListener('keydown', e => {
   const active = document.activeElement;
   // 焦点在这一层外面（背后的页面、或者已经跑出去了）：拉回来。层里自己的弹出菜单（客户下拉等）不管。
   if (!top.contains(active)) {
-    if (active?.closest?.('.app-select-popover, .client-menu')) return;
+    if (active?.closest?.('.app-select-popover, .country-menu, .client-menu')) return;
     e.preventDefault();
     (e.shiftKey ? last : first).focus();
   } else if (e.shiftKey && active === first) {
@@ -31952,7 +32170,8 @@ window.addEventListener('focus', () => {
   if (tries > 0) setTimeout(() => uiGreetWhenLoaded(tries - 1), 500);
 })(40);
 // 新版 UI：客户页工具栏里的“新建客户”沿用顶栏按钮的流程。
-document.querySelectorAll('[data-new-customer]').forEach(btn => btn.addEventListener('click', () => document.getElementById('topNewCustomerBtn')?.click()));
+// 客户页空状态里的按钮是重画出来的，所以挂在 document 上。
+document.addEventListener('click', e => { if (e.target.closest?.('[data-new-customer]')) document.getElementById('topNewCustomerBtn')?.click(); });
 // 新版 UI：物流查询输入框实时显示识别到几个单号、各承运商几个。
 function uiTrackingDetect() {
   const input = document.getElementById('trackingLookupInput');

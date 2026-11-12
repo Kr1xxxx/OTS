@@ -24,7 +24,7 @@ npm test        # every scripts/test-*.js; set OTS_TEST_CONCURRENCY=2 on a small
 
 The lint has no warnings level worth keeping: a finding is fixed or the rule is off. An unused top-level function in the page is dead code and fails the lint; the allowlist in `eslint.config.js` holds `nativeDialog` only, which the Swift host calls. A function kept alive for a test is still dead code: the test calls what the page calls.
 
-A change to the page's styles that must not change how anything looks (tidying, merging, deleting rules) is checked with `node scripts/css-snapshot.js --base origin/main`: it compares the computed style of every element in about a thousand states (pages, dialogs, both themes, accents, widths, hover and focus) between main and the working tree, in Chromium only, and must report nothing. `--quick` runs the two themes at 1440 px.
+A change to the page's styles that must not change how anything looks (tidying, merging, deleting rules) is checked with `node scripts/css-snapshot.js --base origin/main`: it compares the computed style of every element in about a thousand states (pages, dialogs, both themes, accents, widths, hover and focus) between main and the working tree, in Chromium only, and must report nothing. `--quick` runs the two themes at 1440 px. The head of the script lists what it cannot see (WebKit, vendor pseudo-elements, states outside its list); a change that touches those says in the pull request why it is safe without the snapshot.
 
 ## Rules that are easy to break
 

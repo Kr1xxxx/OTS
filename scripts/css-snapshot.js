@@ -5,8 +5,8 @@
 // It opens trade-order-system.html in Chromium with fixed data and a fixed clock, walks a fixed list of states (every
 // page, every dialog and drawer, light and dark, every accent, the Mac window, several widths, empty data) and records,
 // for every rendered element, every computed property of the element and of its ::before / ::after / ::placeholder.
-// In the full configurations it also forces :hover, :focus, :focus-visible, :focus-within and :active (through the
-// DevTools protocol) on the elements the stylesheet has such rules for, and records what that changes nearby.
+// In the full configurations it also forces :hover, :focus, :focus-visible, :focus-within, :active, :disabled and
+// :checked (through the DevTools protocol) on the elements the stylesheet has such rules for, and records what that changes nearby.
 //
 //   node scripts/css-snapshot.js --base origin/main        snapshot the page at that git ref and the working tree,
 //                                                          print every difference; exit 1 when there is one
@@ -17,6 +17,13 @@
 // Options: --only <regex> (states whose name matches), --quick (light and dark at 1440 only), --jobs <n>,
 // --list (print the states and exit), --limit <n> (differences printed per state, default 40),
 // --shots <dir> (a screenshot of every state of the working tree, to see that each state shows what its name says).
+//
+// It also compares the @keyframes by name, as text, because the styles are read with every animation at its end.
+//
+// What it does not see, so a change there needs its own proof: any engine but Chromium (the app runs in WebKit);
+// vendor pseudo-elements (::-webkit-scrollbar, the number spin buttons, ::-webkit-details-marker); a state that is
+// not in the list below (a class or attribute the script sets only in some situation); and the moment before the
+// main script sets data-theme on <html>.
 //
 // A refactor is done when `--base origin/main` reports nothing. Two snapshots written with --out on different days
 // can differ in dates the page computes from the real calendar; compare in one run with --base instead.
@@ -119,7 +126,7 @@ const emptyData = { orders:[], customers:{}, deletedOrders:[], trashOrders:[], t
 // ---------------------------------------------------------------------------------------------------------------
 // Configurations and states
 
-const W = { wide:1600, std:1440, w1360:1360, w1300:1300, w1200:1200, w1180:1180, min:1100, w1050:1050, w950:950, w880:880, w840:840, w800:800, w740:740, w680:680, w620:620, w560:560, w480:480, phone:390 };
+const W = { wide:1600, std:1440, w1360:1360, w1300:1300, w1200:1200, w1180:1180, min:1100, w1050:1050, w950:950, w880:880, w840:840, w800:800, w740:740, w710:710, w680:680, w620:620, w560:560, w480:480, phone:390 };
 
 // Each configuration loads the page fresh for every state it runs.
 // states: 'all' = pages and overlays; 'pages' = pages only; or a list of state names.
@@ -179,6 +186,13 @@ const detail = tab => async p => {
 };
 const OVERLAYS = [
   ['order-new', p => click(p, '#newOrderBtn')],
+  ['order-new-invalid', async (p, settle) => {
+    await click(p, '#newOrderBtn');
+    await settle(p);
+    await click(p, '#orderSaveBtn');
+    await settle(p);
+    if (!(await p.evaluate(() => document.querySelectorAll('#orderForm [aria-invalid="true"]').length))) throw new Error('saving an empty order marked no field');
+  }],
   ['order-edit', p => p.evaluate(() => openOrder('o8'))],
   ['order-edit-deposit', p => p.evaluate(() => openOrder('o6'))],
   ['detail-info', detail('info')],
@@ -275,8 +289,8 @@ function jobsFor(configs, only) {
 // ---------------------------------------------------------------------------------------------------------------
 // In the page
 
-// Selectors of the elements to force interaction pseudo-classes on: for every rule with :hover, :focus,
-// :focus-visible, :focus-within or :active (outside :not()), the part of the selector up to the compound that carries
+// Selectors of the elements to force state pseudo-classes on: for every rule with :hover, :focus, :focus-visible,
+// :focus-within, :active, :disabled or :checked (outside :not()), the part of the selector up to the compound that carries
 // it, with the interaction pseudo-classes and pseudo-elements taken out. `.board-card:hover .quick` → `.board-card`.
 function pageForceSelectors() {
   const out = new Map();
@@ -294,7 +308,7 @@ function pageForceSelectors() {
     parts.push(text.slice(start).trim());
     return parts;
   };
-  const strip = sel => sel.replace(/::?(?:before|after|placeholder|-webkit-[a-z-]+)\b/g, '').replace(/:(?:focus-visible|focus-within|hover|active|focus)\b/g, '').trim();
+  const strip = sel => sel.replace(/::?(?:before|after|placeholder|-webkit-[a-z-]+)\b/g, '').replace(/:(?:focus-visible|focus-within|hover|active|focus|disabled|checked)\b/g, '').trim();
   const add = (sel, pseudo) => {
     const cleaned = strip(sel).replace(/\s*[>+~]\s*$/, '').trim();
     if (!cleaned || cleaned === '*') return;
@@ -303,7 +317,7 @@ function pageForceSelectors() {
     out.get(cleaned).add(pseudo);
   };
   const scan = sel => {
-    const re = /:(focus-visible|focus-within|hover|active|focus)\b/g;
+    const re = /:(focus-visible|focus-within|hover|active|focus|disabled|checked)\b/g;
     let m;
     while ((m = re.exec(sel))) {
       // Depth and the functional pseudo-class we are inside.
@@ -345,6 +359,20 @@ function pageForceSelectors() {
   };
   for (const sheet of document.styleSheets) { try { walk(sheet.cssRules); } catch (_) {} }
   return [...out].map(([selector, set]) => [selector, [...set].sort()]);
+}
+
+// The @keyframes in effect, by name (the last one in the page wins). A snapshot reads styles with every animation
+// stopped at its end, so what an animation does on the way is compared here, as text.
+function pageKeyframes() {
+  const out = {};
+  const walk = rules => {
+    for (const rule of rules) {
+      if (rule.type === CSSRule.KEYFRAMES_RULE) out[rule.name] = [...rule.cssRules].map(frame => frame.cssText).join(' ');
+      else if (rule.cssRules) walk(rule.cssRules);
+    }
+  };
+  for (const sheet of document.styleSheets) { try { walk(sheet.cssRules); } catch (_) {} }
+  return out;
 }
 
 // Stops every CSS animation and transition where it ends (endless ones at their start), so that computed values are
@@ -474,7 +502,7 @@ async function settle(page, ms = 1500) {
 }
 
 // The page-side functions above, defined as globals of the page (they call each other).
-const helperSource = [pageForceSelectors, pageSettleAnimations, pageCapture, pageForceTargets].map(fn => `window.${fn.name} = ${fn.toString()};`).join('\n');
+const helperSource = [pageForceSelectors, pageKeyframes, pageSettleAnimations, pageCapture, pageForceTargets].map(fn => `window.${fn.name} = ${fn.toString()};`).join('\n');
 const inPage = (page, name, arg) => page.evaluate(([name, arg]) => window[name](arg), [name, arg]);
 
 async function loadPage(context, html, data, subs, config) {
@@ -618,7 +646,7 @@ async function prepass(browser, html) {
       for (let i = 0; i < cs.length; i++) if (!cs[i].startsWith('--')) names.push(cs[i]);
       return { demo:{ orders:state.orders, customers:state.customers }, names:names.sort() };
     });
-    return { ...info, forceSelectors:await inPage(page, 'pageForceSelectors') };
+    return { ...info, forceSelectors:await inPage(page, 'pageForceSelectors'), keyframes:await inPage(page, 'pageKeyframes') };
   } finally {
     await context.close();
   }
@@ -637,7 +665,10 @@ async function snapshotAll(browser, versions, args) {
   const merged = new Map();
   for (const p of pre) for (const [sel, pseudos] of p.forceSelectors) merged.set(sel, [...new Set([...(merged.get(sel) || []), ...pseudos])].sort());
   const forceSelectors = [...merged].sort((a, b) => a[0].localeCompare(b[0]));
-  const snapshots = versions.map(v => makeSnapshot({ label:v.label, names, states:jobs.map(j => j.name), forceSelectors:forceSelectors.length }));
+  // A name counts as used when the page mentions it anywhere but in its own @keyframes line (a rule or the script).
+  const keyframeNames = [...new Set(pre.flatMap(p => Object.keys(p.keyframes)))];
+  const used = html => keyframeNames.filter(name => html.split(name).length - 1 > html.split(`@keyframes ${name}`).length - 1);
+  const snapshots = versions.map((v, i) => makeSnapshot({ label:v.label, names, states:jobs.map(j => j.name), forceSelectors:forceSelectors.length, keyframes:pre[i].keyframes, keyframesUsed:used(v.html) }));
   const tasks = [];
   versions.forEach((v, vi) => jobs.forEach(job => tasks.push({ job, vi, html:v.html })));
   let done = 0;
@@ -731,6 +762,14 @@ function compareSnapshots(sa, sb, limit) {
   if (sa.meta.names.join() !== sb.meta.names.join()) throw new Error('the snapshots were taken with different browsers (property lists differ)');
   const report = [];
   let total = 0;
+  // An animation that is gone is a difference only while the page that lost it still names it.
+  const ka = sa.meta.keyframes || {}, kb = sb.meta.keyframes || {};
+  for (const name of new Set([...Object.keys(ka), ...Object.keys(kb)])) {
+    const missing = !(name in ka) ? sa : !(name in kb) ? sb : null;
+    if (missing ? !missing.meta.keyframesUsed.includes(name) : ka[name] === kb[name]) continue;
+    total++;
+    report.push(`@keyframes ${name}: ${name in ka ? ka[name] : '(none)'} → ${name in kb ? kb[name] : '(none)'}`);
+  }
   const states = [...new Set([...Object.keys(sa.states), ...Object.keys(sb.states)])];
   for (const name of states) {
     const a = sa.states[name], b = sb.states[name];

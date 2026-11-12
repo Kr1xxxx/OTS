@@ -4795,6 +4795,9 @@ html[data-theme] .btn-primary[data-morph="ok"] { background:var(--s-green); colo
 html[data-theme] .btn[data-morph="fail"] { background:var(--red-50); color:var(--s-red); border-color:transparent; }
 html[data-theme] .btn[data-morph="ok"] .ui-icon path { stroke-dasharray:30; stroke-dashoffset:30; animation:uiDraw .4s .05s var(--ease-out) forwards; }
 html[data-theme] .btn:disabled[data-morph] { opacity:1; }
+/* 变形中的按钮过一会儿整个换回原来的内容（setTrackingLookupButton、uiMorph 的 idle）。按下时落在里面的图标或文字上，
+   松开前它们被换掉，WebKit 就不算这一下点击。按下的永远是按钮本身，换内容不影响这次点击。 */
+.btn[data-morph] > * { pointer-events:none; }
 .morph-spin { width:14px; height:14px; border:1.75px solid currentColor; border-right-color:transparent; border-radius:50%; animation:uiSpin .7s linear infinite; flex:none; }
 @keyframes uiSpin { to { transform:rotate(360deg); } }
 @keyframes uiDraw { to { stroke-dashoffset:0; } }

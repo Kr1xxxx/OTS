@@ -141,6 +141,7 @@ const fixture = {
     await click('[data-customer-paste-merge]');
     await page.waitForFunction(() => document.querySelector('#customerForm [name="originalName"]').value === 'Sunrise Beauty LLC' && document.querySelectorAll('#customerForm [data-customer-multi-kind="phones"] [data-customer-multi-input]').length === 2);
     assert.equal(await page.locator(`${form} [name="name"]`).inputValue(), 'Sunrise Beauty LLC', 'merging keeps the existing name');
+    assert.doesNotMatch(await page.locator('#customerModalState').innerText(), /只读/, 'a profile opened straight into editing does not say read-only in its header');
     assert.deepEqual(await values('phones'), ['+1 305 555 0142', '+1 305 555 0199']);
     assert.deepEqual(await values('emails'), ['orders@sunrise.example']);
     await click('#customerFooterSaveBtn');

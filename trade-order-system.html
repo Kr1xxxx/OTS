@@ -4340,6 +4340,10 @@ html[data-theme] .nav-glide.no-t { transition:none; }
 html[data-theme] .sidebar-api-card { margin:0; padding:10px 12px; border:1px solid var(--surface-border); border-radius:var(--radius); background:var(--surface-bg); box-shadow:none; }
 html[data-theme] .sidebar-api-title { display:none; }
 html[data-theme] .api-status-strip { gap:2px; }
+/* 设置里的接口状态：三项各占 180px，状态字被推到格子最右边，紧贴着下一项的圆点。改成一项挨一项。 */
+html[data-theme] .settings-api-strip { display:flex; flex-wrap:wrap; gap:4px 16px; max-width:none; }
+html[data-theme] .settings-api-strip .api-status-dot { flex:none; width:auto; min-height:32px; max-width:none; padding:0 10px; }
+html[data-theme] .settings-api-strip .api-status-state { margin-left:0; }
 html[data-theme] .api-status-dot { min-height:26px; border:0; border-radius:8px; background:transparent; box-shadow:none; padding:0 4px; gap:8px; font-size:13px; font-weight:400; color:var(--gray-600); }
 html[data-theme] .api-status-dot:hover { background:var(--surface-soft); }
 html[data-theme] .api-status-dot::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--gray-400); flex:none; }
@@ -4426,12 +4430,13 @@ html[data-theme] .segment-option.active { background:var(--surface-bg); color:va
 html[data-theme="dark"] .segment-option.active { background:var(--surface-raised); }
 
 /* 输入框、下拉 */
-html[data-theme] :is(.field input, .field select, .field textarea, .confirm-input) { border:1px solid var(--surface-border); border-radius:var(--control-radius); background:var(--surface-bg); color:var(--gray-900); }
-html[data-theme] :is(.field input, .field select, .field textarea):hover { border-color:var(--surface-border-strong); }
-html[data-theme] :is(.field input, .field select, .field textarea, .confirm-input):focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-tint); }
+/* 汇率表、等级门槛里的输入框不在 .field 里，以前是系统默认的黑边方框。 */
+html[data-theme] :is(.field input, .field select, .field textarea, .confirm-input, .manual-rate-item input, .level-rule-input input) { border:1px solid var(--surface-border); border-radius:var(--control-radius); background:var(--surface-bg); color:var(--gray-900); }
+html[data-theme] :is(.field input, .field select, .field textarea, .manual-rate-item input, .level-rule-input input):hover { border-color:var(--surface-border-strong); }
+html[data-theme] :is(.field input, .field select, .field textarea, .confirm-input, .manual-rate-item input, .level-rule-input input):focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-tint); }
 /* 输入框聚焦已经有「强调色边框 + 一圈浅色」：不再叠全局那条 2px 轮廓（文字输入框用鼠标点也算 :focus-visible，
    每点一个框都是里外两圈）。勾选框、单选框没有自己的聚焦样式，仍用全局轮廓。 */
-html[data-theme] :is(.field input:not([type="checkbox"], [type="radio"]), .field textarea, .confirm-input, .detail-ship-add input, .order-list-search, .detail-note-editor, .paste-assist textarea):focus-visible { outline:none; }
+html[data-theme] :is(.field input:not([type="checkbox"], [type="radio"]), .field textarea, .confirm-input, .detail-ship-add input, .order-list-search, .detail-note-editor, .paste-assist textarea, .manual-rate-item input, .level-rule-input input):focus-visible { outline:none; }
 
 /* 勾选框和单选一律用强调色（规范：强调色用在「开关打开」这类选中状态）。原来卡片设置里是黑色、物流页是系统蓝。 */
 html[data-theme] input:is([type="checkbox"], [type="radio"]) { accent-color:var(--accent); }
@@ -4791,12 +4796,15 @@ html[data-theme] .customer-group-count { color:var(--gray-500); font-weight:400;
 html[data-theme] .customer-main { display:flex; flex-direction:column; gap:14px; }
 /* 没有重复客户提醒时这个空容器还占一格间距，工具条比左边的分组卡低 14px。 */
 html[data-theme] #customerDuplicateAlerts:empty { display:none; }
-html[data-theme] .customer-toolbar { padding:0; border:0; background:transparent; gap:10px; flex-wrap:wrap; }
+/* 多写一层 .customer-main：前面那条 :is(…, .price-history-row.pinned, …) 的优先级按最重的一项算，
+   把这里的「透明」盖掉了，工具栏后面一直垫着一块白底方块。 */
+html[data-theme] .customer-main .customer-toolbar { padding:0; border:0; background:transparent; gap:10px; flex-wrap:wrap; }
 html[data-theme] .customer-toolbar .search { flex:1 1 220px; width:auto; height:40px; min-height:40px; border-radius:999px; }
 html[data-theme] .customer-toolbar .search-action { display:none; }
 html[data-theme] #customerLevelSegments { display:none; }
 html[data-theme] .customer-toolbar select.inline-select, html[data-theme] .customer-toolbar .app-select { flex:none; width:auto; min-width:120px; height:40px; min-height:40px; border-radius:999px; }
-html[data-theme] .customer-toolbar-meta { margin-left:auto; font-size:12.5px; font-weight:400; color:var(--gray-500); }
+/* 统计文字可以被压短（省略号），不把「新建客户」挤到下一行。 */
+html[data-theme] .customer-toolbar-meta { margin-left:auto; min-width:0; flex:1 1 120px; max-width:max-content; overflow:hidden; text-overflow:ellipsis; font-size:12.5px; font-weight:400; color:var(--gray-500); }
 html[data-theme] .customer-toolbar .customer-toolbar-new { height:40px; min-height:40px; padding:0 16px; border-radius:999px; background:var(--gray-900); color:var(--surface-bg); border-color:transparent; gap:6px; }
 html[data-theme] .customer-toolbar .customer-toolbar-new:hover { background:color-mix(in srgb, var(--gray-900) 86%, transparent); }
 /* 重复客户提醒：琥珀横幅 */
@@ -4812,6 +4820,12 @@ html[data-theme] .customer-table { border:1px solid var(--surface-border); borde
 html[data-theme] .customer-list { min-width:880px; }
 html[data-theme] .customer-row { grid-template-columns:minmax(0,1.85fr) minmax(0,.95fr) minmax(0,1.05fr) minmax(0,1.05fr) minmax(0,.8fr) minmax(0,.8fr); gap:12px; min-height:68px; padding:10px 18px; border-bottom:1px solid var(--hairline); background:transparent; }
 html[data-theme] .customer-row:last-child { border-bottom:0; }
+/* 窗口缩到最小（或界面放大）时，客户表不用再横向滚动：分组栏收窄一点，表格最小宽度跟着降。 */
+@media (max-width:1400px) {
+  html[data-theme] .customer-crm { grid-template-columns:184px minmax(0,1fr); gap:12px; }
+  html[data-theme] .customer-list { min-width:800px; }
+  html[data-theme] .customer-row { grid-template-columns:minmax(0,1.6fr) minmax(0,.8fr) minmax(0,.95fr) minmax(0,1fr) minmax(0,1fr) minmax(0,.8fr); gap:10px; padding:10px 14px; }
+}
 html[data-theme] .customer-row.head { min-height:38px; padding-block:0; background:var(--surface-bg); color:var(--gray-500); font-size:12px; font-weight:400; border-radius:22px 22px 0 0; }
 html[data-theme] .customer-row.head > :nth-child(5) { text-align:right; }
 html[data-theme] .customer-row:not(.head):hover { background:var(--surface-soft); box-shadow:none; }
@@ -5476,7 +5490,7 @@ html[data-theme] .order-list-count { color:var(--gray-500); font-size:13px; }
 html[data-theme] .order-list-deleted-link { margin:0; color:var(--gray-900); font-size:13px; gap:6px; }
 html[data-theme] .order-list-deleted-link .ui-icon { width:16px; height:16px; }
 html[data-theme] .order-list-controls { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:0; border:0; background:transparent; }
-html[data-theme] .order-list-search { flex:1 1 320px; width:auto; height:38px; padding:0 16px; border-radius:999px; border:1px solid var(--surface-border); background:var(--surface-bg); font-size:13px; }
+html[data-theme] .order-list-search { flex:1 1 180px; width:auto; height:38px; padding:0 16px; border-radius:999px; border:1px solid var(--surface-border); background:var(--surface-bg); font-size:13px; }
 html[data-theme] .order-list-primary-filters { flex-wrap:nowrap; gap:10px; }
 html[data-theme] .order-list-primary-filters > .inline-select { width:auto; min-width:104px; height:38px; padding:0 34px 0 16px; border-radius:999px; font-size:13px; color:var(--gray-900); text-align:left; }
 html[data-theme] .order-list-more { position:relative; margin:0; }
@@ -5499,7 +5513,11 @@ html[data-theme] .order-list-pagination { border:1px solid var(--surface-border)
 html[data-theme] .order-list-page-buttons button { min-width:30px; padding:0 12px; border-color:var(--surface-border); border-radius:999px; font-size:12px; font-weight:500; }
 html[data-theme] .order-list-page-buttons button.active { padding:0; font-weight:600; }
 html[data-theme] .order-table { min-width:960px; font-size:13px; }
-html[data-theme] .order-table thead th { height:38px; padding:0 10px; box-shadow:0 1px 0 var(--hairline); }
+/* 表头只有一条下边线（以前边线上再叠一条 1px 阴影，「客户」「操作」两列又没有阴影，线一段粗一段细）。 */
+html[data-theme] .order-table thead th { height:38px; padding:0 10px; box-shadow:none; }
+/* 一张订单都没有：翻页条不显示，表格卡片自己收底（以前下边没有边线和圆角，像被切掉一截）。 */
+html[data-theme] .order-table-panel.no-orders .order-table-scroll { min-height:0; border-bottom:1px solid var(--surface-border); border-radius:22px; }
+html[data-theme] .order-table td.order-table-empty { border-bottom:0; }
 html[data-theme] .order-table td { height:68px; padding:10px; }
 html[data-theme] .order-table :is(th, td):first-child { padding-left:16px; }
 html[data-theme] .order-table .tag, html[data-theme] .order-table-view { white-space:nowrap; }
@@ -5552,7 +5570,7 @@ html[data-theme="dark"] .order-table-paybar { background:var(--gray-200); }
 }
 /* 设置：左侧菜单和右侧内容各一张卡；内容按组排成用细线分隔的行，不再每项一个框 */
 html[data-theme] .settings-shell { grid-template-columns:220px minmax(0,1fr); gap:16px; min-height:0; border:0; border-radius:0; background:transparent; box-shadow:none; overflow:visible; align-items:start; }
-html[data-theme] .settings-menu { position:sticky; top:16px; padding:12px 10px; border:1px solid var(--surface-border); border-radius:var(--radius-panel); background:var(--surface-bg); min-height:calc(100vh - 140px); }
+html[data-theme] .settings-menu { position:sticky; top:16px; padding:12px 10px; border:1px solid var(--surface-border); border-radius:var(--radius-panel); background:var(--surface-bg); min-height:calc(100vh - 166px); }
 html[data-theme] .settings-menu-title { display:none; }
 html[data-theme] .settings-menu-item { min-height:40px; margin-bottom:2px; padding:0 12px; border-radius:14px; color:var(--gray-700); font-size:13.5px; font-weight:400; transition:background var(--motion-fast) var(--ease); }
 html[data-theme] .settings-menu-item:hover { background:var(--surface-soft); }
@@ -5571,6 +5589,9 @@ html[data-theme] .data-action .muted { margin-top:2px; font-size:12.5px; }
 html[data-theme] .data-action .btn { height:32px; min-height:32px; padding:0 14px; border-radius:999px; font-size:12.5px; }
 html[data-theme] .data-action .btn-danger { background:transparent; color:var(--s-red); border-color:color-mix(in srgb, var(--s-red) 35%, transparent); }
 html[data-theme] .data-action .btn-danger:hover { background:color-mix(in srgb, var(--s-red) 10%, transparent); }
+/* AI 费用里的模型下拉框在一个表单栏位里，和旁边的输入框一样高（以前是 26px 的细条）。 */
+html[data-theme] .field .app-select.inline-select:has(#aiUsageModel) { height:41px; min-height:41px; border-radius:var(--control-radius); color:var(--gray-900); font-size:14px; }
+html[data-theme] .field .app-select.inline-select:has(#aiUsageModel) .app-select-button { padding:0 12px; }
 html[data-theme] .data-action :is(select.inline-select, .app-select) { width:auto; min-width:150px; height:34px; min-height:34px; border-radius:999px; }
 html[data-theme] .settings-card { gap:12px; padding:16px 0; margin:0; border:0; border-bottom:1px solid var(--hairline); border-radius:0; background:transparent; box-shadow:none; }
 html[data-theme] .settings-card:last-child { border-bottom:0; }
@@ -6896,13 +6917,13 @@ html[data-theme] .order-preview .order-notification-option small { color:var(--g
               <form id="levelRuleForm" novalidate>
                 <div class="muted" style="margin:10px 0 8px">自动判断的门槛（累计成交 USD）可以改：按你的客户规模填，保存后客户列表会按新规则重新分级。</div>
                 <div class="level-rule-table" id="levelRuleTable"></div>
-                <div class="level-rule-foot"><button class="btn btn-small" type="button" id="levelRuleResetBtn">恢复默认</button><button class="btn btn-primary btn-small" type="submit">保存等级规则</button></div>
+                <div class="level-rule-foot"><button class="btn" type="button" id="levelRuleResetBtn">恢复默认</button><button class="btn btn-primary" type="submit">保存等级规则</button></div>
               </form>
             </div>
             <div class="settings-card">
               <div><strong>我方邮箱</strong><div class="muted">自己的收款邮箱、业务邮箱（Paypal、Zelle、公司邮箱）。粘贴识别和匹配客户时会排除这些邮箱，也不能存进客户档案。一行一个。</div></div>
               <form class="settings-form" id="ownEmailsForm" novalidate>
-                <div class="field span-2"><label for="ownEmailsInput">我方邮箱</label><textarea id="ownEmailsInput" name="ownEmails" rows="3" spellcheck="false" placeholder="例如 sales@yourshop.com"></textarea></div>
+                <div class="field span-2"><label class="visually-hidden" for="ownEmailsInput">我方邮箱</label><textarea id="ownEmailsInput" name="ownEmails" rows="3" spellcheck="false" placeholder="例如 sales@yourshop.com"></textarea></div>
                 <div class="span-2" style="display:flex;justify-content:flex-end"><button class="btn btn-primary" type="submit">保存我方邮箱</button></div>
               </form>
             </div>
@@ -16347,6 +16368,8 @@ function renderGlobalSearchPanel({ forceOpen = false } = {}) {
     return map;
   }, {});
   const scopes = '<div class="global-search-scope">可搜客户、订单、邮箱电话、地址备注、物流附件</div>';
+  // 单个字母或数字不参与匹配（按词的前缀比，至少两个字符）：这时说「没有找到」是错的。
+  const tooShort = /^[a-z0-9]$/i.test(query.normalize('NFKC'));
   const groupsHtml = Object.entries(grouped).map(([group, items]) => `
     <section class="global-search-group">
       <div class="global-search-group-title">${escapeAttr(group)} · ${items.length}${resultCounts[group] > items.length ? ` / ${resultCounts[group]}` : ''}</div>
@@ -16359,7 +16382,7 @@ function renderGlobalSearchPanel({ forceOpen = false } = {}) {
     </section>`).join('');
   panel.innerHTML = `
     <div class="global-search-head"><strong>${query ? `搜索“${escapeAttr(query)}”` : '快速前往'}</strong>${scopes}</div>
-    ${groupsHtml || `<div class="global-search-empty"><strong>没有找到相关内容</strong>可尝试姓名、邮箱、电话、地址、订单号、金额、备注或物流单号</div>`}
+    ${groupsHtml || (tooShort ? '<div class="global-search-empty"><strong>再输入一个字符</strong>字母和数字从两个字符开始搜索</div>' : '<div class="global-search-empty"><strong>没有找到相关内容</strong>可尝试姓名、邮箱、电话、地址、订单号、金额、备注或物流单号</div>')}
     <div class="global-search-foot">
       <span>↑ ↓ 选择 · Enter 打开 · Esc 关闭${query ? ` · 共 ${allGlobalSearchResults.length} 条结果` : ' · ⌘K 或 / 随时打开搜索'}</span>
       ${query && allGlobalSearchResults.length ? `<button class="global-search-all-btn" type="button" data-open-full-search>查看全部搜索结果 <span>${allGlobalSearchResults.length}</span></button>` : ''}
@@ -19741,6 +19764,7 @@ function renderOrderListPage() {
   document.querySelectorAll('[data-order-list-quick]').forEach(button => button.classList.toggle('active', button.dataset.orderListQuick === orderListQuickFilter));
   fitSegmentControl(document.getElementById('orderListQuickFilters'));
   const noOrders = !(state.orders || []).length;
+  body.closest('.order-table-panel')?.classList.toggle('no-orders', noOrders);
   if (!page.items.length && noOrders) {
     body.innerHTML = '<tr><td class="order-table-empty" colspan="9">还没有订单。<button class="btn btn-small btn-primary" type="button" data-order-list-new>新建订单</button></td></tr>';
   } else if (!page.items.length) {
@@ -19806,6 +19830,7 @@ function renderRecentOrders() {
     .slice()
     .sort((a, b) => parseDate(b.updated) - parseDate(a.updated))
     .slice(0, 5);
+  if (!list.length) { el.innerHTML = '<div class="empty">还没有订单。</div>'; return; }
   el.innerHTML = list.map(o => {
     const s = stageDef(o.stage);
     return `

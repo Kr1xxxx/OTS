@@ -204,8 +204,8 @@ async function main() {
 
     // P2-3: read-only — the order settings form does not claim 已保存.
     await B.evaluate(() => setPage('settings'));
+    // The submit handler turns a read-only page away before its first await, so the answer is there right after.
     await B.evaluate(() => document.getElementById('orderSettingsForm').requestSubmit());
-    await B.waitForTimeout(400);
     assert.ok(!(await h.toasts(B)).some(text => text.includes('订单设置已保存')), 'read-only settings must not say 已保存');
     if (await B.evaluate(() => document.getElementById('confirmModal').classList.contains('open'))) {
       await h.click(B, '#confirmCancelBtn', '稍后处理');
@@ -265,7 +265,7 @@ async function main() {
     await A.locator('#orderForm [name="note"]').fill('重试后保存的 o3');
     await h.click(A, A.locator('#orderModal button[type="submit"][form="orderForm"]').first(), '保存订单');
     await A.waitForFunction(() => window.pendingSaveStatus().error);
-    await A.waitForTimeout(300);
+    await h.waitToast(A, '正在自动重试');
     const failToasts = await h.toasts(A);
     assert.ok(!failToasts.some(text => text.includes('请重试')), `auto retry must not ask to retry: ${failToasts.join(' / ')}`);
     assert.ok(failToasts.some(text => text.includes('正在自动重试')));
@@ -302,16 +302,20 @@ async function main() {
     await A.unroute('**/api/save');
 
     // P2-6: a save that hangs times out and is retried instead of 保存中… forever.
+    // The first save request gets no answer until the page has given up on it (the test lets it go afterwards).
     let hang = true;
+    let releaseHung;
+    const hung = new Promise(resolve => { releaseHung = resolve; });
     await A.route('**/api/save', async route => {
       if (!hang) return route.continue();
-      await new Promise(resolve => setTimeout(resolve, 2500));
+      await hung;
       try { await route.continue(); } catch (_) {}
     });
     await A.evaluate(() => { macSaveRequestTimeoutMs = 800; });
     await setNote(A, 'o4', '超时后重试的 o4');
     assert.match(await A.evaluate(() => window.pendingSaveStatus().error), /没有回应/);
     hang = false;
+    releaseHung();
     await A.waitForFunction(() => !window.pendingSaveStatus().pending && !window.pendingSaveStatus().error, null, { timeout:15000 });
     await A.evaluate(() => { macSaveRequestTimeoutMs = 20000; });
     await A.unroute('**/api/save');
@@ -319,7 +323,10 @@ async function main() {
     assert.equal((await dbOrder('o4')).note, '超时后重试的 o4');
 
     // P2-10: the customer header save shows 保存中…, aria-busy and is disabled while saving.
-    await A.route('**/api/save', async route => { await new Promise(resolve => setTimeout(resolve, 900)); try { await route.continue(); } catch (_) {} });
+    // The save stays in flight until the test has looked at the busy button and pressed Esc.
+    let releaseSlow;
+    const slow = new Promise(resolve => { releaseSlow = resolve; });
+    await A.route('**/api/save', async route => { await slow; try { await route.continue(); } catch (_) {} });
     await A.evaluate(() => openCustomerModal('Buyer 1', { viewOnly:false }));
     await A.waitForFunction(() => document.getElementById('customerModal').classList.contains('open'));
     await A.locator('#customerForm [name="note"]').fill('慢保存的客户备注');
@@ -328,7 +335,9 @@ async function main() {
     assert.equal(await A.evaluate(() => document.getElementById('customerHeaderSaveBtn').disabled), true);
     assert.match(await A.locator('#customerHeaderSaveBtn').innerText(), /保存中/);
     await A.keyboard.press('Escape');
-    await A.waitForFunction(() => [...document.querySelectorAll('#toast .toast-item.is-info')].some(el => el.textContent.includes('正在保存，请稍候')) || !document.getElementById('customerModal').classList.contains('open'));
+    await A.waitForFunction(() => [...document.querySelectorAll('#toast .toast-item.is-info')].some(el => el.textContent.includes('正在保存，请稍候')));
+    assert.equal(await A.evaluate(() => document.getElementById('customerModal').classList.contains('open')), true, 'Esc while saving keeps the profile open');
+    releaseSlow();
     await A.waitForFunction(() => !document.getElementById('customerModal').classList.contains('open'), null, { timeout:10000 });
     await A.unroute('**/api/save');
 
@@ -372,7 +381,9 @@ async function main() {
     await D.route('**/api/data', route => failLoad ? route.fulfill({ status:500, json:{ ok:false, message:'database is locked' } }) : route.continue());
     await D.goto(`http://127.0.0.1:${server.port}/trade-order-system.html?token=${token}`);
     await h.waitToast(D, '数据库读取失败');
-    await D.waitForTimeout(800);
+    // The read-only page says 这次修改没有保存 from saveState when a render finds changed data: draw once more and
+    // check it stays quiet when nothing changed.
+    await D.evaluate(() => render());
     assert.ok(!(await h.toasts(D)).some(text => text.includes('这次修改没有保存')), 'nothing was changed, so nothing was lost');
     await D.evaluate(() => setPage('settings'));
     assert.equal(await D.locator('#macStorageReloadActions').isVisible(), true);

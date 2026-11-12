@@ -124,6 +124,7 @@ const mod = process.platform === 'darwin' ? 'Meta' : 'Control';
     const ime = await inputMethod(page);
     for (const text of ['z', 'zh', 'zhang']) {
       await ime.compose(text);
+      // Proving the panel does not redraw while composing: typing redraws it after a 100 ms debounce (debouncedGlobalSearchRender).
       await h.waitPageTime(page, 150);
     }
     assert.equal(await page.evaluate(() => globalSearchRenderedQuery), 'Eli', 'panel re-rendered while composing');
@@ -140,6 +141,7 @@ const mod = process.platform === 'darwin' ? 'Meta' : 'Control';
       el.dispatchEvent(new InputEvent('input', { bubbles:true, data:'t', inputType:'insertText' }));
       el.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', code:'Escape', bubbles:true, cancelable:true }));
     });
+    // Proving the panel stays shut: the input above started the 100 ms debounce (debouncedGlobalSearchRender).
     await h.waitPageTime(page, 300);
     assert.equal(await page.evaluate(() => document.getElementById('globalSearchPanel').classList.contains('open')), false, 'the debounced search reopened the panel after Escape');
 

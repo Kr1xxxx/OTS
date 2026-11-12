@@ -5,7 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const root = path.resolve(__dirname, '..');
-const html = fs.readFileSync(path.join(root, 'trade-order-system.html'), 'utf8');
+const { html, extractFunction } = require('./helpers/page-source');
 const { createAppSettings } = require(path.join(root, 'mac-app', 'app-settings.js'));
 const packageVersion = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version;
 const releaseVersion = fs.readFileSync(path.join(root, 'VERSION'), 'utf8').trim();
@@ -14,23 +14,6 @@ class FixedDate extends Date {
     super(...(args.length ? args : ['2026-08-17T12:00:00Z']));
   }
   static now() { return new Date('2026-08-17T12:00:00Z').getTime(); }
-}
-
-function extractFunction(name) {
-  const start = html.indexOf(`function ${name}(`);
-  if (start < 0) throw new Error(`Missing function: ${name}`);
-  const bodyStart = html.indexOf('{', start);
-  for (let index = bodyStart; index < html.length; index += 1) {
-    if (html[index] !== '}') continue;
-    const candidate = html.slice(start, index + 1);
-    try {
-      new vm.Script(candidate);
-      return candidate;
-    } catch (_) {
-      // Keep scanning until the complete production function compiles.
-    }
-  }
-  throw new Error(`Unclosed function: ${name}`);
 }
 
 const context = vm.createContext({

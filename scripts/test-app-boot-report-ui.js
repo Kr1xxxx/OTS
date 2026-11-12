@@ -2,11 +2,10 @@
 // 更新成功的判定：页面要告诉 Mac 壳「主脚本跑完了，并且读库后画出了界面」（appBooted）。
 // 更新器只认这一句；页面加载完但主脚本启动就报错的版本收不到它，会被退回旧版本。
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 const { chromium } = require('playwright');
+const { h } = require('./helpers/board-page');
+const { html } = require('./helpers/page-source');
 
-const html = fs.readFileSync(path.resolve(__dirname, '..', 'trade-order-system.html'), 'utf8');
 const emptyData = { app:'trade-order-system', revision:1, data:{ orders:[], customers:{}, trashOrders:[], deletedOrders:[], demoCleared:true, demoCustomersCleared:true } };
 
 // The report is the last thing the main script does; anything after it would not be covered.
@@ -17,6 +16,8 @@ assert.match(tail.replace(/\/\/[^\n]*\n/g, ''), /^window\.otsAppUpdateStatus = o
 async function open(browser, { body = html, data } = {}) {
   const context = await browser.newContext({ viewport:{ width:1440, height:920 }, locale:'zh-CN' });
   const page = await context.newPage();
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
   await page.addInitScript(() => {
     window.__booted = [];
     window.webkit = { messageHandlers:{
@@ -32,7 +33,7 @@ async function open(browser, { body = html, data } = {}) {
     return route.fulfill({ json:{} });
   });
   await page.goto('http://127.0.0.1:4173/trade-order-system.html');
-  return { context, page };
+  return { context, page, errors };
 }
 const booted = page => page.evaluate(() => window.__booted.length);
 
@@ -50,11 +51,13 @@ const booted = page => page.evaluate(() => window.__booted.length);
 
     // 2. Not before the database answered and the app was drawn from it.
     {
-      let release;
+      let release, asked;
       const held = new Promise(resolve => { release = resolve; });
-      const { context, page } = await open(browser, { data: async route => { await held; return route.fulfill({ json:emptyData }); } });
-      await page.waitForSelector('.sidebar .logo-mark');
-      await page.waitForTimeout(600);
+      const dataAsked = new Promise(resolve => { asked = resolve; });
+      const { context, page } = await open(browser, { data: async route => { asked(); await held; return route.fulfill({ json:emptyData }); } });
+      // The script has run to its end and the page is waiting for the database: everything but the data is there.
+      await dataAsked;
+      await page.waitForFunction(() => appScriptCompleted === true);
       assert.equal(await booted(page), 0, 'a page still waiting for its data has not booted');
       release();
       await page.waitForFunction(() => window.__booted.length === 1);
@@ -70,15 +73,28 @@ const booted = page => page.evaluate(() => window.__booted.length);
     }
 
     // 4. A version whose script throws while starting never reports, wherever it throws.
+    // Each is checked once it has got as far as it ever will (a working page reports at that point at the latest):
+    // the error was thrown and, where the script got to read the database, the answer was drawn or failed to draw.
     const brokenPages = {
-      'throws near the end of the script': html.replace('window.otsAppUpdateStatus = otsAppUpdateStatus;', 'window.otsAppUpdateStatus = otsAppUpdateStatus;\nthrow new Error("broken build");'),
-      'throws before the first read': html.replace('\nloadMacAppState();\nloadEcbHistoricalRates();', '\nthrow new Error("broken build");\nloadMacAppState();\nloadEcbHistoricalRates();'),
-      'cannot draw what it read': html.replace('\nfunction render() {', '\nfunction render() {\n  if (macStateReady) throw new Error("broken build");')
+      'throws near the end of the script': {
+        body:html.replace('window.otsAppUpdateStatus = otsAppUpdateStatus;', 'window.otsAppUpdateStatus = otsAppUpdateStatus;\nthrow new Error("broken build");'),
+        done:page => page.waitForFunction(() => appFirstLoadDrawn === true)
+      },
+      'throws before the first read': {
+        body:html.replace('\nloadMacAppState();\nloadEcbHistoricalRates();', '\nthrow new Error("broken build");\nloadMacAppState();\nloadEcbHistoricalRates();'),
+        done:async () => {}
+      },
+      // The first render after the read throws inside loadMacAppState's try, the one after its catch ends it.
+      'cannot draw what it read': {
+        body:html.replace('\nfunction render() {', '\nfunction render() {\n  if (macStateReady) throw new Error("broken build");'),
+        done:page => page.waitForFunction(() => macStorageMode === 'load-failed')
+      }
     };
-    for (const [label, body] of Object.entries(brokenPages)) {
+    for (const [label, { body, done }] of Object.entries(brokenPages)) {
       assert.notEqual(body, html, `${label}: the page was changed`);
-      const { context, page } = await open(browser, { body });
-      await page.waitForTimeout(1500);
+      const { context, page, errors } = await open(browser, { body });
+      await h.endsOn(() => errors.includes('broken build'), true, `${label}: the page did not throw`);
+      await done(page);
       assert.equal(await booted(page), 0, `${label}: must not report a working app`);
       await context.close();
     }

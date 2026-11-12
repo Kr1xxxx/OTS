@@ -1,27 +1,8 @@
 #!/usr/bin/env node
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 const vm = require('node:vm');
 
-const root = path.resolve(__dirname, '..');
-const html = fs.readFileSync(path.join(root, 'trade-order-system.html'), 'utf8');
-
-function extractFunction(name) {
-  const asyncStart = html.indexOf(`async function ${name}(`);
-  const start = asyncStart >= 0 ? asyncStart : html.indexOf(`function ${name}(`);
-  if (start < 0) throw new Error(`Missing function: ${name}`);
-  const bodyStart = html.indexOf('{', start);
-  for (let index = bodyStart; index < html.length; index += 1) {
-    if (html[index] !== '}') continue;
-    const candidate = html.slice(start, index + 1);
-    try {
-      new vm.Script(candidate);
-      return candidate;
-    } catch (_) {}
-  }
-  throw new Error(`Unclosed function: ${name}`);
-}
+const { extractFunction } = require('./helpers/page-source');
 
 const calls = [];
 let uploadBody = null;

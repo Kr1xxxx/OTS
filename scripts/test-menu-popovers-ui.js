@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
+const { h } = require('./helpers/board-page');
 
 (async () => {
   const browser = await chromium.launch({ headless:true });
@@ -131,7 +132,9 @@ const { chromium } = require('playwright');
       const before = await formScroll();
       await clientMenu.hover();
       await page.mouse.wheel(0, 500);
-      await page.waitForTimeout(100);
+      // Proving that nothing scrolls: a wheel's scroll reaches the page a frame or more after the event, and there is
+      // no event for "did not scroll". 100 ms of the page's clock is several frames.
+      await h.waitPageTime(page, 100);
       const after = await formScroll();
       check(`${theme}-${width}滚动隔离`, () => assert.deepEqual(after, before));
       if (process.env.UI_SCREENSHOT) {

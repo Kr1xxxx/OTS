@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 const { chromium } = require('playwright');
+const { h } = require('./helpers/board-page');
+const { html } = require('./helpers/page-source');
 
 // Closing the order / customer modal or the detail drawer with unsaved edits asks first
 // (关闭 button, backdrop, Esc); a clean form closes straight away. Esc closes the top layer.
@@ -11,7 +11,6 @@ const { chromium } = require('playwright');
   const browser = await chromium.launch({headless:true});
   try {
     const page = await browser.newPage({viewport:{width:1440,height:920}});
-    const html = fs.readFileSync(path.join(__dirname,'..','trade-order-system.html'),'utf8');
     const today = new Date();
     const month = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
     const orders = [
@@ -37,7 +36,8 @@ const { chromium } = require('playwright');
     await page.goto('http://127.0.0.1:47999/trade-order-system.html');
     await page.waitForFunction(()=>window.pendingSaveStatus?.().loaded);
     const isOpen = id => page.evaluate(id=>document.getElementById(id).classList.contains('open'), id);
-    const settle = () => page.waitForTimeout(250);
+    // Wait for open / close animations to finish (it used to wait a fixed 250 ms).
+    const settle = () => h.quiet(page);
 
     // 查看 → 编辑资料: the step nav is rebuilt and the sections take the content column (used to render 176px wide in the nav column).
     await page.evaluate(()=>openCustomerModal('Alice',{viewOnly:true}));
@@ -153,9 +153,8 @@ const { chromium } = require('playwright');
     const label = await page.locator('#detailDeleteBtn .hold-label').boundingBox();
     await page.mouse.move(label.x+label.width/2,label.y+label.height/2);
     await page.mouse.down();
-    await page.waitForTimeout(100);
+    await page.waitForFunction(()=>document.getElementById('detailDeleteBtn').dataset.holding === '1');
     await page.mouse.move(label.x+label.width/2+2,label.y+label.height/2+1);
-    await page.waitForTimeout(200);
     assert.equal(await page.evaluate(()=>document.getElementById('detailDeleteBtn').dataset.holding),'1','hold cancelled by a 2px jitter on the label');
     // The hold takes 1.5 s of the page's own clock; wait for it to fire, not for a fixed time on this side.
     await page.waitForFunction(()=>window.__held === 1 || !document.getElementById('detailDeleteBtn').dataset.holding, null, { timeout:15000 });
@@ -176,7 +175,7 @@ const { chromium } = require('playwright');
     assert.equal(await page.locator('#pasteAssistResults [data-paste-run-ai]').count(),1);
     await page.locator('#pasteAssistResults [data-paste-fill-manually]').click();
     await settle();
-    assert.equal(await page.evaluate(()=>document.activeElement?.name),'client','手动填写 should focus the customer field');
+    await h.endsOn(()=>page.evaluate(()=>document.activeElement?.name),'client','手动填写 should focus the customer field');
     await page.locator('#pasteAssistInput').fill('Total USD 520, 睫毛 20 盒');
     await page.locator('#pasteAssistAnalyzeBtn').click();
     await settle();

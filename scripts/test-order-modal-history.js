@@ -1,10 +1,8 @@
 #!/usr/bin/env node
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 const vm = require('node:vm');
 
-const html = fs.readFileSync(path.resolve(__dirname, '..', 'trade-order-system.html'), 'utf8');
+const { html, extractFunction } = require('./helpers/page-source');
 const historyListIndex = html.indexOf('id="historyList"');
 const historySectionOpenings = [...html.slice(0, historyListIndex).matchAll(/<section\b[^>]*>/g)];
 assert.match(
@@ -12,21 +10,6 @@ assert.match(
   /id="orderHistorySection"/,
   '隐藏开关必须属于包含历史列表的操作记录区域'
 );
-
-function extractFunction(name) {
-  const start = html.indexOf(`function ${name}(`);
-  assert.ok(start >= 0, `Missing production function: ${name}`);
-  const bodyStart = html.indexOf('{', start);
-  for (let index = bodyStart; index < html.length; index += 1) {
-    if (html[index] !== '}') continue;
-    const candidate = html.slice(start, index + 1);
-    try {
-      new vm.Script(candidate);
-      return candidate;
-    } catch (_) {}
-  }
-  throw new Error(`Unclosed function: ${name}`);
-}
 
 const markupIds = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]));
 const elements = {};

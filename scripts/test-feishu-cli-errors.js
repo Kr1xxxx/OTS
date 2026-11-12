@@ -214,6 +214,8 @@ async function main() {
   assert.equal(timedOut.status, 503);
   assert.equal(timedOut.data.errorKind, 'timeout');
   assert.match(timedOut.data.error, /可能已经发到群里/);
+  // Proving something does not happen: the fake native program writes orphan-delivered 3000 ms after it started
+  // (mode 'orphan' above), unless the timeout ended it with its wrapper. Wait that out, with room to spare.
   await new Promise(resolve => setTimeout(resolve, 3500));
   assert.equal(fs.existsSync(path.join(larkDir, 'orphan-delivered')), false, 'the native program started by the wrapper must not keep running and send later');
   const timedOutRow = (await request('/api/data')).data.orders.find(item => item.id === 'o-orphan').feishuNotification;

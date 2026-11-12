@@ -5,9 +5,9 @@
 // typed note; customer edit「＋新建订单」, paste「打开订单」and customer paste「新建客户 + 订单」ask; order modal backdrop click; a lowercase legacy
 // customer name is not an edit; Tab stays inside the top layer; board card settings ask; unadded attachment input.
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 const { chromium } = require('playwright');
+const { h } = require('./helpers/board-page');
+const { html } = require('./helpers/page-source');
 
 async function launch() {
   try { return await chromium.launch({ headless:true }); }
@@ -18,7 +18,6 @@ async function launch() {
   const browser = await launch();
   try {
     const page = await browser.newPage({ viewport:{ width:1440, height:920 } });
-    const html = fs.readFileSync(path.join(__dirname, '..', 'trade-order-system.html'), 'utf8');
     const today = new Date();
     const month = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
     const base = { currency:'USD', logisticsStatus:'未发货', createdAt:`${month}-01`, orderMonth:month, updated:`${month}-01 09:00`, logs:[], productType:'假发', paymentChannel:'Paypal', owner:'未分配' };
@@ -55,7 +54,8 @@ async function launch() {
     await page.goto('http://127.0.0.1:47999/trade-order-system.html');
     await page.waitForFunction(() => window.pendingSaveStatus?.().loaded);
     const isOpen = id => page.evaluate(id => document.getElementById(id).classList.contains('open'), id);
-    const settle = (ms = 250) => page.waitForTimeout(ms);
+    // Wait for open / close animations to finish (it used to wait a fixed 250 ms).
+    const settle = () => h.quiet(page);
     const type = async (locator, text) => { await locator.click(); await locator.pressSequentially(text, { delay:5 }); };
     const activeId = () => page.evaluate(() => document.activeElement?.id || '');
     const orderDirty = () => page.evaluate(() => uiFormDirty(document.getElementById('orderForm')));
@@ -65,7 +65,7 @@ async function launch() {
         if (document.getElementById('confirmModal').classList.contains('open')) document.getElementById('confirmCancelBtn').click();
         closeOrder(); closeCustomerModal(); closeOrderDetail(); closeCombinedCustomerOrderModal(); closeBoardCardSettings();
       });
-      await settle(150);
+      await settle();
     };
 
     // P1-1: a second tracking number typed into a new row is an edit. Esc asks; the confirm focuses 继续编辑,
@@ -79,7 +79,8 @@ async function launch() {
     await page.keyboard.press('Escape');
     await settle();
     assert.equal(await isOpen('confirmModal'), true, 'Esc with an extra tracking number typed must ask');
-    assert.equal(await activeId(), 'confirmCancelBtn', 'the discard confirm must focus 继续编辑');
+    // appConfirm moves the focus to 继续编辑 50 ms after it opens: wait for that, not for the animation.
+    await h.endsOn(activeId, 'confirmCancelBtn', 'the discard confirm must focus 继续编辑');
     assert.equal(await page.locator('#confirmCloseBtn').getAttribute('aria-label'), '继续编辑', 'the × on the confirm means 继续编辑');
     assert.equal((await page.locator('#confirmCloseBtn').innerText()).trim(), '', 'the confirm × is an icon, not the word 关闭');
     await page.keyboard.press('Enter');
@@ -136,7 +137,7 @@ async function launch() {
     await page.locator('#customerNewOrderBtn').click();
     await settle();
     await page.locator('#confirmOkBtn').click();
-    await settle(400);
+    await settle();
     assert.equal(await isOpen('customerModal'), false);
     assert.equal(await isOpen('orderModal'), true, '放弃修改 then opens the new order');
     assert.deepEqual(await page.evaluate(() => state.customers['Demo Beauty Supply'].emails), ['a@demo.test', 'b@demo.test'], 'the discarded email edit is not saved');
@@ -181,7 +182,7 @@ async function launch() {
     await page.locator('#pasteAssistResults [data-paste-open-order]').first().click();
     await settle();
     await page.locator('#confirmOkBtn').click();
-    await settle(400);
+    await settle();
     assert.equal(await isOpen('orderModal'), false);
     assert.equal(await isOpen('orderDetailDrawer'), true, '放弃修改 opens the matched order');
     await reset();
@@ -194,14 +195,14 @@ async function launch() {
       await settle();
       await type(page.locator('#customerPasteInput'), customerPaste);
       await page.locator('#customerPasteAnalyzeBtn').click();
-      await settle(400);
+      await settle();
       await page.locator('#customerPasteResults [data-customer-paste-fill]').click();
       await settle();
       assert.equal(await customerDirty(), true, '填入 changes the profile form');
     };
     await pasteAndFill();
     await page.locator('#customerPasteResults [data-customer-paste-create-customer-order]').click();
-    await settle(400);
+    await settle();
     assert.equal(await isOpen('confirmModal'), false, 'a profile holding only the filled-in paste must not ask');
     assert.equal(await isOpen('combinedCustomerOrderModal'), true);
     assert.equal(await page.locator('#combinedCustomerForm [name="name"]').inputValue(), 'Nora Field');
@@ -241,7 +242,7 @@ async function launch() {
     await page.waitForFunction(() => !document.getElementById('orderModal').classList.contains('open'), null, { timeout:3000 }).catch(() => {});
     assert.equal(await isOpen('orderModal'), false, 'a clean order modal closes on a backdrop click');
     await page.evaluate(() => openOrder('o3'));
-    await settle(400);
+    await settle();
     await type(page.locator('#orderForm [name="note"]'), 'backdrop');
     await clickOrderBackdrop();
     await page.locator('#confirmModal.open').waitFor({ timeout:3000 }).catch(() => {});
@@ -292,7 +293,7 @@ async function launch() {
       await settle();
       assert.equal(await isOpen('confirmModal'), true, `${sub} with an unsaved drawer must ask`);
       assert.equal(await page.locator('#confirmSub').innerText(), sub);
-      assert.equal(await activeId(), 'confirmCancelBtn');
+      await h.endsOn(activeId, 'confirmCancelBtn');
       await page.keyboard.press('Enter');
       await settle();
       assert.equal(await isOpen('orderDetailDrawer'), true, `${sub}: 继续编辑 keeps the drawer`);
@@ -319,7 +320,7 @@ async function launch() {
     await page.locator('#detailStageBar [data-detail-stage="production"]').click();
     await settle();
     await page.locator('#confirmOkBtn').click();
-    await settle(400);
+    await settle();
     assert.equal(await page.evaluate(() => state.orders.find(o => o.id === 'o1').stage), 'production');
     assert.equal(await drawerNote.inputValue(), 'saved note o1');
     assert.equal(await page.evaluate(() => uiDetailDirty()), false);
@@ -334,16 +335,16 @@ async function launch() {
     await page.locator('#detailEditBtn').click();
     await settle();
     await page.locator('#confirmOkBtn').click();
-    await settle(400);
+    await settle();
     assert.equal(await isOpen('orderModal'), true);
     assert.equal(await page.locator('#orderForm [name="note"]').inputValue(), '');
     await reset();
 
     // P2-6: Tab stays inside the edited customer profile (it used to reach the list behind and open another customer).
     await page.evaluate(() => setPage('customers'));
-    await settle(400);
+    await settle();
     await page.evaluate(() => openCustomerModal('Demo Beauty Supply', { viewOnly:false }));
-    await settle(400);
+    await settle();
     await type(page.locator('#customerForm [name="note"]'), ' tab');
     for (let i = 0; i < 80; i += 1) {
       await page.keyboard.press('Tab');
@@ -354,9 +355,9 @@ async function launch() {
     assert.equal(await page.evaluate(() => !!document.activeElement?.closest('#customerModal')), true, 'Shift+Tab stays inside too');
     // Re-opening another customer in the already open modal takes a fresh snapshot (no stale「放弃修改？」).
     await page.evaluate(() => { closeCustomerModal(); openCustomerModal('Demo Beauty Supply', { viewOnly:true }); });
-    await settle(300);
+    await settle();
     await page.evaluate(() => openCustomerModal('alice smith', { viewOnly:true }));
-    await settle(300);
+    await settle();
     await page.locator('#customerDetailEditBtn').click();
     await settle();
     await page.locator('#closeCustomerModalBtn').click();
@@ -364,7 +365,7 @@ async function launch() {
     assert.equal(await isOpen('confirmModal'), false, 'an untouched profile opened in place must close without asking');
     assert.equal(await isOpen('customerModal'), false);
     await page.evaluate(() => setPage('dashboard'));
-    await settle(300);
+    await settle();
 
     // P2-10: board card settings ask before throwing away a changed toggle.
     await page.evaluate(() => openBoardCardSettings());
@@ -384,8 +385,8 @@ async function launch() {
 
     // Other danger confirms also start on the safe button.
     await page.evaluate(() => { window.__dangerResult = null; appConfirm({ title:'删除附件', message:'x', confirmText:'删除附件', danger:true }).then(r => { window.__dangerResult = r.confirmed; }); });
-    await settle(200);
-    assert.equal(await activeId(), 'confirmCancelBtn');
+    await settle();
+    await h.endsOn(activeId, 'confirmCancelBtn');
     await page.keyboard.press('Enter');
     await settle();
     assert.equal(await page.evaluate(() => window.__dangerResult), false, 'Enter on a danger confirm must not confirm');

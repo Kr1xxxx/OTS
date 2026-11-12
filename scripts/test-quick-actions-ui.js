@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 const { chromium } = require('playwright');
+const { h } = require('./helpers/board-page');
+const { html } = require('./helpers/page-source');
 
 // Everyday actions in one step: the new-order modal folds 附件 / 交期 / 物流 / 备注 behind chips (editing
 // shows all), cards / the context menu / list rows offer 收齐尾款 and 推进到下一阶段 (with undo),
@@ -12,7 +12,6 @@ const { chromium } = require('playwright');
   const browser = await chromium.launch({headless:true});
   try {
     const page = await browser.newPage({viewport:{width:1440,height:920}});
-    const html = fs.readFileSync(path.join(__dirname,'..','trade-order-system.html'),'utf8');
     const stamp = daysAgo => { const d = new Date(); d.setDate(d.getDate()-daysAgo); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
     const base = {currency:'USD',logisticsStatus:'未发货',productType:'假发',orderType:'定金订单',country:'🇺🇸 美国 United States',logs:[]};
     const orders = [
@@ -37,7 +36,8 @@ const { chromium } = require('playwright');
     await page.goto('http://127.0.0.1:47999/trade-order-system.html');
     await page.waitForFunction(()=>window.pendingSaveStatus?.().loaded);
     const order = id => page.evaluate(id=>{ const o = state.orders.find(x=>x.id===id); return {stage:o.stage,paidAmount:o.paidAmount,trackingNumber:o.trackingNumber||'',carrier:o.carrier||'',logisticsStatus:o.logisticsStatus,log:(o.logs[0]||{}).text||''}; }, id);
-    const settle = () => page.waitForTimeout(250);
+    // Wait for open / close animations to finish (it used to wait a fixed 250 ms).
+    const settle = () => h.quiet(page);
 
     // New order: three columns, no step nav; 附件 / 交期 / 物流 / 备注 are folded behind one chip each, and a chip opens only its own section.
     // Editing shows every section and no chips.

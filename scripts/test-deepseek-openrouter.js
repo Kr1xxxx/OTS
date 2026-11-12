@@ -3,20 +3,10 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { extractFunction } = require('./helpers/page-source');
 const root = path.resolve(__dirname, '..');
 const model = 'deepseek/deepseek-v4.1-flash';
 const messages = [{role:'user',content:'Only return {"ok":true}'}];
-
-function extractFunction(source, name) {
-  const start = source.search(new RegExp(`(?:async )?function ${name}\\(`));
-  assert(start >= 0, `missing production function ${name}`);
-  for (let end = source.indexOf('{', start); end < source.length; end++) {
-    if (source[end] !== '}') continue;
-    const code = source.slice(start, end + 1);
-    try { new vm.Script(code); return code; } catch (_) {}
-  }
-  throw new Error(`unclosed production function ${name}`);
-}
 
 // Payload assertions protect the external API contract, not a source string.
 // Only the external network and credential boundary are replaced with fixtures.
@@ -47,7 +37,7 @@ async function testSurface(surface) {
       aiUsageStore:context.aiUsageStore, requestJsonResponse:context.requestJsonResponse
     }));
   } else {
-    for (const name of ['aiChatEndpoint','friendlyAiErrorMessage','requestAiChat']) vm.runInContext(extractFunction(source,name),context);
+    for (const name of ['aiChatEndpoint','friendlyAiErrorMessage','requestAiChat']) vm.runInContext(extractFunction(name,{source}),context);
   }
   async function run(baseUrl, selectedModel, provider='custom', testOnly=false) {
     settings={enabled:'是',provider,baseUrl,model:selectedModel,apiKey:'TEST_ONLY_NOT_A_REAL_KEY'};

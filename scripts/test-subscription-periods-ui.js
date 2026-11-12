@@ -1,16 +1,17 @@
 #!/usr/bin/env node
 // 续费：每期价格（已发生/未来）、单期或从某期起改价、预计停止快捷选项、列表行编辑按钮与对齐。
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 const { chromium } = require('playwright');
 const { createSubscriptionStore } = require('../mac-app/subscription-store');
+const { h } = require('./helpers/board-page');
+const { html } = require('./helpers/page-source');
 
-const html = fs.readFileSync(path.resolve(__dirname, '..', 'trade-order-system.html'), 'utf8');
 const now = new Date('2026-11-02T10:00:00+08:00');
 async function capture(page, name, options = {}) {
   if (!process.env.UI_SCREENSHOT) return;
+  // Pictures for a person to look at, taken only with UI_SCREENSHOT set (never in a test run): the totals count up in
+  // requestAnimationFrame (arcTween), which leaves no signal to wait on, so the picture waits out the longest one.
   await page.waitForTimeout(700);
   await page.screenshot({ path:`${process.env.UI_SCREENSHOT}.${name}.png`, ...options });
 }
@@ -51,7 +52,8 @@ async function capture(page, name, options = {}) {
       await page.evaluate(value => { document.documentElement.dataset.theme = value; }, theme);
       const rows = page.locator('#subsList .subs-row');
       await rows.first().waitFor();
-      await page.waitForTimeout(900);
+      // The rows rise in one after another (subs-enter): measure them once they have landed.
+      await h.quiet(page);
 
       // Alignment: names and meta lines start at the same x in every row; prices and pills end at the same x.
       const geometry = await page.evaluate(() => [...document.querySelectorAll('#subsList .subs-row')].map(row => {

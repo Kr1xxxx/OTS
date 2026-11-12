@@ -300,6 +300,8 @@ setInterval(() => {}, 1000);
   grandchildPids.push(orphanPid);
   oldHost.child.kill('SIGKILL');
   await oldHost.exited;
+  // Kept on purpose: the orphan is shown to outlive its host, not just to be alive at the instant the host went
+  // (a broken pipe to the dead host would end it within a few hundred ms).
   await sleep(300);
   assert.ok(alive(orphanPid), 'without the parent watch the orphan keeps running (what older versions left behind)');
   const next = startServer(orphanDir);
@@ -324,7 +326,7 @@ function shellInit({ zoom }) {
   window.__messages = [];
   const post = name => ({ postMessage(body) {
     window.__messages.push({ name, body });
-    if (name === 'uiZoom') setTimeout(() => window.otsUiZoomChanged?.(body.zoom), 30);
+    if (name === 'uiZoom') setTimeout(() => { window.otsUiZoomChanged?.(body.zoom); (window.__zoomCallbacks ||= []).push(body.zoom); }, 30);
   } });
   window.webkit = { messageHandlers:{ appUpdate:post('appUpdate'), uiZoom:post('uiZoom'), appTheme:post('appTheme'), windowDragRegions:post('windowDragRegions') } };
 }
@@ -481,8 +483,8 @@ async function checkZoomAndTitlebar(browser, server) {
   assert.match(await page.locator('.ui-zoom-card').textContent(), /⌘0 回到默认 85%/);
   // A settings click: one toast, even though the app calls back with the same zoom.
   await h.click(page, '[data-ui-zoom-choice="0.9"]', '90%');
-  await page.waitForFunction(() => window.__messages.some(m => m.name === 'uiZoom' && m.body.zoom === 0.9));
-  await sleep(200);
+  // The app answers a zoom change by calling otsUiZoomChanged with it (the fake host above does so 30 ms later).
+  await page.waitForFunction(() => window.__zoomCallbacks?.includes(0.9));
   assert.equal(await toasts('界面大小：90%'), 1, 'settings click is announced once');
   assert.equal(await page.evaluate(() => document.querySelector('.ui-zoom-current').hidden), true);
 
@@ -519,7 +521,9 @@ async function checkThemeFollowsSystem(browser, server) {
   assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), 'dark');
   assert.deepEqual(await page.evaluate(() => window.__messages.filter(m => m.name === 'appTheme').at(-1).body), { theme:'dark' });
   await page.emulateMedia({ colorScheme:'light' });
-  await sleep(100);
+  // The media query's change event is delivered with the next frame after the switch.
+  await page.waitForFunction(() => matchMedia('(prefers-color-scheme: light)').matches);
+  await h.frames(page);
   assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), 'dark', 'a chosen theme stays');
   await h.click(page, '[data-theme-mode-choice="system"]', '跟随系统');
   assert.equal(await stored(), null);

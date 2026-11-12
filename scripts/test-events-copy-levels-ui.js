@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 const { chromium } = require('playwright');
+const { h } = require('./helpers/board-page');
+const { html } = require('./helpers/page-source');
 
 // PM review P1 batch C: the notification panel carries events only (save failures, API errors,
 // logistics status changes, Feishu results, new versions) and never tasks; the order drawer has a
@@ -12,7 +12,6 @@ const { chromium } = require('playwright');
   const browser = await chromium.launch({headless:true});
   try {
     const page = await browser.newPage({viewport:{width:1440,height:920}});
-    const html = fs.readFileSync(path.join(__dirname,'..','trade-order-system.html'),'utf8');
     const stamp = daysAgo => { const d = new Date(); d.setDate(d.getDate()-daysAgo); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
     const base = {currency:'USD',logisticsStatus:'未发货',productType:'假发',orderType:'定金订单',country:'🇺🇸 美国 United States',logs:[]};
     const orders = [
@@ -41,7 +40,8 @@ const { chromium } = require('playwright');
       await page.evaluate(()=>{ window.__copied = ''; Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:text=>{ window.__copied = text; return Promise.resolve(); }}}); });
     };
     await load();
-    const settle = () => page.waitForTimeout(250);
+    // Wait for open / close animations to finish (it used to wait a fixed 250 ms).
+    const settle = () => h.quiet(page);
     const notifIds = () => page.evaluate(()=>uiNotifItems().map(i=>i.id));
 
     // 1. Notifications never carry tasks, even though o-due has an open balance task.

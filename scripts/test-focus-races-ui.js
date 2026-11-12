@@ -8,6 +8,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
+const { h } = require('./helpers/board-page');
 
 (async () => {
   const browser = await chromium.launch({ headless:true });
@@ -33,7 +34,9 @@ const { chromium } = require('playwright');
       openSubscriptionEditor('');
       document.getElementById('subscriptionNote').focus();
     });
-    await page.waitForTimeout(200);
+    // The editor's default focus runs 60 ms after it opens (setTimeout in openSubscriptionEditor): let that pass, then
+    // the cursor must still be in 备注.
+    await h.waitPageTime(page, 100);
     assert.equal(await page.evaluate(() => document.activeElement?.id), 'subscriptionNote', 'the editor pulled focus back to 名称');
     await page.keyboard.type('这边写的备注');
     assert.deepEqual(await page.evaluate(() => [document.getElementById('subscriptionNote').value, document.getElementById('subscriptionName').value]), ['这边写的备注', '']);

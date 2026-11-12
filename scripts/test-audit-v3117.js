@@ -13,18 +13,7 @@ const { spawn } = require('node:child_process');
 const { chromium } = require('playwright');
 
 const root = path.resolve(__dirname, '..');
-const html = fs.readFileSync(path.join(root, 'trade-order-system.html'), 'utf8');
-
-function extractFunction(name) {
-  const start = html.search(new RegExp(`(?:async )?function ${name}\\(`));
-  assert.ok(start >= 0, `Missing production function: ${name}`);
-  for (let index = html.indexOf('{', start); index < html.length; index += 1) {
-    if (html[index] !== '}') continue;
-    const candidate = html.slice(start, index + 1);
-    try { new vm.Script(candidate); return candidate; } catch (_) {}
-  }
-  throw new Error(`Could not extract ${name}`);
-}
+const { html, extractFunction } = require('./helpers/page-source');
 
 function pureFunctionTests() {
   const context = vm.createContext({

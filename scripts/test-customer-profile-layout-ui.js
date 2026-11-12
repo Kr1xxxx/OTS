@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // 客户只读档案（左档案栏 + 右侧数字卡和标签页）：地址不再被挤在窄列里，标签页可点可用键盘切换。
 const assert = require('node:assert/strict');
-const { launchBrowser, openBoard, base, day } = require('./helpers/board-page');
+const { launchBrowser, openBoard, h, base, day } = require('./helpers/board-page');
 
 const address = 'Carrer de les Taronges, 5, 5 Carrer de les Taronges, 17310, Lloret de Mar, Catalunya, Spain';
 const data = {
@@ -34,7 +34,7 @@ const box = (page, selector) => page.locator(selector).first().evaluate(node => 
 const openProfile = async (page, name) => {
   await page.evaluate(client => openCustomerModal(client), name);
   await page.locator('#customerModal.open').waitFor();
-  await page.waitForTimeout(450);
+  await h.quiet(page);
 };
 
 (async () => {

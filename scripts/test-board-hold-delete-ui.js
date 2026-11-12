@@ -21,6 +21,8 @@ const doneTasks = { 'follow-o1-import-1':doneRecord, 'follow-o1-import-10':doneR
 
 const inOrders = (page, id) => page.evaluate(id => state.orders.some(o => o.id === id), id);
 
+// 按住删除要按满 1.5 秒（uiStartHold，按钮没写 data-hold 时 1500ms）。下面的「等页面时间 1600 / 1700ms」都是在证明
+// 按住被取消之后、过了这个时长也没有删除；按下后等的 400ms 是「按到一半」这个场景本身。
 // 右键卡片，鼠标按在「按住删除」上，等进度真正开始。返回按钮中心。
 async function pressMenuDelete(page, id) {
   await h.rightClick(page, id);

@@ -1,31 +1,14 @@
 #!/usr/bin/env node
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 const vm = require('node:vm');
 
-const html = fs.readFileSync(path.resolve(__dirname, '..', 'trade-order-system.html'), 'utf8');
+const { html, extractFunction } = require('./helpers/page-source');
 
 function pageMarkup(id) {
   const start = html.indexOf(`<section class="page" id="page-${id}">`);
   if (start < 0) throw new Error(`Missing page: ${id}`);
   const next = html.indexOf('<section class="page" id="page-', start + 1);
   return html.slice(start, next < 0 ? html.length : next);
-}
-
-function extractFunction(name) {
-  const start = html.indexOf(`function ${name}(`);
-  if (start < 0) throw new Error(`Missing function: ${name}`);
-  const bodyStart = html.indexOf('{', start);
-  for (let index = bodyStart; index < html.length; index += 1) {
-    if (html[index] !== '}') continue;
-    const candidate = html.slice(start, index + 1);
-    try {
-      new vm.Script(candidate);
-      return candidate;
-    } catch (_) {}
-  }
-  throw new Error(`Unclosed function: ${name}`);
 }
 
 assert.doesNotMatch(html, /data-page="freight"/, 'navigation still exposes the retired freight page');

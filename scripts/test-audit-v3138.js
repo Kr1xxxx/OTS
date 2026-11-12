@@ -12,17 +12,7 @@
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const { launchBrowser, openBoard, h, base, day, month, html } = require('./helpers/board-page');
-
-function extractFunction(name) {
-  const start = html.search(new RegExp(`(?:async )?function ${name}\\(`));
-  assert.ok(start >= 0, `Missing production function: ${name}`);
-  for (let index = html.indexOf('{', start); index < html.length; index += 1) {
-    if (html[index] !== '}') continue;
-    const candidate = html.slice(start, index + 1);
-    try { new vm.Script(candidate); return candidate; } catch (_) {}
-  }
-  throw new Error(`Could not extract ${name}`);
-}
+const { extractFunction } = require('./helpers/page-source');
 
 function pasteAmountTests() {
   const context = vm.createContext({

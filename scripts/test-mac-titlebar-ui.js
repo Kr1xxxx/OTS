@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
+const { h } = require('./helpers/board-page');
 
 const html = fs.readFileSync(path.resolve(__dirname, '..', 'trade-order-system.html'), 'utf8');
 // macOS 透明标题栏里红黄绿按钮：12px 圆，圆心约在 (20/40/60, 14)，最低点约 y=20。
@@ -45,7 +46,7 @@ async function open(browser, theme, native) {
           }
           document.body.append(lights);
         });
-        await native.page.waitForTimeout(400);
+        await h.quiet(native.page);
         await native.page.screenshot({ path:`${process.env.UI_SCREENSHOT}.${theme}.png`, clip:{ x:0, y:0, width:280, height:140 } });
       }
       await native.context.close();

@@ -1,22 +1,8 @@
 #!/usr/bin/env node
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 const vm = require('node:vm');
 
-const html = fs.readFileSync(path.resolve(__dirname, '..', 'trade-order-system.html'), 'utf8');
-function extractFunction(name) {
-  const start = html.indexOf(`function ${name}(`);
-  if (start < 0) throw new Error(`Missing function: ${name}`);
-  const bodyStart = html.indexOf('{', start);
-  for (let index = bodyStart; index < html.length; index += 1) {
-    if (html[index] !== '}') continue;
-    const source = html.slice(start, index + 1);
-    try { new vm.Script(source); return source; } catch (_) {}
-  }
-  throw new Error(`Unclosed function: ${name}`);
-}
-
+const { extractFunction } = require('./helpers/page-source');
 const context = vm.createContext({ clientDisplayName: value => String(value || '').trim() });
 [
   'decodePasteEntities',

@@ -91,7 +91,8 @@ const context = vm.createContext({
   normalizeLog(item, fallback) { return typeof item === 'string' ? { text:item, time:fallback } : item; },
   nowText() { return '2026-08-27 10:00'; },
   escapeAttr(value) { return String(value || ''); },
-  resetModalScroll() {}
+  resetModalScroll() {},
+  forgetDateInputText() {}
 });
 vm.runInContext(extractFunction('setModalOpenState'), context);
 vm.runInContext(extractFunction('openOrder'), context);

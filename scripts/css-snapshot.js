@@ -499,6 +499,14 @@ async function settle(page, ms = 1500) {
     await inPage(page, 'pageSettleAnimations');
   }
   await page.evaluate(() => document.fonts.ready.then(() => true));
+  // Images (attachment thumbnails and previews) still loading change the layout a moment later, and with it what the
+  // page measures: on a busy machine the size of an attachment preview came out 1px different run to run.
+  // Wait for every image to be decoded (a broken one counts as done), then let the page react to the new sizes.
+  const images = await page.evaluate(() => Promise.all([...document.images].filter(img => img.getAttribute('src')).map(img => img.decode().catch(() => {}))).then(list => list.length));
+  if (images) {
+    await page.clock.runFor(100);
+    await inPage(page, 'pageSettleAnimations');
+  }
 }
 
 // The page-side functions above, defined as globals of the page (they call each other).

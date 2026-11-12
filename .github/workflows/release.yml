@@ -162,3 +162,37 @@ jobs:
             --target "${{ needs.gate.outputs.sha }}" \
             --title "OTS V$VERSION" \
             "${NOTES[@]}"
+
+  notify:
+    # A failed release used to go unnoticed: run 77 (V3.155) failed in hdiutil and nobody looked for
+    # three hours, while main already said 3.155. A failure opens an issue assigned to the owner (or adds
+    # to the open one for that version); the next successful publish of that version closes it.
+    needs: [gate, mac]
+    if: >-
+      always()
+      && (needs.gate.result == 'failure' || needs.mac.result == 'failure' || needs.mac.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      VERSION: ${{ needs.gate.outputs.version }}
+      FAILED: ${{ needs.gate.result == 'failure' || needs.mac.result == 'failure' }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Open, update or close the release-failure issue
+        run: |
+          TITLE="V${VERSION:-?} 发版失败"
+          OPEN="$(gh issue list --state open --search "\"$TITLE\" in:title" --json number,title \
+            --jq "map(select(.title == \"$TITLE\"))[0].number // empty")"
+          if [ "$FAILED" = "true" ]; then
+            BODY="Release 第 $GITHUB_RUN_NUMBER 次运行（第 $GITHUB_RUN_ATTEMPT 次尝试）失败：$RUN_URL
+
+          main 上的「Release V${VERSION:-?}」提交只说明号取了，这个版本还没有发给用户。先看日志；偶发的问题在那次运行里点 Re-run failed jobs，不要再涨号。"
+            if [ -n "$OPEN" ]; then gh issue comment "$OPEN" --body "$BODY"
+            else gh issue create --title "$TITLE" --body "$BODY" --assignee "$GITHUB_REPOSITORY_OWNER"; fi
+          elif [ -n "$OPEN" ]; then
+            gh issue close "$OPEN" --comment "V$VERSION 已发布：$RUN_URL"
+          fi

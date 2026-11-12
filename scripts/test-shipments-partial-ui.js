@@ -11,6 +11,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
+const { h } = require('./helpers/board-page');
 
 const pad = n => String(n).padStart(2, '0');
 const dayStr = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -109,11 +110,7 @@ async function launch() {
     // 订单弹窗保存完：内存里先换成新订单，写进数据库后才关弹窗。等弹窗真的关了再做下一步。
     const modalSaved = () => page.waitForFunction(() => !document.getElementById('orderModal').classList.contains('open') && !document.getElementById('orderForm').dataset.saving);
     const waitToast = text => page.waitForFunction(text => [...document.querySelectorAll('#toast .toast-item:not(.leaving)')].some(el => el.textContent.includes(text)), text);
-    const openDrawer = async (id, tab = 'logistics') => {
-      await page.evaluate(id => openOrderDetail(id), id);
-      await page.locator(`[data-detail-tab-btn="${tab}"]`).click();
-      await page.waitForFunction(tab => !document.querySelector(`#orderDetailBody [data-detail-tab="${tab}"]`)?.hidden, tab);
-    };
+    const openDrawer = (id, tab = 'logistics') => h.openDrawer(page, id, tab);
     const closeDrawer = async () => {
       await page.evaluate(() => closeOrderDetail());
       await page.waitForFunction(() => !document.getElementById('orderDetailDrawer').classList.contains('open'));

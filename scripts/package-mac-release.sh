@@ -46,7 +46,13 @@ if [ "$DMG" = "--dmg" ]; then
   mkdir -p "$WORK/dmg-root"
   ditto "$APP" "$WORK/dmg-root/TradeOrderSystem.app"
   ln -s /Applications "$WORK/dmg-root/Applications"
-  hdiutil create -volname "外贸订单跟进系统 V$VERSION" -srcfolder "$WORK/dmg-root" -ov -format UDZO \
+  # Give the image a size instead of letting hdiutil estimate one from -srcfolder: Release run 77
+  # (V3.155) failed with "No space left on device" inside /Volumes/<volume>/ because the estimate
+  # was too small for the app. -size overrides the estimate (man hdiutil, -srcfolder); the margin
+  # covers HFS+ overhead. UDZO compresses the free space away, so the dmg does not grow.
+  SIZE_MB=$(( $(du -sm "$WORK/dmg-root" | cut -f1) * 11 / 10 + 64 ))
+  hdiutil create -volname "外贸订单跟进系统 V$VERSION" -srcfolder "$WORK/dmg-root" \
+    -size "${SIZE_MB}m" -fs HFS+ -ov -format UDZO \
     "$OUT/TradeOrderSystem-$VERSION-mac-$ARCH.dmg"
 fi
 ls -lh "$OUT"

@@ -42,10 +42,7 @@ const { h } = require('./helpers/board-page');
     await page.goto('http://127.0.0.1:47999/trade-order-system.html');
     await page.waitForFunction(()=>window.pendingSaveStatus?.().loaded);
     const snapshot = id => page.evaluate(id=>{ const o = state.orders.find(item=>item.id===id); return {stage:o.stage,paidAmount:o.paidAmount,amount:o.amount,client:o.client,country:o.country,note:o.note,next:o.next}; }, id);
-    const open = async (id, tab) => {
-      await page.evaluate(id=>openOrderDetail(id), id);
-      await page.locator(`[data-detail-tab-btn="${tab}"]`).click();
-    };
+    const open = (id, tab) => h.openDrawer(page, id, tab);
     const save = async () => {
       await page.locator('#detailSaveBtn').click();
       await page.waitForFunction(()=>document.getElementById('detailSaveBtn').dataset.mode !== 'busy' && !document.getElementById('orderForm').dataset.saving);

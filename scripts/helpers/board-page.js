@@ -171,6 +171,14 @@ const h = {
     }
     throw new Error(`${label} could not be clicked: ${last}`);
   },
+  // 打开订单抽屉并切到某个页签，像用户一样真的点页签。抽屉刚打开时还在滑入：locator.click() 在机器忙时会把还在动的
+  // 页签判成「稳了」，按下和松开之间抽屉又滑了一段，click 落到两个页签之间的 #detailTabs 上，页签没切（2026-11-12
+  // test-shipments-partial-ui 偶发超时）。h.click 等抽屉停稳、确认点上就是这个页签再按。
+  openDrawer: async (page, id, tab = 'info') => {
+    await page.evaluate(id => openOrderDetail(id), id);
+    await h.click(page, `#detailTabs [data-detail-tab-btn="${tab}"]`, `drawer tab ${tab}`);
+    await page.waitForFunction(tab => !document.querySelector(`#orderDetailBody [data-detail-tab="${tab}"]`)?.hidden, tab);
+  },
   columnPoint: async (page, stage) => {
     const box = await page.locator(`#pipeline .board-column[data-stage="${stage}"]`).boundingBox();
     return { x:box.x + box.width / 2, y:box.y + Math.min(box.height - 20, 160) };

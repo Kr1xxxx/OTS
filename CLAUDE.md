@@ -45,7 +45,8 @@ A change to the page's styles that must not change how anything looks (tidying, 
 - A change that should reach the installed app adds one file to `release-notes/next/` (see the README there): one to three short lines in Chinese on what the user will notice. The app shows them in the "发现新版本" dialog.
 - After the merge, once CI has passed on main, the release workflow takes the next number (`scripts/prepare-release.js`), commits "Release V3.NN" to main as `github-actions[bot]`, builds and publishes. Pull main before continuing work: that commit is on it.
 - A change that needs no release (tooling, tests, docs) adds no note, and nothing is published.
-- If a release build fails after the number was taken, re-run the failed job of that workflow run (or run the Release workflow by hand on main); do not bump again.
+- A "Release V3.NN" commit on main only says the number was taken, not that the version shipped. The thread that merged the PR with the release note says "V3.NN 已发布" only once `releases/latest` has the tag `v3.NN` (or the `gate` and `mac` jobs of that Release run are green). A failed run opens an issue "V3.NN 发版失败" assigned to the owner, and the next successful publish of that version closes it.
+- If a release build fails after the number was taken, re-run the failed job of that workflow run (or run the Release workflow by hand on main); do not bump again. If the re-run fails too, find the cause before trying again.
 
 ## Ask the owner first
 

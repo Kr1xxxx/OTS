@@ -62,6 +62,10 @@ const h = {
   deleted: (page, id) => page.evaluate(id => (state.deletedOrders || []).some(item => item.id === id), id),
   toasts: page => page.evaluate(() => [...document.querySelectorAll('#toast .toast-item:not(.leaving)')].map(el => el.textContent.replace(/\s+/g, ' ').trim())),
   waitToast: (page, text) => page.waitForFunction(text => [...document.querySelectorAll('#toast .toast-item:not(.leaving)')].some(el => el.textContent.includes(text)), text),
+  // 让某条提示先别自己消失，和用户把鼠标停在它上面一样：页面收到 pointermove 就停掉这条提示的计时，鼠标离开它才重新计时。
+  // 带「撤销」的提示只留 6 秒；之后还要做真鼠标拖拽这类在慢机器上一次就要几秒的事、回头才点它的撤销时用
+  // （2026-11-13 WebKit CI：两次拖拽之后 K106 的提示已经过期，clickUndo 等了 30 秒）。
+  holdToast: (page, text) => page.locator('#toast .toast-item:not(.leaving)', { hasText:text }).last().dispatchEvent('pointermove'),
   // 点某条提示（按文字找）的「撤销」：和用户一样先把鼠标放到提示堆上让它展开，等展开动画停下再点。
   // 新提示弹入是 580ms 的弹簧动画：机器快的时候（macOS CI）在动画中途量到的位置，等鼠标移过去时提示已经挪开，
   // 提示堆没展开，量到的是叠在下面的旧位置，点到了最新那条上。所以先等弹入停下，确认提示堆真的展开（:hover）再量，

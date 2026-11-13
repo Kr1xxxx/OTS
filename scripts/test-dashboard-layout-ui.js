@@ -212,9 +212,13 @@ const enter = async page => {
     await page.waitForFunction(() => window.innerHeight === 800);
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.click('#todayTasksStat');
+    // 等平滑滚动停下（scrollY 连着 5 帧不变），没停就往下走，下一步的回顶会和它抢。
     await page.waitForFunction(() => {
       const r = document.getElementById('tasks').getBoundingClientRect();
-      return r.height > 0 && window.scrollY > 0 && r.top >= 0 && r.top < window.innerHeight / 2;
+      const still = window.__dashScrollY === window.scrollY ? (window.__dashStill || 0) + 1 : 0;
+      window.__dashScrollY = window.scrollY;
+      window.__dashStill = still;
+      return still >= 5 && r.height > 0 && window.scrollY > 0 && r.top >= 0 && r.top < window.innerHeight / 2;
     });
     assert(await page.evaluate(() => document.getElementById('tasks').getBoundingClientRect().top + window.scrollY > window.innerHeight), '待办在第一屏以下，是滚过来的');
     assert.deepEqual(JSON.parse(await stored(page)).hidden, [], '放回来的也存下');

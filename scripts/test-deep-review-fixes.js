@@ -190,7 +190,7 @@ async function pageTests() {
 
 async function serverTests() {
   const testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ots-deep-review-'));
-  const port = 48600 + (process.pid % 300);
+  const port = require('./helpers/free-port').freePortSync();
   const token = `deep-${process.pid}`;
   let child = null;
   const start = () => new Promise(resolve => {

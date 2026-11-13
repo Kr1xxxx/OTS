@@ -11,7 +11,7 @@ const { h } = require('./helpers/board-page');
 
 const root = path.resolve(__dirname, '..');
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ots-form-chips-'));
-const port = 47100 + (process.pid % 800);
+const port = require('./helpers/free-port').freePortSync();
 const token = 'f'.repeat(40);
 let server = null;
 

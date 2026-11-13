@@ -43,12 +43,10 @@ jobs:
       # The app's window sets tabFocusesLinks, so Tab reaches buttons there. Playwright's WebKit has no such
       # switch; the system setting "Keyboard navigation" (bit 1 of AppleKeyboardUIMode) does the same for it.
       - run: defaults write -g AppleKeyboardUIMode -int 2
-      - run: node scripts/run-tests.js order-modal-layout board-drag stage-undo settings-empty-narrow events-copy-levels || true
+      - run: npm test
         env:
           OTS_TEST_BROWSER: webkit
           OTS_TEST_CONCURRENCY: 2
-          OTS_SETTLED_LOG: /tmp/settled.log
-      - run: cat /tmp/settled.log
 
   test-macos:
     runs-on: macos-15

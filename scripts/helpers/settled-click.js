@@ -43,11 +43,7 @@ async function waitForPendingAnimations(frame, selector, options) {
       return;
     }
     try {
-      const t0 = Date.now();
-      const before = process.env.OTS_SETTLED_LOG ? await handle.evaluate(el => document.getAnimations().filter(a => a.pending && a.effect?.target && (a.effect.target === el || a.effect.target.contains(el))).map(a => `${a.animationName || a.transitionProperty || a.id}@${a.effect.target.id || a.effect.target.className}:${a.playState}:${a.currentTime}`)) : null;
-      const t1 = Date.now();
       await frame.waitForFunction(animationsStarted, handle, { polling: 'raf', timeout: options?.timeout });
-      if (process.env.OTS_SETTLED_LOG) require('node:fs').appendFileSync(process.env.OTS_SETTLED_LOG, `${process.argv[process.argv.length - 1].split('/').pop()} ${selector} probe=${t1 - t0}ms wait=${Date.now() - t1}ms pending=${JSON.stringify(before)}\n`);
       if (await handle.evaluate(el => el.isConnected)) return;
     } catch (_) {
       // An animation that never starts, a page that went away: click as Playwright would have.

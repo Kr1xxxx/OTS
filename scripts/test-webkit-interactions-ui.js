@@ -272,18 +272,14 @@ const webkitFocusSim = () => {
     assert.equal(analysis.value, analysis.active, 'analysis month select does not show the month being analysed');
     assert.match(analysis.label || '', /年\d+月/);
 
-    // 8. 复制失败要明说，不再提示「已复制」，也不在订单记录里记一次跟进。
+    // 8. 复制失败要明说，不再提示「已复制」（抽屉里复制订单号走同一个 copyText）。
     await page.evaluate(() => {
       Object.defineProperty(navigator, 'clipboard', { configurable:true, value:{ writeText:() => Promise.reject(new Error('denied')) } });
       document.execCommand = () => false;
       openOrderDetail('o2');
     });
-    const logsBefore = await page.evaluate(() => state.orders.find(o => o.id === 'o2').logs.length);
-    await page.locator('#detailCopyTextBtn').click();
-    await page.locator('#detailCopyMenu [data-copy-text="status"]').click();
+    await page.locator('#detailCopyNumBtn').click();
     await h.endsOn(toastText, /复制失败/);
-    assert.notEqual((await page.locator('#detailCopyTextBtn').innerText()).trim(), '已复制');
-    assert.equal(await page.evaluate(() => state.orders.find(o => o.id === 'o2').logs.length), logsBefore, 'a failed copy was logged as a follow-up');
     await page.evaluate(() => closeOrderDetail());
 
     // 9. 官网查询：本地服务打不开时退回 window.open，不能把整个页面跳到物流官网。

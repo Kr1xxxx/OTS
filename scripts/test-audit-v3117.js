@@ -207,9 +207,9 @@ async function pageTests() {
 
     // Saving one settings card keeps unsaved typing in another card.
     await page.evaluate(() => setPage('settings'));
-    await page.evaluate(() => { document.querySelector('#copyTemplatesForm [name="copyDunningTemplate"]').value = 'my unsaved reminder'; });
+    await page.evaluate(() => { document.querySelector('#ownEmailsForm [name="ownEmails"]').value = 'unsaved@example.com'; });
     await page.evaluate(() => { const form = document.getElementById('orderSettingsForm'); form.elements.orderPrefix.value = 'KX'; form.requestSubmit(); });
-    assert.equal(await page.inputValue('#copyTemplatesForm [name="copyDunningTemplate"]'), 'my unsaved reminder');
+    assert.equal(await page.inputValue('#ownEmailsForm [name="ownEmails"]'), 'unsaved@example.com');
     assert.equal(await page.evaluate(() => state.orderSettings.orderPrefix), 'KX');
 
     // Search: ↓ highlights the same result Enter opens, even when groups interleave.

@@ -7,8 +7,7 @@ const { launchBrowser, h, html } = require('./helpers/board-page');
 // 3. 点「已催款」：行消失，弹 6 秒撤销提示；订单记录里留一条，订单的「最近更新」不变；撤销后提醒和记录都回去。
 //    「已处理」页签里能看到，「恢复提醒」放回待办。
 // 4. 「稍后」：有撤销提示，刷新后还在（跟数据一起保存），「稍后」页签里能取消。
-// 5. 待收款卡不再把报价单过发货期限叫「逾期」；金额页按下单日算「下单超 30 天未收」，复制催款不会把它清零。
-//    复制催款后收款提醒记成「已催款」；发给客户的金额补两位小数（€700.50）。
+// 5. 待收款卡不再把报价单过发货期限叫「逾期」；金额页按下单日算「下单超 30 天未收」，不跟时间范围，点「已催款」也不清零。
 // 6. 超过 14 条：底部写明「还有 N 条」，点开全部显示。
 // 7. 日历：跟进有自己的颜色，过期的跟进放在今天的格子里；最晚发出日期是「交期」色。
 // 8. 客户页「待跟进」和待办里的复购是同一批人；客户动态里未处理的待办不再叫「跟进记录」。
@@ -235,39 +234,21 @@ const contrast = page => page.evaluate(() => {
     await page.locator('#chartRange').selectOption('6');
     await page.waitForFunction(() => document.getElementById('amountRangeText').textContent.includes('–'));
     assert.equal(await page.locator('#reportOverdue').innerText(), '$700', '换时间范围不改变「下单超 30 天未收」');
-    // 复制催款（真实点击菜单）：金额页不清零，收款提醒记成已催款。
+    // 两张尾款单在待办里点「已催款」：金额页「下单超 30 天未收」不受影响。
     await clickIn(page, '.nav-item[data-page="dashboard"]');
-    await clickIn(page, '#taskList .task[data-task-id="payment-b1"] [data-task-action="open"]');
-    await page.waitForFunction(() => document.getElementById('orderDetailDrawer').classList.contains('open'));
-    await clickIn(page, '#detailCopyTextBtn');
-    await clickIn(page, '#detailCopyMenu [data-copy-text="dunning"]');
-    await page.waitForFunction(() => window.__copied);
-    assert.match(await page.evaluate(() => window.__copied), /\$700 USD/);
-    await page.keyboard.press('Escape');
-    await page.waitForFunction(() => !document.getElementById('orderDetailDrawer').classList.contains('open'));
-    assert.equal(await page.locator('#taskList .task[data-task-id="payment-b1"]').count(), 0, '复制催款 = 催过一次款，收款提醒记成已催款');
-    assert.equal(await page.evaluate(() => state.doneTasks['payment-b1-300']?.until), day(3));
+    for (const id of ['payment-b1', 'payment-e1']) {
+      await clickIn(page, `#taskList .task[data-task-id="${id}"] .task-tick`);
+      await page.waitForFunction(id => !document.querySelector(`#taskList .task[data-task-id="${id}"]`), id);
+    }
     await clickIn(page, '.nav-item[data-page="amount"]');
     await page.waitForFunction(() => document.getElementById('page-amount')?.classList.contains('active'));
-    assert.equal(await page.locator('#reportOverdue').innerText(), '$700', '复制催款改了最后更新时间，但「下单超 30 天未收」不受影响');
-    // 欧元单：发给客户的金额补两位小数。
-    await clickIn(page, '.nav-item[data-page="dashboard"]');
-    await clickIn(page, '#taskList .task[data-task-id="payment-e1"] [data-task-action="open"]');
-    await page.waitForFunction(() => document.getElementById('orderDetailDrawer').classList.contains('open'));
-    await page.evaluate(() => { window.__copied = ''; });
-    await clickIn(page, '#detailCopyTextBtn');
-    await clickIn(page, '#detailCopyMenu [data-copy-text="dunning"]');
-    await page.waitForFunction(() => window.__copied);
-    const dunning = await page.evaluate(() => window.__copied);
-    assert.match(dunning, /€700\.50 EUR/, dunning);
-    assert.match(dunning, /€1,000\.50 EUR/, dunning);
-    assert.doesNotMatch(dunning, /€700\.5 EUR/);
-    await page.keyboard.press('Escape');
-    await page.waitForFunction(() => !document.getElementById('orderDetailDrawer').classList.contains('open'));
+    assert.equal(await page.locator('#reportOverdue').innerText(), '$700', '已催款不影响「下单超 30 天未收」');
     // 经营分析「超过最晚发出日期」和待办用同一个口径（报价单 Q3 过了期限、还没发货）。
     assert.deepEqual(await page.evaluate(() => state.orders.filter(o => orderPastShipDeadline(o)).map(o => o.id)), ['q3']);
 
     // 6. 超过 14 条：写明还有几条，点开全部显示。
+    await clickIn(page, '.nav-item[data-page="dashboard"]');
+    await page.waitForFunction(() => document.getElementById('page-dashboard')?.classList.contains('active'));
     await page.evaluate(day => {
       for (let i = 1; i <= 15; i += 1) state.orders.push({ ...state.orders.find(o => o.id === 'e1'), id:`cap${i}`, num:`K8${String(i).padStart(3, '0')}`, client:`Buyer ${String(i).padStart(2, '0')}`, currency:'USD', amount:1000, paidAmount:300, createdAt:day, updated:`${day} 09:00`, logs:[] });
       render();
@@ -329,6 +310,6 @@ const contrast = page => page.evaluate(() => {
     assert.deepEqual(night.errors, [], night.errors.join('\n'));
     await night.context.close();
 
-    console.log('Follow-up tasks UI passed: one today count across card / subtitle / list, labelled done buttons with 3:1 contrast, 已催款 with undo + order log + 已处理 restore, persisted 稍后 with undo, honest 逾期 wording, dunning marks the reminder and pads cents, 14-row cap with expand, calendar follow tone, customer 待跟进 = repurchase tasks, midnight rollover refresh.');
+    console.log('Follow-up tasks UI passed: one today count across card / subtitle / list, labelled done buttons with 3:1 contrast, 已催款 with undo + order log + 已处理 restore, persisted 稍后 with undo, honest 逾期 wording, 已催款 keeps the 30-day overdue total, 14-row cap with expand, calendar follow tone, customer 待跟进 = repurchase tasks, midnight rollover refresh.');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

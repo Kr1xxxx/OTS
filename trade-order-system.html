@@ -5453,7 +5453,7 @@ html[data-theme] .order-preview .order-notification-option small { color:var(--g
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.162，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.162</div>
+      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.163，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.163</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会先问一句，再下载并重启" aria-label="检查更新：有新版本会先问一句，再下载并重启" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse is-busy" id="savePulse" aria-live="polite"><i></i><span>读取中</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -6856,6 +6856,7 @@ html[data-theme] .order-preview .order-notification-option small { color:var(--g
             <div class="field"><label>客户要求收到日期</label><input name="customerRequiredDate" type="text" data-date-input autocomplete="off" spellcheck="false" placeholder="选择日期"></div>
             <div class="field"><label>最晚发出日期</label><input name="latestShipDate" type="text" data-date-input autocomplete="off" spellcheck="false" placeholder="选择日期"></div>
             <div class="shipment-editor" data-shipment-editor><div class="shipment-editor-head"><div class="shipment-editor-heading"><div class="shipment-editor-title">物流记录</div><div class="shipment-editor-sub">每个物流单号可独立设置承运商和状态</div></div><button class="customer-multi-add" type="button" data-add-shipment>＋物流单号</button></div><div class="shipment-row" data-shipment-primary-row><label class="shipment-field"><span>物流单号</span><input name="trackingNumber" data-shipment-number placeholder="例如 91 8833 5262"></label><label class="shipment-field"><span>承运商</span><select name="carrier" data-shipment-carrier><option value="auto">自动识别</option><option value="DHL">DHL</option><option value="FedEx">FedEx</option><option value="UPS">UPS</option></select></label><label class="shipment-field"><span>物流状态</span><select name="shipmentStatus" data-shipment-status><option>未发货</option><option>已发货</option><option>运输中</option><option>派送中</option><option>已签收</option><option>异常</option></select></label><button class="customer-multi-remove" type="button" data-remove-shipment aria-label="删除这一批物流单号">×</button></div></div>
+            <div class="field span-2"><label>订单详情</label><textarea name="orderDetail" placeholder="例如 0.07 C 卷 混合长度 8–14mm × 120 盒"></textarea></div>
             <div class="field span-2"><label>订单备注</label><textarea name="note" placeholder="记录客户要求、付款状态、交期变更等"></textarea></div>
             <label class="order-notification-option span-2">
               <input type="checkbox" name="sendFeishuNotification" checked>
@@ -12486,6 +12487,13 @@ function findProductTypeInText(text) {
   const lower = normalizeSearchText(text);
   if (/睫毛|镊子|\b(?:lash|lashes|eyelash|eyelashes|tweezer|tweezers|wimpern|pestanas|cils|ciglia)\b/.test(lower)) return '睫毛';
   if (/假发|头套|发套|发块|\b(?:wig|wigs|hair|closure|frontal|bundle|bundles|perucke|peruecke|perucken|peluca|pelucas|perruque|perruques|parrucca|parrucche)\b/.test(lower)) return '假发';
+  // 聊天里常见的假发写法：卷型（body wave）、蕾丝（13x4、hd lace）、密度（180% density）。睫毛词已经在上面先判过。
+  if (/\b(?:body|deep|water) ?wave\b|\blace\b|\bdensity\b|(?<![\d.])(?:13 ?[x×*] ?[46]|4 ?[x×*] ?4|5 ?[x×*] ?5)(?![\d.])/.test(lower)) return '假发';
+  // straight 太常见，同一行还写了长度（inch、"）或密度才算假发。
+  if (String(text || '').split(/\r\n?|\n/).some(line => {
+    const l = normalizeSearchText(line);
+    return /\bstraight\b/.test(l) && /\d ?(?:inch(?:es)?\b|["”])|\bdensity\b/.test(l);
+  })) return '假发';
   return '';
 }
 function findPaymentChannelInText(text) {
@@ -22056,9 +22064,11 @@ function fillCombinedOrderForm(fields = {}, customerFields = {}) {
     stage: normalizeStage(fields.stage || settings.defaultStage || 'quote'),
     urgentOrder: fields.urgentOrder ? '是' : '否',
     carrier: fields.carrier || 'auto',
+    // 一行一项：数组按行拼，不能走 setCombinedField 的逗号拼接。
+    orderDetail: orderDetailText(Array.isArray(fields.orderDetail) ? fields.orderDetail.join('\n') : fields.orderDetail),
     note: fields.note || ''
   };
-  Object.entries({ ...defaults, ...fields }).forEach(([key, value]) => setCombinedField(form, key, value));
+  Object.entries({ ...defaults, ...fields, orderDetail: defaults.orderDetail }).forEach(([key, value]) => setCombinedField(form, key, value));
   setCombinedField(form, 'currency', defaults.currency);
   setCombinedField(form, 'paymentChannel', defaults.paymentChannel);
   setCombinedField(form, 'productType', defaults.productType);

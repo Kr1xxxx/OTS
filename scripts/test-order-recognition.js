@@ -303,6 +303,23 @@ assert.equal(vm.runInContext(`findProductTypeInText(${JSON.stringify('Flash Beau
 assert.equal(vm.runInContext(`findProductTypeInText(${JSON.stringify('Chair Design Studio')})`, context), '', 'Chair 不能因为包含 hair 被识别为假发');
 assert.equal(vm.runInContext(`findProductTypeInText(${JSON.stringify('Products: lashes and tweezers')})`, context), '睫毛');
 assert.equal(vm.runInContext(`findProductTypeInText(${JSON.stringify('Products: wig and hair bundles')})`, context), '假发');
+// 聊天里的假发写法没有 wig / hair 也要认成假发；睫毛词仍然优先，straight 单独出现不算。
+{
+  const productOf = text => vm.runInContext(`findProductTypeInText(${JSON.stringify(text)})`, context);
+  assert.equal(productOf('Hi dear, I want 3 pcs 13x4 body wave 22inch 180% density, total $540'), '假发');
+  assert.equal(productOf('2 pcs deep wave 26"'), '假发');
+  assert.equal(productOf('water wave 5x5 hd lace'), '假发');
+  assert.equal(productOf('4×4 straight'), '假发');
+  assert.equal(productOf('13x6 frontal unit'), '假发');
+  assert.equal(productOf('need 10 pcs straight 20 inch'), '假发');
+  assert.equal(productOf('silky straight 24"'), '假发');
+  assert.equal(productOf('0.07 C curl lashes 8-14mm'), '睫毛');
+  assert.equal(productOf('0.07 C curl lashes 8-14mm, lace box packaging'), '睫毛', 'Lash words win over wig words');
+  assert.equal(productOf('Please send it straight to my office'), '', 'straight alone is not a wig');
+  assert.equal(productOf('straight away please\nsize 20 inch box'), '', 'straight and inch on different lines is not a wig');
+  assert.equal(productOf('Order 213x45 confirmed'), '', 'A size inside a longer number is not a lace size');
+  assert.equal(context.analyzePasteText('Hi dear, I want 3 pcs 13x4 body wave 22inch 180% density, total $540, I will pay 30% deposit by PayPal today').extracted.productType, '假发');
+}
 
 assert.equal(
   evaluateJson(`analyzePasteText(${JSON.stringify('客户：Taylor Morgan\n9月15日交货\nTotal USD 1000')})`).extracted.createdAt,

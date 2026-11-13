@@ -5,6 +5,10 @@
 // OTS_TEST_BROWSER=webkit runs the tests that open a browser a second time, in Playwright's WebKit instead of
 // Chromium (see helpers/use-webkit.js). The tests that never open one are left out of that run: they would
 // only repeat what the Chromium run showed.
+//
+// OTS_TEST_NOW=<ISO time> runs every test as if it were that moment (see helpers/shift-clock.js): the clock of the
+// test processes, the servers they start and the pages they open is moved there and keeps running. CI does this on
+// every pull request with the first of next month (.github/workflows/clock.yml). A time without a zone is local time.
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -25,6 +29,17 @@ const notInWebkit = new Map([
   ['test-whatsapp-chrome.js', 'loads the Chrome extension'],
   ['test-webkit-interactions-ui.js', 'imitates WebKit inside Chromium']
 ]);
+// Tests that cannot run with a shifted clock, each with its reason (checked, not "it failed").
+const notWithShiftedClock = new Map([
+  ['test-sqlite-storage.js', 'the server ages staging and attachment files by Date.now() against their mtime, which the system writes on the real clock, so fresh files look a month old']
+]);
+const testNow = process.env.OTS_TEST_NOW || '';
+if (testNow) {
+  const at = Date.parse(testNow);
+  if (!Number.isFinite(at)) throw new Error(`OTS_TEST_NOW is not a date: ${testNow}`);
+  process.env.OTS_TEST_CLOCK_OFFSET = String(at - Date.now());
+}
+const shiftClock = path.join(scriptsDir, 'helpers', 'shift-clock.js');
 const opensBrowser = name => /require\('playwright'\)|helpers\/board-page/.test(fs.readFileSync(path.join(scriptsDir, name), 'utf8'));
 
 // Opt-in live requests, never part of the default run.
@@ -34,7 +49,11 @@ const darwinOnly = new Set(['test-app-icon.js', 'native']);
 
 const testFiles = fs.readdirSync(scriptsDir).filter(name => /^test-.*\.js$/.test(name) && !excluded.has(name)).sort();
 const commonPreload = ['--require', stableEvaluate, '--require', settledClick];
-const preload = inWebkit ? [...commonPreload, '--require', useWebkit] : commonPreload;
+const preload = [
+  ...(testNow ? ['--require', shiftClock] : []),
+  ...commonPreload,
+  ...(inWebkit ? ['--require', useWebkit] : [])
+];
 const tests = inWebkit
   ? testFiles.filter(opensBrowser)
     .map(name => ({ name: name.replace(/\.js$/, ''), file: name, command: process.execPath, args: [...preload, path.join(scriptsDir, name)] }))
@@ -56,6 +75,10 @@ function run(test) {
   }
   if (inWebkit && notInWebkit.has(test.file)) {
     results.push({ test, status: 'skip', ms: 0, output: notInWebkit.get(test.file) });
+    return Promise.resolve();
+  }
+  if (testNow && notWithShiftedClock.has(test.file)) {
+    results.push({ test, status: 'skip', ms: 0, output: `shifted clock: ${notWithShiftedClock.get(test.file)}` });
     return Promise.resolve();
   }
   const started = Date.now();
@@ -96,6 +119,7 @@ async function main() {
   for (const result of skipped) console.log(`SKIP  ${result.test.name}  (${result.output})`);
   const passed = results.length - failed.length - skipped.length;
   console.log(`\n${passed} passed, ${failed.length} failed, ${skipped.length} skipped in ${((Date.now() - startedAt) / 1000).toFixed(1)}s`);
+  if (testNow) console.log(`Clock shifted: the tests ran as if it were ${new Date(Date.parse(testNow)).toISOString()} (OTS_TEST_NOW=${testNow}).`);
   if (!selected.length) {
     console.log('No tests matched.');
     process.exitCode = 1;

@@ -3501,10 +3501,10 @@ html[data-theme] .app-refresh-btn:hover .ui-icon { transform:rotate(-90deg); }
 html[data-theme] .page-title.swap { animation:uiTitleIn .45s var(--ease-out) both; }
 html[data-theme] .search:hover { box-shadow:var(--shadow); }
 html[data-theme] .search:focus-within { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-tint); }
-html[data-theme] .search input { color:var(--gray-900); }
-html[data-theme] .search input::placeholder { color:var(--gray-500); }
+html[data-theme] .search input { min-width:0; color:var(--gray-900); text-overflow:ellipsis; }
+html[data-theme] .search input::placeholder { color:var(--gray-500); text-overflow:ellipsis; }
 html[data-theme] .search-icon { width:16px; height:16px; color:var(--gray-500); }
-html[data-theme] .search-kbd { font:12px var(--mono); padding:1px 6px; border:1px solid var(--surface-border); border-radius:6px; color:var(--gray-500); background:transparent; }
+html[data-theme] .search-kbd { flex:none; font:12px var(--mono); padding:1px 6px; border:1px solid var(--surface-border); border-radius:6px; color:var(--gray-500); background:transparent; }
 html[data-theme] .search:focus-within .search-kbd { display:none; }
 html[data-theme] .search-action { width:26px; height:26px; min-height:0; border:0; border-radius:999px; background:var(--gray-100); color:var(--gray-600); display:none; place-items:center; }
 html[data-theme] .search:focus-within .search-action { display:grid; }
@@ -3953,7 +3953,8 @@ html[data-theme] .customer-name-line strong { font-size:15px; font-weight:600; l
 html[data-theme] .customer-row .muted { font-size:12px; color:var(--gray-500); }
 html[data-theme] .customer-cell-stack { gap:3px; }
 html[data-theme] .customer-cell-stack > strong { font-size:14px; font-weight:500; color:var(--gray-900); }
-html[data-theme] .customer-tag-stack { display:flex; gap:6px; flex-wrap:nowrap; overflow:hidden; }
+/* 客户属性列窄（最小窗口）时放不下的标签整个藏起来，不再被列边切掉半个：标签折到第二行，只留第一行高（标签 11.5px × 1.5 行高 + 上下各 1px 内边距和边框）；全部标签在这一格的 title 里。 */
+html[data-theme] .customer-tag-stack { display:flex; gap:6px; flex-wrap:wrap; height:21.25px; overflow:hidden; }
 html[data-theme] .customer-level-pill { flex:none; padding:1px 8px; border-radius:999px; background:var(--accent-tint); color:var(--accent-ink); font-size:11.5px; font-weight:500; }
 html[data-theme] .customer-tag-stack .level-tag { flex:none; padding:1px 8px; border:1px solid var(--surface-border); border-radius:999px; background:transparent; color:var(--gray-700); font-size:11.5px; white-space:nowrap; }
 html[data-theme] .customer-cell-money { text-align:right; justify-items:end; }
@@ -4087,6 +4088,16 @@ html[data-theme] .order-table-mini-flag.partial { border-color:transparent; back
 html[data-theme] .oc-r3 { display:flex; align-items:baseline; justify-content:space-between; gap:8px; font-size:12px; font-variant-numeric:tabular-nums; }
 html[data-theme] .oc-meta { min-width:0; color:var(--gray-500); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 html[data-theme] .oc-r3 .board-card-amount { margin:0; font-size:13px; font-weight:500; color:var(--gray-900); white-space:nowrap; }
+/* 看板窄（列被压到 200 多 px）、右边金额很长（「待收 $16,799.99 USD」）时，左边「假发 · 信用卡」会被压到不足一个字，露出半个「假」。
+   这时左边至少留「假发…」，金额自己出省略号（title 里有全数）。列宽够的时候不起作用。看板四列 / 加回收站五列，各按列宽约 240 px 算。 */
+@container dash-board (max-width: 1000px) {
+  html[data-theme] .oc-r3 .oc-meta:not(:empty) { flex-shrink:100; min-width:3em; }
+  html[data-theme] .oc-r3 .board-card-amount { flex-shrink:1; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+}
+@container dash-board (max-width: 1250px) {
+  html[data-theme] .board-columns:has(> .trash-column) .oc-r3 .oc-meta:not(:empty) { flex-shrink:100; min-width:3em; }
+  html[data-theme] .board-columns:has(> .trash-column) .oc-r3 .board-card-amount { flex-shrink:1; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+}
 html[data-theme] .oc-next { display:flex; align-items:center; gap:6px; padding-top:4px; border-top:1px solid var(--hairline, var(--surface-border)); font-size:11.5px; color:var(--gray-600); min-width:0; }
 html[data-theme] .oc-next .ui-icon { width:14px; height:14px; flex:none; color:var(--gray-400); }
 html[data-theme] .oc-next span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -4200,6 +4211,14 @@ html[data-theme] #page-dashboard #tasks { container:dash-tasks / inline-size; }
     html[data-theme] #tasks:is([data-dash-span="4"], [data-dash-span="5"], [data-dash-span="6"]) > .section-head .section-meta { display:none; }
   }
 }
+/* 最近订单拖窄（3、4 格）：副标题收起，「全部订单 →」不折成两行，标题栏和宽的时候一样只有一行。 */
+html[data-theme] #recentOrders > .section-head > .link-btn { flex:none; white-space:nowrap; }
+@media (min-width: 1101px) {
+  html[data-theme] #page-dashboard #recentOrders { container:dash-recent / inline-size; }
+  @container dash-recent (max-width: 360px) {
+    html[data-theme] #recentOrders > .section-head .section-meta { display:none; }
+  }
+}
 
 /* 调整布局（点「布局」进入）：顶上提示条，每个模块虚线框、左上角名字标签、右边和下边的把手，收起的模块放在最下面一条里。 */
 html[data-theme] #page-dashboard.dash-editing { position:relative; row-gap:30px; }
@@ -4223,6 +4242,13 @@ html[data-theme] :is(.dash-hx, .dash-hy) { position:absolute; z-index:6; padding
 html[data-theme] .dash-hx { right:-11px; top:50%; width:10px; height:48px; transform:translateY(-50%); cursor:ew-resize; }
 html[data-theme] .dash-hy { bottom:-11px; left:50%; width:48px; height:10px; transform:translateX(-50%); cursor:ns-resize; }
 html[data-theme] .is-dash-active > .dash-edit > .dash-hx { width:12px; height:64px; }
+/* 眼睛 20×20、把手 10 px 宽太难点中：样子不变，透明的 ::before 把可点范围扩到 28 px。
+   眼睛往左只扩到名字标签边上（中间 2 px 空隙），不抢标签的拖动；把手往外只扩到 16 px，碰不到旁边（右边隔 16 px）、下面（隔 30 px，标签顶出 13 px）的模块。 */
+html[data-theme] .dash-chip-hide { position:relative; }
+html[data-theme] :is(.dash-chip-hide, .dash-hx, .dash-hy)::before { content:''; position:absolute; }
+html[data-theme] .dash-chip-hide::before { inset:-4px -6px -4px -2px; }
+html[data-theme] .dash-hx::before { inset:-6px -7px -6px -15px; }
+html[data-theme] .dash-hy::before { inset:-15px -6px -7px -6px; }
 html[data-theme] .dash-badge { position:absolute; z-index:8; right:14px; top:50%; transform:translateY(-50%); padding:5px 12px; border-radius:10px; background:var(--gray-900); color:var(--surface-bg); font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; box-shadow:0 6px 18px rgba(0,0,0,.25); pointer-events:none; }
 html[data-theme] .dash-guides { position:absolute; z-index:0; left:0; right:0; bottom:0; display:grid; grid-template-columns:repeat(12, minmax(0, 1fr)); column-gap:16px; pointer-events:none; }
 html[data-theme] .dash-guides i { background:color-mix(in oklab, var(--accent) 7%, transparent); border-inline:1px dashed color-mix(in oklab, var(--accent) 22%, transparent); border-radius:6px; }
@@ -4686,7 +4712,8 @@ html[data-theme] .order-list-count { color:var(--gray-500); font-size:13px; }
 html[data-theme] .order-list-deleted-link { margin:0; color:var(--gray-900); font-size:13px; gap:6px; }
 html[data-theme] .order-list-deleted-link .ui-icon { width:16px; height:16px; }
 html[data-theme] .order-list-controls { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:0; border:0; background:transparent; }
-html[data-theme] .order-list-search { flex:1 1 180px; width:auto; height:38px; padding:0 16px; border-radius:999px; border:1px solid var(--surface-border); background:var(--surface-bg); font-size:13px; }
+html[data-theme] .order-list-search { flex:1 1 180px; width:auto; height:38px; padding:0 16px; border-radius:999px; border:1px solid var(--surface-border); background:var(--surface-bg); font-size:13px; text-overflow:ellipsis; }
+html[data-theme] .order-list-search::placeholder { text-overflow:ellipsis; }
 html[data-theme] .order-list-primary-filters { flex-wrap:nowrap; gap:10px; }
 html[data-theme] .order-list-primary-filters > .inline-select { width:auto; min-width:104px; height:38px; padding:0 34px 0 16px; border-radius:999px; font-size:13px; color:var(--gray-900); text-align:left; }
 html[data-theme] .order-list-more { position:relative; margin:0; }
@@ -4719,10 +4746,10 @@ html[data-theme] .order-table :is(th, td):first-child { padding-left:16px; }
 html[data-theme] .order-table .tag, html[data-theme] .order-table-view { white-space:nowrap; }
 html[data-theme] .order-table tbody tr, html[data-theme] .order-table tbody tr:nth-child(even) { background:var(--surface-bg); }
 html[data-theme] :is(.order-table .col-customer, .order-table .col-action) { box-shadow:none; }
-html[data-theme] .order-table .col-order { width:120px; }
-html[data-theme] .order-table th.col-customer, html[data-theme] .order-table td.col-customer { width:176px; left:120px; }
-html[data-theme] .order-table .col-country { width:88px; }
-html[data-theme] .order-table .col-product { width:110px; }
+html[data-theme] .order-table .col-order { width:112px; }
+html[data-theme] .order-table th.col-customer, html[data-theme] .order-table td.col-customer { width:176px; left:112px; }
+html[data-theme] .order-table .col-country { width:104px; }
+html[data-theme] .order-table .col-product { width:102px; }
 html[data-theme] .order-table .col-stage { width:84px; }
 html[data-theme] .order-table .col-money { width:132px; }
 html[data-theme] .order-table .col-logistics { width:108px; }
@@ -5343,13 +5370,15 @@ html[data-theme] .order-preview-manage:not(:has(> .btn:not([style*="display: non
 html[data-theme] .order-preview-manage .btn { flex:1 1 0; min-width:0; height:32px; min-height:32px; padding:0 8px; font-size:12px; justify-content:center; }
 /* 飞书开关：画成开关（还是原来那个 checkbox）。 */
 html[data-theme] .order-preview .order-notification-option { display:flex; align-items:center; gap:10px; margin:0; padding:0; border:0; background:transparent; cursor:pointer; }
-html[data-theme] .order-preview .order-notification-option input { appearance:none; -webkit-appearance:none; position:relative; flex:none; width:34px; height:20px; margin:0; border:0; border-radius:999px; background:var(--gray-300); cursor:pointer; transition:background var(--motion-fast) var(--ease); }
-html[data-theme] .order-preview .order-notification-option input::after { content:''; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:#fff; box-shadow:0 1px 2px oklch(0% 0 0 / .25); transition:transform var(--motion-spring) var(--ease-spring); }
-html[data-theme] .order-preview .order-notification-option input:checked { background:var(--accent); }
-html[data-theme] .order-preview .order-notification-option input:checked::after { transform:translateX(14px); }
-html[data-theme] .order-preview .order-notification-option input:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+html[data-theme] :is(.order-preview .order-notification-option, .order-notification-option.shipment-partial-field) input { appearance:none; -webkit-appearance:none; position:relative; flex:none; width:34px; height:20px; margin:0; border:0; border-radius:999px; background:var(--gray-300); cursor:pointer; transition:background var(--motion-fast) var(--ease); }
+html[data-theme] :is(.order-preview .order-notification-option, .order-notification-option.shipment-partial-field) input::after { content:''; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:#fff; box-shadow:0 1px 2px oklch(0% 0 0 / .25); transition:transform var(--motion-spring) var(--ease-spring); }
+html[data-theme] :is(.order-preview .order-notification-option, .order-notification-option.shipment-partial-field) input:checked { background:var(--accent); }
+html[data-theme] :is(.order-preview .order-notification-option, .order-notification-option.shipment-partial-field) input:checked::after { transform:translateX(14px); }
+html[data-theme] :is(.order-preview .order-notification-option, .order-notification-option.shipment-partial-field) input:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 html[data-theme] .order-preview .order-notification-option span { display:flex; flex-direction:column; gap:0; color:var(--gray-800, var(--gray-900)); font-size:13px; font-weight:600; line-height:19px; }
 html[data-theme] .order-preview .order-notification-option small { color:var(--gray-500); font-size:11px; font-weight:400; line-height:15px; }
+/* 物流信息里的「还有批次没发（部分发货）」：和抽屉、和「保存后发送到飞书群」一样是开关（上面几条），框和说明文字照旧。 */
+html[data-theme] .order-notification-option.shipment-partial-field { align-items:center; gap:10px; }
 
 @media (max-width: 1000px) {
   html[data-theme] .order-body { grid-template-columns:240px minmax(0, 1fr); grid-template-rows:minmax(0, 1fr) auto; }
@@ -6519,7 +6548,7 @@ html[data-theme] .order-preview .order-notification-option small { color:var(--g
               <div class="shipment-row" data-shipment-primary-row><label class="shipment-field"><span>物流单号</span><input name="trackingNumber" data-shipment-number placeholder="例如 91 8833 5262"></label><label class="shipment-field"><span>承运商</span><select name="carrier" data-shipment-carrier><option value="auto">自动识别</option><option value="DHL">DHL</option><option value="FedEx">FedEx</option><option value="UPS">UPS</option></select></label><label class="shipment-field"><span>物流状态</span><select name="shipmentStatus" data-shipment-status><option>未发货</option><option>已发货</option><option>运输中</option><option>派送中</option><option>已签收</option><option>异常</option></select></label><button class="customer-multi-remove" type="button" data-remove-shipment aria-label="删除这一批物流单号">×</button></div>
             </div>
             <label class="order-notification-option shipment-partial-field">
-              <input type="checkbox" name="partialShipment">
+              <input type="checkbox" name="partialShipment" role="switch">
               <span>还有批次没发（部分发货）<small>勾上后，已发的批次全部签收也不会自动进「已完成」，跟进提醒继续</small></span>
             </label>
             </div>
@@ -16715,6 +16744,13 @@ function orderAttachmentsFromForm(form) {
 function attachmentDisplayName(item = {}) {
   return item.name || item.type || item.fileUrl || item.link || '这条附件';
 }
+// 附件下面那行小字：类型、时间、大小、压缩方式，缺的段不写，免得贴链接加的附件（没有时间）显示成「文件 ·」「文件 · -」。
+function attachmentMetaText(item = {}, extra = '') {
+  return [item.type || '其他', item.time, item.size ? formatBytes(item.size) : '', item.optimizer, extra]
+    .map(part => String(part || '').trim())
+    .filter(Boolean)
+    .join(' · ');
+}
 function finalizedOrderAttachments(list = []) {
   return (Array.isArray(list) ? list : []).map(item => {
     if (!item || typeof item !== 'object') return item;
@@ -16767,7 +16803,7 @@ function renderOrderAttachments(list = []) {
       ${item.thumbUrl ? attachmentPreviewButton(item, 'attachment') : ''}
       <div>
         <div class="attachment-name">${escapeAttr(item.name || item.type || '未命名凭证')}</div>
-        <div class="muted">${escapeAttr(item.type || '其他')} · ${escapeAttr(item.time || '')}${item.size ? ` · ${formatBytes(item.size)}` : ''}${item.optimizer ? ` · ${escapeAttr(item.optimizer)}` : ''}${item.temporary ? ' · 待保存' : ''}</div>
+        <div class="muted">${escapeAttr(attachmentMetaText(item, item.temporary ? '待保存' : ''))}</div>
       </div>
       ${safeAttachmentHref(item.fileUrl || item.link) ? `<a class="attachment-link" href="${escapeAttr(safeAttachmentHref(item.fileUrl || item.link))}" target="_blank" rel="noopener"${item.fileUrl ? '' : ` title="${escapeAttr(item.link)}"`}>${escapeAttr(item.fileUrl ? '查看图片' : item.link)}</a>` : (item.link ? `<span class="attachment-note muted" title="${escapeAttr(item.link)}">${escapeAttr(item.link)}</span>` : '<span class="muted">无链接</span>')}
       ${item.fileUrl ? `<button class="btn btn-small" type="button" data-open-attachment-folder="${escapeAttr(item.fileUrl)}">文件夹</button>` : ''}
@@ -17157,7 +17193,7 @@ function renderDetailAttachments(list = []) {
       ${item.thumbUrl ? attachmentPreviewButton(item, 'attachment') : ''}
       <div>
         <div class="detail-value">${escapeAttr(item.name || item.type || '未命名凭证')}</div>
-        <small>${escapeAttr(item.type || '其他')} · ${escapeAttr(item.time || '-')}${item.size ? ` · ${formatBytes(item.size)}` : ''}${item.optimizer ? ` · ${escapeAttr(item.optimizer)}` : ''}</small>
+        <small>${escapeAttr(attachmentMetaText(item))}</small>
       </div>
       ${open}
       ${item.fileUrl ? `<button class="btn btn-small" type="button" data-open-attachment-folder="${escapeAttr(item.fileUrl)}">文件夹</button>` : ''}
@@ -21196,7 +21232,7 @@ function renderCustomers() {
           </div>
         </div>
         <div class="customer-cell-stack"><strong class="customer-cell-ellipsis" title="${escapeAttr(c.country || '')}">${escapeAttr(orderListCountryShort(c.country) || '国家未填写')}</strong><span class="muted customer-cell-ellipsis" title="${escapeAttr(c.address || '')}">${escapeAttr(c.address || '地址未填写')}</span></div>
-        <div class="customer-cell-stack"><div class="customer-tag-stack"><span class="customer-level-pill" title="${escapeAttr(c.level)}">${escapeAttr(String(c.level || '').slice(0, 2))}</span>${visibleTags.map(tag => `<span class="level-tag">${escapeAttr(tag)}</span>`).join('')}${hiddenTagCount ? `<span class="level-tag">+${hiddenTagCount}</span>` : ''}</div><span class="muted customer-cell-ellipsis">${escapeAttr(c.productType || '产品未设')} · ${c.primaryContactMethod ? `首选 ${escapeAttr(c.primaryContactMethod)}` : escapeAttr(c.paymentMethod || '收款未设')}</span></div>
+        <div class="customer-cell-stack"><div class="customer-tag-stack"${otherTags.length ? ` title="${escapeAttr([c.level, ...otherTags].filter(Boolean).join(' · '))}"` : ''}><span class="customer-level-pill" title="${escapeAttr(c.level)}">${escapeAttr(String(c.level || '').slice(0, 2))}</span>${visibleTags.map(tag => `<span class="level-tag">${escapeAttr(tag)}</span>`).join('')}${hiddenTagCount ? `<span class="level-tag">+${hiddenTagCount}</span>` : ''}</div><span class="muted customer-cell-ellipsis">${escapeAttr(c.productType || '产品未设')} · ${c.primaryContactMethod ? `首选 ${escapeAttr(c.primaryContactMethod)}` : escapeAttr(c.paymentMethod || '收款未设')}</span></div>
         <div class="customer-cell-stack"><strong>${c.orderCount} 单${c.latestOrder ? ` · ${escapeAttr(c.latestOrder.num || '')}` : ''}</strong><span class="muted customer-cell-ellipsis">${c.latestOrder ? `${escapeAttr(stageDef(c.latestOrder.stage).name)} · ${c.latestOrderDate}` : '暂无订单'}</span></div>
         <div class="customer-cell-stack customer-cell-money"><strong>${money(c.total, 'USD', 2)}</strong><span class="${c.due > 0 ? 'customer-due-amount' : (c.total > 0 ? 'paid-amount' : 'muted')}">${c.due > 0 ? `待收 ${money(c.due, 'USD', 2)}` : (c.total > 0 ? '已收清' : '暂无成交')}</span></div>
         <div class="customer-cell-stack"><strong>${escapeAttr(c.repurchaseDate || (c.repurchaseCycle ? '发货后计算' : '未设提醒'))}</strong><span class="muted customer-cell-ellipsis">${c.repurchaseCycle ? `每 ${escapeAttr(c.repurchaseCycle)} 天复购` : `更新 ${escapeAttr(c.updated || '-')}`}</span></div>

@@ -315,6 +315,33 @@ async function launch() {
     assert.equal(saved.stage, 'production', 'deposit received = 生产中');
     assert.equal(saved.paidAmount, 204);
 
+    // 新客户走「确认客户和订单」：AI 识别的订单详情填进弹窗、能改，改过的值被保存（以前这一栏没有，存成空的）。
+    const detailText = 'Hi dear, I want 3 pcs 13x4 body wave 22inch 180% density, total $540, I will pay 30% deposit by PayPal today\nName: Lena Hart\nEmail: lena.hart@example.test';
+    await openNew();
+    await runAi(detailText, { client:'Lena Hart', country:'United States', amount:540, currency:'USD', orderType:'定金订单', depositPercent:30, paymentChannel:'Paypal', productType:'假发', orderDetail:['13x4 body wave 22inch 180% density × 3', 'closure 4x4 × 1'] });
+    assert.match(await resultsText(), /识别为新客户：Lena Hart/);
+    await results.locator('[data-paste-create-customer-order]').click();
+    await page.waitForFunction(() => document.getElementById('combinedCustomerOrderModal').classList.contains('open'));
+    const detailField = page.locator('#combinedOrderForm [name="orderDetail"]');
+    assert.equal(await detailField.isVisible(), true, 'the combined dialog shows 订单详情');
+    assert.equal(await detailField.inputValue(), '13x4 body wave 22inch 180% density × 3\nclosure 4x4 × 1', 'one item per line, not joined with commas');
+    assert.equal(await page.evaluate(() => uiFormDirty(document.getElementById('combinedOrderForm'))), false);
+    await detailField.fill('13x4 body wave 22inch 180% density × 3\nclosure 4x4 × 2');
+    assert.equal(await page.evaluate(() => uiFormDirty(document.getElementById('combinedOrderForm'))), true, 'editing 订单详情 counts as an unsaved change');
+    const combinedNum = await combined('num');
+    await page.evaluate(() => { const box = document.getElementById('combinedOrderForm').elements.sendFeishuNotification; if (box) box.checked = false; });
+    await page.locator('#combinedSaveBtn').click();
+    await page.waitForFunction(() => !document.getElementById('combinedCustomerOrderModal').classList.contains('open'));
+    await page.waitForFunction(() => { const s = window.pendingSaveStatus(); return !s.pending && !s.saving; });
+    const detailSaved = await page.evaluate(num => state.orders.find(o => o.num === num)?.orderDetail, combinedNum);
+    assert.equal(detailSaved, '13x4 body wave 22inch 180% density × 3\nclosure 4x4 × 2');
+    assert.equal(stored.data.orders.find(o => o.num === combinedNum)?.orderDetail, detailSaved, 'saved to the database too');
+    // 再打开一次是空的：上一单的订单详情不留在表单里。
+    await page.evaluate(() => openCombinedCustomerOrderModal({ customerFields:{ name:'Nobody Yet' }, orderFields:{ amount:10 } }));
+    assert.equal(await detailField.inputValue(), '');
+    await page.evaluate(() => closeCombinedCustomerOrderModal());
+    if (await page.evaluate(() => document.getElementById('orderModal').classList.contains('open'))) await closeOrderModal();
+
     // 6. 德语聊天：本地和 AI 都不把 Zwischensumme 当客户名；本地读出欧洲写法 1.280,50 €。
     const german = 'Hallo, hier ist Anna\n2x Body Wave Perücke 24 Zoll\nZwischensumme: 1.180,50 €\nVersand: 100,00 €\nGesamt: 1.280,50 € (ca. 1,390 USD)\nAnzahlung 30% per Überweisung bezahlt\nLieferadresse: Anna Schmidt, Hauptstraße 12, 10115 Berlin';
     await openNew();

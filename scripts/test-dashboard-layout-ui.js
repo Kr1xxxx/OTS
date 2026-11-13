@@ -238,6 +238,17 @@ const enter = async page => {
     near(r.tasks.width, 818, 2, '恢复默认后待办 7 格');
     near(r.tasks.top, r.recent.top, 0.5, '恢复默认后待办和最近订单同一行');
 
+    // 15. 指标卡拖到 6 格（不到 900 宽）：排 3 列；取消后回到 5 列。用键盘改宽。
+    const statColumns = () => page.evaluate(() => getComputedStyle(document.getElementById('dashboard')).gridTemplateColumns.split(' ').length);
+    assert.equal(await statColumns(), 5);
+    await enter(page);
+    await page.focus('[data-dash-module="kpi"] .dash-hx');
+    for (let i = 0; i < 6; i += 1) await page.keyboard.press('ArrowLeft');
+    assert.match(await page.textContent('[data-dash-module="kpi"] .dash-chip-size'), /^宽 6\/12$/);
+    assert.equal(await statColumns(), 3, '指标卡窄了排 3 列');
+    await page.click('[data-dash-action="cancel"]');
+    assert.equal(await statColumns(), 5, '取消后回到 5 列');
+
     assert.deepEqual(errors, []);
     assert.deepEqual(dialogs, []);
     await context.close();

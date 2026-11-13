@@ -4158,7 +4158,18 @@ html[data-theme] .page.active.page-enter#page-dashboard :is(#tasks, #recentOrder
 @media (min-width: 1101px) {
   html[data-theme] #page-dashboard.active { display:grid; grid-template-columns:repeat(12, minmax(0, 1fr)); column-gap:16px; row-gap:18px; align-items:start; }
   html[data-theme] #page-dashboard [data-dash-module] { grid-column:span var(--dash-span, 12); }
-  html[data-theme] #page-dashboard .stats[data-dash-narrow] { grid-template-columns:repeat(3, minmax(0, 1fr)); }
+}
+/* 指标卡按自己的宽排：不到 900 时排 3 列（原来那条 3 列的规则按视口宽写，管不到指标卡被拖窄的情况）。
+   指标卡宽 = (网格宽 - 11 × 16) × 格数 / 12 + (格数 - 1) × 16，所以按网格宽给每个格数一条：网格宽 < (900 - 16 × (格数 - 1)) × 12 / 格数 + 176。
+   不用 ResizeObserver：在它的回调里换列数会改指标卡的高，WebKit 报循环错误；挪到下一帧改又会有一帧排错。12 格时视口规则已经管了。 */
+html[data-theme] #page-dashboard { container:dash-page / inline-size; }
+@media (min-width: 1101px) {
+  @container dash-page (max-width: 1815.98px) { html[data-theme] #page-dashboard .stats[data-dash-span="6"] { grid-template-columns:repeat(3, minmax(0, 1fr)); } }
+  @container dash-page (max-width: 1554.28px) { html[data-theme] #page-dashboard .stats[data-dash-span="7"] { grid-template-columns:repeat(3, minmax(0, 1fr)); } }
+  @container dash-page (max-width: 1357.98px) { html[data-theme] #page-dashboard .stats[data-dash-span="8"] { grid-template-columns:repeat(3, minmax(0, 1fr)); } }
+  @container dash-page (max-width: 1205.28px) { html[data-theme] #page-dashboard .stats[data-dash-span="9"] { grid-template-columns:repeat(3, minmax(0, 1fr)); } }
+  @container dash-page (max-width: 1083.18px) { html[data-theme] #page-dashboard .stats[data-dash-span="10"] { grid-template-columns:repeat(3, minmax(0, 1fr)); } }
+  @container dash-page (max-width: 983.28px) { html[data-theme] #page-dashboard .stats[data-dash-span="11"] { grid-template-columns:repeat(3, minmax(0, 1fr)); } }
 }
 @media (max-width: 1100px) {
   html[data-theme] #dashLayoutBtn { display:none; }
@@ -27485,6 +27496,7 @@ function applyDashboardLayout() {
     const el = dashModuleEl(item.id);
     if (!el) return;
     el.style.setProperty('--dash-span', String(item.span));
+    el.dataset.dashSpan = String(item.span);
     el.style.setProperty('--dash-order', String(index));
     if (typeof item.h === 'number') {
       el.setAttribute('data-dash-h', '');
@@ -27497,20 +27509,6 @@ function applyDashboardLayout() {
   });
   if (dashLayoutDraft) renderDashLayoutChrome();
 }
-// 指标卡按自己的宽排：不到 900 时排 3 列（原来那条 3 列的规则按视口宽写，管不到指标卡被拖窄的情况）。
-// 换列数会改指标卡的高，在 ResizeObserver 回调里直接改会再触发一次观察（WebKit 报「ResizeObserver loop」错误），
-// 所以挪到下一帧改，且只在宽窄真的变了时改。
-if (window.ResizeObserver) {
-  const kpi = dashModuleEl('kpi');
-  if (kpi) {
-    new ResizeObserver(entries => {
-      const narrow = entries[entries.length - 1].contentRect.width < 900;
-      if (narrow === kpi.hasAttribute('data-dash-narrow')) return;
-      requestAnimationFrame(() => kpi.toggleAttribute('data-dash-narrow', kpi.getBoundingClientRect().width < 900));
-    }).observe(kpi);
-  }
-}
-
 function saveDashboardLayout(layout) {
   dashLayout = normalizeDashboardLayout(layout);
   safeStorage.setItem(dashLayoutKey, JSON.stringify(dashLayout));

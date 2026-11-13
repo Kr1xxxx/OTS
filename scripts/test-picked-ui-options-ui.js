@@ -13,6 +13,7 @@ const US = '🇺🇸 美国 United States';
 const UK = '🇬🇧 英国 United Kingdom';
 const DE = '🇩🇪 德国 Germany';
 const FR = '🇫🇷 法国 France';
+const RO = '🇷🇴 罗马尼亚 Romania';
 const orders = [
   { ...base, id:'p1', num:'K7001', client:'Picked Buyer', stage:'production', orderType:'定金订单', amount:2400, depositAmount:800, paidAmount:800, customerRequiredDate:day(20), latestShipDate:day(15), createdAt:day(2), updated:`${day(2)} 10:00` }
 ];
@@ -125,6 +126,19 @@ const orders = [
     await page.keyboard.press('Enter');
     assert.equal(await orderCountry.inputValue(), DE, 'Enter on a half-typed name picks the only match');
     assert.ok(await isOpen('orderModal'), 'Enter on the menu does not save the order');
+    // 只在词中间出现（oman 在 R-oman-ia 里）：菜单照样列出来但不高亮，回车留下原文，不能存成罗马尼亚；↓ 再回车才选。
+    await retype(orderCountry, 'Oman');
+    state = await menu();
+    assert.deepEqual([state.open, state.items.includes(RO), state.active], [true, true, ''], 'Oman lists Romania without highlighting it');
+    await page.keyboard.press('Enter');
+    assert.equal(await orderCountry.inputValue(), 'Oman', 'Enter keeps Oman as typed');
+    assert.equal((await menu()).open, false, 'Enter closes the menu');
+    assert.ok(await isOpen('orderModal'), 'Enter on the country field does not save the order');
+    await retype(orderCountry, 'oman');
+    await page.keyboard.press('ArrowDown');
+    assert.equal((await menu()).active, RO, '↓ highlights Romania');
+    await page.keyboard.press('Enter');
+    assert.equal(await orderCountry.inputValue(), RO, '↓ then Enter picks Romania');
     await page.evaluate(() => closeOrder());
     await page.waitForFunction(() => !document.getElementById('orderModal').classList.contains('open'));
 

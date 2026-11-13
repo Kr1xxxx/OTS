@@ -4038,9 +4038,10 @@ html[data-theme] .board-settings-btn .ui-icon { width:16px; height:16px; }
 
 /* 列 */
 html[data-theme] .board-column { border-radius:22px; padding:10px; gap:8px; }
-/* 大窗口下看板跟着窗口长高：默认窗口（视口高 1082）仍是 560，再高的窗口一列能露出更多卡片，封顶 920。820 px 以下有自己的高度，不管。 */
+/* 看板撑满第一屏：列顶离视口顶 291，加面板下边 25、离窗口底边 20，共 336。默认窗口（视口高 1082）列高 746，
+   最小窗口（视口高 996）660，不低于 560、封顶 920。820 px 以下有自己的高度，不管。 */
 @media (min-width: 821px) {
-  html[data-theme] :is(.board-column, .trash-column) { height:clamp(560px, calc(100vh - 522px), 920px); }
+  html[data-theme] :is(.board-column, .trash-column) { height:clamp(560px, calc(100vh - 336px), 920px); }
 }
 html[data-theme] .board-column-head { flex-wrap:wrap; align-items:center; }
 html[data-theme] .board-column-title { font-size:13px; }

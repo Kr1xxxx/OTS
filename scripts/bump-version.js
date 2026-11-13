@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Usage: npm run bump-version -- 3.90
+// Usage: node scripts/bump-version.js 3.90
 // Updates every place check-project/check-release compare against VERSION.
 // Normally nobody runs this by hand: the release workflow takes the next number when it
 // publishes (scripts/prepare-release.js). Pull requests leave the version alone.
@@ -8,7 +8,7 @@ const path = require('node:path');
 
 function bumpVersion(root, next) {
   const current = fs.readFileSync(path.join(root, 'VERSION'), 'utf8').trim();
-  if (!/^\d+\.\d+$/.test(next || '')) throw new Error('Usage: npm run bump-version -- <major.minor>, e.g. 3.90');
+  if (!/^\d+\.\d+$/.test(next || '')) throw new Error('Usage: node scripts/bump-version.js <major.minor>, e.g. 3.90');
   // The updater compares versions numerically and builds the asset name from the numbers, so 4.01 would never match 4.1.
   if (/\.0\d/.test(next)) throw new Error(`Minor version must not have a leading zero (${next}); use ${next.replace(/\.0+(\d)/, '.$1')} instead.`);
   if (/^0\d/.test(next)) throw new Error(`Major version must not have a leading zero (${next}).`);

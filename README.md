@@ -1,4 +1,4 @@
-# Order Track System (OTS) V3.163
+# Order Track System (OTS) V3.164
 
 Local macOS trade-order and customer management, SQLite storage, logistics/AI helpers, and the KME WhatsApp customer-sync Chrome extension. This is a privacy-sanitized **source export**, not a production database or installed application.
 
@@ -62,7 +62,7 @@ Tests use stubs or isolated data directories. npm run test:api is an **opt-in li
 - mac-app/: local server, stores, build script and Swift native host.
 - scripts/: automated regression tests and release checks.
 - chrome-extension/whatsapp-sync/: Chrome extension, pinned WA-JS distribution and third-party license.
-- data/demo-data.json and trade-order-data.json: synthetic seed only.
+- trade-order-data.json: synthetic seed only.
 
 ## Public source repository
 

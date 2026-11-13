@@ -29,14 +29,6 @@ const opensBrowser = name => /require\('playwright'\)|helpers\/board-page/.test(
 
 // Opt-in live requests, never part of the default run.
 const excluded = new Set(['test-tracking-api.js']);
-// These start mac-app/server.js on a pid-derived port; run them one at a time.
-const serial = new Set([
-  'test-feishu-order-notification.js',
-  'test-server-security.js',
-  'test-sqlite-storage.js',
-  'test-tinypng-compression.js',
-  'test-whatsapp-integration.js'
-]);
 // Need macOS tools (sips, swift).
 const darwinOnly = new Set(['test-app-icon.js', 'native']);
 
@@ -94,8 +86,7 @@ async function runPool(list) {
 async function main() {
   const startedAt = Date.now();
   for (const test of selected.filter(test => test.first)) await run(test);
-  await runPool(selected.filter(test => !test.first && !serial.has(test.file)));
-  for (const test of selected.filter(test => serial.has(test.file))) await run(test);
+  await runPool(selected.filter(test => !test.first));
 
   const failed = results.filter(result => result.status === 'fail');
   const skipped = results.filter(result => result.status === 'skip');

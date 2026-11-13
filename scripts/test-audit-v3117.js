@@ -237,7 +237,7 @@ async function serverTests() {
   fs.mkdirSync(backupDir);
   fs.writeFileSync(path.join(backupDir, 'family-photos.sqlite'), 'not ours');
   const token = 'audit-token';
-  const port = 47100 + (process.pid % 700);
+  const port = require('./helpers/free-port').freePortSync();
   const child = spawn(process.execPath, [path.join(root, 'mac-app', 'server.js')], {
     env:{ ...process.env, TRADE_API_TOKEN:token, TRADE_APP_NO_OPEN:'1', TRADE_APP_DATA_DIR:testDir, TRADE_APP_PORT:String(port), TRADE_EXPORT_NO_REVEAL:'1', TRADE_EXPORT_DIR:path.join(testDir, 'exports') },
     stdio:['ignore', 'pipe', 'pipe']

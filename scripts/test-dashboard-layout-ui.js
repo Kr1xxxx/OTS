@@ -201,16 +201,29 @@ const enter = async page => {
     assert.equal(await page.evaluate(() => Boolean(document.getElementById('dashLayoutBar'))), false, '换页面后不在调整状态');
     assert.equal((await rects(page)).tasks.hidden, false, '换页面丢掉草稿');
 
-    // 12. 收起待办并存下，点「今日待办」卡：待办放回来、存一次、滚到视口里。
+    // 12. 收起待办并存下，点「今日待办」卡：待办放回来、存一次、页面真的滚到待办。
+    // 窗口矮一点，待办一定在第一屏以下，不滚就看不见（1082 高时待办顶边在 1079.5 左右，日期一变就会挪）。
     await enter(page);
     await page.click('[data-dash-module="tasks"] [data-dash-hide]');
     await page.click('[data-dash-action="done"]');
     assert.deepEqual(JSON.parse(await stored(page)).hidden, ['tasks']);
     assert.equal((await rects(page)).tasks.hidden, true);
+    await page.setViewportSize({ width:1694, height:800 });
+    await page.waitForFunction(() => window.innerHeight === 800);
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.click('#todayTasksStat');
-    await page.waitForFunction(() => { const r = document.getElementById('tasks').getBoundingClientRect(); return r.height > 0 && r.top >= 0 && r.top < window.innerHeight; });
+    // 等平滑滚动停下（scrollY 连着 5 帧不变），没停就往下走，下一步的回顶会和它抢。
+    await page.waitForFunction(() => {
+      const r = document.getElementById('tasks').getBoundingClientRect();
+      const still = window.__dashScrollY === window.scrollY ? (window.__dashStill || 0) + 1 : 0;
+      window.__dashScrollY = window.scrollY;
+      window.__dashStill = still;
+      return still >= 5 && r.height > 0 && window.scrollY > 0 && r.top >= 0 && r.top < window.innerHeight / 2;
+    });
+    assert(await page.evaluate(() => document.getElementById('tasks').getBoundingClientRect().top + window.scrollY > window.innerHeight), '待办在第一屏以下，是滚过来的');
     assert.deepEqual(JSON.parse(await stored(page)).hidden, [], '放回来的也存下');
+    await page.setViewportSize({ width:1694, height:1082 });
+    await page.waitForFunction(() => window.innerHeight === 1082);
 
     // 13. 窄窗口（1000）：不用网格，四个模块各占一行，没有「布局」按钮；拉回来排法还在。
     await page.evaluate(() => window.scrollTo(0, 0));

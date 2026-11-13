@@ -1,0 +1,32 @@
+name: Clock
+
+# Runs the whole test suite as if it were the first of next month, 00:10 UTC (OTS_TEST_NOW, see
+# scripts/helpers/shift-clock.js). A test or a page that depends on today's date turns this red up to a month before
+# it would break CI on main. It is its own workflow, not a job in ci.yml, because the release only waits for ci.yml:
+# red here stops the pull request, never a release from main.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-clock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: First of next month, 00:10 UTC
+        run: echo "OTS_TEST_NOW=$(date -u -d "$(date -u +%Y-%m-01) +1 month" +%Y-%m-01T00:10:00Z)" >> "$GITHUB_ENV"
+      # Same concurrency as test-linux in ci.yml.
+      - run: npm test
+        env:
+          OTS_TEST_CONCURRENCY: 2

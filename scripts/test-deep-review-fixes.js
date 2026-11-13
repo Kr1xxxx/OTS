@@ -25,7 +25,10 @@ function pureFunctionTests() {
     assert.deepEqual(JSON.parse(run.stdout.trim()), { date: '2026-10-01', month: '2026-10', days: 1 }, `date drift in ${tz}`);
   }
 
+  // The functions read today's date through Date; give them this process's one, so they share its clock (and the
+  // shifted one under OTS_TEST_NOW, see helpers/shift-clock.js).
   const context = vm.createContext({
+    Date,
     state: { orders: [], orderSettings: { serialDigits: 2, orderPrefix: 'K' }, trashOrders: [], deletedOrders: [] },
     defaultOrderSettings: {},
     orderTypeDefs: [{ value: '定金订单' }, { value: '全款订单' }],

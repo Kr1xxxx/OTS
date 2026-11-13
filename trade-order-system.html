@@ -12,7 +12,7 @@
 :root {
   --acc-l:#7747ff; --acc-d:#a78bff; --accent:var(--acc-l); --on-accent:#fff;
   --accent-tint:color-mix(in oklab, var(--accent) 13%, transparent);
-  --s-blue:oklch(52% .15 250); --s-amber:oklch(58% .18 75); --s-teal:oklch(52% .1 190);
+  --s-blue:oklch(52% .15 250); --s-amber:oklch(51% .15 70); --s-teal:oklch(46% .09 190);
   --s-green:oklch(49% .19 150); --s-red:oklch(54% .21 25); --s-gray:oklch(52% 0 0); --s-orange:oklch(60% .17 50);
   --s-tint:13%;
   --blue-50:var(--accent-tint); --blue-100:color-mix(in oklab, var(--accent) 22%, transparent);
@@ -22,7 +22,7 @@
   --purple-50:var(--accent-tint); --purple-500:var(--accent);
   --cyan-50:color-mix(in oklab, var(--s-teal) var(--s-tint), transparent); --cyan-600:var(--s-teal);
   --red-50:color-mix(in oklab, var(--s-red) var(--s-tint), transparent); --red-600:var(--s-red);
-  --gray-50:oklch(98.6% 0 0); --gray-100:oklch(96.8% 0 0); --gray-200:oklch(93% 0 0); --gray-300:oklch(88% 0 0); --gray-400:oklch(70% 0 0);
+  --gray-50:oklch(98.6% 0 0); --gray-100:oklch(96.8% 0 0); --gray-200:oklch(93% 0 0); --gray-300:oklch(88% 0 0); --gray-400:oklch(60% .01 285);
   --gray-500:oklch(59% 0 0); --gray-600:oklch(46% 0 0); --gray-700:oklch(34% 0 0); --gray-800:oklch(22% 0 0); --gray-900:oklch(15% 0 0);
   --white:oklch(100% 0 0); --page-bg:oklch(98.6% 0 0); --surface-bg:oklch(100% 0 0); --surface-raised:oklch(100% 0 0); --surface-soft:oklch(96.8% 0 0);
   --surface-border:oklch(93% 0 0); --surface-border-strong:oklch(88% 0 0); --hairline:oklch(95.5% 0 0);
@@ -61,8 +61,8 @@ html[data-theme="dark"] {
   --s-blue:oklch(75% .12 250); --s-amber:oklch(83% .17 80); --s-teal:oklch(78% .1 190);
   --s-green:oklch(78% .18 150); --s-red:oklch(76% .2 25); --s-gray:oklch(70% 0 0); --s-orange:oklch(80% .15 55);
   --s-tint:18%;
-  --gray-300:oklch(36% 0 0); --gray-400:oklch(55% 0 0);
-  --gray-500:oklch(64% 0 0); --gray-600:oklch(77% 0 0); --gray-700:oklch(86% 0 0); --gray-800:oklch(92% 0 0); --gray-900:oklch(96% 0 0);
+  --gray-300:oklch(36% 0 0); --gray-400:oklch(63% 0 0);
+  --gray-500:oklch(69% 0 0); --gray-600:oklch(77% 0 0); --gray-700:oklch(86% 0 0); --gray-800:oklch(92% 0 0); --gray-900:oklch(96% 0 0);
   --surface-border-strong:oklch(36% 0 0);
   --semantic-primary:oklch(93% 0 0); --semantic-primary-dark:oklch(85% 0 0); --primary-ink:oklch(19% 0 0);
   --floating-shadow:0 22px 55px oklch(0% 0 0 / .34);
@@ -2003,16 +2003,6 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
 .level-rule-row .level-rule-input input:focus { outline:0; border-color:var(--blue-500); box-shadow:0 0 0 3px var(--blue-100); }
 .level-rule-row .level-rule-input small { color:var(--gray-500); font-size:11.5px; }
 .level-rule-foot { display:flex; justify-content:flex-end; gap:8px; margin-top:10px; }
-.copy-template-vars { display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 8px; }
-.copy-template-vars code { padding:2px 6px; border-radius:6px; background:var(--surface-soft, var(--gray-100)); color:var(--gray-700); font-size:11px; }
-.copy-menu-wrap { position:relative; display:inline-flex; }
-.copy-menu { position:absolute; right:0; top:calc(100% + 6px); z-index:6; min-width:190px; padding:6px; border:1px solid var(--surface-border); border-radius:var(--radius); background:var(--surface-bg); box-shadow:var(--floating-shadow); display:flex; flex-direction:column; gap:2px; animation:uiPop var(--motion-med) var(--ease-out); transform-origin:top right; }
-.copy-menu[hidden] { display:none; }
-.copy-menu button { display:flex; align-items:center; gap:8px; height:34px; padding:0 10px; border:0; border-radius:10px; background:transparent; color:var(--gray-800); text-align:left; font-size:13px; cursor:pointer; white-space:nowrap; }
-.copy-menu button:hover:not(:disabled) { background:var(--surface-soft); }
-.copy-menu button:disabled { opacity:.45; cursor:not-allowed; }
-.copy-menu button small { color:var(--gray-500); font-size:11px; margin-left:auto; }
-html[data-theme] .order-detail-head .btn.is-copied { background:var(--success-soft, var(--green-50)); color:var(--success, var(--green-700)); border-color:transparent; }
 .level-rule-name { font-weight: 600; color: var(--gray-900); }
 .settings-chip {
   display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--gray-200); border-radius: 999px;
@@ -2699,7 +2689,7 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
 /* 当前选中的那项：强调色浅底 + 强调色字 + 对勾，和分段控件的选中块一致。 */
 .app-select-option.selected {
   background: var(--accent-tint);
-  color: var(--accent);
+  color: var(--accent-ink);
   font-weight: 600;
 }
 .app-select-option:focus-visible {
@@ -2711,7 +2701,7 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
 .app-select-group { padding: 8px 9px 5px; color: var(--gray-500); font-size: 11px; font-weight: 600; }
 .app-select-group:not(:first-child) { margin-top: 5px; border-top: 1px solid var(--gray-200); }
 .app-select-option-label { min-width: 0; overflow-wrap: anywhere; }
-.app-select-option-check { display: grid; place-items: center; color: var(--accent); }
+.app-select-option-check { display: grid; place-items: center; color: var(--accent-ink); }
 .app-select-option-check .ui-icon { width: 14px; height: 14px; stroke-width: 2; }
 @media (max-width: 760px) {
   .app-select-popover, .suggest-menu { max-height: min(280px, calc(100vh - 20px)); }
@@ -3344,7 +3334,7 @@ html[data-theme] .detail-hero { border:1px solid var(--surface-border); box-shad
 html[data-theme] :is(.binary-option.active, .side-chart-tab.active, .chip.active, .client-letter-btn.active) { background:var(--surface-bg); color:var(--gray-900); border-color:transparent; box-shadow:0 1px 2px oklch(0% 0 0 / .08), 0 0 0 .5px oklch(0% 0 0 / .04); }
 html[data-theme="dark"] :is(.binary-option.active, .side-chart-tab.active, .chip.active, .client-letter-btn.active, .segment-option.active) { background:var(--surface-raised); }
 /* 客户菜单本身是白底，上面那种「白底浮起」的选中块在里面看不出来：字母筛选的选中项改用强调色浅底。 */
-html[data-theme] .client-letter-btn.active { background:var(--accent-tint); color:var(--accent); border-color:transparent; box-shadow:none; }
+html[data-theme] .client-letter-btn.active { background:var(--accent-tint); color:var(--accent-ink); border-color:transparent; box-shadow:none; }
 html[data-theme] :is(.binary-segment, .side-chart-tabs) { background:var(--gray-100); border:0; box-shadow:none; }
 html[data-theme] :is(.side-bar-fill, .analysis-trend-track span, .analysis-event-fill, .business-product-fill, .legend-dot, .tracking-event-dot, .roadmap-event:first-of-type .roadmap-dot, .history-item:first-child .history-dot) { background:var(--accent); }
 html[data-theme] .contact-method-check input:checked { background:var(--accent); border-color:var(--accent); }
@@ -3430,7 +3420,7 @@ html[data-theme] .board-card-meta .tag { font-size:11px; padding:2px 7px; flex:n
 html[data-theme] .board-card-amount { margin-left:auto; }
 html[data-theme] :is(.order-detail-order-hero, .order-detail-customer-hero) { background:var(--surface-bg); border:1px solid var(--surface-border); box-shadow:none; }
 html[data-theme] .client-autofill-summary { background:var(--surface-soft); border-color:var(--surface-border); }
-html[data-theme] .customer-multi-add { background:var(--accent-tint); color:var(--accent); border-color:transparent; border-radius:999px; font-weight:500; }
+html[data-theme] .customer-multi-add { background:var(--accent-tint); color:var(--accent-ink); border-color:transparent; border-radius:999px; font-weight:500; }
 html[data-theme] .customer-multi-add:hover { background:color-mix(in oklab, var(--accent) 20%, transparent); }
 /* 带「＋电话」按钮的标签行和普通标签一样高（按钮上下各探出几像素），同一行左右两个字段的输入框才对得齐；
    旁边的字段多加了几行时，这一格不跟着被拉高。 */
@@ -3535,8 +3525,8 @@ html[data-theme] .btn-primary, html[data-theme] #topNewCustomerBtn.btn-primary {
 html[data-theme] .btn-primary:hover { border-color:transparent; }
 html[data-theme] #topNewCustomerBtn { background:var(--surface-bg); color:var(--gray-900); border-color:var(--surface-border); box-shadow:none; }
 html[data-theme] #topNewCustomerBtn:hover { box-shadow:var(--shadow-hover); }
-html[data-theme] .btn-danger { background:var(--red-50); color:var(--s-red); border-color:transparent; }
-html[data-theme] .btn-danger:hover { background:color-mix(in oklab, var(--s-red) 20%, transparent); color:var(--s-red); border-color:transparent; }
+html[data-theme] .btn-danger { background:var(--red-50); color:var(--danger-ink); border-color:transparent; }
+html[data-theme] .btn-danger:hover { background:color-mix(in oklab, var(--s-red) 20%, transparent); color:var(--danger-ink); border-color:transparent; }
 html[data-theme] .btn-ghost { background:transparent; border-color:transparent; }
 html[data-theme] .btn-ghost:hover { background:var(--gray-100); box-shadow:none; }
 html[data-theme] .btn-icon { width:36px; padding:0; }
@@ -3895,7 +3885,7 @@ html[data-theme] .num-tick { animation:uiTick .58s var(--ease-spring); }
 @keyframes uiTick { from { opacity:.2; transform:translateY(.35em); filter:blur(2px); } }
 
 /* 等级标：原型里的字母方标，替换旧的表情圆点 */
-html[data-theme] .level-icon { width:16px; height:16px; display:inline-grid; place-items:center; border-radius:5px; background:var(--accent-tint); color:var(--accent); font-size:10px; font-weight:700; line-height:1; filter:none; font-family:var(--font-sans, inherit); }
+html[data-theme] .level-icon { width:16px; height:16px; display:inline-grid; place-items:center; border-radius:5px; background:var(--accent-tint); color:var(--accent-ink); font-size:10px; font-weight:700; line-height:1; filter:none; font-family:var(--font-sans, inherit); }
 html[data-theme] .level-icon::before { content:attr(data-level-letter); width:auto; height:auto; background:none; border:0; border-radius:0; box-shadow:none; font-size:inherit; line-height:1; transform:none; }
 html[data-theme] .level-tag .level-icon { width:14px; height:14px; font-size:9px; margin-right:2px; }
 
@@ -3964,7 +3954,7 @@ html[data-theme] .customer-row .muted { font-size:12px; color:var(--gray-500); }
 html[data-theme] .customer-cell-stack { gap:3px; }
 html[data-theme] .customer-cell-stack > strong { font-size:14px; font-weight:500; color:var(--gray-900); }
 html[data-theme] .customer-tag-stack { display:flex; gap:6px; flex-wrap:nowrap; overflow:hidden; }
-html[data-theme] .customer-level-pill { flex:none; padding:1px 8px; border-radius:999px; background:var(--accent-tint); color:var(--accent); font-size:11.5px; font-weight:500; }
+html[data-theme] .customer-level-pill { flex:none; padding:1px 8px; border-radius:999px; background:var(--accent-tint); color:var(--accent-ink); font-size:11.5px; font-weight:500; }
 html[data-theme] .customer-tag-stack .level-tag { flex:none; padding:1px 8px; border:1px solid var(--surface-border); border-radius:999px; background:transparent; color:var(--gray-700); font-size:11.5px; white-space:nowrap; }
 html[data-theme] .customer-cell-money { text-align:right; justify-items:end; }
 html[data-theme] .customer-cell-money > strong { font-size:15px; }
@@ -4048,6 +4038,11 @@ html[data-theme] .board-settings-btn .ui-icon { width:16px; height:16px; }
 
 /* 列 */
 html[data-theme] .board-column { border-radius:22px; padding:10px; gap:8px; }
+/* 看板撑满第一屏：列顶离视口顶 291，加面板下边 25、离窗口底边 20，共 336。默认窗口（视口高 1082）列高 746，
+   最小窗口（视口高 996）660，不低于 560、封顶 920。820 px 以下有自己的高度，不管。 */
+@media (min-width: 821px) {
+  html[data-theme] :is(.board-column, .trash-column) { height:clamp(560px, calc(100vh - 336px), 920px); }
+}
 html[data-theme] .board-column-head { flex-wrap:wrap; align-items:center; }
 html[data-theme] .board-column-title { font-size:13px; }
 html[data-theme] .board-column-title::before { width:8px; height:8px; }
@@ -4209,7 +4204,7 @@ html[data-theme] .order-detail-panel { display:flex; flex-direction:column; anim
 html[data-theme] .order-detail-panel[hidden] { display:none; }
 html[data-theme] .order-detail-body .detail-section { padding:18px 0; border:0; border-top:1px solid var(--hairline, var(--surface-border)); border-radius:0; background:transparent; box-shadow:none; }
 html[data-theme] .order-detail-body .detail-section:first-child { border-top:0; }
-html[data-theme] .order-detail-body .detail-section-title { font-size:14px; font-weight:600; color:var(--gray-900); margin-bottom:12px; }
+html[data-theme] :is(.order-detail-body, .tracking-detail-body) .detail-section-title { font-size:14px; font-weight:600; color:var(--gray-900); margin-bottom:12px; }
 html[data-theme] .order-detail-body .detail-section-title-row { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:12px; }
 html[data-theme] .order-detail-body .detail-section-title-row .detail-section-title { margin:0; }
 html[data-theme] .order-detail-body .link-btn { border:0; background:none; padding:0; color:var(--accent); font:inherit; font-size:13px; cursor:pointer; }
@@ -4453,7 +4448,10 @@ html[data-theme] .ship-check.bad { color:var(--s-red); }
 html[data-theme] :is(.logistics-card.ship-row, .price-history-row.recent-tracking-row):focus-visible { outline:2px solid var(--accent); outline-offset:-2px; border-radius:14px; }
 html[data-theme] :is(.logistics-more, .recent-tracking-more) { align-self:center; margin:10px 0 2px; padding:6px 12px; font-size:12.5px; }
 html[data-theme] .tracking-detail-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
-html[data-theme] .tracking-detail-order { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:6px 0; color:var(--gray-700); font-size:13px; }
+html[data-theme] .tracking-detail-order { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-radius:14px; background:var(--surface-soft); color:var(--gray-700); font-size:13px; }
+/* 物流进度抽屉的分块和订单抽屉一样：分块不画框、细线隔开，里面的小块灰底无边框。顶上那张卡（.detail-hero）不是分块，保持原样。 */
+html[data-theme] .tracking-detail-body > .detail-section { padding:18px 2px 4px; border:0; border-top:1px solid var(--hairline); border-radius:0; background:transparent; box-shadow:none; }
+html[data-theme] .tracking-detail-body :is(.detail-item, .tracking-event) { border-color:transparent; border-radius:14px; background:var(--surface-soft); }
 html[data-theme] .logistics-result .paste-result-actions { display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end; }
 html[data-theme] .logistics-result .paste-result-meta.is-bad { color:var(--s-red); }
 html[data-theme] .logistics-result .paste-result-card.is-skipped { opacity:.75; }
@@ -4773,7 +4771,7 @@ html[data-theme] .mn-i { width:22px; height:22px; flex:none; border-radius:50%; 
 html[data-theme] .mn-i > * { grid-area:1 / 1; transition:transform var(--motion-spring) var(--ease-spring), opacity var(--motion-fast); }
 html[data-theme] .mn-i .ui-icon { width:12px; height:12px; opacity:0; transform:scale(.4); stroke-width:2.6; }
 html[data-theme] .mnav button.on .mn-i { background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
-html[data-theme] .mnav button.done .mn-i { background:var(--accent-tint); border-color:transparent; color:var(--accent); }
+html[data-theme] .mnav button.done .mn-i { background:var(--accent-tint); border-color:transparent; color:var(--accent-ink); }
 html[data-theme] .mnav button.done.on .mn-i { background:var(--accent); color:var(--on-accent); }
 html[data-theme] .mnav button.done .mn-i b { opacity:0; transform:scale(.4); }
 html[data-theme] .mnav button.done .mn-i .ui-icon { opacity:1; transform:none; }
@@ -4793,7 +4791,7 @@ html[data-theme] .customer-modal-state { order:3; font-size:12px; color:var(--gr
 html[data-theme] .customer-modal-state:empty { display:none; }
 html[data-theme] .customer-modal-tags { display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding-top:3px; }
 html[data-theme] .customer-modal-tags .level-tag { min-height:24px; padding:0 10px; border:1px solid var(--surface-border); background:var(--surface-bg); color:var(--gray-700); font-size:12px; }
-html[data-theme] .customer-modal-tags .level-tag:has(.level-icon) { padding-left:5px; border-color:transparent; background:var(--accent-tint); color:var(--accent); }
+html[data-theme] .customer-modal-tags .level-tag:has(.level-icon) { padding-left:5px; border-color:transparent; background:var(--accent-tint); color:var(--accent-ink); }
 html[data-theme] .customer-modal-tags .level-tag .level-icon { border-radius:50%; background:var(--accent); color:var(--on-accent, #fff); }
 html[data-theme] .customer-modal-tags .level-tag.is-paid { border-color:transparent; background:color-mix(in oklab, var(--s-green) var(--s-tint), transparent); color:var(--s-green); }
 html[data-theme] .customer-view-mode #customerDetailView { flex:1 0 auto; display:grid; grid-template-columns:320px minmax(0, 1fr); gap:16px; align-items:stretch; }
@@ -4850,7 +4848,7 @@ html[data-theme] .customer-detail-tabs-card { flex:1 1 0; min-width:0; min-heigh
 html[data-theme] .customer-detail-tabs-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; column-gap:16px; padding:0 20px; border-bottom:1px solid var(--hairline); }
 html[data-theme] .customer-detail-tabs { margin-top:0; gap:22px; min-width:0; }
 html[data-theme] .customer-detail-tabs button { padding:12px 0; display:inline-flex; align-items:center; gap:6px; }
-html[data-theme] .customer-detail-tab-count { min-width:18px; padding:0 5px; border-radius:999px; background:var(--accent-tint); color:var(--accent); font-size:11px; font-weight:600; line-height:18px; text-align:center; font-variant-numeric:tabular-nums; }
+html[data-theme] .customer-detail-tab-count { min-width:18px; padding:0 5px; border-radius:999px; background:var(--accent-tint); color:var(--accent-ink); font-size:11px; font-weight:600; line-height:18px; text-align:center; font-variant-numeric:tabular-nums; }
 html[data-theme] .customer-detail-tab-count:empty { display:none; }
 html[data-theme] .customer-detail-section-meta { color:var(--gray-500); font-size:12px; font-variant-numeric:tabular-nums; white-space:nowrap; }
 /* 标签页卡片占满右栏剩下的高度，内容多了在卡片里滚（档案栏和数字卡不跟着跑）。最小高度按订单笔数算（每行 57px，2–7 行），
@@ -4986,7 +4984,7 @@ html[data-theme] .target-history-row.head { min-height:38px; color:var(--gray-50
 html[data-theme] .target-history-row.selected { background:color-mix(in srgb, var(--accent) 4%, transparent); }
 html[data-theme] .target-history-row > :nth-child(2), html[data-theme] .target-history-row .target-history-values > span, html[data-theme] .target-history-row > :last-child { text-align:right; }
 html[data-theme] .target-history-month { display:flex; align-items:center; gap:8px; font-size:14px; font-weight:400; font-variant-numeric:tabular-nums; }
-html[data-theme] .target-history-now { padding:1px 8px; border-radius:999px; background:var(--accent-tint); color:var(--accent); font-size:11px; font-style:normal; }
+html[data-theme] .target-history-now { padding:1px 8px; border-radius:999px; background:var(--accent-tint); color:var(--accent-ink); font-size:11px; font-style:normal; }
 html[data-theme] .target-history-amount { color:var(--gray-900); font-size:14px; font-weight:400; overflow:visible; }
 html[data-theme] .target-history-values { display:grid; grid-template-columns:1fr 1fr; gap:16px; color:var(--gray-900); font-size:14px; font-weight:400; font-variant-numeric:tabular-nums; }
 html[data-theme] .target-history-row.head .target-history-values { color:var(--gray-500); font-size:12px; }
@@ -5015,8 +5013,12 @@ html[data-theme] .target-history-rate, html[data-theme] .target-history-rate.emp
 html[data-theme]:not([data-theme="dark"]) {
   --page-bg:oklch(96.2% .008 285); --surface-soft:oklch(93.6% .012 285); --gray-100:oklch(93.6% .012 285);
   --hairline:oklch(91.5% .01 285); --surface-border:oklch(90% .012 285); --gray-200:oklch(90% .012 285);
-  --gray-600:oklch(42% .02 285); --gray-500:oklch(56% .02 285);
+  --gray-600:oklch(42% .02 285); --gray-500:oklch(49% .02 285);
   --accent-tint:color-mix(in oklab, var(--acc-l) 15%, transparent);
+  /* 压在强调色淡底（--accent-tint）上的字：比强调色深一点，淡底上才到 4.5:1。 */
+  --accent-ink:color-mix(in oklab, var(--acc-l) 82%, #000);
+  /* 红色淡底按钮（删除）上的字，同理深一点。 */
+  --danger-ink:color-mix(in oklab, var(--s-red) 85%, #000);
   --shadow:0 1px 0 oklch(100% 0 0) inset, 0 1px 2px oklch(30% .05 285 / .06), 0 4px 14px oklch(30% .05 285 / .05);
   --shadow-hover:0 1px 0 oklch(100% 0 0) inset, 0 10px 28px oklch(30% .06 285 / .12), 0 2px 6px oklch(30% .05 285 / .06);
   --ui-primary:var(--acc-l); --ui-primary-ink:#fff; --ui-primary-hover:color-mix(in oklab, var(--acc-l) 85%, black);
@@ -5025,6 +5027,10 @@ html[data-theme]:not([data-theme="dark"]) {
 }
 html[data-theme] { --acc-2:color-mix(in oklab, var(--acc-l) 70%, #ff5fa2); --topbar-bg:color-mix(in oklab, var(--page-bg) 55%, transparent); }
 html[data-theme][data-accent="ink"] { --acc-2:var(--acc-l); }
+/* 青、橙、玫红本身更亮，82% 在灰底的淡底上不到 4.5:1，要再深一些；墨色本来就够深。暗色下这些地方本来就达标，不变。 */
+html[data-theme]:not([data-theme="dark"]):is([data-accent="teal"], [data-accent="orange"], [data-accent="rose"]) { --accent-ink:color-mix(in oklab, var(--acc-l) 76%, #000); }
+html[data-theme]:not([data-theme="dark"])[data-accent="ink"] { --accent-ink:var(--acc-l); }
+html[data-theme="dark"] { --accent-ink:var(--accent); --danger-ink:var(--s-red); }
 /* 主区：顶部淡淡的强调色光晕 + 细颗粒 */
 html[data-theme] .main { position:relative; isolation:isolate; min-height:100vh;
   background:
@@ -5102,7 +5108,7 @@ html[data-theme] .field .binary-segment:not(.binary-chips) .binary-option {
 }
 html[data-theme] .field .binary-segment:not(.binary-chips) .binary-option:hover:not(.active) { color:var(--gray-900); background:var(--surface-soft); }
 html[data-theme] .field .binary-segment .binary-option.active {
-  color:var(--accent); background:var(--accent-tint); font-weight:600; box-shadow:none;
+  color:var(--accent-ink); background:var(--accent-tint); font-weight:600; box-shadow:none;
 }
 html[data-theme] .field .binary-segment:hover:not(.binary-chips) { border-color:var(--surface-border-strong); }
 html[data-theme] .field .binary-option:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
@@ -5171,7 +5177,7 @@ html[data-theme] .order-rail .paste-assist-actions .btn { height:36px; min-heigh
 html[data-theme] .order-rail #pasteAssistClearBtn { margin-right:auto; padding:0 8px; border-color:transparent; background:transparent; color:var(--gray-600); box-shadow:none; }
 html[data-theme] .order-rail #pasteAssistClearBtn:hover { color:var(--gray-900); background:var(--gray-100); }
 /* 「识别」是这一栏里的主操作，但整张弹窗只有「保存订单」是实心主按钮：这里用强调色淡底。 */
-html[data-theme] .order-rail :is(#pasteAssistAnalyzeBtn, .paste-results .btn-primary) { padding:0 16px; border:1px solid color-mix(in oklab, var(--accent) 55%, transparent); background:var(--accent-tint); color:var(--accent); font-weight:600; box-shadow:none; }
+html[data-theme] .order-rail :is(#pasteAssistAnalyzeBtn, .paste-results .btn-primary) { padding:0 16px; border:1px solid color-mix(in oklab, var(--accent) 55%, transparent); background:var(--accent-tint); color:var(--accent-ink); font-weight:600; box-shadow:none; }
 html[data-theme] .order-rail :is(#pasteAssistAnalyzeBtn, .paste-results .btn-primary):hover { background:color-mix(in oklab, var(--accent) 22%, transparent); }
 html[data-theme] .order-rail .paste-result-top { align-items:flex-start; }
 html[data-theme] .order-rail .paste-result-top > .tag { flex:none; white-space:nowrap; }
@@ -5231,7 +5237,7 @@ html[data-theme] .order-preview-client { display:flex; flex-direction:column; al
 html[data-theme] .order-preview-client strong { max-width:100%; color:var(--gray-900); font-family:var(--display); font-size:16px; font-weight:600; line-height:24px; letter-spacing:-.01em; overflow-wrap:anywhere; }
 html[data-theme] .order-preview-client.is-empty strong { color:var(--gray-500); font-weight:500; }
 html[data-theme] .order-preview-client > span:not(.level-tag) { max-width:100%; color:var(--gray-600); font-size:12px; line-height:18px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-html[data-theme] .order-preview-client .level-tag { margin-top:2px; padding:1px 8px; border-radius:999px; background:var(--accent-tint); color:var(--accent); font-size:12px; font-weight:500; line-height:18px; }
+html[data-theme] .order-preview-client .level-tag { margin-top:2px; padding:1px 8px; border-radius:999px; background:var(--accent-tint); color:var(--accent-ink); font-size:12px; font-weight:500; line-height:18px; }
 html[data-theme] .order-preview-amount { display:flex; flex-direction:column; gap:6px; }
 html[data-theme] .order-preview-label { color:var(--gray-500); font-size:12px; font-weight:600; line-height:18px; }
 html[data-theme] .order-preview-amount > strong { color:var(--gray-900); font-family:var(--display); font-size:24px; font-weight:600; line-height:30px; letter-spacing:-.03em; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
@@ -5362,7 +5368,7 @@ html[data-theme] .order-preview .order-notification-option small { color:var(--g
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.158，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.158</div>
+      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.159，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.159</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会先问一句，再下载并重启" aria-label="检查更新：有新版本会先问一句，再下载并重启" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse is-busy" id="savePulse" aria-live="polite"><i></i><span>读取中</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -6059,16 +6065,6 @@ html[data-theme] .order-preview .order-notification-option small { color:var(--g
                 <div class="span-2" style="display:flex;justify-content:flex-end"><button class="btn btn-primary" type="submit">保存订单设置</button></div>
               </form>
             </div>
-            <div class="settings-card">
-              <div><strong>给客户的英文文案</strong><div class="muted">订单详情里「文案」按钮复制出来的内容。某一行里的变量全是空（比如还没有运单号）时，这一行会自动省略。</div></div>
-              <div class="copy-template-vars"><code>{client}</code><code>{num}</code><code>{stage}</code><code>{logistics}</code><code>{tracking}</code><code>{amount}</code><code>{paid}</code><code>{due}</code><code>{dueLabel}</code><code>{deposit}</code><code>{nextStep}</code><code>{date}</code></div>
-              <div class="muted">{due} 是现在该收的钱：报价阶段的定金单是定金，没收过钱的单是全款，其余是尾款；{dueLabel} 对应写 deposit / payment / balance。</div>
-              <form class="settings-form" id="copyTemplatesForm">
-                <div class="field"><label>英文状态（复制英文状态）</label><textarea name="copyStatusTemplate" rows="8" spellcheck="false"></textarea></div>
-                <div class="field"><label>催款（复制催款）</label><textarea name="copyDunningTemplate" rows="8" spellcheck="false"></textarea></div>
-                <div class="span-2" style="display:flex;justify-content:flex-end;gap:8px"><button class="btn" type="button" id="copyTemplatesResetBtn">恢复默认</button><button class="btn btn-primary" type="submit">保存文案</button></div>
-              </form>
-            </div>
           </div>
           <div class="settings-panel" data-settings-panel="exchange">
             <div class="section-head">
@@ -6501,11 +6497,6 @@ html[data-theme] .order-preview .order-notification-option small { color:var(--g
         <div class="order-action-group">
           <button class="btn btn-client btn-small" id="detailCustomerBtn" type="button"><svg class="ui-icon" aria-hidden="true"><use href="#i-users"/></svg>客户档案</button>
           <button class="btn btn-client btn-small" id="detailDuplicateBtn" type="button"><svg class="ui-icon" aria-hidden="true"><use href="#i-copy"/></svg>复制订单</button>
-          <span class="copy-menu-wrap"><button class="btn btn-client btn-small" id="detailCopyTextBtn" type="button" aria-haspopup="menu" aria-expanded="false" title="复制发给客户的英文文案">文案</button>
-            <div class="copy-menu" id="detailCopyMenu" role="menu" hidden>
-              <button type="button" role="menuitem" data-copy-text="status">复制英文状态<small>Status</small></button>
-              <button type="button" role="menuitem" data-copy-text="dunning">复制催款<small>Payment</small></button>
-            </div></span>
           <button class="btn btn-client btn-small" id="detailRestoreBtn" type="button" hidden>恢复订单</button>
           <button class="btn btn-client btn-small" id="detailEditBtn" type="button" title="在订单弹窗里编辑全部字段（物流批次、定金、附件等）">完整编辑…</button>
           <button class="order-detail-close" id="detailCloseBtn" type="button" title="关闭" aria-label="关闭">×</button>
@@ -6558,7 +6549,7 @@ html[data-theme] .order-preview .order-notification-option small { color:var(--g
       </div>
       <button class="btn btn-small" id="trackingDetailCloseBtn" type="button">关闭</button>
     </div>
-    <div class="modal-body detail-body" id="trackingDetailBody"></div>
+    <div class="modal-body detail-body tracking-detail-body" id="trackingDetailBody"></div>
   </aside>
 </div>
 
@@ -7283,14 +7274,7 @@ const defaultOrderSettings = {
   defaultDepositPercent: 30,
   defaultCarrier: 'auto',
   defaultUrgentOrder: '否',
-  defaultNext: '',
-  copyStatusTemplate: '',
-  copyDunningTemplate: ''
-};
-// 订单详情「文案」按钮的默认英文模板；设置里留空就用这份。某行变量全空时整行省略（见 fillCopyTemplate）。
-const defaultCopyTemplates = {
-  status: 'Hi {client},\n\nHere is the latest on your order {num}:\nStatus: {stage}\nTracking: {tracking}\nTotal {amount} · Received {paid} · Balance {due}\n\nFeel free to reach out with any questions.\nBest regards',
-  dunning: 'Hi {client},\n\nA friendly reminder that order {num} has an outstanding {dueLabel} of {due} (total {amount}, received {paid}).\nOnce the payment arrives we will {nextStep}.\n\nThank you!\nBest regards'
+  defaultNext: ''
 };
 // 客户等级自动判断的门槛（累计成交 USD），可在 设置 → 客户设置 里改；按用户规模（几十个客户）默认值比老的 10 万低得多。
 const defaultCustomerLevelRules = { A:20000, B:10000, C:3000, D:1000 };
@@ -9467,13 +9451,6 @@ function money(n, code = 'USD', maximumFractionDigits = 3) {
   const c = currencyDef(code);
   return `${c.symbol}${Number(n || 0).toLocaleString('en-US', { maximumFractionDigits })} ${c.code}`;
 }
-// 发给客户的金额：有小数就固定两位（€700.50，不写 €700.5），整数不带小数（$700）。软件里自己看的金额仍用 money()。
-function moneyForCustomer(n, code = 'USD') {
-  const c = currencyDef(code);
-  const value = roundMoneyValue(Number(n || 0));
-  const fraction = Number.isInteger(value) ? 0 : 2;
-  return `${c.symbol}${value.toLocaleString('en-US', { minimumFractionDigits:fraction, maximumFractionDigits:2 })} ${c.code}`;
-}
 // Summary display only: never round stored values, individual orders, rates or API costs.
 function summaryMoney(n, code = 'USD') {
   const c = currencyDef(code);
@@ -9838,7 +9815,7 @@ function orderDueAged(order = {}, days = dueAgeAlertDays) {
 function orderPastShipDeadline(order = {}, today = normalizeDate(new Date().toISOString())) {
   return !order.isDraft && Boolean(order.latestShipDate) && order.latestShipDate < today && !isSettledStage(order.stage) && !order.shippedAt;
 }
-// 最近一次催款：订单记录里最近一条「复制催款文案」或「待办已处理：收款提醒」的日期。
+// 最近一次催款：订单记录里最近一条「待办已处理：收款提醒」的日期；「复制催款文案」是删掉「文案」按钮前留下的旧记录，也算一次催款。
 function lastDunningDate(order = {}) {
   const log = (order.logs || []).map(item => normalizeLog(item, order.updated)).find(item => /^(复制催款文案|待办已处理：收款提醒)/.test(item.text || ''));
   return log ? normalizeDate(log.time) : '';
@@ -11780,74 +11757,6 @@ const toastFailurePattern = /失败|没有保存|未保存|尚未保存|尚未�
 function toast(text, options) {
   const tone = options?.tone || (toastFailurePattern.test(String(text || '')) ? 'error' : '');
   uiToast(text, tone ? { ...options, tone } : options);
-}
-function copyTemplate(kind = 'status') {
-  const own = kind === 'dunning' ? state?.orderSettings?.copyDunningTemplate : state?.orderSettings?.copyStatusTemplate;
-  return String(own || '').trim() || defaultCopyTemplates[kind] || '';
-}
-function stageEnglish(stage = '') {
-  return { quote:'Quotation confirmed, awaiting deposit', production:'In production', balance:'Ready to ship, awaiting balance payment', shipment:'Shipped', done:'Completed' }[normalizeStage(stage)] || '';
-}
-function logisticsEnglish(status = '') {
-  return { '未发货':'Not shipped yet', '已发货':'Shipped', '运输中':'In transit', '派送中':'Out for delivery', '已签收':'Delivered', '异常':'Exception, please check' }[normalizeTrackingStatus(status) || String(status || '').trim()] || '';
-}
-// 发给客户的物流状态按全部批次汇总：有一批异常就不能说 Delivered；多批里签收了一部分写「Partially delivered (1 of 3 parcels)」。
-function orderLogisticsEnglish(order = {}) {
-  const summary = orderLogisticsSummary(order);
-  if (summary.total > 1 && summary.status === '异常') return `Exception on ${summary.exception} of ${summary.total} parcels, we are checking with the carrier`;
-  if (summary.partialDelivered) return `Partially delivered (${summary.delivered} of ${summary.total} parcels)`;
-  return logisticsEnglish(summary.status);
-}
-// 称呼：档案里有联系人就叫联系人（Hi Ann,），没有就用客户名；不再拼「客户名（联系人）」这种中文括号。
-function copyGreetingName(order = {}) {
-  const raw = String(order.client || '').trim();
-  const key = typeof existingCustomerKey === 'function' ? existingCustomerKey(raw) : '';
-  const contact = String((typeof contactForClient === 'function' && (contactForClient(key || raw) || contactForClient(raw))) || '').trim();
-  return autoCapitalizeCustomerName(contact || raw) || 'there';
-}
-function orderCopyVars(order = {}) {
-  const stage = normalizeStage(order.stage);
-  const summary = orderLogisticsSummary(order);
-  const shipments = summary.shipments.filter(item => item.trackingNumber);
-  const logistics = isSettledStage(stage) ? orderLogisticsEnglish(order) : '';
-  const partial = isSettledStage(stage) && summary.partialShipment ? 'Partially shipped, the remaining parcels will follow' : '';
-  const amount = orderAmountValue(order);
-  const paid = orderPaidValue(order);
-  // 催款催的是现在该付的钱：报价阶段的定金单催定金（没收定金 = 报价），全款单未付催全款，其余催尾款。
-  const deposit = Math.min(amount, Math.max(0, Number(order.depositAmount || 0)));
-  const depositDue = stage === 'quote' && (order.orderType || '定金订单') === '定金订单' && deposit > 0 && paid < deposit;
-  const due = depositDue ? roundMoneyValue(deposit - paid) : orderDueValue(order);
-  const dueLabel = depositDue ? 'deposit' : (paid <= 0 ? 'payment' : 'balance');
-  return {
-    client: copyGreetingName(order),
-    num: order.num || '',
-    stage: [stageEnglish(stage), logistics && logistics !== 'Shipped' ? logistics : '', partial].filter(Boolean).join(' · '),
-    logistics,
-    // 多批时每批后面带上自己的状态，客户一眼看出哪一箱到了、哪一箱还在路上。
-    tracking: shipments.map(item => `${item.carrier && item.carrier !== 'auto' ? carrierName(item.carrier) + ' ' : ''}${item.trackingNumber}${shipments.length > 1 && logisticsEnglish(item.status) ? ` (${logisticsEnglish(item.status)})` : ''}`).join(', '),
-    amount: moneyForCustomer(amount, order.currency),
-    paid: moneyForCustomer(paid, order.currency),
-    due: moneyForCustomer(due, order.currency),
-    dueLabel,
-    deposit: deposit > 0 ? moneyForCustomer(deposit, order.currency) : '',
-    nextStep: stage === 'quote' ? 'start production right away' : stage === 'balance' ? 'arrange shipment right away' : 'proceed with the next step',
-    date: normalizeDate(new Date().toISOString())
-  };
-}
-// 变量替换；一行里的变量全是空就整行去掉（比如没有运单号时不留 "Tracking: "），多余空行合并。
-function fillCopyTemplate(template = '', vars = {}) {
-  const lines = String(template || '').replace(/\r\n?/g, '\n').split('\n').map(line => {
-    let used = 0, filled = 0;
-    const text = line.replace(/\{(\w+)\}/g, (m, key) => {
-      if (!(key in vars)) return m;
-      used++;
-      const value = String(vars[key] ?? '').trim();
-      if (value) filled++;
-      return value;
-    });
-    return used && !filled ? null : text;
-  }).filter(line => line !== null);
-  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 // 复制到剪贴板，返回是否真的复制成功。剪贴板接口被拒（Mac App 偶尔会）时退回 execCommand；两条路都失败要明说，
 // 以前不管成没成功都提示「已复制」，粘贴出来却是上一次的内容。
@@ -17585,15 +17494,6 @@ function renderOrderDetailHeader(order, source = 'active') {
   `).join('');
   const count = document.getElementById('detailAttachmentCount');
   if (count) count.textContent = (order.attachments || []).length || '';
-  const copyBtn = document.getElementById('detailCopyTextBtn');
-  if (copyBtn) copyBtn.style.display = source === 'active' ? '' : 'none';
-  const dunning = document.querySelector('#detailCopyMenu [data-copy-text="dunning"]');
-  if (dunning) {
-    const due = orderDueValue(order);
-    dunning.disabled = !(due > 0) || order.isDraft === true;
-    dunning.title = order.isDraft ? '草稿还没确认，先保存为正式订单再催款' : due > 0 ? '' : '这单没有待收款';
-  }
-  uiCopyMenuToggle(false);
 }
 function openOrderDetail(id, { tab = '' } = {}) {
   const { order, source } = findOrderRecord(id);
@@ -17712,10 +17612,6 @@ function renderSettings() {
   else renderLevelRuleTable();
   settingsFormFill(document.getElementById('ownEmailsForm'), ownForm => {
     ownForm.elements.ownEmails.value = customerOwnEmailList().join('\n');
-  });
-  settingsFormFill(document.getElementById('copyTemplatesForm'), copyForm => {
-    copyForm.elements.copyStatusTemplate.value = copyTemplate('status');
-    copyForm.elements.copyDunningTemplate.value = copyTemplate('dunning');
   });
   settingsFormFill(document.getElementById('orderSettingsForm'), form => {
     form.elements.orderPrefix.value = state.orderSettings.orderPrefix || 'K';
@@ -28809,6 +28705,8 @@ document.getElementById('orderSettingsForm').addEventListener('submit', async e 
   const data = Object.fromEntries(new FormData(e.currentTarget).entries());
   settingsFormRefill(e.currentTarget);
   state.orderSettings = {
+    // 这张表单不管的键原样留着：我方邮箱，以及删掉「文案」功能前存下的英文模板（copyStatusTemplate / copyDunningTemplate）。
+    ...(state.orderSettings || {}),
     orderPrefix: (data.orderPrefix || 'K').trim().toUpperCase().replace(/[^A-Z0-9]/g, '') || 'K',
     serialDigits: Number(data.serialDigits || 2),
     defaultCurrency: data.defaultCurrency || 'USD',
@@ -28822,9 +28720,7 @@ document.getElementById('orderSettingsForm').addEventListener('submit', async e 
     defaultDepositPercent: data.defaultDepositPercent === '' ? defaultOrderSettings.defaultDepositPercent : Number(data.defaultDepositPercent),
     defaultCarrier: ['auto','DHL','FedEx','UPS'].includes(data.defaultCarrier) ? data.defaultCarrier : defaultOrderSettings.defaultCarrier,
     defaultUrgentOrder: data.defaultUrgentOrder === '是' ? '是' : '否',
-    defaultNext: '',
-    copyStatusTemplate: state.orderSettings?.copyStatusTemplate || '',
-    copyDunningTemplate: state.orderSettings?.copyDunningTemplate || ''
+    defaultNext: ''
   };
   render();
   if (!await settingsFormPersist(e.currentTarget)) return;
@@ -28855,25 +28751,6 @@ document.getElementById('ownEmailsForm')?.addEventListener('submit', async e => 
   render();
   if (!await settingsFormPersist(form)) return;
   toast(list.length ? `已保存 ${list.length} 个我方邮箱` : '已清空我方邮箱');
-});
-document.getElementById('copyTemplatesForm')?.addEventListener('submit', async e => {
-  e.preventDefault();
-  if (e.currentTarget.dataset.saving || !canSubmitStoredData()) return;
-  const data = Object.fromEntries(new FormData(e.currentTarget).entries());
-  state.orderSettings = { ...defaultOrderSettings, ...(state.orderSettings || {}) };
-  state.orderSettings.copyStatusTemplate = String(data.copyStatusTemplate || '').trim() === defaultCopyTemplates.status ? '' : String(data.copyStatusTemplate || '').trim();
-  state.orderSettings.copyDunningTemplate = String(data.copyDunningTemplate || '').trim() === defaultCopyTemplates.dunning ? '' : String(data.copyDunningTemplate || '').trim();
-  settingsFormRefill(e.currentTarget);
-  render();
-  if (!await settingsFormPersist(e.currentTarget)) return;
-  toast('文案已保存');
-});
-document.getElementById('copyTemplatesResetBtn')?.addEventListener('click', () => {
-  const form = document.getElementById('copyTemplatesForm');
-  if (!form) return;
-  form.elements.copyStatusTemplate.value = defaultCopyTemplates.status;
-  form.elements.copyDunningTemplate.value = defaultCopyTemplates.dunning;
-  toast('已填回默认文案，记得点保存');
 });
 document.getElementById('levelRuleForm')?.addEventListener('submit', async e => {
   e.preventDefault();
@@ -31214,7 +31091,6 @@ document.addEventListener('keydown', e => {
   if (e.key !== 'Escape' || e.defaultPrevented || isImeKeyEvent(e)) return;
   if (e.target.matches?.('#customerPasteEditValue, #subsRateInput, [data-sub-opt-add] input, #confirmInput, #trackingQuickCard input')) return;
   if (typeof activeAppSelect !== 'undefined' && activeAppSelect) return;
-  if (document.getElementById('detailCopyMenu')?.hidden === false) { e.preventDefault(); uiCopyMenuToggle(false); document.getElementById('detailCopyTextBtn')?.focus(); return; }
   if (document.querySelector('.client-menu.open, .board-menu') || document.getElementById('notifPanel')?.hidden === false) return;
   // Close the layer that is really on top. Layers share z-index 50, so the later one in the page wins
   // (the confirm box sits above all of them). Esc used to close the order detail hidden under an image
@@ -31473,16 +31349,6 @@ document.getElementById('detailTabs')?.addEventListener('keydown', e => {
   uiDetailTab(next.dataset.detailTabBtn);
   next.focus();
 });
-// 「文案」菜单：↑/↓ 在菜单项之间移动。
-document.getElementById('detailCopyMenu')?.addEventListener('keydown', e => {
-  if (!['ArrowDown', 'ArrowUp'].includes(e.key)) return;
-  const items = [...e.currentTarget.querySelectorAll('[role="menuitem"]:not(:disabled)')];
-  if (!items.length) return;
-  e.preventDefault();
-  const index = items.indexOf(document.activeElement);
-  const next = e.key === 'ArrowDown' ? items[(index + 1) % items.length] : items[(index - 1 + items.length) % items.length];
-  next.focus();
-});
 document.getElementById('detailStageBar')?.addEventListener('click', async e => {
   const btn = e.target.closest('[data-detail-stage]');
   if (!btn || btn.disabled || !detailOrderId) return;
@@ -31505,66 +31371,6 @@ document.getElementById('detailCopyNumBtn')?.addEventListener('click', () => {
 document.getElementById('orderDetailBody')?.addEventListener('click', e => {
   if (e.target.closest('[data-detail-open-customer]')) document.getElementById('detailCustomerBtn')?.click();
 });
-// 订单详情「文案」：复制英文状态 / 催款给客户。复制后按钮变「已复制」1.5 秒，并在订单记录里留一条，当作一次跟进。
-function uiCopyMenuToggle(open) {
-  const menu = document.getElementById('detailCopyMenu');
-  const btn = document.getElementById('detailCopyTextBtn');
-  if (!menu || !btn) return;
-  const next = open ?? menu.hidden;
-  menu.hidden = !next;
-  btn.setAttribute('aria-expanded', String(next));
-  if (next) (menu.querySelector('button:not(:disabled)') || menu).focus?.({ preventScroll:true });
-}
-let detailCopyResetTimer = 0;
-async function copyOrderText(kind = 'status') {
-  const { order, source } = findOrderRecord(detailOrderId);
-  if (!order) return false;
-  const vars = orderCopyVars(order);
-  const text = fillCopyTemplate(copyTemplate(kind), vars);
-  if (!text) { toast('文案模板是空的，请先到设置里填写'); return false; }
-  uiCopyMenuToggle(false);
-  // 没复制成功就不显示「已复制」，也不在订单记录里记一次跟进。
-  if (!await copyText(text, kind === 'dunning' ? '催款文案已复制，可直接发给客户' : '英文状态已复制，可直接发给客户')) return false;
-  const btn = document.getElementById('detailCopyTextBtn');
-  if (btn) {
-    clearTimeout(detailCopyResetTimer);
-    btn.classList.add('is-copied');
-    btn.textContent = '已复制';
-    detailCopyResetTimer = setTimeout(() => { btn.classList.remove('is-copied'); btn.textContent = '文案'; }, 1500);
-  }
-  if (source === 'active') {
-    order.logs = [{ time:nowText(), text:kind === 'dunning' ? `复制催款文案（${vars.dueLabel === 'deposit' ? '催定金' : '待收'} ${vars.due}）` : '复制英文状态文案' }, ...(order.logs || [])];
-    order.updated = nowText();
-    // 复制催款就是催过一次款：这张单的收款提醒记成「已催款」，几天后还没收齐再提醒，不用再回待办点一次。
-    if (kind === 'dunning') {
-      const paymentTask = buildTaskItems({ includeDone:true, includeSnoozed:true }).find(item => item.type === 'payment' && item.orderId === order.id);
-      if (paymentTask) state.doneTasks[paymentTask.doneKey] = { at:nowText(), until:taskDoneUntil(paymentTask) };
-    }
-    saveState();
-    if (typeof renderTasks === 'function') renderTasks();
-    if (typeof uiRenderNotifs === 'function') uiRenderNotifs();
-    // 抽屉没有未保存的改动时就地刷新，让「记录」页签马上看到这一条。
-    if (typeof uiDetailDirty !== 'function' || !uiDetailDirty()) {
-      const body = document.getElementById('orderDetailBody');
-      const scrollTop = body?.scrollTop || 0;
-      body.innerHTML = renderOrderDetail(order, source);
-      uiDetailTab(uiDetailTab.current, true);
-      body.scrollTop = scrollTop;
-      if (typeof uiDetailMarkClean === 'function') uiDetailMarkClean();
-    }
-  }
-  return true;
-}
-document.getElementById('detailCopyTextBtn')?.addEventListener('click', () => uiCopyMenuToggle());
-document.getElementById('detailCopyMenu')?.addEventListener('click', e => {
-  const item = e.target.closest('[data-copy-text]');
-  if (item && !item.disabled) copyOrderText(item.dataset.copyText);
-});
-document.addEventListener('pointerdown', e => {
-  const menu = document.getElementById('detailCopyMenu');
-  if (!menu || menu.hidden || e.target.closest('.copy-menu-wrap')) return;
-  uiCopyMenuToggle(false);
-}, true);
 // 新版 UI：订单详情抽屉可以直接改（原型的 订单信息 / 收款 页签 + 底部 按住删除 / 取消 / 保存）。
 // 保存走原来的订单表单：先用 openOrder 把订单灌进 #orderForm，再把抽屉里的值写进去，交给 upsertOrder 做校验、阶段推断和持久化。
 function uiDetailEditValues() {

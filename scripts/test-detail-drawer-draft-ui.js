@@ -273,13 +273,6 @@ async function launch() {
     assert.match((await order('b1')).logs[0].text, /币种：USD → EUR/);
     await closeDrawer();
 
-    // ===== 06 P2-8：报价阶段的定金单催的是定金；称呼用联系人，不拼中文括号 =====
-    const dunning = await page.evaluate(() => fillCopyTemplate(copyTemplate('dunning'), orderCopyVars(state.orders.find(o => o.id === 'q1'))));
-    assert.match(dunning, /outstanding deposit of \$300 USD/, '没收定金的报价单催定金 $300，不是全款 $1,000');
-    const greeting = await page.evaluate(() => fillCopyTemplate(copyTemplate('status'), orderCopyVars(state.orders.find(o => o.id === 'ev'))));
-    assert.match(greeting, /^Hi Eve,/, '称呼用联系人');
-    assert.doesNotMatch(greeting, /（/, '英文文案里没有全角括号');
-
     // ===== 06 P2-2 / P2-7：报价定金单填定金，提示写明阶段；定金一行 =====
     await openDrawer('q1', 'payment');
     assert.match(await page.locator('#orderDetailBody .order-detail-deposit').innerText(), /定金：\$300 USD（30%）\s*· 未收/);

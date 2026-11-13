@@ -84,6 +84,29 @@ const measure = page => page.evaluate(() => {
       await page.waitForFunction(() => { const b = document.querySelector('.workspace-board'); return !b.hasAttribute('data-more-left') && !b.hasAttribute('data-more-right'); });
       assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.workspace-board')).maskImage), 'none', `${theme}/1440: 四列放得下时不渐隐`);
 
+      // 看板撑满第一屏：默认窗口（1440×920、85% 缩放 → 视口高 1082）列高 746，面板底边离视口底边约 20；
+      // 1920×1080 的窗口（视口 2259×1271）封顶 920、四列一样高；矮窗口不低于 560。窄屏（≤820）走自己的高度，不受影响。
+      const columnHeights = async (width, height) => {
+        await page.setViewportSize({ width, height });
+        await page.waitForFunction(([w, hh]) => window.innerWidth === w && window.innerHeight === hh, [width, height]);
+        return page.evaluate(() => [...document.querySelectorAll('#pipeline .board-column[data-stage]')].map(col => col.getBoundingClientRect().height));
+      };
+      const defaultWindow = await columnHeights(1694, 1082);
+      assert(defaultWindow.every(v => Math.abs(v - 746) <= 2), `${theme}/1694×1082: 默认窗口列高 746 ${defaultWindow}`);
+      const panelGap = await page.evaluate(() => {
+        window.scrollTo(0, 0);
+        document.querySelector('.content')?.scrollTo?.(0, 0);
+        return window.innerHeight - document.querySelector('.board-panel').getBoundingClientRect().bottom;
+      });
+      assert(panelGap >= 16 && panelGap <= 24, `${theme}/1694×1082: 看板面板底边离窗口底边 16 到 24 px，实际 ${panelGap}`);
+      assert((await columnHeights(1694, 996)).every(v => Math.abs(v - 660) <= 2), `${theme}/1694×996: 最小窗口列高 660`);
+      const bigWindow = await columnHeights(2259, 1271);
+      assert(bigWindow.every(v => Math.abs(v - 920) <= 1), `${theme}/2259×1271: 大窗口四列都封顶 920 ${bigWindow}`);
+      assert((await columnHeights(2560, 2000)).every(v => Math.abs(v - 920) <= 1), `${theme}/2560×2000: 列高封顶 920`);
+      assert((await columnHeights(1440, 760)).every(v => Math.abs(v - 560) <= 1), `${theme}/1440×760: 矮窗口不低于 560`);
+      await page.setViewportSize({ width:1440, height:900 });
+      await page.waitForFunction(() => window.innerWidth === 1440 && window.innerHeight === 900);
+
       // 一张都没写下一步：不留这一行，照样同高。
       await page.evaluate(() => { state.orders.forEach(o => { o.next = ''; }); renderPipeline(); });
       const plain = await measure(page);
@@ -93,6 +116,6 @@ const measure = page => page.evaluate(() => {
       assert.deepEqual(dialogs, [], '看板不能弹原生对话框');
       await context.close();
     }
-    console.log('Board layout passed: real cards (next / no next, urgent, draft, long name, due, tracking, partial) are the same height and the 4 column heads match at 1440/1294/1100/820/390, light and dark; long lists scroll; a board that does not fit fades on the side with more columns.');
+    console.log('Board layout passed: real cards (next / no next, urgent, draft, long name, due, tracking, partial) are the same height and the 4 column heads match at 1440/1294/1100/820/390, light and dark; long lists scroll; columns fill the first screen (746 in the default window, 560 to 920); a board that does not fit fades on the side with more columns.');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

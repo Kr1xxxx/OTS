@@ -308,6 +308,11 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
 
     // Escape closes the editor first, then the drawer.
     await rows.filter({ hasText:'Claude Pro' }).click();
+    // The drawer has one edit entry, in the header next to close, so a long period list never hides it.
+    assert.equal(await drawer.locator('[data-sub-action="edit"]').count(), 1);
+    assert.equal(await drawer.locator('.subs-dh-r1 [data-sub-action="edit"] + [data-sub-action="close"]').count(), 1);
+    assert.equal(await drawer.locator('.subs-db [data-sub-action="edit"]').count(), 0);
+    assert.equal((await drawer.locator('.subs-dh [data-sub-action="edit"]').innerText()).trim(), '编辑');
     await drawer.locator('[data-sub-action="edit"]').click();
     await modal.locator('#subscriptionName').waitFor({ state:'visible' });
     assert.equal(await modal.locator('#subscriptionName').inputValue(), 'Claude Pro');

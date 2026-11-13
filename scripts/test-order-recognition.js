@@ -72,6 +72,10 @@ vm.runInContext(html.match(/^const customerPasteFieldOrder = .*;$/m)[0].replace(
   'aiMoneyNumber',
   'pasteTotalLabelPattern',
   'findAmountInText',
+  'datePickerIso',
+  'datePickerToday',
+  'datePickerParts',
+  'yearlessDateIso',
   'findOrderCreatedAtInText',
   'findPartialPaymentInText',
   'countrySearchParts',
@@ -314,7 +318,18 @@ assert.equal(
   undefined,
   '英文交货日期不能写入下单日期'
 );
-assert.equal(vm.runInContext(`findOrderCreatedAtInText(${JSON.stringify('下单日期：9月1日')})`, context), '2026-09-01');
+assert.equal(vm.runInContext(`findOrderCreatedAtInText(${JSON.stringify('下单日期：8月1日')})`, context), '2026-08-01');
+// 没写年份的下单日期不会在以后：按今年算晚于今天就是去年（1 月初补录上个月的单）。
+const createdAtOn = (text, today, options = {}) => vm.runInContext(`findOrderCreatedAtInText(${JSON.stringify(text)}, ${JSON.stringify({ ...options, today })})`, context);
+assert.equal(createdAtOn('下单日期：12月28日', '2027-01-03'), '2026-12-28', 'a December order typed in January is last year');
+assert.equal(createdAtOn('下单日期：1月2日', '2027-01-03'), '2027-01-02');
+assert.equal(createdAtOn('下单日期：1月3日', '2027-01-03'), '2027-01-03', 'today is not in the future');
+assert.equal(createdAtOn('下单日期：9月1日', '2026-08-17'), '2025-09-01');
+assert.equal(createdAtOn('下单日期：2月29日', '2027-01-03'), '', 'no 29 February in 2026 or 2027');
+assert.equal(createdAtOn('下单日期：2026年12月28日', '2027-01-03'), '2026-12-28', 'a written year is kept');
+// AI 交回来的交期没写年份：取离今天最近的那一年（12 月填 1 月的交期是明年）。
+assert.equal(createdAtOn('1月15日', '2026-12-20', { yearless:'nearest' }), '2027-01-15');
+assert.equal(createdAtOn('11月20日', '2026-11-13', { yearless:'nearest' }), '2026-11-20');
 assert.equal(vm.runInContext(`findOrderCreatedAtInText(${JSON.stringify('Order date: 2026-09-01')})`, context), '2026-09-01');
 
 const twoUnlabeledEmails = evaluateJson(`analyzeCustomerPasteText(${JSON.stringify('Taylor Morgan\nbuyer@example.com\naccounts@example.com')})`).extracted;

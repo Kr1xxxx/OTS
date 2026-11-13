@@ -45,7 +45,7 @@ const { h } = require('./helpers/board-page');
     const open = (id, tab) => h.openDrawer(page, id, tab);
     const save = async () => {
       await page.locator('#detailSaveBtn').click();
-      await page.waitForFunction(()=>document.getElementById('detailSaveBtn').dataset.mode !== 'busy' && !document.getElementById('orderForm').dataset.saving);
+      await page.waitForFunction(()=>!document.getElementById('detailSaveBtn').dataset.morph && !document.getElementById('orderDetailBody').dataset.saving);
     };
 
     // Deposit entered on a 报价 order moves it to 生产中; the drawer re-renders on the saved order.

@@ -38,6 +38,7 @@ async function scenario(readOnly, saveOK) {
   }
   vm.runInContext(extract('saveCustomer'),ctx);
   vm.runInContext(extract('upsertOrder'),ctx);
+  vm.runInContext(extract('saveOrderData'),ctx);
   const form = {dataset:{}, elements:{name:{value:''},originalName:{value:''}}};
   const save = ctx.saveCustomer(form);
   await new Promise(resolve=>setImmediate(resolve));

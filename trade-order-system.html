@@ -3926,8 +3926,9 @@ html[data-theme] .customer-name-line strong { font-size:15px; font-weight:600; l
 html[data-theme] .customer-row .muted { font-size:12px; color:var(--gray-500); }
 html[data-theme] .customer-cell-stack { gap:3px; }
 html[data-theme] .customer-cell-stack > strong { font-size:14px; font-weight:500; color:var(--gray-900); }
-/* 客户属性列窄（最小窗口）时放不下的标签整个藏起来，不再被列边切掉半个：标签折到第二行，只留第一行高（标签 11.5px × 1.5 行高 + 上下各 1px 内边距和边框）；全部标签在这一格的 title 里。 */
-html[data-theme] .customer-tag-stack { display:flex; gap:6px; flex-wrap:wrap; height:21.25px; overflow:hidden; }
+/* 客户属性列窄（最小窗口）时放不下的标签整个藏起来，不再被列边切掉半个：标签折到第二行，最多只露第一行（标签 11.5px × 1.5 行高 + 上下各 1px 内边距和边框）；全部标签在这一格的 title 里。
+   用 max-height 不用 height：只有等级、没有标签的客户，这一行照旧是等级那一粒的高度（19.25px），不被撑高。 */
+html[data-theme] .customer-tag-stack { display:flex; gap:6px; flex-wrap:wrap; max-height:21.25px; overflow:hidden; }
 html[data-theme] .customer-level-pill { flex:none; padding:1px 8px; border-radius:999px; background:var(--accent-tint); color:var(--accent-ink); font-size:11.5px; font-weight:500; }
 html[data-theme] .customer-tag-stack .level-tag { flex:none; padding:1px 8px; border:1px solid var(--surface-border); border-radius:999px; background:transparent; color:var(--gray-700); font-size:11.5px; white-space:nowrap; }
 html[data-theme] .customer-cell-money { text-align:right; justify-items:end; }
@@ -4718,13 +4719,13 @@ html[data-theme] .order-table :is(th, td):first-child { padding-left:16px; }
 html[data-theme] .order-table .tag, html[data-theme] .order-table-view { white-space:nowrap; }
 html[data-theme] .order-table tbody tr, html[data-theme] .order-table tbody tr:nth-child(even) { background:var(--surface-bg); }
 html[data-theme] :is(.order-table .col-customer, .order-table .col-action) { box-shadow:none; }
-html[data-theme] .order-table .col-order { width:112px; }
-html[data-theme] .order-table th.col-customer, html[data-theme] .order-table td.col-customer { width:176px; left:112px; }
+html[data-theme] .order-table .col-order { width:116px; }
+html[data-theme] .order-table th.col-customer, html[data-theme] .order-table td.col-customer { width:176px; left:116px; }
 html[data-theme] .order-table .col-country { width:104px; }
 html[data-theme] .order-table .col-product { width:102px; }
 html[data-theme] .order-table .col-stage { width:84px; }
 html[data-theme] .order-table .col-money { width:132px; }
-html[data-theme] .order-table .col-logistics { width:108px; }
+html[data-theme] .order-table .col-logistics { width:104px; }
 html[data-theme] .order-table .col-date { width:96px; }
 html[data-theme] .order-table .col-action { width:92px; }
 html[data-theme] .order-table-primary .order-num { font-family:var(--sans); font-size:13px; font-weight:500; font-variant-numeric:tabular-nums; }

@@ -2062,12 +2062,6 @@ html[data-theme="dark"] .app-refresh-btn:focus-visible {
 @keyframes fillIn {
   from { width: 0; }
 }
-html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-motion="reduce"] *::after {
-  animation-duration: 1ms !important;
-  animation-iteration-count: 1 !important;
-  scroll-behavior: auto !important;
-  transition-duration: 1ms !important;
-}
 @media (max-width: 1080px) {
   .sidebar { display: none; }
   .main { margin-left: 0; width: 100%; }
@@ -3283,9 +3277,6 @@ html[data-theme="dark"] .arc-bar-chart[data-scrubbing] .arc-bar-mark { fill:colo
 .arc-row-m { color:var(--a-muted); font-size:11px; }
 .arc-row-v { justify-self:end; color:var(--a-ink-2); font-variant-numeric:tabular-nums; }
 .arc-row-s { justify-self:end; color:var(--a-ink); font-weight:500; font-variant-numeric:tabular-nums; }
-html[data-motion="reduce"] :is(.arc-swap-t, .arc-digit) { animation:none !important; }
-html[data-motion="reduce"] :is(.subs-scope, .subs-scope *) { animation-delay:0s !important; transition-delay:0s !important; }
-html[data-motion="reduce"] :is(.subs-sk, .subs-spin) { animation:none !important; }
 </style>
 <style id="ots-easing">
 /* 旧版 WebKit 不认识 linear() 时会让整条动画失效，所以先用 cubic-bezier 兜底，支持时再换成弹簧曲线 */
@@ -3578,8 +3569,6 @@ html[data-theme] .page.active.page-enter > *:nth-child(2) { animation-delay:.05s
 html[data-theme] .page.active.page-enter > *:nth-child(3) { animation-delay:.1s; }
 html[data-theme] .page.active.page-enter > *:nth-child(n+4) { animation-delay:.15s; }
 
-/* 动效默认始终打开（和原型一致，不跟随系统「减少动态效果」）；html[data-motion="reduce"] 时才全部关掉 */
-html[data-theme][data-motion="reduce"] *, html[data-theme][data-motion="reduce"] *::before, html[data-theme][data-motion="reduce"] *::after { animation-duration:0s !important; animation-delay:0s !important; animation-iteration-count:1 !important; transition-duration:0s !important; scroll-behavior:auto !important; }
 html[data-theme] .world-clock-strip { flex:0 1 auto; min-width:0; overflow:hidden; }
 html[data-theme] .top-actions { flex:0 0 auto; }
 @media (max-width: 1320px) { html[data-theme] .world-clock-strip { display:none; } }
@@ -24805,9 +24794,6 @@ function subscriptionWhenDate(schedule) {
   if (!date) return '';
   return date.slice(0, 4) === subscriptionLocalDate().slice(0, 4) ? date.slice(5) : date;
 }
-function subscriptionReducedMotion() {
-  return document.documentElement.dataset.motion === 'reduce';
-}
 function subscriptionIcon(name) {
   return `<svg class="subs-i" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 }
@@ -24971,7 +24957,7 @@ function rollSubscriptionWheel(el, value, from) {
     return `<span class="subs-wh" aria-hidden="true"><span data-from="${previous}" data-to="${char}" data-delay="${fromRight * 45}ms">${'0123456789'.replace(/\d/g, n => `<span>${n}</span>`)}</span></span>`;
   }).join('');
   const strips = [...el.querySelectorAll('.subs-wh > span')];
-  const still = value === from || subscriptionReducedMotion();
+  const still = value === from;
   strips.forEach(strip => {
     strip.style.transition = 'none';
     strip.style.transform = `translateY(-${(still ? strip.dataset.to : strip.dataset.from) * 1.25}em)`;
@@ -24999,7 +24985,7 @@ function placeSubscriptionGlide(group, key, { jump = false } = {}) {
     glide.style.width = `${r.w}px`;
     glide.style.height = `${r.h}px`;
   };
-  const previous = !jump && !subscriptionReducedMotion() && subscriptionGlideRects[key];
+  const previous = !jump && subscriptionGlideRects[key];
   glide.classList.add('no-t');
   apply(previous || rect);
   glide.style.opacity = '1';
@@ -25043,7 +25029,7 @@ function renderSubscriptionList(rows, entering) {
   const before = new Map([...list.querySelectorAll('[data-sub-id]')].map(el => [el.dataset.subId, el.getBoundingClientRect()]));
   let fresh = 0;
   list.innerHTML = rows.map(row => subscriptionRowHtml(row, entering || !before.has(row.item.id) ? Math.min(fresh++, 12) : -1)).join('');
-  if (entering || subscriptionReducedMotion() || !list.offsetParent) return;
+  if (entering || !list.offsetParent) return;
   list.querySelectorAll('[data-sub-id]').forEach(el => {
     const old = before.get(el.dataset.subId);
     if (!old || !old.width) return;
@@ -25247,8 +25233,8 @@ function subscriptionAnalysis(items, today, rate) {
 const arcGap = 3, arcCorner = 4, arcLift = 4, arcGrow = 2, arcMargin = 7;
 function arcEase(t) { return 1 - (1 - t) ** 4; }
 function arcTween(from, to, ms, onFrame, { delay = 0 } = {}) {
-  // A soft spring without overshoot; reduced motion jumps straight to the end.
-  if (subscriptionReducedMotion() || ms <= 0 || from === to) { onFrame(to, true); return () => {}; }
+  // A soft spring without overshoot.
+  if (ms <= 0 || from === to) { onFrame(to, true); return () => {}; }
   let raf = 0;
   const begin = performance.now() + delay;
   const step = now => {
@@ -25267,7 +25253,7 @@ function arcSwap(holder, text, direction = 1) {
   next.className = 'arc-swap-t';
   next.textContent = text;
   next.style.setProperty('--dir', direction);
-  if (old && !subscriptionReducedMotion()) {
+  if (old) {
     old.classList.add('out');
     old.addEventListener('animationend', () => old.remove(), { once:true });
     next.classList.add('in');
@@ -25280,9 +25266,9 @@ function arcRoll(holder, text, direction = 1) {
   const current = [...holder.querySelectorAll(':scope > .arc-digit')];
   const same = current.length === chars.length;
   holder.setAttribute('aria-label', text);
-  if (!same || subscriptionReducedMotion()) {
+  if (!same) {
     holder.innerHTML = chars.map(char => `<span class="arc-digit">${escapeAttr(char)}</span>`).join('');
-    if (!subscriptionReducedMotion() && current.length) holder.querySelectorAll('.arc-digit').forEach(el => { el.style.setProperty('--dir', direction); el.classList.add('in'); });
+    if (current.length) holder.querySelectorAll('.arc-digit').forEach(el => { el.style.setProperty('--dir', direction); el.classList.add('in'); });
     return;
   }
   chars.forEach((char, index) => {
@@ -25616,7 +25602,7 @@ function renderSubscriptionAnalysisPage({ entering = false } = {}) {
   box.innerHTML = `
     <div class="subs-kpis">${cards.map(([label, value, context, pill], i) => `<article class="arc-metric subs-enter" style="--i:${i}">
       <div class="arc-metric-top"><span>${escapeAttr(label)}</span>${pill}</div>
-      <b class="arc-metric-v" data-target="${value}">${subscriptionMoney(subscriptionReducedMotion() ? value : 0)}</b>
+      <b class="arc-metric-v" data-target="${value}">${subscriptionMoney(0)}</b>
       <p>${escapeAttr(context)}</p></article>`).join('')}</div>
     <section class="subs-panel subs-enter wide" style="--i:4">
       <header><div><h3>每月扣费</h3><p>实心是已扣的金额，浅色虚边是还没到扣费日的（本月待扣和右边 6 个月的预计）；鼠标在图上移动或按方向键查看每个月</p></div></header>
@@ -26188,7 +26174,7 @@ async function deleteSubscription(id) {
   const row = document.querySelector(`#subsList [data-sub-id="${CSS.escape(id)}"]`);
   const next = row && (row.nextElementSibling || row.previousElementSibling);
   closeSubscriptionDetail({ restoreFocus:false });
-  if (row?.offsetParent && row.animate && !subscriptionReducedMotion()) {
+  if (row?.offsetParent && row.animate) {
     await row.animate([
       { opacity:1, transform:'scale(1)' },
       { opacity:0, transform:'scale(.94)' }
@@ -27107,7 +27093,7 @@ async function saveSubscriptionDraft(event) {
   const isNew = !old || item.id !== old.id;
   upsertSubscription(item);
   setSubscriptionSaveState('saved');
-  await new Promise(resolve => setTimeout(resolve, subscriptionReducedMotion() ? 0 : 450));
+  await new Promise(resolve => setTimeout(resolve, 450));
   subscriptionBusy = false;
   const fromList = subscriptionEditorOrigin === 'list' && !isNew;
   closeSubscriptionEditor({ restoreFocus:false });
@@ -30084,7 +30070,6 @@ setInterval(checkUpsAutoCompletion, 60000);
 // #region UI layer: toasts, hold to delete, board menu, notifications, modal style, step navigation, zoom
 // ===== 新版 UI 交互 开始 =====
 // 新版 UI：外壳交互（导航滑动高亮、导航计数、换页入场、⌘K 搜索）。只读 state，不改数据。
-function uiReduceMotion() { return document.documentElement.dataset.motion === 'reduce'; }
 function uiNavGlide(instant = false) {
   const nav = document.querySelector('.sidebar .nav');
   const active = nav?.querySelector('.nav-item.active');
@@ -30099,7 +30084,7 @@ function uiNavGlide(instant = false) {
     instant = true;
   }
   const n = nav.getBoundingClientRect(), r = active.getBoundingClientRect();
-  glide.classList.toggle('no-t', instant || uiReduceMotion());
+  glide.classList.toggle('no-t', instant);
   glide.style.opacity = '1';
   glide.style.width = `${r.width}px`;
   glide.style.height = `${r.height}px`;
@@ -30130,7 +30115,6 @@ function uiAfterPageChange(changed) {
   uiNavGlide(!changed);
   if (!changed) return;
   const title = document.querySelector('.page-title');
-  if (uiReduceMotion()) return;
   title?.classList.remove('swap'); page?.classList.remove('page-enter');
   void page?.offsetWidth;
   title?.classList.add('swap'); page?.classList.add('page-enter');
@@ -30219,7 +30203,7 @@ function uiToast(text, { undo = null, undoText = '撤销', tone = '', desc = '',
     clearTimeout(timer);
     if (item.classList.contains('leaving')) return;
     item.classList.add('leaving');
-    setTimeout(() => { item.remove(); uiLayoutToasts(); }, uiReduceMotion() ? 0 : 200);
+    setTimeout(() => { item.remove(); uiLayoutToasts(); }, 200);
   };
   item.__dismiss = dismiss;
   if (group) item.dataset.toastGroup = group;
@@ -30320,7 +30304,7 @@ function uiMorph(btn, mode, text) {
   } else {
     btn.innerHTML = `${icon}<span class="morph-label">${escapeAttr(text)}</span>`;
   }
-  if (uiReduceMotion() || !from) return;
+  if (!from) return;
   btn.style.width = 'auto';
   const to = btn.getBoundingClientRect().width;
   btn.style.width = `${from}px`;
@@ -30347,7 +30331,7 @@ function uiStartHold(btn) {
     btn.classList.add('held');
     setTimeout(() => btn.classList.remove('held'), 1400);
     btn.dispatchEvent(new CustomEvent('hold-confirm', { bubbles:true }));
-  }, uiReduceMotion() ? Math.min(ms, 600) : ms);
+  }, ms);
 }
 // 按钮还在页面上、看得见，所在的抽屉 / 弹窗也还开着。关掉的右键菜单节点虽然脱离了页面，监听器还挂着，不能让它删单。
 function uiHoldTargetAlive(btn) {
@@ -30421,7 +30405,6 @@ function uiSnapshotNumbers() {
   return new Map([...uiTickTargets()].map(el => [el.id || el, el.textContent]));
 }
 function uiTickChanged(before) {
-  if (uiReduceMotion()) return;
   uiTickTargets().forEach(el => {
     const old = before.get(el.id || el);
     if (old === undefined || old === el.textContent) return;
@@ -31157,7 +31140,7 @@ function uiStepNavSetup(modalId, formId) {
     if (!target) return;
     form._spyLock = Date.now();
     uiStepNavMark(form, Number(btn.dataset.jump));
-    form.scrollTo({ top:Math.max(0, target.offsetTop - form.offsetTop - 8), behavior:uiReduceMotion() ? 'auto' : 'smooth' });
+    form.scrollTo({ top:Math.max(0, target.offsetTop - form.offsetTop - 8), behavior:'smooth' });
   });
   // 识别结果填入、客户切换编辑模式等不会触发 input，用观察器兜底刷新进度。
   let pending = 0, needBuild = false;
@@ -31445,7 +31428,7 @@ document.getElementById('orderForm')?.addEventListener('click', e => {
   section.classList.remove('is-folded');
   uiOrderMoreSync(form);
   requestAnimationFrame(() => {
-    section.scrollIntoView?.({ block:'nearest', behavior:uiReduceMotion() ? 'auto' : 'smooth' });
+    section.scrollIntoView?.({ block:'nearest', behavior:'smooth' });
     section.querySelector('input:not([type="hidden"]), select:not(.binary-native):not(.app-select-native), textarea, .binary-option')?.focus({ preventScroll:true });
   });
 });
@@ -32178,7 +32161,6 @@ function uiStaggerPage(page) {
 }
 // 订单移到「已完成」时在鼠标位置撒彩纸。
 function uiConfetti(x, y) {
-  if (uiReduceMotion()) return;
   let cv = document.getElementById('uiConfetti');
   if (!cv) { cv = document.createElement('canvas'); cv.id = 'uiConfetti'; cv.setAttribute('aria-hidden', 'true'); document.body.appendChild(cv); }
   const ctx = cv.getContext('2d'), dpr = window.devicePixelRatio || 1;
@@ -32240,7 +32222,7 @@ document.addEventListener('invalid', e => {
 function uiBellRing(unread) {
   const prev = uiBellRing.last;
   uiBellRing.last = unread;
-  if (prev === undefined || unread <= prev || uiReduceMotion()) return;
+  if (prev === undefined || unread <= prev) return;
   const bell = document.getElementById('notifBtn');
   if (!bell) return;
   bell.classList.remove('ring'); void bell.offsetWidth; bell.classList.add('ring');

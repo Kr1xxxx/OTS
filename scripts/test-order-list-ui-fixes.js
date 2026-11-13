@@ -7,18 +7,20 @@
 // - 唯一那张单没了，国家筛选不悄悄变回「全部」；工作台「全部订单 →」清掉上次的筛选；没有订单时显示「还没有订单」。
 // 全程用真实键盘和鼠标；等条件，不用固定 sleep。
 const assert = require('node:assert/strict');
-const { launchBrowser, openBoard, h, base, day } = require('./helpers/board-page');
+const { launchBrowser, openBoard, h, base } = require('./helpers/board-page');
 const { inputMethod } = require('./helpers/input-method');
 
 const rates = [{ date:'2020-01-01', rates:{ USD:1.1, CNY:7.9, GBP:0.86, EUR:1 } }];
 const order = (id, fields) => ({ ...base, id, orderType:'定金订单', paidAmount:0, stage:'quote', ...fields });
+// 更新时间写一个一定在过去的日子：以前写的是「本月 1 日 08:00–13:00」，每月 1 日 13:00 前跑时这些时间还在未来，
+// 「收齐」之后那张单的更新时间（现在）反而排不到最前面。
 const orders = [
-  order('o-nor', { num:'K261001001', client:'Nordic Hair', country:'🇳🇴 挪威 Norway', amount:100, updated:`${day(1)} 08:00` }),
-  order('o-cny', { num:'K261006056', client:'张三美发用品', country:'🇨🇳 中国 China', currency:'CNY', amount:32652, updated:`${day(1)} 09:00` }),
-  order('o-eur', { num:'K261020038', client:'Bella Wigs', currency:'EUR', amount:547, updated:`${day(1)} 10:00` }),
-  order('o-usd', { num:'K261020040', client:'Alpha Salon', amount:5000, updated:`${day(1)} 11:00` }),
-  order('o-gbp', { num:'K261020041', client:'Crown Lace', currency:'GBP', amount:6035, paidAmount:3000, stage:'production', updated:`${day(1)} 12:00` }),
-  order('o-draft', { num:'K261020042', client:'Draft Buyer', currency:'EUR', amount:5758, isDraft:true, updated:`${day(1)} 13:00` })
+  order('o-nor', { num:'K261001001', client:'Nordic Hair', country:'🇳🇴 挪威 Norway', amount:100, updated:'2026-01-01 08:00' }),
+  order('o-cny', { num:'K261006056', client:'张三美发用品', country:'🇨🇳 中国 China', currency:'CNY', amount:32652, updated:'2026-01-01 09:00' }),
+  order('o-eur', { num:'K261020038', client:'Bella Wigs', currency:'EUR', amount:547, updated:'2026-01-01 10:00' }),
+  order('o-usd', { num:'K261020040', client:'Alpha Salon', amount:5000, updated:'2026-01-01 11:00' }),
+  order('o-gbp', { num:'K261020041', client:'Crown Lace', currency:'GBP', amount:6035, paidAmount:3000, stage:'production', updated:'2026-01-01 12:00' }),
+  order('o-draft', { num:'K261020042', client:'Draft Buyer', currency:'EUR', amount:5758, isDraft:true, updated:'2026-01-01 13:00' })
 ];
 
 (async () => {

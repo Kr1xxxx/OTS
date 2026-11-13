@@ -11069,7 +11069,9 @@ function positionFloatingMenu(menu, anchor, { minWidth = 0, maxHeight = 320, fit
   let contentWidth = 0;
   if (fitContent) {
     menu.style.width = 'max-content';
-    contentWidth = Math.min(Math.ceil(menu.offsetWidth), 480);
+    // offsetWidth 是四舍五入过的整数：真实宽 184.39 量出来是 184，最长的一项差 0.39 像素就折行。多给 1 像素，一定够。
+    // 不用 getBoundingClientRect：菜单开在正在入场缩放的弹窗里时，它量到的是缩放后的宽度（见下面 fixFloatingMenuContainingBlock）。
+    contentWidth = Math.min(menu.offsetWidth + 1, 480);
   }
   const width = Math.max(0, Math.min(Math.max(minWidth, rect.width, contentWidth), rightEdge - leftEdge));
   menu.style.width = `${width}px`;

@@ -17,7 +17,7 @@
   --s-tint:13%;
   --blue-50:var(--accent-tint); --blue-100:color-mix(in oklab, var(--accent) 22%, transparent);
   --blue-500:var(--accent); --blue-600:var(--accent); --blue-700:color-mix(in oklab, var(--accent) 80%, #000);
-  --green-50:color-mix(in oklab, var(--s-green) var(--s-tint), transparent); --green-500:var(--s-green); --green-600:var(--s-green); --green-700:color-mix(in oklab, var(--s-green) 80%, #000);
+  --green-50:color-mix(in oklab, var(--s-green) var(--s-tint), transparent); --green-500:var(--s-green); --green-600:var(--s-green);
   --orange-50:color-mix(in oklab, var(--s-orange) var(--s-tint), transparent); --orange-500:var(--s-orange); --orange-600:var(--s-orange); --orange-700:color-mix(in oklab, var(--s-orange) 80%, #000);
   --purple-50:var(--accent-tint); --purple-500:var(--accent);
   --cyan-50:color-mix(in oklab, var(--s-teal) var(--s-tint), transparent); --cyan-600:var(--s-teal);
@@ -27,8 +27,8 @@
   --white:oklch(100% 0 0); --page-bg:oklch(98.6% 0 0); --surface-bg:oklch(100% 0 0); --surface-raised:oklch(100% 0 0); --surface-soft:oklch(96.8% 0 0);
   --surface-border:oklch(93% 0 0); --surface-border-strong:oklch(88% 0 0); --hairline:oklch(95.5% 0 0);
   --sidebar:224px; --topbar:60px; --radius:18px; --radius-panel:26px;
-  --control-height:38px; --control-radius:12px; --pill-height:32px;
-  --semantic-primary:oklch(23% 0 0); --semantic-primary-dark:oklch(32% 0 0); --primary-ink:oklch(100% 0 0);
+  --control-height:38px; --control-radius:12px;
+  --semantic-primary:oklch(23% 0 0); --semantic-primary-dark:oklch(32% 0 0);
   --semantic-customer:var(--accent); --semantic-danger:var(--s-red);
   --semantic-paid:var(--s-green); --semantic-due:var(--s-amber); --semantic-alert:var(--s-orange);
   --shadow:0 1px 2px oklch(0% 0 0 / .035);
@@ -37,7 +37,6 @@
   --pill-shadow:inset 0 1px 0 oklch(100% 0 0 / .14), 0 1px 2px oklch(0% 0 0 / .14);
   --topbar-bg:color-mix(in oklab, var(--page-bg) 86%, transparent);
   --overlay:oklch(0% 0 0 / .28);
-  --accent-soft:var(--gray-100); --accent-mint:var(--green-50); --accent-rose:var(--red-50); --accent-sky:var(--cyan-50);
   --select-arrow:url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4.5 6.25L8 9.75L11.5 6.25' stroke='%23888' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   /* 国家 / 地区栏的箭头和客户栏的折角一样粗（客户栏是 2px 的边框画的）。 */
   --combo-arrow:url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 6L8 10L12 6' stroke='%237b7b85' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -64,7 +63,7 @@ html[data-theme="dark"] {
   --gray-300:oklch(36% 0 0); --gray-400:oklch(63% 0 0);
   --gray-500:oklch(69% 0 0); --gray-600:oklch(77% 0 0); --gray-700:oklch(86% 0 0); --gray-800:oklch(92% 0 0); --gray-900:oklch(96% 0 0);
   --surface-border-strong:oklch(36% 0 0);
-  --semantic-primary:oklch(93% 0 0); --semantic-primary-dark:oklch(85% 0 0); --primary-ink:oklch(19% 0 0);
+  --semantic-primary:oklch(93% 0 0); --semantic-primary-dark:oklch(85% 0 0);
   --floating-shadow:0 22px 55px oklch(0% 0 0 / .34);
   --overlay:oklch(0% 0 0 / .5);
   --select-arrow:url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4.5 6.25L8 9.75L11.5 6.25' stroke='%23aaa' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -2056,30 +2055,12 @@ html[data-theme="dark"] .app-refresh-btn:focus-visible {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-@keyframes modalIn {
-  from { opacity: 0; transform: translateY(12px) scale(.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
 @keyframes drawerIn {
   from { opacity: 0; transform: translateX(24px); }
   to { opacity: 1; transform: translateX(0); }
 }
-@keyframes dropIn {
-  from { opacity: 0; transform: translateY(-6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes toastIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
 @keyframes fillIn {
   from { width: 0; }
-}
-html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-motion="reduce"] *::after {
-  animation-duration: 1ms !important;
-  animation-iteration-count: 1 !important;
-  scroll-behavior: auto !important;
-  transition-duration: 1ms !important;
 }
 @media (max-width: 1080px) {
   .sidebar { display: none; }
@@ -2826,7 +2807,6 @@ html[data-theme="dark"] :is(.date-picker .date-picker-title, .date-picker .date-
   --a-sans:var(--sans);
   --a-ease:var(--ease);
   --a-ease-enter:var(--ease-out);
-  --a-ease-exit:var(--ease-exit);
   --a-ease-drawer:var(--ease-drawer);
   --a-spring:var(--ease-spring);
   color:var(--a-ink); font-family:var(--a-sans); letter-spacing:-.006em; -webkit-font-smoothing:antialiased;
@@ -3297,9 +3277,6 @@ html[data-theme="dark"] .arc-bar-chart[data-scrubbing] .arc-bar-mark { fill:colo
 .arc-row-m { color:var(--a-muted); font-size:11px; }
 .arc-row-v { justify-self:end; color:var(--a-ink-2); font-variant-numeric:tabular-nums; }
 .arc-row-s { justify-self:end; color:var(--a-ink); font-weight:500; font-variant-numeric:tabular-nums; }
-html[data-motion="reduce"] :is(.arc-swap-t, .arc-digit) { animation:none !important; }
-html[data-motion="reduce"] :is(.subs-scope, .subs-scope *) { animation-delay:0s !important; transition-delay:0s !important; }
-html[data-motion="reduce"] :is(.subs-sk, .subs-spin) { animation:none !important; }
 </style>
 <style id="ots-easing">
 /* 旧版 WebKit 不认识 linear() 时会让整条动画失效，所以先用 cubic-bezier 兜底，支持时再换成弹簧曲线 */
@@ -3324,7 +3301,7 @@ html[data-theme] .tag-orange { background:color-mix(in oklab, var(--s-amber) var
 html[data-theme] :is(.tag-wig, .tag-lash, .tag-pay-alibaba, .tag-pay-paypal, .tag-pay-western, .tag-pay-zelle, .tag-pay-card, .tag-pay-tt, .tag-neutral) { background:var(--gray-100); color:var(--gray-600); border:0; }
 
 /* 去掉旧版的装饰渐变和光斑，卡片一律纯色 + 细边 */
-html[data-theme] :is(.logistics-card, .price-history-row, .price-history-row.pinned, .detail-hero, .report-stat, .target-hero, .chart-panel, .customer-groups, .customer-toolbar, .rate-status-card, .combined-column, .order-detail-customer-hero) { background:var(--surface-bg); }
+html[data-theme] :is(.logistics-card, .price-history-row, .price-history-row.pinned, .detail-hero, .report-stat, .chart-panel, .customer-groups, .customer-toolbar, .rate-status-card, .combined-column) { background:var(--surface-bg); }
 html[data-theme] :is(.order-detail-body, .order-form, .combined-modal-body) { background:var(--surface-soft); }
 html[data-theme] :is(.order-modal .modal-head, .combined-modal .modal-head, .modal-head) { background:var(--surface-bg); border-bottom:1px solid var(--hairline); }
 html[data-theme] :is(.order-section, .order-section.primary) { background:var(--surface-bg); border:1px solid var(--surface-border); border-radius:var(--radius); box-shadow:none; }
@@ -3336,10 +3313,10 @@ html[data-theme="dark"] :is(.binary-option.active, .side-chart-tab.active, .chip
 /* 客户菜单本身是白底，上面那种「白底浮起」的选中块在里面看不出来：字母筛选的选中项改用强调色浅底。 */
 html[data-theme] .client-letter-btn.active { background:var(--accent-tint); color:var(--accent-ink); border-color:transparent; box-shadow:none; }
 html[data-theme] :is(.binary-segment, .side-chart-tabs) { background:var(--gray-100); border:0; box-shadow:none; }
-html[data-theme] :is(.side-bar-fill, .analysis-trend-track span, .analysis-event-fill, .business-product-fill, .legend-dot, .tracking-event-dot, .roadmap-event:first-of-type .roadmap-dot, .history-item:first-child .history-dot) { background:var(--accent); }
+html[data-theme] :is(.analysis-trend-track span, .business-product-fill, .legend-dot, .tracking-event-dot, .roadmap-event:first-of-type .roadmap-dot) { background:var(--accent); }
 html[data-theme] .contact-method-check input:checked { background:var(--accent); border-color:var(--accent); }
 html[data-theme] .task-action-btn.done { background:var(--s-green); border-color:transparent; color:var(--surface-bg); }
-html[data-theme] :is(.side-bar-fill, .analysis-trend-track span, .analysis-event-fill, .business-product-fill, .target-history-fill, .target-progress-fill) { transform-origin:left; animation:uiGrowX var(--motion-slow) var(--ease-out) backwards; }
+html[data-theme] :is(.analysis-trend-track span, .business-product-fill, .target-history-fill) { transform-origin:left; animation:uiGrowX var(--motion-slow) var(--ease-out) backwards; }
 @keyframes uiGrowX { from { transform:scaleX(0); } }
 
 /* 工作台看板：列是浅灰底无边框，卡片白底 18 圆角，悬停浮起，拖动时放大倾斜 */
@@ -3372,7 +3349,7 @@ html[data-theme] .board-card-footer { padding:4px 14px 12px; border-top:0; backg
 html[data-theme] .board-card-amount, html[data-theme] .board-card-amount.due { background:none; border:0; padding:0; min-width:0; max-width:none; font-size:14px; line-height:1.3; font-weight:600; color:var(--gray-900); }
 html[data-theme] .board-card-amount.due { color:var(--s-amber); }
 html[data-theme] .board-empty { color:var(--gray-400); font-size:13px; border:1px dashed var(--surface-border-strong); border-radius:var(--radius); padding:18px 8px; text-align:center; background:transparent; }
-html[data-theme] .board-column.drag-over, html[data-theme] .board-column.is-drop-target { background:var(--accent-tint); }
+html[data-theme] .board-column.drag-over { background:var(--accent-tint); }
 /* 放不进去的列（全款单 → 待发货、草稿 → 已发货）：不画成可放的高亮，改成红色虚线框，松手时提示原因。 */
 html[data-theme] .board-column.drag-invalid { outline:2px dashed color-mix(in srgb, var(--s-red) 55%, transparent); outline-offset:-3px; }
 /* 看板横向放不下：还有列的那一侧渐隐（右边 / 左边 / 两边）。 */
@@ -3396,7 +3373,6 @@ html[data-theme] .page-enter .board-card { animation:uiRise .45s var(--ease-out)
 /* 任务收件箱 / 最近订单 */
 html[data-theme] .task { border-radius:var(--radius); border-color:var(--surface-border); background:var(--surface-bg); box-shadow:none; transition:background var(--motion-fast) var(--ease); }
 html[data-theme] .task:hover { background:var(--surface-soft); box-shadow:none; }
-html[data-theme] :is(.activity-card, .recent-order-row) { border-radius:var(--radius); }
 
 /* 表格：表头小号灰字、无竖线、行悬停变底色 */
 html[data-theme] :is(.order-table-panel, .customer-table, .deleted-panel) { border-radius:var(--radius-panel); }
@@ -3418,7 +3394,6 @@ html[data-theme] .board-card-footer { flex-wrap:wrap; row-gap:6px; }
 html[data-theme] .board-card-meta { flex:1 1 auto; min-width:0; flex-wrap:wrap; overflow:visible; }
 html[data-theme] .board-card-meta .tag { font-size:11px; padding:2px 7px; flex:none; max-width:none; overflow:visible; }
 html[data-theme] .board-card-amount { margin-left:auto; }
-html[data-theme] :is(.order-detail-order-hero, .order-detail-customer-hero) { background:var(--surface-bg); border:1px solid var(--surface-border); box-shadow:none; }
 html[data-theme] .client-autofill-summary { background:var(--surface-soft); border-color:var(--surface-border); }
 html[data-theme] .customer-multi-add { background:var(--accent-tint); color:var(--accent-ink); border-color:transparent; border-radius:999px; font-weight:500; }
 html[data-theme] .customer-multi-add:hover { background:color-mix(in oklab, var(--accent) 20%, transparent); }
@@ -3434,7 +3409,7 @@ html[data-theme] .insights-tabs .segment-option { padding:0 18px; }
 /* 窄屏为底部导航隐藏了所有 .nav-text，页签里的字也一起没了：页签的字始终显示。 */
 @media (max-width: 820px) { html[data-theme] .insights-tabs .segment-option .nav-text { display:inline !important; } }
 html[data-theme] .target-history-fill.empty { background:transparent; }
-html[data-theme] :is(.target-hero, .target-setup, .rate-status-card) { border-color:var(--surface-border); box-shadow:none; }
+html[data-theme] :is(.target-setup, .rate-status-card) { border-color:var(--surface-border); box-shadow:none; }
 @media (min-width: 821px) { html[data-theme] .board-columns { grid-template-columns:none; grid-auto-flow:column; grid-auto-columns:minmax(196px, 1fr); width:100%; min-width:0; } }
 /* ===== 新版 UI：外壳与基础组件（OTS UI 规范）。选择器统一加 html[data-theme] 前缀，盖过旧的深色专用规则。 ===== */
 .ui-icon, .nav-icon.ui-icon { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; flex:none; }
@@ -3564,7 +3539,7 @@ html[data-theme] :is(.field input, .field select, .field textarea, .manual-rate-
 html[data-theme] :is(.field input, .field select, .field textarea, .confirm-input, .manual-rate-item input, .level-rule-input input):focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-tint); }
 /* 输入框聚焦已经有「强调色边框 + 一圈浅色」：不再叠全局那条 2px 轮廓（文字输入框用鼠标点也算 :focus-visible，
    每点一个框都是里外两圈）。勾选框、单选框没有自己的聚焦样式，仍用全局轮廓。 */
-html[data-theme] :is(.field input:not([type="checkbox"], [type="radio"]), .field textarea, .confirm-input, .detail-ship-add input, .order-list-search, .detail-note-editor, .paste-assist textarea, .manual-rate-item input, .level-rule-input input):focus-visible { outline:none; }
+html[data-theme] :is(.field input:not([type="checkbox"], [type="radio"]), .field textarea, .confirm-input, .detail-ship-add input, .order-list-search, .paste-assist textarea, .manual-rate-item input, .level-rule-input input):focus-visible { outline:none; }
 
 /* 勾选框和单选一律用强调色（规范：强调色用在「开关打开」这类选中状态）。原来卡片设置里是黑色、物流页是系统蓝。 */
 html[data-theme] input:is([type="checkbox"], [type="radio"]) { accent-color:var(--accent); }
@@ -3594,8 +3569,6 @@ html[data-theme] .page.active.page-enter > *:nth-child(2) { animation-delay:.05s
 html[data-theme] .page.active.page-enter > *:nth-child(3) { animation-delay:.1s; }
 html[data-theme] .page.active.page-enter > *:nth-child(n+4) { animation-delay:.15s; }
 
-/* 动效默认始终打开（和原型一致，不跟随系统「减少动态效果」）；html[data-motion="reduce"] 时才全部关掉 */
-html[data-theme][data-motion="reduce"] *, html[data-theme][data-motion="reduce"] *::before, html[data-theme][data-motion="reduce"] *::after { animation-duration:0s !important; animation-delay:0s !important; animation-iteration-count:1 !important; transition-duration:0s !important; scroll-behavior:auto !important; }
 html[data-theme] .world-clock-strip { flex:0 1 auto; min-width:0; overflow:hidden; }
 html[data-theme] .top-actions { flex:0 0 auto; }
 @media (max-width: 1320px) { html[data-theme] .world-clock-strip { display:none; } }
@@ -3642,7 +3615,7 @@ html[data-theme] .accent-swatch[data-accent-choice="orange"] { --c:#e8590c; }
 html[data-theme] .accent-swatch[data-accent-choice="rose"] { --c:#e0336f; }
 html[data-theme] .accent-swatch[data-accent-choice="ink"] { --c:oklch(26% 0 0); }
 html[data-theme="dark"] .accent-swatch[data-accent-choice="ink"] { --c:oklch(90% 0 0); }
-@media (max-width: 820px) { html[data-theme] :is(.accent-swatches, .sidebar-api-card) { display:none; } }
+@media (max-width: 820px) { html[data-theme] .accent-swatches { display:none; } }
 html[data-theme] .app-update-btn { --p:0%; position:relative; overflow:hidden; min-width:44px; height:22px; padding:0 9px; border:1px solid var(--surface-border-strong, var(--gray-300)); border-radius:999px; background:transparent; color:var(--gray-700); font-size:11px; font-weight:600; line-height:1; white-space:nowrap; font-variant-numeric:tabular-nums; cursor:pointer; transition:background var(--motion-fast) ease, color var(--motion-fast) ease, border-color var(--motion-fast) ease; }
 html[data-theme] .app-update-btn::before { content:""; position:absolute; inset:0; width:var(--p); background:color-mix(in srgb, var(--accent) 28%, transparent); transition:width .2s linear; pointer-events:none; }
 html[data-theme] .app-update-btn > span { position:relative; }
@@ -3993,7 +3966,7 @@ html[data-theme] #targetStat.has-goal #statTargetSub { display:none; }
 html[data-theme] #targetStat:not(.has-goal) .kpi-bar { display:none; }
 html[data-theme] #targetStat .kpi-bar { margin-top:8px; }
 /* 其他页面的数字卡（客户、金额统计、业绩目标、分析）跟工作台一样：大数字 28px/600/1.25，卡太窄时按卡宽缩小，不换行 */
-html[data-theme] .content .page :is(.report-stat, .target-metric, .business-kpi, .customer-summary-item) :is(#reportUsd, #reportPaid, #reportDue, #reportOverdue, #reportCount, #targetGoal, #targetActual, #targetGap, #targetOrderCount, #businessRevenue, #businessPaid, #businessDue, #businessAverage),
+html[data-theme] .content .page :is(.report-stat, .target-metric, .customer-summary-item) :is(#reportUsd, #reportPaid, #reportDue, #reportOverdue, #reportCount, #targetGoal, #targetActual, #targetGap, #targetOrderCount),
 html[data-theme] .content .page .customer-summary-item strong, html[data-theme] .content .page .customer-summary-item strong.summary-money { font-size:min(28px, 16cqw); font-weight:600; line-height:1.25; letter-spacing:-.03em; white-space:nowrap; overflow-wrap:normal; }
 html[data-theme] .content .page .target-metric :is(#targetGoal, #targetActual, #targetGap, #targetOrderCount) { font-size:min(28px, 20cqw); }
 html[data-theme] .content .page .target-metric :is(#targetGoal, #targetActual, #targetGap).is-long { font-size:min(28px, 15cqw); }
@@ -4376,7 +4349,6 @@ html[data-theme] .detail-foot #detailDeleteBtn .ui-icon { width:14px; height:14p
 html[data-theme] .order-detail-head #detailDuplicateBtn { border:0; background:transparent; color:var(--gray-900); box-shadow:none; gap:6px; }
 html[data-theme] .order-detail-head #detailDuplicateBtn:hover { background:var(--surface-soft); }
 html[data-theme] .order-detail-head #detailDuplicateBtn .ui-icon { width:16px; height:16px; }
-@keyframes uiFlashIn { 0% { box-shadow:0 0 0 0 var(--accent-tint); } 50% { box-shadow:0 0 0 4px var(--accent-tint); } 100% { box-shadow:0 0 0 0 transparent; } }
 @media (max-width: 820px) { html[data-theme] .detail-edit-grid { grid-template-columns:minmax(0,1fr); } }
 /* 退出提醒等原生弹窗借用的确认框：多行说明 */
 html[data-theme] #confirmModal [hidden] { display:none !important; }
@@ -5208,8 +5180,8 @@ html[data-theme] .field .binary-chips .binary-option {
 html[data-theme] .field .binary-chips .binary-option:hover:not(.active) { border-color:var(--surface-border-strong); color:var(--gray-900); }
 html[data-theme] .field .binary-chips .binary-option.active { border-color:color-mix(in oklab, var(--accent) 55%, transparent); }
 /* 占整行：网格里用 dense 回填，左右两列不留空洞。 */
-html[data-theme] :is(.order-section-grid, .payment-grid, .form-grid, .settings-grid, .settings-form) { grid-auto-flow:row dense; }
-html[data-theme] :is(.order-section-grid, .payment-grid, .form-grid, .settings-grid, .settings-form) > .field-chips { grid-column:1 / -1; }
+html[data-theme] :is(.order-section-grid, .payment-grid, .form-grid, .settings-form) { grid-auto-flow:row dense; }
+html[data-theme] :is(.order-section-grid, .payment-grid, .form-grid, .settings-form) > .field-chips { grid-column:1 / -1; }
 /* 金额与收款：列距和上面基础信息一致（12px），去掉中间竖线，标签左右对齐。 */
 html[data-theme] .order-form .payment-grid { gap:14px 12px; }
 html[data-theme] .order-form .payment-grid::before { display:none; }
@@ -5402,7 +5374,6 @@ html[data-theme] .order-preview .order-notification-option small { color:var(--g
 <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
 <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/></symbol>
 <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></symbol>
-<symbol id="i-clip" viewBox="0 0 24 24"><path d="M21 11.5 12.5 20a5 5 0 0 1-7-7L14 4.5a3.3 3.3 0 0 1 4.7 4.7L10.2 17.7a1.7 1.7 0 0 1-2.4-2.4L15.5 7.6"/></symbol>
 <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
 <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
 <symbol id="i-grip" viewBox="0 0 24 24"><path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01"/></symbol>
@@ -5416,7 +5387,6 @@ html[data-theme] .order-preview .order-notification-option small { color:var(--g
 <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
 <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9-9-9Z"/><path d="M7.5 7.5h.01"/></symbol>
 <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
-<symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></symbol>
 <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.8-3.5 3.6-5.5 7-5.5s6.2 2 7 5.5"/></symbol>
 <symbol id="i-phone" viewBox="0 0 24 24"><path d="M6.5 3h3l1.5 4.5-2 1.4a12 12 0 0 0 6.1 6.1l1.4-2 4.5 1.5v3a2.5 2.5 0 0 1-2.7 2.5A17.5 17.5 0 0 1 4 5.7 2.5 2.5 0 0 1 6.5 3z"/></symbol>
 <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 8 8 5.5L20 8"/></symbol>
@@ -8335,7 +8305,6 @@ function pendingSaveStatus() {
   };
 }
 window.pendingSaveStatus = pendingSaveStatus;
-window.getPendingSaveStatus = pendingSaveStatus;
 // ---- 客户固定编号 ----
 // 每份客户档案有一个固定编号（档案里的 id），这位客户的每张订单带着它（customerId）。名字照旧是到处用的那把钥匙
 //（state.customers 的键、order.client、WhatsApp 聊天）；编号只回答「谁是谁」：同一个编号换了名字就是改名，
@@ -11843,7 +11812,7 @@ document.addEventListener('scroll', e => {
 window.addEventListener('resize', repositionDatePicker);
 window.visualViewport?.addEventListener('resize', repositionDatePicker);
 // #endregion
-// #region Deposit presets, copy templates, modal open state, confirm dialogs
+// #region Deposit presets, clipboard copy, modal open state, confirm dialogs
 function depositPercent(amount, depositAmount) {
   const total = Number(amount || 0);
   if (!total) return 0;
@@ -24894,9 +24863,6 @@ function subscriptionWhenDate(schedule) {
   if (!date) return '';
   return date.slice(0, 4) === subscriptionLocalDate().slice(0, 4) ? date.slice(5) : date;
 }
-function subscriptionReducedMotion() {
-  return document.documentElement.dataset.motion === 'reduce';
-}
 function subscriptionIcon(name) {
   return `<svg class="subs-i" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 }
@@ -25060,7 +25026,7 @@ function rollSubscriptionWheel(el, value, from) {
     return `<span class="subs-wh" aria-hidden="true"><span data-from="${previous}" data-to="${char}" data-delay="${fromRight * 45}ms">${'0123456789'.replace(/\d/g, n => `<span>${n}</span>`)}</span></span>`;
   }).join('');
   const strips = [...el.querySelectorAll('.subs-wh > span')];
-  const still = value === from || subscriptionReducedMotion();
+  const still = value === from;
   strips.forEach(strip => {
     strip.style.transition = 'none';
     strip.style.transform = `translateY(-${(still ? strip.dataset.to : strip.dataset.from) * 1.25}em)`;
@@ -25088,7 +25054,7 @@ function placeSubscriptionGlide(group, key, { jump = false } = {}) {
     glide.style.width = `${r.w}px`;
     glide.style.height = `${r.h}px`;
   };
-  const previous = !jump && !subscriptionReducedMotion() && subscriptionGlideRects[key];
+  const previous = !jump && subscriptionGlideRects[key];
   glide.classList.add('no-t');
   apply(previous || rect);
   glide.style.opacity = '1';
@@ -25132,7 +25098,7 @@ function renderSubscriptionList(rows, entering) {
   const before = new Map([...list.querySelectorAll('[data-sub-id]')].map(el => [el.dataset.subId, el.getBoundingClientRect()]));
   let fresh = 0;
   list.innerHTML = rows.map(row => subscriptionRowHtml(row, entering || !before.has(row.item.id) ? Math.min(fresh++, 12) : -1)).join('');
-  if (entering || subscriptionReducedMotion() || !list.offsetParent) return;
+  if (entering || !list.offsetParent) return;
   list.querySelectorAll('[data-sub-id]').forEach(el => {
     const old = before.get(el.dataset.subId);
     if (!old || !old.width) return;
@@ -25336,8 +25302,8 @@ function subscriptionAnalysis(items, today, rate) {
 const arcGap = 3, arcCorner = 4, arcLift = 4, arcGrow = 2, arcMargin = 7;
 function arcEase(t) { return 1 - (1 - t) ** 4; }
 function arcTween(from, to, ms, onFrame, { delay = 0 } = {}) {
-  // A soft spring without overshoot; reduced motion jumps straight to the end.
-  if (subscriptionReducedMotion() || ms <= 0 || from === to) { onFrame(to, true); return () => {}; }
+  // A soft spring without overshoot.
+  if (ms <= 0 || from === to) { onFrame(to, true); return () => {}; }
   let raf = 0;
   const begin = performance.now() + delay;
   const step = now => {
@@ -25356,7 +25322,7 @@ function arcSwap(holder, text, direction = 1) {
   next.className = 'arc-swap-t';
   next.textContent = text;
   next.style.setProperty('--dir', direction);
-  if (old && !subscriptionReducedMotion()) {
+  if (old) {
     old.classList.add('out');
     old.addEventListener('animationend', () => old.remove(), { once:true });
     next.classList.add('in');
@@ -25369,9 +25335,9 @@ function arcRoll(holder, text, direction = 1) {
   const current = [...holder.querySelectorAll(':scope > .arc-digit')];
   const same = current.length === chars.length;
   holder.setAttribute('aria-label', text);
-  if (!same || subscriptionReducedMotion()) {
+  if (!same) {
     holder.innerHTML = chars.map(char => `<span class="arc-digit">${escapeAttr(char)}</span>`).join('');
-    if (!subscriptionReducedMotion() && current.length) holder.querySelectorAll('.arc-digit').forEach(el => { el.style.setProperty('--dir', direction); el.classList.add('in'); });
+    if (current.length) holder.querySelectorAll('.arc-digit').forEach(el => { el.style.setProperty('--dir', direction); el.classList.add('in'); });
     return;
   }
   chars.forEach((char, index) => {
@@ -25705,7 +25671,7 @@ function renderSubscriptionAnalysisPage({ entering = false } = {}) {
   box.innerHTML = `
     <div class="subs-kpis">${cards.map(([label, value, context, pill], i) => `<article class="arc-metric subs-enter" style="--i:${i}">
       <div class="arc-metric-top"><span>${escapeAttr(label)}</span>${pill}</div>
-      <b class="arc-metric-v" data-target="${value}">${subscriptionMoney(subscriptionReducedMotion() ? value : 0)}</b>
+      <b class="arc-metric-v" data-target="${value}">${subscriptionMoney(0)}</b>
       <p>${escapeAttr(context)}</p></article>`).join('')}</div>
     <section class="subs-panel subs-enter wide" style="--i:4">
       <header><div><h3>每月扣费</h3><p>实心是已扣的金额，浅色虚边是还没到扣费日的（本月待扣和右边 6 个月的预计）；鼠标在图上移动或按方向键查看每个月</p></div></header>
@@ -26277,7 +26243,7 @@ async function deleteSubscription(id) {
   const row = document.querySelector(`#subsList [data-sub-id="${CSS.escape(id)}"]`);
   const next = row && (row.nextElementSibling || row.previousElementSibling);
   closeSubscriptionDetail({ restoreFocus:false });
-  if (row?.offsetParent && row.animate && !subscriptionReducedMotion()) {
+  if (row?.offsetParent && row.animate) {
     await row.animate([
       { opacity:1, transform:'scale(1)' },
       { opacity:0, transform:'scale(.94)' }
@@ -27196,7 +27162,7 @@ async function saveSubscriptionDraft(event) {
   const isNew = !old || item.id !== old.id;
   upsertSubscription(item);
   setSubscriptionSaveState('saved');
-  await new Promise(resolve => setTimeout(resolve, subscriptionReducedMotion() ? 0 : 450));
+  await new Promise(resolve => setTimeout(resolve, 450));
   subscriptionBusy = false;
   const fromList = subscriptionEditorOrigin === 'list' && !isNew;
   closeSubscriptionEditor({ restoreFocus:false });
@@ -30173,7 +30139,6 @@ setInterval(checkUpsAutoCompletion, 60000);
 // #region UI layer: toasts, hold to delete, board menu, notifications, modal style, step navigation, zoom
 // ===== 新版 UI 交互 开始 =====
 // 新版 UI：外壳交互（导航滑动高亮、导航计数、换页入场、⌘K 搜索）。只读 state，不改数据。
-function uiReduceMotion() { return document.documentElement.dataset.motion === 'reduce'; }
 function uiNavGlide(instant = false) {
   const nav = document.querySelector('.sidebar .nav');
   const active = nav?.querySelector('.nav-item.active');
@@ -30188,7 +30153,7 @@ function uiNavGlide(instant = false) {
     instant = true;
   }
   const n = nav.getBoundingClientRect(), r = active.getBoundingClientRect();
-  glide.classList.toggle('no-t', instant || uiReduceMotion());
+  glide.classList.toggle('no-t', instant);
   glide.style.opacity = '1';
   glide.style.width = `${r.width}px`;
   glide.style.height = `${r.height}px`;
@@ -30219,7 +30184,6 @@ function uiAfterPageChange(changed) {
   uiNavGlide(!changed);
   if (!changed) return;
   const title = document.querySelector('.page-title');
-  if (uiReduceMotion()) return;
   title?.classList.remove('swap'); page?.classList.remove('page-enter');
   void page?.offsetWidth;
   title?.classList.add('swap'); page?.classList.add('page-enter');
@@ -30308,7 +30272,7 @@ function uiToast(text, { undo = null, undoText = '撤销', tone = '', desc = '',
     clearTimeout(timer);
     if (item.classList.contains('leaving')) return;
     item.classList.add('leaving');
-    setTimeout(() => { item.remove(); uiLayoutToasts(); }, uiReduceMotion() ? 0 : 200);
+    setTimeout(() => { item.remove(); uiLayoutToasts(); }, 200);
   };
   item.__dismiss = dismiss;
   if (group) item.dataset.toastGroup = group;
@@ -30409,7 +30373,7 @@ function uiMorph(btn, mode, text) {
   } else {
     btn.innerHTML = `${icon}<span class="morph-label">${escapeAttr(text)}</span>`;
   }
-  if (uiReduceMotion() || !from) return;
+  if (!from) return;
   btn.style.width = 'auto';
   const to = btn.getBoundingClientRect().width;
   btn.style.width = `${from}px`;
@@ -30436,7 +30400,7 @@ function uiStartHold(btn) {
     btn.classList.add('held');
     setTimeout(() => btn.classList.remove('held'), 1400);
     btn.dispatchEvent(new CustomEvent('hold-confirm', { bubbles:true }));
-  }, uiReduceMotion() ? Math.min(ms, 600) : ms);
+  }, ms);
 }
 // 按钮还在页面上、看得见，所在的抽屉 / 弹窗也还开着。关掉的右键菜单节点虽然脱离了页面，监听器还挂着，不能让它删单。
 function uiHoldTargetAlive(btn) {
@@ -30510,7 +30474,6 @@ function uiSnapshotNumbers() {
   return new Map([...uiTickTargets()].map(el => [el.id || el, el.textContent]));
 }
 function uiTickChanged(before) {
-  if (uiReduceMotion()) return;
   uiTickTargets().forEach(el => {
     const old = before.get(el.id || el);
     if (old === undefined || old === el.textContent) return;
@@ -31246,7 +31209,7 @@ function uiStepNavSetup(modalId, formId) {
     if (!target) return;
     form._spyLock = Date.now();
     uiStepNavMark(form, Number(btn.dataset.jump));
-    form.scrollTo({ top:Math.max(0, target.offsetTop - form.offsetTop - 8), behavior:uiReduceMotion() ? 'auto' : 'smooth' });
+    form.scrollTo({ top:Math.max(0, target.offsetTop - form.offsetTop - 8), behavior:'smooth' });
   });
   // 识别结果填入、客户切换编辑模式等不会触发 input，用观察器兜底刷新进度。
   let pending = 0, needBuild = false;
@@ -31534,7 +31497,7 @@ document.getElementById('orderForm')?.addEventListener('click', e => {
   section.classList.remove('is-folded');
   uiOrderMoreSync(form);
   requestAnimationFrame(() => {
-    section.scrollIntoView?.({ block:'nearest', behavior:uiReduceMotion() ? 'auto' : 'smooth' });
+    section.scrollIntoView?.({ block:'nearest', behavior:'smooth' });
     section.querySelector('input:not([type="hidden"]), select:not(.binary-native):not(.app-select-native), textarea, .binary-option')?.focus({ preventScroll:true });
   });
 });
@@ -32267,7 +32230,6 @@ function uiStaggerPage(page) {
 }
 // 订单移到「已完成」时在鼠标位置撒彩纸。
 function uiConfetti(x, y) {
-  if (uiReduceMotion()) return;
   let cv = document.getElementById('uiConfetti');
   if (!cv) { cv = document.createElement('canvas'); cv.id = 'uiConfetti'; cv.setAttribute('aria-hidden', 'true'); document.body.appendChild(cv); }
   const ctx = cv.getContext('2d'), dpr = window.devicePixelRatio || 1;
@@ -32329,7 +32291,7 @@ document.addEventListener('invalid', e => {
 function uiBellRing(unread) {
   const prev = uiBellRing.last;
   uiBellRing.last = unread;
-  if (prev === undefined || unread <= prev || uiReduceMotion()) return;
+  if (prev === undefined || unread <= prev) return;
   const bell = document.getElementById('notifBtn');
   if (!bell) return;
   bell.classList.remove('ring'); void bell.offsetWidth; bell.classList.add('ring');

@@ -127,10 +127,13 @@ const orders = [
     await h.clearToasts(page);
     await h.drag(page, 'p2', 'shipment');
     await page.waitForFunction(() => state.orders.find(o => o.id === 'p2').stage === 'shipment');
+    // K106 的提示要撑过下面第二次拖拽（6 秒自动消失，慢机器上不够）；拖拽时鼠标可能扫过它、让它重新计时，所以拖完再停一次。
+    await h.holdToast(page, 'K106 Prod Second');
     await page.locator('#trackingQuickCard [data-track-skip]').click();
     await page.waitForFunction(() => !document.getElementById('trackingQuickCard'));
     await h.drag(page, 'p3', 'shipment');
     await page.waitForFunction(() => state.orders.find(o => o.id === 'p3').stage === 'shipment');
+    await h.holdToast(page, 'K106 Prod Second');
     await page.locator('#trackingQuickCard [data-track-skip]').click();
     await page.waitForFunction(() => !document.getElementById('trackingQuickCard'));
     await h.clickUndo(page, 'K106 Prod Second');

@@ -19,6 +19,8 @@ const { chromium } = require('playwright');
     const filler = Array.from({length:24},(_,i)=>({id:`o-f${i}`,num:`SO-F${i}`,client:`Filler ${i}`,amount:100,currency:'USD',stage:'quote',createdAt:day(1+(i%27)),orderMonth:month,updated:`${day(1)} 09:00`,logs:[]}));
     let stored = {app:'trade-order-system',data:{orders:[order,...filler],customers:{},demoCleared:true,demoCustomersCleared:true},revision:0};
     const errors = [];
+    // The startup greeting would cover the undo toast for 4 s.
+    await page.addInitScript(() => { try { localStorage.setItem('ots-greet-v1', new Date().toISOString().slice(0, 10)); } catch (_) {} });
     page.on('pageerror',error=>errors.push(error.message));
     await page.route('**/*',async route => {
       const pathname = new URL(route.request().url()).pathname;
@@ -46,9 +48,9 @@ const { chromium } = require('playwright');
     assert.equal(moved.paidAmount,1000,'entering 已发货 should mark the balance as paid');
     assert.equal(moved.logisticsStatus,'已发货');
 
-    await page.locator('.toast-undo').first().click();
-    // 撤销在点击处理里完成，慢机器上给它一点时间落地再比对（没撤销照样会在下面失败）。
-    await page.waitForFunction(()=>state.orders.find(item=>item.id==='o-undo').stage==='production',null,{timeout:5000}).catch(()=>{});
+    // A real press lasts about 80 ms. If the toast is still sliding in between press and release, the release lands
+    // beside the button and the undo is lost; helpers/settled-click.js waits for the slide before clicking.
+    await page.locator('.toast-undo').first().click({delay:80});
     assert.deepEqual(await snapshot(),before,'undo left the auto-filled payment or shipment behind');
     assert.match(await page.locator('#orderDetailBody').textContent(),/待收/,'drawer still shows the order as fully paid after undo');
     await page.evaluate(()=>window.flushPendingSave());
@@ -59,7 +61,7 @@ const { chromium } = require('playwright');
     // A manual edit made before undo is kept: only the move's own changes are reverted.
     await page.evaluate(()=>moveOrderToStage('o-undo','done'));
     await page.evaluate(()=>{ state.orders.find(item=>item.id==='o-undo').logisticsStatus = '已签收'; });
-    await page.locator('.toast-undo').first().click();
+    await page.locator('.toast-undo').first().click({delay:80});
     const partial = await snapshot();
     assert.equal(partial.stage,'production');
     assert.equal(partial.paidAmount,300);

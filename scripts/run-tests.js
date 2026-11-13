@@ -15,6 +15,9 @@ const scriptsDir = __dirname;
 // page.evaluate that returns a page-side promise waits for it by polling (see the comment in that file): a pending
 // promise handed straight to Playwright was now and then lost on CI ("Resulting promise was garbage collected").
 const stableEvaluate = path.join(scriptsDir, 'helpers', 'stable-evaluate.js');
+// click / dblclick / tap first wait until animations on the target and its ancestors have started (see the comment in
+// that file): a click on an element that was still sliding in now and then landed beside it and did nothing.
+const settledClick = path.join(scriptsDir, 'helpers', 'settled-click.js');
 const inWebkit = process.env.OTS_TEST_BROWSER === 'webkit';
 const useWebkit = path.join(scriptsDir, 'helpers', 'use-webkit.js');
 // Tests that open a browser but cannot run in WebKit, each with its reason. A new test runs there by default.
@@ -38,7 +41,8 @@ const serial = new Set([
 const darwinOnly = new Set(['test-app-icon.js', 'native']);
 
 const testFiles = fs.readdirSync(scriptsDir).filter(name => /^test-.*\.js$/.test(name) && !excluded.has(name)).sort();
-const preload = inWebkit ? ['--require', stableEvaluate, '--require', useWebkit] : ['--require', stableEvaluate];
+const commonPreload = ['--require', stableEvaluate, '--require', settledClick];
+const preload = inWebkit ? [...commonPreload, '--require', useWebkit] : commonPreload;
 const tests = inWebkit
   ? testFiles.filter(opensBrowser)
     .map(name => ({ name: name.replace(/\.js$/, ''), file: name, command: process.execPath, args: [...preload, path.join(scriptsDir, name)] }))

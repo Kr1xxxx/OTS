@@ -273,6 +273,10 @@ async function runFailures(page, control) {
     safeStorage.removeItem('ots-feishu-send-v1');
     render();
     await flushPendingSave();
+    // Each step starts as if no save error was shown in the last 10 s. The page holds back a second
+    // save-error toast for 10 s and the "已排队" toast for 1.5 s after one; without this reset, which
+    // toasts a step shows depends on how long the steps before it took (a slow WebKit run got one more).
+    macSaveErrorToastAt = 0;
     window.__matrixLog = { toasts:[], confirms:[], notifications:[] };
     window.__matrixAnswers = [];
     openOrderDetail(id, { tab:'info' });

@@ -889,7 +889,14 @@
    "urgentOrder": false
   },
   "orderModalOpen": false,
-  "toasts": [],
+  "toasts": [
+   {
+    "action": "",
+    "desc": "原因：TEST disk unavailable",
+    "text": "数据库保存失败，正在自动重试，请先不要关闭软件",
+    "tone": "warn"
+   }
+  ],
   "unsaved": true
  },
  "500 then retry: stored": {
@@ -1021,7 +1028,14 @@
    "urgentOrder": false
   },
   "orderModalOpen": false,
-  "toasts": [],
+  "toasts": [
+   {
+    "action": "",
+    "desc": "原因：TEST disk unavailable",
+    "text": "数据库保存失败，正在自动重试，请先不要关闭软件",
+    "tone": "warn"
+   }
+  ],
   "unsaved": true
  },
  "500 then save again: after second save": {

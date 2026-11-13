@@ -130,7 +130,7 @@ const { html } = require('./helpers/page-source');
     assert.equal(await isOpen('confirmModal'),true,'dirty drawer should ask on 取消');
     await page.locator('#confirmCancelBtn').click();
     await page.locator('#detailSaveBtn').click();
-    await page.waitForFunction(()=>document.getElementById('detailSaveBtn').dataset.mode !== 'busy' && !document.getElementById('orderForm').dataset.saving);
+    await page.waitForFunction(()=>!document.getElementById('detailSaveBtn').dataset.morph && !document.getElementById('orderDetailBody').dataset.saving);
     await settle();
     assert.equal(await isOpen('orderDetailDrawer'),true);
     assert.equal(await page.evaluate(()=>state.orders[0].note),'drawer note');

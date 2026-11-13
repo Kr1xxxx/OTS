@@ -15,7 +15,7 @@ const context = vm.createContext({
   syncDepositPresetControl() {},
   syncPaymentHints() {}
 });
-for (const name of ['updateDepositFieldVisibility', 'syncDepositFields', 'fullPaymentStatusFor', 'inferNewOrderStage', 'applyOrderTypeSwitch']) {
+for (const name of ['updateDepositFieldVisibility', 'depositFieldsAfterSync', 'paymentFieldValues', 'syncDepositFields', 'fullPaymentStatusFor', 'inferNewOrderStage', 'paymentFieldsAfterTypeSwitch', 'applyOrderTypeSwitch']) {
   vm.runInContext(extractFunction(name), context);
 }
 

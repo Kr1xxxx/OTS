@@ -97,7 +97,7 @@ async function launch() {
     const saveDrawer = async (selector = '#detailSaveBtn') => {
       await page.waitForFunction(() => uiDetailUnsaved());
       await page.locator(selector).click();
-      await page.waitForFunction(() => !uiDetailUnsaved() && !document.getElementById('orderForm').dataset.saving
+      await page.waitForFunction(() => !uiDetailUnsaved() && !document.getElementById('orderDetailBody').dataset.saving
         && !document.getElementById('detailSaveBtn').dataset.morph && !document.getElementById('detailPromoteBtn').dataset.morph);
     };
     const confirmSub = () => page.locator('#confirmSub').innerText();
@@ -201,7 +201,7 @@ async function launch() {
     await waitConfirm();
     await answer(true);
     await page.waitForFunction(() => state.orders.find(o => o.id === 'b2').note === 'b2 note drawer');
-    await page.waitForFunction(() => !document.getElementById('orderForm').dataset.saving);
+    await page.waitForFunction(() => !document.getElementById('orderDetailBody').dataset.saving && !document.getElementById('detailSaveBtn').dataset.morph);
     assert.equal(await isOpen('orderModal'), false);
     assert.equal(await isOpen('orderDetailDrawer'), true);
     assert.equal((await order('b1')).note, 'b1 note', '放弃的是弹窗里没保存的输入，b1 本身没被改');

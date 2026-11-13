@@ -13,8 +13,6 @@ const required = [
   'trade-order-data.json',
   '.env.example',
   'package.json',
-  'data/demo-data.json',
-  'docs/project-notes.md',
   'mac-app/server.js',
   'mac-app/build-native-mac-app.sh',
   'mac-app/native/Package.swift',
@@ -120,9 +118,7 @@ for (const file of [
   'trade-order-system.html',
   ...serverFiles().map(name => `mac-app/${name}`),
   'scripts/test-tracking-api.js',
-  'docs/project-notes.md',
-  '.env.example',
-  'data/demo-data.json'
+  '.env.example'
 ]) {
   const text = fs.readFileSync(path.join(root, file), 'utf8');
   for (const pattern of secretPatterns) {

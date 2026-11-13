@@ -62,7 +62,7 @@ Tests use stubs or isolated data directories. npm run test:api is an **opt-in li
 - mac-app/: local server, stores, build script and Swift native host.
 - scripts/: automated regression tests and release checks.
 - chrome-extension/whatsapp-sync/: Chrome extension, pinned WA-JS distribution and third-party license.
-- data/demo-data.json and trade-order-data.json: synthetic seed only.
+- trade-order-data.json: synthetic seed only.
 
 ## Public source repository
 

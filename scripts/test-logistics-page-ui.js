@@ -320,6 +320,31 @@ const risks = page => page.evaluate(() => buildTaskItems().filter(task => String
     assert.equal(await page.locator('#trackingDetailBody [data-copy-tracking="2222222222"]').count(), 1);
     assert.equal(await page.locator('#trackingDetailBody [data-detail-refresh]').count(), 1);
     assert.equal(await text(page, '#trackingDetailNum'), '2222 2222 22');
+    // 分块和订单抽屉一样：不画框、上面一条细线、背景透明；里面的小块是灰底（--surface-soft）、没有边框。顶上那张卡不变。
+    const drawerLook = await page.evaluate(() => {
+      const body = document.getElementById('trackingDetailBody');
+      const probe = document.createElement('i');
+      probe.style.backgroundColor = 'var(--surface-soft)';
+      body.append(probe);
+      const soft = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      const box = el => { const s = getComputedStyle(el); return { top:s.borderTopWidth, right:s.borderRightWidth, bottom:s.borderBottomWidth, left:s.borderLeftWidth, bg:s.backgroundColor, borderColor:s.borderTopColor }; };
+      return {
+        soft,
+        sections:[...body.querySelectorAll(':scope > .detail-section')].map(box),
+        items:[...body.querySelectorAll('.detail-item, .tracking-event, .tracking-detail-order')].map(box),
+        hero:box(body.querySelector('.detail-hero'))
+      };
+    });
+    assert(drawerLook.sections.length >= 3, `物流抽屉至少有关联订单、物流概览、物流节点几块 ${drawerLook.sections.length}`);
+    for (const section of drawerLook.sections) {
+      assert.deepEqual([section.top, section.right, section.bottom, section.left], ['1px', '0px', '0px', '0px'], `分块只有上面一条细线 ${JSON.stringify(section)}`);
+      assert.equal(section.bg, 'rgba(0, 0, 0, 0)', '分块背景透明');
+    }
+    assert(drawerLook.items.length >= 3, '抽屉里有小块');
+    for (const item of drawerLook.items) assert.equal(item.bg, drawerLook.soft, `小块是灰底 ${JSON.stringify(item)}`);
+    assert(drawerLook.items.every(item => item.top === '0px' || item.borderColor === 'rgba(0, 0, 0, 0)'), '小块没有看得见的边框');
+    assert.equal(drawerLook.hero.top, '1px', '顶上那张卡仍有描边');
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => !document.getElementById('trackingDetailDrawer').classList.contains('open'));
     await page.locator('#priceHistorySearch').fill('');

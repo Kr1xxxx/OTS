@@ -5453,7 +5453,7 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.164，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.164</div>
+      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.165，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.165</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会先问一句，再下载并重启" aria-label="检查更新：有新版本会先问一句，再下载并重启" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse is-busy" id="savePulse" aria-live="polite"><i></i><span>读取中</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -8085,7 +8085,7 @@ function failedSaveSettleAfterSave() {
   macMergeDroppedMine = false;
   if (!hosts.length || dropped) return false;
   // 用户正好又点了保存（表单正在保存）：那次保存自己会提示，这里只清记录、不再多说一句。
-  const foreground = Boolean(document.querySelector('form[data-saving]'));
+  const foreground = Boolean(document.querySelector('form[data-saving], #orderDetailBody[data-saving]'));
   hosts.forEach(host => {
     const unchanged = host._failedPrint !== undefined && host._failedPrint === failedSaveFingerprint(host);
     delete host._failedSave;
@@ -22256,11 +22256,7 @@ function stageDefsForOrderType(orderType = '') {
 function renderStageSelect(sel, current = sel.value, orderType = '') {
   const list = stageDefsForOrderType(orderType);
   sel.innerHTML = list.map(s => `<option value="${s.key}">${s.name}</option>`).join('');
-  if (list.some(s => s.key === current)) {
-    sel.value = current;
-  } else {
-    sel.value = current === 'balance' ? 'production' : (list[0]?.key || 'quote');
-  }
+  sel.value = stageSelectValue(current, orderType);
 }
 function syncStageOptionsForForm(form) {
   if (!form?.elements?.stage) return;
@@ -22422,39 +22418,59 @@ function applyDepositPreset(form, percentValue) {
   form.dataset.depositFromPreset = 'true';
   syncDepositFields(form, 'percent');
 }
-function syncDepositFields(form, source = 'amount') {
-  if (!form?.elements?.amount || !form.elements.paidAmount || !form.elements.orderType) return;
-  updateDepositFieldVisibility(form);
-  const amount = Number(form.elements.amount.value || 0);
-  const type = form.elements.orderType.value || '定金订单';
-  form.dataset.paymentType = type;
+// 订单表单里收款那几个框联动后的值（表单和详情抽屉共用这一段规则）：values 是框里现在的值
+// （amount、orderType、paidAmount、depositAmount、depositPercent、fullPaymentStatus），source 是哪个框刚变了。
+// 返回要改的框和新值（数字或 ''），没列出的框不动。
+function depositFieldsAfterSync(values = {}, source = 'amount', { depositFromPreset = false } = {}) {
+  const amount = Number(values.amount || 0);
+  const type = values.orderType || '定金订单';
+  const next = {};
   if (type === '全款订单') {
     // 全款订单的定金、比例是隐藏的派生值；已付款只有「已付 / 未付」时由付款状态决定，「部分已付」时是用户填的，不动。
-    form.elements.depositAmount.value = amount || '';
-    form.elements.depositPercent.value = amount ? 100 : '';
-    const paymentStatus = form.elements.fullPaymentStatus?.value || '已付';
-    if (paymentStatus === '已付') form.elements.paidAmount.value = amount > 0 ? amount : '';
-    else if (paymentStatus === '未付') form.elements.paidAmount.value = '';
-    else if (source === 'payment-status' && amount > 0 && Number(form.elements.paidAmount.value || 0) >= amount) form.elements.paidAmount.value = '';
-    syncDepositPresetControl(form);
-    syncPaymentHints(form);
-    return;
+    next.depositAmount = amount || '';
+    next.depositPercent = amount ? 100 : '';
+    const paymentStatus = values.fullPaymentStatus || '已付';
+    if (paymentStatus === '已付') next.paidAmount = amount > 0 ? amount : '';
+    else if (paymentStatus === '未付') next.paidAmount = '';
+    else if (source === 'payment-status' && amount > 0 && Number(values.paidAmount || 0) >= amount) next.paidAmount = '';
+    return next;
   }
   // 切换订单类型时清空 / 恢复已付和定金由 applyOrderTypeSwitch 负责，这里只同步比例和提示。
-  let depositAmount = Number(form.elements.depositAmount.value || 0);
-  const presetPercent = Number(form.elements.depositPercent.value || 0);
-  if (source === 'amount' && form.dataset.depositFromPreset === 'true' && presetPercent > 0) {
+  let depositAmount = Number(values.depositAmount || 0);
+  const presetPercent = Number(values.depositPercent || 0);
+  if (source === 'amount' && depositFromPreset && presetPercent > 0) {
     depositAmount = amount ? roundMoneyValue(amount * presetPercent / 100) : 0;
-    form.elements.depositAmount.value = depositAmount || '';
+    next.depositAmount = depositAmount || '';
   } else if (source === 'percent') {
-    const percent = Number(form.elements.depositPercent.value || 0);
+    const percent = Number(values.depositPercent || 0);
     depositAmount = amount && percent ? roundMoneyValue(amount * percent / 100) : 0;
-    form.elements.depositAmount.value = depositAmount || '';
+    next.depositAmount = depositAmount || '';
   } else if (source === 'deposit' || source === 'amount') {
-    form.elements.depositPercent.value = amount && depositAmount ? depositPercent(amount, depositAmount) : '';
+    next.depositPercent = amount && depositAmount ? depositPercent(amount, depositAmount) : '';
   }
   // 已付款金额不在这里改写：以前每敲一个键就按订单金额夹一次，改金额时中间值「1」把已付 300 截成 1，
   // 「370.」被写回「370」吞掉小数点，最后变成全款付清。超过订单金额只在框下提示，保存时再确认。
+  return next;
+}
+// 表单里收款这几个框现在的值（没有的框是 undefined）。
+function paymentFieldValues(form) {
+  const f = form.elements;
+  return {
+    amount:f.amount?.value,
+    orderType:f.orderType?.value,
+    paidAmount:f.paidAmount?.value,
+    depositAmount:f.depositAmount?.value,
+    depositPercent:f.depositPercent?.value,
+    fullPaymentStatus:f.fullPaymentStatus?.value,
+    stage:f.stage?.value
+  };
+}
+function syncDepositFields(form, source = 'amount') {
+  if (!form?.elements?.amount || !form.elements.paidAmount || !form.elements.orderType) return;
+  updateDepositFieldVisibility(form);
+  form.dataset.paymentType = form.elements.orderType.value || '定金订单';
+  const next = depositFieldsAfterSync(paymentFieldValues(form), source, { depositFromPreset:form.dataset.depositFromPreset === 'true' });
+  Object.entries(next).forEach(([name, value]) => { form.elements[name].value = value; });
   syncDepositPresetControl(form);
   syncPaymentHints(form);
 }
@@ -22502,40 +22518,56 @@ function syncPaymentHints(form) {
 }
 // 订单类型切换：离开一种类型时把它的收款值（已付、定金、比例、付款状态、阶段）记在表单上，切回来原样恢复。
 // 以前误点一下「全款订单」再点回「定金订单」，已付和定金全被清空，尾款单还被换成了生产中。
-function applyOrderTypeSwitch(form, fromType, toType, { keepPaid = false } = {}) {
-  const f = form?.elements;
-  if (!f?.paidAmount || !f.orderType) return;
-  const stash = form._paymentStash || (form._paymentStash = {});
-  stash[fromType] = {
-    paidAmount:f.paidAmount.value,
-    depositAmount:f.depositAmount?.value || '',
-    depositPercent:f.depositPercent?.value || '',
-    fullPaymentStatus:f.fullPaymentStatus?.value || '',
-    stage:f.stage?.value || ''
+// 换订单类型后收款几个框的值（表单和详情抽屉共用）：values 同 depositFieldsAfterSync 再加 stage，stash 是之前离开各类型时记下的值。
+// 返回 { next：要改的框（stage 是切换后想要的阶段，还没按新类型的阶段列表校正）, stash：记上这次离开的类型, clearPreset }。
+function paymentFieldsAfterTypeSwitch(values = {}, fromType, toType, { keepPaid = false, stash = null } = {}) {
+  const nextStash = { ...(stash || {}) };
+  nextStash[fromType] = {
+    paidAmount:values.paidAmount,
+    depositAmount:values.depositAmount || '',
+    depositPercent:values.depositPercent || '',
+    fullPaymentStatus:values.fullPaymentStatus || '',
+    stage:values.stage || ''
   };
-  const back = stash[toType];
-  const amount = Number(f.amount?.value || 0);
-  let stage = f.stage?.value || 'quote';
+  const back = nextStash[toType];
+  const amount = Number(values.amount || 0);
+  let stage = values.stage || 'quote';
+  const next = {};
+  let clearPreset = false;
   if (back) {
-    f.paidAmount.value = back.paidAmount;
-    if (f.depositAmount) f.depositAmount.value = back.depositAmount;
-    if (f.depositPercent) f.depositPercent.value = back.depositPercent;
-    if (f.fullPaymentStatus && back.fullPaymentStatus) f.fullPaymentStatus.value = back.fullPaymentStatus;
+    next.paidAmount = back.paidAmount;
+    next.depositAmount = back.depositAmount;
+    next.depositPercent = back.depositPercent;
+    if (back.fullPaymentStatus) next.fullPaymentStatus = back.fullPaymentStatus;
     if (back.stage) stage = back.stage;
   } else if (toType === '全款订单') {
     // 带着已收的钱切到全款：收齐了算「已付」，没收齐算「部分已付」，金额原样保留。
-    const paid = Number(f.paidAmount.value || 0);
-    if (paid > 0 && f.fullPaymentStatus) f.fullPaymentStatus.value = amount > 0 && paid >= amount ? '已付' : '部分';
+    const paid = Number(values.paidAmount || 0);
+    if (paid > 0) next.fullPaymentStatus = amount > 0 && paid >= amount ? '已付' : '部分';
   } else {
     // 切到定金：全款时自动算出的 100% 定金不带过来；已付款只在是真收过的钱时保留（已保存订单的已收金额、手填的部分已付）。
-    if (!keepPaid && f.fullPaymentStatus?.value !== '部分') f.paidAmount.value = '';
-    delete form.dataset.depositFromPreset;
-    if (f.depositAmount) f.depositAmount.value = '';
-    if (f.depositPercent) f.depositPercent.value = '';
+    if (!keepPaid && values.fullPaymentStatus !== '部分') next.paidAmount = '';
+    clearPreset = true;
+    next.depositAmount = '';
+    next.depositPercent = '';
   }
   // 全款订单没有「待发货」阶段：待发货的单货已经做好了，换成全款后放回前一列「生产中」，不退回报价。
   if (toType === '全款订单' && stage === 'balance') stage = 'production';
-  if (f.stage) renderStageSelect(f.stage, stage, toType);
+  next.stage = stage;
+  return { next, stash:nextStash, clearPreset };
+}
+// 订单类型切换：离开一种类型时把它的收款值（已付、定金、比例、付款状态、阶段）记在表单上，切回来原样恢复。
+// 以前误点一下「全款订单」再点回「定金订单」，已付和定金全被清空，尾款单还被换成了生产中。
+function applyOrderTypeSwitch(form, fromType, toType, { keepPaid = false } = {}) {
+  const f = form?.elements;
+  if (!f?.paidAmount || !f.orderType) return;
+  const { next, stash, clearPreset } = paymentFieldsAfterTypeSwitch(paymentFieldValues(form), fromType, toType, { keepPaid, stash:form._paymentStash });
+  form._paymentStash = stash;
+  if (clearPreset) delete form.dataset.depositFromPreset;
+  ['paidAmount', 'depositAmount', 'depositPercent', 'fullPaymentStatus'].forEach(name => {
+    if (name in next && f[name]) f[name].value = next[name];
+  });
+  if (f.stage) renderStageSelect(f.stage, next.stage, toType);
   syncDepositFields(form, 'type-switch');
 }
 // 表单对应的已保存订单（不含草稿）：切换订单类型时，这种单上的已付款是真收到的钱。
@@ -22548,13 +22580,16 @@ function savedOrderForPaymentForm(form) {
 // 切回原来的类型（那是恢复）时返回空字符串。
 function orderTypeChangeNotice(form, toType) {
   const f = form.elements;
-  const saved = savedOrderForPaymentForm(form);
-  const paid = Number(f.paidAmount.value || 0);
+  return orderTypeChangeNoticeText(savedOrderForPaymentForm(form), { paidAmount:f.paidAmount.value, amount:f.amount.value, currency:f.currency?.value, stage:f.stage?.value }, toType);
+}
+// 同一段话按数值说（详情抽屉不经过表单）：saved 是已保存的订单（不含草稿），values 是收款几个框的值。
+function orderTypeChangeNoticeText(saved, values = {}, toType) {
+  const paid = Number(values.paidAmount || 0);
   if (!saved || !(paid > 0) || toType === (saved.orderType || '定金订单')) return '';
-  const amount = Number(f.amount.value || 0);
-  const currency = f.currency?.value || 'USD';
+  const amount = Number(values.amount || 0);
+  const currency = values.currency || 'USD';
   const toFull = toType === '全款订单';
-  const stageAfter = toFull && normalizeStage(f.stage?.value) === 'balance' ? 'production' : '';
+  const stageAfter = toFull && normalizeStage(values.stage) === 'balance' ? 'production' : '';
   return toFull
     ? `这张单已收 ${money(paid, currency)}（订单金额 ${money(amount, currency)}）。改成全款订单后已收金额保留，付款状态显示「${amount > 0 && paid >= amount ? '已付' : '部分已付'}」${stageAfter ? `；全款订单没有「待发货」阶段，阶段改为「${stageDef(stageAfter).name}」` : ''}。再点回「定金订单」会恢复原来的定金和阶段。`
     : `这张单已收 ${money(paid, currency)}。改成定金订单后已收金额保留，定金需要重新填写。再点回「全款订单」会恢复原样。`;
@@ -22828,6 +22863,105 @@ function syncShipmentRowFromTracking(input) {
   }
   const form = input.closest('form');
   if (form) syncShipmentRowHints(form);
+}
+// 表单框赋值后读回来的样子（和浏览器一样）：单行框去掉换行，多行框换行统一成 \n，数字框不是合法数字就是空，
+// 下拉框没有这一项时什么都没选（FormData 里没有这个字段，用 undefined 表示）。
+function formInputText(value) { return String(value).replace(/[\r\n]/g, ''); }
+function formTextareaText(value) { return String(value).replace(/\r\n?/g, '\n'); }
+function formNumberText(value) {
+  const text = String(value);
+  return /^-?(?:\d+(?:\.\d+)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(text) ? text : '';
+}
+function formSelectText(value, options = []) {
+  const text = String(value);
+  return options.includes(text) ? text : undefined;
+}
+// 订单表单里各个下拉框的选项（详情抽屉按表单规则算值时用；币种另算，表单会给列表外的币种临时加一项）。
+function orderFormSelectOptions(name, orderType = '') {
+  if (name === 'productType') return productTypeDefs.map(item => item.value);
+  if (name === 'paymentChannel') return paymentChannelDefs.map(item => item.value);
+  if (name === 'orderType') return orderTypeDefs.map(item => item.value);
+  if (name === 'urgentOrder') return ['否', '是'];
+  if (name === 'fullPaymentStatus') return ['已付', '部分', '未付'];
+  if (name === 'stage') return stageDefsForOrderType(orderType).map(item => item.key);
+  if (name === 'carrier') return ['auto', 'DHL', 'FedEx', 'UPS'];
+  if (name === 'shipmentStatus') return ['未发货', '已发货', '运输中', '派送中', '已签收', '异常'];
+  return [];
+}
+// 收款联动算出的值（数字或 ''）写进框后读回来的样子：定金、已付是数字框，比例是隐藏框。
+function orderFormPaymentText(name, value) {
+  return name === 'depositPercent' ? String(value) : formNumberText(value);
+}
+// 一张已有订单在订单表单里的数据：等于 openOrder(order.id) 之后 Object.fromEntries(new FormData(#orderForm))，
+// 再加上 shipments（orderShipmentsFromForm）、partialShipment（勾没勾）和 attachments（orderAttachmentsFromForm）。
+// 详情抽屉保存时从这里起算，不再借用隐藏的订单表单。表单加了字段、openOrder 改了填法，这里要一起改
+// （scripts/test-order-form-data-ui.js 逐张订单对照）。
+function orderFormDataFromOrder(order = {}) {
+  const shipments = normalizeOrderShipments(order);
+  const primary = shipments[0] || {};
+  const orderType = formSelectText(order.orderType || '定金订单', orderFormSelectOptions('orderType'));
+  const pendingCopy = typeof feishuPendingCopies !== 'undefined' && feishuPendingCopies.has(order.id);
+  const notificationEligible = (order.isDraft === true || pendingCopy) && order.feishuNotification?.status !== 'sent';
+  const data = {
+    id:String(order.id),
+    num:formInputText(order.num),
+    createdAt:formInputText(normalizeDate(order.createdAt || order.updated)),
+    client:formInputText(order.client),
+    country:formInputText(order.country || ''),
+    productType:formSelectText(order.productType || '假发', orderFormSelectOptions('productType')),
+    amount:formNumberText(order.amount),
+    currency:storedCurrency(order.currency || 'USD'),
+    orderType,
+    paymentChannel:formSelectText(order.paymentChannel || 'Paypal', orderFormSelectOptions('paymentChannel')),
+    depositAmount:formNumberText(order.depositAmount || order.paidAmount || ''),
+    depositPercent:String(order.depositPercent || depositPercent(order.amount, order.depositAmount || order.paidAmount) || ''),
+    fullPaymentStatus:fullPaymentStatusFor(order.amount, order.paidAmount),
+    paidAmount:formNumberText(order.paidAmount || ''),
+    stage:stageSelectValue(normalizeStage(order.stage), orderType || ''),
+    orderDetail:formTextareaText(order.orderDetail || ''),
+    attachmentsJson:JSON.stringify(order.attachments || []),
+    urgentOrder:order.urgentOrder ? '是' : '否',
+    customerRequiredDate:formInputText(order.customerRequiredDate || ''),
+    latestShipDate:formInputText(order.latestShipDate || ''),
+    trackingNumber:formInputText(primary.trackingNumber || ''),
+    carrier:['DHL', 'FedEx', 'UPS'].includes(primary.carrier) ? primary.carrier : 'auto',
+    shipmentStatus:formSelectText(primary.status || '未发货', orderFormSelectOptions('shipmentStatus')),
+    next:formInputText(order.next || ''),
+    note:formTextareaText(order.note || '')
+  };
+  if (notificationEligible && (typeof feishuDefaultChecked !== 'function' || feishuDefaultChecked())) data.sendFeishuNotification = 'on';
+  // openOrder 最后按订单金额同步一次收款框（全款单的定金、比例、已付由付款状态决定；定金单重算比例）。
+  Object.entries(depositFieldsAfterSync(data, 'amount')).forEach(([name, value]) => { data[name] = orderFormPaymentText(name, value); });
+  data.depositPreset = orderDepositPresetValue(data.amount, data.currency, data.depositPercent);
+  Object.keys(data).forEach(key => { if (data[key] === undefined) delete data[key]; });
+  // 物流行：每一批的 id、单号、承运商（不认识的是「自动识别」）、状态，读回来再规范一次。
+  // 抽屉不改物流，每一行都还是打开时的单号和状态（orderShipmentsFromForm 的 statusUntouched）：保存时状态按订单现在的来。
+  data.shipments = normalizeOrderShipments({ shipments:shipments.map(item => ({
+    id:item.id,
+    trackingNumber:item.trackingNumber,
+    carrier:['DHL', 'FedEx', 'UPS'].includes(item.carrier) ? item.carrier : 'auto',
+    status:formSelectText(item.status, orderFormSelectOptions('shipmentStatus')) || '未发货'
+  })) }).map(item => item.trackingNumber ? { ...item, statusUntouched:true } : item);
+  data.partialShipment = order.partialShipment === true;
+  try {
+    const attachments = JSON.parse(data.attachmentsJson);
+    data.attachments = Array.isArray(attachments) ? attachments.slice(0, 20) : [];
+  } catch (_) { data.attachments = []; }
+  return data;
+}
+// 阶段下拉选了 current 以后的值（renderStageSelect 的规则）：这种订单类型没有这个阶段时，待发货落到生产中，其它落到第一项。
+function stageSelectValue(current, orderType = '') {
+  const list = stageDefsForOrderType(orderType);
+  if (list.some(s => s.key === current)) return current;
+  return current === 'balance' ? 'production' : (list[0]?.key || 'quote');
+}
+// 定金比例下拉选中的那一项（syncDepositPresetControl 的规则）：比例正好是某个预设时选它，否则空。
+function orderDepositPresetValue(amountValue, currencyValue, percentValue) {
+  const amount = Number(amountValue || 0);
+  const currency = String(currencyValue || 'USD').trim().toUpperCase() || 'USD';
+  const currentPercent = Number(percentValue || 0);
+  const matched = depositPresetOptions(amount, currency).find(item => Math.abs(item.percent - currentPercent) < 0.001);
+  return matched ? String(matched.percent) : '';
 }
 function openOrder(id) {
   const pendingForm = document.getElementById('orderForm');
@@ -23339,17 +23473,17 @@ function buildOrderFromFormData(data = {}, { existing = null, isDraft = false, s
   return order;
 }
 // 已付款 / 定金超过订单金额时，保存前先问一句：确认后按订单金额记，不再悄悄截断；选「回去修改」就停在那个框上。
-async function confirmOrderPaymentOverflow(form) {
-  const f = form?.elements;
-  if (!f?.amount || !f.paidAmount) return true;
-  const amount = Math.max(0, Number(f.amount.value || 0));
-  const currency = f.currency?.value || 'USD';
-  const type = f.orderType?.value || '定金订单';
+// data 是订单表单的数据（amount、currency、orderType、paidAmount、fullPaymentStatus、depositAmount）。
+// 可以保存返回 true；选了「回去修改」返回要回去改的字段名（paidAmount / depositAmount），由调用的表单或抽屉自己聚焦。
+async function confirmOrderPaymentOverflow(data = {}) {
+  const amount = Math.max(0, Number(data.amount || 0));
+  const currency = data.currency || 'USD';
+  const type = data.orderType || '定金订单';
   const over = [];
-  const paid = Number(f.paidAmount.value || 0);
-  if ((type === '定金订单' || f.fullPaymentStatus?.value === '部分') && paid > amount) over.push({ field:f.paidAmount, label:'已付款', value:paid });
-  const deposit = Number(f.depositAmount?.value || 0);
-  if (type === '定金订单' && deposit > amount) over.push({ field:f.depositAmount, label:'定金', value:deposit });
+  const paid = Number(data.paidAmount || 0);
+  if ((type === '定金订单' || data.fullPaymentStatus === '部分') && paid > amount) over.push({ field:'paidAmount', label:'已付款', value:paid });
+  const deposit = Number(data.depositAmount || 0);
+  if (type === '定金订单' && deposit > amount) over.push({ field:'depositAmount', label:'定金', value:deposit });
   if (!over.length) return true;
   const result = await appConfirm({
     title:`${over.map(item => item.label).join('和')}超过订单金额`,
@@ -23358,14 +23492,15 @@ async function confirmOrderPaymentOverflow(form) {
     confirmText:'按订单金额保存',
     cancelText:'回去修改'
   });
-  if (result.confirmed) return true;
-  // 从详情抽屉保存时表单是隐藏的：记下是哪个框，抽屉自己标红、聚焦它对应的输入框。
-  form.dataset.overflowField = over[0].field.name || '';
-  const wrap = over[0].field.closest('.field');
+  return result.confirmed ? true : over[0].field;
+}
+// 表单里的框标红、聚焦（「回去修改」之后）。
+function focusOrderFormField(field) {
+  if (!field) return;
+  const wrap = field.closest('.field');
   if (wrap) { wrap.classList.remove('ui-err'); void wrap.offsetWidth; wrap.classList.add('ui-err'); }
-  over[0].field.focus();
-  over[0].field.select?.();
-  return false;
+  field.focus();
+  field.select?.();
 }
 // 保存成功的提示里写出阶段：按收款自动换了阶段时，用户要知道这张单去了哪一列。
 // 这次保存刚进已发货 / 已完成、没收的尾款按已收齐记了：提示里也写出金额（以前只说放到了哪一列）。
@@ -23400,7 +23535,8 @@ async function saveCombinedCustomerOrder() {
   }
   // Check the order number before the customer is written into state.
   if (rejectDuplicateOrderNum(orderForm, { num:String(orderData.num || '').trim(), id:orderForm.dataset.pendingOrderId || '' })) return;
-  if (!await confirmOrderPaymentOverflow(orderForm)) return;
+  const overflowField = await confirmOrderPaymentOverflow(orderData);
+  if (overflowField !== true) { focusOrderFormField(orderForm.elements[overflowField]); return; }
   const duplicateOk = await confirmDuplicateCustomerSave({ oldName, newName, emails: customerData.emails, phones: customerData.phones, paymentEmail: customerData.paymentEmail });
   if (!duplicateOk) return;
   const previousProfile = state.customers?.[oldName] || (!oldName ? state.customers?.[newName] : {}) || {};
@@ -23457,7 +23593,7 @@ async function upsertOrder(form, options = {}) {
   if (form.dataset.saving || !canSubmitStoredData()) return;
   form.dataset.saving = 'true';
   try {
-  const data = { ...Object.fromEntries(new FormData(form).entries()), shipments:orderShipmentsFromForm(form), ...(options.extraData || {}) };
+  const data = { ...Object.fromEntries(new FormData(form).entries()), shipments:orderShipmentsFromForm(form) };
   // 没勾的复选框不在 FormData 里：「还有批次没发」要按勾选状态明确交进去，取消勾选才存得下来。
   if (form.elements.partialShipment) data.partialShipment = form.elements.partialShipment.checked;
   const isDraft = !!options.draft;
@@ -23471,13 +23607,40 @@ async function upsertOrder(form, options = {}) {
   }
   // 同一张单里重复的物流单号：以前保存时静默丢掉后面那一行（连它的承运商、状态一起），现在先拦下来。
   if (typeof rejectDuplicateShipmentRows === 'function' && rejectDuplicateShipmentRows(form)) return;
-  if (!await confirmOrderPaymentOverflow(form)) return;
-  const order = buildOrderFromFormData({ ...data, attachments: orderAttachmentsFromForm(form) }, { existing, isDraft, stageTouched: form.dataset.stageTouched === 'true' });
+  const overflowField = await confirmOrderPaymentOverflow(data);
+  if (overflowField !== true) { focusOrderFormField(form.elements[overflowField]); return; }
+  return await saveOrderData({ ...data, attachments: orderAttachmentsFromForm(form) }, {
+    host:form,
+    existing,
+    isDraft,
+    isEdit,
+    newOrder:() => !!form.dataset.pendingNewOrder,
+    stageTouched:form.dataset.stageTouched === 'true',
+    form,
+    onBuilt:order => {
+      if (!existing) form.dataset.pendingNewOrder = 'true';
+      form.dataset.pendingOrderId = order.id;
+    },
+    onSaved:() => {
+      delete form.dataset.saving;
+      closeOrder({ cleanupTemp: false });
+    }
+  });
+  } finally { delete form.dataset.saving; }
+}
+// 保存一张订单的主体（订单弹窗和详情抽屉共用）：data 是订单表单的数据（字段名和 #orderForm 一样，加上 shipments、
+// partialShipment、attachments）。校验和确认（客户必填、已付超过金额等）由调用方先做。
+// host：保存期间设成 inert、没写进数据库时记撤回的元素（订单表单或抽屉）。newOrder()：这次算不算新单（复制出来还没保存过的单也算）。
+// form：号码撞车时标红聚焦哪张表单的订单号（抽屉没有这个框，只提示）。onBuilt(order)：订单算好、号码没有撞车、马上要写进内存时调用；onSaved()：写进数据库后、重画之前调用。
+// 返回 true 已保存，false 没写进数据库（改动留在内存里，放弃时撤回），undefined 被拦下、什么都没改。
+async function saveOrderData(data, { host, existing = null, isDraft = false, isEdit = false, newOrder = () => false, stageTouched = false, form = null, noteStage = data.stage, onBuilt = null, onSaved = null } = {}) {
+  const order = buildOrderFromFormData(data, { existing, isDraft, stageTouched });
   if (rejectDuplicateOrderNum(form, order)) return;
-  if (!existing) form.dataset.pendingNewOrder = 'true';
-  const notificationRequested = shouldRequestOrderNotification(form.dataset.pendingNewOrder ? null : existing, isDraft, data.sendFeishuNotification === 'on');
-  if (!isDraft && (!existing || existing.isDraft || form.dataset.pendingNewOrder) && typeof rememberFeishuChoice === 'function') rememberFeishuChoice(data.sendFeishuNotification === 'on');
-  if (!existing || existing.isDraft || form.dataset.pendingNewOrder) {
+  onBuilt?.(order);
+  const asNew = !existing || newOrder();
+  const notificationRequested = shouldRequestOrderNotification(asNew ? null : existing, isDraft, data.sendFeishuNotification === 'on');
+  if (!isDraft && (asNew || existing.isDraft) && typeof rememberFeishuChoice === 'function') rememberFeishuChoice(data.sendFeishuNotification === 'on');
+  if (asNew || existing.isDraft) {
     order.feishuNotification = normalizeFeishuNotification({ requested:notificationRequested, status:notificationRequested ? 'sending' : 'skipped' });
   }
   if (existing) state.orders = state.orders.map(o => o.id === existing.id ? order : o);
@@ -23486,23 +23649,21 @@ async function upsertOrder(form, options = {}) {
     // 新单排在最前：订单列表回到第 1 页，保存后能看到它。
     orderListCurrentPage = 1;
   }
-  form.dataset.pendingOrderId = order.id;
-  if (!await persistFormState(form)) {
+  if (!await persistFormState(host)) {
     // 没写进数据库：记下怎么撤回。放弃这张表单时内存回到保存前（新单删掉、编辑恢复原样），后台重试不会再写进去。
     if (typeof failedSaveRemember === 'function') {
-      failedSaveRemember(form, () => {
+      failedSaveRemember(host, () => {
         state.orders = existing ? state.orders.map(o => o.id === order.id ? existing : o) : state.orders.filter(o => o.id !== order.id);
       });
     }
     return false;
   }
-  if (typeof failedSaveForget === 'function') failedSaveForget(form);
+  if (typeof failedSaveForget === 'function') failedSaveForget(host);
   if (typeof feishuPendingCopies !== 'undefined') feishuPendingCopies.delete(order.id);
-  delete form.dataset.saving;
-  closeOrder({ cleanupTemp: false });
+  onSaved?.();
   render();
-  // noteStage：抽屉保存时按保存前的阶段说明阶段变化（抽屉先把推断的阶段写进了表单，拿表单的阶段比较就什么都不说了）。
-  const successText = `${isDraft ? '订单草稿已保存' : (isEdit ? '订单已保存' : '订单已创建')}${orderStageSaveNote(order, options.noteStage ?? data.stage, existing)}`;
+  // noteStage：拿哪个阶段比较，说明「已按收款放到某阶段」。订单弹窗用表单里选的阶段；抽屉用保存前的阶段。
+  const successText = `${isDraft ? '订单草稿已保存' : (isEdit ? '订单已保存' : '订单已创建')}${orderStageSaveNote(order, noteStage, existing)}`;
   if (isDraft || !notificationRequested) toast(successText, typeof orderSaveFollowUpAction === 'function' ? orderSaveFollowUpAction(order, existing) : undefined);
   else {
     // 订单已经在数据库里：马上告诉用户、按钮马上恢复。群消息在后台发，结果另给一条提示（以前要等飞书，最长几分钟）。
@@ -23510,7 +23671,6 @@ async function upsertOrder(form, options = {}) {
     completeOrderNotification(order.id, true, successText).catch(() => {});
   }
   return true;
-  } finally { delete form.dataset.saving; }
 }
 // 保存后顺手给一个下一步按钮：手动把所有批次标成已签收的已发货单，问要不要移到已完成（自动规则只认承运商的签收）；
 // 已完成的单又加了一批，问要不要移回已发货继续跟。
@@ -31542,7 +31702,7 @@ function uiPasteFillOnly(form, text) {
 // 选了放弃：留在内存里的失败保存撤回，抽屉算干净，接下来的重画不再把输入带回来。
 async function uiDetailConfirmLeave(sub, message) {
   const body = document.getElementById('orderDetailBody');
-  if (document.getElementById('detailSaveBtn')?.dataset.mode === 'busy' || document.getElementById('orderForm')?.dataset.saving) {
+  if (body?.dataset.saving || document.getElementById('orderForm')?.dataset.saving) {
     toast('正在保存，请稍候', { tone:'info' });
     return false;
   }
@@ -32046,35 +32206,96 @@ document.getElementById('orderDetailBody')?.addEventListener('click', e => {
   if (e.target.closest('[data-detail-open-customer]')) document.getElementById('detailCustomerBtn')?.click();
 });
 // 新版 UI：订单详情抽屉可以直接改（原型的 订单信息 / 收款 页签 + 底部 按住删除 / 取消 / 保存）。
-// 保存走原来的订单表单：先用 openOrder 把订单灌进 #orderForm，再把抽屉里的值写进去，交给 upsertOrder 做校验、阶段推断和持久化。
+// 保存不经过订单表单：从订单数据（orderFormDataFromOrder）起算，按表单的规则落上抽屉里的值（orderDataWithDrawerValues），
+// 再交给和订单弹窗共用的 saveOrderData 做阶段推断和持久化。
 function uiDetailEditValues() {
   const body = document.getElementById('orderDetailBody');
   const values = {};
   body?.querySelectorAll('[data-dedit]').forEach(el => { values[el.dataset.dedit] = el.type === 'checkbox' ? el.checked : el.value; });
   return values;
 }
-function uiDetailSetFormValue(form, name, value) {
-  const field = form.elements[name];
-  if (!field || value === undefined) return;
-  // Only a real change fires input/change. The 订单类型 / 金额 listeners reset the deposit and paid fields,
-  // so re-setting an unchanged value used to wipe the deposit of every 定金订单 saved from the drawer.
-  if (field.type === 'checkbox') {
-    if (field.checked === !!value) return;
-    field.checked = !!value;
-  } else {
-    const next = typeof value === 'boolean' && field.tagName === 'SELECT' ? (value ? '是' : '否') : String(value);
-    if (String(field.value) === next) return;
-    field.value = next;
+// 抽屉里的值落到订单数据上：和以前写进隐藏的订单表单一样，按固定顺序、只有值真的变了才算改了，
+// 改了订单类型、金额、已付、付款状态时按表单同一套收款联动规则（depositFieldsAfterSync / paymentFieldsAfterTypeSwitch）跟着算。
+// base：订单在表单里的数据（orderFormDataFromOrder）；order：打开抽屉时的这张单；saved：已保存的订单（草稿为 null），
+// 换订单类型时它上面的已收是真收到的钱。返回 { data, stageTouched }：stageTouched 只在按收款改了阶段时为 true。
+function orderDataWithDrawerValues(base, values = {}, { order = {}, saved = null, paidLocked = false } = {}) {
+  const data = { ...base };
+  const selects = new Set(['productType', 'paymentChannel', 'orderType', 'urgentOrder', 'fullPaymentStatus', 'stage']);
+  const numbers = new Set(['amount', 'paidAmount']);
+  const textareas = new Set(['orderDetail', 'note']);
+  let paymentType = data.orderType || '定金订单';
+  let stash = null;
+  let stageTouched = false;
+  const sync = source => {
+    paymentType = data.orderType || '定金订单';
+    Object.entries(depositFieldsAfterSync(data, source)).forEach(([name, value]) => { data[name] = orderFormPaymentText(name, value); });
+  };
+  // 一个框写进新值：没变就什么都不做（返回 false），变了按这种框的规则存下读回来的样子。
+  const set = (name, value) => {
+    if (value === undefined) return false;
+    if (name === 'partialShipment') {
+      if (data.partialShipment === !!value) return false;
+      data.partialShipment = !!value;
+      return true;
+    }
+    const next = typeof value === 'boolean' && selects.has(name) ? (value ? '是' : '否') : String(value);
+    if (String(data[name] ?? '') === next) return false;
+    if (name === 'currency') data.currency = next;
+    else if (selects.has(name)) data[name] = formSelectText(next, orderFormSelectOptions(name, data.orderType || ''));
+    else if (numbers.has(name)) data[name] = formNumberText(next);
+    else data[name] = textareas.has(name) ? formTextareaText(next) : formInputText(next);
+    if (data[name] === undefined) delete data[name];
+    return true;
+  };
+  ['client', 'country', 'productType', 'orderType', 'customerRequiredDate', 'latestShipDate', 'orderDetail', 'note', 'next', 'urgentOrder', 'partialShipment', 'currency', 'paymentChannel', 'amount'].forEach(name => {
+    if (!set(name, values[name])) return;
+    if (name === 'amount') sync('amount');
+    if (name !== 'orderType') return;
+    // 换了订单类型：离开的类型的收款值记下（一次保存里只会换一次，没有可恢复的记录），按新类型重算已付、定金、阶段。
+    const toType = data.orderType || '定金订单';
+    const fromType = paymentType || toType;
+    if (fromType === toType) {
+      data.stage = stageSelectValue(data.stage, data.orderType || '');
+      sync('amount');
+      return;
+    }
+    const result = paymentFieldsAfterTypeSwitch(data, fromType, toType, { keepPaid:Boolean(saved), stash });
+    stash = result.stash;
+    ['paidAmount', 'depositAmount', 'depositPercent'].forEach(key => { if (key in result.next) data[key] = orderFormPaymentText(key, result.next[key]); });
+    if ('fullPaymentStatus' in result.next) data.fullPaymentStatus = formSelectText(result.next.fullPaymentStatus, orderFormSelectOptions('fullPaymentStatus'));
+    data.stage = stageSelectValue(result.next.stage, toType);
+    sync('type-switch');
+  });
+  // 已发货 / 已完成的单已付框是只读的（按收齐记），不算改了已付，免得把原来记的已付改掉。
+  if (values.paidAmount !== undefined && !paidLocked) {
+    const amount = Number(values.amount ?? order.amount ?? 0);
+    const paid = Number(values.paidAmount || 0);
+    // 全款单只收了一部分：付款状态放「部分已付」并带上金额。以前映射成「未付」，输入 500 保存后已收变成 0。
+    if ((values.orderType || order.orderType) === '全款订单') {
+      const status = fullPaymentStatusFor(amount, paid);
+      if (set('fullPaymentStatus', status)) sync('payment-status');
+      if (status === '部分' && set('paidAmount', values.paidAmount)) sync('paid');
+    } else if (set('paidAmount', values.paidAmount)) sync('paid');
   }
-  // 日期框：程序写进去的值不经过日历的「手打落定」（那里认不出会改回这个框上次被点时留下的日期，可能是另一张单的）。
-  if (field.matches?.(datePickerSelector)) {
-    field._dpCommitted = field.value;
-    field._dpAnnounced = field.value;
-    dispatchDateInputEvents(field, ['input', 'change']);
-    return;
+  // 改了收款的话，阶段按 stageAfterPaymentEdit 走：报价单收到定金或付清进生产中，生产中的定金单已收清零回报价（和编辑弹窗一样）。
+  // 只改备注等其它字段时阶段不动，避免手动拖过去的订单被悄悄退回。
+  const paymentTouched = values.paidAmount !== undefined && !paidLocked && (
+    Number(values.paidAmount || 0) !== Number(orderPaidValue(order) || 0)
+    || Number(values.amount || 0) !== Number(order.amount || 0)
+    || (values.orderType || order.orderType) !== (order.orderType || '定金订单'));
+  const currentStage = normalizeStage(data.stage || order.stage);
+  if (paymentTouched && ['quote', 'production'].includes(currentStage)) {
+    const inferred = stageAfterPaymentEdit({
+      stage:currentStage,
+      orderType:data.orderType || order.orderType,
+      amount:Number(data.amount || 0),
+      paidAmount:Number(data.paidAmount || 0),
+      paidBefore:orderPaidValue(order)
+    });
+    if (inferred !== currentStage && set('stage', inferred)) stageTouched = true;
   }
-  field.dispatchEvent(new Event('input', { bubbles:true }));
-  field.dispatchEvent(new Event('change', { bubbles:true }));
+  data.depositPreset = orderDepositPresetValue(data.amount, data.currency, data.depositPercent);
+  return { data, stageTouched };
 }
 function uiDetailFieldError(name, text) {
   const field = document.querySelector(`#orderDetailBody [data-dedit="${name}"]`);
@@ -32136,75 +32357,37 @@ async function uiDetailSave({ promote = false } = {}) {
     uiDetailFieldError('paidAmount', '已付金额要填 0 或以上的数字');
     return;
   }
-  // 抽屉下面还开着订单弹窗：保存要借用订单表单，会把弹窗里的那张单换掉。弹窗里有改动先问，放弃后关掉它。
+  // 抽屉下面还开着订单弹窗：照旧先问弹窗里的改动、再关掉它（以前保存要借用订单表单；现在不借了，但这一步用户看得到，先不动）。
   if (!await uiDetailGuardOrderModal(id, '保存订单详情')) return;
   if (detailOrderId !== id) return;
-  openOrder(id);
-  setModalOpenState('orderModal', false);
-  const form = document.getElementById('orderForm');
-  if (form.dataset.uploading || form.dataset.deletingAttachment) { toast('附件正在处理，请完成后再保存'); return; }
+  const current = state.orders.find(o => o.id === id);
+  if (!current) return;
+  const base = orderFormDataFromOrder(current);
+  // 复制出来还没保存过的单：这次保存按新单算（提示写「已创建」），和订单弹窗一样。
+  const pendingNew = typeof feishuPendingCopies !== 'undefined' && feishuPendingCopies.has(id);
+  const savedOrder = current.isDraft ? null : current;
   // 改订单类型且已经收过钱：和订单弹窗一样先说清楚已收金额和阶段会怎样。
   if (values.orderType && values.orderType !== (order.orderType || '定金订单')) {
-    const message = typeof orderTypeChangeNotice === 'function' ? orderTypeChangeNotice(form, values.orderType) : '';
+    const message = orderTypeChangeNoticeText(savedOrder, base, values.orderType);
     if (message) {
       const result = await appConfirm({ title:`改成${values.orderType}？`, sub:'订单类型', message, confirmText:`改成${values.orderType}并保存`, cancelText:'不改' });
       if (!result.confirmed || detailOrderId !== id) return;
     }
   }
-  ['client', 'country', 'productType', 'orderType', 'customerRequiredDate', 'latestShipDate', 'orderDetail', 'note', 'next', 'urgentOrder', 'partialShipment', 'currency', 'paymentChannel', 'amount'].forEach(name => {
-    // 列表外的币种（AED 等）：表单的币种下拉要先有这一项，才选得上。
-    if (name === 'currency' && values.currency && typeof setCurrencySelectValue === 'function' && ![...(form.elements.currency?.options || [])].some(option => option.value === values.currency)) {
-      setCurrencySelectValue(form.elements.currency, values.currency);
-    }
-    uiDetailSetFormValue(form, name, values[name]);
-  });
-  // 已发货 / 已完成的单已付框是只读的（按收齐记），不写回表单，免得把原来记的已付改掉。
   const paidLocked = !!document.querySelector('#orderDetailBody [data-dedit="paidAmount"]')?.readOnly;
-  if (values.paidAmount !== undefined && !paidLocked) {
-    const amount = Number(values.amount ?? order.amount ?? 0);
-    const paid = Number(values.paidAmount || 0);
-    // 全款单只收了一部分：付款状态放「部分已付」并带上金额。以前映射成「未付」，输入 500 保存后已收变成 0。
-    if ((values.orderType || order.orderType) === '全款订单') {
-      const status = fullPaymentStatusFor(amount, paid);
-      uiDetailSetFormValue(form, 'fullPaymentStatus', status);
-      if (status === '部分') uiDetailSetFormValue(form, 'paidAmount', values.paidAmount);
-    } else uiDetailSetFormValue(form, 'paidAmount', values.paidAmount);
-  }
-  // 改了收款的话，阶段按 stageAfterPaymentEdit 走：报价单收到定金或付清进生产中，生产中的定金单已收清零回报价（和编辑弹窗一样）。
-  // 只改备注等其它字段时阶段不动，避免手动拖过去的订单被悄悄退回。
-  const paymentTouched = values.paidAmount !== undefined && !paidLocked && (
-    Number(values.paidAmount || 0) !== Number(orderPaidValue(order) || 0)
-    || Number(values.amount || 0) !== Number(order.amount || 0)
-    || (values.orderType || order.orderType) !== (order.orderType || '定金订单'));
-  const currentStage = normalizeStage(form.elements.stage?.value || order.stage);
-  if (paymentTouched && ['quote', 'production'].includes(currentStage) && form.elements.stage) {
-    const inferred = stageAfterPaymentEdit({
-      stage:currentStage,
-      orderType:form.elements.orderType?.value || order.orderType,
-      amount:Number(form.elements.amount?.value || 0),
-      paidAmount:Number(form.elements.paidAmount?.value || 0),
-      paidBefore:orderPaidValue(order)
-    });
-    if (inferred !== currentStage) uiDetailSetFormValue(form, 'stage', inferred);
-  }
+  const { data, stageTouched } = orderDataWithDrawerValues(base, values, { order, saved:savedOrder, paidLocked });
   // 飞书开关只跟着「转为正式订单」；草稿照旧保存、正式单再保存都不发。
   const feishu = document.getElementById('detailFeishuToggle');
-  if (form.elements.sendFeishuNotification) form.elements.sendFeishuNotification.checked = promote && !!feishu?.checked;
-  delete form.dataset.overflowField;
+  if (promote && feishu?.checked) data.sendFeishuNotification = 'on';
+  else delete data.sendFeishuNotification;
   let saved;
   uiMorph(saveBtn, 'busy', '保存中…');
-  // noteStage：按保存前的阶段说明「已按收款放到某阶段」（抽屉先把推断的阶段写进了表单，拿表单比较就什么都不说了）。
-  try { saved = await upsertOrder(form, { draft:keepDraft, noteStage:order.stage }); } finally { uiMorph(saveBtn, 'idle'); }
+  // 保存期间抽屉不能输入（persistFormState 把它设成 inert）：焦点原来在抽屉里的话，没存进去时放回去。
+  const focused = body.contains(document.activeElement) ? document.activeElement : null;
+  try { saved = await uiDetailSaveOrder(body, data, { id, isDraft:keepDraft, isEdit:!pendingNew, pendingNew, stageTouched, noteStage:order.stage }); } finally { uiMorph(saveBtn, 'idle'); }
   if (!saved) {
-    // 没存进去：抽屉里的输入原样留着、仍算没保存。以前会用内存里的新值重画并标成干净，看起来像已经保存。
-    // 留在内存里的改动交给抽屉记着，关抽屉 / 换单 / 选放弃时撤回。
-    const undo = form._failedSave;
-    failedSaveForget(form);
-    if (undo) failedSaveRemember(body, undo);
-    // 已付超过金额、选了「回去修改」：标红并聚焦抽屉里的那个框（以前聚焦的是隐藏表单里的框）。
-    const overflowField = form.dataset.overflowField;
-    delete form.dataset.overflowField;
-    if (overflowField && body.querySelector(`[data-dedit="${overflowField}"]`)) uiDetailFieldError(overflowField, '');
+    // 没存进去：抽屉里的输入原样留着、仍算没保存（留在内存里的改动由抽屉记着，关抽屉 / 换单 / 选放弃时撤回）。
+    if (focused?.isConnected && (!document.activeElement || document.activeElement === document.body)) focused.focus({ preventScroll:true });
     return;
   }
   failedSaveForget(body);
@@ -32213,6 +32396,31 @@ async function uiDetailSave({ promote = false } = {}) {
   if (!drawerStillHere) return;
   uiDetailMarkClean();
   if (state.orders.some(o => o.id === id)) openOrderDetail(id);
+}
+// 抽屉的保存：和订单弹窗的 upsertOrder 一样先确认已付 / 定金没超过金额，再交给 saveOrderData。
+// 保存期间抽屉上记着 data-saving（关抽屉、换单时据此说「正在保存」）。返回值同 saveOrderData。
+async function uiDetailSaveOrder(body, data, { id, isDraft, isEdit, pendingNew, stageTouched, noteStage }) {
+  if (body.dataset.saving || !canSubmitStoredData()) return;
+  body.dataset.saving = 'true';
+  try {
+    const existing = state.orders.find(o => o.id === id) || null;
+    // 已付超过金额、选了「回去修改」：标红并聚焦抽屉里的那个框（抽屉里没有定金框，那时只停下）。
+    const overflowField = await confirmOrderPaymentOverflow(data);
+    if (overflowField !== true) {
+      if (body.querySelector(`[data-dedit="${overflowField}"]`)) uiDetailFieldError(overflowField, '');
+      return;
+    }
+    return await saveOrderData(data, {
+      host:body,
+      existing,
+      isDraft,
+      isEdit,
+      newOrder:() => pendingNew,
+      stageTouched,
+      noteStage,
+      onSaved:() => { delete body.dataset.saving; }
+    });
+  } finally { delete body.dataset.saving; }
 }
 function uiDetailPaidFull() {
   const body = document.getElementById('orderDetailBody');

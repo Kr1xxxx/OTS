@@ -293,6 +293,10 @@ async function runFailures(page, control) {
     orderModalOpen:document.getElementById('orderModal').classList.contains('open')
   }), id);
   const save = () => page.evaluate(() => uiDetailSave());
+  // 第一次失败弹过「数据库保存失败，正在自动重试」之后，页面在 1.5 秒 / 10 秒内不再重复提示（macSaveErrorToastAt）。
+  // 基准录的是「刚提示过」的情形；慢的机器（CI 的 WebKit）跑到后面几种时已经过了 1.5 秒，会多出一条
+  // 「这次修改已排队，正在自动重试」。这里把「上次提示的时间」拨到现在，结果不随机器快慢变。
+  const errorToastJustShown = () => page.evaluate(() => { if (macSaveErrorToastAt) macSaveErrorToastAt = Date.now(); });
   const storedOrder = id => JSON.parse(JSON.stringify(control.store.current.data.orders.find(o => o.id === id) || null));
 
   // 500, then the drawer is closed: memory goes back to the saved order and the retry writes nothing new.
@@ -309,6 +313,7 @@ async function runFailures(page, control) {
   // 500, then the background retry gets through with the drawer untouched: it counts as saved.
   await prepare('dqp', { note:'后台重试', paidAmount:'300' });
   control.fail = { status:500 };
+  await errorToastJustShown();
   await save();
   results['500 then retry: after save'] = await snapshot('dqp');
   control.fail = null;
@@ -320,6 +325,7 @@ async function runFailures(page, control) {
   // 500, then 保存 again after the server is back: saved normally.
   await prepare('fu', { paidAmount:'400', note:'再点一次保存' });
   control.fail = { status:500 };
+  await errorToastJustShown();
   await save();
   results['500 then save again: after save'] = await snapshot('fu');
   control.fail = null;

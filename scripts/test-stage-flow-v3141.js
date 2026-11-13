@@ -12,6 +12,8 @@ const { launchBrowser, openBoard, h, base, day } = require('./helpers/board-page
     const orders = [
       order('q1', { depositAmount:300, depositPercent:30 }),
       order('q2', { orderType:'全款订单', amount:500 }),
+      order('q3', { orderType:'全款订单', amount:900, paidAmount:200 }),
+      order('q4', { orderType:'全款订单', amount:700 }),
       order('p1', { stage:'production', paidAmount:300, depositAmount:300 }),
       order('p2', { stage:'production', amount:800, paidAmount:800 }),
       order('p3', { stage:'production', orderType:'全款订单', amount:600, paidAmount:600 }),
@@ -22,7 +24,7 @@ const { launchBrowser, openBoard, h, base, day } = require('./helpers/board-page
 
     // 推进顺序 = 看板列顺序；全款单和已经收齐的定金单没有尾款要等，从生产中直接进已发货。
     const next = await page.evaluate(() => Object.fromEntries(state.orders.map(o => [o.id, nextStageFor(o)])));
-    assert.deepEqual(next, { q1:'production', q2:'production', p1:'balance', p2:'shipment', p3:'shipment', b1:'shipment', s1:'done' });
+    assert.deepEqual(next, { q1:'production', q2:'production', q3:'production', q4:'production', p1:'balance', p2:'shipment', p3:'shipment', b1:'shipment', s1:'done' });
     assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll('#pipeline .board-column')].map(el => el.dataset.stage)), ['quote', 'production', 'balance', 'shipment']);
 
     // 按收款定阶段：没收定金 = 报价，收到定金或付清 = 生产中；全款单没付清留在报价。
@@ -79,10 +81,52 @@ const { launchBrowser, openBoard, h, base, day } = require('./helpers/board-page
     assert.equal(o.depositAutoPaid, undefined);
     await h.clearToasts(page);
 
-    // 全款单从报价推进到生产中不自动记钱。
+    // 全款单从报价推进到生产中（用户 2026-11-13 定）：和定金单一样，全款记为已收，提示写出金额，可以撤销。
     await page.evaluate(() => { quickAdvanceStage('q2'); });
     await page.waitForFunction(() => state.orders.find(o => o.id === 'q2').stage === 'production');
-    assert.equal((await h.order(page, 'q2')).paidAmount, 0);
+    o = await h.order(page, 'q2');
+    assert.equal(o.paidAmount, 500, '全款单报价 → 生产中：全款记为已收');
+    assert.equal(o.depositAutoPaid, 500);
+    assert.match(o.logs[0].text, /全款 \$500 USD 记为已收/);
+    await h.waitToast(page, '全款 $500 USD 记为已收');
+    await h.clickUndo(page, 'SF-q2');
+    await page.waitForFunction(() => state.orders.find(o => o.id === 'q2').stage === 'quote');
+    o = await h.order(page, 'q2');
+    assert.equal(o.paidAmount, 0, '撤销后全款恢复为没收');
+    assert.equal(o.depositAutoPaid, undefined);
+    await h.clearToasts(page);
+    // 再推进一次，然后拖回报价：自动记的全款恢复为未收。
+    await page.evaluate(() => { quickAdvanceStage('q2'); });
+    await page.waitForFunction(() => state.orders.find(o => o.id === 'q2').stage === 'production');
+    await page.evaluate(() => { moveOrderToStage('q2', 'quote'); });
+    await page.waitForFunction(() => state.orders.find(o => o.id === 'q2').stage === 'quote');
+    o = await h.order(page, 'q2');
+    assert.equal(o.paidAmount, 0, '退回报价：自动记的全款恢复为未收');
+    assert.match(o.logs[0].text, /自动记的全款 \$500 USD 恢复为未收/);
+    await h.clearToasts(page);
+    // 在报价上点「收齐」是真的收了钱：之后退回报价不清零。
+    await h.clickQuick(page, 'q2', 'paid');
+    await page.waitForFunction(() => state.orders.find(o => o.id === 'q2').stage === 'production');
+    await page.evaluate(() => { moveOrderToStage('q2', 'quote'); });
+    await page.waitForFunction(() => state.orders.find(o => o.id === 'q2').stage === 'quote');
+    assert.equal((await h.order(page, 'q2')).paidAmount, 500, '点过「收齐」的全款退回报价不清零');
+    await h.clearToasts(page);
+    // 已经登记过部分收款的全款单：推进后已收不变（那是手工记的真实收款）。
+    await page.evaluate(() => { quickAdvanceStage('q3'); });
+    await page.waitForFunction(() => state.orders.find(o => o.id === 'q3').stage === 'production');
+    o = await h.order(page, 'q3');
+    assert.equal(o.paidAmount, 200);
+    assert.equal(o.depositAutoPaid, undefined);
+    await h.clearToasts(page);
+    // 全款单直接拖到已发货：差额写「未收的 … 视为已收齐」，不叫「尾款」。
+    await page.evaluate(() => { moveOrderToStage('q4', 'shipment'); });
+    await page.waitForFunction(() => state.orders.find(o => o.id === 'q4').stage === 'shipment');
+    o = await h.order(page, 'q4');
+    assert.equal(o.paidAmount, 700);
+    assert.ok(o.logs.some(item => /未收的 \$700 USD 视为已收齐/.test(item.text)), o.logs.map(item => item.text).join(' | '));
+    assert.ok(!o.logs.some(item => /尾款/.test(item.text)));
+    await h.waitToast(page, '未收的 $700 USD 视为已收齐');
+    await page.evaluate(() => { document.querySelector('#trackingQuickCard [data-track-skip]')?.click(); });
     await h.clearToasts(page);
 
     // 生产中 → 待发货：只挪阶段，已收不变。
@@ -128,6 +172,6 @@ const { launchBrowser, openBoard, h, base, day } = require('./helpers/board-page
 
     assert.deepEqual(dialogs, [], 'no native dialogs');
     assert.equal(errors.length, 0, errors.join('\n'));
-    console.log('Stage flow V3.141 passed: advance order follows the board, deposit received = 生产中, 收齐 in 待发货 stays, deposit auto-record + undo, subtitles, drawer stage bar.');
+    console.log('Stage flow V3.141 passed: advance order follows the board, deposit received = 生产中, 收齐 in 待发货 stays, deposit and full-payment auto-record + undo, subtitles, drawer stage bar.');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -19,7 +19,7 @@ const at = (date, time = '10:00') => new Date(`${date}T${time}:00+08:00`).getTim
 const base = { currency:'USD', logisticsStatus:'未发货', orderMonth:'2026-11', logs:[], productType:'假发', paymentChannel:'Paypal', owner:'未分配', country:'🇺🇸 美国 United States', shipments:[], attachments:[], orderType:'定金订单', depositAmount:300 };
 const fixture = () => ({
   orders:[
-    // 尾款单，下单 40 天、10 天没动：收款提醒 + 跟进提醒；金额页算「下单超 30 天未收」。
+    // 尾款单，下单 40 天、10 天没动：收款提醒 + 跟进提醒（待办里一单一条，只显示收款，副标题写「另有 跟进」）；金额页算「下单超 30 天未收」。
     { ...base, id:'b1', num:'K9001', client:'Alpha Hair', amount:1000, paidAmount:300, stage:'balance', createdAt:day(-40), orderMonth:'2026-09', updated:`${day(-10)} 09:00` },
     // 欧元尾款单，金额带小数。
     { ...base, id:'e1', num:'K9002', client:'Euro Wigs', amount:1000.5, paidAmount:300, currency:'EUR', stage:'balance', createdAt:day(-5), updated:`${day(-1)} 09:00` },
@@ -122,16 +122,18 @@ const contrast = page => page.evaluate(() => {
     const { page, store, errors } = await openApp(browser);
     await page.evaluate(() => setPage('dashboard'));
 
-    // 1. 三处同一个数；最晚发出日期在后天的那条放在「即将到期」下面。
-    const today = await page.evaluate(() => ({ today:todayTaskItems().map(t => t.id), all:buildTaskItems().map(t => t.id) }));
-    assert.deepEqual(today.today.slice().sort(), ['follow-b1', 'follow-f1', 'payment-b1', 'payment-e1', 'repurchase-Plain Due', 'ship-q3'].sort(), `今天的待办不对：${today.today}`);
+    // 1. 三处同一个数（每张单一条：b1 的跟进收在收款那条里）；最晚发出日期在后天的那条放在「即将到期」下面。
+    const today = await page.evaluate(() => ({ today:todayTaskItems().map(t => t.id), all:buildTaskItems({ perOrder:true }).map(t => t.id) }));
+    assert.deepEqual(today.today.slice().sort(), ['follow-f1', 'payment-b1', 'payment-e1', 'repurchase-Plain Due', 'ship-q3'].sort(), `今天的待办不对：${today.today}`);
     assert.deepEqual(today.all.filter(id => !today.today.includes(id)), ['ship-l1']);
-    assert.equal(await page.locator('#statTasks').innerText(), '6');
+    assert.equal(await page.evaluate(() => buildTaskItems().some(t => t.id === 'follow-b1')), true, '全量里还有 b1 的跟进（日历等用）');
+    assert.equal(await page.locator('#statTasks').innerText(), '5');
     const sub = await page.locator('#statTasksSub').innerText();
-    assert.equal(sub, '收款 2 · 跟进 2 · 发货期限 1 · 复购 1 · 另有 1 件即将到期');
+    assert.equal(sub, '收款 2 · 跟进 1 · 发货期限 1 · 复购 1 · 另有 1 件即将到期');
     const subTotal = (sub.match(/(收款|跟进|加急|发货期限|物流异常|复购) (\d+)/g) || []).reduce((n, part) => n + Number(part.split(' ')[1]), 0);
-    assert.equal(subTotal, 6, '副标题各类加起来等于卡片上的数');
-    assert.equal(await page.locator('#taskInboxFilters [data-task-filter="all"] .c').innerText(), '7');
+    assert.equal(subTotal, 5, '副标题各类加起来等于卡片上的数');
+    assert.equal(await page.locator('#taskInboxFilters [data-task-filter="all"] .c').innerText(), '6');
+    assert.equal(await page.locator('#taskInboxFilters [data-task-filter="follow"] .c').innerText(), '1', '同时有收款和跟进的单只算在收款里');
     // 报价单过了最晚发出日期：是「超过最晚发出日期」的发货提醒，不是收款逾期。
     assert.match(await page.locator('#taskList .task[data-task-id="ship-q3"]').innerText(), /超过最晚发出日期 2 天（2026-11-05）/);
     const rows = await rowIds(page);
@@ -143,7 +145,7 @@ const contrast = page => page.evaluate(() => {
     // 行标题用客户显示名；收款行写账龄，不再重复金额。
     const payRow = page.locator('#taskList .task[data-task-id="payment-b1"]');
     assert.match(await payRow.locator('.task-title').innerText(), /^Alpha Hair（Ann）/);
-    assert.match(await payRow.locator('.task-sub').innerText(), /K9001 · 待发货 · 下单 40 天/);
+    assert.match(await payRow.locator('.task-sub').innerText(), /K9001 · 待发货 · 下单 40 天.* · 另有 跟进$/);
     assert.equal(rows.indexOf('payment-b1') < rows.indexOf('payment-e1'), true, '收款按账龄排：欠得久的在前');
 
     // 2. 带文字的完成按钮，浅色 / 深色都 ≥ 3:1。
@@ -171,17 +173,21 @@ const contrast = page => page.evaluate(() => {
     assert.equal(after.updated, before.updated, '处理待办不改订单的「最近更新」，看板顺序不变');
     assert.match(after.logs[0].text, /^待办已处理：收款提醒（已催款）· 待收款 \$700 USD，11-10 还没解决会再提醒/);
     assert.deepEqual(await page.evaluate(() => state.doneTasks['payment-b1-300']?.until), day(3));
+    // 催完款，同一张单的下一条（跟进）出来。
+    await page.waitForSelector('#taskList .task[data-task-id="follow-b1"]');
     assert.equal(await page.locator('#statTasks').innerText(), '5');
     await h.clickUndo(page, '已催款：Alpha Hair');
     await page.waitForSelector('#taskList .task[data-task-id="payment-b1"]');
+    assert.equal(await page.locator('#taskList .task[data-task-id="follow-b1"]').count(), 0);
     after = await h.order(page, 'b1');
     assert.equal(after.logs.length, before.logs.length, '撤销后删掉刚写的订单记录');
     assert.equal(await page.evaluate(() => 'payment-b1-300' in state.doneTasks), false);
-    assert.equal(await page.locator('#statTasks').innerText(), '6');
+    assert.equal(await page.locator('#statTasks').innerText(), '5');
 
     // 「已处理」页签：再点一次，到「已处理」里恢复。
     await clickIn(page, '#taskList .task[data-task-id="payment-b1"] .task-tick');
     await page.waitForFunction(() => !document.querySelector('#taskList .task[data-task-id="payment-b1"]'));
+    await h.clearToasts(page);
     await clickIn(page, '#taskInboxFilters [data-task-filter="done"]');
     await page.waitForSelector('#taskList .task[data-task-id="payment-b1"] [data-task-action="undone"]');
     assert.match(await page.locator('#taskList .task[data-task-id="payment-b1"] .task-sub').innerText(), /11-07 10:00 处理 · 11-10 还没解决会再提醒/);
@@ -293,10 +299,10 @@ const contrast = page => page.evaluate(() => {
     // 9. 跨午夜：11-07 23:59 打开，点「稍后」，时钟走过 00:00 —— 不点任何东西，待办自己刷新。
     const night = await openApp(browser, { time:at(day(0), '23:59'), install:true });
     await night.page.evaluate(() => setPage('dashboard'));
-    assert.equal(await night.page.locator('#statTasks').innerText(), '6');
+    assert.equal(await night.page.locator('#statTasks').innerText(), '5');
     await night.page.locator('#taskList .task[data-task-id="payment-e1"] [data-task-action="snooze"]').click();
     assert.equal(await night.page.locator('#taskList .task[data-task-id="payment-e1"]').count(), 0);
-    assert.equal(await night.page.locator('#statTasks').innerText(), '5');
+    assert.equal(await night.page.locator('#statTasks').innerText(), '4');
     await night.page.evaluate(() => document.querySelectorAll('#toast .toast-item').forEach(el => el.remove()));
     // 一秒一秒地走，直到待办按新的一天画过（最多 3 分钟；每分钟检查一次日期），马上看问候（它 4 秒后会消失）。
     for (let i = 0; i < 180 && await night.page.evaluate(() => taskListRenderedDay) !== day(1); i += 1) await night.page.clock.runFor(1000);

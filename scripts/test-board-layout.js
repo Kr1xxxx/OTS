@@ -18,6 +18,10 @@ const orders = [
 // 一列 30 张：列表要能滚，最后一张能滚到。
 const many = Array.from({ length:30 }, (_, i) => ({ ...base, id:`m${i}`, num:`M${i}`, client:`Many ${i}`, amount:100 + i, paidAmount:0, orderType:'全款订单', stage:'quote', updated:`${day(2)} 10:${String(i).padStart(2, '0')}` }));
 
+// s3（已发货、没有运单号）的「补运单号」记成已处理：「今日待办」卡的副标题多一种类型就排到 228px 宽的边上
+//（Chromium 223px 一行，WebKit 折成两行），指标卡高一行，下面量的「看板底边离窗口底边约 20」就不是默认状态了。
+const doneTasks = { 'tracking-s3':{ at:`${day(1)} 09:10`, until:'' } };
+
 const measure = page => page.evaluate(() => {
   const columns = [...document.querySelectorAll('#pipeline .board-column[data-stage]')];
   const cards = [...document.querySelectorAll('#pipeline .board-card[data-id]')];
@@ -41,7 +45,7 @@ const measure = page => page.evaluate(() => {
   const browser = await launchBrowser();
   try {
     for (const theme of ['light', 'dark']) {
-      const { page, context, errors, dialogs } = await openBoard(browser, { orders:[...orders, ...many] }, { theme });
+      const { page, context, errors, dialogs } = await openBoard(browser, { orders:[...orders, ...many], doneTasks }, { theme });
       for (const width of [1440, 1294, 1100, 820, 390]) {
         await page.setViewportSize({ width, height:900 });
         await page.waitForFunction(w => window.innerWidth === w, width);
@@ -92,6 +96,9 @@ const measure = page => page.evaluate(() => {
         return page.evaluate(() => [...document.querySelectorAll('#pipeline .board-column[data-stage]')].map(col => col.getBoundingClientRect().height));
       };
       const defaultWindow = await columnHeights(1694, 1082);
+      // 量底边之前先确认指标卡的副标题都是一行（两行时指标卡高 18px，那是另一种状态）。
+      const subLines = await page.evaluate(() => [...document.querySelectorAll('.stats .stat-sub')].filter(el => el.getBoundingClientRect().height > 20).map(el => `${el.id}:${el.textContent}`));
+      assert.deepEqual(subLines, [], `${theme}/1694×1082: 指标卡副标题折成了两行，夹具要改 ${subLines}`);
       assert(defaultWindow.every(v => Math.abs(v - 746) <= 2), `${theme}/1694×1082: 默认窗口列高 746 ${defaultWindow}`);
       const panelGap = await page.evaluate(() => {
         window.scrollTo(0, 0);

@@ -5,8 +5,8 @@ const { h } = require('./helpers/board-page');
 const { html } = require('./helpers/page-source');
 
 // PM review P1 batch C: the notification panel carries events only (save failures, API errors,
-// logistics status changes, Feishu results, new versions) and never tasks; the order drawer has a
-// 文案 menu that copies an English status / payment reminder from editable templates and logs it;
+// logistics status changes, Feishu results, new versions) and never tasks; the order drawer no longer has
+// the 文案 menu (removed on request), old saved templates stay in the data;
 // customer level thresholds are editable in 设置 → 客户设置 and persist with the data file.
 (async () => {
   const browser = await chromium.launch({headless:true});
@@ -89,72 +89,20 @@ const { html } = require('./helpers/page-source');
     assert.equal(await page.evaluate(()=>uiDetailTab.current),'logistics');
     await page.evaluate(()=>closeOrderDetail());
 
-    // 5. 文案 menu: 催款 copies the dunning template with the real balance and logs a follow-up.
+    // 5. The 文案 button and its settings card are gone (removed on request). Templates saved before the
+    // removal stay in the data: saving 订单设置 keeps keys that form does not own.
     await page.evaluate(()=>openOrderDetail('o-due'));
     await settle();
-    await page.locator('#detailCopyTextBtn').click();
-    assert.equal(await page.locator('#detailCopyMenu').isVisible(),true);
-    assert.equal(await page.locator('#detailCopyMenu [data-copy-text="dunning"]').isDisabled(),false);
-    await page.locator('#detailCopyMenu [data-copy-text="dunning"]').click();
-    await settle();
-    let copied = await page.evaluate(()=>window.__copied);
-    assert.match(copied,/^Hi Alice Chen,/);
-    assert.match(copied,/order K1 has an outstanding balance of \$700 USD \(total \$1,000 USD, received \$300 USD\)/);
-    assert.match(copied,/we will arrange shipment right away\./);
-    assert.equal(await page.locator('#detailCopyMenu').isVisible(),false,'menu closes after copying');
-    assert.equal(await page.locator('#detailCopyTextBtn').textContent(),'已复制');
-    assert.match(await page.evaluate(()=>state.orders.find(o=>o.id==='o-due').logs[0].text),/^复制催款文案（待收 \$700 USD）/);
-    assert.ok(await page.locator('#orderDetailBody [data-detail-tab="records"]').textContent().then(t=>t.includes('复制催款文案')),'records tab should show the copy right away');
-    await page.waitForFunction(()=>document.getElementById('detailCopyTextBtn').textContent==='文案');
-    // Esc closes only the menu, not the drawer.
-    await page.locator('#detailCopyTextBtn').click();
-    await page.keyboard.press('Escape');
-    assert.equal(await page.locator('#detailCopyMenu').isVisible(),false);
-    assert.equal(await page.evaluate(()=>document.getElementById('orderDetailDrawer').classList.contains('open')),true,'Esc with the menu open must not close the drawer');
+    assert.equal(await page.locator('#detailCopyTextBtn, #detailCopyMenu').count(),0,'order drawer has no 文案 button');
+    assert.deepEqual(await page.locator('.order-detail-topline .order-action-group .btn:visible').allInnerTexts().then(t=>t.map(s=>s.trim())),['客户档案','复制订单','完整编辑…']);
     await page.evaluate(()=>closeOrderDetail());
-
-    // Status copy: tracking line present for the shipped order, 催款 disabled when nothing is due.
-    await page.evaluate(()=>openOrderDetail('o-ship'));
-    await settle();
-    await page.locator('#detailCopyTextBtn').click();
-    assert.equal(await page.locator('#detailCopyMenu [data-copy-text="dunning"]').isDisabled(),true,'no balance → no 催款');
-    await page.locator('#detailCopyMenu [data-copy-text="status"]').click();
-    await settle();
-    copied = await page.evaluate(()=>window.__copied);
-    assert.match(copied,/Status: Shipped\n/,'shipped + 已发货 collapses to one word');
-    assert.match(copied,/Tracking: FedEx 871032796510/);
-    assert.match(copied,/Total \$800 USD · Received \$800 USD · Balance \$0 USD/);
-    await page.evaluate(()=>closeOrderDetail());
-    // No tracking → the Tracking line is dropped entirely.
-    await page.evaluate(()=>openOrderDetail('o-due'));
-    await page.locator('#detailCopyTextBtn').click();
-    await page.locator('#detailCopyMenu [data-copy-text="status"]').click();
-    await settle();
-    copied = await page.evaluate(()=>window.__copied);
-    assert.equal(copied.includes('Tracking'),false,`empty variable line must be dropped:\n${copied}`);
-    assert.match(copied,/Status: Ready to ship, awaiting balance payment/);
-    await page.evaluate(()=>closeOrderDetail());
-
-    // 6. Templates are editable in 设置 → 订单设置 and persist; 恢复默认 refills the textarea.
     await page.evaluate(()=>setPage('settings'));
     await page.locator('[data-settings-tab="order"]').click();
-    const statusBox = page.locator('#copyTemplatesForm [name="copyStatusTemplate"]');
-    assert.match(await statusBox.inputValue(),/^Hi \{client\},/,'default template shows in settings');
-    await statusBox.fill('Order {num} for {client}: {stage}');
-    await page.locator('#copyTemplatesForm button[type="submit"]').click();
+    assert.equal(await page.locator('#copyTemplatesForm').count(),0,'settings has no template card');
+    await page.evaluate(()=>{ state.orderSettings = { ...state.orderSettings, copyStatusTemplate:'Old status {num}', copyDunningTemplate:'Old reminder {num}', ownEmails:['sales@example.com'] }; });
+    await page.locator('#orderSettingsForm button[type="submit"]').click();
     await settle();
-    assert.equal(await page.evaluate(()=>state.orderSettings.copyStatusTemplate),'Order {num} for {client}: {stage}');
-    await page.evaluate(()=>openOrderDetail('o-ship'));
-    await page.locator('#detailCopyTextBtn').click();
-    await page.locator('#detailCopyMenu [data-copy-text="status"]').click();
-    await settle();
-    assert.equal(await page.evaluate(()=>window.__copied),'Order K2 for Bob: Shipped');
-    await page.evaluate(()=>closeOrderDetail());
-    await page.locator('#copyTemplatesResetBtn').click();
-    assert.match(await statusBox.inputValue(),/^Hi \{client\},/);
-    await page.locator('#copyTemplatesForm button[type="submit"]').click();
-    await settle();
-    assert.equal(await page.evaluate(()=>state.orderSettings.copyStatusTemplate),'','saving the default stores an empty override');
+    assert.deepEqual(await page.evaluate(()=>({ s:state.orderSettings.copyStatusTemplate, d:state.orderSettings.copyDunningTemplate, own:state.orderSettings.ownEmails })),{ s:'Old status {num}', d:'Old reminder {num}', own:['sales@example.com'] },'saving 订单设置 keeps the old templates and 我方邮箱');
 
     // 7. Customer level thresholds: new defaults, editable, validated, reset, persisted.
     const level = name => page.evaluate(name=>customerLevelForName(name), name);
@@ -185,6 +133,6 @@ const { html } = require('./helpers/page-source');
     assert.deepEqual(await page.evaluate(()=>state.customerLevelRules),{A:30000,B:10000,C:3000,D:1000},'thresholds come back after reload');
 
     assert.equal(errors.length,0,errors.join('\n'));
-    console.log('Events / copy text / level rules UI passed: events-only notifications with dedupe and persistence, 文案 menu with templates and logs, editable level thresholds.');
+    console.log('Events / copy text / level rules UI passed: events-only notifications with dedupe and persistence, no 文案 menu and old templates kept, editable level thresholds.');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // 多批物流 / 部分发货（V3.121）：
 // - UPS 满 5 天自动完成只推一次，用户拖回「已发货」后刷新、重画、重启都不再推回去；
-// - 订单物流状态按全部批次汇总（列表、「物流异常」筛选、看板标签、英文文案），抽屉「物流」页列出所有批次；
+// - 订单物流状态按全部批次汇总（列表、「物流异常」筛选、看板标签），抽屉「物流」页列出所有批次；
 // - 「还有批次没发」（部分发货）时全部签收也不进已完成，看板 / 列表 / 抽屉写明部分发货，跟进提醒继续；
 // - 承运商原文状态（On FedEx vehicle for delivery、Not delivered…）换成标准状态再存，刷新后不丢；
 // - 编辑已有订单第一次补单号和新建一样进已发货（可以选「只记单号」留在原阶段）；
@@ -163,11 +163,6 @@ async function launch() {
     await page.evaluate(() => setPage('dashboard'));
     await page.locator('#pipeline [data-id="m1"]').waitFor();
     assert.match(await page.locator('#pipeline [data-id="m1"]').innerText(), /物流异常/, '看板卡片按汇总挂「物流异常」');
-    const statusText = await page.evaluate(() => fillCopyTemplate(copyTemplate('status'), orderCopyVars(state.orders.find(o => o.id === 'm1'))));
-    assert.match(statusText, /1234567890/);
-    assert.match(statusText, /123456789012/);
-    assert.match(statusText, /2222222222/);
-    assert.match(statusText, /Exception/, '英文状态文案按汇总写出异常');
 
     // ===== 07 P1-4：抽屉物流页列出所有批次 =====
     await openDrawer('m1');

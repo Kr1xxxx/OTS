@@ -4148,6 +4148,75 @@ html[data-theme] .segment-control.task-filter-bar { display:inline-flex; width:a
 html[data-theme] .segment-control.task-filter-bar .segment-option { height:30px; min-height:30px; padding:0 12px; font-size:13px; flex:none; }
 html[data-theme] #page-dashboard > .grid .section-head > div:first-child { display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
 html[data-theme] #page-dashboard > .grid .section-meta { margin:0; font-size:13px; }
+/* 工作台布局：四个模块（指标卡、订单进度、待办、最近订单）排在 12 格网格里，按顺序流式排，一行放不下就换行。
+   宽（--dash-span）、先后（--dash-order）、定高（data-dash-h + --dash-h）和收起（hidden）由脚本写在模块上，见「Dashboard layout」那一节。
+   待办和最近订单外面那两层（.grid、aside）不参与排版，四个模块是同一个网格的孩子。内容区不到 1101 宽时不用网格，各占一行。 */
+html[data-theme] #page-dashboard > .grid, html[data-theme] #page-dashboard > .grid > aside { display:contents; }
+html[data-theme] #page-dashboard [data-dash-module] { order:var(--dash-order, 0); min-width:0; }
+html[data-theme] #page-dashboard [data-dash-module][hidden] { display:none; }
+html[data-theme] .page.active.page-enter#page-dashboard :is(#tasks, #recentOrders) { animation:uiRise .5s var(--ease-out) backwards; animation-delay:.1s; }
+@media (min-width: 1101px) {
+  html[data-theme] #page-dashboard.active { display:grid; grid-template-columns:repeat(12, minmax(0, 1fr)); column-gap:16px; row-gap:18px; align-items:start; }
+  html[data-theme] #page-dashboard [data-dash-module] { grid-column:span var(--dash-span, 12); }
+  html[data-theme] #page-dashboard .stats[data-dash-narrow] { grid-template-columns:repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 1100px) {
+  html[data-theme] #dashLayoutBtn { display:none; }
+}
+html[data-theme] #page-dashboard.dash-editing #dashLayoutBtn { display:none; }
+/* 看板被拖窄（比如 8 格）：「卡片设置」「布局」只留图标，标题栏不折成两行。 */
+html[data-theme] #page-dashboard .board-panel { container:dash-board / inline-size; }
+@container dash-board (max-width: 1060px) {
+  html[data-theme] .board-head-actions .board-settings-btn { width:32px; padding:0; justify-content:center; }
+  html[data-theme] .board-head-actions .board-settings-btn > span { display:none; }
+}
+/* 定高：看板的高指列高（和撑满第一屏那一行是同一个属性），待办、最近订单的高是面板外高，里面的列表自己滚。820 px 以下不用。 */
+@media (min-width: 821px) {
+  html[data-theme] #page-dashboard .board-panel[data-dash-h] .board-column { height:var(--dash-h); }
+  html[data-theme] #page-dashboard :is(#tasks, #recentOrders)[data-dash-h] { height:var(--dash-h); display:flex; flex-direction:column; min-height:0; }
+  html[data-theme] #page-dashboard :is(#tasks, #recentOrders)[data-dash-h] > :not(.dash-edit) { flex:none; }
+  html[data-theme] #page-dashboard :is(#tasks, #recentOrders)[data-dash-h] :is(#taskList, #recentOrderList) { flex:1 1 auto; min-height:0; overflow-y:auto; scrollbar-width:thin; }
+}
+/* 待办变窄（右边一栏）：每条变成「图标 + 三行文字，按钮另起一行」，副标题收起，筛选条自己折行。 */
+html[data-theme] #page-dashboard #tasks { container:dash-tasks / inline-size; }
+@container dash-tasks (max-width: 560px) {
+  html[data-theme] #tasks #taskList .task { grid-template-columns:auto minmax(0, 1fr); column-gap:12px; row-gap:10px; align-items:start; padding:14px 0; }
+  html[data-theme] #tasks #taskList .task-title { white-space:normal; line-height:1.45; }
+  html[data-theme] #tasks #taskList .task-reason { display:block; margin:2px 0 0; white-space:normal; }
+  html[data-theme] #tasks #taskList .task-actions { grid-column:2; justify-content:flex-start; flex-wrap:nowrap; }
+  html[data-theme] #tasks > .section-head .section-meta { display:none; }
+}
+
+/* 调整布局（点「布局」进入）：顶上提示条，每个模块虚线框、左上角名字标签、右边和下边的把手，收起的模块放在最下面一条里。 */
+html[data-theme] #page-dashboard.dash-editing { position:relative; row-gap:30px; }
+html[data-theme] #page-dashboard.dash-editing [data-dash-module] { position:relative; z-index:1; transform:none; outline:1.5px dashed color-mix(in oklab, var(--accent) 70%, transparent); outline-offset:5px; }
+html[data-theme] #page-dashboard.dash-editing [data-dash-module].is-dash-active { outline:2px solid var(--accent); }
+html[data-theme] #page-dashboard.dash-editing [data-dash-module].is-dash-lifted { z-index:5; opacity:.55; transform:translate(var(--dash-dx, 0), var(--dash-dy, 0)); }
+html[data-theme] .dash-bar { grid-column:1 / -1; order:-10; display:flex; align-items:center; gap:14px; padding:10px 12px 10px 18px; border-radius:16px; background:color-mix(in oklab, var(--accent) 14%, var(--surface-bg)); border:1px solid color-mix(in oklab, var(--accent) 35%, transparent); color:var(--gray-900); font-size:13px; }
+html[data-theme] .dash-bar b { font-weight:600; font-size:14px; white-space:nowrap; }
+html[data-theme] .dash-bar-hint { flex:1; min-width:0; color:var(--gray-500); }
+html[data-theme] .dash-bar .btn { flex:none; }
+html[data-theme] .dash-edit { display:contents; }
+html[data-theme] .dash-chip { position:absolute; z-index:6; top:-13px; left:18px; display:inline-flex; align-items:center; gap:2px; height:28px; padding:0 4px 0 2px; border-radius:999px; background:var(--accent); color:var(--on-accent); font-size:12px; font-weight:600; box-shadow:0 2px 8px color-mix(in oklab, var(--accent) 40%, transparent); white-space:nowrap; }
+html[data-theme] .dash-chip-grip { display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 6px; border:0; border-radius:999px; background:none; color:inherit; font:inherit; cursor:grab; touch-action:none; }
+html[data-theme] .dash-chip-grip:active { cursor:grabbing; }
+html[data-theme] .dash-chip .ui-icon { width:14px; height:14px; }
+html[data-theme] .dash-chip-size { font-weight:500; opacity:.82; font-variant-numeric:tabular-nums; padding-left:6px; border-left:1px solid color-mix(in oklab, var(--on-accent) 35%, transparent); }
+html[data-theme] .dash-chip-hide { display:grid; place-items:center; width:20px; height:20px; padding:0; border:0; border-radius:50%; background:color-mix(in oklab, var(--on-accent) 20%, transparent); color:inherit; cursor:pointer; }
+html[data-theme] .dash-chip-hide:hover { background:color-mix(in oklab, var(--on-accent) 32%, transparent); }
+html[data-theme] :is(.dash-chip-grip, .dash-chip-hide, .dash-hx, .dash-hy):focus-visible { outline:2px solid var(--gray-900); outline-offset:2px; }
+html[data-theme] :is(.dash-hx, .dash-hy) { position:absolute; z-index:6; padding:0; background:var(--accent); border:2px solid var(--surface-bg); border-radius:999px; box-shadow:0 1px 4px color-mix(in oklab, var(--accent) 45%, transparent); touch-action:none; }
+html[data-theme] .dash-hx { right:-11px; top:50%; width:10px; height:48px; transform:translateY(-50%); cursor:ew-resize; }
+html[data-theme] .dash-hy { bottom:-11px; left:50%; width:48px; height:10px; transform:translateX(-50%); cursor:ns-resize; }
+html[data-theme] .is-dash-active > .dash-edit > .dash-hx { width:12px; height:64px; }
+html[data-theme] .dash-badge { position:absolute; z-index:8; right:14px; top:50%; transform:translateY(-50%); padding:5px 12px; border-radius:10px; background:var(--gray-900); color:var(--surface-bg); font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; box-shadow:0 6px 18px rgba(0,0,0,.25); pointer-events:none; }
+html[data-theme] .dash-guides { position:absolute; z-index:0; left:0; right:0; bottom:0; display:grid; grid-template-columns:repeat(12, minmax(0, 1fr)); column-gap:16px; pointer-events:none; }
+html[data-theme] .dash-guides i { background:color-mix(in oklab, var(--accent) 7%, transparent); border-inline:1px dashed color-mix(in oklab, var(--accent) 22%, transparent); border-radius:6px; }
+html[data-theme] .dash-drop-line { position:absolute; z-index:7; width:4px; margin-left:-2px; border-radius:999px; background:var(--accent); pointer-events:none; }
+html[data-theme] .dash-tray { grid-column:1 / -1; order:99; display:flex; align-items:center; flex-wrap:wrap; gap:12px; padding:14px 18px; border-radius:18px; border:1.5px dashed var(--surface-border); color:var(--gray-500); font-size:13px; }
+html[data-theme] .dash-tray-pill { display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 12px 0 10px; border-radius:999px; border:1px solid var(--surface-border); background:var(--surface-bg); color:var(--gray-800); font:inherit; font-size:13px; cursor:pointer; }
+html[data-theme] .dash-tray-pill:hover { border-color:var(--accent); color:var(--accent); }
+html[data-theme] .dash-tray-pill .ui-icon { width:14px; height:14px; }
 /* 订单详情：右侧抽屉，顶部阶段条可点击切换，下方分区标签 */
 html[data-theme] .order-detail-backdrop { align-items:stretch; justify-content:flex-end; padding:12px; }
 html[data-theme] .order-detail-modal { width:min(640px, 100%); height:calc(100vh - 24px); max-height:none; border-radius:26px; border:1px solid var(--surface-border); background:var(--surface-bg); box-shadow:-24px 0 70px -20px oklch(0% 0 0 / .28); overflow:hidden; }
@@ -5314,6 +5383,8 @@ html[data-theme] .order-preview .order-notification-option small { color:var(--g
 <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
 <symbol id="i-grip" viewBox="0 0 24 24"><path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01"/></symbol>
 <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+<symbol id="i-layout" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="10" height="6" rx="2"/><rect x="17" y="14" width="4" height="6" rx="1.5"/></symbol>
+<symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 6.2A9.6 9.6 0 0 1 12 6c5 0 8.5 4.2 9.5 6-.4.8-1.3 2-2.6 3.2M6.3 7.8C4.3 9.1 3 10.9 2.5 12c1 1.8 4.5 6 9.5 6 1.4 0 2.7-.3 3.8-.8"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
 <symbol id="i-server" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></symbol>
 <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
 <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18a4.5 4.5 0 0 1-.5-8.97A6 6 0 0 1 18 9.5a4.25 4.25 0 0 1-.5 8.5Z"/></symbol>
@@ -5390,7 +5461,7 @@ html[data-theme] .order-preview .order-notification-option small { color:var(--g
 
   <main class="content">
     <section class="page active" id="page-dashboard">
-      <section class="stats" id="dashboard">
+      <section class="stats" id="dashboard" data-dash-module="kpi">
         <div class="stat clickable" id="activeOrdersStat" role="button" tabindex="0" title="查看进行中的订单"><div class="stat-label">进行中订单</div><div class="stat-value" id="statActive">0</div><div class="stat-sub" id="statActiveSub">未完成的客户订单</div></div>
         <div class="stat amount-stat">
           <div class="stat-head">
@@ -5415,7 +5486,7 @@ html[data-theme] .order-preview .order-notification-option small { color:var(--g
         </div>
       </section>
 
-      <section class="panel board-panel">
+      <section class="panel board-panel" data-dash-module="board">
         <div class="section-head">
           <div>
             <div class="section-title">订单进度</div>
@@ -5429,6 +5500,7 @@ html[data-theme] .order-preview .order-notification-option small { color:var(--g
               <button class="segment-option" type="button" data-board-product="睫毛">睫毛</button>
             </div>
             <button class="btn board-settings-btn" id="boardCardSettingsBtn" type="button" title="卡片设置" aria-label="卡片设置"><svg class="ui-icon" aria-hidden="true"><use href="#i-gear"/></svg><span>卡片设置</span></button>
+            <button class="btn board-settings-btn" id="dashLayoutBtn" type="button" title="调整工作台布局" aria-label="布局" aria-pressed="false"><svg class="ui-icon" aria-hidden="true"><use href="#i-layout"/></svg><span>布局</span></button>
           </div>
         </div>
         <div class="workspace-board">
@@ -5437,7 +5509,7 @@ html[data-theme] .order-preview .order-notification-option small { color:var(--g
       </section>
 
       <section class="grid">
-        <section class="panel" id="tasks">
+        <section class="panel" id="tasks" data-dash-module="tasks">
           <div class="section-head">
             <div>
               <div class="section-title">待办</div>
@@ -5460,7 +5532,7 @@ html[data-theme] .order-preview .order-notification-option small { color:var(--g
           <div class="tasks" id="taskList"></div>
         </section>
         <aside>
-          <section class="panel">
+          <section class="panel" id="recentOrders" data-dash-module="recent">
             <div class="section-head">
               <div>
                 <div class="section-title">最近订单</div>
@@ -6970,12 +7042,12 @@ const safeStorage = {
     queueServerPref(key, null);
   }
 };
-// 主题、强调色、「发送到飞书群」的选择、每日问候、通知列表和已读。
+// 主题、强调色、「发送到飞书群」的选择、每日问候、通知列表和已读、工作台布局。
 // localStorage 跟着页面地址走，地址里有端口：上次的端口被占、Mac App 换了端口启动，这些就全没了
 // （主题回到默认，几百条通知全部变回未读）。所以本机服务在数据目录里也存一份，并写进它发出的页面
 // （ots-prefs 这个 meta）：页面一开始就用它盖住 localStorage，之后每次改动两边都写。
 // 服务那边的 null 表示「特意清掉了」（比如主题改回跟随系统），页面这边还留着旧值的话也清掉。
-const serverPrefKeys = new Set(['trade-order-system-theme', 'ots-accent-v1', 'ots-feishu-send-v1', 'ots-greet-v1', 'ots-notif-read-v1', 'ots-notif-events-v1']);
+const serverPrefKeys = new Set(['trade-order-system-theme', 'ots-accent-v1', 'ots-feishu-send-v1', 'ots-greet-v1', 'ots-notif-read-v1', 'ots-notif-events-v1', 'ots-dashboard-layout-v1']);
 const pendingServerPrefs = new Map();
 let serverPrefsAdopted = false;
 let serverPrefTimer = 0;
@@ -27352,6 +27424,450 @@ window.addEventListener('resize', debounce(() => {
   document.querySelectorAll('#subscriptionEditForm [data-sub-segment]').forEach(group => placeSubscriptionGlide(group, `editor-${group.dataset.subSegment}`, { jump:true }));
 }, 80));
 // #endregion
+// #region Dashboard layout: the 12-column grid, the saved layout and the edit mode
+// 工作台的四个模块（指标卡、订单进度、待办、最近订单）排在 12 格网格里，宽、高、先后和收起由用户点「布局」调整。
+// 布局是界面偏好：本机存储加本机服务的 ui-prefs.json（键 ots-dashboard-layout-v1，见 serverPrefKeys），不进 state，
+// 不走 /api/save，也不算未保存的表单。读进来先过 normalizeDashboardLayout；调整时改的是一份草稿，点「完成」才存。
+const dashLayoutKey = 'ots-dashboard-layout-v1';
+// 每个模块：默认宽、最小宽（12 格里占几格）；高 null = 不能改，'fill' = 看板撑满第一屏，'auto' = 跟内容走，数字 = 像素。
+// 看板的高指列高（.board-column），待办和最近订单的高是面板外高。
+function dashboardModuleSpecs() {
+  return [
+    { id:'kpi', name:'指标卡', span:12, minSpan:6, h:null },
+    { id:'board', name:'订单进度', span:12, minSpan:6, h:'fill', minH:320, maxH:1400 },
+    { id:'tasks', name:'待办', span:7, minSpan:4, h:'auto', minH:240, maxH:1400 },
+    { id:'recent', name:'最近订单', span:5, minSpan:3, h:'auto', minH:200, maxH:1400 }
+  ];
+}
+// 存着的布局（JSON 字符串或对象）→ 一定合法的布局：不认识的 id 丢掉，缺的按默认补在最后，宽夹到 [最小宽, 12]，
+// 高夹到范围、取整（拖动按 20 一档，吸附到同一行别的模块底边时可以不是 20 的倍数），看板不能收起，坏掉的当作没有。
+function normalizeDashboardLayout(raw) {
+  let value = raw;
+  if (typeof value === 'string') {
+    try { value = JSON.parse(value); } catch (_) { value = null; }
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) value = {};
+  const specs = dashboardModuleSpecs();
+  const byId = new Map(specs.map(spec => [spec.id, spec]));
+  const fit = (spec, item) => {
+    const span = typeof item.span === 'number' && Number.isFinite(item.span) ? Math.min(12, Math.max(spec.minSpan, Math.round(item.span))) : spec.span;
+    if (spec.h === null) return { id:spec.id, span };
+    let h = spec.h;
+    if (typeof item.h === 'number' && Number.isFinite(item.h)) h = Math.min(spec.maxH, Math.max(spec.minH, Math.round(item.h)));
+    return { id:spec.id, span, h };
+  };
+  const items = [];
+  (Array.isArray(value.items) ? value.items : []).forEach(item => {
+    const spec = item && typeof item === 'object' ? byId.get(item.id) : null;
+    if (!spec || items.some(done => done.id === spec.id)) return;
+    items.push(fit(spec, item));
+  });
+  specs.forEach(spec => { if (!items.some(item => item.id === spec.id)) items.push(fit(spec, {})); });
+  const hidden = (Array.isArray(value.hidden) ? value.hidden : []).filter((id, index, list) => id !== 'board' && byId.has(id) && list.indexOf(id) === index);
+  return { v:1, items, hidden };
+}
+let dashLayout = normalizeDashboardLayout(safeStorage.getItem(dashLayoutKey));
+// 调整状态下的草稿；不在调整状态时是 null。
+let dashLayoutDraft = null;
+// 正在进行的拖动：{ kind:'width' | 'height' | 'move', id, … }。
+let dashDrag = null;
+const dashPage = document.getElementById('page-dashboard');
+const dashGridQuery = window.matchMedia('(min-width: 1101px)');
+const dashSpec = id => dashboardModuleSpecs().find(spec => spec.id === id);
+const dashModuleEl = id => dashPage.querySelector(`[data-dash-module="${id}"]`);
+const dashCurrentLayout = () => dashLayoutDraft || dashLayout;
+const dashVisibleIds = layout => layout.items.map(item => item.id).filter(id => !layout.hidden.includes(id));
+
+// 把布局写到模块上：宽、先后、定高是 CSS 变量，收起是 hidden。只动模块自己的属性，里面的列表照常由各自的 render 重画。
+function applyDashboardLayout() {
+  const layout = dashCurrentLayout();
+  layout.items.forEach((item, index) => {
+    const el = dashModuleEl(item.id);
+    if (!el) return;
+    el.style.setProperty('--dash-span', String(item.span));
+    el.style.setProperty('--dash-order', String(index));
+    if (typeof item.h === 'number') {
+      el.setAttribute('data-dash-h', '');
+      el.style.setProperty('--dash-h', `${item.h}px`);
+    } else {
+      el.removeAttribute('data-dash-h');
+      el.style.removeProperty('--dash-h');
+    }
+    el.hidden = layout.hidden.includes(item.id);
+  });
+  if (dashLayoutDraft) renderDashLayoutChrome();
+}
+// 指标卡按自己的宽排：不到 900 时排 3 列（原来那条 3 列的规则按视口宽写，管不到指标卡被拖窄的情况）。
+if (window.ResizeObserver) {
+  const kpi = dashModuleEl('kpi');
+  if (kpi) new ResizeObserver(entries => entries.forEach(entry => kpi.toggleAttribute('data-dash-narrow', entry.contentRect.width < 900))).observe(kpi);
+}
+
+function saveDashboardLayout(layout) {
+  dashLayout = normalizeDashboardLayout(layout);
+  safeStorage.setItem(dashLayoutKey, JSON.stringify(dashLayout));
+}
+// 点「今日待办」时待办被收起了：先放回来（排到最后）并存一次。
+function revealDashboardModule(id) {
+  if (!dashLayout.hidden.includes(id)) return;
+  const layout = structuredClone(dashLayout);
+  layout.hidden = layout.hidden.filter(other => other !== id);
+  const item = layout.items.find(entry => entry.id === id);
+  layout.items = [...layout.items.filter(entry => entry.id !== id), item];
+  saveDashboardLayout(layout);
+  if (dashLayoutDraft) {
+    dashLayoutDraft.hidden = dashLayoutDraft.hidden.filter(other => other !== id);
+  }
+  applyDashboardLayout();
+}
+
+function dashSizeText(item, { measured = false } = {}) {
+  const el = dashModuleEl(item.id);
+  const parts = [measured ? `宽 ${item.span} / 12 格` : `宽 ${item.span}/12`];
+  if (item.id !== 'kpi') {
+    if (typeof item.h === 'number') parts.push(`高 ${item.h}`);
+    else if (measured && el) parts.push(`高 ${Math.round(dashModuleHeight(item.id))}`);
+    else parts.push(item.h === 'fill' ? '撑满窗口' : '高度自动');
+  }
+  return parts.join(' · ');
+}
+// 看板量列高，别的量面板外高，和 h 的意思一致。
+function dashModuleHeight(id) {
+  const el = dashModuleEl(id);
+  if (!el) return 0;
+  const target = id === 'board' ? el.querySelector('.board-column') || el : el;
+  return target.getBoundingClientRect().height;
+}
+
+// 调整状态的外框：提示条、每个模块的标签和把手、收起的模块那一条。建一次，之后只改文字，拖动中的把手不会被换掉。
+function renderDashLayoutChrome() {
+  const layout = dashLayoutDraft;
+  if (!layout) return;
+  if (!document.getElementById('dashLayoutBar')) {
+    const bar = document.createElement('div');
+    bar.className = 'dash-bar';
+    bar.id = 'dashLayoutBar';
+    bar.innerHTML = '<b>正在调整布局</b><span class="dash-bar-hint">拖名字换位置 · 拖右边改宽度 · 拖下边改高度 · 双击下边的把手恢复自动高度 · 点眼睛收起</span>'
+      + '<button class="btn btn-small" type="button" data-dash-action="reset">恢复默认</button>'
+      + '<button class="btn btn-small" type="button" data-dash-action="cancel">取消</button>'
+      + '<button class="btn btn-small btn-primary" type="button" data-dash-action="done">完成</button>';
+    dashPage.prepend(bar);
+  }
+  layout.items.forEach(item => {
+    const el = dashModuleEl(item.id);
+    if (!el) return;
+    const spec = dashSpec(item.id);
+    let chrome = el.querySelector(':scope > .dash-edit');
+    if (!chrome) {
+      chrome = document.createElement('div');
+      chrome.className = 'dash-edit';
+      chrome.innerHTML = `<div class="dash-chip"><button class="dash-chip-grip" type="button" data-dash-grip aria-label="${spec.name}：拖动或按左右方向键换位置"><svg class="ui-icon" aria-hidden="true"><use href="#i-grip"/></svg><span>${spec.name}</span><span class="dash-chip-size"></span></button>`
+        + (item.id === 'board' ? '' : `<button class="dash-chip-hide" type="button" data-dash-hide title="收起" aria-label="收起${spec.name}"><svg class="ui-icon" aria-hidden="true"><use href="#i-eye-off"/></svg></button>`)
+        + '</div>'
+        + `<button class="dash-hx" type="button" data-dash-resize="width" aria-label="${spec.name}的宽度：拖动或按左右方向键"></button>`
+        + (spec.h === null ? '' : `<button class="dash-hy" type="button" data-dash-resize="height" aria-label="${spec.name}的高度：拖动或按上下方向键，双击恢复自动"></button>`);
+      el.append(chrome);
+      // 模块里原有的内容在调整时点不了、拖不动、Tab 不进去，免得误拖订单卡片、误点待办按钮。
+      [...el.children].forEach(child => {
+        if (child === chrome || child.inert) return;
+        child.inert = true;
+        child.setAttribute('data-dash-inert', '');
+      });
+    }
+    chrome.querySelector('.dash-chip-size').textContent = dashSizeText(item);
+  });
+  let tray = document.getElementById('dashLayoutTray');
+  if (!layout.hidden.length) tray?.remove();
+  else {
+    if (!tray) {
+      tray = document.createElement('div');
+      tray.className = 'dash-tray';
+      tray.id = 'dashLayoutTray';
+      dashPage.append(tray);
+    }
+    const names = layout.hidden.map(id => `<button class="dash-tray-pill" type="button" data-dash-show="${id}"><svg class="ui-icon" aria-hidden="true"><use href="#i-plus"/></svg>${dashSpec(id).name}</button>`).join('');
+    const next = `<span>已收起的模块</span>${names}`;
+    if (tray.innerHTML !== next) tray.innerHTML = next;
+  }
+}
+function removeDashLayoutChrome() {
+  ['dashLayoutBar', 'dashLayoutTray', 'dashLayoutGuides', 'dashDropLine'].forEach(id => document.getElementById(id)?.remove());
+  dashPage.querySelectorAll('.dash-edit, .dash-badge').forEach(el => el.remove());
+  dashPage.querySelectorAll('[data-dash-inert]').forEach(el => { el.inert = false; el.removeAttribute('data-dash-inert'); });
+  dashPage.querySelectorAll('.is-dash-active, .is-dash-lifted').forEach(el => {
+    el.classList.remove('is-dash-active', 'is-dash-lifted');
+    el.style.removeProperty('--dash-dx');
+    el.style.removeProperty('--dash-dy');
+  });
+}
+
+function enterDashboardLayoutEdit() {
+  if (dashLayoutDraft || !dashGridQuery.matches) return;
+  dashLayoutDraft = structuredClone(dashLayout);
+  dashPage.classList.add('dash-editing');
+  document.getElementById('dashLayoutBtn')?.setAttribute('aria-pressed', 'true');
+  applyDashboardLayout();
+}
+function exitDashboardLayoutEdit() {
+  if (!dashLayoutDraft) return;
+  dashDrag = null;
+  dashLayoutDraft = null;
+  removeDashLayoutChrome();
+  dashPage.classList.remove('dash-editing');
+  document.getElementById('dashLayoutBtn')?.setAttribute('aria-pressed', 'false');
+  applyDashboardLayout();
+}
+function finishDashboardLayoutEdit() {
+  if (!dashLayoutDraft) return;
+  saveDashboardLayout(dashLayoutDraft);
+  exitDashboardLayoutEdit();
+}
+// 取消、Esc、切到别的页面、窗口窄到不用网格：丢掉草稿，按存着的那份重排。
+function cancelDashboardLayoutEdit() {
+  exitDashboardLayoutEdit();
+}
+
+function dashUpdateItem(id, patch) {
+  const item = dashLayoutDraft?.items.find(entry => entry.id === id);
+  if (!item) return;
+  Object.assign(item, patch);
+  dashLayoutDraft = normalizeDashboardLayout(dashLayoutDraft);
+  applyDashboardLayout();
+}
+function dashMoveItem(id, beforeId) {
+  const layout = dashLayoutDraft;
+  const item = layout.items.find(entry => entry.id === id);
+  const rest = layout.items.filter(entry => entry.id !== id);
+  const at = beforeId ? rest.findIndex(entry => entry.id === beforeId) : -1;
+  if (at < 0) {
+    // 排到看得见的最后一个后面，收起的那几个保持在后面。
+    const lastVisible = rest.map(entry => entry.id).filter(other => !layout.hidden.includes(other)).pop();
+    rest.splice(lastVisible ? rest.findIndex(entry => entry.id === lastVisible) + 1 : rest.length, 0, item);
+  } else rest.splice(at, 0, item);
+  layout.items = rest;
+  applyDashboardLayout();
+}
+function dashSetHidden(id, hide) {
+  const layout = dashLayoutDraft;
+  if (!layout || id === 'board') return;
+  if (hide) {
+    if (!layout.hidden.includes(id)) layout.hidden.push(id);
+  } else {
+    layout.hidden = layout.hidden.filter(other => other !== id);
+    const item = layout.items.find(entry => entry.id === id);
+    layout.items = [...layout.items.filter(entry => entry.id !== id), item];
+  }
+  applyDashboardLayout();
+}
+
+function dashGridMetrics() {
+  const rect = dashPage.getBoundingClientRect();
+  const gap = parseFloat(getComputedStyle(dashPage).columnGap) || 16;
+  return { rect, gap, col:(rect.width - 11 * gap) / 12 };
+}
+function dashShowGuides(show) {
+  let guides = document.getElementById('dashLayoutGuides');
+  if (!show) { guides?.remove(); return; }
+  if (!guides) {
+    guides = document.createElement('div');
+    guides.className = 'dash-guides';
+    guides.id = 'dashLayoutGuides';
+    guides.setAttribute('aria-hidden', 'true');
+    guides.innerHTML = '<i></i>'.repeat(12);
+    dashPage.append(guides);
+  }
+  const bar = document.getElementById('dashLayoutBar');
+  const top = bar ? bar.getBoundingClientRect().bottom - dashPage.getBoundingClientRect().top + parseFloat(getComputedStyle(dashPage).rowGap || '0') : 0;
+  guides.style.top = `${Math.round(top)}px`;
+}
+function dashShowBadge(id) {
+  const el = dashModuleEl(id);
+  const item = dashLayoutDraft?.items.find(entry => entry.id === id);
+  if (!el || !item) return;
+  let badge = el.querySelector(':scope > .dash-badge');
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.className = 'dash-badge';
+    badge.setAttribute('aria-hidden', 'true');
+    el.append(badge);
+  }
+  badge.textContent = dashSizeText(item, { measured:true });
+}
+// 同一行里别的模块的底边，用来吸附。
+function dashRowBottoms(id) {
+  const top = dashModuleEl(id).getBoundingClientRect().top;
+  return dashVisibleIds(dashLayoutDraft).filter(other => other !== id).map(other => dashModuleEl(other).getBoundingClientRect())
+    .filter(rect => Math.abs(rect.top - top) < 1).map(rect => rect.bottom);
+}
+// 拖标签换位置：插到离指针最近的那个缝里（某个模块的左边，或最后一个的右边）。
+function dashDropTarget(id, x, y) {
+  const ids = dashVisibleIds(dashLayoutDraft).filter(other => other !== id);
+  const slots = ids.map(other => {
+    const rect = dashModuleEl(other).getBoundingClientRect();
+    return { beforeId:other, x:rect.left, top:rect.top, height:rect.height };
+  });
+  const last = ids.length ? dashModuleEl(ids[ids.length - 1]).getBoundingClientRect() : null;
+  if (last) slots.push({ beforeId:null, x:last.right, top:last.top, height:last.height });
+  let best = null;
+  slots.forEach(slot => {
+    const dy = y < slot.top ? slot.top - y : y > slot.top + slot.height ? y - slot.top - slot.height : 0;
+    const distance = Math.hypot(x - slot.x, dy);
+    if (!best || distance < best.distance) best = { ...slot, distance };
+  });
+  return best;
+}
+function dashShowDropLine(slot) {
+  let line = document.getElementById('dashDropLine');
+  if (!slot) { line?.remove(); return; }
+  if (!line) {
+    line = document.createElement('div');
+    line.className = 'dash-drop-line';
+    line.id = 'dashDropLine';
+    dashPage.append(line);
+  }
+  const { rect, gap } = dashGridMetrics();
+  const x = slot.beforeId ? slot.x - gap / 2 : slot.x + gap / 2;
+  Object.assign(line.style, { left:`${Math.round(x - rect.left)}px`, top:`${Math.round(slot.top - rect.top)}px`, height:`${Math.round(slot.height)}px` });
+}
+
+function dashPointerMove(event) {
+  const drag = dashDrag;
+  if (!drag || event.pointerId !== drag.pointerId) return;
+  const el = dashModuleEl(drag.id);
+  if (drag.kind === 'width') {
+    const { gap, col } = dashGridMetrics();
+    const left = el.getBoundingClientRect().left;
+    dashUpdateItem(drag.id, { span:Math.round((event.clientX - left + gap) / (col + gap)) });
+    dashShowBadge(drag.id);
+    return;
+  }
+  if (drag.kind === 'height') {
+    if (!drag.moved && Math.abs(event.clientY - drag.startY) < 2) return;
+    drag.moved = true;
+    const top = el.getBoundingClientRect().top;
+    const bottom = event.clientY - drag.offset;
+    let h = Math.round((bottom - top - drag.extra) / 20) * 20;
+    const snap = dashRowBottoms(drag.id).find(other => Math.abs(other - bottom) <= 10);
+    if (snap !== undefined) h = Math.round(snap - top - drag.extra);
+    dashUpdateItem(drag.id, { h });
+    dashShowBadge(drag.id);
+    return;
+  }
+  // 换位置：动了 4 像素才算拖起来，免得单击标签就把模块挪了。
+  if (!drag.lifted && Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < 4) return;
+  if (!drag.lifted) {
+    drag.lifted = true;
+    el.classList.add('is-dash-lifted', 'is-dash-active');
+  }
+  el.style.setProperty('--dash-dx', `${event.clientX - drag.startX}px`);
+  el.style.setProperty('--dash-dy', `${event.clientY - drag.startY}px`);
+  drag.slot = dashDropTarget(drag.id, event.clientX, event.clientY);
+  dashShowDropLine(drag.slot);
+}
+function dashPointerEnd(event) {
+  const drag = dashDrag;
+  if (!drag || event.pointerId !== drag.pointerId) return;
+  dashDrag = null;
+  const el = dashModuleEl(drag.id);
+  el?.classList.remove('is-dash-active', 'is-dash-lifted');
+  el?.style.removeProperty('--dash-dx');
+  el?.style.removeProperty('--dash-dy');
+  el?.querySelector(':scope > .dash-badge')?.remove();
+  dashShowGuides(false);
+  dashShowDropLine(null);
+  if (drag.kind === 'move' && drag.lifted && drag.slot && event.type === 'pointerup') dashMoveItem(drag.id, drag.slot.beforeId);
+}
+dashPage.addEventListener('pointerdown', event => {
+  if (!dashLayoutDraft || event.button !== 0) return;
+  const handle = event.target.closest('[data-dash-resize], [data-dash-grip]');
+  const module = handle?.closest('[data-dash-module]');
+  if (!handle || !module) return;
+  event.preventDefault();
+  const id = module.dataset.dashModule;
+  const rect = module.getBoundingClientRect();
+  const kind = handle.dataset.dashResize || 'move';
+  dashDrag = { kind, id, pointerId:event.pointerId, startX:event.clientX, startY:event.clientY, offset:event.clientY - rect.bottom, extra:id === 'board' ? rect.height - dashModuleHeight('board') : 0 };
+  handle.setPointerCapture?.(event.pointerId);
+  handle.focus({ preventScroll:true });
+  if (kind !== 'move') {
+    module.classList.add('is-dash-active');
+    dashShowGuides(true);
+    dashShowBadge(id);
+  }
+});
+dashPage.addEventListener('pointermove', dashPointerMove);
+dashPage.addEventListener('pointerup', dashPointerEnd);
+dashPage.addEventListener('pointercancel', dashPointerEnd);
+dashPage.addEventListener('lostpointercapture', dashPointerEnd);
+dashPage.addEventListener('dblclick', event => {
+  const handle = event.target.closest('[data-dash-resize="height"]');
+  const id = handle?.closest('[data-dash-module]')?.dataset.dashModule;
+  if (!dashLayoutDraft || !id) return;
+  dashUpdateItem(id, { h:dashSpec(id).h });
+});
+dashPage.addEventListener('click', event => {
+  if (!dashLayoutDraft) return;
+  const action = event.target.closest('[data-dash-action]')?.dataset.dashAction;
+  if (action === 'done') finishDashboardLayoutEdit();
+  else if (action === 'cancel') cancelDashboardLayoutEdit();
+  else if (action === 'reset') {
+    dashLayoutDraft = normalizeDashboardLayout(null);
+    applyDashboardLayout();
+  }
+  const hide = event.target.closest('[data-dash-hide]');
+  if (hide) {
+    const id = hide.closest('[data-dash-module]').dataset.dashModule;
+    dashSetHidden(id, true);
+    document.querySelector(`#dashLayoutTray [data-dash-show="${id}"]`)?.focus({ preventScroll:true });
+  }
+  const show = event.target.closest('[data-dash-show]');
+  if (show) {
+    const id = show.dataset.dashShow;
+    dashSetHidden(id, false);
+    dashModuleEl(id)?.querySelector('[data-dash-grip]')?.focus({ preventScroll:true });
+  }
+});
+// 键盘：把手上 ←/→ 每次 1 格、↑/↓ 每次 20；标签上 ←/→ 往前、往后挪一位。
+dashPage.addEventListener('keydown', event => {
+  if (!dashLayoutDraft || isImeKeyEvent(event)) return;
+  const target = event.target.closest?.('[data-dash-resize], [data-dash-grip]');
+  const id = target?.closest('[data-dash-module]')?.dataset.dashModule;
+  if (!id) return;
+  const item = dashLayoutDraft.items.find(entry => entry.id === id);
+  const kind = target.dataset.dashResize || 'move';
+  const step = { ArrowLeft:-1, ArrowRight:1, ArrowUp:-1, ArrowDown:1 }[event.key];
+  if (!step) return;
+  const horizontal = event.key === 'ArrowLeft' || event.key === 'ArrowRight';
+  if (kind === 'width' && horizontal) dashUpdateItem(id, { span:item.span + step });
+  else if (kind === 'height' && !horizontal) {
+    const now = typeof item.h === 'number' ? item.h : Math.round(dashModuleHeight(id) / 20) * 20;
+    dashUpdateItem(id, { h:now + step * 20 });
+  } else if (kind === 'move' && horizontal) {
+    const visible = dashVisibleIds(dashLayoutDraft);
+    const index = visible.indexOf(id);
+    const next = index + step;
+    if (next < 0 || next >= visible.length) return;
+    dashMoveItem(id, step < 0 ? visible[next] : visible[next + 1] || null);
+  } else return;
+  event.preventDefault();
+});
+// Esc 等于「取消」：只在焦点在工作台上（或哪儿都不在）、没有弹窗开着时。
+document.addEventListener('keydown', event => {
+  if (!dashLayoutDraft || event.key !== 'Escape' || event.defaultPrevented || isImeKeyEvent(event)) return;
+  if (document.querySelector('.modal-backdrop.open')) return;
+  const active = document.activeElement;
+  if (active && active !== document.body && !dashPage.contains(active)) return;
+  event.preventDefault();
+  cancelDashboardLayoutEdit();
+});
+document.getElementById('dashLayoutBtn')?.addEventListener('click', () => {
+  if (dashLayoutDraft) finishDashboardLayoutEdit();
+  else enterDashboardLayoutEdit();
+});
+dashGridQuery.addEventListener('change', () => { if (!dashGridQuery.matches) cancelDashboardLayoutEdit(); });
+applyDashboardLayout();
+// #endregion
+
 // #region Navigation and event wiring: page switch, search box, document listeners, settings forms, board drag
 function setPage(page) {
   const normalized = page === 'data' ? 'settings' : page === 'analysis' ? 'amount' : page;
@@ -27368,6 +27884,7 @@ function setPage(page) {
   }
   if ((window.location.hash || '').replace('#', '') !== target) window.location.hash = target;
   closeClientMenus();
+  if (changed) cancelDashboardLayoutEdit();
   if (changed) {
     renderPageContent(target, { entering:true });
     renderSegmentControls();
@@ -29195,6 +29712,7 @@ document.getElementById('taskList').addEventListener('click', e => {
 });
 // 点「今日待办」卡：回到「全部」页签再滚过去，别停在上次选的「复购」等页签里。
 function jumpToReminderCenter() {
+  revealDashboardModule('tasks');
   taskInboxFilter = 'all';
   taskListExpanded = false;
   setPage('dashboard');

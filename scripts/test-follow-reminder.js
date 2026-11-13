@@ -35,7 +35,8 @@ const at = (date, time = '10:00') => new Date(`${date}T${time}:00+08:00`).getTim
       order('ship30', '假发', 30, { stage:'shipment', trackingNumber:'', logisticsStatus:'已发货' }),
       order('due', '假发', 1, { stage:'balance', amount:500, paidAmount:200 }),
       order('late', '假发', 1, { stage:'production', amount:100, paidAmount:100, latestShipDate:day(2) }),
-      order('rush', '假发', 1, { stage:'production', amount:100, paidAmount:100, urgentOrder:true, customerRequiredDate:day(5) }),
+      // 填了最晚发出日期（还远）：不出「按要求收到日期提前 7 天」的发货提醒，这里只看加急。
+      order('rush', '假发', 1, { stage:'production', amount:100, paidAmount:100, urgentOrder:true, customerRequiredDate:day(5), latestShipDate:day(60) }),
       // 旧数据：完成记录是 true。old 的键和当前版本对得上，stale 的对不上（订单后来又改过）。
       order('old', '假发', 1, { stage:'balance', amount:300, paidAmount:100 }),
       order('stale', '假发', 1, { stage:'balance', amount:300, paidAmount:100 })

@@ -116,7 +116,8 @@ const orders = [
     await h.clickUndo(page, 'K102 Quote Full 已移动到已发货');
     await page.waitForFunction(() => state.orders.find(o => o.id === 'q2').stage === 'production');
     const q2 = await h.order(page, 'q2');
-    assert.equal(q2.paidAmount, 0, '撤销「进已发货」：回到生产中、已收回到 0（只还原那一次移动）');
+    assert.equal(q2.paidAmount, 500, '撤销「进已发货」：回到生产中、已收回到进已发货之前（报价 → 生产中时自动记的全款），只还原那一次移动');
+    assert.equal(q2.depositAutoPaid, 500);
     assert.equal(q2.logisticsStatus, '未发货');
     assert.equal(q2.logs.length, q2Before + 1, '撤销只追加一条记录');
     assert.match(q2.logs[0].text, /撤销阶段调整：恢复为 生产中/);

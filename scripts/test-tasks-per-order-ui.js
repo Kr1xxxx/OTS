@@ -82,6 +82,10 @@ const orders = [
     assert.equal(d6.reason, '客户要求 11-13 收到，该发货了');
     assert.equal(d6.doneKey, `ship-d6-req-${day(6)}`);
     assert.equal(d6.date, day(-1), '提醒日 = 要求收到日期往前 7 天');
+    // 日历：提醒日过了、要求收到日期还没到，不写「逾期」；过了要求收到日期才写。
+    const d6Cal = await page.evaluate(() => calendarEventsInRange('2026-11-07', '2026-11-07').find(e => e.taskId === 'ship-d6'));
+    assert.equal(d6Cal.label, 'Client D6 发货期限');
+    assert.equal(d6Cal.tone, 'repurchase');
     assert.deepEqual(await page.evaluate(() => ['ready', 'tracking', 'ship', 'logistics'].map(type => taskDetailTab({ type }))), ['logistics', 'logistics', 'logistics', 'logistics']);
 
     // 完成显示的那条：同一张单的下一条（加急）出来。
@@ -137,6 +141,13 @@ const orders = [
     // 过了要求收到日期还没发。
     await edit('d15', { customerRequiredDate:day(-3) });
     assert.equal(await page.evaluate(() => buildTaskItems().find(t => t.id === 'ship-d15')?.reason), '已过客户要求收到日期 3 天（11-04）');
+    assert.match((await page.evaluate(() => calendarEventsInRange('2026-11-07', '2026-11-07').find(e => e.taskId === 'ship-d15'))).label, /发货期限 · 逾期 3 天$/);
+
+    // 一单一条选哪条：今天该处理的先于以后才到期的。待发货有欠款的加急单（要求收到日期在 20 天后）显示今天的收款，加急收在「另有」里。
+    await edit('b1', { urgentOrder:true, customerRequiredDate:day(20), latestShipDate:day(15) });
+    assert.equal((await all()).includes('urgent-b1'), true);
+    assert.equal((await shown()).includes('urgent-b1'), false);
+    assert.equal(await page.evaluate(() => buildTaskItems({ perOrder:true }).find(t => t.id === 'payment-b1')?.more), '另有 加急');
 
     // 删除订单时新类型的「已处理」标记也一起清掉。
     assert.deepEqual(await page.evaluate(() => orderDoneTaskKeys('t1')), ['tracking-t1']);

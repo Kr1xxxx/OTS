@@ -10001,7 +10001,8 @@ function buildTaskItems({ includeDone = false, includeSnoozed = false, perOrder 
       if (remindDate && remindDays <= 3) {
         const requiredDays = daysUntil(o.customerRequiredDate);
         const md = o.customerRequiredDate.slice(5);
-        reminders.push({ id:`ship-${o.id}`, doneKey:`ship-${o.id}-req-${o.customerRequiredDate}`, orderId:o.id, client:o.client, date:remindDate, type:'ship', title, reason:requiredDays < 0 ? `已过客户要求收到日期 ${Math.abs(requiredDays)} 天（${md}）` : `客户要求 ${md} 收到，该发货了`, detail:`${requiredDays < 0 ? '还没发货' : `离要求收到还有 ${requiredDays} 天`} · ${o.num}`, value:'', tag:'发货期限', tagClass:'tag-orange', priority:0 });
+        // lateFrom：日历上「逾期」从要求收到日期算，不从提醒日算（提醒日过了只是该发货了，还没逾期）。
+        reminders.push({ id:`ship-${o.id}`, doneKey:`ship-${o.id}-req-${o.customerRequiredDate}`, orderId:o.id, client:o.client, date:remindDate, lateFrom:o.customerRequiredDate, type:'ship', title, reason:requiredDays < 0 ? `已过客户要求收到日期 ${Math.abs(requiredDays)} 天（${md}）` : `客户要求 ${md} 收到，该发货了`, detail:`${requiredDays < 0 ? '还没发货' : `离要求收到还有 ${requiredDays} 天`} · ${o.num}`, value:'', tag:'发货期限', tagClass:'tag-orange', priority:0 });
       }
     }
     // 待发货、钱已收齐：可以发货了。点「完成」后 3 天还在待发货再提醒。
@@ -10173,12 +10174,13 @@ function calendarEventsInRange(from, to) {
   });
   // 2. 提醒。
   const taskTone = item => (item.type === 'logistics' || String(item.id || '').startsWith('logistics-risk-')) ? 'urgent'
-    : item.type === 'ship' ? (normalizeDate(item.date) < today ? 'urgent' : 'repurchase')
+    : item.type === 'ship' ? (normalizeDate(item.lateFrom || item.date) < today ? 'urgent' : 'repurchase')
       : item.type === 'urgent' ? 'urgent'
         : item.type === 'payment' ? 'payment' : item.type === 'follow' ? 'follow'
           : ['ready', 'tracking'].includes(item.type) ? 'logistics' : 'repurchase';
   const pushTask = (item, date, extra = {}) => {
-    const lateDays = normalizeDate(item.date || today) < today ? daysBetween(item.date) : 0;
+    const lateBase = item.lateFrom || item.date;
+    const lateDays = normalizeDate(lateBase || today) < today ? daysBetween(lateBase) : 0;
     // 和交期是同一件事（发货期限、加急）：并到交期色块上，点开是当天抽屉。
     if (['ship', 'urgent'].includes(item.type) && !extra.snoozed && !lateDays) {
       const merged = deadlineIndex.get(`${item.orderId}|${date}`);

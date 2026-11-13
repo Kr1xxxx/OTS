@@ -27498,9 +27498,17 @@ function applyDashboardLayout() {
   if (dashLayoutDraft) renderDashLayoutChrome();
 }
 // 指标卡按自己的宽排：不到 900 时排 3 列（原来那条 3 列的规则按视口宽写，管不到指标卡被拖窄的情况）。
+// 换列数会改指标卡的高，在 ResizeObserver 回调里直接改会再触发一次观察（WebKit 报「ResizeObserver loop」错误），
+// 所以挪到下一帧改，且只在宽窄真的变了时改。
 if (window.ResizeObserver) {
   const kpi = dashModuleEl('kpi');
-  if (kpi) new ResizeObserver(entries => entries.forEach(entry => kpi.toggleAttribute('data-dash-narrow', entry.contentRect.width < 900))).observe(kpi);
+  if (kpi) {
+    new ResizeObserver(entries => {
+      const narrow = entries[entries.length - 1].contentRect.width < 900;
+      if (narrow === kpi.hasAttribute('data-dash-narrow')) return;
+      requestAnimationFrame(() => kpi.toggleAttribute('data-dash-narrow', kpi.getBoundingClientRect().width < 900));
+    }).observe(kpi);
+  }
 }
 
 function saveDashboardLayout(layout) {

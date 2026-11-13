@@ -319,11 +319,15 @@ const waitIdle = page => page.evaluate(() => new Promise(resolve => {
       const newest = await page.locator('#toast .toast-item:not(.leaving)').last().boundingBox();
       await page.mouse.move(newest.x + newest.width / 3, newest.y + newest.height / 2);
       await page.waitForFunction(() => document.getElementById('toast').matches(':hover'));
-      await waitIdle(page);
-      const rects = await page.evaluate(() => [...document.querySelectorAll('#toast .toast-item:not(.leaving)')].map(item => {
+      // 展开是一段带回弹的过渡：WebKit 里 waitIdle 偶尔在过渡还没走完时就返回，量到的间距是半路上的（5.9px）。
+      // 等到四条都排开、字都显出来再量；等不到就照样往下走，由下面的断言报出实际数值。
+      const measureToasts = () => [...document.querySelectorAll('#toast .toast-item:not(.leaving)')].map(item => {
         const r = item.getBoundingClientRect();
         return { top:r.top, bottom:r.bottom, text:Number(getComputedStyle(item.lastElementChild).opacity) };
-      }).sort((a, b) => a.top - b.top));
+      }).sort((a, b) => a.top - b.top);
+      await waitIdle(page);
+      await page.waitForFunction(`(() => { const rects = (${measureToasts})(); return rects.length === 4 && rects.every(r => r.text === 1) && rects.slice(1).every((r, i) => r.top - rects[i].bottom >= 6); })()`, null, { timeout:5000 }).catch(() => {});
+      const rects = await page.evaluate(measureToasts);
       assert.equal(rects.length, 4, 'all four toasts are laid out when expanded');
       rects.slice(1).forEach((rect, i) => assert.ok(rect.top - rects[i].bottom >= 6, `expanded toasts keep a gap (${rect.top - rects[i].bottom}px)`));
       assert.ok(rects.every(rect => rect.text === 1), 'expanded toasts show their text');

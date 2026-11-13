@@ -1679,7 +1679,7 @@ const server = http.createServer(async (req, res) => {
       ensureStorage();
       const body = await readJsonBody(req);
       const target = attachmentTargetFromUrl(body.fileUrl);
-      const folder = fs.existsSync(target) ? path.dirname(target) : path.dirname(target);
+      const folder = path.dirname(target);
       if (!folder.startsWith(path.resolve(attachmentsDir) + path.sep)) {
         return send(res, 400, JSON.stringify({ ok: false, message: 'unsupported folder' }));
       }

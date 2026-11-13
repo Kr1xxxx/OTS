@@ -16133,11 +16133,14 @@ function scrollWorkspaceToTop(behavior = 'auto', repeat = false) {
 // scroll within a quarter second of a page change jumped back to the top, a menu opened in that time
 // was closed by the scroll that jump caused, and a press that began before the jump landed on whatever
 // had moved under the pointer.
+// Code that changes page and then scrolls somewhere on purpose calls cancelPendingScrollResets() right after
+// setPage too: the press that started it came before setPage and so had nothing to cancel yet.
 const pendingScrollResets = new Set();
-['wheel', 'touchstart', 'pointerdown', 'keydown'].forEach(type => window.addEventListener(type, () => {
+function cancelPendingScrollResets() {
   pendingScrollResets.forEach(cancel => cancel());
   pendingScrollResets.clear();
-}, { capture:true, passive:true }));
+}
+['wheel', 'touchstart', 'pointerdown', 'keydown'].forEach(type => window.addEventListener(type, cancelPendingScrollResets, { capture:true, passive:true }));
 function debounce(fn, delay = 120) {
   let timer = 0;
   return (...args) => {
@@ -29812,11 +29815,13 @@ document.getElementById('taskList').addEventListener('click', e => {
   handleTaskAction(action.dataset.taskAction, row);
 });
 // 点「今日待办」卡：回到「全部」页签再滚过去，别停在上次选的「复购」等页签里。
+// setPage 会在下一帧和 80、240 ms 后把页面拉回顶部，会打断下面的平滑滚动，所以换完页先取消它们。
 function jumpToReminderCenter() {
   revealDashboardModule('tasks');
   taskInboxFilter = 'all';
   taskListExpanded = false;
   setPage('dashboard');
+  cancelPendingScrollResets();
   renderTasks();
   requestAnimationFrame(() => {
     document.getElementById('tasks')?.scrollIntoView({ behavior: 'smooth', block: 'start' });

@@ -72,6 +72,10 @@ vm.runInContext(html.match(/^const customerPasteFieldOrder = .*;$/m)[0].replace(
   'aiMoneyNumber',
   'pasteTotalLabelPattern',
   'findAmountInText',
+  'datePickerIso',
+  'datePickerToday',
+  'datePickerParts',
+  'yearlessDateIso',
   'findOrderCreatedAtInText',
   'findPartialPaymentInText',
   'countrySearchParts',
@@ -303,6 +307,23 @@ assert.equal(vm.runInContext(`findProductTypeInText(${JSON.stringify('Flash Beau
 assert.equal(vm.runInContext(`findProductTypeInText(${JSON.stringify('Chair Design Studio')})`, context), '', 'Chair 不能因为包含 hair 被识别为假发');
 assert.equal(vm.runInContext(`findProductTypeInText(${JSON.stringify('Products: lashes and tweezers')})`, context), '睫毛');
 assert.equal(vm.runInContext(`findProductTypeInText(${JSON.stringify('Products: wig and hair bundles')})`, context), '假发');
+// 聊天里的假发写法没有 wig / hair 也要认成假发；睫毛词仍然优先，straight 单独出现不算。
+{
+  const productOf = text => vm.runInContext(`findProductTypeInText(${JSON.stringify(text)})`, context);
+  assert.equal(productOf('Hi dear, I want 3 pcs 13x4 body wave 22inch 180% density, total $540'), '假发');
+  assert.equal(productOf('2 pcs deep wave 26"'), '假发');
+  assert.equal(productOf('water wave 5x5 hd lace'), '假发');
+  assert.equal(productOf('4×4 straight'), '假发');
+  assert.equal(productOf('13x6 frontal unit'), '假发');
+  assert.equal(productOf('need 10 pcs straight 20 inch'), '假发');
+  assert.equal(productOf('silky straight 24"'), '假发');
+  assert.equal(productOf('0.07 C curl lashes 8-14mm'), '睫毛');
+  assert.equal(productOf('0.07 C curl lashes 8-14mm, lace box packaging'), '睫毛', 'Lash words win over wig words');
+  assert.equal(productOf('Please send it straight to my office'), '', 'straight alone is not a wig');
+  assert.equal(productOf('straight away please\nsize 20 inch box'), '', 'straight and inch on different lines is not a wig');
+  assert.equal(productOf('Order 213x45 confirmed'), '', 'A size inside a longer number is not a lace size');
+  assert.equal(context.analyzePasteText('Hi dear, I want 3 pcs 13x4 body wave 22inch 180% density, total $540, I will pay 30% deposit by PayPal today').extracted.productType, '假发');
+}
 
 assert.equal(
   evaluateJson(`analyzePasteText(${JSON.stringify('客户：Taylor Morgan\n9月15日交货\nTotal USD 1000')})`).extracted.createdAt,
@@ -314,7 +335,18 @@ assert.equal(
   undefined,
   '英文交货日期不能写入下单日期'
 );
-assert.equal(vm.runInContext(`findOrderCreatedAtInText(${JSON.stringify('下单日期：9月1日')})`, context), '2026-09-01');
+assert.equal(vm.runInContext(`findOrderCreatedAtInText(${JSON.stringify('下单日期：8月1日')})`, context), '2026-08-01');
+// 没写年份的下单日期不会在以后：按今年算晚于今天就是去年（1 月初补录上个月的单）。
+const createdAtOn = (text, today, options = {}) => vm.runInContext(`findOrderCreatedAtInText(${JSON.stringify(text)}, ${JSON.stringify({ ...options, today })})`, context);
+assert.equal(createdAtOn('下单日期：12月28日', '2027-01-03'), '2026-12-28', 'a December order typed in January is last year');
+assert.equal(createdAtOn('下单日期：1月2日', '2027-01-03'), '2027-01-02');
+assert.equal(createdAtOn('下单日期：1月3日', '2027-01-03'), '2027-01-03', 'today is not in the future');
+assert.equal(createdAtOn('下单日期：9月1日', '2026-08-17'), '2025-09-01');
+assert.equal(createdAtOn('下单日期：2月29日', '2027-01-03'), '', 'no 29 February in 2026 or 2027');
+assert.equal(createdAtOn('下单日期：2026年12月28日', '2027-01-03'), '2026-12-28', 'a written year is kept');
+// AI 交回来的交期没写年份：取离今天最近的那一年（12 月填 1 月的交期是明年）。
+assert.equal(createdAtOn('1月15日', '2026-12-20', { yearless:'nearest' }), '2027-01-15');
+assert.equal(createdAtOn('11月20日', '2026-11-13', { yearless:'nearest' }), '2026-11-20');
 assert.equal(vm.runInContext(`findOrderCreatedAtInText(${JSON.stringify('Order date: 2026-09-01')})`, context), '2026-09-01');
 
 const twoUnlabeledEmails = evaluateJson(`analyzeCustomerPasteText(${JSON.stringify('Taylor Morgan\nbuyer@example.com\naccounts@example.com')})`).extracted;

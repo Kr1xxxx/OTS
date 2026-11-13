@@ -16,6 +16,11 @@ const { freePortSync } = require('./helpers/free-port');
     const parsed = await page.evaluate(() => ['2030-05-14', '2030/5/4', '2030.05.04', '2030年5月4日', '20300504', '５/４', '5月4日', ' ', '2030-02-30', '14/05/2030', 'abc']
       .map(text => parseDateInputText(text, '2030-01-01')));
     assert.deepEqual(parsed, ['2030-05-14', '2030-05-04', '2030-05-04', '2030-05-04', '2030-05-04', '2030-05-04', '2030-05-04', '', null, null, null]);
+    // 只写月日：去年、今年、明年里离今天最近的那一天（跨年前后不再落到十一个月前 / 十一个月后），2 月 29 日只在有这一天的年份里挑。
+    const yearless = await page.evaluate(() => [['1/15', '2026-12-20'], ['12/28', '2027-01-03'], ['11/20', '2026-11-13'], ['6/30', '2026-12-20'],
+      ['2/29', '2027-12-20'], ['2/29', '2026-06-01'], ['12月28日', '2027-01-03'], ['2026/1/15', '2026-12-20']]
+      .map(([text, today]) => parseDateInputText(text, today)));
+    assert.deepEqual(yearless, ['2027-01-15', '2026-12-28', '2026-11-20', '2026-06-30', '2028-02-29', null, '2026-12-28', '2026-01-15']);
 
     await h.click(page, '#newOrderBtn');
     await page.locator('#orderModal.open').waitFor();

@@ -78,6 +78,8 @@ const data = { orders, customers };
       const hits = await page.evaluate(() => {
         const at = (x, y) => document.elementFromPoint(x, y);
         const out = { misses:[] };
+        // 顶栏是悬浮的：滚到待办后，上面模块的把手可能正好压在顶栏下面（待办多高随数据变），那里点到的是顶栏，不算。
+        const topEdge = document.querySelector('.topbar')?.getBoundingClientRect().bottom || 0;
         const check = (el, x, y, label) => { const got = at(x, y); if (got !== el) out.misses.push(`${label} → ${got ? got.className || got.tagName : 'null'}`); };
         document.querySelectorAll('#page-dashboard [data-dash-module]:not([hidden])').forEach(module => {
           const id = module.dataset.dashModule;
@@ -88,17 +90,17 @@ const data = { orders, customers };
           if (hx) {
             const r = hx.getBoundingClientRect();
             const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-            if (cy > 0 && cy < innerHeight) { check(hx, cx - 8, cy, `${id} 宽把手左 8`); check(hx, cx + 8, cy, `${id} 宽把手右 8`); }
+            if (cy > topEdge && cy < innerHeight) { check(hx, cx - 8, cy, `${id} 宽把手左 8`); check(hx, cx + 8, cy, `${id} 宽把手右 8`); }
           }
           if (hy) {
             const r = hy.getBoundingClientRect();
             const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-            if (cy > 8 && cy < innerHeight - 8) { check(hy, cx, cy - 8, `${id} 高把手上 8`); check(hy, cx, cy + 8, `${id} 高把手下 8`); }
+            if (cy > topEdge + 8 && cy < innerHeight - 8) { check(hy, cx, cy - 8, `${id} 高把手上 8`); check(hy, cx, cy + 8, `${id} 高把手下 8`); }
           }
           if (eye) {
             const r = eye.getBoundingClientRect();
             const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-            if (cy > 14 && cy < innerHeight - 14) {
+            if (cy > topEdge + 14 && cy < innerHeight - 14) {
               // 28×28：中心上下左右各 13.5 px 以内都是眼睛。
               for (const [dx, dy] of [[-12, 0], [13.5, 0], [0, -13.5], [0, 13.5], [-11, -13], [13, 13]]) check(eye, cx + dx, cy + dy, `${id} 眼睛 ${dx},${dy}`);
               // 名字标签的拖动区不被眼睛抢走：标签右边缘内 1 px 还是标签。

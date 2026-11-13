@@ -1140,7 +1140,7 @@ html[data-theme="dark"] .tag-gray {
 .detail-value.value-balance { color: var(--red-600); }
 .detail-wide { grid-column: 1 / -1; }
 .detail-timeline { display: grid; gap: 10px; }
-.detail-log { display: grid; grid-template-columns: 9px 1fr; gap: 9px; color: var(--gray-700); }
+.detail-log { display: grid; grid-template-columns: 9px minmax(0, 1fr); gap: 9px; color: var(--gray-700); }
 .detail-log-dot { width: 7px; height: 7px; margin-top: 8px; border-radius: 999px; background: var(--green-500); }
 .detail-log-time { color: var(--gray-500); font-size: 12px; }
 .roadmap {
@@ -1390,7 +1390,7 @@ html[data-theme="dark"] .binary-option { color: #d7d7d7; }
 .api-feishu-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; color: var(--gray-700); font-size: 13px; }
 .order-notification-detail-error { color: var(--orange-600); font-size: 12px; font-weight: 600; }
 .history { display: flex; flex-direction: column; gap: 10px; }
-.log { display: grid; grid-template-columns: 10px 1fr; gap: 10px; }
+.log { display: grid; grid-template-columns: 10px minmax(0, 1fr); gap: 10px; }
 .log-dot { width: 8px; height: 8px; margin-top: 7px; border-radius: 999px; background: var(--blue-500); }
 .attachment-box { display: grid; gap: 10px; }
 .attachment-form { display: grid; grid-template-columns: minmax(180px,1fr) 150px minmax(220px,1.2fr) auto; gap: 8px; align-items: end; }
@@ -4498,6 +4498,8 @@ html[data-theme] .page-enter .chart-value { animation:uiRise .4s var(--ease-out)
 /* 时间线：竖线从上往下长，最新一条的圆点脉冲 */
 html[data-theme] :is(.detail-timeline, .tracking-detail-list) { position:relative; }
 html[data-theme] :is(.detail-log, .tracking-event) { position:relative; animation:uiRise .4s var(--ease-out) backwards; }
+/* 抽屉「记录」页：记录文字里断不开的长串（链接、长编号）换行，不把抽屉撑宽。 */
+html[data-theme] .detail-log > div { min-width:0; overflow-wrap:anywhere; }
 html[data-theme] :is(.detail-log, .tracking-event):nth-child(2), html[data-theme] .detail-log:nth-child(2)::before { animation-delay:60ms; }
 html[data-theme] :is(.detail-log, .tracking-event):nth-child(3), html[data-theme] .detail-log:nth-child(3)::before { animation-delay:120ms; }
 html[data-theme] :is(.detail-log, .tracking-event):nth-child(4), html[data-theme] .detail-log:nth-child(4)::before { animation-delay:180ms; }
@@ -5150,8 +5152,16 @@ html[data-theme] .order-head-field > input[name="createdAt"] { width:140px; font
 
 html[data-theme] .order-body { flex:1; min-height:0; display:grid; grid-template-columns:260px minmax(0, 1fr) 228px; gap:16px; padding:2px 24px 22px; }
 html[data-theme] .order-rail { min-width:0; min-height:0; display:flex; flex-direction:column; gap:12px; border:1px solid var(--surface-border); border-radius:18px; background:var(--surface-bg); box-shadow:0 1px 2px oklch(0% 0 0 / .04); }
-html[data-theme] .order-main { min-width:0; min-height:0; display:flex; flex-direction:column; gap:12px; margin:0; padding:0; overflow:auto; overscroll-behavior:contain; background:transparent; scrollbar-width:thin; }
+html[data-theme] .order-main { min-width:0; min-height:0; display:flex; flex-direction:column; gap:12px; margin:0; padding:0; overflow:hidden auto; overscroll-behavior:contain; background:transparent; scrollbar-width:thin; }
 html[data-theme] .order-main > * { flex:none; }
+/* 中栏只竖着滚。附件行、操作记录里中间断不开的长串（文件名、链接、长编号）以前会把中栏撑宽，能往右拉、表单左边被切掉：
+   名称和记录文字在自己那一格换行；链接和纯文字备注单行省略，最宽 160px，悬停看全文。 */
+html[data-theme] .log > div { min-width:0; overflow-wrap:anywhere; }
+html[data-theme] .attachment-item > div { min-width:0; overflow-wrap:anywhere; }
+html[data-theme] .attachment-item > :is(.attachment-link, .attachment-note) { max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+@media (max-width: 720px) {
+  html[data-theme] .attachment-item > :is(.attachment-link, .attachment-note) { max-width:100%; }
+}
 
 /* 左栏：粘贴识别。文本框固定高度，识别结果在栏里滚。 */
 html[data-theme] .order-rail.order-paste-section { padding:18px; overflow:auto; overscroll-behavior:contain; scrollbar-width:thin; }
@@ -16673,7 +16683,7 @@ function renderOrderAttachments(list = []) {
         <div class="attachment-name">${escapeAttr(item.name || item.type || '未命名凭证')}</div>
         <div class="muted">${escapeAttr(item.type || '其他')} · ${escapeAttr(item.time || '')}${item.size ? ` · ${formatBytes(item.size)}` : ''}${item.optimizer ? ` · ${escapeAttr(item.optimizer)}` : ''}${item.temporary ? ' · 待保存' : ''}</div>
       </div>
-      ${safeAttachmentHref(item.fileUrl || item.link) ? `<a class="attachment-link" href="${escapeAttr(safeAttachmentHref(item.fileUrl || item.link))}" target="_blank" rel="noopener">${escapeAttr(item.fileUrl ? '查看图片' : item.link)}</a>` : (item.link ? `<span class="muted">${escapeAttr(item.link)}</span>` : '<span class="muted">无链接</span>')}
+      ${safeAttachmentHref(item.fileUrl || item.link) ? `<a class="attachment-link" href="${escapeAttr(safeAttachmentHref(item.fileUrl || item.link))}" target="_blank" rel="noopener"${item.fileUrl ? '' : ` title="${escapeAttr(item.link)}"`}>${escapeAttr(item.fileUrl ? '查看图片' : item.link)}</a>` : (item.link ? `<span class="attachment-note muted" title="${escapeAttr(item.link)}">${escapeAttr(item.link)}</span>` : '<span class="muted">无链接</span>')}
       ${item.fileUrl ? `<button class="btn btn-small" type="button" data-open-attachment-folder="${escapeAttr(item.fileUrl)}">文件夹</button>` : ''}
       <button class="attachment-remove" type="button" data-remove-attachment="${index}">×</button>
     </div>

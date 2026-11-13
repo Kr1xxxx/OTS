@@ -154,7 +154,7 @@ const risks = page => page.evaluate(() => buildTaskItems().filter(task => String
   const token = 'l'.repeat(40);
   const server = spawn(process.execPath, [path.join(root, 'mac-app', 'server.js')], {
     env:{ ...process.env, TRADE_APP_PORT:String(port), TRADE_APP_DATA_DIR:dataDir, TRADE_API_TOKEN:token, TRADE_APP_NO_OPEN:'1',
-      DHL_API_KEY:'fake-dhl-key', FEDEX_CLIENT_ID:'fake-fedex-id', FEDEX_CLIENT_SECRET:'fake-fedex-secret',
+      DHL_API_KEY:'fake-dhl-key', FEDEX_CLIENT_ID:'fake-fedex-id', FEDEX_CLIENT_SECRET:'not a secret',
       OTS_DHL_TRACKING_ENDPOINT:`${fakeBase}/dhl/track/shipments`, OTS_FEDEX_API_HOST:`${fakeBase}/fedex`,
       HTTPS_PROXY:'http://127.0.0.1:9', HTTP_PROXY:'http://127.0.0.1:9', https_proxy:'http://127.0.0.1:9', http_proxy:'http://127.0.0.1:9' },
     stdio:['ignore', 'ignore', 'pipe']

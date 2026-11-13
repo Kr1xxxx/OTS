@@ -13,8 +13,6 @@ const required = [
   'trade-order-data.json',
   '.env.example',
   'package.json',
-  'data/demo-data.json',
-  'docs/project-notes.md',
   'mac-app/server.js',
   'mac-app/build-native-mac-app.sh',
   'mac-app/native/Package.swift',
@@ -43,18 +41,6 @@ try {
   execFileSync(process.execPath, ['--check', tempScript], { stdio: 'inherit' });
 } finally {
   fs.rmSync(tempDir, { recursive: true, force: true });
-}
-
-for (const file of [
-  'mac-app/server.js',
-  'scripts/check-release.js',
-  'scripts/test-tracking-api.js',
-  'scripts/test-sqlite-storage.js',
-  'scripts/test-server-security.js',
-  'scripts/test-feishu-order-notification.js',
-  'scripts/test-feishu-order-ui.js'
-]) {
-  execFileSync(process.execPath, ['--check', path.join(root, file)], { stdio: 'inherit' });
 }
 
 // The main script of the page is one long file by choice; "// #region Name" lines are its table of
@@ -116,15 +102,12 @@ const secretPatterns = [
   /secret:\s*['"][A-Za-z0-9_-]{12,}['"]/i,
   /client_secret\s*[:=]\s*['"][A-Za-z0-9_-]{12,}['"]/i
 ];
-for (const file of [
-  'trade-order-system.html',
-  ...serverFiles().map(name => `mac-app/${name}`),
-  'scripts/test-tracking-api.js',
-  'docs/project-notes.md',
-  '.env.example',
-  'data/demo-data.json'
-]) {
-  const text = fs.readFileSync(path.join(root, file), 'utf8');
+// The repository is public, so every text file Git tracks is scanned, tests and fixtures included. Outside a Git
+// checkout (a packaging environment) only the files that ship are scanned.
+for (const file of secretScanFiles()) {
+  const bytes = fs.readFileSync(path.join(root, file));
+  if (bytes.includes(0)) continue;
+  const text = bytes.toString('utf8');
   for (const pattern of secretPatterns) {
     if (pattern.test(text)) throw new Error(`Possible real secret found in ${file}`);
   }
@@ -136,6 +119,19 @@ const noteProblems = require('./prepare-release').checkPendingNotes(root);
 assert.deepEqual(noteProblems, [], `release-notes/next: ${noteProblems.join('; ')}`);
 
 console.log('Project check passed.');
+
+function secretScanFiles() {
+  let tracked;
+  try {
+    tracked = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).split('\0').filter(Boolean);
+  } catch (_) {
+    return ['trade-order-system.html', ...serverFiles().map(name => `mac-app/${name}`), 'scripts/test-tracking-api.js', '.env.example'];
+  }
+  const skipped = file => file === 'package-lock.json'
+    || file.startsWith('chrome-extension/whatsapp-sync/vendor/')
+    || /\.(png|jpe?g|gif|webp|avif|heic|ico|icns|pdf|woff2?|ttf|otf|zip|dmg|sqlite)$/i.test(file);
+  return tracked.filter(file => !skipped(file) && fs.existsSync(path.join(root, file)));
+}
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

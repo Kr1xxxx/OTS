@@ -147,7 +147,6 @@ function configurations(quick) {
       list.push({ name:`${theme}-accent-${accent}`, theme, width:W.std, accent, states:['page:dashboard', 'page:order-list', 'page:settings:appearance', 'overlay:order-new', 'overlay:detail-info', 'overlay:customer-view', 'overlay:confirm', 'overlay:toasts', 'page:subscriptions'] });
     }
   }
-  list.push({ name:'light-reduced-motion', theme:'light', width:W.std, motion:'reduce', states:['page:dashboard', 'overlay:order-new', 'page:subscriptions', 'overlay:toasts'] });
   // One width inside every interval between the stylesheet's max-width / min-width breakpoints.
   for (const [key, width] of Object.entries(W)) {
     if ([W.std, W.w1180, W.min, W.phone].includes(width)) continue;
@@ -567,7 +566,7 @@ async function runJob(browser, job, ctx) {
     locale:'zh-CN',
     reducedMotion:'no-preference'
   });
-  await context.addInitScript(({ theme, accent, motion, mac, today }) => {
+  await context.addInitScript(({ theme, accent, mac, today }) => {
     try {
       localStorage.setItem('trade-order-system-theme', theme);
       localStorage.setItem('ots-greet-v1', today);
@@ -577,12 +576,10 @@ async function runJob(browser, job, ctx) {
       const handler = { postMessage() {} };
       window.webkit = { messageHandlers:new Proxy({}, { get:() => handler }) };
     }
-    if (motion) document.addEventListener('DOMContentLoaded', () => { document.documentElement.dataset.motion = motion; });
-  }, { theme:config.theme, accent:config.accent || '', motion:config.motion || '', mac:Boolean(config.mac), today:TODAY });
+  }, { theme:config.theme, accent:config.accent || '', mac:Boolean(config.mac), today:TODAY });
   try {
     const data = config.data === 'empty' ? emptyData : ctx.data;
     const { page, errors } = await loadPage(context, ctx.html, data, ctx.subs, config);
-    if (config.motion) await page.evaluate(motion => { document.documentElement.dataset.motion = motion; }, config.motion);
     await state.run(page, settle);
     await settle(page);
     const snap = await inPage(page, 'pageCapture', { names:ctx.names, keep:Boolean(config.force) });

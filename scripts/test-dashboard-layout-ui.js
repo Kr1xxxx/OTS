@@ -249,6 +249,34 @@ const enter = async page => {
     await page.click('[data-dash-action="cancel"]');
     assert.equal(await statColumns(), 5, '取消后回到 5 列');
 
+    // 16. 待办变成「三行文字、按钮另起一行」只在拖到 4 到 6 格时：默认的 7 格在小窗口（1300）和手机宽度（390）里
+    //     也不到 560 宽，那时每条的高度和把容器查询关掉时一样，也就是没调整过布局的人看到的和以前一样。
+    const taskRow = () => page.evaluate(() => {
+      const task = document.querySelector('#taskList .task');
+      const tasks = document.getElementById('tasks');
+      const height = () => Math.round(task.getBoundingClientRect().height);
+      const now = height();
+      tasks.style.containerType = 'normal';
+      const plain = height();
+      tasks.style.containerType = '';
+      return { now, plain, width:tasks.clientWidth };
+    });
+    for (const width of [1300, 390]) {
+      await page.setViewportSize({ width, height:900 });
+      await page.waitForFunction(w => window.innerWidth === w, width);
+      const row = await taskRow();
+      assert(row.width < 602, `${width} 宽时待办够窄：${row.width}`);
+      assert.equal(row.now, row.plain, `${width} 宽、默认布局：待办每条和以前一样高`);
+    }
+    await page.setViewportSize({ width:1694, height:1082 });
+    await page.waitForFunction(() => window.innerWidth === 1694);
+    await enter(page);
+    await page.focus('[data-dash-module="tasks"] .dash-hx');
+    for (let i = 0; i < 3; i += 1) await page.keyboard.press('ArrowLeft');
+    const narrowRow = await taskRow();
+    assert(narrowRow.now > narrowRow.plain, `待办拖到 4 格：按钮另起一行（${narrowRow.now} 比 ${narrowRow.plain} 高）`);
+    await page.click('[data-dash-action="cancel"]');
+
     assert.deepEqual(errors, []);
     assert.deepEqual(dialogs, []);
     await context.close();

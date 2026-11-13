@@ -4188,14 +4188,17 @@ html[data-theme] #page-dashboard .board-panel { container:dash-board / inline-si
   html[data-theme] #page-dashboard :is(#tasks, #recentOrders)[data-dash-h] > :not(.dash-edit) { flex:none; }
   html[data-theme] #page-dashboard :is(#tasks, #recentOrders)[data-dash-h] :is(#taskList, #recentOrderList) { flex:1 1 auto; min-height:0; overflow-y:auto; scrollbar-width:thin; }
 }
-/* 待办变窄（右边一栏）：每条变成「图标 + 三行文字，按钮另起一行」，副标题收起，筛选条自己折行。 */
+/* 待办变窄（拖到 4 到 6 格、排在右边一栏）：每条变成「图标 + 三行文字，按钮另起一行」，副标题收起，筛选条自己折行。
+   只管用网格时拖窄了的待办：默认的 7 格在小窗口里也会不到 560，那时和不用网格的窄窗口、手机一样，保持原来的样子。 */
 html[data-theme] #page-dashboard #tasks { container:dash-tasks / inline-size; }
-@container dash-tasks (max-width: 560px) {
-  html[data-theme] #tasks #taskList .task { grid-template-columns:auto minmax(0, 1fr); column-gap:12px; row-gap:10px; align-items:start; padding:14px 0; }
-  html[data-theme] #tasks #taskList .task-title { white-space:normal; line-height:1.45; }
-  html[data-theme] #tasks #taskList .task-reason { display:block; margin:2px 0 0; white-space:normal; }
-  html[data-theme] #tasks #taskList .task-actions { grid-column:2; justify-content:flex-start; flex-wrap:nowrap; }
-  html[data-theme] #tasks > .section-head .section-meta { display:none; }
+@media (min-width: 1101px) {
+  @container dash-tasks (max-width: 560px) {
+    html[data-theme] #tasks:is([data-dash-span="4"], [data-dash-span="5"], [data-dash-span="6"]) #taskList .task { grid-template-columns:auto minmax(0, 1fr); column-gap:12px; row-gap:10px; align-items:start; padding:14px 0; }
+    html[data-theme] #tasks:is([data-dash-span="4"], [data-dash-span="5"], [data-dash-span="6"]) #taskList .task-title { white-space:normal; line-height:1.45; }
+    html[data-theme] #tasks:is([data-dash-span="4"], [data-dash-span="5"], [data-dash-span="6"]) #taskList .task-reason { display:block; margin:2px 0 0; white-space:normal; }
+    html[data-theme] #tasks:is([data-dash-span="4"], [data-dash-span="5"], [data-dash-span="6"]) #taskList .task-actions { grid-column:2; justify-content:flex-start; flex-wrap:nowrap; }
+    html[data-theme] #tasks:is([data-dash-span="4"], [data-dash-span="5"], [data-dash-span="6"]) > .section-head .section-meta { display:none; }
+  }
 }
 
 /* 调整布局（点「布局」进入）：顶上提示条，每个模块虚线框、左上角名字标签、右边和下边的把手，收起的模块放在最下面一条里。 */

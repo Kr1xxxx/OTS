@@ -23,10 +23,11 @@ const orders = [
     }, selector);
     const accent = () => page.evaluate(() => {
       const probe = document.createElement('i');
-      probe.style.cssText = 'color:var(--accent); border:1px solid var(--accent)';
+      // 字压在强调色淡底上用 --accent-ink（亮色下比 --accent 深一点，暗色下就是 --accent）。
+      probe.style.cssText = 'color:var(--accent-ink); border:1px solid var(--accent)';
       document.body.appendChild(probe);
       const style = getComputedStyle(probe);
-      const value = { color:style.color, border:style.borderTopColor };
+      const value = { ink:style.color, border:style.borderTopColor };
       probe.remove();
       return value;
     });
@@ -61,7 +62,7 @@ const orders = [
     assert.ok(narrow.left >= 0 && narrow.right <= narrow.vw, `the widened menu stays inside the window: ${JSON.stringify(narrow)}`);
     assert.equal(narrow.icon, true, 'the selected option carries a check icon');
     assert.equal(narrow.checks, 1, 'only the selected option has a check');
-    assert.equal(narrow.selectedColor, (await accent()).color, 'the selected option is written in the accent colour');
+    assert.equal(narrow.selectedColor, (await accent()).ink, 'the selected option is written in the accent ink colour');
     const selectMenu = await frame('.app-select-popover:not([hidden])');
     assert.deepEqual({ radius:selectMenu.radius, border:selectMenu.border, shadow:selectMenu.shadow, background:selectMenu.background }, cardMenu, 'the select menu and the card menu share one frame');
     await page.keyboard.press('Escape');

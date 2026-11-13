@@ -12,7 +12,7 @@
 :root {
   --acc-l:#7747ff; --acc-d:#a78bff; --accent:var(--acc-l); --on-accent:#fff;
   --accent-tint:color-mix(in oklab, var(--accent) 13%, transparent);
-  --s-blue:oklch(52% .15 250); --s-amber:oklch(58% .18 75); --s-teal:oklch(52% .1 190);
+  --s-blue:oklch(52% .15 250); --s-amber:oklch(51% .15 70); --s-teal:oklch(46% .09 190);
   --s-green:oklch(49% .19 150); --s-red:oklch(54% .21 25); --s-gray:oklch(52% 0 0); --s-orange:oklch(60% .17 50);
   --s-tint:13%;
   --blue-50:var(--accent-tint); --blue-100:color-mix(in oklab, var(--accent) 22%, transparent);
@@ -22,7 +22,7 @@
   --purple-50:var(--accent-tint); --purple-500:var(--accent);
   --cyan-50:color-mix(in oklab, var(--s-teal) var(--s-tint), transparent); --cyan-600:var(--s-teal);
   --red-50:color-mix(in oklab, var(--s-red) var(--s-tint), transparent); --red-600:var(--s-red);
-  --gray-50:oklch(98.6% 0 0); --gray-100:oklch(96.8% 0 0); --gray-200:oklch(93% 0 0); --gray-300:oklch(88% 0 0); --gray-400:oklch(70% 0 0);
+  --gray-50:oklch(98.6% 0 0); --gray-100:oklch(96.8% 0 0); --gray-200:oklch(93% 0 0); --gray-300:oklch(88% 0 0); --gray-400:oklch(60% .01 285);
   --gray-500:oklch(59% 0 0); --gray-600:oklch(46% 0 0); --gray-700:oklch(34% 0 0); --gray-800:oklch(22% 0 0); --gray-900:oklch(15% 0 0);
   --white:oklch(100% 0 0); --page-bg:oklch(98.6% 0 0); --surface-bg:oklch(100% 0 0); --surface-raised:oklch(100% 0 0); --surface-soft:oklch(96.8% 0 0);
   --surface-border:oklch(93% 0 0); --surface-border-strong:oklch(88% 0 0); --hairline:oklch(95.5% 0 0);
@@ -61,8 +61,8 @@ html[data-theme="dark"] {
   --s-blue:oklch(75% .12 250); --s-amber:oklch(83% .17 80); --s-teal:oklch(78% .1 190);
   --s-green:oklch(78% .18 150); --s-red:oklch(76% .2 25); --s-gray:oklch(70% 0 0); --s-orange:oklch(80% .15 55);
   --s-tint:18%;
-  --gray-300:oklch(36% 0 0); --gray-400:oklch(55% 0 0);
-  --gray-500:oklch(64% 0 0); --gray-600:oklch(77% 0 0); --gray-700:oklch(86% 0 0); --gray-800:oklch(92% 0 0); --gray-900:oklch(96% 0 0);
+  --gray-300:oklch(36% 0 0); --gray-400:oklch(63% 0 0);
+  --gray-500:oklch(69% 0 0); --gray-600:oklch(77% 0 0); --gray-700:oklch(86% 0 0); --gray-800:oklch(92% 0 0); --gray-900:oklch(96% 0 0);
   --surface-border-strong:oklch(36% 0 0);
   --semantic-primary:oklch(93% 0 0); --semantic-primary-dark:oklch(85% 0 0); --primary-ink:oklch(19% 0 0);
   --floating-shadow:0 22px 55px oklch(0% 0 0 / .34);
@@ -2699,7 +2699,7 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
 /* 当前选中的那项：强调色浅底 + 强调色字 + 对勾，和分段控件的选中块一致。 */
 .app-select-option.selected {
   background: var(--accent-tint);
-  color: var(--accent);
+  color: var(--accent-ink);
   font-weight: 600;
 }
 .app-select-option:focus-visible {
@@ -2711,7 +2711,7 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
 .app-select-group { padding: 8px 9px 5px; color: var(--gray-500); font-size: 11px; font-weight: 600; }
 .app-select-group:not(:first-child) { margin-top: 5px; border-top: 1px solid var(--gray-200); }
 .app-select-option-label { min-width: 0; overflow-wrap: anywhere; }
-.app-select-option-check { display: grid; place-items: center; color: var(--accent); }
+.app-select-option-check { display: grid; place-items: center; color: var(--accent-ink); }
 .app-select-option-check .ui-icon { width: 14px; height: 14px; stroke-width: 2; }
 @media (max-width: 760px) {
   .app-select-popover, .suggest-menu { max-height: min(280px, calc(100vh - 20px)); }
@@ -3344,7 +3344,7 @@ html[data-theme] .detail-hero { border:1px solid var(--surface-border); box-shad
 html[data-theme] :is(.binary-option.active, .side-chart-tab.active, .chip.active, .client-letter-btn.active) { background:var(--surface-bg); color:var(--gray-900); border-color:transparent; box-shadow:0 1px 2px oklch(0% 0 0 / .08), 0 0 0 .5px oklch(0% 0 0 / .04); }
 html[data-theme="dark"] :is(.binary-option.active, .side-chart-tab.active, .chip.active, .client-letter-btn.active, .segment-option.active) { background:var(--surface-raised); }
 /* 客户菜单本身是白底，上面那种「白底浮起」的选中块在里面看不出来：字母筛选的选中项改用强调色浅底。 */
-html[data-theme] .client-letter-btn.active { background:var(--accent-tint); color:var(--accent); border-color:transparent; box-shadow:none; }
+html[data-theme] .client-letter-btn.active { background:var(--accent-tint); color:var(--accent-ink); border-color:transparent; box-shadow:none; }
 html[data-theme] :is(.binary-segment, .side-chart-tabs) { background:var(--gray-100); border:0; box-shadow:none; }
 html[data-theme] :is(.side-bar-fill, .analysis-trend-track span, .analysis-event-fill, .business-product-fill, .legend-dot, .tracking-event-dot, .roadmap-event:first-of-type .roadmap-dot, .history-item:first-child .history-dot) { background:var(--accent); }
 html[data-theme] .contact-method-check input:checked { background:var(--accent); border-color:var(--accent); }
@@ -3430,7 +3430,7 @@ html[data-theme] .board-card-meta .tag { font-size:11px; padding:2px 7px; flex:n
 html[data-theme] .board-card-amount { margin-left:auto; }
 html[data-theme] :is(.order-detail-order-hero, .order-detail-customer-hero) { background:var(--surface-bg); border:1px solid var(--surface-border); box-shadow:none; }
 html[data-theme] .client-autofill-summary { background:var(--surface-soft); border-color:var(--surface-border); }
-html[data-theme] .customer-multi-add { background:var(--accent-tint); color:var(--accent); border-color:transparent; border-radius:999px; font-weight:500; }
+html[data-theme] .customer-multi-add { background:var(--accent-tint); color:var(--accent-ink); border-color:transparent; border-radius:999px; font-weight:500; }
 html[data-theme] .customer-multi-add:hover { background:color-mix(in oklab, var(--accent) 20%, transparent); }
 /* 带「＋电话」按钮的标签行和普通标签一样高（按钮上下各探出几像素），同一行左右两个字段的输入框才对得齐；
    旁边的字段多加了几行时，这一格不跟着被拉高。 */
@@ -3535,8 +3535,8 @@ html[data-theme] .btn-primary, html[data-theme] #topNewCustomerBtn.btn-primary {
 html[data-theme] .btn-primary:hover { border-color:transparent; }
 html[data-theme] #topNewCustomerBtn { background:var(--surface-bg); color:var(--gray-900); border-color:var(--surface-border); box-shadow:none; }
 html[data-theme] #topNewCustomerBtn:hover { box-shadow:var(--shadow-hover); }
-html[data-theme] .btn-danger { background:var(--red-50); color:var(--s-red); border-color:transparent; }
-html[data-theme] .btn-danger:hover { background:color-mix(in oklab, var(--s-red) 20%, transparent); color:var(--s-red); border-color:transparent; }
+html[data-theme] .btn-danger { background:var(--red-50); color:var(--danger-ink); border-color:transparent; }
+html[data-theme] .btn-danger:hover { background:color-mix(in oklab, var(--s-red) 20%, transparent); color:var(--danger-ink); border-color:transparent; }
 html[data-theme] .btn-ghost { background:transparent; border-color:transparent; }
 html[data-theme] .btn-ghost:hover { background:var(--gray-100); box-shadow:none; }
 html[data-theme] .btn-icon { width:36px; padding:0; }
@@ -3895,7 +3895,7 @@ html[data-theme] .num-tick { animation:uiTick .58s var(--ease-spring); }
 @keyframes uiTick { from { opacity:.2; transform:translateY(.35em); filter:blur(2px); } }
 
 /* 等级标：原型里的字母方标，替换旧的表情圆点 */
-html[data-theme] .level-icon { width:16px; height:16px; display:inline-grid; place-items:center; border-radius:5px; background:var(--accent-tint); color:var(--accent); font-size:10px; font-weight:700; line-height:1; filter:none; font-family:var(--font-sans, inherit); }
+html[data-theme] .level-icon { width:16px; height:16px; display:inline-grid; place-items:center; border-radius:5px; background:var(--accent-tint); color:var(--accent-ink); font-size:10px; font-weight:700; line-height:1; filter:none; font-family:var(--font-sans, inherit); }
 html[data-theme] .level-icon::before { content:attr(data-level-letter); width:auto; height:auto; background:none; border:0; border-radius:0; box-shadow:none; font-size:inherit; line-height:1; transform:none; }
 html[data-theme] .level-tag .level-icon { width:14px; height:14px; font-size:9px; margin-right:2px; }
 
@@ -3964,7 +3964,7 @@ html[data-theme] .customer-row .muted { font-size:12px; color:var(--gray-500); }
 html[data-theme] .customer-cell-stack { gap:3px; }
 html[data-theme] .customer-cell-stack > strong { font-size:14px; font-weight:500; color:var(--gray-900); }
 html[data-theme] .customer-tag-stack { display:flex; gap:6px; flex-wrap:nowrap; overflow:hidden; }
-html[data-theme] .customer-level-pill { flex:none; padding:1px 8px; border-radius:999px; background:var(--accent-tint); color:var(--accent); font-size:11.5px; font-weight:500; }
+html[data-theme] .customer-level-pill { flex:none; padding:1px 8px; border-radius:999px; background:var(--accent-tint); color:var(--accent-ink); font-size:11.5px; font-weight:500; }
 html[data-theme] .customer-tag-stack .level-tag { flex:none; padding:1px 8px; border:1px solid var(--surface-border); border-radius:999px; background:transparent; color:var(--gray-700); font-size:11.5px; white-space:nowrap; }
 html[data-theme] .customer-cell-money { text-align:right; justify-items:end; }
 html[data-theme] .customer-cell-money > strong { font-size:15px; }
@@ -4048,6 +4048,10 @@ html[data-theme] .board-settings-btn .ui-icon { width:16px; height:16px; }
 
 /* 列 */
 html[data-theme] .board-column { border-radius:22px; padding:10px; gap:8px; }
+/* 大窗口下看板跟着窗口长高：默认窗口（视口高 1082）仍是 560，再高的窗口一列能露出更多卡片，封顶 920。820 px 以下有自己的高度，不管。 */
+@media (min-width: 821px) {
+  html[data-theme] :is(.board-column, .trash-column) { height:clamp(560px, calc(100vh - 522px), 920px); }
+}
 html[data-theme] .board-column-head { flex-wrap:wrap; align-items:center; }
 html[data-theme] .board-column-title { font-size:13px; }
 html[data-theme] .board-column-title::before { width:8px; height:8px; }
@@ -4209,7 +4213,7 @@ html[data-theme] .order-detail-panel { display:flex; flex-direction:column; anim
 html[data-theme] .order-detail-panel[hidden] { display:none; }
 html[data-theme] .order-detail-body .detail-section { padding:18px 0; border:0; border-top:1px solid var(--hairline, var(--surface-border)); border-radius:0; background:transparent; box-shadow:none; }
 html[data-theme] .order-detail-body .detail-section:first-child { border-top:0; }
-html[data-theme] .order-detail-body .detail-section-title { font-size:14px; font-weight:600; color:var(--gray-900); margin-bottom:12px; }
+html[data-theme] :is(.order-detail-body, .tracking-detail-body) .detail-section-title { font-size:14px; font-weight:600; color:var(--gray-900); margin-bottom:12px; }
 html[data-theme] .order-detail-body .detail-section-title-row { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:12px; }
 html[data-theme] .order-detail-body .detail-section-title-row .detail-section-title { margin:0; }
 html[data-theme] .order-detail-body .link-btn { border:0; background:none; padding:0; color:var(--accent); font:inherit; font-size:13px; cursor:pointer; }
@@ -4453,7 +4457,10 @@ html[data-theme] .ship-check.bad { color:var(--s-red); }
 html[data-theme] :is(.logistics-card.ship-row, .price-history-row.recent-tracking-row):focus-visible { outline:2px solid var(--accent); outline-offset:-2px; border-radius:14px; }
 html[data-theme] :is(.logistics-more, .recent-tracking-more) { align-self:center; margin:10px 0 2px; padding:6px 12px; font-size:12.5px; }
 html[data-theme] .tracking-detail-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
-html[data-theme] .tracking-detail-order { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:6px 0; color:var(--gray-700); font-size:13px; }
+html[data-theme] .tracking-detail-order { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-radius:14px; background:var(--surface-soft); color:var(--gray-700); font-size:13px; }
+/* 物流进度抽屉的分块和订单抽屉一样：分块不画框、细线隔开，里面的小块灰底无边框。顶上那张卡（.detail-hero）不是分块，保持原样。 */
+html[data-theme] .tracking-detail-body > .detail-section { padding:18px 2px 4px; border:0; border-top:1px solid var(--hairline); border-radius:0; background:transparent; box-shadow:none; }
+html[data-theme] .tracking-detail-body :is(.detail-item, .tracking-event) { border-color:transparent; border-radius:14px; background:var(--surface-soft); }
 html[data-theme] .logistics-result .paste-result-actions { display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end; }
 html[data-theme] .logistics-result .paste-result-meta.is-bad { color:var(--s-red); }
 html[data-theme] .logistics-result .paste-result-card.is-skipped { opacity:.75; }
@@ -4771,7 +4778,7 @@ html[data-theme] .mn-i { width:22px; height:22px; flex:none; border-radius:50%; 
 html[data-theme] .mn-i > * { grid-area:1 / 1; transition:transform var(--motion-spring) var(--ease-spring), opacity var(--motion-fast); }
 html[data-theme] .mn-i .ui-icon { width:12px; height:12px; opacity:0; transform:scale(.4); stroke-width:2.6; }
 html[data-theme] .mnav button.on .mn-i { background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
-html[data-theme] .mnav button.done .mn-i { background:var(--accent-tint); border-color:transparent; color:var(--accent); }
+html[data-theme] .mnav button.done .mn-i { background:var(--accent-tint); border-color:transparent; color:var(--accent-ink); }
 html[data-theme] .mnav button.done.on .mn-i { background:var(--accent); color:var(--on-accent); }
 html[data-theme] .mnav button.done .mn-i b { opacity:0; transform:scale(.4); }
 html[data-theme] .mnav button.done .mn-i .ui-icon { opacity:1; transform:none; }
@@ -4791,7 +4798,7 @@ html[data-theme] .customer-modal-state { order:3; font-size:12px; color:var(--gr
 html[data-theme] .customer-modal-state:empty { display:none; }
 html[data-theme] .customer-modal-tags { display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding-top:3px; }
 html[data-theme] .customer-modal-tags .level-tag { min-height:24px; padding:0 10px; border:1px solid var(--surface-border); background:var(--surface-bg); color:var(--gray-700); font-size:12px; }
-html[data-theme] .customer-modal-tags .level-tag:has(.level-icon) { padding-left:5px; border-color:transparent; background:var(--accent-tint); color:var(--accent); }
+html[data-theme] .customer-modal-tags .level-tag:has(.level-icon) { padding-left:5px; border-color:transparent; background:var(--accent-tint); color:var(--accent-ink); }
 html[data-theme] .customer-modal-tags .level-tag .level-icon { border-radius:50%; background:var(--accent); color:var(--on-accent, #fff); }
 html[data-theme] .customer-modal-tags .level-tag.is-paid { border-color:transparent; background:color-mix(in oklab, var(--s-green) var(--s-tint), transparent); color:var(--s-green); }
 html[data-theme] .customer-view-mode #customerDetailView { flex:1 0 auto; display:grid; grid-template-columns:320px minmax(0, 1fr); gap:16px; align-items:stretch; }
@@ -4848,7 +4855,7 @@ html[data-theme] .customer-detail-tabs-card { flex:1 1 0; min-width:0; min-heigh
 html[data-theme] .customer-detail-tabs-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; column-gap:16px; padding:0 20px; border-bottom:1px solid var(--hairline); }
 html[data-theme] .customer-detail-tabs { margin-top:0; gap:22px; min-width:0; }
 html[data-theme] .customer-detail-tabs button { padding:12px 0; display:inline-flex; align-items:center; gap:6px; }
-html[data-theme] .customer-detail-tab-count { min-width:18px; padding:0 5px; border-radius:999px; background:var(--accent-tint); color:var(--accent); font-size:11px; font-weight:600; line-height:18px; text-align:center; font-variant-numeric:tabular-nums; }
+html[data-theme] .customer-detail-tab-count { min-width:18px; padding:0 5px; border-radius:999px; background:var(--accent-tint); color:var(--accent-ink); font-size:11px; font-weight:600; line-height:18px; text-align:center; font-variant-numeric:tabular-nums; }
 html[data-theme] .customer-detail-tab-count:empty { display:none; }
 html[data-theme] .customer-detail-section-meta { color:var(--gray-500); font-size:12px; font-variant-numeric:tabular-nums; white-space:nowrap; }
 /* 标签页卡片占满右栏剩下的高度，内容多了在卡片里滚（档案栏和数字卡不跟着跑）。最小高度按订单笔数算（每行 57px，2–7 行），
@@ -4984,7 +4991,7 @@ html[data-theme] .target-history-row.head { min-height:38px; color:var(--gray-50
 html[data-theme] .target-history-row.selected { background:color-mix(in srgb, var(--accent) 4%, transparent); }
 html[data-theme] .target-history-row > :nth-child(2), html[data-theme] .target-history-row .target-history-values > span, html[data-theme] .target-history-row > :last-child { text-align:right; }
 html[data-theme] .target-history-month { display:flex; align-items:center; gap:8px; font-size:14px; font-weight:400; font-variant-numeric:tabular-nums; }
-html[data-theme] .target-history-now { padding:1px 8px; border-radius:999px; background:var(--accent-tint); color:var(--accent); font-size:11px; font-style:normal; }
+html[data-theme] .target-history-now { padding:1px 8px; border-radius:999px; background:var(--accent-tint); color:var(--accent-ink); font-size:11px; font-style:normal; }
 html[data-theme] .target-history-amount { color:var(--gray-900); font-size:14px; font-weight:400; overflow:visible; }
 html[data-theme] .target-history-values { display:grid; grid-template-columns:1fr 1fr; gap:16px; color:var(--gray-900); font-size:14px; font-weight:400; font-variant-numeric:tabular-nums; }
 html[data-theme] .target-history-row.head .target-history-values { color:var(--gray-500); font-size:12px; }
@@ -5013,8 +5020,12 @@ html[data-theme] .target-history-rate, html[data-theme] .target-history-rate.emp
 html[data-theme]:not([data-theme="dark"]) {
   --page-bg:oklch(96.2% .008 285); --surface-soft:oklch(93.6% .012 285); --gray-100:oklch(93.6% .012 285);
   --hairline:oklch(91.5% .01 285); --surface-border:oklch(90% .012 285); --gray-200:oklch(90% .012 285);
-  --gray-600:oklch(42% .02 285); --gray-500:oklch(56% .02 285);
+  --gray-600:oklch(42% .02 285); --gray-500:oklch(49% .02 285);
   --accent-tint:color-mix(in oklab, var(--acc-l) 15%, transparent);
+  /* 压在强调色淡底（--accent-tint）上的字：比强调色深一点，淡底上才到 4.5:1。 */
+  --accent-ink:color-mix(in oklab, var(--acc-l) 82%, #000);
+  /* 红色淡底按钮（删除）上的字，同理深一点。 */
+  --danger-ink:color-mix(in oklab, var(--s-red) 85%, #000);
   --shadow:0 1px 0 oklch(100% 0 0) inset, 0 1px 2px oklch(30% .05 285 / .06), 0 4px 14px oklch(30% .05 285 / .05);
   --shadow-hover:0 1px 0 oklch(100% 0 0) inset, 0 10px 28px oklch(30% .06 285 / .12), 0 2px 6px oklch(30% .05 285 / .06);
   --ui-primary:var(--acc-l); --ui-primary-ink:#fff; --ui-primary-hover:color-mix(in oklab, var(--acc-l) 85%, black);
@@ -5023,6 +5034,10 @@ html[data-theme]:not([data-theme="dark"]) {
 }
 html[data-theme] { --acc-2:color-mix(in oklab, var(--acc-l) 70%, #ff5fa2); --topbar-bg:color-mix(in oklab, var(--page-bg) 55%, transparent); }
 html[data-theme][data-accent="ink"] { --acc-2:var(--acc-l); }
+/* 青、橙、玫红本身更亮，82% 在灰底的淡底上不到 4.5:1，要再深一些；墨色本来就够深。暗色下这些地方本来就达标，不变。 */
+html[data-theme]:not([data-theme="dark"]):is([data-accent="teal"], [data-accent="orange"], [data-accent="rose"]) { --accent-ink:color-mix(in oklab, var(--acc-l) 76%, #000); }
+html[data-theme]:not([data-theme="dark"])[data-accent="ink"] { --accent-ink:var(--acc-l); }
+html[data-theme="dark"] { --accent-ink:var(--accent); --danger-ink:var(--s-red); }
 /* 主区：顶部淡淡的强调色光晕 + 细颗粒 */
 html[data-theme] .main { position:relative; isolation:isolate; min-height:100vh;
   background:
@@ -5100,7 +5115,7 @@ html[data-theme] .field .binary-segment:not(.binary-chips) .binary-option {
 }
 html[data-theme] .field .binary-segment:not(.binary-chips) .binary-option:hover:not(.active) { color:var(--gray-900); background:var(--surface-soft); }
 html[data-theme] .field .binary-segment .binary-option.active {
-  color:var(--accent); background:var(--accent-tint); font-weight:600; box-shadow:none;
+  color:var(--accent-ink); background:var(--accent-tint); font-weight:600; box-shadow:none;
 }
 html[data-theme] .field .binary-segment:hover:not(.binary-chips) { border-color:var(--surface-border-strong); }
 html[data-theme] .field .binary-option:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
@@ -5161,7 +5176,7 @@ html[data-theme] .order-rail .paste-assist-actions .btn { height:36px; min-heigh
 html[data-theme] .order-rail #pasteAssistClearBtn { margin-right:auto; padding:0 8px; border-color:transparent; background:transparent; color:var(--gray-600); box-shadow:none; }
 html[data-theme] .order-rail #pasteAssistClearBtn:hover { color:var(--gray-900); background:var(--gray-100); }
 /* 「识别」是这一栏里的主操作，但整张弹窗只有「保存订单」是实心主按钮：这里用强调色淡底。 */
-html[data-theme] .order-rail :is(#pasteAssistAnalyzeBtn, .paste-results .btn-primary) { padding:0 16px; border:1px solid color-mix(in oklab, var(--accent) 55%, transparent); background:var(--accent-tint); color:var(--accent); font-weight:600; box-shadow:none; }
+html[data-theme] .order-rail :is(#pasteAssistAnalyzeBtn, .paste-results .btn-primary) { padding:0 16px; border:1px solid color-mix(in oklab, var(--accent) 55%, transparent); background:var(--accent-tint); color:var(--accent-ink); font-weight:600; box-shadow:none; }
 html[data-theme] .order-rail :is(#pasteAssistAnalyzeBtn, .paste-results .btn-primary):hover { background:color-mix(in oklab, var(--accent) 22%, transparent); }
 html[data-theme] .order-rail .paste-result-top { align-items:flex-start; }
 html[data-theme] .order-rail .paste-result-top > .tag { flex:none; white-space:nowrap; }
@@ -5221,7 +5236,7 @@ html[data-theme] .order-preview-client { display:flex; flex-direction:column; al
 html[data-theme] .order-preview-client strong { max-width:100%; color:var(--gray-900); font-family:var(--display); font-size:16px; font-weight:600; line-height:24px; letter-spacing:-.01em; overflow-wrap:anywhere; }
 html[data-theme] .order-preview-client.is-empty strong { color:var(--gray-500); font-weight:500; }
 html[data-theme] .order-preview-client > span:not(.level-tag) { max-width:100%; color:var(--gray-600); font-size:12px; line-height:18px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-html[data-theme] .order-preview-client .level-tag { margin-top:2px; padding:1px 8px; border-radius:999px; background:var(--accent-tint); color:var(--accent); font-size:12px; font-weight:500; line-height:18px; }
+html[data-theme] .order-preview-client .level-tag { margin-top:2px; padding:1px 8px; border-radius:999px; background:var(--accent-tint); color:var(--accent-ink); font-size:12px; font-weight:500; line-height:18px; }
 html[data-theme] .order-preview-amount { display:flex; flex-direction:column; gap:6px; }
 html[data-theme] .order-preview-label { color:var(--gray-500); font-size:12px; font-weight:600; line-height:18px; }
 html[data-theme] .order-preview-amount > strong { color:var(--gray-900); font-family:var(--display); font-size:24px; font-weight:600; line-height:30px; letter-spacing:-.03em; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
@@ -6548,7 +6563,7 @@ html[data-theme] .order-preview .order-notification-option small { color:var(--g
       </div>
       <button class="btn btn-small" id="trackingDetailCloseBtn" type="button">关闭</button>
     </div>
-    <div class="modal-body detail-body" id="trackingDetailBody"></div>
+    <div class="modal-body detail-body tracking-detail-body" id="trackingDetailBody"></div>
   </aside>
 </div>
 

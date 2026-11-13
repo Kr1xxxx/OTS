@@ -228,7 +228,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         window.titlebarAppearsTransparent = true
         window.backgroundColor = .clear
         window.isMovableByWindowBackground = true
-        window.minSize = NSSize(width: 1100, height: 720)
+        // 1104 而不是 1100：页面里工作台网格、「布局」按钮等的分界是 min-width:1101px，界面大小 100% 时窗口缩到最小
+        // 正好 1100 px 宽，存好的布局就不生效、「布局」按钮也没了。留几个点的余量，不去改页面里十几处 1100 / 1101 的分界。
+        window.minSize = NSSize(width: 1104, height: 720)
         window.center()
         window.delegate = self
 

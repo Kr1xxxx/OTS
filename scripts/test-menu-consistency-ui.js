@@ -68,14 +68,11 @@ const orders = [
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => !document.querySelector('.app-select-popover:not([hidden])'));
 
-    // ---- 最长的一项真实宽度带小数（比如 184.39）时也不折行，不管今天几号 ----
+    // ---- 最长的一项真实宽度带小数（比如 184.39）时也不折行，不管今天几号、机器上是什么字体 ----
     // 菜单宽度以前取 offsetWidth（四舍五入的整数），小数部分不到 0.5 的那一项就差一点、折成两行：
-    // 2026 年 12 月起「2026年12月 · 本月」就是这样。这里把月份下拉选中的那项换成下面这些字，逐个打开量，
-    // 小数部分是多少取决于字体，换十几串总有往下舍的。
-    const longLabels = [];
-    for (const year of [2026, 2027]) for (const month of [10, 11, 12]) for (const suffix of ['本月', '上月']) longLabels.push(`${year}年${month}月 · ${suffix}`);
-    let roundedDown = 0;
-    for (const label of longLabels) {
+    // 2026 年 12 月起「2026年12月 · 本月」就是这样。小数部分是多少取决于字体，所以这里不碰运气：
+    // 先量出这一项撑开的真实宽度，再给选项的字补一点右边距，把小数部分凑成 0.3（一定往下舍），然后打开菜单查。
+    const openMonthMenu = async label => {
       await page.evaluate(label => {
         const select = document.getElementById('totalRange');
         // 选中的那项带对勾，是菜单里最宽的一项：换它的字。
@@ -83,11 +80,13 @@ const orders = [
       }, label);
       await h.click(page, statButton, `dashboard month select (${label})`);
       await page.waitForSelector('.app-select-popover:not([hidden])');
-      const result = await page.evaluate(label => {
+      return page.evaluate(label => {
         const popover = document.querySelector('.app-select-popover:not([hidden])');
-        const option = [...popover.querySelectorAll('.app-select-option')].find(item => item.textContent.trim() === label);
-        const text = option?.querySelector('.app-select-option-label');
-        const folded = text ? text.getBoundingClientRect().height > parseFloat(getComputedStyle(text).lineHeight) * 1.5 : null;
+        const options = [...popover.querySelectorAll('.app-select-option')];
+        // 哪一项最宽取决于字体（数字不等宽时「10月」比「11月」宽），所以每一项都查。
+        const folded = options.some(item => item.textContent.trim() === label)
+          ? options.map(item => item.querySelector('.app-select-option-label')).some(text => text.getBoundingClientRect().height > parseFloat(getComputedStyle(text).lineHeight) * 1.5)
+          : null;
         // 菜单不受约束时的真实宽度（工作台上没有缩放，getBoundingClientRect 就是布局宽度）。
         const width = popover.style.width;
         popover.style.width = 'max-content';
@@ -95,13 +94,30 @@ const orders = [
         popover.style.width = width;
         return { folded, natural };
       }, label);
-      assert.equal(result.folded, false, `「${label}」 stays on one line (natural menu width ${result.natural})`);
-      const fraction = result.natural - Math.floor(result.natural);
-      if (fraction > 0.001 && fraction < 0.5) roundedDown += 1;
+    };
+    const closeMonthMenu = async () => {
       await page.keyboard.press('Escape');
       await page.waitForFunction(() => !document.querySelector('.app-select-popover:not([hidden])'));
+    };
+    for (const label of ['2026年12月 · 本月', '2027年10月 · 上月']) {
+      const plain = await openMonthMenu(label);
+      assert.equal(plain.folded, false, `no option folds with 「${label}」 in the menu (natural menu width ${plain.natural})`);
+      await closeMonthMenu();
+      // 补到小数部分 0.3：现有小数是 f，就加 (1.3 - f) 像素。
+      const pad = 1.3 - (plain.natural - Math.floor(plain.natural));
+      await page.evaluate(pad => {
+        const style = document.createElement('style');
+        style.id = 'test-fraction-pad';
+        style.textContent = `.app-select-popover .app-select-option-label{padding-right:${pad}px !important}`;
+        document.head.append(style);
+      }, pad);
+      const padded = await openMonthMenu(label);
+      const fraction = padded.natural - Math.floor(padded.natural);
+      assert.ok(fraction > 0.1 && fraction < 0.45, `the padded menu width rounds down, so this covers the case (${padded.natural})`);
+      assert.equal(padded.folded, false, `no option folds with 「${label}」 in the menu when its width rounds down (${padded.natural})`);
+      await closeMonthMenu();
+      await page.evaluate(() => document.getElementById('test-fraction-pad').remove());
     }
-    assert.ok(roundedDown > 0, `at least one label has a width that rounds down, so the check above covers the case (${longLabels.length} labels)`);
 
     // ---- 展开的下拉框、聚焦的输入框：强调色边框；输入框没有第二圈轮廓 ----
     await page.evaluate(() => openCustomerModal('', { viewOnly:false }));

@@ -6,13 +6,14 @@ const { html, extractFunction } = require('./helpers/page-source');
 
 const context = vm.createContext({});
 vm.runInContext(html.match(/const subscriptionRemindDays = [^;]+;/)[0].replace('const ', 'var '), context);
+vm.runInContext(html.match(/const subscriptionFuturePeriods = [^;]+;/)[0].replace('const ', 'var '), context);
 [
   'subscriptionLocalDate', 'subscriptionDayNumber', 'subscriptionDateFromDay', 'subscriptionAddMonths',
   'subscriptionCycle', 'subscriptionChargeDate', 'subscriptionCycleEvery', 'subscriptionCycleLabel', 'subscriptionChargeIndex', 'subscriptionSchedule', 'subscriptionSummary', 'subscriptionCompare', 'subscriptionWhen', 'subscriptionRemindWindow',
   'subscriptionInitial', 'subscriptionDayAfter', 'subscriptionPriceChanges', 'subscriptionPriceAt', 'subscriptionToCny', 'subscriptionStopBound', 'subscriptionCharges',
   'subscriptionMonthShift', 'subscriptionMonthEnd', 'subscriptionStopPreset', 'subscriptionWithPrice',
   'subscriptionPricer', 'subscriptionTerms', 'subscriptionFirstStart', 'subscriptionManualTracked', 'subscriptionTermTotals', 'subscriptionTermOffset',
-  'subscriptionDefaultRemindWindow', 'subscriptionWhenDate'
+  'subscriptionDefaultRemindWindow', 'subscriptionWhenDate', 'subscriptionPeriods'
 ].forEach(name => vm.runInContext(extractFunction(name), context));
 const call = (name, ...args) => context[name](...args);
 const item = overrides => ({
@@ -225,6 +226,23 @@ assert.deepEqual(Array.from(call('subscriptionCharges', domain, '2025-01-01', '2
 assert.deepEqual(Array.from(call('subscriptionCharges', domain, '2025-01-01', '2026-12-31', 7, { today:'2026-04-20', unpaid:true }), charge => charge.date), ['2025-04-10', '2026-04-10']);
 const renewed = call('subscriptionSchedule', { ...domain, renewedThrough:'2026-04-10' }, '2026-04-20', 7);
 assert.deepEqual([renewed.overdue, renewed.nextCharge, renewed.charges], [false, '2027-04-10', 2], '「已续费」 moves on to the next year');
+// 「已续费」 before the due date (renewed early): the next year is paid at once, not only from the due date on.
+const early = { ...domain, renewedThrough:'2026-04-10' };
+const earlyNow = call('subscriptionSchedule', early, '2026-04-05', 7);
+assert.deepEqual([earlyNow.overdue, earlyNow.nextCharge, earlyNow.daysLeft, earlyNow.charges, earlyNow.spent], [false, '2027-04-10', 370, 2, 120],
+  'renewed 5 days early: due a year and 5 days from now, and the renewed period is counted');
+['2026-04-10', '2026-04-11'].forEach(day => {
+  const later = call('subscriptionSchedule', early, day, 7);
+  assert.deepEqual([later.nextCharge, later.charges, later.overdue], ['2027-04-10', 2, false], `no extra charge counted on ${day}`);
+});
+assert.deepEqual(Array.from(call('subscriptionCharges', early, '2026-04-06', '2026-05-05', 7, { today:'2026-04-05' }), charge => charge.date), ['2026-04-10'],
+  'the renewed period is still one charge in its month');
+const earlyPeriods = call('subscriptionPeriods', early, '2026-04-05', earlyNow).periods.slice(0, 3);
+assert.deepEqual(JSON.parse(JSON.stringify(earlyPeriods.map(period => [period.date, period.past, period.current, period.due]))),
+  [['2025-04-10', true, true, false], ['2026-04-10', true, false, false], ['2027-04-10', false, false, false]],
+  'the renewed period shows as paid; 本期 still follows today');
+const earlyStopped = call('subscriptionSchedule', { ...early, status:'cancelled', endsOn:earlyNow.paidThrough }, '2026-04-05', 7);
+assert.equal(earlyStopped.paidThrough, '2027-04-10', 'stopping after an early renewal ends on the new date');
 const legacyManual = call('subscriptionSchedule', { ...domain, renewedThrough:'' }, '2026-04-20', 7);
 assert.equal(legacyManual.overdue, false, 'records without the date keep the old behaviour');
 

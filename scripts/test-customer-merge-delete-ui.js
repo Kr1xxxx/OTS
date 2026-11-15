@@ -1,7 +1,7 @@
 // 合并客户 / 删除客户：真实 mac-app/server.js（临时数据目录）+ 真实键盘鼠标。
 // - 合并不再把主档案名自动改大小写：「alice baker」合并时不会整份覆盖另一位「Alice Baker」；
 // - 合并、删除前强制生成一份操作前备份（不受一小时一次限制），确认框默认焦点在「取消」，6 秒内可撤销；
-// - 冲突字段写进备注；可以改为保留另一份；「不是同一人」以后不再提示；
+// - 冲突字段写进备注；可以改为保留另一份；「不是同一人」以后不再提示（保存档案不再问，改名、合并时跟着名字走）；
 // - 0 单客户合并后 WhatsApp 聊天跟过去，撤销后只搬回那次搬过去的聊天；物流「最近查询」跟着改名；
 // - 删除客户：有订单的不能直接删（可合并到其他客户），没订单的删除后各处都找不到，撤销后原样回来。
 const assert = require('node:assert/strict');
@@ -275,6 +275,58 @@ const freePort = () => new Promise((resolve, reject) => {
     await flush();
     assert.equal((await db()).customers['Typo Custmer'].note, '打错名字建的档案', '撤销后档案回来');
     await page.waitForSelector('.customer-row[data-view-customer="Typo Custmer"]');
+
+    await h.clearToasts(page);
+
+    // ---- 6. 「不是同一人」以后：保存档案不再问，改名、合并时记录跟着名字走，撤销合并时回来 ----
+    const sharedPhone = '+234 806 555 0303';
+    await page.evaluate(phone => {
+      ['Kemi Wigs', 'Kemi Beauty'].forEach(name => { state.customers[name] = { client:name, phones:[phone], phone }; });
+      saveState();
+      render();
+    }, sharedPhone);
+    await page.evaluate(() => ignoreCustomerDuplicate('Kemi Wigs', 'Kemi Beauty'));
+    const ignoreKeys = () => page.evaluate(() => state.customerDuplicateIgnores.filter(key => /Kemi|Tola/.test(key)).map(key => key.split('\u0000').join(' | ')).sort());
+    const pairShown = (a, b) => page.evaluate(([x, y]) => customerDuplicateCandidates().some(c => {
+      const names = [c.primary?.name, c.secondary?.name, c.duplicate?.name].filter(Boolean);
+      return names.includes(x) && names.includes(y);
+    }), [a, b]);
+    const saveProfile = async (name, patch) => {
+      await page.evaluate(([n, fields]) => {
+        openCustomerModal(n, { viewOnly:false });
+        const form = document.getElementById('customerForm');
+        Object.entries(fields).forEach(([key, value]) => { form.elements[key].value = value; });
+        saveCustomer(form);
+      }, [name, patch]);
+      return page.waitForFunction(() => document.getElementById('confirmModal').classList.contains('open') ? 'confirm'
+        : !document.getElementById('customerModal').classList.contains('open') ? 'saved' : false).then(handle => handle.jsonValue());
+    };
+    assert.deepEqual(await ignoreKeys(), ['Kemi Beauty | Kemi Wigs']);
+    assert.equal(await saveProfile('Kemi Wigs', { note:'made-up note' }), 'saved', '点过「不是同一人」：只改备注保存不再问');
+    assert.equal(await pairShown('Kemi Wigs', 'Kemi Beauty'), false);
+    assert.equal(await saveProfile('Kemi Beauty', { name:'Kemi Beauty Supply' }), 'saved', '改名保存也不再问这一对');
+    assert.deepEqual(await ignoreKeys(), ['Kemi Beauty Supply | Kemi Wigs'], '记录跟着改名');
+    assert.equal(await pairShown('Kemi Wigs', 'Kemi Beauty Supply'), false, '改名后提醒里没有这一对');
+    // 没点过「不是同一人」的照旧问。
+    await page.evaluate(phone => { state.customers['Tola Hair'] = { client:'Tola Hair', phones:[phone], phone }; saveState(); render(); }, sharedPhone);
+    assert.equal(await saveProfile('Tola Hair', { note:'another made-up note' }), 'confirm');
+    assert.equal((await confirmOpen()).title, '可能是同一位客户');
+    await click('#confirmCancelBtn');
+    await confirmClosed();
+    await page.evaluate(() => closeCustomerModal());
+    await page.waitForFunction(() => !document.getElementById('customerModal').classList.contains('open'));
+    // 合并：被并掉那位的记录换到保留的那位名下；撤销后回来。
+    await page.evaluate(() => { mergeDuplicateCustomers('Tola Hair', 'Kemi Beauty Supply'); });
+    await confirmOpen();
+    await click('#confirmOkBtn');
+    await holdToast('已合并到 Tola Hair');
+    assert.deepEqual(await ignoreKeys(), ['Kemi Wigs | Tola Hair'], '合并后记录换到保留的那位');
+    assert.equal(await pairShown('Kemi Wigs', 'Tola Hair'), false);
+    await h.clickUndo(page, '已合并到 Tola Hair');
+    await h.waitToast(page, '已撤销合并');
+    assert.deepEqual(await ignoreKeys(), ['Kemi Beauty Supply | Kemi Wigs'], '撤销合并后记录回到原来');
+    await flush();
+    assert.ok((await db()).customerDuplicateIgnores.includes(['Kemi Beauty Supply', 'Kemi Wigs'].join('\u0000')), '存进数据库');
 
     assert.deepEqual(dialogs, [], '没有原生弹窗');
     assert.deepEqual(errors, []);

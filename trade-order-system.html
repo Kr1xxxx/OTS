@@ -8379,6 +8379,57 @@ function ensureCustomerIds(data = state) {
     else if (Object.hasOwn(order, 'customerId')) delete order.customerId;
   }));
 }
+// 「编号 → 名字」：只算只出现一次的编号（和服务端 customerRenamesById 同一口径）。
+function customerNamesById(customers) {
+  const names = new Map();
+  const twice = new Set();
+  Object.entries(customers && typeof customers === 'object' ? customers : {}).forEach(([name, profile]) => {
+    const id = profile && typeof profile === 'object' ? profile.id : '';
+    if (!validCustomerId(id)) return;
+    if (names.has(id)) twice.add(id);
+    else names.set(id, name);
+  });
+  twice.forEach(id => names.delete(id));
+  return names;
+}
+// 从 from 到 to 之间的改名：同一个编号在 from 里叫 X、在 to 里叫 Y，而且 to 里已经没有 X 这份档案。
+function customerRenamesBetween(from, to) {
+  const before = customerNamesById(from);
+  const after = customerNamesById(to);
+  const renames = [];
+  before.forEach((oldName, id) => {
+    const newName = after.get(id);
+    if (newName && newName !== oldName && !Object.hasOwn(to || {}, oldName)) renames.push({ id, from:oldName, to:newName });
+  });
+  return renames;
+}
+// 把一次改名重放到一份数据上（档案的键和 client、三栏订单的客户名、复购完成记录、「不是同一人」记录），
+// 和页面里改名做的一样，但作用在传进来的数据上，返回改过的副本。X 不在、编号不同、或者已经有一份 Y 时不动。
+function replayCustomerRename(data, { id, from, to }) {
+  const customers = data?.customers && typeof data.customers === 'object' ? data.customers : {};
+  if (!Object.hasOwn(customers, from) || customers[from]?.id !== id || Object.hasOwn(customers, to)) return data;
+  const renamed = profile => ({ ...profile, client:to, ...(profile.name === from ? { name:to } : {}) });
+  const out = { ...data, customers:Object.fromEntries(Object.entries(customers).map(([name, profile]) => name === from ? [to, renamed(profile)] : [name, profile])) };
+  ['orders', 'trashOrders', 'deletedOrders'].forEach(bucket => {
+    if (Array.isArray(data[bucket])) out[bucket] = data[bucket].map(order => order?.client === from ? { ...order, client:to } : order);
+  });
+  if (data.doneTasks && typeof data.doneTasks === 'object') {
+    const prefix = `repurchase-${from}-`;
+    out.doneTasks = Object.fromEntries(Object.entries(data.doneTasks).map(([key, value]) => {
+      const date = key.startsWith(prefix) ? key.slice(prefix.length) : '';
+      return /^\d{4}-\d{2}-\d{2}$/.test(date) ? [`repurchase-${to}-${date}`, value] : [key, value];
+    }));
+  }
+  if (Array.isArray(data.customerDuplicateIgnores)) {
+    out.customerDuplicateIgnores = [...new Set(data.customerDuplicateIgnores.flatMap(key => {
+      const parts = key.split('\u0000');
+      if (!parts.includes(from)) return [key];
+      const [a, b] = parts.map(part => (part === from ? to : part));
+      return a === b ? [] : [customerDuplicateIgnoreKey(a, b)];
+    }))];
+  }
+  return out;
+}
 function queueCurrentMacState() {
   if (!isMacAppMode() || macStorageMode !== 'ready') return false;
   ensureCustomerIds();
@@ -8430,8 +8481,25 @@ function macMergeValue(base, mine, theirs, path, ctx) {
     });
     return out;
   }
+  const profileField = path.length === 3 && path[0] === 'customers' ? macMergeProfileField(path[2], base, mine, theirs) : undefined;
+  if (profileField !== undefined) return profileField;
   ctx.conflicts.push({ path, mine, theirs });
   return ctx.prefer === 'mine' ? mine : theirs;
+}
+// 两个窗口改了同一位客户的不同资料时，档案里每次保存都会动的几样不算冲突：
+// 变更记录两边各加了一条（合在一起，新的在前，和保存档案时一样最多留 20 条，本来更长的不截）、更新时间（取晚的那个）、
+// 原来没有这个字段、一边存成了空的（表单保存会把没填的字段写成空字符串）。返回 undefined = 照常算冲突。
+function macMergeProfileField(field, base, mine, theirs) {
+  if (field === 'history' && Array.isArray(mine) && Array.isArray(theirs)) {
+    const seen = new Set();
+    const all = [...mine, ...theirs].filter(entry => { const key = macStableJson(entry); if (seen.has(key)) return false; seen.add(key); return true; });
+    const time = entry => String(entry?.time || '');
+    return all.map((entry, index) => ({ entry, index })).sort((a, b) => time(b.entry).localeCompare(time(a.entry)) || a.index - b.index)
+      .slice(0, Math.max(mine.length, theirs.length, 20)).map(item => item.entry);
+  }
+  if (field === 'updated' && typeof mine === 'string' && typeof theirs === 'string') return mine > theirs ? mine : theirs;
+  if (base === undefined && (mine === '' || theirs === '')) return mine === '' ? theirs : mine;
+  return undefined;
 }
 // 合并后的先后顺序：以那边的顺序为主，本窗口新加的按它在本窗口里的位置插进去。
 function macMergeSequence(keep, mineIds, theirsIds) {
@@ -8479,6 +8547,18 @@ function macMergeOrderBuckets(base, mine, theirs, ctx) {
   return out;
 }
 function mergeMacStates(base = {}, mine = {}, theirs = {}, prefer = 'theirs') {
+  // 一边改了客户名，另一边还在按旧名字建单、改档案：先把这次改名在另一边（连同基准）重放一遍，
+  // 不然按名字合并会当成「旧名字删了、新名字加了」，旧名字下的新单变成没有档案的客户。
+  const theirRenames = customerRenamesBetween(base?.customers, theirs?.customers);
+  const myRenames = customerRenamesBetween(base?.customers, mine?.customers);
+  theirRenames.forEach(rename => {
+    const replayed = replayCustomerRename(mine, rename);
+    if (replayed !== mine) { mine = replayed; base = replayCustomerRename(base, rename); }
+  });
+  myRenames.forEach(rename => {
+    const replayed = replayCustomerRename(theirs, rename);
+    if (replayed !== theirs) { theirs = replayed; base = replayCustomerRename(base, rename); }
+  });
   const ctx = { conflicts:[], prefer };
   const special = new Set([...macOrderBuckets, 'trackingLookups']);
   const merged = {};
@@ -8528,6 +8608,10 @@ function macConflictLine(item) {
     if (rest[0] === 'bucket') return `订单 ${num} · 所在位置：那边「${macBucketName(item.theirs)}」/ 你的「${macBucketName(item.mine)}」`;
     label = `订单 ${num} · ${pasteOrderFieldLabel(rest[1]) || rest[1] || '内容'}`;
   } else if (root === 'customers') {
+    // 整份档案只有一边还在：说是谁删了，不把另一边的整段数据截一段显示出来。
+    if (!rest.length && (item.mine === undefined || item.theirs === undefined)) {
+      return `客户 ${id ?? ''}：${item.mine === undefined ? '本窗口删除了这位客户，那边改了资料' : '那边删除了这位客户，本窗口改了资料'}`;
+    }
     label = `客户 ${id ?? ''}${rest.length ? ` · ${customerPasteLabels[rest[0]] || rest[0]}` : ''}`;
   } else {
     label = macMergeSettingLabels[root] || root;
@@ -12506,9 +12590,14 @@ function findPartialPaymentInText(text, amount) {
   if (!normalized || !total) return {};
   const paymentWord = '(?:付款|付了|已付|支付|预付|首付|定金|收款|已收|到账|pay(?:ment|ing|ed)?|paid|prepay(?:ment|ing|ed)?|deposit|down payment|pagar|pagado|anticipo|payer|paye|payee|acompte|bezahlt|zahlung|anzahlung)';
   const halfWord = '(?:一半|半款|百分之五十|50\\s*%|half|mitad|moitie|halfte)';
-  const hasHalfPayment = new RegExp(`${paymentWord}[^\\n,，。；;]{0,14}${halfWord}|${halfWord}[^\\n,，。；;]{0,14}${paymentWord}`, 'i').test(normalized);
-  if (!hasHalfPayment) return {};
+  const halfPayment = new RegExp(`${paymentWord}[^\\n,，。；;]{0,14}${halfWord}|${halfWord}[^\\n,，。；;]{0,14}${paymentWord}`, 'i');
+  if (!halfPayment.test(normalized)) return {};
   const paidAmount = roundMoneyValue(total / 2);
+  // 「定金 50% 还没付」「will pay 50% deposit tomorrow」：是 50% 定金单，但钱还没收。
+  // 「paid 50% deposit, will pay the rest before shipping」不算：说一半的那半句自己写明了已付，「以后付」说的是尾款。
+  const saidPaid = /已付|已经付|付了|付过|已收|收到|到账|已转|\b(?:paid|received|transferred|bezahlt|pagado|pagato|paye)\b/;
+  const halfClearlyPaid = normalized.split(/[\n,，。；;!?！？]|\.(?=\s|$)/).some(part => halfPayment.test(part) && saidPaid.test(part) && !textSaysNotPaidYet(part));
+  if (!halfClearlyPaid && textSaysNotPaidYet(normalized)) return { orderType: '定金订单', depositAmount: paidAmount, depositPercent: 50 };
   return {
     orderType: '定金订单',
     paidAmount,
@@ -12829,10 +12918,15 @@ function findExplicitNoteInText(text, scope = 'any') {
 }
 // 聊天里明确说已经付清（paid via paypal / 已付款 / bezahlt），但没写付了多少：本地规则据此把全款单记成「已付」。
 // 只是打算付（will pay tomorrow / 明天付）、说了没付、或者付的是定金 / 一部分，都不算。
+// 「还没付 / 以后付」的说法（文字先经过 normalizeSearchText）。
+function textSaysNotPaidYet(lower = '') {
+  return /还没付|没有付|没付|未付|待付|等我付|明天付|下周付|晚点付|稍后付|\b(?:not|never)\s+(?:yet\s+)?paid\b|\bhaven'?t\s+(?:yet\s+)?paid\b|\bunpaid\b|\b(?:will|going\s+to|gonna|can|could|let\s+me|i'?ll)\s+pay\b|\bpay\s+(?:tomorrow|later|next|soon)\b|\bnoch\s+nicht\b/.test(lower);
+}
 function hasPaidSignalText(text = '') {
   const lower = normalizeSearchText(text);
   if (!lower) return false;
-  if (/还没付|没有付|没付|未付|待付|等我付|明天付|下周付|晚点付|稍后付|定金|首付|预付|一半|\b(?:not|never)\s+(?:yet\s+)?paid\b|\bhaven'?t\s+(?:yet\s+)?paid\b|\bunpaid\b|\b(?:will|going\s+to|gonna|can|could|let\s+me|i'?ll)\s+pay\b|\bpay\s+(?:tomorrow|later|next|soon)\b|\b(?:deposit|down\s+payment|partial|half|anzahlung|anticipo|acompte|acconto)\b|\bnoch\s+nicht\b/.test(lower)) return false;
+  // 定金、一半这类说的是部分付款，不算「已付全款」。
+  if (textSaysNotPaidYet(lower) || /定金|首付|预付|一半|\b(?:deposit|down\s+payment|partial|half|anzahlung|anticipo|acompte|acconto)\b/.test(lower)) return false;
   return /已付|已经付|付了|付过了|付款了|付清|已收款|收到款|已到账|到账了|已转账|\bpaid\b|\btransferred\b|\bsent\s+(?:the\s+|you\s+the\s+)?(?:payment|money)\b|\bbezahlt\b|\buberwiesen\b|\bpagado\b|\bpagato\b|\bpaye\b|\bverse\b/.test(lower);
 }
 // 识别前先把 300 个字符以上、中间没有空白的长串（带跟踪参数的链接、内嵌图片的 base64）换成一个空格：
@@ -20785,6 +20879,19 @@ function customerDuplicateRecord(name = '') {
 function customerDuplicateIgnoreKey(a = '', b = '') {
   return [String(a), String(b)].sort().join('\u0000');
 }
+// 改名 / 合并：「不是同一人」的记录跟着名字走。合并时两位之间的那一条没有意义了，去掉。
+function renameCustomerDuplicateIgnores(oldName = '', newName = '') {
+  const list = Array.isArray(state.customerDuplicateIgnores) ? state.customerDuplicateIgnores : null;
+  if (!list || !oldName || !newName || oldName === newName) return;
+  const next = [];
+  list.forEach(key => {
+    const parts = key.split('\u0000');
+    if (!parts.includes(oldName)) return next.push(key);
+    const [a, b] = parts.map(part => (part === oldName ? newName : part));
+    if (a !== b) next.push(customerDuplicateIgnoreKey(a, b));
+  });
+  state.customerDuplicateIgnores = [...new Set(next)];
+}
 function customerDuplicateIgnored(a = '', b = '') {
   const list = Array.isArray(state.customerDuplicateIgnores) ? state.customerDuplicateIgnores : [];
   return list.includes(customerDuplicateIgnoreKey(a, b));
@@ -20945,7 +21052,8 @@ function customerChangeSnapshot() {
   return {
     orderClients,
     lookupClients:new Map((state.trackingLookups || []).map(item => [item.id, item.client])),
-    doneTasks:{ ...(state.doneTasks || {}) }
+    doneTasks:{ ...(state.doneTasks || {}) },
+    ignores:Array.isArray(state.customerDuplicateIgnores) ? state.customerDuplicateIgnores.slice() : []
   };
 }
 function customerChangeDiff(before) {
@@ -20957,9 +21065,12 @@ function customerChangeDiff(before) {
   const lookups = (state.trackingLookups || []).filter(item => before.lookupClients.has(item.id) && before.lookupClients.get(item.id) !== item.client)
     .map(item => ({ id:item.id, from:before.lookupClients.get(item.id), to:item.client }));
   const now = state.doneTasks || {};
+  const ignoresNow = Array.isArray(state.customerDuplicateIgnores) ? state.customerDuplicateIgnores : [];
   return {
     orders,
     lookups,
+    ignoresAdded:ignoresNow.filter(key => !before.ignores.includes(key)),
+    ignoresRemoved:before.ignores.filter(key => !ignoresNow.includes(key)),
     doneAdded:Object.keys(now).filter(key => !Object.hasOwn(before.doneTasks, key)),
     doneRemoved:Object.fromEntries(Object.keys(before.doneTasks).filter(key => !Object.hasOwn(now, key)).map(key => [key, before.doneTasks[key]]))
   };
@@ -20981,6 +21092,10 @@ function revertCustomerChangeDiff(diff) {
   state.doneTasks = state.doneTasks || {};
   diff.doneAdded.forEach(key => { delete state.doneTasks[key]; });
   Object.assign(state.doneTasks, diff.doneRemoved);
+  if (diff.ignoresAdded.length || diff.ignoresRemoved.length) {
+    const kept = (Array.isArray(state.customerDuplicateIgnores) ? state.customerDuplicateIgnores : []).filter(key => !diff.ignoresAdded.includes(key));
+    state.customerDuplicateIgnores = [...new Set([...kept, ...diff.ignoresRemoved])];
+  }
 }
 // 已点「完成」的复购提醒跟着客户名走（键是 repurchase-客户名-日期）：改名、合并后不再重新冒出来。
 function moveRepurchaseDoneTasks(oldName = '', newName = '') {
@@ -21066,6 +21181,7 @@ async function mergeDuplicateCustomers(primaryName = '', secondaryName = '') {
   // 两份档案都还在的时候搬订单：大小写不同、但本身是另一位客户档案的订单不会被一起搬走。
   patchAllOrdersForCustomerRename(secondaryName, targetName);
   moveRepurchaseDoneTasks(secondaryName, targetName);
+  renameCustomerDuplicateIgnores(secondaryName, targetName);
   delete state.customers[secondaryName];
   state.customers[targetName] = merged;
   const diff = customerChangeDiff(before);
@@ -21178,8 +21294,7 @@ async function deleteCustomerProfile(name = '') {
   const before = customerChangeSnapshot();
   delete state.customers[name];
   Object.keys(state.doneTasks || {}).forEach(key => { if (key.startsWith(`repurchase-${name}-`)) delete state.doneTasks[key]; });
-  const ignoresBefore = Array.isArray(state.customerDuplicateIgnores) ? state.customerDuplicateIgnores.slice() : null;
-  if (ignoresBefore) state.customerDuplicateIgnores = ignoresBefore.filter(key => !key.split('\u0000').includes(name));
+  if (Array.isArray(state.customerDuplicateIgnores)) state.customerDuplicateIgnores = state.customerDuplicateIgnores.filter(key => !key.split('\u0000').includes(name));
   const diff = customerChangeDiff(before);
   const deleteOp = queueCustomerStorageOp({ kind:'delete', name });
   const version = ++customerUndoVersion;
@@ -21194,7 +21309,6 @@ async function deleteCustomerProfile(name = '') {
     }
     state.customers[name] = profile;
     revertCustomerChangeDiff(diff);
-    if (ignoresBefore) state.customerDuplicateIgnores = ignoresBefore;
     revertCustomerStorageOp(deleteOp);
     customerUndoVersion += 1;
     saveState();
@@ -21747,13 +21861,15 @@ async function confirmDuplicateCustomerSave({ oldName = '', newName = '', emails
   ].filter(Boolean).map(name => [name, true]));
   const collidingName = customerNameCollision(knownCustomerNames, oldName, newName);
   const duplicateNames = collidingName ? [collidingName] : [];
+  // 编辑已有档案时，点过「不是同一人」的那几位不再提（会覆盖别人档案的同名照旧拦）。改名这一次按旧名字查。
+  const notIgnored = name => !oldName || !customerDuplicateIgnored(oldName, name);
   const duplicateEmails = Object.entries(state.customers || {}).filter(([name, profile]) =>
-    normalizedEmails.length
+    notIgnored(name) && normalizedEmails.length
     && normalizeCustomerContactFields(profile).emails.some(value => normalizedEmails.includes(value.toLowerCase()))
     && name.trim().toLowerCase() !== normalizedOld
   ).map(([name]) => name);
   // 和事后「客户资料提醒」同一口径再查三样：同一个电话（写法不同也算）、付款邮箱相同、名字只差标点（Alice Baker. / Alice Baker）。
-  const others = Object.entries(state.customers || {}).filter(([name]) => name.trim().toLowerCase() !== normalizedOld && name.trim().toLowerCase() !== normalizedName);
+  const others = Object.entries(state.customers || {}).filter(([name]) => name.trim().toLowerCase() !== normalizedOld && name.trim().toLowerCase() !== normalizedName && notIgnored(name));
   const phoneList = normalizeCustomerValueList(phones, '', normalizeCustomerPhone);
   const duplicatePhones = others.filter(([, profile]) => phoneList.length
     && normalizeCustomerContactFields(profile).phones.some(value => phoneList.some(phone => sameCustomerPhone(value, phone))))
@@ -21763,7 +21879,7 @@ async function confirmDuplicateCustomerSave({ oldName = '', newName = '', emails
     .map(([name]) => name).filter(name => !duplicateEmails.includes(name) && !duplicatePhones.includes(name));
   const looseName = normalizeCustomerDuplicateText(autoCapitalizeCustomerName(newName));
   const duplicateLooseNames = collidingName || !looseName ? [] : Object.keys(knownCustomerNames).filter(name =>
-    name.trim().toLowerCase() !== normalizedOld && name.trim().toLowerCase() !== normalizedName
+    name.trim().toLowerCase() !== normalizedOld && name.trim().toLowerCase() !== normalizedName && notIgnored(name)
     && normalizeCustomerDuplicateText(autoCapitalizeCustomerName(name)) === looseName);
   const messages = [];
   if (duplicateNames.length) messages.push(`客户名称已存在：${duplicateNames.join('、')}`);
@@ -21844,9 +21960,11 @@ function customerSaveSnapshot(names = [], originalNameField = null) {
   const clients = ['orders', 'trashOrders', 'deletedOrders'].map(key => [key, new Map((state[key] || []).map(order => [order.id, order.client]))]);
   const customerTags = state.customerTags;
   const doneTasks = state.doneTasks && typeof state.doneTasks === 'object' ? { ...state.doneTasks } : state.doneTasks;
+  const ignores = state.customerDuplicateIgnores;
   const originalName = originalNameField?.value;
   return () => {
     state.doneTasks = doneTasks;
+    state.customerDuplicateIgnores = ignores;
     state.customers = { ...(state.customers || {}) };
     profiles.forEach(([key, had, profile]) => { if (had) state.customers[key] = profile; else delete state.customers[key]; });
     clients.forEach(([key, before]) => {
@@ -21864,6 +21982,7 @@ function commitCustomerSavePayload({ oldName = '', nextProfile, historyEntry, pr
   if (oldName && oldName !== nextProfile.client) {
     delete state.customers[oldName];
     moveRepurchaseDoneTasks(oldName, nextProfile.client);
+    renameCustomerDuplicateIgnores(oldName, nextProfile.client);
   }
   state.customers[nextProfile.client] = { ...nextProfile, history: [historyEntry, ...previousHistory].slice(0, 20) };
   return nextProfile.client;
@@ -24379,7 +24498,13 @@ function mergeImportedState(current, incoming, { updateCustomers = false } = {})
     if (order.num) numOwner.set(String(order.num), order.id);
   }));
   const skipped = [];
-  buckets.forEach(bucket => (incoming[bucket] || []).forEach(order => {
+  // 文件是改名之前导出的：订单带的编号现在属于另一个名字的档案，就跟着现在的名字走（不搬回旧名字）。
+  const nameById = customerNamesById(next.customers);
+  const renamedAway = new Map();
+  buckets.forEach(bucket => (incoming[bucket] || []).forEach(original => {
+    const currentName = original?.customerId ? nameById.get(original.customerId) : '';
+    const order = currentName && currentName !== original.client ? { ...original, client:currentName } : original;
+    if (order !== original) renamedAway.set(original.client, original.customerId);
     const owner = order.num ? numOwner.get(String(order.num)) : '';
     if (owner && owner !== order.id) { skipped.push(order.num); return; }
     const from = where.get(order.id);
@@ -24397,9 +24522,12 @@ function mergeImportedState(current, incoming, { updateCustomers = false } = {})
   // 固定编号以这边现有的为准：同名档案被文件里的覆盖时留着原来的编号；文件里的新客户带着的编号如果这边
   // 已经有别的客户在用（文件是改名之前导出的那一份），那个编号不跟进来，保存时会给它一个新的。
   const idsInUse = new Map(Object.entries(next.customers).map(([name, profile]) => [profile?.id, name]).filter(([id]) => id));
+  const clientsWithOrders = new Set(buckets.flatMap(bucket => next[bucket].map(order => order?.client)));
   Object.entries(incoming.customers || {}).forEach(([name, profile]) => {
     const existing = Object.prototype.hasOwnProperty.call(next.customers, name) ? next.customers[name] : null;
     if (existing && !updateCustomers) return;
+    // 同一位客户改名前的样子：编号在这边属于改名后的档案，又没有订单留在旧名字下，不再当成新客户加进来。
+    if (!existing && profile?.id && renamedAway.get(name) === profile.id && nameById.has(profile.id) && !clientsWithOrders.has(name)) return;
     const copy = profile && typeof profile === 'object' ? { ...profile } : profile;
     if (copy && typeof copy === 'object') {
       if (existing?.id) copy.id = existing.id;
@@ -25009,9 +25137,9 @@ function subscriptionSchedule(item, today, rate) {
   const chargeOn = index => subscriptionChargeDate(item, index);
   const { unit, count } = subscriptionCycle(item);
   const tracked = subscriptionManualTracked(item);
-  let lastIndex = subscriptionChargeIndex(item, today);
-  // A manual renewal the user has not confirmed is not paid: it stays due, and overdue once its date passes.
-  if (tracked) lastIndex = Math.min(lastIndex, subscriptionChargeIndex(item, item.renewedThrough));
+  // A manual renewal is paid up to the period the user confirmed, and no further: one not confirmed stays due
+  // (overdue once its date passes), and one confirmed before its date (renewed early) already counts as paid.
+  const lastIndex = tracked ? subscriptionChargeIndex(item, item.renewedThrough) : subscriptionChargeIndex(item, today);
   const renewsOn = chargeOn(lastIndex + 1);
   const cancelled = item.status === 'cancelled';
   const endsOn = cancelled ? (item.endsOn || renewsOn) : '';
@@ -26308,13 +26436,14 @@ function subscriptionPeriods(item, today, schedule) {
     const date = subscriptionChargeDate(item, index);
     if (bound && date >= bound) break;
     // A manual renewal that is due but not confirmed is not paid yet: it shows as 待续费.
+    // One renewed ahead of its date (date after today, on or before renewedThrough) is paid already.
     const unconfirmed = tracked && date > item.renewedThrough;
-    const past = date <= today && !unconfirmed;
+    const past = tracked ? !unconfirmed : date <= today;
     if (!past) future += 1;
     const next = subscriptionChargeDate(item, index + 1);
     periods.push({
       index:offset + index, local:index, date, until:subscriptionDateFromDay(subscriptionDayNumber(next) - 1), past, due:unconfirmed && date <= today,
-      current:past && next > today, amount:price(date), currency:item.currency, term:item, old:false,
+      current:past && date <= today && next > today, amount:price(date), currency:item.currency, term:item, old:false,
       once:changes.some(change => change.once && change.from === date),
       change:index > 0 && changes.some(change => !change.once && change.from === date)
     });
@@ -31313,6 +31442,20 @@ function uiNotifOpenTarget(card) {
       return;
     }
     openOrderDetail(card.dataset.orderId, { tab:card.dataset.tab || '' });
+    return;
+  }
+  // 订单已经不在订单列表里了：说一声在哪里，面板留着（以前点了什么也不发生，像点坏了）。
+  if (card.dataset.orderId) {
+    const orderId = card.dataset.orderId;
+    const where = (state.deletedOrders || []).some(o => o.id === orderId) ? '这张订单已删除，可在「已删除订单」里恢复'
+      : (state.trashOrders || []).some(o => o.id === orderId) ? '这张订单在垃圾箱里' : '这张订单已经不在了';
+    toast(where);
+    return;
+  }
+  // 续费读取失败 → 去续费页，打开时会再读一次。
+  if (id.startsWith('subs-load-')) {
+    uiToggleNotifs(false);
+    setPage('subscriptions');
     return;
   }
   // 接口异常 → 设置「接口状态」，焦点放在这个接口的状态灯上，回车就能再检测一次。

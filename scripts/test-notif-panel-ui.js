@@ -3,7 +3,7 @@
 // - 自己的操作（换阶段、保存）不算未读、不摇铃；App 自己发现的事（物流异常）算未读、摇一下；
 // - 一件事一张卡（物流变化不再多一张标题过时的订单动态卡）；同一天「异常 → 运输中 → 异常」记 3 条，卡片时间是发现时间；
 // - 接口错误连查只留一张卡（×3），没开启的接口不算异常，恢复后收尾；保存失败恢复后收尾；升级后旧的「发现新版本」不显示；
-// - 接口 / 飞书 / 新版本卡点了去能处理的地方（飞书失败去「订单信息」页签的「重新发送」）；
+// - 接口 / 飞书 / 新版本卡点了去能处理的地方（飞书失败去「订单信息」页签的「重新发送」）；订单已删除的卡点了说一声在哪里；
 // - 超过 40 条有「显示更多」，红点和未读数按全部算，去年的事件带年份；已读集合截断不让旧卡复活；
 // - 重开不停在空筛选上；Tab 留在面板里；搜索结果在打开通知时收起；提示框不压在面板上；另一个窗口的已读会同步过来。
 // 真实 mac-app/server.js（临时数据目录）+ 真实鼠标键盘；点击用 h.click（重新定位、等动画、elementFromPoint 确认）。
@@ -253,6 +253,25 @@ const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return 
     await page.waitForFunction(() => !document.getElementById('notifPanel').hidden);
     assert.equal(await page.evaluate(() => document.getElementById('globalSearchPanel').classList.contains('open')), false, 'search results close when the bell opens');
     await closeBell();
+
+    // ---- 13. The order behind a card was deleted: clicking says where it went; restored, it opens again ----
+    await page.evaluate(() => softDeleteOrder('N2'));
+    await page.waitForFunction(() => (state.deletedOrders || []).some(o => o.id === 'N2'));
+    await openBell();
+    const deletedCard = page.locator('#notifList .notif-card[data-order-id="N2"]').first();
+    await deletedCard.waitFor();
+    await click(deletedCard, 'card of a deleted order');
+    await h.waitToast(page, '这张订单已删除，可在「已删除订单」里恢复');
+    assert.equal(await page.evaluate(() => document.getElementById('notifPanel').hidden), false, 'the panel stays open');
+    assert.equal(await page.evaluate(() => document.getElementById('orderDetailDrawer').classList.contains('open')), false);
+    await closeBell();
+    await page.evaluate(() => restoreOrder('N2'));
+    await page.waitForFunction(() => state.orders.some(o => o.id === 'N2'));
+    await openBell();
+    await click(page.locator('#notifList .notif-card[data-order-id="N2"]').first(), 'card of the restored order');
+    await page.waitForFunction(() => document.getElementById('orderDetailDrawer').classList.contains('open'));
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !document.getElementById('orderDetailDrawer').classList.contains('open'));
 
     assert.deepEqual(errors, []);
     assert.deepEqual(dialogs, [], 'no native dialogs');

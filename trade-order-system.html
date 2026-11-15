@@ -4169,7 +4169,7 @@ html[data-theme] #page-dashboard .board-panel { container:dash-board / inline-si
 /* 定高：看板的高指列高（和撑满第一屏那一行是同一个属性），待办、最近订单的高是面板外高，里面的列表自己滚。820 px 以下不用。 */
 @media (min-width: 821px) {
   html[data-theme] #page-dashboard .board-panel[data-dash-h] .board-column { height:var(--dash-h); }
-  html[data-theme] #page-dashboard :is(#tasks, #recentOrders)[data-dash-h] { height:var(--dash-h); display:flex; flex-direction:column; min-height:0; }
+  html[data-theme] #page-dashboard :is(#tasks, #recentOrders)[data-dash-h]:not([hidden]) { height:var(--dash-h); display:flex; flex-direction:column; min-height:0; }
   html[data-theme] #page-dashboard :is(#tasks, #recentOrders)[data-dash-h] > :not(.dash-edit) { flex:none; }
   html[data-theme] #page-dashboard :is(#tasks, #recentOrders)[data-dash-h] :is(#taskList, #recentOrderList) { flex:1 1 auto; min-height:0; overflow-y:auto; scrollbar-width:thin; }
 }
@@ -10007,7 +10007,7 @@ function buildTaskItems({ includeDone = false, includeSnoozed = false, perOrder 
     }
     // 待发货、钱已收齐：可以发货了。点「完成」后 3 天还在待发货再提醒。
     if (o.stage === 'balance' && due === 0) {
-      reminders.push({ id:`ready-${o.id}`, doneKey:`ready-${o.id}`, remindAgainDays:3, orderId:o.id, client:o.client, date:fallbackDate, type:'ready', title, reason:'尾款已收齐，可以发货了', detail:`${o.num} · ${stageDef(o.stage).name}`, value:'', tag:'可以发货', tagClass:'tag-green', priority:2 });
+      reminders.push({ id:`ready-${o.id}`, doneKey:`ready-${o.id}`, remindAgainDays:3, orderId:o.id, client:o.client, date:fallbackDate, type:'ready', title, reason:orderAmountValue(o) > 0 ? '尾款已收齐，可以发货了' : '可以发货了', detail:`${o.num} · ${stageDef(o.stage).name}`, value:'', tag:'可以发货', tagClass:'tag-green', priority:2 });
     }
     // 已发货、没有任何带单号的批次：补运单号。有的货走没有单号的渠道，所以点「完成」后这张单不再提醒。
     if (o.stage === 'shipment' && !normalizeOrderShipments(o).some(item => cleanTracking(item.trackingNumber))) {
@@ -16647,7 +16647,7 @@ function renderRoadmap(events = [], emptyText = '暂无路线图记录。') {
 }
 function roadmapFilterType(event = {}) {
   if (['payment', 'deposit', 'balance'].includes(event.type)) return 'payment';
-  if (['logistics', 'shipment', 'risk', 'ship'].includes(event.type)) return 'logistics';
+  if (['logistics', 'shipment', 'risk', 'ship', 'ready', 'tracking'].includes(event.type)) return 'logistics';
   if (['follow', 'repurchase', 'note', 'urgent'].includes(event.type)) return 'follow';
   return 'order';
 }
@@ -17352,7 +17352,7 @@ async function uiDetailAddShipment() {
   const current = state.orders.find(o => o.id === id);
   if (!current || detailOrderId !== id) return;
   const before = normalizeOrderShipments(current);
-  const shipment = normalizeOrderShipments({ shipments:[{ id:`shipment-${Date.now().toString(36)}`, trackingNumber:number, carrier:'auto', status:'已发货', shippedAt:normalizeDate(nowText()) }] })[0];
+  const shipment = normalizeOrderShipments({ shipments:[{ id:`shipment-${Date.now().toString(36)}`, trackingNumber:number, carrier:'auto', status:'已发货', shippedAt:(!before.length && current.shippedAt) ? normalizeDate(current.shippedAt) : normalizeDate(nowText()) }] })[0];
   if (!shipment) return;
   current.shipments = [...before, shipment];
   current.trackingNumber = current.shipments[0].trackingNumber;
@@ -20447,12 +20447,21 @@ let taskListRenderedDay = '';
 function taskIsRisk(item = {}) {
   return item.tag === '物流风险' || String(item.id || '').startsWith('logistics-risk-');
 }
+// 点「完成」后还会不会再提醒，按待办类型说（「完成」按钮的悬停提示、完成后的提示条、订单记录、「已处理」页签共用）。
+// until 是存下的再提醒日；beforeDone 是还没点完成时（悬停提示），这时按 remindAgainDays 说「N 天后」。
+function taskRemindAgainText(task = {}, until = '', { beforeDone = false } = {}) {
+  if (until) return `${monthDayLabel(until)} 还没解决会再提醒`;
+  if (beforeDone && task.remindAgainDays > 0) return `${task.remindAgainDays} 天后还没解决会再提醒`;
+  if (task.type === 'tracking') return '这张单不再提醒补运单号';
+  if (String(task.id || '').startsWith('logistics-risk-')) return '物流有新动态后还没到会再提醒';
+  return '日期改了会重新提醒';
+}
 // 「已处理」页签里每一行的说明：哪天处理的，哪天会再提醒。
 function taskDoneNote(item = {}) {
   const record = state.doneTasks?.[item.doneKey || item.id];
   const at = record && typeof record === 'object' && record.at ? `${monthDayTimeLabel(record.at)} 处理` : '已处理';
   const until = record && typeof record === 'object' ? record.until : '';
-  return `${at} · ${until ? `${monthDayLabel(until)} 还没解决会再提醒` : '日期改了会重新提醒'}`;
+  return `${at} · ${taskRemindAgainText(item, until)}`;
 }
 function renderTasks() {
   const el = document.getElementById('taskList');
@@ -20489,7 +20498,7 @@ function renderTasks() {
     return;
   }
   const taskLook = { payment:['cash', 'amber'], urgent:['bolt', 'red'], logistics:['alert', 'red'], ship:['truck', 'orange'], ready:['truck', 'teal'], tracking:['truck', 'amber'], follow:['chat', 'blue'], repurchase:['repeat', 'teal'] };
-  const doneTitle = item => item.remindAgainDays > 0 ? `${taskDoneLabel(item)}：${item.remindAgainDays} 天后还没解决会再提醒` : `${taskDoneLabel(item)}：日期改了会重新提醒`;
+  const doneTitle = item => `${taskDoneLabel(item)}：${taskRemindAgainText(item, '', { beforeDone:true })}`;
   const actions = item => {
     if (listMode === 'done') return `<button class="task-action-btn" type="button" data-task-action="undone" title="放回待办">恢复提醒</button>`;
     const extra = listMode === 'snoozed' ? '<button class="task-action-btn" type="button" data-task-action="unsnooze" title="放回今天的待办">取消稍后</button>' : '';
@@ -20650,7 +20659,7 @@ function markTaskDone(id) {
   state.doneTasks[key] = { at:nowText(), until };
   const wasSnoozed = snoozedTasks.has(id);
   if (wasSnoozed) snoozedTasks.remove(id);
-  const later = until ? `${monthDayLabel(until)} 还没解决会再提醒` : '日期改了会重新提醒';
+  const later = taskRemindAgainText(task, until);
   const order = task.orderId && task.type !== 'repurchase' ? state.orders.find(o => o.id === task.orderId) : null;
   const log = order ? { time:nowText(), text:`待办已处理：${taskKindName(task)}（${taskDoneLabel(task)}）· ${task.reason}，${later}` } : null;
   if (order) order.logs = [log, ...(order.logs || [])];
@@ -23380,7 +23389,8 @@ function buildOrderFromFormData(data = {}, { existing = null, isDraft = false, s
       id:sameRow?.id || (String(shipment.id || '').startsWith('new-') ? `shipment-${idStamp}-${index + 1}` : shipment.id),
       status,
       updated:sameNumber?.updated || '',
-      shippedAt:sameRow?.shippedAt || (sameNumber && previousShipments.length === 1 ? existing?.shippedAt || '' : '') || shipment.shippedAt || (status !== '未发货' ? today : '')
+      // 已发货的单过几天才补第一个单号：订单已经有发货日、原来一批都没有，第一批沿用订单的发货日，不记成今天。
+      shippedAt:sameRow?.shippedAt || (sameNumber && previousShipments.length === 1 ? existing?.shippedAt || '' : '') || (index === 0 && !previousShipments.length && status !== '未发货' ? existing?.shippedAt || '' : '') || shipment.shippedAt || (status !== '未发货' ? today : '')
     };
     delete next.rawStatus;
     delete next.checkedAt;
@@ -23461,8 +23471,15 @@ function buildOrderFromFormData(data = {}, { existing = null, isDraft = false, s
   let restoreNote = '';
   if (existing && !existing.isDraft) {
     const paidUnchanged = roundMoneyValue(order.paidAmount) === roundMoneyValue(existing.paidAmount);
-    if (paidUnchanged) ['paidBeforeSettle', 'paidBeforeDeposit', 'depositAutoPaid'].forEach(key => { if (existing[key] !== undefined) order[key] = existing[key]; });
-    if (normalizeStage(existing.stage) !== stageValue) restoreNote = restoreAutoPaymentsOnStageExit(order, existing.stage, stageValue, { keepPaid:!paidUnchanged });
+    // 全款单的已收是自动记的全款（表单里还是「已付」），只改了金额：已收跟着金额走，不算用户改了已收，标记照带，自动记的数换成新金额。
+    const autoFullFollowsAmount = !paidUnchanged
+      && existing.orderType === '全款订单' && order.orderType === '全款订单'
+      && Number(existing.depositAutoPaid || 0) > 0
+      && roundMoneyValue(existing.paidAmount) === roundMoneyValue(orderAmountValue(existing))
+      && roundMoneyValue(order.paidAmount) === roundMoneyValue(orderAmountValue(order));
+    if (paidUnchanged || autoFullFollowsAmount) ['paidBeforeSettle', 'paidBeforeDeposit', 'depositAutoPaid'].forEach(key => { if (existing[key] !== undefined) order[key] = existing[key]; });
+    if (autoFullFollowsAmount) order.depositAutoPaid = roundMoneyValue(Math.max(0, Number(order.paidAmount || 0) - Math.max(0, finiteMoneyOrNull(order.paidBeforeDeposit) || 0)));
+    if (normalizeStage(existing.stage) !== stageValue) restoreNote = restoreAutoPaymentsOnStageExit(order, existing.stage, stageValue, { keepPaid:!paidUnchanged && !autoFullFollowsAmount });
   }
   applyOrderStageInvariants(order, stageValue);
   if (restoreNote) order.logs.unshift({ time:nowText(), text:`阶段从 ${stageDef(existing.stage).name} 退回 ${stageDef(stageValue).name}${restoreNote}` });

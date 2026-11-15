@@ -237,10 +237,22 @@ assert.equal(imogenFields.phone, undefined, 'partial international code must not
 [
   ['total 1000 USD. I will pay 50% deposit tomorrow', 1000],
   ['总共 1000 美金，定金 50% 还没付', 1000],
-  ['Total $1000, have not paid the half deposit yet', 1000]
+  ['Total $1000, have not paid the half deposit yet', 1000],
+  ['Total $1000, 50% deposit, but I have not paid yet', 1000],
+  ['总共 1000 美金，定金 50%，还没付', 1000]
 ].forEach(([text, amount]) => assert.deepEqual(
   recognize(text),
   { amount, orderType: '定金订单', depositAmount: 500, depositPercent: 50 },
+  text
+));
+// 说一半的那半句自己写明已付、「以后付」说的是尾款：定金照样记已收。
+[
+  'Total $1000, paid 50% deposit, will pay the rest before shipping',
+  '总共 1000 美金，已付 50% 定金，尾款待付',
+  'Total $1000. Deposit 50% paid today. Can pay balance next week'
+].forEach(text => assert.deepEqual(
+  recognize(text),
+  { amount: 1000, orderType: '定金订单', paidAmount: 500, depositAmount: 500, depositPercent: 50 },
   text
 ));
 assert.deepEqual(

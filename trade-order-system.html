@@ -12590,11 +12590,14 @@ function findPartialPaymentInText(text, amount) {
   if (!normalized || !total) return {};
   const paymentWord = '(?:付款|付了|已付|支付|预付|首付|定金|收款|已收|到账|pay(?:ment|ing|ed)?|paid|prepay(?:ment|ing|ed)?|deposit|down payment|pagar|pagado|anticipo|payer|paye|payee|acompte|bezahlt|zahlung|anzahlung)';
   const halfWord = '(?:一半|半款|百分之五十|50\\s*%|half|mitad|moitie|halfte)';
-  const hasHalfPayment = new RegExp(`${paymentWord}[^\\n,，。；;]{0,14}${halfWord}|${halfWord}[^\\n,，。；;]{0,14}${paymentWord}`, 'i').test(normalized);
-  if (!hasHalfPayment) return {};
+  const halfPayment = new RegExp(`${paymentWord}[^\\n,，。；;]{0,14}${halfWord}|${halfWord}[^\\n,，。；;]{0,14}${paymentWord}`, 'i');
+  if (!halfPayment.test(normalized)) return {};
   const paidAmount = roundMoneyValue(total / 2);
   // 「定金 50% 还没付」「will pay 50% deposit tomorrow」：是 50% 定金单，但钱还没收。
-  if (textSaysNotPaidYet(normalized)) return { orderType: '定金订单', depositAmount: paidAmount, depositPercent: 50 };
+  // 「paid 50% deposit, will pay the rest before shipping」不算：说一半的那半句自己写明了已付，「以后付」说的是尾款。
+  const saidPaid = /已付|已经付|付了|付过|已收|收到|到账|已转|\b(?:paid|received|transferred|bezahlt|pagado|pagato|paye)\b/;
+  const halfClearlyPaid = normalized.split(/[\n,，。；;!?！？]|\.(?=\s|$)/).some(part => halfPayment.test(part) && saidPaid.test(part) && !textSaysNotPaidYet(part));
+  if (!halfClearlyPaid && textSaysNotPaidYet(normalized)) return { orderType: '定金订单', depositAmount: paidAmount, depositPercent: 50 };
   return {
     orderType: '定金订单',
     paidAmount,

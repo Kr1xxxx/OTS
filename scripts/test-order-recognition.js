@@ -77,6 +77,7 @@ vm.runInContext(html.match(/^const customerPasteFieldOrder = .*;$/m)[0].replace(
   'datePickerParts',
   'yearlessDateIso',
   'findOrderCreatedAtInText',
+  'textSaysNotPaidYet',
   'findPartialPaymentInText',
   'countrySearchParts',
   'textContainsCountryAlias',
@@ -232,6 +233,16 @@ assert.equal(imogenFields.name, 'Alex Example', 'UK alphanumeric postcode must n
 assert.equal(imogenFields.address, '123 Sample Rd, Sample Road 123, PR2 2LE, Preston, England, United Kingdom');
 assert.equal(imogenFields.phone, undefined, 'partial international code must not become phone');
 
+// 「还没付 / 以后付」的定金：是 50% 定金单，但没有已收金额。
+[
+  ['total 1000 USD. I will pay 50% deposit tomorrow', 1000],
+  ['总共 1000 美金，定金 50% 还没付', 1000],
+  ['Total $1000, have not paid the half deposit yet', 1000]
+].forEach(([text, amount]) => assert.deepEqual(
+  recognize(text),
+  { amount, orderType: '定金订单', depositAmount: 500, depositPercent: 50 },
+  text
+));
 assert.deepEqual(
   recognize('Morgan sample 1022美金，付款一半'),
   { amount: 1022, orderType: '定金订单', paidAmount: 511, depositAmount: 511, depositPercent: 50 }

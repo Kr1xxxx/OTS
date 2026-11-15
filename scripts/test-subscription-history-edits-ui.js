@@ -3,6 +3,7 @@
 // 真实 mac-app/server.js（临时数据目录、真实 SQLite）+ 真实鼠标键盘；每次点击前确认那一点最上层就是目标。
 // - 「从下一期起」：已经发生的扣费保持当时的价格和周期，撤销后原样回来，数据库里没有丢东西；
 // - 手动续费过了到期日没点「已续费」：列表、铃铛显示「已过期 N 天」，点「已续费」后顺延一年，可撤销；
+// - 到期前点「已续费」（提前续）：马上算到下一年，铃铛不再提醒，这一期显示已发生，可撤销；
 // - 编辑时另一个窗口先保存了：不再悄悄覆盖，问「用我的覆盖 / 放弃我的改动」；
 // - 选项组只占一个 Tab 位，← → 换选项；弹窗一律是页面里的确认框，没有原生 alert / confirm。
 const assert = require('node:assert/strict');
@@ -54,6 +55,11 @@ const addMonths = (text, months) => {
     const due = addDays(today, -5);
     const domainStart = addMonths(due, -12);
     await api('/api/subscriptions/save', { item:{ name:'example.net', amount:60, currency:'CNY', cycleUnit:'month', cycleCount:12, startDate:domainStart, category:'域名', provider:'Namecheap', autoRenew:false, renewedThrough:domainStart, color:'#e8590c' } });
+
+    // Another one due in five days: renewed early, before its date.
+    const earlyDue = addDays(today, 5);
+    const earlyStart = addMonths(earlyDue, -12);
+    await api('/api/subscriptions/save', { item:{ name:'early-domain.test', amount:89, currency:'CNY', cycleUnit:'month', cycleCount:12, startDate:earlyStart, category:'域名', provider:'Namecheap', autoRenew:false, renewedThrough:earlyStart, color:'#1971c2' } });
 
     browser = await launchBrowser();
     const context = await browser.newContext({ viewport:{ width:1440, height:920 } });
@@ -111,6 +117,33 @@ const addMonths = (text, months) => {
     await undoToast('example.net 已续费');
     await h.waitToast(page, '已撤销');
     assert.equal((await record('example.net')).renewedThrough, domainStart, 'undo puts the renewal back to unpaid');
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !document.getElementById('subscriptionDrawer').classList.contains('open'));
+
+    // ---- 1b. 「已续费」 before the due date: the next year is paid at once, the reminder goes away ----
+    const earlyPill = row('early-domain.test').locator('.subs-pill');
+    assert.match(await earlyPill.innerText(), /5\s*天后到期/);
+    const earlyReminded = () => page.evaluate(name => subscriptionReminders(subscriptionLocalDate()).some(reminder => reminder.title === name), 'early-domain.test');
+    assert.equal(await earlyReminded(), true, 'the bell reminds before the due date');
+    await click('', { locator:row('early-domain.test') });
+    await page.locator('#subscriptionDrawer.open [data-sub-action="renewed"]').waitFor();
+    await click('#subscriptionDrawer [data-sub-action="renewed"]');
+    const nextYear = addMonths(earlyDue, 12);
+    await holdToast(`early-domain.test 已续费 ¥89.00，下次到期 ${nextYear}`);
+    assert.equal((await record('early-domain.test')).renewedThrough, earlyDue, 'the early renewal is recorded');
+    assert.doesNotMatch(await earlyPill.innerText(), /^5\s*天后到期/m, 'the row moves on to next year');
+    assert.match(await row('early-domain.test').innerText(), new RegExp(nextYear.slice(nextYear.slice(0, 4) === today.slice(0, 4) ? 5 : 0)));
+    assert.equal(await page.locator('#subscriptionDrawer [data-sub-action="renewed"]').count(), 0, 'no 已续费 button any more');
+    const renewedPeriod = page.locator(`#subscriptionDrawer .subs-per[data-period="${earlyDue}"]`);
+    assert.match(await renewedPeriod.getAttribute('class'), /\bpast\b/, 'the renewed period shows as paid');
+    assert.equal(await renewedPeriod.locator('.subs-pill').innerText(), '已发生');
+    assert.equal(await earlyReminded(), false, 'the bell no longer reminds');
+    await undoToast('early-domain.test 已续费');
+    await h.waitToast(page, '已撤销');
+    assert.equal((await record('early-domain.test')).renewedThrough, earlyStart, 'undo puts it back');
+    await page.locator('#subscriptionDrawer.open [data-sub-action="renewed"]').waitFor();
+    assert.match(await earlyPill.innerText(), /5\s*天后到期/);
+    assert.equal(await earlyReminded(), true, 'undo brings the reminder back');
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => !document.getElementById('subscriptionDrawer').classList.contains('open'));
 

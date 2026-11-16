@@ -10503,7 +10503,8 @@ function calendarEventsInRange(from, to) {
       // earlier settings shows that term's currency, type and payment method.
       subscriptionCharges(item, from, to, subscriptionState.usdCnyRate, { unpaid:true }).forEach(charge => {
         // 只有还没续的那几笔写「需要手动续费」：已确认续过的、提前续好的、历史设置下的，照自动续费写付款方式。
-        const toRenew = item.autoRenew === false && !subscriptionChargePaid(charge);
+        // 历史设置下的不问 subscriptionChargePaid：提前续好之后改了设置，那一期日期还没到，却是续过的。
+        const toRenew = charge.term === item && item.autoRenew === false && !subscriptionChargePaid(charge);
         events.push({ date:charge.date, type:'subscription', tone:'subscription', subId:item.id, label:`${item.name} 续费`, sub:[subscriptionMoney(charge.amount, charge.currency), charge.term.category, toRenew ? '需要手动续费' : charge.term.paymentMethod].filter(Boolean).join(' · ') });
       });
     });

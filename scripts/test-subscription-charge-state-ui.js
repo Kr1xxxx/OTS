@@ -91,6 +91,21 @@ const rows = [
       return { monthPaid:a.monthPaid, monthDue:a.monthDue, yearPaid:a.yearPaid, next12:a.next12, lifetime:a.lifetime };
     });
     assert.deepEqual(cards, { monthPaid:89, monthDue:0, yearPaid:89, next12:0, lifetime:178 });
+    // 提前续好之后改了付款方式（从下一期起）：续好的那一期归到历史设置下，日历照旧写当时的付款方式，不写「需要手动续费」。
+    const afterChange = await page.evaluate(() => {
+      const today = subscriptionLocalDate();
+      const all = subscriptionState.items;
+      const old = all.find(entry => entry.name === 'manual-early.test');
+      const schedule = subscriptionSchedule(old, today, subscriptionState.usdCnyRate);
+      const changed = subscriptionFromNext(old, { ...old, paymentMethod:'made-up card' }, false, schedule.renewsOn);
+      subscriptionState.items = all.map(entry => entry === old ? changed : entry);
+      const event = calendarEventsInRange('2026-11-21', '2026-11-21').find(entry => entry.subId === old.id);
+      subscriptionState.items = all;
+      return { terms:changed.terms.length, sub:event ? event.sub : 'missing' };
+    });
+    assert.equal(afterChange.terms, 1);
+    assert.match(afterChange.sub, /支付宝/, `an early-renewed charge under earlier settings: calendar says ${afterChange.sub}`);
+    assert.doesNotMatch(afterChange.sub, /需要手动续费/);
     assert.deepEqual(errors, []);
     console.log('Subscription charge state UI passed: auto, manual due, manual confirmed, manual renewed early agree across schedule, drawer periods, calendar, price editor and bell; an early-renewed charge keeps its recorded price and counts as paid on the stat cards.');
   } finally {

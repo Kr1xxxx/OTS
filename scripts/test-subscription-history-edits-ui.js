@@ -147,6 +147,28 @@ const addMonths = (text, months) => {
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => !document.getElementById('subscriptionDrawer').classList.contains('open'));
 
+    // ---- 1c. After an early renewal: the calendar writes 「需要手动续费」 only on charges still to renew, and the price
+    // editor calls the renewed period 已发生 (defaults to this period only), as the drawer does ----
+    await click('', { locator:row('early-domain.test') });
+    await page.locator('#subscriptionDrawer.open [data-sub-action="renewed"]').waitFor();
+    await click('#subscriptionDrawer [data-sub-action="renewed"]');
+    await holdToast('early-domain.test 已续费');
+    const calendarSubs = await page.evaluate(([from, to]) => calendarEventsInRange(from, to).filter(event => event.type === 'subscription').map(event => `${event.date}|${event.label}|${event.sub}`), [earlyStart, addMonths(earlyDue, 12)]);
+    const calendarLine = (date, name) => calendarSubs.find(line => line.startsWith(`${date}|${name} `)) || '';
+    assert.doesNotMatch(calendarLine(earlyStart, 'early-domain.test'), /需要手动续费/, 'a renewed charge is not 「需要手动续费」');
+    assert.doesNotMatch(calendarLine(earlyDue, 'early-domain.test'), /需要手动续费/, 'the charge renewed early is not 「需要手动续费」');
+    assert.match(calendarLine(addMonths(earlyDue, 12), 'early-domain.test'), /需要手动续费/, 'the next charge still to renew is');
+    assert.doesNotMatch(calendarLine(domainStart, 'example.net'), /需要手动续费/, 'a charge before renewedThrough is not');
+    assert.match(calendarLine(due, 'example.net'), /需要手动续费/, 'an overdue unconfirmed charge is');
+    await click('', { locator:page.locator(`#subscriptionDrawer [data-sub-period="${earlyDue}"]`) });
+    await page.locator('#subscriptionPriceModal.open').waitFor();
+    assert.match(await page.locator('#subscriptionPriceSub').innerText(), /已发生$/, 'the renewed period is 已发生 in the price editor');
+    assert.equal(await page.locator('[data-price-scope] [aria-pressed="true"]').innerText(), '只改这一期', 'and defaults to a one-off');
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !document.getElementById('subscriptionPriceModal').classList.contains('open'));
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !document.getElementById('subscriptionDrawer').classList.contains('open'));
+
     // ---- 2. 改价 + 改周期 from the next period: what was charged keeps its price and cycle ----
     await click('', { locator:row('Linode').locator('[data-sub-edit]') });
     await page.locator('#subscriptionEditModal.open').waitFor();

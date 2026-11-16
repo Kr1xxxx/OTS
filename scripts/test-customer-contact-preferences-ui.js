@@ -98,7 +98,7 @@ const { chromium } = require('playwright');
     assert.equal(await page.locator('#customerForm [name="alternativeContactMethods"][value="邮件"]').isDisabled(), true);
     await page.locator('#customerForm [name="alternativeContactMethods"][value="阿里巴巴"]').check({ force:true });
     await page.locator('#customerForm [name="permanentNote"]').fill('所有订单使用无品牌包装\n发货前再次确认地址');
-    await page.locator('#customerHeaderSaveBtn').click();
+    await page.locator('#customerFooterSaveBtn').click();
     await page.waitForFunction(() => !document.getElementById('customerModal').classList.contains('open'));
     assert.equal(stored.data.customers['Priority Buyer'].primaryContactMethod, '邮件');
     assert.deepEqual(stored.data.customers['Priority Buyer'].alternativeContactMethods, ['阿里巴巴','iMessage']);

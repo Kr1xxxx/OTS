@@ -166,7 +166,7 @@ async function launch() {
     await page.keyboard.type(' GmbH', { delay:5 });
     await type(page.locator('#customerForm [name="note"]'), ' CUSTOMER-FAILED');
     failSave = true;
-    await page.locator('#customerHeaderSaveBtn').click();
+    await page.locator('#customerFooterSaveBtn').click();
     await waitSaveError();
     await settle();
     assert.equal(await isOpen('customerModal'), true);
@@ -184,9 +184,9 @@ async function launch() {
     await settle();
     await type(page.locator('#customerForm [name="note"]'), ' CANCEL-FAILED');
     failSave = true;
-    await page.locator('#customerHeaderSaveBtn').click();
+    await page.locator('#customerFooterSaveBtn').click();
     await waitSaveError();
-    await page.locator('#customerEditCancelBtn').click();
+    await page.locator('#customerFooterCancelBtn').click();
     await discardViaConfirm();
     assert.equal(await page.evaluate(() => state.customers['Carl Diaz'].note), 'carl note');
     assert.match(await page.locator('#customerForm [name="note"]').inputValue(), /^carl note$/, 'read-only view shows the saved note');

@@ -111,6 +111,16 @@ const freePort = () => new Promise((resolve, reject) => {
       await h.settle(page, '#confirmModal .modal');
       return page.evaluate(() => ({ title:document.getElementById('confirmTitle').textContent, message:document.getElementById('confirmMessage').textContent, ok:document.getElementById('confirmOkBtn').textContent, alt:document.getElementById('confirmAltBtn').hidden ? '' : document.getElementById('confirmAltBtn').textContent, cancel:document.getElementById('confirmCancelBtn').textContent, danger:document.getElementById('confirmOkBtn').classList.contains('btn-danger') }));
     };
+    // 「删除客户」「合并到其他客户…」收在客户档案（只读）右上角的「⋯」里。
+    const openMoreMenu = async () => {
+      await click('#customerMoreBtn');
+      await page.waitForSelector('.customer-more-menu');
+      await h.settle(page, '.customer-more-menu');
+    };
+    const menuDelete = async () => {
+      await openMoreMenu();
+      await click('.customer-more-menu [data-customer-menu="delete"]');
+    };
     const focusOnCancel = () => page.waitForFunction(() => document.activeElement?.id === 'confirmCancelBtn');
     const confirmClosed = () => page.waitForFunction(() => !document.getElementById('confirmModal').classList.contains('open'));
     const flush = async () => assert.equal(await page.evaluate(() => window.flushPendingSave()), true, 'saved to the database');
@@ -217,7 +227,7 @@ const freePort = () => new Promise((resolve, reject) => {
     // ---- 4. 有订单的客户不能直接删：合并到其他客户（物流最近查询跟着改名） ----
     await click('.customer-row[data-view-customer="Bisi Hair Lagos"]');
     await page.waitForFunction(() => document.getElementById('customerModal').classList.contains('open'));
-    await click('#customerDeleteBtn');
+    await menuDelete();
     dialog = await confirmOpen();
     assert.equal(dialog.title, '不能直接删除这位客户');
     assert.match(dialog.message, /名下有 1 单/);
@@ -245,7 +255,34 @@ const freePort = () => new Promise((resolve, reject) => {
     // ---- 5. 删除没有订单的客户、撤销 ----
     await click('.customer-row[data-view-customer="Typo Custmer"]');
     await page.waitForFunction(() => document.getElementById('customerModal').classList.contains('open'));
-    await click('#customerDeleteBtn');
+    // 「⋯」用键盘也能走到：回车打开、焦点在第一项，↓ 到「删除客户」，Esc 收起、焦点回到「⋯」，客户档案还开着。
+    await page.waitForFunction(() => document.activeElement?.id === 'customerDetailEditBtn');
+    await page.keyboard.press('Tab');
+    assert.equal(await page.evaluate(() => document.activeElement?.id), 'customerMoreBtn', 'Tab 从「编辑资料」走到「⋯」');
+    await page.keyboard.press('Enter');
+    await page.waitForFunction(() => document.activeElement?.dataset.customerMenu === 'merge');
+    assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll('.customer-more-menu [role="menuitem"]')].map(el => el.textContent.trim())), ['合并到其他客户…', '删除客户']);
+    assert.equal(await page.evaluate(() => document.getElementById('customerMoreBtn').getAttribute('aria-expanded')), 'true');
+    await page.keyboard.press('ArrowDown');
+    assert.equal(await page.evaluate(() => document.activeElement?.dataset.customerMenu), 'delete');
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !document.querySelector('.customer-more-menu') && document.activeElement?.id === 'customerMoreBtn');
+    assert.equal(await page.evaluate(() => document.getElementById('customerModal').classList.contains('open')), true, 'Esc 只收起菜单');
+    assert.equal(await page.evaluate(() => document.getElementById('customerMoreBtn').getAttribute('aria-expanded')), 'false');
+    // 再点一下「⋯」= 收起。
+    await openMoreMenu();
+    await click('#customerMoreBtn');
+    await page.waitForTimeout(150);
+    assert.equal(await page.evaluate(() => !!document.querySelector('.customer-more-menu')), false, '菜单开着时再点「⋯」是收起');
+    // 「合并到其他客户…」直接打开合并的第一步（以前只能从「不能直接删除」绕过去），取消后什么都不变。
+    await openMoreMenu();
+    await click('.customer-more-menu [data-customer-menu="merge"]');
+    dialog = await confirmOpen();
+    assert.equal(dialog.title, '合并到其他客户');
+    await click('#confirmCancelBtn');
+    await confirmClosed();
+    assert.ok(await page.evaluate(() => Object.hasOwn(state.customers, 'Typo Custmer') && document.getElementById('customerModal').classList.contains('open')), '取消合并：档案还在、弹窗还开着');
+    await menuDelete();
     dialog = await confirmOpen();
     assert.equal(dialog.title, '删除客户');
     assert.equal(dialog.danger, true);
@@ -254,7 +291,7 @@ const freePort = () => new Promise((resolve, reject) => {
     await page.keyboard.press('Enter');
     await confirmClosed();
     assert.ok(await page.evaluate(() => Object.hasOwn(state.customers, 'Typo Custmer')), '默认焦点在取消，回车不删除');
-    await click('#customerDeleteBtn');
+    await menuDelete();
     await confirmOpen();
     await click('#confirmOkBtn');
     await holdToast('已删除客户 Typo Custmer');

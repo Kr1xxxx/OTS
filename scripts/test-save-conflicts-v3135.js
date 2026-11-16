@@ -331,10 +331,10 @@ async function main() {
     await A.evaluate(() => openCustomerModal('Buyer 1', { viewOnly:false }));
     await A.waitForFunction(() => document.getElementById('customerModal').classList.contains('open'));
     await A.locator('#customerForm [name="note"]').fill('慢保存的客户备注');
-    await h.click(A, '#customerHeaderSaveBtn', '客户保存');
-    await A.waitForFunction(() => document.getElementById('customerHeaderSaveBtn').getAttribute('aria-busy') === 'true');
-    assert.equal(await A.evaluate(() => document.getElementById('customerHeaderSaveBtn').disabled), true);
-    assert.match(await A.locator('#customerHeaderSaveBtn').innerText(), /保存中/);
+    await h.click(A, '#customerFooterSaveBtn', '客户保存');
+    await A.waitForFunction(() => document.getElementById('customerFooterSaveBtn').getAttribute('aria-busy') === 'true');
+    assert.equal(await A.evaluate(() => document.getElementById('customerFooterSaveBtn').disabled), true);
+    assert.match(await A.locator('#customerFooterSaveBtn').innerText(), /保存中/);
     await A.keyboard.press('Escape');
     await A.waitForFunction(() => [...document.querySelectorAll('#toast .toast-item.is-info')].some(el => el.textContent.includes('正在保存，请稍候')));
     assert.equal(await A.evaluate(() => document.getElementById('customerModal').classList.contains('open')), true, 'Esc while saving keeps the profile open');

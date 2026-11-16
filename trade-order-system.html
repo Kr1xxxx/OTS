@@ -3369,6 +3369,9 @@ html[data-theme] .page-enter .board-card { animation:uiRise .45s var(--ease-out)
 .board-menu .hold-btn { margin-top:4px; height:34px; min-height:34px; justify-content:center; }
 .board-menu-note { padding:2px 10px 0; font-size:11px; line-height:16px; color:var(--gray-500); text-align:center; }
 .board-menu button:not(.hold-btn):focus-visible { background:var(--surface-soft); outline:2px solid var(--accent); outline-offset:-2px; }
+/* 客户档案「⋯」菜单里的「删除客户」：红字（点了还有一次确认）。 */
+html[data-theme] .board-menu button.board-menu-danger, html[data-theme] .board-menu button.board-menu-danger .ui-icon { color:var(--danger-ink); }
+html[data-theme] .board-menu button.board-menu-danger:hover { background:var(--red-50); }
 
 /* 任务收件箱 / 最近订单 */
 html[data-theme] .task { border-radius:var(--radius); border-color:var(--surface-border); background:var(--surface-bg); box-shadow:none; transition:background var(--motion-fast) var(--ease); }
@@ -4989,6 +4992,18 @@ html[data-theme] .order-paste-section .paste-assist-head { display:none; }
 html[data-theme] .order-paste-section .paste-assist textarea { min-height:96px; border-radius:14px; border:1px solid var(--surface-border); background:var(--surface-soft); padding:12px 14px; line-height:1.55; }
 html[data-theme] .order-paste-section .paste-assist textarea:focus { border-color:var(--accent); background:var(--surface-bg); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent); }
 html[data-theme] #customerEditWorkspace .order-paste-section #customerPasteInput { min-height:72px; height:auto; padding:12px 14px; }
+/* 客户弹窗的粘贴按钮照订单弹窗：「清空」靠左、不带框，「AI 识别」次级，「识别」淡紫（实心紫色只留给底部「保存客户」）。 */
+html[data-theme] #customerEditWorkspace .paste-assist-actions { justify-content:flex-start; align-items:center; }
+html[data-theme] #customerEditWorkspace .paste-assist-actions .btn { height:36px; min-height:36px; padding:0 12px; font-size:13px; }
+html[data-theme] #customerEditWorkspace #customerPasteClearBtn { margin-right:auto; padding:0 8px; border-color:transparent; background:transparent; color:var(--gray-600); box-shadow:none; }
+html[data-theme] #customerEditWorkspace #customerPasteClearBtn:hover { color:var(--gray-900); background:var(--gray-100); }
+html[data-theme] #customerEditWorkspace #customerPasteAiBtn { padding:0 16px; border:1px solid color-mix(in oklab, var(--accent) 55%, transparent); background:var(--accent-tint); color:var(--accent-ink); font-weight:600; box-shadow:none; }
+html[data-theme] #customerEditWorkspace #customerPasteAiBtn:hover { background:color-mix(in oklab, var(--accent) 22%, transparent); }
+/* 「一起确认客户和订单」：保存挪到底部按钮栏（照客户弹窗），中间两栏自己滚动，按钮栏一直在。 */
+html[data-theme] .combined-modal { display:flex; flex-direction:column; }
+html[data-theme] .combined-modal > .modal-head { flex:none; }
+html[data-theme] .combined-modal > .combined-modal-body { flex:1 1 auto; min-height:0; max-height:none; }
+html[data-theme] .combined-modal > .combined-modal-foot { flex:none; }
 html[data-theme] .order-paste-section .paste-assist.ai-reading::after { border-radius:14px; }
 html[data-theme] .order-paste-section .paste-results:empty { display:none; }
 html[data-theme] .order-paste-section:has(.paste-assist.ai-reading) .order-section-title { background:linear-gradient(90deg, var(--gray-500) 30%, var(--gray-900) 50%, var(--gray-500) 70%); background-size:200% 100%; -webkit-background-clip:text; background-clip:text; color:transparent; animation:uiSweep 1.8s linear infinite; }
@@ -5482,6 +5497,7 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
 <symbol id="i-grip" viewBox="0 0 24 24"><path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01" stroke-width="3"/></symbol>
 <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
 <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="18.5" cy="12" r="1.6" fill="currentColor" stroke="none"/></symbol>
 <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
 <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/></symbol>
 <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></symbol>
@@ -6829,11 +6845,9 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
         <div class="muted" id="customerModalDesc">客户主档，订单、物流和复购提醒都会引用这里</div>
       </div>
       <div class="modal-head-actions">
-        <button class="btn btn-danger btn-small" id="customerDeleteBtn" type="button" style="display:none" title="没有订单的客户可以删除；有订单的可以合并到其他客户">删除客户</button>
         <button class="btn btn-client btn-small" id="customerNewOrderBtn" type="button" style="display:none">＋ 新建订单</button>
         <button class="btn btn-primary btn-small" id="customerDetailEditBtn" type="button" style="display:none">编辑资料</button>
-        <button class="btn btn-small" id="customerEditCancelBtn" type="button" style="display:none">取消编辑</button>
-        <button class="btn btn-primary btn-small" type="submit" form="customerForm" id="customerHeaderSaveBtn">保存</button>
+        <button class="btn btn-small btn-icon customer-more-btn" id="customerMoreBtn" type="button" style="display:none" aria-label="更多操作" title="更多操作" aria-haspopup="menu" aria-expanded="false"><svg class="ui-icon" aria-hidden="true"><use href="#i-more"/></svg></button>
         <button class="btn btn-small" id="closeCustomerModalBtn" type="button">关闭</button>
       </div>
     </div>
@@ -6879,9 +6893,10 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
         </div>
         <textarea id="customerPasteInput" placeholder="把客户名、国家、电话、联系人、邮箱、客户地址、付款方式、付款邮箱、标签等整段粘贴到这里"></textarea>
         <div class="paste-assist-actions">
+          <!-- id 和功能是反的（历史原因，测试和代码都按 id 找）：customerPasteAnalyzeBtn 是 AI 识别，customerPasteAiBtn 是本地的「识别」。 -->
           <button class="btn btn-small" type="button" id="customerPasteClearBtn">清空</button>
-          <button class="btn btn-primary btn-small" type="button" id="customerPasteAnalyzeBtn">AI 识别</button>
-          <button class="btn btn-client btn-small" type="button" id="customerPasteAiBtn">本地识别</button>
+          <button class="btn btn-client btn-small" type="button" id="customerPasteAnalyzeBtn">AI 识别</button>
+          <button class="btn btn-primary btn-small" type="button" id="customerPasteAiBtn">识别</button>
         </div>
         <div class="paste-results" id="customerPasteResults" aria-live="polite"></div>
       </div>
@@ -6933,10 +6948,8 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
       <div>
         <div class="order-num">客户 + 订单</div>
         <div class="modal-title">一起确认客户和订单</div>
-        <div class="muted">左侧客户资料，右侧订单资料，确认后一次保存</div>
       </div>
       <div class="modal-head-actions">
-        <button class="btn btn-primary btn-small" type="button" id="combinedSaveBtn">一键保存客户和订单</button>
         <button class="btn btn-small" id="combinedCloseBtn" type="button">关闭</button>
       </div>
     </div>
@@ -7026,6 +7039,13 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
           </div>
         </form>
       </section>
+    </div>
+    <div class="order-actions modal-foot combined-modal-foot">
+      <span class="df-sum">左边客户、右边订单，一次保存</span>
+      <div class="order-action-group">
+        <button class="btn" type="button" id="combinedCancelBtn">取消</button>
+        <button class="btn btn-primary" type="button" id="combinedSaveBtn">保存客户和订单</button>
+      </div>
     </div>
   </div>
 </div>
@@ -22076,16 +22096,14 @@ function setCustomerModalMode(editMode = false, { isNew = false } = {}) {
   form.querySelectorAll('#customerEditWorkspace input, #customerEditWorkspace textarea, #customerEditWorkspace select').forEach(field => { field.disabled = viewOnly; });
   if (!viewOnly) refreshCustomerContactPreferenceChoices(form);
   form.querySelectorAll('[data-add-customer-value], [data-remove-customer-value], [data-promote-customer-value]').forEach(button => { button.disabled = viewOnly; });
-  const headerSaveBtn = document.getElementById('customerHeaderSaveBtn');
+  // 头部：只读时「＋ 新建订单」「编辑资料」「⋯」（合并、删除收在里面）；编辑时只剩「＋ 新建订单」，保存和取消都在底部。
   const detailEditBtn = document.getElementById('customerDetailEditBtn');
-  const cancelBtn = document.getElementById('customerEditCancelBtn');
   const newOrderBtn = document.getElementById('customerNewOrderBtn');
-  if (headerSaveBtn) headerSaveBtn.style.display = editMode || isNew ? '' : 'none';
+  const moreBtn = document.getElementById('customerMoreBtn');
   if (detailEditBtn) detailEditBtn.style.display = viewOnly ? '' : 'none';
-  if (cancelBtn) cancelBtn.style.display = editMode && !isNew ? '' : 'none';
   if (newOrderBtn) newOrderBtn.style.display = isNew ? 'none' : '';
-  const deleteBtn = document.getElementById('customerDeleteBtn');
-  if (deleteBtn) deleteBtn.style.display = viewOnly ? '' : 'none';
+  if (moreBtn) moreBtn.style.display = viewOnly ? '' : 'none';
+  if (!viewOnly && document.querySelector('.customer-more-menu')) uiCloseBoardMenu();
   // 只读时标题栏的编号、状态和标签由 renderCustomerDetailView 填；新建 / 编辑回到说明文字。
   document.getElementById('customerModalSub').textContent = isNew ? '新客户档案' : (viewOnly ? '客户档案' : '编辑客户档案');
   if (!viewOnly) {
@@ -22167,11 +22185,8 @@ function openCustomerModal(name = '', { viewOnly = true } = {}) {
   if (wasOpen) uiFormSnapshotOnOpen(form);
 }
 function updateCustomerSaveLabels() {
-  const headerBtn = document.getElementById('customerHeaderSaveBtn');
   const footerBtn = document.getElementById('customerFooterSaveBtn');
-  const label = pendingCombinedOrderFields ? '保存客户并继续确认订单' : '保存';
-  if (headerBtn) headerBtn.textContent = pendingCombinedOrderFields ? '保存并继续' : '保存';
-  if (footerBtn) footerBtn.textContent = pendingCombinedOrderFields ? label : '保存客户';
+  if (footerBtn) footerBtn.textContent = pendingCombinedOrderFields ? '保存客户并继续确认订单' : '保存客户';
 }
 function closeCustomerModal(clearPending = true) {
   if (document.getElementById('customerForm')?.dataset.saving) return;
@@ -22533,7 +22548,7 @@ async function saveCustomer(form) {
   commitCustomerSavePayload({ oldName, ...payload });
   if (form.elements.originalName) form.elements.originalName.value = payload.newName;
   const persist = () => persistFormState(form);
-  if (!await (typeof withBusyButton === 'function' ? withBusyButton(document.getElementById('customerHeaderSaveBtn'), persist) : persist())) {
+  if (!await (typeof withBusyButton === 'function' ? withBusyButton(document.getElementById('customerFooterSaveBtn'), persist) : persist())) {
     // 没写进数据库：放弃这次编辑（关掉档案、取消编辑、换一位客户）时按快照撤回，后台重试不会再写进去。
     if (undo && typeof failedSaveRemember === 'function') failedSaveRemember(form, undo);
     return;
@@ -29985,7 +30000,7 @@ document.getElementById('customerForm').addEventListener('keydown', e => {
   const fields = [...form.querySelectorAll('#customerEditWorkspace input:not([type="hidden"]):not([disabled]), #customerEditWorkspace select:not([disabled]), #customerEditWorkspace textarea:not([disabled])')]
     .filter(el => el.getClientRects().length && !el.closest('.paste-assist'));
   const next = fields[fields.indexOf(target) + 1];
-  (next || document.getElementById('customerHeaderSaveBtn'))?.focus();
+  (next || document.getElementById('customerFooterSaveBtn'))?.focus();
 });
 // 主要联系方式缺对应资料时（选了 WhatsApp 却没有电话……）在下面提醒一句，不挡保存。
 function refreshCustomerContactChannelHint(form) {
@@ -30045,8 +30060,12 @@ document.getElementById('customerDetailEditBtn').addEventListener('click', () =>
   // 「编辑资料」按钮自己被藏起来了：焦点交给客户名称，不掉到页面上。
   document.getElementById('customerForm')?.elements.name?.focus({ preventScroll:true });
 });
-document.getElementById('customerEditCancelBtn').addEventListener('click', () => uiCancelCustomerEditGuarded());
-document.getElementById('customerDeleteBtn').addEventListener('click', () => { if (editingCustomer) deleteCustomerProfile(editingCustomer); });
+document.getElementById('customerMoreBtn').addEventListener('click', e => {
+  const btn = e.currentTarget;
+  // 菜单开着时再点「⋯」：按下那一刻菜单已经被关掉了（见 pointerdown），这一下不再打开。
+  if (performance.now() - (btn._menuClosedAt || 0) < 1000) { btn._menuClosedAt = 0; return; }
+  uiOpenCustomerMoreMenu(btn);
+});
 document.getElementById('customerNewOrderBtn').addEventListener('click', () => openNewOrderForCustomer(editingCustomer));
 document.getElementById('customerModal').addEventListener('click', async e => {
   if (e.target.id === 'customerModal') {
@@ -30106,6 +30125,7 @@ document.getElementById('customerModal').addEventListener('click', async e => {
   }
 });
 document.getElementById('combinedSaveBtn')?.addEventListener('click', saveCombinedCustomerOrder);
+document.getElementById('combinedCancelBtn')?.addEventListener('click', () => uiCloseCombinedGuarded());
 document.getElementById('combinedCloseBtn')?.addEventListener('click', () => uiCloseCombinedGuarded());
 document.getElementById('combinedCustomerOrderModal')?.addEventListener('click', e => { if (e.target.id === 'combinedCustomerOrderModal') uiCloseCombinedGuarded(); });
 document.getElementById('customerDetailTabs')?.addEventListener('click', e => {
@@ -31578,6 +31598,7 @@ function uiCloseBoardMenu({ restoreFocus = false } = {}) {
   // 菜单关了，里面正在按住的「按住删除」一起放弃（以前按住时按 Esc，菜单没了，1.5 秒后订单照样被删）。
   uiCancelAllHolds(menu);
   menu.remove();
+  if (menu.__card?.hasAttribute?.('aria-expanded')) menu.__card.setAttribute('aria-expanded', 'false');
   if (!restoreFocus) return;
   const card = menu.__card?.isConnected ? menu.__card : document.querySelector(`#pipeline .board-card[data-id="${CSS.escape(menu.dataset.orderId || '')}"]`);
   card?.focus({ preventScroll:true });
@@ -31638,6 +31659,13 @@ function uiOpenBoardMenu(card, { x = 0, y = 0 } = {}) {
     uiCloseBoardMenu();
     softDeleteOrder(order.id);
   });
+  uiBoardMenuBindKeys(menu);
+  // 焦点放进菜单（第一项），方向键马上能用；鼠标打开时也一样，Esc 关掉后回到卡片。
+  uiBoardMenuItems(menu)[0]?.focus({ preventScroll:true });
+  return menu;
+}
+// 菜单的键盘：↑↓ Home End 在各项之间走，Esc / Tab 关掉、焦点回到打开它的地方（看板卡片、客户档案的「⋯」）。
+function uiBoardMenuBindKeys(menu) {
   // 菜单上再右键不弹浏览器 / WebView 自带的菜单（Mac 上叠两层菜单，里面还有「重新载入」）。
   menu.addEventListener('contextmenu', ev => ev.preventDefault());
   menu.addEventListener('keydown', ev => {
@@ -31655,7 +31683,43 @@ function uiOpenBoardMenu(card, { x = 0, y = 0 } = {}) {
     ev.preventDefault();
     target.focus();
   });
-  // 焦点放进菜单（第一项），方向键马上能用；鼠标打开时也一样，Esc 关掉后回到卡片。
+}
+// 客户档案（只读）右上角的「⋯」：合并到其他客户、删除客户。和看板右键菜单同一套（样式、键盘、点外面 / 滚动 / 失焦就关）。
+// 删除的判断全在 deleteCustomerProfile 里（有订单不能直接删 → 合并到其他客户…），这里只换了入口。
+function uiOpenCustomerMoreMenu(btn) {
+  uiCloseBoardMenu();
+  const name = editingCustomer;
+  if (!btn || !name) return null;
+  const menu = document.createElement('div');
+  menu.className = 'board-menu customer-more-menu';
+  menu.setAttribute('role', 'menu');
+  menu.setAttribute('aria-label', `${clientDisplayName(name)} 的更多操作`);
+  menu.__card = btn;
+  const box = btn.getBoundingClientRect();
+  menu.__anchor = { left:box.left, top:box.top, vw:window.innerWidth, vh:window.innerHeight };
+  menu.__scrolls = uiBoardMenuScrollSnapshot(btn);
+  menu.innerHTML = `
+    <button type="button" role="menuitem" tabindex="-1" data-customer-menu="merge">${uiIcon('users')}合并到其他客户…</button>
+    <button type="button" role="menuitem" tabindex="-1" class="board-menu-danger" data-customer-menu="delete" title="没有订单的客户可以删除；有订单的可以合并到其他客户">${uiIcon('trash')}删除客户</button>`;
+  document.body.appendChild(menu);
+  // 右边和按钮对齐、放在按钮下面；量布局尺寸（入场动画还在缩放）。
+  const width = menu.offsetWidth;
+  const height = menu.offsetHeight;
+  const below = box.bottom + 6;
+  const top = below + height > window.innerHeight - 8 ? box.top - height - 6 : below;
+  menu.style.left = `${Math.max(8, Math.min(box.right - width, window.innerWidth - width - 8))}px`;
+  menu.style.top = `${Math.max(8, top)}px`;
+  menu.style.transformOrigin = 'top right';
+  btn.setAttribute('aria-expanded', 'true');
+  menu.addEventListener('click', ev => {
+    const action = ev.target.closest('[data-customer-menu]')?.dataset.customerMenu;
+    if (!action) return;
+    uiCloseBoardMenu({ restoreFocus:true });
+    if (editingCustomer !== name) return;
+    if (action === 'merge') { if (canSubmitStoredData()) mergeCustomerInto(name); }
+    if (action === 'delete') deleteCustomerProfile(name);
+  });
+  uiBoardMenuBindKeys(menu);
   uiBoardMenuItems(menu)[0]?.focus({ preventScroll:true });
   return menu;
 }
@@ -31681,7 +31745,11 @@ document.getElementById('pipeline')?.addEventListener('keydown', e => {
   }
 });
 document.addEventListener('pointerdown', e => {
-  if (!e.target.closest?.('.board-menu')) uiCloseBoardMenu();
+  if (e.target.closest?.('.board-menu')) return;
+  const anchor = document.querySelector('.board-menu')?.__card;
+  // 按在打开它的「⋯」上：菜单在这里关掉，紧跟着的 click 不再把它打开（再点一下 = 收起）。
+  if (anchor?.id === 'customerMoreBtn' && anchor.contains(e.target)) anchor._menuClosedAt = performance.now();
+  uiCloseBoardMenu();
 }, true);
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !isImeKeyEvent(e)) uiCloseBoardMenu({ restoreFocus:true }); });
 document.addEventListener('keydown', e => {
@@ -32412,7 +32480,11 @@ uiCustomerSections();
 uiModalOnOpen('orderModal', document.getElementById('orderForm'));
 uiStepNavSetup('customerModal', 'customerForm');
 uiStepNavCloseIcons();
-document.getElementById('customerFooterCancelBtn')?.addEventListener('click', () => document.getElementById('closeCustomerModalBtn')?.click());
+// 底部「取消」：编辑已有客户时回到只读档案（改了没保存先问），新建客户时关掉弹窗。
+document.getElementById('customerFooterCancelBtn')?.addEventListener('click', () => {
+  if (editingCustomer) uiCancelCustomerEditGuarded();
+  else uiCloseCustomerGuarded();
+});
 // #endregion
 // #region Close guards for unsaved forms
 // ===== 关闭保护：订单 / 客户弹窗和详情抽屉里有没保存的改动时，关闭、点遮罩、Esc 都先确认；没改动直接关。=====
@@ -32800,7 +32872,7 @@ document.addEventListener('keydown', e => {
   const active = document.activeElement;
   // 焦点在这一层外面（背后的页面、或者已经跑出去了）：拉回来。层里自己的弹出菜单（客户下拉等）不管。
   if (!top.contains(active)) {
-    if (active?.closest?.('.app-select-popover, .suggest-menu, .client-menu')) return;
+    if (active?.closest?.('.app-select-popover, .suggest-menu, .client-menu, .board-menu')) return;
     e.preventDefault();
     (e.shiftKey ? last : first).focus();
   } else if (e.shiftKey && active === first) {

@@ -88,6 +88,11 @@ async function main() {
     '18 Test Street, London, United Kingdom', 'USD 1,022.00',
     'Bank Transfer', '全部为虚拟资料', 'img_v3_test_order'
   ]) assert.match(markdown, new RegExp(escapeRegExp(expected)), `missing markdown field: ${expected}`);
+  assert.match(markdown, /\*\*订单详情：\*\* Body Wave 22 inch × 2\n\u3000\u3000Straight 18 inch × 1\n/, '订单详情一行一项，第二行起缩进');
+  assert.ok(
+    markdown.indexOf('**付款方式：**') < markdown.indexOf('**订单详情：**') && markdown.indexOf('**订单详情：**') < markdown.indexOf('**订单备注：**'),
+    '订单详情在付款方式和订单备注之间'
+  );
   for (const forbidden of ['新订单通知', '保存时间', '客户信息', '订单信息', '订单图片', '订单状态', '假发', 'DHL', 'must-not-use@example.net']) {
     assert.equal(markdown.includes(forbidden), false, `forbidden markdown content: ${forbidden}`);
   }
@@ -103,6 +108,7 @@ async function main() {
   const refreshedOrder = refreshed.data.orders.find(order => order.id === 'o-feishu-success');
   assert.equal(refreshedOrder.feishuNotification.status, 'sent');
   assert.equal(refreshedOrder.feishuNotification.messageId, sent.messageId);
+  assert.equal(refreshedOrder.feishuNotification.sentFields?.orderDetail, 'Body Wave 22 inch × 2\nStraight 18 inch × 1', '发出的订单详情记下来，之后改了能提示');
 
   const draft = await rawRequest('/api/order-notification', { method: 'POST', body: { orderId: 'o-feishu-draft' } });
   assert.equal(draft.status, 409);
@@ -169,6 +175,7 @@ function testOrder(id, num, fileUrl) {
     stage: 'quote',
     trackingNumber: 'DHL-SECRET-TRACKING',
     carrier: 'DHL',
+    orderDetail: 'Body Wave 22 inch × 2\nStraight 18 inch × 1',
     note: '全部为虚拟资料',
     updated: '2026-08-18 17:45',
     attachments: fileUrl ? [{ name: '订单原图', type: '图片附件', fileUrl, thumbUrl: fileUrl }] : [],

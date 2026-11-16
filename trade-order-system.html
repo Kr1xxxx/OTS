@@ -5544,7 +5544,7 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.174，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.174</div>
+      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.175，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.175</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会先问一句，再下载并重启" aria-label="检查更新：有新版本会先问一句，再下载并重启" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse is-busy" id="savePulse" aria-live="polite"><i></i><span>读取中</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -7803,7 +7803,7 @@ function renderFeishuNotificationBadge(order = {}, short = false) {
   return '';
 }
 // 群消息发出后，消息里的字段（金额、备注、地址…）又改过：列出改了哪些，群里仍是发出时的内容。
-const feishuFieldLabels = { client:'客户名称', num:'订单号', email:'邮箱', phone:'手机号', address:'收货地址', amount:'订单金额', paymentChannel:'付款方式', note:'订单备注' };
+const feishuFieldLabels = { client:'客户名称', num:'订单号', email:'邮箱', phone:'手机号', address:'收货地址', amount:'订单金额', paymentChannel:'付款方式', orderDetail:'订单详情', note:'订单备注' };
 function feishuNotificationChangedFields(order = {}, notification = normalizeFeishuNotification(order.feishuNotification)) {
   const sent = notification.sentFields;
   if (notification.status !== 'sent' || !sent) return [];
@@ -7818,6 +7818,7 @@ function feishuNotificationChangedFields(order = {}, notification = normalizeFei
     address: text(customer.address),
     amount: `${String(order.currency || 'USD').trim().toUpperCase() || 'USD'} ${Number.isFinite(amount) ? amount.toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 }) : '0.00'}`,
     paymentChannel: text(order.paymentChannel),
+    orderDetail: text(Array.isArray(order.orderDetail) ? order.orderDetail.join('\n') : order.orderDetail),
     note: text(order.note)
   };
   return Object.keys(feishuFieldLabels).filter(key => key in sent && text(sent[key]) !== current[key]).map(key => feishuFieldLabels[key]);

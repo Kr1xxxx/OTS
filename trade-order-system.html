@@ -5333,6 +5333,9 @@ html[data-theme] .pick-switch:has(input:disabled) { cursor:not-allowed; }
 html[data-theme] .pick-switch input:disabled { opacity:.45; cursor:not-allowed; }
 html[data-theme] .pick-switch b { display:block; font-size:13px; font-weight:500; color:var(--gray-900); }
 html[data-theme] .pick-switch small { display:block; font-size:12px; line-height:1.45; color:var(--gray-500); }
+html[data-theme] .pick-switch small.is-warning { color:var(--orange-700, var(--orange-600)); }
+/* 设置页的开关占原来分段控件那一格；说明行可以换行，不撑宽网格。 */
+html[data-theme] .settings-form > .settings-switch { align-self:center; min-width:0; }
 @media (max-width: 560px) {
   html[data-theme] .pick-modal > .modal-head { padding:16px 12px 8px 16px; }
   html[data-theme] .pick-modal > .modal-body { padding:4px 16px 16px; }
@@ -5622,7 +5625,7 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.177，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.177</div>
+      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.179，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.179</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会先问一句，再下载并重启" aria-label="检查更新：有新版本会先问一句，再下载并重启" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse is-busy" id="savePulse" aria-live="polite"><i></i><span>读取中</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -6334,14 +6337,8 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
             </div>
             <div class="settings-card">
               <form class="settings-form" id="trackingApiSettingsForm" autocomplete="off">
-                <div class="field">
-                  <label>DHL API</label>
-                  <select name="dhlApiEnabled" data-segment="always"><option value="否">关闭</option><option value="是">开启</option></select>
-                </div>
-                <div class="field">
-                  <label>自动更新</label>
-                  <select name="autoDhlUpdate" data-segment="always"><option value="是">每天 2 次</option><option value="否">关闭</option></select>
-                </div>
+                <label class="pick-switch settings-switch"><input type="checkbox" role="switch" name="dhlApiEnabled" value="是" data-on="是" data-off="否"><span><b>DHL 官方查询</b><small data-switch-desc="dhlApiEnabled"></small></span></label>
+                <label class="pick-switch settings-switch"><input type="checkbox" role="switch" name="autoDhlUpdate" value="是" data-on="是" data-off="否"><span><b>自动更新物流</b><small data-switch-desc="autoDhlUpdate"></small></span></label>
                 <div class="field span-2">
                   <label>DHL API Key</label>
                   <input name="dhlApiKey" type="password" placeholder="保存在本机 Mac App 数据目录，不写入分享文件">
@@ -6350,10 +6347,7 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
                   <label>自动更新时间</label>
                   <input name="autoRunTimes" placeholder="09:00,18:00">
                 </div>
-                <div class="field">
-                  <label>FedEx API</label>
-                  <select name="fedexApiEnabled" data-segment="always"><option value="否">关闭</option><option value="是">开启</option></select>
-                </div>
+                <label class="pick-switch settings-switch"><input type="checkbox" role="switch" name="fedexApiEnabled" value="是" data-on="是" data-off="否"><span><b>FedEx 官方查询</b><small data-switch-desc="fedexApiEnabled"></small></span></label>
                 <div class="field">
                   <label>FedEx 环境</label>
                   <select name="fedexEnv" data-segment="always"><option value="test">测试环境</option><option value="prod">正式环境</option></select>
@@ -6477,10 +6471,7 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
             </div>
             <div class="settings-card">
               <form class="settings-form" id="aiSettingsForm" autocomplete="off">
-                <div class="field">
-                  <label>启用 AI 识别</label>
-                  <select name="enabled" data-segment="always"><option value="否">否</option><option value="是">是</option></select>
-                </div>
+                <label class="pick-switch settings-switch"><input type="checkbox" role="switch" name="enabled" value="是" data-on="是" data-off="否"><span><b>AI 识别</b><small data-switch-desc="enabled"></small></span></label>
                 <div class="ai-compact-row">
                   <div class="field">
                     <label>接口类型</label>
@@ -14057,7 +14048,7 @@ function aiFailureDetail(error) {
     return { title:'AI 识别超时', reason:'等了 45 秒还没有结果：可能是网络慢或 AI 服务繁忙。可以减少粘贴内容后重试一次。' };
   }
   if (/未启用/.test(message)) {
-    return { title:'AI 识别没有打开', reason:'到「设置 → AI 识别」把「启用 AI 识别」改成「是」并保存，再回来点 AI 识别。', settings:true };
+    return { title:'AI 识别没有打开', reason:'到「设置 → AI 识别」打开「AI 识别」开关并保存，再回来点 AI 识别。', settings:true };
   }
   if (/base url|模型名称|填写 api key/i.test(message)) {
     return { title:'AI 设置没填完整', reason:'到「设置 → AI 识别」填好 API Key、Base URL 和模型名称，点「测试连接」确认能用。', settings:true };
@@ -18634,6 +18625,51 @@ function settingsFormFill(form, fill) {
   uiFormMarkClean(form);
 }
 function settingsFormRefill(form) { if (form) delete form._cleanFingerprint; }
+// 设置页的开关（物流追踪的 3 个、AI 识别）：勾上存 data-on（「是」），不勾存 data-off（「否」），和以前两格的分段控件存的值一样。
+// 不勾的复选框 FormData 里没有，所以读表单一律走这里。
+function settingsFormData(form) {
+  const data = Object.fromEntries(new FormData(form).entries());
+  form.querySelectorAll('input[role="switch"][data-on]').forEach(input => { data[input.name] = input.checked ? input.dataset.on : input.dataset.off; });
+  return data;
+}
+// 开关下面那行：照表单里现在的值（还没保存的也算）说这个位置意味着什么。[文字, 是否警示]
+function settingsSwitchDescs(form) {
+  const el = form.elements;
+  const filled = (input, savedFlag) => Boolean(String(input?.value || '').trim()) || Boolean(form._shownSettings?.[savedFlag]);
+  if (form.id === 'aiSettingsForm') {
+    return {
+      enabled: !el.enabled.checked ? ['已关闭：点「AI 识别」不会发给 AI，只能用本地识别', false]
+        : filled(el.apiKey, 'apiKeySaved') ? ['已开启：点「AI 识别」时把粘贴的文字发给下面填的 AI 接口', false]
+          : ['已开启，但还没填 API Key，识别会失败', true]
+    };
+  }
+  const dhlOn = el.dhlApiEnabled.checked;
+  const fedexOn = el.fedexApiEnabled.checked;
+  const fedexMissing = [!filled(el.fedexApiKey, 'fedexApiKeySaved') && 'API Key', !filled(el.fedexApiSecret, 'fedexApiSecretSaved') && 'Secret'].filter(Boolean);
+  const carriers = [dhlOn && 'DHL', fedexOn && 'FedEx'].filter(Boolean);
+  const slots = dhlAutoRunSlots({ autoRunTimes:el.autoRunTimes.value });
+  return {
+    dhlApiEnabled: !dhlOn ? ['已关闭：DHL 单号不查状态，可以点「官网」去 DHL 网站看', false]
+      : filled(el.dhlApiKey, 'dhlApiKeySaved') ? ['已开启：DHL 单号用 DHL 官方接口查物流状态', false]
+        : ['已开启，但还没填 DHL API Key，查不了', true],
+    fedexApiEnabled: !fedexOn ? ['已关闭：FedEx 单号不查状态，可以点「官网」去 FedEx 网站看', false]
+      : !fedexMissing.length ? ['已开启：FedEx 单号用 FedEx 官方接口查物流状态', false]
+        : [`已开启，但还没填 FedEx ${fedexMissing.join(' 和 ')}，查不了`, true],
+    autoDhlUpdate: !el.autoDhlUpdate.checked ? ['已关闭：只在你点「立即更新物流」或包裹旁的「更新」时查', false]
+      : !carriers.length ? ['已开启，但 DHL 和 FedEx 官方查询都关着，不会自动查', true]
+        : !slots.length ? ['已开启，但自动更新时间没填对（例如 09:00,18:00），不会自动查', true]
+          : [`每天 ${slots.join(' 和 ')} 自动查没签收的 ${carriers.join(' / ')} 包裹；到点时软件没开，打开后补查`, false]
+  };
+}
+function renderSettingsSwitchDescs(form) {
+  if (!form) return;
+  Object.entries(settingsSwitchDescs(form)).forEach(([name, [text, warning]]) => {
+    const small = form.querySelector(`[data-switch-desc="${name}"]`);
+    if (!small) return;
+    small.textContent = text;
+    small.classList.toggle('is-warning', warning);
+  });
+}
 function renderSettings() {
   renderAiUsage();
   state.customerLevels = normalizeCustomerLevels(state.customerLevels || defaultCustomerLevels);
@@ -18678,7 +18714,7 @@ function renderSettings() {
   if (aiStatus) { const ai = getAiSettings(); aiStatus.textContent = `${ai.lastTestStatus || '尚未测试连接'}${ai.lastTestAt ? ` · ${ai.lastTestAt}` : ''}`; }
   settingsFormFill(aiForm, aiForm => {
     const ai = getAiSettings();
-    aiForm.elements.enabled.value = ai.enabled;
+    aiForm.elements.enabled.checked = ai.enabled === '是';
     aiForm.elements.provider.value = 'custom';
     aiForm.elements.baseUrl.value = ai.baseUrl;
     aiForm.elements.model.value = ai.model;
@@ -18686,24 +18722,26 @@ function renderSettings() {
     aiForm._shownSettings = ai;
     aiForm.elements.apiKey.placeholder = savedSecretPlaceholder(ai.apiKeySaved, ai.apiKeyMask, '只保存在本机，不随数据文件导出');
   });
+  renderSettingsSwitchDescs(aiForm);
   const trackingForm = document.getElementById('trackingApiSettingsForm');
   if (trackingForm) {
     const tracking = getTrackingApiSettings();
     settingsFormFill(trackingForm, trackingForm => {
       // 表单显示的是哪一份：保存时只发和它不同的字段（另一个窗口改过的其它项不被这里的旧值盖回去）。
       trackingForm._shownSettings = tracking;
-      trackingForm.elements.dhlApiEnabled.value = tracking.dhlApiEnabled;
-      trackingForm.elements.autoDhlUpdate.value = tracking.autoDhlUpdate;
+      trackingForm.elements.dhlApiEnabled.checked = tracking.dhlApiEnabled === '是';
+      trackingForm.elements.autoDhlUpdate.checked = tracking.autoDhlUpdate === '是';
       trackingForm.elements.dhlApiKey.value = '';
       trackingForm.elements.dhlApiKey.placeholder = savedSecretPlaceholder(tracking.dhlApiKeySaved, tracking.dhlApiKeyMask, '保存在本机 Mac App 数据目录，不写入分享文件');
       trackingForm.elements.autoRunTimes.value = tracking.autoRunTimes;
-      trackingForm.elements.fedexApiEnabled.value = tracking.fedexApiEnabled;
+      trackingForm.elements.fedexApiEnabled.checked = tracking.fedexApiEnabled === '是';
       trackingForm.elements.fedexEnv.value = tracking.fedexEnv;
       trackingForm.elements.fedexApiKey.value = '';
       trackingForm.elements.fedexApiSecret.value = '';
       trackingForm.elements.fedexApiKey.placeholder = savedSecretPlaceholder(tracking.fedexApiKeySaved, tracking.fedexApiKeyMask, '保存到本机 Mac App 数据目录');
       trackingForm.elements.fedexApiSecret.placeholder = savedSecretPlaceholder(tracking.fedexApiSecretSaved, tracking.fedexApiSecretMask, '保存到本机 Mac App 数据目录');
     });
+    renderSettingsSwitchDescs(trackingForm);
     const lastChecked = document.getElementById('trackingApiLastChecked');
     const dhlStatus = document.getElementById('trackingApiDhlStatus');
     const fedexStatus = document.getElementById('trackingApiFedexStatus');
@@ -30859,7 +30897,7 @@ document.getElementById('aiSettingsForm')?.addEventListener('submit', async e =>
   e.preventDefault();
   const form = e.currentTarget;
   if (form.dataset.saving) return;
-  const data = Object.fromEntries(new FormData(form).entries());
+  const data = settingsFormData(form);
   const current = form._shownSettings || getAiSettings();
   const typedKey = String(data.apiKey || '').trim();
   const nextSettings = normalizeAiSettings({
@@ -30895,7 +30933,7 @@ document.getElementById('trackingApiSettingsForm')?.addEventListener('submit', a
   e.preventDefault();
   const form = e.currentTarget;
   if (form.dataset.saving) return;
-  const data = Object.fromEntries(new FormData(form).entries());
+  const data = settingsFormData(form);
   const current = form._shownSettings || getTrackingApiSettings();
   const nextSettings = {
     ...current,
@@ -30925,9 +30963,14 @@ document.getElementById('trackingApiSettingsForm')?.addEventListener('submit', a
   toast('物流追踪设置已保存');
 });
 document.getElementById('runTrackingAutoUpdateBtn')?.addEventListener('click', () => runTrackingAutoUpdate('manual'));
+// 开关和 Key、自动更新时间一改，开关下面那行跟着变（还没保存也变；存不存照旧要点保存）。
+['trackingApiSettingsForm', 'aiSettingsForm'].forEach(id => {
+  const form = document.getElementById(id);
+  ['input', 'change'].forEach(type => form?.addEventListener(type, () => renderSettingsSwitchDescs(form)));
+});
 document.getElementById('testAiConnectionBtn')?.addEventListener('click', async e => {
   const form = document.getElementById('aiSettingsForm');
-  const data = Object.fromEntries(new FormData(form).entries());
+  const data = settingsFormData(form);
   const settings = normalizeAiSettings({ ...getAiSettings(), ...data });
   let testSettings = { ...settings, enabled: '是' };
   const btn = e.currentTarget;

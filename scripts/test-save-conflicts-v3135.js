@@ -363,7 +363,7 @@ async function main() {
     await C.evaluate(() => setPage('settings'));
     let trackingPosts = 0;
     await A.route('**/api/tracking-settings', route => { if (route.request().method() === 'POST') trackingPosts += 1; return route.continue(); });
-    await A.evaluate(() => { const form = document.getElementById('trackingApiSettingsForm'); form.elements.autoDhlUpdate.value = '否'; form.requestSubmit(); });
+    await A.evaluate(() => { const form = document.getElementById('trackingApiSettingsForm'); form.elements.autoDhlUpdate.checked = false; form.requestSubmit(); });
     await h.waitToast(A, '物流追踪设置已保存');
     assert.equal(trackingPosts, 1, 'one save posts once');
     await C.evaluate(() => { const form = document.getElementById('trackingApiSettingsForm'); form.elements.fedexEnv.value = 'prod'; form.requestSubmit(); });

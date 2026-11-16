@@ -25276,10 +25276,6 @@ function stateDiff(current = {}, next = {}) {
   });
   return { orders, customers };
 }
-function stateDiffLine(label, unit, item, list = []) {
-  const removed = item.removed ? `、删除 ${item.removed} ${unit}（${list.join('、')}${item.removed > list.length ? ' 等' : ''}）` : '、删除 0';
-  return `· ${label}：新增 ${item.added}、修改 ${item.changed}${removed}`;
-}
 // 合并导入：文件里的订单按 id 新增或更新（放进文件里的那一栏），文件里没有的订单一张不删；
 // 只加现在没有的客户档案和目标，已有的档案、设置都不动（单月文件里的档案可能比现在的旧）。
 // 订单号已被现有的另一张单占用时跳过这张，预览里说出来。
@@ -25583,25 +25579,49 @@ async function macToggleRestoreList(btn) {
     list.innerHTML = `<div class="muted">备份列表读取失败：${escapeAttr(error.message || '本地服务没有响应')}</div>`;
   }
 }
-function restorePreviewMessage(preview) {
-  const c = preview.counts || {};
-  const lines = [
-    `备份时间：${backupTimeText(preview.at)}${preview.reason ? `（${backupReasonLabels[preview.reason] || '操作前'}的快照）` : ''}`,
-    `备份里：订单 ${c.orders} · 垃圾箱 ${c.trashOrders} · 已删除 ${c.deletedOrders} · 客户 ${c.customers} · 续费 ${c.subscriptions} · WhatsApp 消息 ${c.whatsappMessages}`
-  ];
-  if (preview.current && preview.diff) {
-    const now = preview.current;
-    lines.push(`现在：订单 ${now.orders} · 垃圾箱 ${now.trashOrders} · 已删除 ${now.deletedOrders} · 客户 ${now.customers} · 续费 ${now.subscriptions} · WhatsApp 消息 ${now.whatsappMessages}`);
-    lines.push('', '恢复后和现在比：');
-    lines.push(stateDiffLine('订单（含垃圾箱、已删除）', '张', preview.diff.orders, preview.diff.orders.removedNums || []));
-    lines.push(stateDiffLine('客户', '位', preview.diff.customers, preview.diff.customers.removedNames || []));
-    if (now.subscriptions !== c.subscriptions) lines.push(`· 续费：${now.subscriptions} 条 → ${c.subscriptions} 条`);
+// 从备份恢复的预览：「现在 / 恢复后」对照表 + 恢复后会变的（会少的标红，写出订单号、客户名）+ 两句说明。
+// 现在的数据库没读出来（只读保护）时只有「备份里」一列。只把数据交给 appConfirm 的 blocks。
+// 列出前几个（订单号、客户名），总数比列出的多时后面写「等」。
+function listWithMore(list = [], total = list.length) {
+  return list.length ? `${list.join('、')}${total > list.length ? ' 等' : ''}` : '';
+}
+const restoreCountRows = [['orders', '订单'], ['trashOrders', '垃圾箱'], ['deletedOrders', '已删除订单'], ['customers', '客户'], ['subscriptions', '续费'], ['whatsappMessages', 'WhatsApp 消息']];
+function restorePreviewBlocks(preview) {
+  const backup = preview.counts || {};
+  const now = preview.current && preview.diff ? preview.current : null;
+  const number = value => Number(value) || 0;
+  const blocks = [];
+  if (now) {
+    // 两边都是 0 的行并成一行，有数的各占一行。
+    const rows = restoreCountRows.map(([key, label]) => ({ label, cells:[number(now[key]), number(backup[key])] }));
+    const empty = rows.filter(row => row.cells.every(value => !value));
+    blocks.push({
+      type:'table',
+      columns:['', '现在', '恢复后'],
+      rows:[
+        ...rows.filter(row => !empty.includes(row)).map(row => ({ cells:[row.label, ...row.cells] })),
+        ...(empty.length ? [{ cells:[empty.map(row => row.label).join('、'), 0, 0] }] : [])
+      ]
+    });
+    const { orders, customers } = preview.diff;
+        const items = [];
+    if (orders.removed) items.push({ text:`少 ${orders.removed} 张订单`, detail:listWithMore(orders.removedNums || [], orders.removed), tone:'bad' });
+    if (customers.removed) items.push({ text:`少 ${customers.removed} 位客户`, detail:listWithMore(customers.removedNames || [], customers.removed), tone:'bad' });
+    const subscriptionsGone = number(now.subscriptions) - number(backup.subscriptions);
+    if (subscriptionsGone > 0) items.push({ text:`少 ${subscriptionsGone} 条续费`, tone:'bad' });
+    const counted = (orderCount, customerCount, extra = '') => [orderCount ? `${orderCount} 张订单` : '', customerCount ? `${customerCount} 位客户` : '', extra].filter(Boolean).join('、');
+    const added = counted(orders.added, customers.added, subscriptionsGone < 0 ? `${-subscriptionsGone} 条续费` : '');
+    if (added) items.push({ text:`多出 ${added}` });
+    const changed = counted(orders.changed, customers.changed);
+    if (changed) items.push({ text:`${changed}改回备份时的内容` });
+    blocks.push({ type:'list', label:'恢复后会变的（订单含垃圾箱和已删除订单）', items:items.length ? items : [{ text:'和现在没有差别' }] });
   } else {
-    lines.push('', '现在的数据库没有读出来（只读保护），没法逐项对比；恢复后以这份备份为准。');
+    blocks.push({ type:'table', columns:['', '备份里'], rows:restoreCountRows.map(([key, label]) => ({ cells:[label, number(backup[key])] })) });
+    blocks.push({ type:'text', text:'现在的数据库没有读出来（只读保护），没法逐项对比；恢复后以这份备份为准。' });
   }
-  if (preview.missingAttachments) lines.push('', `这份备份做的时候有 ${preview.missingAttachments} 个附件文件已经找不到，恢复后这些图片仍然打不开。`);
-  lines.push('', '恢复会换掉整个数据库（订单、客户、设置、续费、WhatsApp 聊天），页面会重新加载。');
-  return lines.join('\n');
+  if (preview.missingAttachments) blocks.push({ type:'text', text:`这份备份做的时候有 ${preview.missingAttachments} 个附件文件已经找不到，恢复后这些图片仍然打不开。` });
+  blocks.push({ type:'text', fine:true, text:'恢复会换掉整个数据库（订单、客户、设置、续费、WhatsApp 聊天），页面会重新加载。' });
+  return blocks;
 }
 async function macRestoreBackup(name) {
   if (!isMacAppMode() || !name) return;
@@ -25619,7 +25639,7 @@ async function macRestoreBackup(name) {
     toast(`这份备份读不出来：${error.message || '本地服务没有响应'}`, { tone:'error' });
     return;
   }
-  const choice = await appConfirm({ title:'从备份恢复', sub:`${backupTimeText(preview.at)} 的备份`, message:restorePreviewMessage(preview), note:'恢复前先把现在的数据另存为一份「恢复前」备份，恢复后可以撤销', confirmText:'恢复这份备份', danger:true, defaultFocus:'cancel' });
+  const choice = await appConfirm({ title:'从备份恢复', sub:`${backupTimeText(preview.at)} 的备份${preview.reason ? ` · ${backupReasonLabels[preview.reason] || '操作前'}的快照` : ''}`, blocks:restorePreviewBlocks(preview), note:'恢复前先把现在的数据另存为一份「恢复前」备份，恢复后可以撤销', confirmText:'恢复这份备份', danger:true, defaultFocus:'cancel' });
   if (!choice.confirmed) return;
   try {
     const res = await apiFetch('/api/restore-backup', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ name }) });
@@ -25744,28 +25764,37 @@ async function macOpenDataFolder(btn) {
   }
   });
 }
+// 数据健康检查：五项都列出来，一项一行。有问题的标红、排在前面，写出是哪几张（每项最多 8 条，多的写「等」）；
+// 通过的打勾、变淡。判断条件和以前一样，查的范围含回收站和已删除订单。只是告诉你，不改数据。
 function runDataHealthCheck() {
   const allOrders = [...(state.orders || []), ...(state.trashOrders || []), ...(state.deletedOrders || [])];
   // 按规范化后的号分组：k26110701 和 K26110701 也算重复。每组写清楚号码、客户、在哪（订单 / 回收站 / 已删除）。
   const where = order => (state.trashOrders || []).includes(order) ? '回收站' : (state.deletedOrders || []).includes(order) ? '已删除' : '订单';
+  const clientText = order => clientDisplayName(order.client) || '未填客户';
   const duplicateNums = similarOrderNumGroups(allOrders)
-    .map(list => list.map(order => `${order.num}（${clientDisplayName(order.client) || '未填客户'} · ${where(order)}）`).join(' / '));
-  const emptyNums = allOrders.filter(order => !normalizeOrderNum(order.num)).length;
+    .map(list => list.map(order => `${order.num}（${clientText(order)} · ${where(order)}）`).join(' / '));
+  const emptyNums = allOrders.filter(order => !normalizeOrderNum(order.num));
   const ids = new Map();
   allOrders.forEach(order => ids.set(order.id, (ids.get(order.id) || 0) + 1));
   const duplicateIds = Array.from(ids).filter(([id, count]) => !id || count > 1).length;
-  const missingClient = allOrders.filter(order => !String(order.client || '').trim()).length;
-  const invalidAmount = allOrders.filter(order => Number(order.amount || 0) < 0 || !Number.isFinite(Number(order.amount || 0))).length;
-  const messages = [];
-  if (duplicateNums.length) messages.push(`重复订单号（含只差大小写、全角或空格的）：\n${duplicateNums.map(line => `· ${line}`).join('\n')}`);
-  if (emptyNums) messages.push(`订单号为空：${emptyNums} 个`);
-  if (duplicateIds) messages.push(`订单 ID 缺失或重复：${duplicateIds} 个`);
-  if (missingClient) messages.push(`缺少客户名称：${missingClient} 个`);
-  if (invalidAmount) messages.push(`异常金额：${invalidAmount} 个`);
+  const missingClient = allOrders.filter(order => !String(order.client || '').trim());
+  const invalidAmount = allOrders.filter(order => Number(order.amount || 0) < 0 || !Number.isFinite(Number(order.amount || 0)));
+  const numText = order => order.num || '没有订单号';
+  const shown = 8;
+  const detail = (lines, unit, separator = '、') => (lines.length ? `${lines.slice(0, shown).join(separator)}${lines.length > shown ? ` 等 ${lines.length} ${unit}` : ''}` : '');
+  const items = [
+    { label:'订单号重复', count:`${duplicateNums.length} 组`, detail:detail(duplicateNums, '组', '\n'), bad:duplicateNums.length > 0 },
+    { label:'订单号为空', count:`${emptyNums.length} 张`, detail:detail(emptyNums.map(order => `${clientText(order)} · ${where(order)}`), '张'), bad:emptyNums.length > 0 },
+    { label:'缺少客户名称', count:`${missingClient.length} 张`, detail:detail(missingClient.map(order => `${numText(order)} · ${where(order)}`), '张'), bad:missingClient.length > 0 },
+    { label:'金额异常', count:`${invalidAmount.length} 张`, detail:detail(invalidAmount.map(order => `${numText(order)} · ${clientText(order)}`), '张'), bad:invalidAmount.length > 0 },
+    // 内部编号用户自己改不了，只报个数。
+    { label:'订单内部编号缺失或重复', count:`${duplicateIds} 个`, bad:duplicateIds > 0 }
+  ].map(item => (item.bad ? item : { label:item.label, count:'0' }));
+  const problems = items.filter(item => item.bad).length;
   appConfirm({
     title: '数据健康检查',
-    sub: messages.length ? '发现需要关注的项目' : '检查通过',
-    message: messages.length ? messages.join('\n') : '当前订单号、客户名称和金额字段没有发现明显异常。',
+    sub: `查了 ${allOrders.length} 张订单 · ${problems ? `${problems} 项要看一下` : '五项都通过'}`,
+    blocks: [{ type:'checks', items:[...items.filter(item => item.bad), ...items.filter(item => !item.bad)] }],
     confirmText: '知道了',
     // 纯信息，只留一个「知道了」。
     cancelText: ''

@@ -6,6 +6,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
+const { confirmText } = require('./helpers/confirm-dialog');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'trade-order-system.html'), 'utf8');
 const d = new Date();
@@ -108,15 +109,53 @@ const base = { country:'🇺🇸 美国 United States', currency:'USD', amount:1
     await page.waitForFunction(() => !document.getElementById('orderModal').classList.contains('open'));
     assert.match(await page.evaluate(() => state.orders.find(o => o.id === 'o2').logs[0].text), new RegExp(`订单号：K${day}02 → K${day}88`));
 
-    // 6. 数据健康检查：认得只差大小写的号，写清楚客户和位置，空号单独报；纯信息只留「知道了」。
-    await page.evaluate(() => runDataHealthCheck());
-    await page.waitForFunction(() => document.getElementById('confirmModal').classList.contains('open'));
-    const health = await page.locator('#confirmMessage').innerText();
-    assert.match(health, new RegExp(`k${day}05（Legacy Lower · 订单） / K${day}05（Legacy Upper · 订单）`));
-    assert.match(health, /订单号为空：1 个/);
-    assert.doesNotMatch(health, /、$/m);
+    // 6. 数据健康检查：五项都列出来，有问题的标红排前面；认得只差大小写的号，写清楚客户和位置，空号单独一行；纯信息只留「知道了」。
+    const healthCheck = async () => {
+      await page.evaluate(() => runDataHealthCheck());
+      const text = await confirmText(page);
+      const rows = await page.evaluate(() => [...document.querySelectorAll('#confirmBlocks .confirm-checks li')].map(li => ({
+        label:li.querySelector('b').textContent, detail:li.querySelector('small')?.textContent || '', count:li.querySelector('.n').textContent, bad:li.classList.contains('bad')
+      })));
+      return { text, rows, sub:await page.locator('#confirmSub').textContent() };
+    };
+    const closeHealth = async () => {
+      await page.locator('#confirmOkBtn').click();
+      await page.waitForFunction(() => !document.getElementById('confirmModal').classList.contains('open'));
+    };
+    let health = await healthCheck();
+    assert.equal(health.sub, '查了 8 张订单 · 2 项要看一下', 'trash and deleted orders are counted too');
+    assert.deepEqual(health.rows.map(row => [row.label, row.count, row.bad]), [
+      ['订单号重复', '1 组', true], ['订单号为空', '1 张', true],
+      ['缺少客户名称', '0', false], ['金额异常', '0', false], ['订单内部编号缺失或重复', '0', false]
+    ], 'all five checks, problems first');
+    assert.match(health.rows[0].detail, new RegExp(`k${day}05（Legacy Lower · 订单） / K${day}05（Legacy Upper · 订单）`));
+    assert.equal(health.rows[1].detail, 'No Number Co · 订单', 'the order without a number is named by its customer and place');
+    assert.doesNotMatch(health.text, /、$/m);
     assert.equal(await page.locator('#confirmCancelBtn').isVisible(), false, 'info dialog has no 取消 button');
-    await page.locator('#confirmOkBtn').click();
+    assert.equal(await page.locator('#confirmOkBtn').textContent(), '知道了');
+    await closeHealth();
+    // 缺客户名的那张写出订单号；超过 8 张时只列 8 张，后面写「等 N 张」。
+    await page.evaluate(day => {
+      window.__healthBackup = JSON.parse(JSON.stringify({ orders:state.orders, trashOrders:state.trashOrders, deletedOrders:state.deletedOrders }));
+      state.orders = state.orders.filter(o => o.id !== 'o5' && o.id !== 'o-empty');
+      state.orders.push({ ...state.orders[0], id:'nc', num:`K${day}77`, client:'' });
+      for (let i = 0; i < 10; i += 1) state.orders.push({ ...state.orders[0], id:`neg${i}`, num:`K${day}9${i}`, client:'Minus Co', amount:-1 });
+    }, day);
+    health = await healthCheck();
+    assert.deepEqual(health.rows.filter(row => row.bad).map(row => [row.label, row.count]), [['缺少客户名称', '1 张'], ['金额异常', '10 张']]);
+    assert.equal(health.rows.find(row => row.label === '缺少客户名称').detail, `K${day}77 · 订单`);
+    assert.match(health.rows.find(row => row.label === '金额异常').detail, new RegExp(`^K${day}90 · Minus Co(、K${day}9\\d · Minus Co){7} 等 10 张$`));
+    await closeHealth();
+    // 全部通过：五行都在、都打勾，副标题写「五项都通过」。
+    await page.evaluate(() => {
+      state.orders = state.orders.filter(o => !o.id.startsWith('neg') && o.id !== 'nc');
+    });
+    health = await healthCheck();
+    assert.equal(health.sub, `查了 ${await page.evaluate(() => state.orders.length + state.trashOrders.length + state.deletedOrders.length)} 张订单 · 五项都通过`);
+    assert.equal(health.rows.length, 5);
+    assert.ok(health.rows.every(row => !row.bad && row.count === '0' && !row.detail), 'every check passed and ticked');
+    await closeHealth();
+    await page.evaluate(() => Object.assign(state, window.__healthBackup));
 
     // 7. 导入预览：完全相同的号拒绝导入；只差大小写的号可以导入，但预览里要说出来。
     await clearToasts();

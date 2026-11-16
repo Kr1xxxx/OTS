@@ -14,6 +14,7 @@ const path = require('node:path');
 const { spawn, spawnSync } = require('node:child_process');
 const { launchBrowser, h } = require('./helpers/board-page');
 const { freePortSync } = require('./helpers/free-port');
+const { confirmText } = require('./helpers/confirm-dialog');
 
 const root = path.resolve(__dirname, '..');
 const token = 'import-restore-ui-test-token';
@@ -273,9 +274,29 @@ const fixture = {
     await row.waitFor();
     await h.click(page, row.locator('[data-restore-backup]'), 'restore the before-reset backup');
     dialog = await confirmOpen();
-    assert.match(dialog.message, /恢复后和现在比/);
-    assert.match(dialog.message, /备份里：订单 4/);
-    assert.match(dialog.message, /恢复会换掉整个数据库（订单、客户、设置、续费、WhatsApp 聊天），页面会重新加载/);
+    const restoreText = await confirmText(page);
+    assert.match(dialog.sub, /的备份 · 恢复示例前的快照$/);
+    assert.match(restoreText, /^ · 现在 · 恢复后$/m);
+    assert.match(restoreText, /^订单 · \d+ · 4$/m);
+    assert.match(restoreText, /^WhatsApp 消息 · 1 · 1$/m);
+    assert.match(restoreText, /^垃圾箱、已删除订单、续费 · 0 · 0$/m, 'rows that are 0 on both sides share one row');
+    assert.match(restoreText, /^少 14 张订单 SO\d+(、SO\d+){7} 等$/m, 'the orders that would be lost are named');
+    assert.match(restoreText, /^多出 4 张订单$/m);
+    assert.match(restoreText, /恢复会换掉整个数据库（订单、客户、设置、续费、WhatsApp 聊天），页面会重新加载/);
+    // 变了的行加粗，两边一样的行变淡；会少的那几行标红。
+    const looks = await page.evaluate(() => {
+      const rows = [...document.querySelectorAll('#confirmBlocks .confirm-table tbody tr')];
+      const row = label => rows.find(tr => tr.firstElementChild.textContent === label);
+      const cell = tr => getComputedStyle(tr.lastElementChild);
+      return {
+        changedWeight:Number(cell(row('订单')).fontWeight), sameWeight:Number(cell(row('WhatsApp 消息')).fontWeight),
+        changedColor:cell(row('订单')).color, sameColor:cell(row('WhatsApp 消息')).color,
+        red:[...document.querySelectorAll('#confirmBlocks .confirm-list li.bad b')].map(b => b.textContent)
+      };
+    });
+    assert.ok(looks.changedWeight > looks.sameWeight, 'changed rows are bold');
+    assert.notEqual(looks.changedColor, looks.sameColor, 'unchanged rows are dimmed');
+    assert.deepEqual(looks.red, ['少 14 张订单', '少 14 位客户']);
     assert.equal(await page.locator('#confirmNote').textContent(), '恢复前先把现在的数据另存为一份「恢复前」备份，恢复后可以撤销');
     await page.waitForFunction(() => document.activeElement?.id === 'confirmCancelBtn');
     await Promise.all([page.waitForNavigation(), h.click(page, '#confirmOkBtn')]);
@@ -311,7 +332,13 @@ const fixture = {
     await newest.waitFor();
     await h.click(page, newest.locator('[data-restore-backup]'), 'restore the newest backup');
     dialog = await confirmOpen();
-    assert.match(dialog.message, /现在的数据库没有读出来/);
+    const readOnlyText = await confirmText(page);
+    assert.match(readOnlyText, /现在的数据库没有读出来/);
+    // 没有「现在」可比：只有「备份里」一列，每一项一行，也没有「恢复后会变的」。
+    assert.match(readOnlyText, /^ · 备份里$/m);
+    assert.match(readOnlyText, /^订单 · \d+$/m);
+    assert.match(readOnlyText, /^垃圾箱 · 0$/m);
+    assert.doesNotMatch(readOnlyText, /恢复后会变的/);
     await Promise.all([page.waitForNavigation(), h.click(page, '#confirmOkBtn')]);
     await page.waitForFunction(() => window.pendingSaveStatus?.().loaded);
     assert.equal((await (await fetch(`${url}/api/health`)).json()).storageMode, 'sqlite');

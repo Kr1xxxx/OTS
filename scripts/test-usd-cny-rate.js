@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Today's USD → RMB rate for the exchange table: reading the Bank of China rate table by its header text,
 // the ICBC and CFETS JSON answers, refusing anything it cannot read, the three sources tried in order
-// (中行 → 工行 → 外汇交易中心), and the cache in the data folder (fresh for six hours; after that the old answer
+// (中行 → 工行 → 外汇交易中心), and the cache in the data folder (asked once a day; after that the old answer
 // is handed out at once and renewed in the background). Every table and JSON below is made up in the shape of
 // the real answers; the numbers are not real rates.
 const assert = require('node:assert/strict');
@@ -27,6 +27,8 @@ assert.deepEqual(parseBocUsdBuyRate(table([euro, dollar])), { rate:6.1234, publi
 const shuffled = ['货币名称', '中行折算价', '现钞买入价', '发布日期', '现汇买入价', '发布时间', '现汇卖出价', '现钞卖出价'];
 assert.deepEqual(parseBocUsdBuyRate(table([dollar, euro], shuffled)), { rate:6.1234, publishedAt:'2031-04-05 09:15' }, 'columns are found by their header, not their position');
 assert.deepEqual(parseBocUsdBuyRate(table([dollar], header.slice(0, 6))), { rate:6.1234, publishedAt:'' }, 'a table without publish columns still gives the rate');
+// The live page puts date and time into the 发布日期 cell ("2031/04/05 09:15:00") and the time again into 发布时间.
+assert.deepEqual(parseBocUsdBuyRate(table([[...dollar.slice(0, 6), '2031/04/05 09:15:00', '09:15:00']])), { rate:6.1234, publishedAt:'2031-04-05 09:15' });
 assert.throws(() => parseBocUsdBuyRate(table([euro])), /美元/, 'no USD row: an error, not a number');
 assert.throws(() => parseBocUsdBuyRate(table([['美元', '61.23', ...dollar.slice(2)]])), /不对/, 'a rate far outside 5–9 is refused');
 assert.throws(() => parseBocUsdBuyRate(table([['美元', '', ...dollar.slice(2)]])), /不对/, 'an empty cell is refused');
@@ -87,27 +89,35 @@ assert.throws(() => parseCfetsUsdMid(cfets({ date:'2031-04-04', values:['619.00'
     assert.equal(second, first);
     assert.equal(cache().rate, 6.1234);
 
-    // Within six hours: from the file.
-    clock += 5 * 60 * 60 * 1000;
-    const cached = await queryUsdCnyRate();
-    assert.equal(cached.cached, true);
-    assert.equal(cached.stale, undefined);
-    assert.equal(requests.length, 1);
+    const hours = n => n * 60 * 60 * 1000;
+    // Once a day: for the rest of that day in Beijing (10:00 → 23:59) it comes from the file.
+    for (const later of [5, 8]) {
+      clock += hours(later); // Beijing 15:00, then 23:00
+      const cached = await queryUsdCnyRate();
+      assert.equal(cached.cached, true);
+      assert.equal(cached.stale, undefined);
+      assert.equal(requests.length, 1, 'asked once a day');
+    }
 
-    // Older than six hours: the old answer at once, a new one fetched behind it. BOC now fails: ICBC answers.
-    clock += 2 * 60 * 60 * 1000;
+    // The next day (Beijing 01:00): the old answer at once, a new one fetched behind it. BOC now fails: ICBC answers,
+    // still with yesterday's publish date.
+    clock += hours(2);
     answers.boc = '<html><body>页面改版了</body></html>';
     const stale = await queryUsdCnyRate();
     assert.equal(stale.stale, true);
     assert.equal(stale.rate, 6.1234);
     await waitForCache('icbc');
-    assert.deepEqual({ rate:cache().rate, source:cache().source, sourceLabel:cache().sourceLabel }, { rate:6.1111, source:'icbc', sourceLabel:'工商银行现汇买入价' });
+    assert.deepEqual({ rate:cache().rate, source:cache().source, sourceLabel:cache().sourceLabel, publishedAt:cache().publishedAt }, { rate:6.1111, source:'icbc', sourceLabel:'工商银行现汇买入价', publishedAt:'2031-04-05 08:41' });
     assert.deepEqual(requests.slice(1).map(sourceOf), ['boc', 'icbc']);
 
+    // Fetched today but published yesterday: not asked again within six hours, asked again after that.
+    clock += hours(3); // Beijing 04:00
+    assert.equal((await queryUsdCnyRate()).stale, undefined);
+    assert.equal(requests.length, 3);
     // BOC and ICBC both fail: the CFETS central parity, asked for the last ten days up to today in Beijing.
-    clock += 7 * 60 * 60 * 1000; // 2031-04-05 16:00 UTC = 04-06 00:00 in Beijing
+    clock += hours(4); // Beijing 08:00, seven hours after the last request
     answers.icbc = new Error('offline');
-    await queryUsdCnyRate();
+    assert.equal((await queryUsdCnyRate()).stale, true);
     await waitForCache('cfets');
     assert.deepEqual({ rate:cache().rate, source:cache().source, publishedAt:cache().publishedAt }, { rate:6.19, source:'cfets', publishedAt:'2031-04-04' });
     assert.deepEqual(requests.slice(3).map(sourceOf), ['boc', 'icbc', 'cfets']);
@@ -132,7 +142,7 @@ assert.throws(() => parseCfetsUsdMid(cfets({ date:'2031-04-04', values:['619.00'
     answers.boc = table([dollar]);
     assert.equal((await queryUsdCnyRate()).source, 'boc');
 
-    console.log('USD/CNY rate tests passed: BOC table read by header, ICBC and CFETS answers, bad answers refused, GBK decoded, BOC → ICBC → CFETS in order, six-hour cache, stale served while renewing, failures keep the old answer.');
+    console.log('USD/CNY rate tests passed: BOC table read by header, ICBC and CFETS answers, bad answers refused, GBK decoded, BOC → ICBC → CFETS in order, once a day, stale served while renewing, failures keep the old answer.');
   } finally {
     fs.rmSync(dir, { recursive:true, force:true });
   }

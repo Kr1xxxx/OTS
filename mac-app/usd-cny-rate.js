@@ -3,13 +3,15 @@
 //   1. 中国银行外汇牌价, 现汇买入价 (a web page; what Alibaba's 结汇 uses)
 //   2. 工商银行牌价, 现汇买入价 (JSON)
 //   3. 中国外汇交易中心, 人民币汇率中间价 (JSON; the official reference rate, about 0.8 % above what a bank pays)
-// The answer is kept in the data folder and fetched again at most every six hours; an older answer is handed
-// out at once while a new one is fetched, and kept when every source fails.
+// Asked once a day: the answer is kept in the data folder and counts as fresh for the rest of that day (Beijing
+// time). Only an answer fetched before the source published that day's rate (just after midnight) is asked
+// again, six hours later. An older answer is handed out at once while a new one is fetched, and kept when every
+// source fails.
 const fs = require('fs');
 const outbound = require('./outbound-http');
 const { atomicWrite, readJson } = require('./file-store');
 
-const FRESH_MS = 6 * 60 * 60 * 1000;
+const EARLY_RETRY_MS = 6 * 60 * 60 * 1000;
 const MIN_RATE = 5;
 const MAX_RATE = 9;
 
@@ -158,8 +160,13 @@ function createUsdCnyRate({ cacheFile, requestText = outbound.requestText, sourc
     })() : null;
     const usable = cached && plausibleRate(Number(cached.rate)) && sources.some(source => source.id === cached.source);
     if (usable) {
-      const age = now() - Date.parse(cached.fetchedAt || '');
-      if (age >= 0 && age < FRESH_MS) return { ...cached, cached:true };
+      // 一天只取一次：今天（北京时间）取过就不再取。只有今天取到的还是昨天发布的数（过了午夜就打开），
+      // 隔 6 小时再取一次，拿到今天的牌价。
+      const fetchedMs = Date.parse(cached.fetchedAt || '');
+      const today = beijingDay(now());
+      const fetchedToday = fetchedMs <= now() && beijingDay(fetchedMs) === today;
+      const publishedToday = String(cached.publishedAt || '').slice(0, 10) === today;
+      if (fetchedToday && (publishedToday || now() - fetchedMs < EARLY_RETRY_MS)) return { ...cached, cached:true };
       // 过期：先交旧的，后台再取；取不到时旧的继续用，页面看发布时间判断是不是太旧。
       refresh().catch(() => {});
       return { ...cached, cached:true, stale:true };

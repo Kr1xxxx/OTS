@@ -8403,22 +8403,38 @@ function customerRenamesBetween(from, to) {
   });
   return renames;
 }
-// 把一次改名重放到一份数据上（档案的键和 client、三栏订单的客户名、复购完成记录、「不是同一人」记录），
-// 和页面里改名做的一样，但作用在传进来的数据上，返回改过的副本。X 不在、编号不同、或者已经有一份 Y 时不动。
-function replayCustomerRename(data, { id, from, to }) {
-  const customers = data?.customers && typeof data.customers === 'object' ? data.customers : {};
-  if (!Object.hasOwn(customers, from) || customers[from]?.id !== id || Object.hasOwn(customers, to)) return data;
-  const renamed = profile => ({ ...profile, client:to, ...(profile.name === from ? { name:to } : {}) });
-  const out = { ...data, customers:Object.fromEntries(Object.entries(customers).map(([name, profile]) => name === from ? [to, renamed(profile)] : [name, profile])) };
-  ['orders', 'trashOrders', 'deletedOrders'].forEach(bucket => {
-    if (Array.isArray(data[bucket])) out[bucket] = data[bucket].map(order => order?.client === from ? { ...order, client:to } : order);
+// 按客户名字记的东西（客户档案这张表本身除外）只有这一份清单，改名 / 合并 / 另一窗口改名的重放都走 moveCustomerNameKeys，
+// 删除客户走 dropCustomerNameKeys：
+// - 三栏订单的 client（大小写不同、但本身是另一位客户档案的订单不搬）；物流「最近查询」里指向这些订单的 client；
+// - 已处理的复购 doneTasks['repurchase-<名字>-<日期>']；暂缓的复购 snoozedTasks['repurchase-<名字>']；
+// - 「不是同一人」customerDuplicateIgnores（合并后两人之间的那一条没有意义，去掉）。
+// 往 state 里加按名字记的新东西，加在这两个函数里：scripts/test-customer-name-keys-ui.js 查改名、合并、重放、删除后旧名字一处都不剩。
+// 两个函数都不碰全局 state，返回改过的浅副本；传进来的 data.customers 要还是改名前的样子（判断大小写变体要用）。
+const customerOrderBuckets = ['orders', 'trashOrders', 'deletedOrders'];
+function repurchaseDoneKeyClient(key = '') {
+  const match = /^repurchase-(.*)-(\d{4}-\d{2}-\d{2})$/.exec(key);
+  return match ? { client:match[1], date:match[2] } : null;
+}
+function moveCustomerNameKeys(data, from, to) {
+  if (!data || !from || !to || from === to) return data;
+  const customers = data.customers && typeof data.customers === 'object' ? data.customers : {};
+  const out = { ...data };
+  customerOrderBuckets.forEach(bucket => {
+    if (Array.isArray(data[bucket])) out[bucket] = patchOrdersForCustomerRename(data[bucket], from, to, customers);
   });
+  if (Array.isArray(data.trackingLookups)) {
+    const orderClients = new Map(customerOrderBuckets.flatMap(bucket => (out[bucket] || []).map(order => [order?.id, order?.client])));
+    out.trackingLookups = data.trackingLookups.map(item => item?.orderId && orderClients.get(item.orderId) === to && item.client !== to && sameCustomerName(item.client, from)
+      ? { ...item, client:to } : item);
+  }
   if (data.doneTasks && typeof data.doneTasks === 'object') {
-    const prefix = `repurchase-${from}-`;
     out.doneTasks = Object.fromEntries(Object.entries(data.doneTasks).map(([key, value]) => {
-      const date = key.startsWith(prefix) ? key.slice(prefix.length) : '';
-      return /^\d{4}-\d{2}-\d{2}$/.test(date) ? [`repurchase-${to}-${date}`, value] : [key, value];
+      const parsed = repurchaseDoneKeyClient(key);
+      return parsed?.client === from ? [`repurchase-${to}-${parsed.date}`, value] : [key, value];
     }));
+  }
+  if (data.snoozedTasks && typeof data.snoozedTasks === 'object' && !Array.isArray(data.snoozedTasks)) {
+    out.snoozedTasks = Object.fromEntries(Object.entries(data.snoozedTasks).map(([key, value]) => key === `repurchase-${from}` ? [`repurchase-${to}`, value] : [key, value]));
   }
   if (Array.isArray(data.customerDuplicateIgnores)) {
     out.customerDuplicateIgnores = [...new Set(data.customerDuplicateIgnores.flatMap(key => {
@@ -8429,6 +8445,27 @@ function replayCustomerRename(data, { id, from, to }) {
     }))];
   }
   return out;
+}
+// 删除客户（名下没有订单）：已处理和暂缓的复购、「不是同一人」一起清。已处理的键按整段比，删「Acme」不会连「Acme-EU」一起清。
+function dropCustomerNameKeys(data, name) {
+  if (!data || !name) return data;
+  const out = { ...data };
+  if (data.doneTasks && typeof data.doneTasks === 'object') {
+    out.doneTasks = Object.fromEntries(Object.entries(data.doneTasks).filter(([key]) => repurchaseDoneKeyClient(key)?.client !== name));
+  }
+  if (data.snoozedTasks && typeof data.snoozedTasks === 'object' && !Array.isArray(data.snoozedTasks)) {
+    out.snoozedTasks = Object.fromEntries(Object.entries(data.snoozedTasks).filter(([key]) => key !== `repurchase-${name}`));
+  }
+  if (Array.isArray(data.customerDuplicateIgnores)) out.customerDuplicateIgnores = data.customerDuplicateIgnores.filter(key => !key.split('\u0000').includes(name));
+  return out;
+}
+// 把一次改名重放到一份数据上（档案的键和 client，加上 moveCustomerNameKeys 那份清单），
+// 和页面里改名做的一样，但作用在传进来的数据上，返回改过的副本。X 不在、编号不同、或者已经有一份 Y 时不动。
+function replayCustomerRename(data, { id, from, to }) {
+  const customers = data?.customers && typeof data.customers === 'object' ? data.customers : {};
+  if (!Object.hasOwn(customers, from) || customers[from]?.id !== id || Object.hasOwn(customers, to)) return data;
+  const renamed = profile => ({ ...profile, client:to, ...(profile.name === from ? { name:to } : {}) });
+  return { ...moveCustomerNameKeys(data, from, to), customers:Object.fromEntries(Object.entries(customers).map(([name, profile]) => name === from ? [to, renamed(profile)] : [name, profile])) };
 }
 function queueCurrentMacState() {
   if (!isMacAppMode() || macStorageMode !== 'ready') return false;
@@ -20923,19 +20960,6 @@ function customerDuplicateRecord(name = '') {
 function customerDuplicateIgnoreKey(a = '', b = '') {
   return [String(a), String(b)].sort().join('\u0000');
 }
-// 改名 / 合并：「不是同一人」的记录跟着名字走。合并时两位之间的那一条没有意义了，去掉。
-function renameCustomerDuplicateIgnores(oldName = '', newName = '') {
-  const list = Array.isArray(state.customerDuplicateIgnores) ? state.customerDuplicateIgnores : null;
-  if (!list || !oldName || !newName || oldName === newName) return;
-  const next = [];
-  list.forEach(key => {
-    const parts = key.split('\u0000');
-    if (!parts.includes(oldName)) return next.push(key);
-    const [a, b] = parts.map(part => (part === oldName ? newName : part));
-    if (a !== b) next.push(customerDuplicateIgnoreKey(a, b));
-  });
-  state.customerDuplicateIgnores = [...new Set(next)];
-}
 function customerDuplicateIgnored(a = '', b = '') {
   const list = Array.isArray(state.customerDuplicateIgnores) ? state.customerDuplicateIgnores : [];
   return list.includes(customerDuplicateIgnoreKey(a, b));
@@ -21097,6 +21121,7 @@ function customerChangeSnapshot() {
     orderClients,
     lookupClients:new Map((state.trackingLookups || []).map(item => [item.id, item.client])),
     doneTasks:{ ...(state.doneTasks || {}) },
+    snoozed:{ ...(state.snoozedTasks || {}) },
     ignores:Array.isArray(state.customerDuplicateIgnores) ? state.customerDuplicateIgnores.slice() : []
   };
 }
@@ -21109,6 +21134,7 @@ function customerChangeDiff(before) {
   const lookups = (state.trackingLookups || []).filter(item => before.lookupClients.has(item.id) && before.lookupClients.get(item.id) !== item.client)
     .map(item => ({ id:item.id, from:before.lookupClients.get(item.id), to:item.client }));
   const now = state.doneTasks || {};
+  const snoozedNow = state.snoozedTasks || {};
   const ignoresNow = Array.isArray(state.customerDuplicateIgnores) ? state.customerDuplicateIgnores : [];
   return {
     orders,
@@ -21116,7 +21142,9 @@ function customerChangeDiff(before) {
     ignoresAdded:ignoresNow.filter(key => !before.ignores.includes(key)),
     ignoresRemoved:before.ignores.filter(key => !ignoresNow.includes(key)),
     doneAdded:Object.keys(now).filter(key => !Object.hasOwn(before.doneTasks, key)),
-    doneRemoved:Object.fromEntries(Object.keys(before.doneTasks).filter(key => !Object.hasOwn(now, key)).map(key => [key, before.doneTasks[key]]))
+    doneRemoved:Object.fromEntries(Object.keys(before.doneTasks).filter(key => !Object.hasOwn(now, key)).map(key => [key, before.doneTasks[key]])),
+    snoozedAdded:Object.keys(snoozedNow).filter(key => !Object.hasOwn(before.snoozed, key)),
+    snoozedRemoved:Object.fromEntries(Object.keys(before.snoozed).filter(key => !Object.hasOwn(snoozedNow, key)).map(key => [key, before.snoozed[key]]))
   };
 }
 function revertCustomerChangeDiff(diff) {
@@ -21136,21 +21164,13 @@ function revertCustomerChangeDiff(diff) {
   state.doneTasks = state.doneTasks || {};
   diff.doneAdded.forEach(key => { delete state.doneTasks[key]; });
   Object.assign(state.doneTasks, diff.doneRemoved);
+  state.snoozedTasks = { ...(state.snoozedTasks || {}) };
+  diff.snoozedAdded.forEach(key => { delete state.snoozedTasks[key]; });
+  Object.assign(state.snoozedTasks, diff.snoozedRemoved);
   if (diff.ignoresAdded.length || diff.ignoresRemoved.length) {
     const kept = (Array.isArray(state.customerDuplicateIgnores) ? state.customerDuplicateIgnores : []).filter(key => !diff.ignoresAdded.includes(key));
     state.customerDuplicateIgnores = [...new Set([...kept, ...diff.ignoresRemoved])];
   }
-}
-// 已点「完成」的复购提醒跟着客户名走（键是 repurchase-客户名-日期）：改名、合并后不再重新冒出来。
-function moveRepurchaseDoneTasks(oldName = '', newName = '') {
-  if (!oldName || !newName || oldName === newName || !state.doneTasks || typeof state.doneTasks !== 'object') return;
-  const prefix = `repurchase-${oldName}-`;
-  Object.keys(state.doneTasks).forEach(key => {
-    const date = key.startsWith(prefix) ? key.slice(prefix.length) : '';
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
-    state.doneTasks[`repurchase-${newName}-${date}`] = state.doneTasks[key];
-    delete state.doneTasks[key];
-  });
 }
 let customerUndoVersion = 0;
 // 合并两位客户：保留 primaryName 这份档案的名字（不再自动改大小写——改了以后可能正好是另一位客户的名字，会把那份档案整份覆盖）。
@@ -21223,9 +21243,7 @@ async function mergeDuplicateCustomers(primaryName = '', secondaryName = '') {
     ...(secondary.history || [])
   ];
   // 两份档案都还在的时候搬订单：大小写不同、但本身是另一位客户档案的订单不会被一起搬走。
-  patchAllOrdersForCustomerRename(secondaryName, targetName);
-  moveRepurchaseDoneTasks(secondaryName, targetName);
-  renameCustomerDuplicateIgnores(secondaryName, targetName);
+  renameCustomerNameKeys(secondaryName, targetName);
   delete state.customers[secondaryName];
   state.customers[targetName] = merged;
   const diff = customerChangeDiff(before);
@@ -21337,8 +21355,7 @@ async function deleteCustomerProfile(name = '') {
   const profile = state.customers[name];
   const before = customerChangeSnapshot();
   delete state.customers[name];
-  Object.keys(state.doneTasks || {}).forEach(key => { if (key.startsWith(`repurchase-${name}-`)) delete state.doneTasks[key]; });
-  if (Array.isArray(state.customerDuplicateIgnores)) state.customerDuplicateIgnores = state.customerDuplicateIgnores.filter(key => !key.split('\u0000').includes(name));
+  Object.assign(state, dropCustomerNameKeys(state, name));
   const diff = customerChangeDiff(before);
   const deleteOp = queueCustomerStorageOp({ kind:'delete', name });
   const version = ++customerUndoVersion;
@@ -21882,18 +21899,10 @@ function patchOrdersForCustomerRename(orders = [], oldName = '', newName = '', c
   const belongs = client => client === oldName || (sameCustomerName(client, oldName) && !separateProfile(client));
   return orders.map(order => belongs(order.client) ? { ...order, client:newName } : order);
 }
-// 改名 / 合并要连垃圾箱和已删除订单一起改，恢复时才不会冒出旧客户名。
-function patchAllOrdersForCustomerRename(oldName = '', newName = '') {
-  const customers = state.customers || {};
-  state.orders = patchOrdersForCustomerRename(state.orders, oldName, newName, customers);
-  if (Array.isArray(state.trashOrders)) state.trashOrders = patchOrdersForCustomerRename(state.trashOrders, oldName, newName, customers);
-  if (Array.isArray(state.deletedOrders)) state.deletedOrders = patchOrdersForCustomerRename(state.deletedOrders, oldName, newName, customers);
-  // 物流「最近查询」里存的是查询当时的客户名：指向这些订单的记录跟着改，不再显示改名 / 合并前的旧名字。
-  if (oldName && oldName !== newName && Array.isArray(state.trackingLookups)) {
-    const orderClients = new Map(['orders', 'trashOrders', 'deletedOrders'].flatMap(bucket => (state[bucket] || []).map(order => [order.id, order.client])));
-    state.trackingLookups = state.trackingLookups.map(item => item.orderId && orderClients.get(item.orderId) === newName && item.client !== newName && sameCustomerName(item.client, oldName)
-      ? { ...item, client:newName } : item);
-  }
+// 改名 / 合并：moveCustomerNameKeys 那份清单作用到当前数据上（连垃圾箱和已删除订单一起改，恢复时才不会冒出旧客户名）。
+// 两份档案都还在的时候调：大小写不同、但本身是另一位客户档案的订单不会被一起搬走。
+function renameCustomerNameKeys(oldName = '', newName = '') {
+  Object.assign(state, moveCustomerNameKeys(state, oldName, newName));
 }
 async function confirmDuplicateCustomerSave({ oldName = '', newName = '', emails = [], email = '', phones = [], paymentEmail = '' } = {}) {
   const normalizedOld = String(oldName || '').trim().toLowerCase();
@@ -22006,11 +22015,15 @@ function customerSaveSnapshot(names = [], originalNameField = null) {
   const clients = ['orders', 'trashOrders', 'deletedOrders'].map(key => [key, new Map((state[key] || []).map(order => [order.id, order.client]))]);
   const customerTags = state.customerTags;
   const doneTasks = state.doneTasks && typeof state.doneTasks === 'object' ? { ...state.doneTasks } : state.doneTasks;
+  const snoozed = state.snoozedTasks && typeof state.snoozedTasks === 'object' ? { ...state.snoozedTasks } : state.snoozedTasks;
   const ignores = state.customerDuplicateIgnores;
+  const lookupClients = new Map((state.trackingLookups || []).map(item => [item.id, item.client]));
   const originalName = originalNameField?.value;
   return () => {
     state.doneTasks = doneTasks;
+    state.snoozedTasks = snoozed;
     state.customerDuplicateIgnores = ignores;
+    if (Array.isArray(state.trackingLookups)) state.trackingLookups = state.trackingLookups.map(item => lookupClients.has(item.id) && lookupClients.get(item.id) !== item.client ? { ...item, client:lookupClients.get(item.id) } : item);
     state.customers = { ...(state.customers || {}) };
     profiles.forEach(([key, had, profile]) => { if (had) state.customers[key] = profile; else delete state.customers[key]; });
     clients.forEach(([key, before]) => {
@@ -22024,12 +22037,8 @@ function commitCustomerSavePayload({ oldName = '', nextProfile, historyEntry, pr
   if (!nextProfile?.client) return '';
   syncCustomerTags(nextProfile.tags || []);
   state.customers = state.customers || {};
-  patchAllOrdersForCustomerRename(oldName, nextProfile.client);
-  if (oldName && oldName !== nextProfile.client) {
-    delete state.customers[oldName];
-    moveRepurchaseDoneTasks(oldName, nextProfile.client);
-    renameCustomerDuplicateIgnores(oldName, nextProfile.client);
-  }
+  renameCustomerNameKeys(oldName, nextProfile.client);
+  if (oldName && oldName !== nextProfile.client) delete state.customers[oldName];
   state.customers[nextProfile.client] = { ...nextProfile, history: [historyEntry, ...previousHistory].slice(0, 200) };
   return nextProfile.client;
 }

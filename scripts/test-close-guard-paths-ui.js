@@ -146,7 +146,7 @@ async function launch() {
     await page.evaluate(() => openCustomerModal('Carl Diaz', { viewOnly:false }));
     await settle();
     await type(page.locator('#customerForm [name="note"]'), 'typed');
-    await page.locator('#customerEditCancelBtn').click();
+    await page.locator('#customerFooterCancelBtn').click();
     await settle();
     assert.match(await page.locator('#confirmMessage').innerText(), /取消后，这次改的内容不会保存/);
     await reset();

@@ -97,7 +97,7 @@ const fixture = {
     const db = async () => (await api('/api/data')).data;
     const settleModal = () => h.settle(page, '#customerModal .modal');
     const saveCustomer = async () => {
-      await h.click(page, '#customerHeaderSaveBtn');
+      await h.click(page, '#customerFooterSaveBtn');
       await page.waitForFunction(() => document.getElementById('customerForm').dataset.saving !== 'true');
       await flush();
     };
@@ -192,7 +192,11 @@ const fixture = {
     await h.click(page, '.customer-row[data-view-customer="Cedar Wigs"]');
     await page.waitForFunction(() => document.getElementById('customerModal').classList.contains('open'));
     await settleModal();
-    await h.click(page, '#customerDeleteBtn');
+    // 「删除客户」收在「⋯」里。
+    await h.click(page, '#customerMoreBtn');
+    await page.waitForSelector('.customer-more-menu');
+    await h.settle(page, '.customer-more-menu');
+    await h.click(page, '.customer-more-menu [data-customer-menu="delete"]');
     await page.waitForFunction(() => document.getElementById('confirmModal').classList.contains('open'));
     await h.settle(page, '#confirmModal .modal');
     await h.click(page, '#confirmOkBtn');

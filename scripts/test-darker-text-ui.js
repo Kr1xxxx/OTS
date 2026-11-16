@@ -45,7 +45,9 @@ const accents = ['violet', 'blue', 'teal', 'orange', 'rose', 'ink'];
       }
       // 客户档案「⋯」菜单里的「删除客户」：菜单底色上的红字（--danger-ink）。
       await page.evaluate(() => openCustomerModal('No Orders Ltd'));
-      await page.waitForFunction(() => getComputedStyle(document.getElementById('customerMoreBtn')).display !== 'none');
+      // 弹窗在下一帧才把起始焦点放到「编辑资料」上，在那之前打开的菜单会被这次焦点移动关掉（菜单失焦就收起）。
+      // 机器帧慢时（macOS CI）两次 evaluate 之间那一帧还没到，菜单刚开就没了，下面等菜单项等到超时。所以等焦点放好再开。
+      await page.waitForFunction(() => document.activeElement?.id === 'customerDetailEditBtn');
       await page.evaluate(() => uiOpenCustomerMoreMenu(document.getElementById('customerMoreBtn')));
       await page.waitForSelector('.customer-more-menu [data-customer-menu="delete"]');
       await page.evaluate(() => document.querySelector('.customer-more-menu').getAnimations().forEach(a => a.finish()));

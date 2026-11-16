@@ -71,8 +71,28 @@ const rows = [
         if (expected === 'due') assert.equal(seen.reminded, true, `${where}: the bell reminds a due renewal`);
       }
     }
+    // 改价：提前续好的那一期记下的实际价格，和日期已过的一样留着（在更早一期选「这一期和之后每一期」时）。
+    const priced = await page.evaluate(() => {
+      const today = subscriptionLocalDate();
+      const base = subscriptionState.items.find(entry => entry.name === 'manual-today.test');
+      let item = { ...base, amount:30, cycleCount:1, startDate:'2026-09-21', renewedThrough:'2026-11-21', priceChanges:[] };
+      item = subscriptionWithPrice(item, '2026-10-21', 20, 'once');
+      item = subscriptionWithPrice(item, '2026-11-21', 25, 'once');
+      item = subscriptionWithPrice(item, '2026-09-21', 40, 'onward');
+      const schedule = subscriptionSchedule(item, today, subscriptionState.usdCnyRate);
+      return { amounts:subscriptionPeriods(item, today, schedule).periods.slice(0, 4).map(period => period.amount), spent:schedule.spent };
+    });
+    assert.deepEqual(priced.amounts, [40, 20, 25, 40], 'the early-renewed period keeps its recorded price');
+    assert.equal(priced.spent, 85);
+    // 数字卡：提前续好的那一笔算已付，不再算本月待扣和未来 12 个月。
+    const cards = await page.evaluate(() => {
+      const item = subscriptionState.items.find(entry => entry.name === 'manual-early.test');
+      const a = subscriptionAnalysis([item], subscriptionLocalDate(), subscriptionState.usdCnyRate);
+      return { monthPaid:a.monthPaid, monthDue:a.monthDue, yearPaid:a.yearPaid, next12:a.next12, lifetime:a.lifetime };
+    });
+    assert.deepEqual(cards, { monthPaid:89, monthDue:0, yearPaid:89, next12:0, lifetime:178 });
     assert.deepEqual(errors, []);
-    console.log('Subscription charge state UI passed: auto, manual due, manual confirmed, manual renewed early agree across schedule, drawer periods, calendar, price editor and bell.');
+    console.log('Subscription charge state UI passed: auto, manual due, manual confirmed, manual renewed early agree across schedule, drawer periods, calendar, price editor and bell; an early-renewed charge keeps its recorded price and counts as paid on the stat cards.');
   } finally {
     await browser.close();
   }

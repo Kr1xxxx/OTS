@@ -57,6 +57,11 @@ function orderNotificationAmount(order = {}) {
   return `${currency} ${Number.isFinite(amount) ? amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}`;
 }
 
+// 订单详情一行一项；旧数据或别处写进来的数组也按一行一项读。
+function orderNotificationDetail(order = {}) {
+  return Array.isArray(order.orderDetail) ? order.orderDetail.join('\n') : order.orderDetail;
+}
+
 // 群消息里用到的字段（发出时记下来，之后订单改了这些字段，抽屉里提示「群里是旧信息」）。
 function orderNotificationFields({ order, customer }) {
   const text = value => String(value ?? '').trim();
@@ -68,6 +73,7 @@ function orderNotificationFields({ order, customer }) {
     address: text(customer.address),
     amount: orderNotificationAmount(order),
     paymentChannel: text(order.paymentChannel),
+    orderDetail: text(orderNotificationDetail(order)),
     note: text(order.note)
   };
 }
@@ -82,6 +88,7 @@ function buildOrderNotificationMarkdown({ order, customer }, imageKeys = [], ski
     '',
     `**订单金额：** ${escapeLarkMarkdown(orderNotificationAmount(order))}`,
     `**付款方式：** ${escapeLarkMarkdown(order.paymentChannel)}`,
+    `**订单详情：** ${escapeLarkMarkdown(orderNotificationDetail(order))}`,
     `**订单备注：** ${escapeLarkMarkdown(order.note)}`
   ];
   imageKeys.forEach((item, index) => lines.push('', `![附件 ${item.index || index + 1}](${item.key || item})`));

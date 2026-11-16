@@ -37,8 +37,7 @@ const allowed = {
     { key:'paymentMethod', when:(a, b) => !a && b === '阿里巴巴', why:'没填付款方式的档案读进来就显示阿里巴巴（normalizeCustomerProfiles）' }
   ],
   settings:[
-    { key:'orderSettings.defaultNext', when:(a, b) => !b, why:'早就不用的旧键，保存订单设置时清掉' },
-    { key:'exchangeSettings.fallbackRate', why:'等用户定：第五轮第 6 条（表外月份的汇率）' }
+    { key:'orderSettings.defaultNext', when:(a, b) => !b, why:'早就不用的旧键，保存订单设置时清掉' }
   ],
   renewal:[
     { key:'updatedAt', why:'保存时间' }

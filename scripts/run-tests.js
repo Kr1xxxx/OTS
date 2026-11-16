@@ -48,6 +48,8 @@ const filters = process.argv.slice(2);
 const selected = tests.filter(test => !filters.length || filters.some(filter => test.name.includes(filter)));
 const concurrency = Math.max(1, Number(process.env.OTS_TEST_CONCURRENCY) || Math.min(4, os.availableParallelism?.() || os.cpus().length));
 const results = [];
+// The servers that tests start ask no exchange-rate source on the internet (mac-app/server.js, TRADE_RATES_OFFLINE).
+const testEnv = { ...process.env, TRADE_RATES_OFFLINE: process.env.TRADE_RATES_OFFLINE ?? '1' };
 
 function run(test) {
   if (darwinOnly.has(test.file) && process.platform !== 'darwin') {
@@ -60,7 +62,7 @@ function run(test) {
   }
   const started = Date.now();
   return new Promise(resolve => {
-    const child = spawn(test.command, test.args, { cwd: test.cwd || root, env: process.env, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(test.command, test.args, { cwd: test.cwd || root, env: testEnv, stdio: ['ignore', 'pipe', 'pipe'] });
     let output = '';
     child.stdout.on('data', chunk => { output += chunk; });
     child.stderr.on('data', chunk => { output += chunk; });

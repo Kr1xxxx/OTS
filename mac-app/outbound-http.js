@@ -1,4 +1,4 @@
-// Requests the server makes to the outside: carrier APIs, the ECB rate file, the AI provider.
+// Requests the server makes to the outside: carrier APIs, the exchange-rate sources, the AI provider.
 const http = require('http');
 const https = require('https');
 const zlib = require('zlib');
@@ -30,7 +30,8 @@ function requestText(targetUrl, options = {}) {
           reject(error);
           return;
         }
-        resolve(body);
+        // binary: the caller decodes the bytes itself (pages that are not UTF-8, e.g. GBK).
+        resolve(options.binary ? buffer : body);
       });
     });
     req.on('timeout', () => {

@@ -80,7 +80,9 @@ function leftoversIn(data, name) {
     {
       const { page, context, errors } = await open();
       page.evaluate(name => mergeDuplicateCustomers('Target Co', name), OLD).catch(() => {});
-      await confirmAndWait(page, '已合并到 Target Co');
+      await page.waitForFunction(() => document.getElementById('customerMergeModal').classList.contains('open'));
+      await h.click(page, '#customerMergeGoBtn', 'merge');
+      await h.waitToast(page, '已合并到 Target Co');
       const data = await stateNow(page);
       assert.deepEqual(leftoversIn(data, OLD), [], 'nothing keyed by the merged name after a merge');
       assert.ok(data.snoozedTasks['repurchase-Target Co'] !== undefined);

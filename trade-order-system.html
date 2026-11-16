@@ -5265,6 +5265,63 @@ html[data-theme] #confirmSub:empty { display:none; }
 html[data-theme] .confirm-foot { display:flex; align-items:center; justify-content:flex-end; gap:10px 16px; flex-wrap:wrap; }
 html[data-theme] .confirm-foot.has-note { margin:4px -20px -20px; padding:14px 20px; border-top:1px solid var(--surface-border); }
 html[data-theme] .confirm-foot .confirm-actions { margin-left:auto; }
+/* 确认框的结构化正文（appConfirm 的 blocks）：字段对照、数字对照表、要点清单、检查清单。内容多时这一块自己滚动。 */
+html[data-theme] #confirmBlocks { display:grid; gap:14px; max-height:min(52vh, 420px); overflow:auto; overscroll-behavior:contain; }
+html[data-theme] .confirm-block { display:grid; gap:6px; min-width:0; }
+html[data-theme] .confirm-rows { border:1px solid var(--surface-border); border-radius:14px; font-size:13px; line-height:1.5; }
+html[data-theme] .confirm-rows > div { display:grid; grid-template-columns:76px minmax(0, 1fr) minmax(0, 1fr); gap:8px; padding:8px 12px; align-items:baseline; }
+html[data-theme] .confirm-rows > div.two { grid-template-columns:76px minmax(0, 1fr); }
+html[data-theme] .confirm-rows > div + div { border-top:1px solid var(--surface-border); }
+html[data-theme] .confirm-rows .k { color:var(--gray-500); }
+html[data-theme] .confirm-rows .from { color:var(--gray-500); text-decoration-thickness:1px; overflow-wrap:anywhere; }
+html[data-theme] .confirm-rows .to { color:var(--gray-900); overflow-wrap:anywhere; }
+html[data-theme] .confirm-table { width:100%; border-collapse:collapse; font-size:13px; font-variant-numeric:tabular-nums; }
+html[data-theme] .confirm-table :is(th, td) { padding:7px 10px; border-bottom:1px solid var(--surface-border); text-align:right; font-weight:400; color:var(--gray-900); }
+html[data-theme] .confirm-table :is(th, td):first-child { padding-left:0; text-align:left; }
+html[data-theme] .confirm-table thead th { font-size:12px; font-weight:500; color:var(--gray-500); }
+html[data-theme] .confirm-table tbody tr:last-child > * { border-bottom:0; }
+html[data-theme] .confirm-table tr.same > * { color:var(--gray-500); }
+html[data-theme] .confirm-table tr.diff > td { font-weight:600; }
+html[data-theme] .confirm-list { display:grid; gap:6px; margin:0; padding:0; list-style:none; font-size:13px; line-height:1.5; }
+html[data-theme] .confirm-list li { display:grid; grid-template-columns:8px minmax(0, 1fr); gap:10px; align-items:baseline; }
+html[data-theme] .confirm-list li::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--gray-300); transform:translateY(-1px); }
+html[data-theme] .confirm-list li.bad::before { background:var(--s-red); }
+html[data-theme] .confirm-list b { font-weight:500; color:var(--gray-900); }
+html[data-theme] .confirm-list li.bad b { font-weight:600; color:var(--danger-ink); }
+html[data-theme] .confirm-list small { margin-left:8px; font-size:12px; color:var(--gray-600); font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+html[data-theme] .confirm-checks { display:grid; margin:0; padding:0; list-style:none; font-size:13px; line-height:1.5; }
+html[data-theme] .confirm-checks li { display:grid; grid-template-columns:18px minmax(0, 1fr) auto; gap:10px; padding:9px 0; align-items:baseline; }
+html[data-theme] .confirm-checks li + li { border-top:1px solid var(--surface-border); }
+html[data-theme] .confirm-checks li::before { content:"✓"; width:18px; height:18px; border-radius:50%; background:color-mix(in oklab, var(--s-green) 14%, transparent); color:var(--s-green); font-size:11px; font-weight:700; line-height:18px; text-align:center; align-self:start; margin-top:1px; }
+html[data-theme] .confirm-checks li.bad::before { content:"!"; background:color-mix(in oklab, var(--s-red) 14%, transparent); color:var(--danger-ink); }
+html[data-theme] .confirm-checks b { font-weight:500; color:var(--gray-900); }
+html[data-theme] .confirm-checks li.ok b { color:var(--gray-600); }
+html[data-theme] .confirm-checks li.bad b { font-weight:600; color:var(--danger-ink); }
+html[data-theme] .confirm-checks small { display:block; white-space:pre-line; font-size:12px; line-height:1.6; color:var(--gray-600); overflow-wrap:anywhere; }
+html[data-theme] .confirm-checks .n { color:var(--gray-500); font-variant-numeric:tabular-nums; white-space:nowrap; }
+html[data-theme] .confirm-checks li.bad .n { font-weight:600; color:var(--danger-ink); }
+html[data-theme] .confirm-text { margin:0; white-space:pre-line; color:var(--gray-600); line-height:1.65; overflow-wrap:anywhere; }
+html[data-theme] .confirm-text.fine { font-size:12px; line-height:1.6; }
+html[data-theme] .confirm-rows .aside { color:var(--gray-600); overflow-wrap:anywhere; }
+/* 合并客户：保留（强调色描边、淡底）和并入两张卡片并排，中间一个对调按钮；窄窗口上下排。 */
+html[data-theme] .customer-merge-pair { display:grid; grid-template-columns:minmax(0, 1fr) 34px minmax(0, 1fr); gap:8px; align-items:center; }
+html[data-theme] .customer-merge-pair[hidden], html[data-theme] .customer-merge-modal [hidden] { display:none; }
+html[data-theme] .customer-merge-card { display:grid; align-content:start; align-self:stretch; gap:2px; min-width:0; padding:12px 14px; border:1px solid var(--surface-border); border-radius:var(--radius); background:var(--surface-bg); }
+html[data-theme] .customer-merge-card.keep { border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); background:var(--accent-tint); }
+html[data-theme] .customer-merge-card em { font-style:normal; font-size:12px; font-weight:600; color:var(--gray-500); }
+html[data-theme] .customer-merge-card.keep em { color:var(--accent-ink); }
+html[data-theme] .customer-merge-card b { font-size:14px; font-weight:600; color:var(--gray-900); overflow-wrap:anywhere; }
+html[data-theme] .customer-merge-card span { font-size:12px; line-height:1.5; color:var(--gray-600); overflow-wrap:anywhere; }
+html[data-theme] .customer-merge-swap { display:grid; place-items:center; width:34px; height:34px; padding:0; border:1px solid var(--surface-border-strong); border-radius:50%; background:var(--surface-bg); color:var(--gray-900); font-size:15px; line-height:1; cursor:pointer; }
+html[data-theme] .customer-merge-swap:hover { background:var(--surface-soft); }
+html[data-theme] .customer-merge-swap:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+html[data-theme] .customer-merge-modal .pick-field > .field { margin:0; }
+@media (max-width: 560px) {
+  html[data-theme] .confirm-rows > div { grid-template-columns:64px minmax(0, 1fr); }
+  html[data-theme] .confirm-rows > div > :is(.to, .aside) { grid-column:2; }
+  html[data-theme] .customer-merge-pair { grid-template-columns:minmax(0, 1fr); }
+  html[data-theme] .customer-merge-swap { justify-self:center; transform:rotate(90deg); }
+}
 html[data-theme] .pick-switch { display:grid; grid-template-columns:34px minmax(0, 1fr); gap:12px; align-items:center; cursor:pointer; }
 html[data-theme] .pick-switch[hidden] { display:none; }
 html[data-theme] .pick-switch input { appearance:none; -webkit-appearance:none; position:relative; width:34px; height:20px; margin:0; border:0; border-radius:999px; background:var(--gray-300); cursor:pointer; transition:background var(--motion-fast) var(--ease); }
@@ -7056,6 +7113,49 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
   </div>
 </div>
 
+<div class="modal-backdrop" id="customerMergeModal" aria-hidden="true">
+  <div class="modal confirm-modal pick-modal customer-merge-modal" role="dialog" aria-modal="true" aria-labelledby="customerMergeTitle" aria-describedby="customerMergeSub">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="customerMergeTitle">合并客户</div>
+        <div class="pick-sub" id="customerMergeSub">订单和资料归到保留的那一位</div>
+      </div>
+      <button class="btn btn-small" id="customerMergeCloseBtn" type="button">关闭</button>
+    </div>
+    <div class="modal-body">
+      <div class="pick-field" id="customerMergePickField">
+        <label class="pick-label" for="customerMergeInput">和哪位客户合并</label>
+        <div class="field">
+          <div class="client-picker" data-picker-mode="merge">
+            <input name="client" id="customerMergeInput" autocomplete="off" placeholder="搜索客户姓名、国家或邮箱">
+            <button class="client-trigger" type="button" aria-label="列出客户">▾</button>
+            <div class="client-menu"></div>
+          </div>
+        </div>
+      </div>
+      <p class="pick-note" id="customerMergeEmpty">选好客户后，这里并排列出两位，可以对调保留哪一位。</p>
+      <div class="customer-merge-pair" id="customerMergePair" hidden>
+        <div class="customer-merge-card keep" id="customerMergeKeep"><em>保留</em><b></b><span></span></div>
+        <button class="customer-merge-swap" id="customerMergeSwapBtn" type="button">⇄</button>
+        <div class="customer-merge-card" id="customerMergeDrop"><em>并入后删除档案</em><b></b><span></span></div>
+      </div>
+      <div class="pick-field" id="customerMergeConflictsField" hidden>
+        <div class="pick-label"><span>两边不一样的资料</span><span class="pick-count" id="customerMergeConflictsHint">以保留的为准，另一边记进备注</span></div>
+        <div class="confirm-rows" id="customerMergeConflicts"></div>
+        <p class="pick-note" id="customerMergeNoConflicts">两边没有冲突的资料。</p>
+      </div>
+      <p class="pick-note" id="customerMergeFine" hidden></p>
+    </div>
+    <div class="modal-foot">
+      <div class="pick-foot-info" id="customerMergeFootInfo"></div>
+      <div class="order-action-group">
+        <button class="btn" type="button" id="customerMergeCancelBtn">取消</button>
+        <button class="btn btn-danger" type="button" id="customerMergeGoBtn" disabled>合并</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="confirmModal" aria-hidden="true">
   <div class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmSub confirmMessage">
     <div class="modal-head">
@@ -7067,6 +7167,8 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
     </div>
     <div class="confirm-body">
       <div class="confirm-message" id="confirmMessage"></div>
+      <div class="confirm-blocks" id="confirmBlocks" hidden></div>
+      <div class="pick-options" id="confirmChoices" role="radiogroup" aria-label="选一种做法" hidden></div>
       <div class="field" id="confirmInputWrap">
         <label id="confirmInputLabel">验证</label>
         <input class="confirm-input" id="confirmInput" autocomplete="off">
@@ -12610,7 +12712,13 @@ function appConfirm({
   // 第三个按钮（例如粘贴识别的「只补空字段」）：点它返回 { confirmed:false, alt:true }，和「取消」/ × / Esc 分开。
   altText = '',
   // 一句让人放心的话（「6 秒内可以撤销」「删除前自动备份」）：放在底部按钮左边。只写调用方真的做得到的事。
-  note = ''
+  note = '',
+  // 正文下面的结构化内容（字段对照、对照表、清单）：只收数据，见 renderConfirmBlocks，所有文字用 textContent 写入。
+  blocks = [],
+  // 二选一：正好两项 [{ label, desc, action?, danger? }]，渲染成两张单选卡片，第三个按钮不再出现。
+  // 执行按钮的字跟着选中的卡片变（action，没有就用 label）。返回值和 altText 一样：选第一张执行 = { confirmed:true }，
+  // 选第二张执行 = { confirmed:false, alt:true }。defaultFocus:'alt' 时默认选第二张。
+  choices = null
 } = {}) {
   const modal = document.getElementById('confirmModal');
   const titleEl = document.getElementById('confirmTitle');
@@ -12636,13 +12744,28 @@ function appConfirm({
     document.getElementById('confirmFoot')?.classList.toggle('has-note', Boolean(note));
   }
   messageEl.textContent = message;
+  const blocksEl = document.getElementById('confirmBlocks');
+  const choicesEl = document.getElementById('confirmChoices');
+  const pick = Array.isArray(choices) && choices.length === 2 ? choices : null;
+  const hasBlocks = renderConfirmBlocks(blocksEl, blocks);
+  // 只有结构化内容时正文那一行不占位置（以前的确认框正文都有字，不受影响）。
+  messageEl.hidden = !message && (hasBlocks || Boolean(pick));
   okBtn.textContent = confirmText;
   cancelBtn.textContent = cancelText;
   cancelBtn.hidden = !cancelText;
   if (altBtn) {
     altBtn.textContent = altText;
-    altBtn.hidden = !altText;
+    altBtn.hidden = !altText || Boolean(pick);
   }
+  const radios = renderConfirmChoices(choicesEl, pick, defaultFocus === 'alt' ? 1 : 0);
+  const pickedIndex = () => radios.findIndex(radio => radio.checked);
+  const syncChoice = () => {
+    if (!pick) return;
+    const chosen = pick[Math.max(0, pickedIndex())];
+    okBtn.textContent = chosen.action || chosen.label;
+    okBtn.classList.toggle('btn-danger', danger || Boolean(chosen.danger));
+    okBtn.classList.toggle('btn-primary', !danger && !chosen.danger);
+  };
   okBtn.hidden = false;
   closeBtn.hidden = false;
   // 右上角是 × 图标：它等于「取消」那个按钮（放弃确认里就是「继续编辑」），读屏和悬停提示照实说。
@@ -12650,6 +12773,7 @@ function appConfirm({
   closeBtn.title = cancelText || '关闭';
   okBtn.classList.toggle('btn-danger', danger);
   okBtn.classList.toggle('btn-primary', !danger);
+  syncChoice();
   inputWrap.style.display = inputLabel ? '' : 'none';
   inputLabelEl.textContent = inputLabel || '验证';
   input.placeholder = inputPlaceholder || '';
@@ -12660,7 +12784,9 @@ function appConfirm({
   setModalOpenState(modal, true);
   // 默认焦点：有输入框给输入框；危险操作（红色按钮）落在安全的「取消 / 继续编辑」上，按回车或空格不会直接丢数据。
   // defaultFocus:'alt' 落在第三个按钮上（客户识别冲突时的「只补空字段」）。
+  // 有选项卡片时落在选中的那张上（回车执行它），危险操作照样先落在「取消」上。
   const focusTarget = inputLabel ? input
+    : pick && !((defaultFocus === 'cancel' || (defaultFocus !== 'confirm' && danger)) && cancelText) ? radios[Math.max(0, pickedIndex())]
     : defaultFocus === 'alt' && altText && altBtn ? altBtn
       : (defaultFocus === 'cancel' || (defaultFocus !== 'confirm' && danger)) && cancelText ? cancelBtn
         : okBtn;
@@ -12676,6 +12802,8 @@ function appConfirm({
       if (altBtn) altBtn.onclick = null;
       closeBtn.onclick = null;
       input.onkeydown = null;
+      choicesEl.onchange = null;
+      choicesEl.onkeydown = null;
       resolve(result);
     };
     appConfirmActive = cleanup;
@@ -12689,7 +12817,18 @@ function appConfirm({
           return;
         }
       }
+      if (pick && pickedIndex() === 1) {
+        cleanup({ confirmed: false, alt: true, value });
+        return;
+      }
       cleanup({ confirmed: true, value });
+    };
+    choicesEl.onchange = syncChoice;
+    // 单选框上按回车 = 按执行按钮（和导入预览一样）；preventDefault 的原因同下面的输入框。
+    choicesEl.onkeydown = e => {
+      if (e.key !== 'Enter' || isImeKeyEvent(e)) return;
+      e.preventDefault();
+      okBtn.click();
     };
     cancelBtn.onclick = () => cleanup({ confirmed: false, value: input.value.trim() });
     if (altBtn) altBtn.onclick = () => cleanup({ confirmed: false, alt: true, value: input.value.trim() });
@@ -12702,6 +12841,116 @@ function appConfirm({
       if (e.key === 'Escape') cancelBtn.click();
     };
   });
+}
+// 确认框的二选一卡片：样子和导入预览的「合并 / 替换全部」一样。返回两个单选框（没有选项时返回空数组并收起）。
+function renderConfirmChoices(container, choices, selected = 0) {
+  container.replaceChildren();
+  container.hidden = !choices;
+  if (!choices) return [];
+  return choices.map((choice, index) => {
+    const card = document.createElement('label');
+    card.className = `pick-option${choice.danger ? ' danger' : ''}`;
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = 'confirmChoice';
+    radio.value = String(index);
+    radio.checked = index === selected;
+    const label = document.createElement('b');
+    label.textContent = choice.label;
+    card.append(radio, label);
+    if (choice.desc) {
+      const desc = document.createElement('span');
+      desc.textContent = choice.desc;
+      card.append(desc);
+    }
+    container.append(card);
+    return radio;
+  });
+}
+// 确认框正文下面的结构化内容。每一块只收数据（不收 HTML），文字一律 textContent：
+// - { type:'rows', label?, rows:[{ label, from?, to }] }：字段对照，旧值划掉、新值在右；from 为空只有两格。
+// - { type:'table', label?, columns:['', '现在', '恢复后'], rows:[{ cells:['订单', 8, 7] }] }：数字对照表，两边一样的行变淡。
+// - { type:'list', label?, items:[{ text, detail?, tone? }] }：要点清单，tone:'bad' 标红。
+// - { type:'checks', items:[{ label, detail?, count, bad? }] }：检查清单，通过的打勾变淡，有问题的标红。
+// - { type:'text', text, fine? }：一段话（fine 是小一号的说明）。
+// 返回有没有内容。
+function renderConfirmBlocks(container, blocks = []) {
+  container.replaceChildren();
+  const el = (tag, className = '', text) => {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = String(text);
+    return node;
+  };
+  (Array.isArray(blocks) ? blocks : []).filter(Boolean).forEach(block => {
+    const wrap = el('div', 'confirm-block');
+    if (block.label) wrap.append(el('div', 'pick-label', block.label));
+    if (block.type === 'rows') {
+      const rows = el('div', 'confirm-rows');
+      (block.rows || []).forEach(row => {
+        const hasFrom = row.from !== undefined && row.from !== null && String(row.from) !== '';
+        const line = el('div', hasFrom ? '' : 'two');
+        line.append(el('span', 'k', row.label));
+        if (hasFrom) line.append(el('s', 'from', row.from));
+        line.append(el('span', 'to', row.to));
+        rows.append(line);
+      });
+      wrap.append(rows);
+    } else if (block.type === 'table') {
+      const table = el('table', 'confirm-table');
+      const head = el('tr');
+      (block.columns || []).forEach(text => {
+        const th = el('th', '', text);
+        th.scope = 'col';
+        head.append(th);
+      });
+      const body = el('tbody');
+      (block.rows || []).forEach(row => {
+        const cells = row.cells || [];
+        const values = cells.slice(1).map(String);
+        const tr = el('tr', values.length > 1 ? (values.every(value => value === values[0]) ? 'same' : 'diff') : '');
+        cells.forEach((text, index) => {
+          const cell = el(index ? 'td' : 'th', '', text);
+          if (!index) cell.scope = 'row';
+          tr.append(cell);
+        });
+        body.append(tr);
+      });
+      table.append(el('thead'), body);
+      table.tHead.append(head);
+      wrap.append(table);
+    } else if (block.type === 'list') {
+      const list = el('ul', 'confirm-list');
+      (block.items || []).forEach(item => {
+        const li = el('li', item.tone === 'bad' ? 'bad' : '');
+        const text = el('span');
+        text.append(el('b', '', item.text));
+        if (item.detail) text.append(el('small', '', item.detail));
+        li.append(text);
+        list.append(li);
+      });
+      wrap.append(list);
+    } else if (block.type === 'checks') {
+      const list = el('ul', 'confirm-checks');
+      (block.items || []).forEach(item => {
+        const li = el('li', item.bad ? 'bad' : 'ok');
+        const text = el('span');
+        text.append(el('b', '', item.label));
+        if (item.detail) text.append(el('small', '', item.detail));
+        li.append(text, el('span', 'n', item.count));
+        list.append(li);
+      });
+      wrap.append(list);
+    } else if (block.type === 'text') {
+      if (!block.text) return;
+      wrap.append(el('p', `confirm-text${block.fine ? ' fine' : ''}`, block.text));
+    } else {
+      return;
+    }
+    container.append(wrap);
+  });
+  container.hidden = !container.childElementCount;
+  return container.childElementCount > 0;
 }
 async function confirmDangerFlow({ title, firstMessage, secondMessage, mathA = 7, mathB = 6, confirmText = '确认清除' }) {
   const first = await appConfirm({ title, sub:'第 1 步，共 3 步', message:firstMessage, confirmText:'继续', danger:true });
@@ -14015,7 +14264,7 @@ async function fillOrderFieldsFromPaste(fields, options = {}) {
   });
   let keepExisting = false;
   if (changes.length) {
-    const lines = changes.map(key => `${pasteOrderFieldLabel(key)}：${pasteOrderFieldText(key, f[key].value)} → ${pasteOrderFieldText(key, values[key])}`);
+    const rows = changes.map(key => ({ label:pasteOrderFieldLabel(key), from:pasteOrderFieldText(key, f[key].value), to:pasteOrderFieldText(key, values[key]) }));
     // 类型和付款状态一起改成全款时，切类型的说明（「付款状态显示部分已付」）和改后的状态对不上：换成按改后状态说。
     const typeNotice = !changes.includes('orderType') ? ''
       : values.orderType === '全款订单' && changes.includes('fullPaymentStatus') && orderTypeChangeNotice(form, values.orderType)
@@ -14023,10 +14272,13 @@ async function fillOrderFieldsFromPaste(fields, options = {}) {
         : orderTypeChangeNotice(form, values.orderType);
     const result = await appConfirm({
       title: existing ? '用识别结果改这张订单？' : '覆盖已经填好的内容？',
-      sub: '粘贴识别',
-      message: `下面这些已经有内容，和识别结果不一样：\n${lines.join('\n')}${typeNotice ? `\n\n${typeNotice}` : ''}\n\n「只补空字段」：上面这些保持不变，只填空着的。`,
-      confirmText: '全部改',
-      altText: '只补空字段',
+      sub: `粘贴识别 · ${changes.length} 处和现在不一样`,
+      message: '下面这些已经有内容，和识别结果不一样：',
+      blocks: [{ type:'rows', rows }, { type:'text', text:typeNotice }],
+      choices: [
+        { label:'全部改', desc:`这 ${changes.length} 处换成识别结果，空着的也填上` },
+        { label:'只补空字段', desc:`这 ${changes.length} 处保持不变，只填空着的` }
+      ],
       cancelText: '取消'
     });
     if (!result.confirmed && !result.alt) return false;
@@ -15869,15 +16121,18 @@ async function fillCustomerFieldsFromPaste(fields = {}, { supplementOnly = false
   }).filter(Boolean);
   let overwrite = false;
   if (conflicts.length && !supplementOnly) {
-    const lines = conflicts.map(item => `${fieldLabel[item.key]}：${item.current} → ${item.incoming}`);
-    const multiNote = conflicts.some(item => item.key === 'phone' || item.key === 'email') ? '\n\n电话、邮箱选「覆盖」：识别到的设为主要，原来的保留在后面，不会删除。' : '';
-    const nameNote = nameDiffers ? `\n\n客户名不会被改：识别到的是「${fields.name}」，要改名请在「客户名称」里自己改（改名会同步所有订单）。` : '';
+    const rows = conflicts.map(item => ({ label:fieldLabel[item.key], from:item.current, to:item.incoming }));
+    const multiNote = conflicts.some(item => item.key === 'phone' || item.key === 'email') ? '电话、邮箱选「覆盖」：识别到的设为主要，原来的保留在后面，不会删除。' : '';
+    const nameNote = nameDiffers ? `客户名不会被改：识别到的是「${fields.name}」，要改名请在「客户名称」里自己改（改名会同步所有订单）。` : '';
     const result = await appConfirm({
       title: isNewCustomer ? '覆盖已经填好的内容？' : `用识别结果改 ${form.elements.name.value} 的资料？`,
-      sub: '客户识别',
-      message: `下面这些已经有内容，和识别结果不一样：\n${lines.join('\n')}${multiNote}${nameNote}\n\n「只补空字段」：上面这些保持不变，只填空着的。`,
-      confirmText: '覆盖这些字段',
-      altText: '只补空字段',
+      sub: `客户识别 · ${conflicts.length} 处和现在不一样`,
+      message: '下面这些已经有内容，和识别结果不一样：',
+      blocks: [{ type:'rows', rows }, { type:'text', text:[multiNote, nameNote].filter(Boolean).join('\n') }],
+      choices: [
+        { label:'覆盖这些字段', desc:`这 ${conflicts.length} 处换成识别结果，空着的也填上` },
+        { label:'只补空字段', desc:`这 ${conflicts.length} 处保持不变，只填空着的` }
+      ],
       cancelText: '取消',
       defaultFocus: 'alt'
     });
@@ -17927,10 +18182,12 @@ async function uiDetailAddShipment() {
     const due = orderDueValue(order);
     const result = await appConfirm({
       title:'移到「已发货」吗？',
-      sub:'补运单号',
-      message:`${order.num || '这张单'} 现在在「${stageDef(stage).name}」。补的是正式发货的单号就移到「已发货」${due > 0 ? `（还有 ${money(due, order.currency || 'USD')} 没收，进已发货会按已收齐记）` : ''}；只是样品等单号，选「只记单号」，阶段不变。`,
-      confirmText:'移到已发货',
-      altText:'只记单号',
+      sub:`补运单号 · ${number}`,
+      message:`${order.num || '这张单'} 现在在「${stageDef(stage).name}」。`,
+      choices:[
+        { label:'移到已发货', desc:`补的是正式发货的单号${due > 0 ? `；还有 ${money(due, order.currency || 'USD')} 没收，进已发货会按已收齐记` : ''}` },
+        { label:'只记单号', desc:'样品等单号，阶段不变' }
+      ],
       cancelText:'取消'
     });
     if (!result.confirmed && !result.alt) return;
@@ -18553,13 +18810,17 @@ function renderClientMenu(picker, filter = '') {
   input.setAttribute('aria-expanded', String(menu.classList.contains('open')));
   input.removeAttribute('aria-activedescendant');
   picker.dataset.activeIndex = '-1';
-  const entries = clientPickerEntries();
+  // 合并客户弹窗里的选择器：不列要并的那位自己，每一项带订单数，没有「↗ 打开档案」。
+  const mergeMode = picker.dataset.pickerMode === 'merge';
+  const entries = clientPickerEntries().filter(item => !mergeMode || item.client !== picker.dataset.exclude);
   const matched = clientPickerMatches(filter, entries);
   const letters = Array.from(new Set(matched.map(item => clientInitial(item.client.client)))).sort((a, b) => a.localeCompare(b));
   const activeLetter = picker.dataset.clientLetter || 'all';
   const clients = matched.filter(item => activeLetter === 'all' || clientInitial(item.client.client) === activeLetter);
   const typed = String(filter || '').trim();
-  const empty = !entries.length
+  const empty = mergeMode
+    ? `<div class="client-menu-empty"><strong>${typed && !matched.length ? `没有找到“${escapeAttr(typed)}”` : '这个字母下没有匹配的客户'}</strong>只能并入已有的客户，换个写法再搜</div>`
+    : !entries.length
     ? '<div class="client-menu-empty"><strong>还没有客户</strong>直接输入客户名字，保存订单时会按新客户记录</div>'
     : typed && !matched.length
       ? `<div class="client-menu-empty"><strong>没有找到“${escapeAttr(typed)}”</strong>按 Enter 保留这个名字，保存订单时会按新客户记录</div>`
@@ -18577,7 +18838,7 @@ function renderClientMenu(picker, filter = '') {
     const level = customerLevelLabelForItem(o);
     const shortLevel = customerLevelShortLabel(level);
     const displayName = clientDisplayName(o.client);
-    const detail = [hit, o.country || '国家未设', clientPaymentLabel(o)].filter(Boolean).join(' · ');
+    const detail = (mergeMode ? [hit, o.country || '国家未设', `${customerOrderCounts(o.client).total} 单`] : [hit, o.country || '国家未设', clientPaymentLabel(o)]).filter(Boolean).join(' · ');
     return `
     <div class="client-option" id="${menu.id}-option-${index}" role="option" aria-selected="${o.client === input.value.trim()}" data-client="${escapeAttr(o.client)}">
       <button class="client-option-main" type="button" data-select-client="${escapeAttr(o.client)}">
@@ -18585,7 +18846,7 @@ function renderClientMenu(picker, filter = '') {
         <span class="client-level ${customerLevelPillClass(level)}">${escapeAttr(shortLevel)}</span>
         <small title="${escapeAttr(detail)}">${escapeAttr(detail)}</small>
       </button>
-      <button class="client-open-btn" type="button" data-open-client="${escapeAttr(o.client)}" aria-label="打开客户档案" title="打开客户档案（叠在订单上面，关掉后回到这张订单）">↗</button>
+      ${mergeMode ? '' : `<button class="client-open-btn" type="button" data-open-client="${escapeAttr(o.client)}" aria-label="打开客户档案" title="打开客户档案（叠在订单上面，关掉后回到这张订单）">↗</button>`}
     </div>
   `; }).join('') : empty) + '<div class="client-menu-foot">↑ ↓ 选择 · Enter 确认 · Esc 收起</div>';
   if (menu.classList.contains('open')) positionClientMenu(picker);
@@ -20237,8 +20498,12 @@ async function clearTrackingLookups() {
     sub: `最近查询物流 · ${all.length} 条${pinned ? ` · 置顶的 ${pinned} 条会保留` : ''}`,
     message: '订单里的物流状态不受影响。',
     note: '清除后可以撤销',
-    confirmText: pinned ? `清除未置顶的 ${all.length - pinned} 条` : '清除',
-    altText: pinned ? '连置顶一起清除' : '',
+    confirmText: '清除',
+    // 有置顶时二选一：默认留着置顶的。
+    choices: pinned ? [
+      { label:`清除未置顶的 ${all.length - pinned} 条`, desc:`置顶的 ${pinned} 条留着` },
+      { label:'连置顶一起清除', desc:`${all.length} 条全部清除`, danger:true }
+    ] : null,
     danger: true
   });
   if (!answer.confirmed && !answer.alt) return;
@@ -21653,36 +21918,109 @@ function revertCustomerChangeDiff(diff) {
   }
 }
 let customerUndoVersion = 0;
-// 合并两位客户：保留 primaryName 这份档案的名字（不再自动改大小写——改了以后可能正好是另一位客户的名字，会把那份档案整份覆盖）。
+// 合并客户的对照弹窗：「保留」和「并入后删除档案」两张卡片并排，中间对调；下面是两边不一样的资料和会归过去的东西。
+// source 给了（从「合并到其他客户…」进来）就先在上面选另一位，选中的那位默认保留；keep / drop 给了就直接对照。
+// 返回 { keep, drop }；取消、×、Esc、点背景返回 null。合并本身由 runCustomerMerge 做。
+let customerMergeActive = null;
+function customerMergeChoose({ source = '', keep = '', drop = '' } = {}) {
+  const modal = document.getElementById('customerMergeModal');
+  const byId = id => document.getElementById(id);
+  if (customerMergeActive) customerMergeActive(null);
+  const input = byId('customerMergeInput');
+  const picker = input.closest('.client-picker');
+  const go = byId('customerMergeGoBtn');
+  const swap = byId('customerMergeSwapBtn');
+  const others = source ? clientHistory().map(item => item.client).filter(name => name && name !== source) : [];
+  const resolve = value => others.find(name => name === value) || others.find(name => sameCustomerName(name, value)) || '';
+  picker.dataset.exclude = source;
+  picker.dataset.clientLetter = 'all';
+  input.value = '';
+  byId('customerMergePickField').hidden = !source;
+  let pair = source ? null : { keep, drop };
+  const fillCard = (card, name) => {
+    const row = clientHistory().find(item => item.client === name) || {};
+    const profile = customerDuplicateRecord(name).profile || {};
+    card.querySelector('b').textContent = name;
+    card.querySelector('span').textContent = [customerOrderCountText(customerOrderCounts(name)), profile.country || row.country || '', profile.contacts?.[0] || profile.contact || ''].filter(Boolean).join(' · ');
+  };
+  const sync = () => {
+    byId('customerMergeEmpty').hidden = Boolean(pair);
+    byId('customerMergePair').hidden = !pair;
+    byId('customerMergeConflictsField').hidden = !pair;
+    byId('customerMergeFine').hidden = !pair;
+    go.disabled = !pair;
+    go.textContent = pair ? `合并到 ${pair.keep}` : '合并';
+    if (!pair) return;
+    fillCard(byId('customerMergeKeep'), pair.keep);
+    fillCard(byId('customerMergeDrop'), pair.drop);
+    swap.setAttribute('aria-label', `对调：改为保留 ${pair.drop}`);
+    swap.title = `改为保留 ${pair.drop}`;
+    const conflicts = customerMergeConflicts(customerDuplicateRecord(pair.keep).profile || {}, customerDuplicateRecord(pair.drop).profile || {});
+    const list = byId('customerMergeConflicts');
+    list.replaceChildren(...conflicts.map(item => {
+      const line = document.createElement('div');
+      [['k', item.label], ['to', item.keep], ['aside', `备注里记：${item.drop}`]].forEach(([className, text]) => {
+        const cell = document.createElement('span');
+        cell.className = className;
+        cell.textContent = text;
+        line.append(cell);
+      });
+      return line;
+    }));
+    list.hidden = !conflicts.length;
+    byId('customerMergeConflictsHint').hidden = !conflicts.length;
+    byId('customerMergeNoConflicts').hidden = conflicts.length > 0;
+    byId('customerMergeFine').textContent = `${pair.drop} 的订单（含垃圾箱和已删除订单）、电话、邮箱、联系人、地址、标签和 WhatsApp 聊天会归到 ${pair.keep}。`;
+  };
+  byId('customerMergeFootInfo').textContent = isMacAppMode() ? '合并前自动备份，6 秒内可以撤销' : '6 秒内可以撤销（浏览器预览不会生成本地备份）';
+  sync();
+  modal.__initialFocus = byId('customerMergeCancelBtn');
+  setModalOpenState(modal, true);
+  resetModalScroll(modal);
+  return new Promise(done => {
+    const cleanup = result => {
+      if (customerMergeActive === cleanup) customerMergeActive = null;
+      [go, swap, byId('customerMergeCancelBtn'), byId('customerMergeCloseBtn'), modal].forEach(el => { el.onclick = null; });
+      input.oninput = null;
+      input.onchange = null;
+      closeClientMenus();
+      setModalOpenState(modal, false);
+      resetModalScroll(modal);
+      done(result);
+    };
+    customerMergeActive = cleanup;
+    // 选择器选中一位（点、回车）会发 input + change；打字时名字对上已有客户也算选中，对不上就回到没选的样子。
+    input.oninput = input.onchange = () => {
+      const picked = resolve(input.value.trim());
+      const next = picked ? { keep:picked, drop:source } : null;
+      if (next?.keep === pair?.keep && next?.drop === pair?.drop) return;
+      pair = next;
+      sync();
+    };
+    swap.onclick = () => {
+      if (!pair) return;
+      pair = { keep:pair.drop, drop:pair.keep };
+      sync();
+    };
+    go.onclick = () => { if (pair) cleanup(pair); };
+    byId('customerMergeCancelBtn').onclick = () => cleanup(null);
+    byId('customerMergeCloseBtn').onclick = () => cleanup(null);
+    modal.onclick = e => { if (e.target === modal) cleanup(null); };
+  });
+}
+// 合并两位客户：先在对照弹窗里确认（可以对调保留哪一位），再合并。
 async function mergeDuplicateCustomers(primaryName = '', secondaryName = '') {
   if (!primaryName || !secondaryName || primaryName === secondaryName) return;
   if (!canSubmitStoredData()) return;
-  const primaryRecord = customerDuplicateRecord(primaryName);
-  const secondaryRecord = customerDuplicateRecord(secondaryName);
-  const primary = primaryRecord.profile || {};
-  const secondary = secondaryRecord.profile || {};
+  const picked = await customerMergeChoose({ keep:primaryName, drop:secondaryName });
+  if (!picked) return;
+  return runCustomerMerge(picked.keep, picked.drop);
+}
+// 确认之后的合并：保留 primaryName 这份档案的名字（不再自动改大小写——改了以后可能正好是另一位客户的名字，会把那份档案整份覆盖）。
+async function runCustomerMerge(primaryName, secondaryName) {
+  const primary = customerDuplicateRecord(primaryName).profile || {};
+  const secondary = customerDuplicateRecord(secondaryName).profile || {};
   const targetName = primaryName;
-  const conflicts = customerMergeConflicts(primary, secondary);
-  const result = await appConfirm({
-    title:'合并重复客户',
-    sub:`保留 ${targetName} · 并入 ${secondaryName}`,
-    message:[
-      `保留：${targetName}（${customerOrderCountText(customerOrderCounts(primaryName))}）`,
-      `并入后删除档案：${secondaryName}（${customerOrderCountText(customerOrderCounts(secondaryName))}）`,
-      '',
-      `${secondaryName} 的订单（含垃圾箱和已删除订单）、电话、邮箱、联系人、地址、标签和 WhatsApp 聊天会归到 ${targetName}。`,
-      conflicts.length
-        ? `两边不一样的资料以 ${targetName} 为准，${secondaryName} 的写法记进备注：\n${conflicts.map(item => `· ${item.label}：保留 ${item.keep}，记进备注 ${item.drop}`).join('\n')}`
-        : '两边没有冲突的资料。'
-    ].join('\n'),
-    note:isMacAppMode() ? '合并前自动备份，6 秒内可以撤销' : '6 秒内可以撤销（浏览器预览不会生成本地备份）',
-    confirmText:'确认合并',
-    altText:`改为保留 ${secondaryName}`,
-    danger:true,
-    defaultFocus:'cancel'
-  });
-  if (result.alt) return mergeDuplicateCustomers(secondaryName, primaryName);
-  if (!result.confirmed) return;
   if (!await backupBeforeCustomerChange('合并')) return;
   // 备份期间档案被改掉了（另一处删除 / 合并了其中一位）：不按旧的确认继续。
   const present = name => clientHistory().some(item => item.client === name);
@@ -21750,48 +22088,18 @@ async function mergeDuplicateCustomers(primaryName = '', secondaryName = '') {
     toast(`已撤销合并：${primaryName} 和 ${secondaryName} 恢复成两份档案`, { group:'customer-change' });
   } });
 }
-// 合并到另一位客户：有订单的客户不能直接删除，从这里选一位已有客户把订单和资料并过去（之后走同一个合并确认）。
+// 合并到另一位客户：有订单的客户不能直接删除，从这里选一位已有客户把订单和资料并过去（同一个对照弹窗里选人、确认）。
 async function mergeCustomerInto(sourceName = '') {
   if (!sourceName) return;
-  const others = clientHistory().map(item => item.client).filter(name => name && name !== sourceName);
-  if (!others.length) {
+  if (!clientHistory().some(item => item.client && item.client !== sourceName)) {
     toast('没有别的客户可以合并', { tone:'warn' });
     return;
   }
-  // 客户名的建议列表是 App 自己的菜单（和国家栏同一套）：确认框的输入框借用一下，关掉时还原。
-  const input = document.getElementById('confirmInput');
-  const resolve = value => others.find(name => name === value) || others.find(name => sameCustomerName(name, value)) || '';
-  if (input) {
-    setSuggestItems(input, others);
-    input.dataset.suggest = '';
-    input.setAttribute('role', 'combobox');
-    input.setAttribute('aria-autocomplete', 'list');
-    input.setAttribute('aria-expanded', 'false');
-  }
-  let picked;
-  try {
-    picked = await appConfirm({
-      title:'合并到其他客户',
-      sub:sourceName,
-      message:`把 ${sourceName} 的订单和资料并入哪位客户？输入或从列表里选客户名，下一步会列出两边的差异再确认。`,
-      inputLabel:'并入的客户',
-      inputPlaceholder:'客户名',
-      confirmText:'下一步',
-      validate:value => (value && resolve(value) ? true : '没有这位客户，请从列表里选')
-    });
-  } finally {
-    if (input) {
-      if (activeSuggestInput === input) closeSuggestMenu();
-      delete input.dataset.suggest;
-      delete input._suggestItems;
-      ['role', 'aria-autocomplete', 'aria-expanded', 'aria-controls', 'aria-activedescendant'].forEach(name => input.removeAttribute(name));
-    }
-  }
-  if (!picked.confirmed) return;
-  const target = resolve(picked.value);
-  if (!target) return;
+  if (!canSubmitStoredData()) return;
+  const picked = await customerMergeChoose({ source:sourceName });
+  if (!picked) return;
   if (document.getElementById('customerModal')?.classList.contains('open') && editingCustomer === sourceName) closeCustomerModal();
-  return mergeDuplicateCustomers(target, sourceName);
+  return runCustomerMerge(picked.keep, picked.drop);
 }
 // 删除客户：只删没有订单的档案（打错名字、测试用的）。有订单（含垃圾箱和已删除订单）的不能直接删，给「合并到其他客户」。
 async function deleteCustomerProfile(name = '') {
@@ -25134,10 +25442,6 @@ function stateDiff(current = {}, next = {}) {
   });
   return { orders, customers };
 }
-function stateDiffLine(label, unit, item, list = []) {
-  const removed = item.removed ? `、删除 ${item.removed} ${unit}（${list.join('、')}${item.removed > list.length ? ' 等' : ''}）` : '、删除 0';
-  return `· ${label}：新增 ${item.added}、修改 ${item.changed}${removed}`;
-}
 // 合并导入：文件里的订单按 id 新增或更新（放进文件里的那一栏），文件里没有的订单一张不删；
 // 只加现在没有的客户档案和目标，已有的档案、设置都不动（单月文件里的档案可能比现在的旧）。
 // 订单号已被现有的另一张单占用时跳过这张，预览里说出来。
@@ -25441,25 +25745,52 @@ async function macToggleRestoreList(btn) {
     list.innerHTML = `<div class="muted">备份列表读取失败：${escapeAttr(error.message || '本地服务没有响应')}</div>`;
   }
 }
-function restorePreviewMessage(preview) {
-  const c = preview.counts || {};
-  const lines = [
-    `备份时间：${backupTimeText(preview.at)}${preview.reason ? `（${backupReasonLabels[preview.reason] || '操作前'}的快照）` : ''}`,
-    `备份里：订单 ${c.orders} · 垃圾箱 ${c.trashOrders} · 已删除 ${c.deletedOrders} · 客户 ${c.customers} · 续费 ${c.subscriptions} · WhatsApp 消息 ${c.whatsappMessages}`
-  ];
-  if (preview.current && preview.diff) {
-    const now = preview.current;
-    lines.push(`现在：订单 ${now.orders} · 垃圾箱 ${now.trashOrders} · 已删除 ${now.deletedOrders} · 客户 ${now.customers} · 续费 ${now.subscriptions} · WhatsApp 消息 ${now.whatsappMessages}`);
-    lines.push('', '恢复后和现在比：');
-    lines.push(stateDiffLine('订单（含垃圾箱、已删除）', '张', preview.diff.orders, preview.diff.orders.removedNums || []));
-    lines.push(stateDiffLine('客户', '位', preview.diff.customers, preview.diff.customers.removedNames || []));
-    if (now.subscriptions !== c.subscriptions) lines.push(`· 续费：${now.subscriptions} 条 → ${c.subscriptions} 条`);
+// 从备份恢复的预览：「现在 / 恢复后」对照表 + 恢复后会变的（会少的标红，写出订单号、客户名）+ 两句说明。
+// 现在的数据库没读出来（只读保护）时只有「备份里」一列。只把数据交给 appConfirm 的 blocks。
+// 列出前几个（订单号、客户名），总数比列出的多时后面写「等」。
+function listWithMore(list = [], total = list.length) {
+  return list.length ? `${list.join('、')}${total > list.length ? ' 等' : ''}` : '';
+}
+const restoreCountRows = [['orders', '订单'], ['trashOrders', '垃圾箱'], ['deletedOrders', '已删除订单'], ['customers', '客户'], ['subscriptions', '续费'], ['whatsappMessages', 'WhatsApp 消息']];
+function restorePreviewBlocks(preview) {
+  const backup = preview.counts || {};
+  const now = preview.current && preview.diff ? preview.current : null;
+  const number = value => Number(value) || 0;
+  const blocks = [];
+  if (now) {
+    // 两边都是 0 的行并成一行，有数的各占一行。
+    const rows = restoreCountRows.map(([key, label]) => ({ label, cells:[number(now[key]), number(backup[key])] }));
+    const empty = rows.filter(row => row.cells.every(value => !value));
+    blocks.push({
+      type:'table',
+      columns:['', '现在', '恢复后'],
+      rows:[
+        ...rows.filter(row => !empty.includes(row)).map(row => ({ cells:[row.label, ...row.cells] })),
+        ...(empty.length ? [{ cells:[empty.map(row => row.label).join('、'), 0, 0] }] : [])
+      ]
+    });
+    const { orders, customers } = preview.diff;
+        const items = [];
+    if (orders.removed) items.push({ text:`少 ${orders.removed} 张订单`, detail:listWithMore(orders.removedNums || [], orders.removed), tone:'bad' });
+    if (customers.removed) items.push({ text:`少 ${customers.removed} 位客户`, detail:listWithMore(customers.removedNames || [], customers.removed), tone:'bad' });
+    // 续费和 WhatsApp 消息没有逐条对比，只比数量。
+    const subscriptionsGone = number(now.subscriptions) - number(backup.subscriptions);
+    const messagesGone = number(now.whatsappMessages) - number(backup.whatsappMessages);
+    if (subscriptionsGone > 0) items.push({ text:`少 ${subscriptionsGone} 条续费`, tone:'bad' });
+    if (messagesGone > 0) items.push({ text:`少 ${messagesGone} 条 WhatsApp 消息`, tone:'bad' });
+    const counted = (orderCount, customerCount, ...extra) => [orderCount ? `${orderCount} 张订单` : '', customerCount ? `${customerCount} 位客户` : '', ...extra].filter(Boolean).join('、');
+    const added = counted(orders.added, customers.added, subscriptionsGone < 0 ? `${-subscriptionsGone} 条续费` : '', messagesGone < 0 ? `${-messagesGone} 条 WhatsApp 消息` : '');
+    if (added) items.push({ text:`多出 ${added}` });
+    const changed = counted(orders.changed, customers.changed);
+    if (changed) items.push({ text:`${changed}改回备份时的内容` });
+    blocks.push({ type:'list', label:'恢复后会变的（订单含垃圾箱和已删除订单）', items:items.length ? items : [{ text:'和现在没有差别' }] });
   } else {
-    lines.push('', '现在的数据库没有读出来（只读保护），没法逐项对比；恢复后以这份备份为准。');
+    blocks.push({ type:'table', columns:['', '备份里'], rows:restoreCountRows.map(([key, label]) => ({ cells:[label, number(backup[key])] })) });
+    blocks.push({ type:'text', text:'现在的数据库没有读出来（只读保护），没法逐项对比；恢复后以这份备份为准。' });
   }
-  if (preview.missingAttachments) lines.push('', `这份备份做的时候有 ${preview.missingAttachments} 个附件文件已经找不到，恢复后这些图片仍然打不开。`);
-  lines.push('', '恢复会换掉整个数据库（订单、客户、设置、续费、WhatsApp 聊天），页面会重新加载。');
-  return lines.join('\n');
+  if (preview.missingAttachments) blocks.push({ type:'text', text:`这份备份做的时候有 ${preview.missingAttachments} 个附件文件已经找不到，恢复后这些图片仍然打不开。` });
+  blocks.push({ type:'text', fine:true, text:'恢复会换掉整个数据库（订单、客户、设置、续费、WhatsApp 聊天），页面会重新加载。' });
+  return blocks;
 }
 async function macRestoreBackup(name) {
   if (!isMacAppMode() || !name) return;
@@ -25477,7 +25808,7 @@ async function macRestoreBackup(name) {
     toast(`这份备份读不出来：${error.message || '本地服务没有响应'}`, { tone:'error' });
     return;
   }
-  const choice = await appConfirm({ title:'从备份恢复', sub:`${backupTimeText(preview.at)} 的备份`, message:restorePreviewMessage(preview), note:'恢复前先把现在的数据另存为一份「恢复前」备份，恢复后可以撤销', confirmText:'恢复这份备份', danger:true, defaultFocus:'cancel' });
+  const choice = await appConfirm({ title:'从备份恢复', sub:`${backupTimeText(preview.at)} 的备份${preview.reason ? ` · ${backupReasonLabels[preview.reason] || '操作前'}的快照` : ''}`, blocks:restorePreviewBlocks(preview), note:'恢复前先把现在的数据另存为一份「恢复前」备份，恢复后可以撤销', confirmText:'恢复这份备份', danger:true, defaultFocus:'cancel' });
   if (!choice.confirmed) return;
   try {
     const res = await apiFetch('/api/restore-backup', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ name }) });
@@ -25602,28 +25933,37 @@ async function macOpenDataFolder(btn) {
   }
   });
 }
+// 数据健康检查：五项都列出来，一项一行。有问题的标红、排在前面，写出是哪几张（每项最多 8 条，多的写「等」）；
+// 通过的打勾、变淡。判断条件和以前一样，查的范围含回收站和已删除订单。只是告诉你，不改数据。
 function runDataHealthCheck() {
   const allOrders = [...(state.orders || []), ...(state.trashOrders || []), ...(state.deletedOrders || [])];
   // 按规范化后的号分组：k26110701 和 K26110701 也算重复。每组写清楚号码、客户、在哪（订单 / 回收站 / 已删除）。
   const where = order => (state.trashOrders || []).includes(order) ? '回收站' : (state.deletedOrders || []).includes(order) ? '已删除' : '订单';
+  const clientText = order => clientDisplayName(order.client) || '未填客户';
   const duplicateNums = similarOrderNumGroups(allOrders)
-    .map(list => list.map(order => `${order.num}（${clientDisplayName(order.client) || '未填客户'} · ${where(order)}）`).join(' / '));
-  const emptyNums = allOrders.filter(order => !normalizeOrderNum(order.num)).length;
+    .map(list => list.map(order => `${order.num}（${clientText(order)} · ${where(order)}）`).join(' / '));
+  const emptyNums = allOrders.filter(order => !normalizeOrderNum(order.num));
   const ids = new Map();
   allOrders.forEach(order => ids.set(order.id, (ids.get(order.id) || 0) + 1));
   const duplicateIds = Array.from(ids).filter(([id, count]) => !id || count > 1).length;
-  const missingClient = allOrders.filter(order => !String(order.client || '').trim()).length;
-  const invalidAmount = allOrders.filter(order => Number(order.amount || 0) < 0 || !Number.isFinite(Number(order.amount || 0))).length;
-  const messages = [];
-  if (duplicateNums.length) messages.push(`重复订单号（含只差大小写、全角或空格的）：\n${duplicateNums.map(line => `· ${line}`).join('\n')}`);
-  if (emptyNums) messages.push(`订单号为空：${emptyNums} 个`);
-  if (duplicateIds) messages.push(`订单 ID 缺失或重复：${duplicateIds} 个`);
-  if (missingClient) messages.push(`缺少客户名称：${missingClient} 个`);
-  if (invalidAmount) messages.push(`异常金额：${invalidAmount} 个`);
+  const missingClient = allOrders.filter(order => !String(order.client || '').trim());
+  const invalidAmount = allOrders.filter(order => Number(order.amount || 0) < 0 || !Number.isFinite(Number(order.amount || 0)));
+  const numText = order => order.num || '没有订单号';
+  const shown = 8;
+  const detail = (lines, unit, separator = '、') => (lines.length ? `${lines.slice(0, shown).join(separator)}${lines.length > shown ? ` 等 ${lines.length} ${unit}` : ''}` : '');
+  const items = [
+    { label:'订单号重复', count:`${duplicateNums.length} 组`, detail:detail(duplicateNums, '组', '\n'), bad:duplicateNums.length > 0 },
+    { label:'订单号为空', count:`${emptyNums.length} 张`, detail:detail(emptyNums.map(order => `${clientText(order)} · ${where(order)}`), '张'), bad:emptyNums.length > 0 },
+    { label:'缺少客户名称', count:`${missingClient.length} 张`, detail:detail(missingClient.map(order => `${numText(order)} · ${where(order)}`), '张'), bad:missingClient.length > 0 },
+    { label:'金额异常', count:`${invalidAmount.length} 张`, detail:detail(invalidAmount.map(order => `${numText(order)} · ${clientText(order)}`), '张'), bad:invalidAmount.length > 0 },
+    // 内部编号用户自己改不了，只报个数。
+    { label:'订单内部编号缺失或重复', count:`${duplicateIds} 个`, bad:duplicateIds > 0 }
+  ].map(item => (item.bad ? item : { label:item.label, count:'0' }));
+  const problems = items.filter(item => item.bad).length;
   appConfirm({
     title: '数据健康检查',
-    sub: messages.length ? '发现需要关注的项目' : '检查通过',
-    message: messages.length ? messages.join('\n') : '当前订单号、客户名称和金额字段没有发现明显异常。',
+    sub: `查了 ${allOrders.length} 张订单 · ${problems ? `${problems} 项要看一下` : '五项都通过'}`,
+    blocks: [{ type:'checks', items:[...items.filter(item => item.bad), ...items.filter(item => !item.bad)] }],
     confirmText: '知道了',
     // 纯信息，只留一个「知道了」。
     cancelText: ''
@@ -27459,8 +27799,12 @@ async function toggleSubscriptionStatus() {
     // Stopping here does not stop the provider: ask whether auto-renewal was turned off there.
     const answer = await appConfirm({
       title:'已经在服务商那里关掉自动续费了吗？', sub:item.name,
-      message:`这里只是不再记账。${item.provider || '服务商'}那边如果还开着自动续费，${schedule.paidThrough} 照样会扣 ${subscriptionMoney(schedule.cycleAmount, item.currency)}。还没关的话，到期前铃铛会提醒你去取消。`,
-      confirmText:'已关掉', altText:'还没，提醒我', cancelText:'先不停止'
+      message:`这里只是不再记账。${item.provider || '服务商'}那边如果还开着自动续费，${schedule.paidThrough} 照样会扣 ${subscriptionMoney(schedule.cycleAmount, item.currency)}。`,
+      choices:[
+        { label:'已关掉', desc:`${item.provider || '服务商'}那边已经不会再扣` },
+        { label:'还没，提醒我', desc:'到期前铃铛会提醒你去取消' }
+      ],
+      cancelText:'先不停止'
     });
     if (!answer.confirmed && !answer.alt) return;
     const { providerCancelledOn, ...rest } = extra;
@@ -28206,8 +28550,11 @@ async function subscriptionPlanEdit(old, payload, today) {
     const number = subscriptionTermOffset(old) + subscriptionChargeIndex(old, effective) + 1;
     const answer = await appConfirm({
       title:'这次修改从哪一期起生效？', sub:old.name,
-      message:`默认从下一期 ${effective}（第 ${number} 期）起按新的${what}计，已经发生的 ${before.text} ${kept.signature === before.signature ? '保持不变' : `变成 ${kept.text}`}。\n如果是当初录错了，选「更正全部历史」：已发生的扣费会变成 ${after.text}。`,
-      confirmText:'从下一期起', altText:'更正全部历史', cancelText:'继续编辑'
+      choices:[
+        { label:'从下一期起', action:'从下一期起生效', desc:`${effective}（第 ${number} 期）起按新的${what}计，已经发生的 ${before.text} ${kept.signature === before.signature ? '保持不变' : `变成 ${kept.text}`}` },
+        { label:'更正全部历史', desc:`当初录错了：已发生的扣费变成 ${after.text}` }
+      ],
+      cancelText:'继续编辑'
     });
     if (answer.confirmed) return fromNext;
     return answer.alt ? corrected : null;
@@ -28216,8 +28563,12 @@ async function subscriptionPlanEdit(old, payload, today) {
     // Clearing or moving a stop that already passed would invent the charges in between: offer 重新续费 instead.
     const answer = await appConfirm({
       title:'这一项已经停止', sub:old.name,
-      message:`${old.name} 已在 ${schedule.paidThrough} 停止。直接保存会补出 ${after.count - before.count} 笔没付过的扣费（已发生的扣费从 ${before.text} 变成 ${after.text}）。\n要从今天重新续费吗？会另起一条，旧的历史保留。`,
-      confirmText:'改为重新续费', altText:'仍然补上', cancelText:'继续编辑'
+      message:`${old.name} 已在 ${schedule.paidThrough} 停止。`,
+      choices:[
+        { label:'改为重新续费', desc:'从今天另起一条，旧的历史保留' },
+        { label:'仍然补上', desc:`补出 ${after.count - before.count} 笔没付过的扣费：已发生的扣费从 ${before.text} 变成 ${after.text}` }
+      ],
+      cancelText:'继续编辑'
     });
     if (answer.confirmed) return { resubscribe:true };
     return answer.alt ? corrected : null;
@@ -30240,7 +30591,8 @@ document.getElementById('customerPasteResults').addEventListener('keydown', e =>
     finishCustomerPasteEdit(e.key === 'Enter');
   }
 });
-const autoCapitalizeNameSelector = 'input[name="client"], #customerForm input[name="name"], #combinedCustomerForm input[name="name"], input[name="contact"], [data-customer-multi-kind="contacts"] [data-customer-multi-input]';
+// 合并客户弹窗里的客户搜索框不改写：那里选的是已有的档案，「alice baker」和「Alice Baker」可能是两位客户。
+const autoCapitalizeNameSelector = 'input[name="client"]:not(#customerMergeInput), #customerForm input[name="name"], #combinedCustomerForm input[name="name"], input[name="contact"], [data-customer-multi-kind="contacts"] [data-customer-multi-input]';
 // 只在这次聚焦期间改过名字时才自动首字母大写：光标进出一下不算改动（旧数据的小写客户名以前一进一出就被改写、算作改动）。
 document.addEventListener('focus', e => {
   if (e.target?.matches?.(autoCapitalizeNameSelector)) e.target._valueAtFocus = e.target.value;
@@ -32550,7 +32902,7 @@ function uiStepNavProgress(form) {
 }
 // 关闭按钮改成原型的图标按钮（id 和行为不变）。确认框右上角的也是 ×（以前写着「关闭」，其实等于「继续编辑」）。
 function uiStepNavCloseIcons() {
-  ['closeModalBtn', 'closeCustomerModalBtn', 'confirmCloseBtn', 'calendarTaskCloseBtn', 'trackingDetailCloseBtn', 'boardCardSettingsCloseBtn', 'combinedCloseBtn', 'attachmentPreviewCloseBtn', 'exportCloseBtn', 'importPreviewCloseBtn'].forEach(id => {
+  ['closeModalBtn', 'closeCustomerModalBtn', 'confirmCloseBtn', 'calendarTaskCloseBtn', 'trackingDetailCloseBtn', 'boardCardSettingsCloseBtn', 'combinedCloseBtn', 'attachmentPreviewCloseBtn', 'exportCloseBtn', 'importPreviewCloseBtn', 'customerMergeCloseBtn'].forEach(id => {
     const btn = document.getElementById(id);
     if (!btn || btn.classList.contains('btn-icon-x')) return;
     btn.classList.add('btn-icon-x');
@@ -32931,6 +33283,7 @@ document.addEventListener('keydown', e => {
     boardCardSettingsModal:() => closeBoardCardSettingsGuarded(),
     exportModal:() => closeExportModal(),
     importPreviewModal:() => document.getElementById('importPreviewCancelBtn')?.click(),
+    customerMergeModal:() => document.getElementById('customerMergeCancelBtn')?.click(),
     trackingDetailDrawer:() => closeTrackingDetail(),
     calendarTaskDrawer:() => closeCalendarTaskDrawer(),
     orderDetailDrawer:() => uiCloseDetailGuarded(),

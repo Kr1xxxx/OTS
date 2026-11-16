@@ -6,6 +6,7 @@
 const assert = require('node:assert/strict');
 const { launchBrowser, openBoard, base } = require('./helpers/board-page');
 const { freePortSync } = require('./helpers/free-port');
+const { pickConfirmChoice } = require('./helpers/confirm-dialog');
 
 const pad = n => String(n).padStart(2, '0');
 const dayStr = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -61,8 +62,9 @@ const order = (id, extra = {}) => ({ ...base, id, num:`F-${id}`, client:`Client 
 
     // 对照一：订单没有发货日。
     await drawerAdd('c1', '1Z999AA10123456787');
-    await page.waitForSelector('#confirmAltBtn:not([hidden])');
-    await page.click('#confirmAltBtn');
+    await pickConfirmChoice(page, 1);
+    assert.equal(await page.locator('#confirmOkBtn').innerText(), '只记单号');
+    await page.click('#confirmOkBtn');
     await page.waitForFunction(() => normalizeOrderShipments(state.orders.find(o => o.id === 'c1')).length === 1);
     const c1 = await get('c1');
     assert.equal(c1.batches[0], await today, '订单没有发货日：这一批记今天');

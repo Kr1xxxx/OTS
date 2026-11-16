@@ -14,6 +14,7 @@ const { spawn, spawnSync } = require('node:child_process');
 const { DatabaseSync } = require('node:sqlite');
 const { launchBrowser, h } = require('./helpers/board-page');
 const { freePortSync } = require('./helpers/free-port');
+const { confirmText } = require('./helpers/confirm-dialog');
 const { validCustomerId } = require('../mac-app/customer-ids');
 
 const root = path.resolve(__dirname, '..');
@@ -134,10 +135,14 @@ const fixture = {
     await h.click(page, row.locator('[data-restore-backup]'), 'preview the backup from before the ids');
     await page.waitForFunction(() => document.getElementById('confirmModal').classList.contains('open'));
     await h.settle(page, '#confirmModal .modal');
-    const preview = await page.locator('#confirmMessage').textContent();
-    assert.match(preview, /数据升级前的快照/);
-    assert.match(preview, /订单（含垃圾箱、已删除）：新增 0、修改 0、删除 0/, preview);
-    assert.match(preview, /客户：新增 0、修改 0、删除 0/, preview);
+    assert.match(await page.locator('#confirmSub').textContent(), /数据升级前的快照/);
+    const preview = await confirmText(page);
+    // 订单和客户都没有新增、修改、删除：两边数量一样，「恢复后会变的」里没有订单和客户；
+    // 备份之后才同步进来的那条 WhatsApp 消息会少（标红）。
+    assert.match(preview, /^订单 · 4 · 4$/m, preview);
+    assert.match(preview, /^客户 · 3 · 3$/m, preview);
+    assert.match(preview, /恢复后会变的（订单含垃圾箱和已删除订单）\n少 1 条 WhatsApp 消息$/m, preview);
+    assert.doesNotMatch(preview, /张订单|位客户/, preview);
     await h.click(page, '#confirmCancelBtn');
     await page.waitForFunction(() => !document.getElementById('confirmModal').classList.contains('open'));
     await page.evaluate(() => setPage('customers'));

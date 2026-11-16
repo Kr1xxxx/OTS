@@ -15,6 +15,7 @@ assert.deepEqual(modalIds, [
   'importPreviewModal',
   'customerModal',
   'combinedCustomerOrderModal',
+  'customerMergeModal',
   'confirmModal',
   'attachmentPreviewModal',
   'subscriptionDrawer',

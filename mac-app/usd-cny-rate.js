@@ -1,12 +1,12 @@
 // Today's USD → RMB rate for the current month's cell of the exchange table (设置 → 汇率).
-// Only Chinese sources, tried in order; the first one that gives a plausible number wins:
-//   1. 中国银行外汇牌价, 现汇买入价 (a web page; what Alibaba's 结汇 uses)
-//   2. 工商银行牌价, 现汇买入价 (JSON)
-//   3. 中国外汇交易中心, 人民币汇率中间价 (JSON; the official reference rate, about 0.8 % above what a bank pays)
+// Two Chinese banks are asked at the same time, and the lower of their 现汇买入价 is used (the owner's rule:
+// what selling dollars brings at least):
+//   中国银行外汇牌价 (a web page; what Alibaba's 结汇 uses) and 工商银行牌价 (JSON).
+// When one of them fails, the other one's number is used; a number outside 5–9 counts as failed.
 // Asked once a day: the answer is kept in the data folder and counts as fresh for the rest of that day (Beijing
-// time). Only an answer fetched before the source published that day's rate (just after midnight) is asked
-// again, six hours later. An older answer is handed out at once while a new one is fetched, and kept when every
-// source fails.
+// time). Only an answer fetched before the banks published that day's rate (just after midnight) is asked
+// again, six hours later. An older answer is handed out at once while a new one is fetched, and kept when both
+// banks fail.
 const fs = require('fs');
 const outbound = require('./outbound-http');
 const { atomicWrite, readJson } = require('./file-store');
@@ -82,32 +82,14 @@ function parseIcbcUsdBuyRate(text = '') {
   return { rate:Math.round(rate * 10000) / 10000, publishedAt:normalizePublishedAt(`${usd.publishDate || ''} ${usd.publishTime || ''}`) };
 }
 
-// 中国外汇交易中心 CcprHisNew: { records:[{ date:'2026-11-16', values:['6.7141'] }, …] }, per 1 USD, one per working day.
-function parseCfetsUsdMid(text = '') {
-  const records = parseJson(text)?.records;
-  const latest = (Array.isArray(records) ? records : [])
-    .filter(item => normalizePublishedAt(item?.date))
-    .sort((a, b) => normalizePublishedAt(b.date).localeCompare(normalizePublishedAt(a.date)))[0];
-  if (!latest) throw new Error('外汇交易中心：没有中间价');
-  const rate = Number(Array.isArray(latest.values) ? latest.values[0] : NaN);
-  if (!plausibleRate(rate)) throw new Error(`外汇交易中心：中间价不对（${latest.values?.[0] ?? '空'}）`);
-  return { rate:Math.round(rate * 10000) / 10000, publishedAt:normalizePublishedAt(latest.date) };
-}
-
-// Beijing date (UTC+8), YYYY-MM-DD, `days` before now.
-function beijingDay(nowMs, days = 0) {
-  return new Date(nowMs + 8 * 60 * 60 * 1000 - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+// Beijing date (UTC+8), YYYY-MM-DD.
+function beijingDay(nowMs) {
+  return new Date(nowMs + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
 const defaultSources = [
   { id:'boc', label:'中国银行现汇买入价', url:() => 'https://www.boc.cn/sourcedb/whpj/', parse:parseBocUsdBuyRate },
-  { id:'icbc', label:'工商银行现汇买入价', url:() => 'https://papi.icbc.com.cn/exchanges/ns/getLatest', parse:parseIcbcUsdBuyRate },
-  {
-    id:'cfets',
-    label:'外汇交易中心中间价',
-    url:nowMs => `https://www.chinamoney.com.cn/ags/ms/cm-u-bk-ccpr/CcprHisNew?startDate=${beijingDay(nowMs, 10)}&endDate=${beijingDay(nowMs)}&currency=USD/CNY`,
-    parse:parseCfetsUsdMid
-  }
+  { id:'icbc', label:'工商银行现汇买入价', url:() => 'https://papi.icbc.com.cn/exchanges/ns/getLatest', parse:parseIcbcUsdBuyRate }
 ];
 
 // The page says which charset it is in; Chinese bank pages are often GBK rather than UTF-8.
@@ -127,7 +109,7 @@ function createUsdCnyRate({ cacheFile, requestText = outbound.requestText, sourc
     if (refreshPromise) return refreshPromise;
     refreshPromise = (async () => {
       const failures = [];
-      for (const source of sources) {
+      const answers = await Promise.all(sources.map(async source => {
         try {
           const url = typeof source.url === 'function' ? source.url(now()) : source.url;
           const body = await requestText(url, {
@@ -135,21 +117,25 @@ function createUsdCnyRate({ cacheFile, requestText = outbound.requestText, sourc
             headers:{ 'User-Agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) TradeOrderSystem', Accept:'text/html,application/json,*/*' }
           });
           const parsed = source.parse(decodeHtml(body));
-          if (!plausibleRate(parsed?.rate)) throw new Error(`${source.label}：数字不对`);
-          const payload = {
-            rate:parsed.rate,
-            source:source.id,
-            sourceLabel:source.label,
-            publishedAt:parsed.publishedAt || '',
-            fetchedAt:new Date(now()).toISOString()
-          };
-          atomicWrite(cacheFile, JSON.stringify(payload));
-          return payload;
+          if (!plausibleRate(parsed?.rate)) throw new Error('数字不对');
+          return { source:source.id, sourceLabel:source.label, rate:parsed.rate, publishedAt:parsed.publishedAt || '' };
         } catch (error) {
           failures.push(`${source.label}：${String(error?.message || error).slice(0, 120)}`);
+          return null;
         }
-      }
-      throw new Error(failures.join('；') || '没有汇率来源');
+      }));
+      const quotes = answers.filter(Boolean);
+      if (!quotes.length) throw new Error(failures.join('；') || '没有汇率来源');
+      // 两家都取到时用低的；一样低时按列表顺序（中国银行在前）。
+      const lowest = quotes.reduce((low, quote) => (quote.rate < low.rate ? quote : low));
+      const payload = {
+        ...lowest,
+        quotes,
+        failed:sources.filter(source => !quotes.some(quote => quote.source === source.id)).map(source => source.id),
+        fetchedAt:new Date(now()).toISOString()
+      };
+      atomicWrite(cacheFile, JSON.stringify(payload));
+      return payload;
     })().finally(() => { refreshPromise = null; });
     return refreshPromise;
   }
@@ -177,4 +163,4 @@ function createUsdCnyRate({ cacheFile, requestText = outbound.requestText, sourc
   return { queryUsdCnyRate };
 }
 
-module.exports = { createUsdCnyRate, parseBocUsdBuyRate, parseIcbcUsdBuyRate, parseCfetsUsdMid, normalizePublishedAt, decodeHtml, defaultSources };
+module.exports = { createUsdCnyRate, parseBocUsdBuyRate, parseIcbcUsdBuyRate, normalizePublishedAt, decodeHtml, defaultSources };

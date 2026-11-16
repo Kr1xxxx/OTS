@@ -9516,7 +9516,12 @@ function normalizeExchangeSettings(raw = {}, now = new Date()) {
       source:String(rawAuto.source || ''),
       sourceLabel:String(rawAuto.sourceLabel || ''),
       publishedAt:String(rawAuto.publishedAt || ''),
-      checkedAt:String(rawAuto.checkedAt || '')
+      checkedAt:String(rawAuto.checkedAt || ''),
+      // 中行、工行这次各取到多少（两家取低的），和哪家没取到，设置页那行照着写。
+      quotes:(Array.isArray(rawAuto.quotes) ? rawAuto.quotes : [])
+        .filter(quote => Number(quote?.rate) > 0)
+        .map(quote => ({ source:String(quote.source || ''), sourceLabel:String(quote.sourceLabel || ''), rate:Number(quote.rate) })),
+      failed:(Array.isArray(rawAuto.failed) ? rawAuto.failed : []).map(String)
     }
     : null;
   return { monthlyRates, manualMonths, auto };
@@ -11059,8 +11064,8 @@ function usdPaidTotalRmb(orders) {
   return orders
     .reduce((sum, o) => sum + orderPaidUsd(o) * exchangeRateForMonth(o.orderMonth || normalizeMonth(o.createdAt)), 0);
 }
-// 当月那格每天联网更新：服务端按顺序试国内的三个来源（中国银行 → 工商银行 → 外汇交易中心中间价，
-// mac-app/usd-cny-rate.js）。只写本机日期的当月；月份一过那格就停在最后一次取到的数；用户自己填过的月份不碰。
+// 当月那格每天联网更新：服务端同时问中国银行和工商银行的现汇买入价，用两家里低的那个；一家没取到就用另一家
+// （mac-app/usd-cny-rate.js）。只写本机日期的当月；月份一过那格就停在最后一次取到的数；用户自己填过的月份不碰。
 // 都取不到时什么也不写，当月沿用上次的数，设置页那行写明，太久没更新时提醒一次。
 // 欧洲央行那套只给欧元等订单折美元，不拿来折人民币。
 let usdCnyLatest = null;
@@ -11096,7 +11101,11 @@ async function refreshAutoExchangeRate() {
       sourceLabel:String(data.sourceLabel || ''),
       // 来源没给发布时间时按服务端取到它的那天算，「多久没更新」才不会因为缓存一直被当成今天的。
       publishedAt:String(data.publishedAt || exchangeLocalDay(new Date(data.fetchedAt || Date.now()))),
-      checkedAt:new Date().toISOString()
+      checkedAt:new Date().toISOString(),
+      quotes:(Array.isArray(data.quotes) ? data.quotes : [])
+        .filter(quote => Number(quote?.rate) > 0)
+        .map(quote => ({ source:String(quote.source || ''), sourceLabel:String(quote.sourceLabel || ''), rate:Number(quote.rate) })),
+      failed:(Array.isArray(data.failed) ? data.failed : []).map(String)
     };
     usdCnyLastError = '';
     stale = Boolean(data.stale);
@@ -11115,7 +11124,7 @@ function applyAutoExchangeRate(now = new Date()) {
   const settings = getExchangeSettings();
   const month = exchangeLocalMonth(now);
   if (settings.manualMonths[month]) return false;
-  const { rate, source, sourceLabel, publishedAt, checkedAt } = usdCnyLatest;
+  const { rate, source, sourceLabel, publishedAt, checkedAt, quotes, failed } = usdCnyLatest;
   const auto = settings.auto;
   const sameRate = Math.abs(Number(settings.monthlyRates[month]) - rate) < 0.0001;
   // 今天已经记过这一份（或这次没取到新的，手里还是上次那份）：不再写。
@@ -11125,7 +11134,7 @@ function applyAutoExchangeRate(now = new Date()) {
   state.exchangeSettings = {
     ...settings,
     monthlyRates:{ ...settings.monthlyRates, [month]:rate },
-    auto:{ month, rate, source, sourceLabel, publishedAt, checkedAt }
+    auto:{ month, rate, source, sourceLabel, publishedAt, checkedAt, quotes, failed }
   };
   render();
   return true;
@@ -11150,8 +11159,12 @@ function exchangeNoteText(now = new Date()) {
   }
   const published = exchangePublishedLabel(auto.publishedAt);
   const label = auto.source === 'cfets' ? '外汇交易中心中间价（参考价，比银行买入价高）' : auto.sourceLabel || auto.source;
-  let text = `${monthName}：${auto.rate} · ${label}${published ? ` · ${published} 更新` : ''}`;
-  if (auto.source === 'icbc' || auto.source === 'cfets') text += '（中国银行今天没取到）';
+  const bankNames = { boc:'中国银行', icbc:'工商银行' };
+  const other = auto.quotes.find(quote => quote.source !== auto.source);
+  const compared = other ? `（${bankNames[other.source] || other.sourceLabel} ${other.rate}，两家取低的）` : '';
+  const missing = auto.failed.map(id => bankNames[id]).filter(Boolean);
+  let text = `${monthName}：${auto.rate} · ${label}${compared}${published ? ` · ${published} 更新` : ''}`;
+  if (missing.length) text += `（${missing.join('、')}今天没取到）`;
   text += '。';
   if (usdCnyLastError) text = `${monthName}：今天没取到汇率，沿用${published ? ` ${published} ` : '上次'}的 ${auto.rate}（${label}）。`;
   const staleDays = usdCnyAgeDays(auto.publishedAt || auto.checkedAt, now);

@@ -121,16 +121,6 @@ const freePort = () => new Promise((resolve, reject) => {
       await openMoreMenu();
       await click('.customer-more-menu [data-customer-menu="delete"]');
     };
-    // 「删除客户」「合并到其他客户…」收在客户档案（只读）右上角的「⋯」里。
-    const openMoreMenu = async () => {
-      await click('#customerMoreBtn');
-      await page.waitForSelector('.customer-more-menu');
-      await h.settle(page, '.customer-more-menu');
-    };
-    const menuDelete = async () => {
-      await openMoreMenu();
-      await click('.customer-more-menu [data-customer-menu="delete"]');
-    };
     const focusOnCancel = () => page.waitForFunction(() => document.activeElement?.id === 'confirmCancelBtn');
     const confirmClosed = () => page.waitForFunction(() => !document.getElementById('confirmModal').classList.contains('open'));
     const flush = async () => assert.equal(await page.evaluate(() => window.flushPendingSave()), true, 'saved to the database');

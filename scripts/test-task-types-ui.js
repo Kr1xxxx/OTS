@@ -5,6 +5,8 @@
 // 2. 异常的那一批：一单一条「物流异常：承运商原话」；点完成后同一次异常不再提醒，承运商时间变了再出；变回运输中、订单完成后不出。
 //    同一单另一批几天没更新：收在「另有 物流没更新」里；异常的那一批不再另算「几天没更新」。
 // 3. 小结：「N 天没更新」叫「物流没更新」，承运商报异常叫「物流异常」。
+// 4. 手动标的异常：完成 → 改回运输中 → 再标异常，重新提醒；不改回来就不回来；撤销「完成」照常。
+// 5. 日历格子、当天抽屉标签、订单记录用表里的名字；要紧的待办（risk）色条和加急一个颜色。
 const assert = require('node:assert/strict');
 const { launchBrowser, h, html } = require('./helpers/board-page');
 
@@ -125,8 +127,70 @@ const orders = [
     // ---- 3. 只有「没更新」时小结写「物流没更新」 ----
     assert.deepEqual(await page.evaluate(() => taskTypeBreakdown(buildTaskItems({ perOrder:true }).filter(t => t.orderId === 'x2'), { long:true })), ['1 个物流没更新']);
 
+    // ---- 4. 手动标的异常（UPS 只能手动标）：完成后改回运输中，再标异常会重新提醒 ----
+    await page.evaluate(() => {
+      state.orders.push({ ...state.orders.find(o => o.id === 'x2'), id:'u1', num:'T-u1', client:'Client u1', logisticsStatus:'已发货', carrier:'UPS', trackingNumber:'1Z999AA10123456784', logs:[],
+        shipments:[{ id:'u', trackingNumber:'1Z999AA10123456784', carrier:'UPS', status:'已发货', shippedAt:'2026-11-05', updated:'' }] });
+      render();
+    });
+    const setStatus = async status => {
+      await page.evaluate(() => openOrder('u1'));
+      await page.waitForSelector('#orderModal.open');
+      await page.evaluate(status => { const select = document.querySelector('#orderForm [data-shipment-status]'); select.value = status; select.dispatchEvent(new Event('change', { bubbles:true })); }, status);
+      await page.evaluate(() => document.getElementById('orderForm').requestSubmit());
+      await page.waitForFunction(() => !document.getElementById('orderModal').classList.contains('open'));
+    };
+    const issueU1 = () => page.evaluate(() => buildTaskItems().find(t => t.id === 'logistics-issue-u1')?.reason || '');
+    await setStatus('异常');
+    assert.equal(await issueU1(), '物流异常：已标记异常', 'a batch marked by hand has no carrier words');
+
+    // ---- 5. 日历：格子、当天抽屉的标签都用表里的名字；要紧的待办色条一个颜色 ----
+    const calendar = await page.evaluate(() => {
+      const items = buildTaskItems({ includeSnoozed:true });
+      return calendarEventsInRange('2026-11-07', '2026-11-07').filter(event => event.taskId).map(event => {
+        const item = items.find(entry => entry.id === event.taskId);
+        return { id:event.taskId, label:event.label, name:taskTypeDefs[item.type].label };
+      });
+    });
+    assert.ok(calendar.some(event => event.id === 'logistics-risk-x2') && calendar.some(event => event.id === 'logistics-issue-u1'));
+    calendar.forEach(event => assert.ok(event.label.includes(event.name), `calendar cell ${event.label} says ${event.name}`));
+    assert.equal(calendar.some(event => /物流风险/.test(event.label)), false);
+    await page.evaluate(() => { setPage('calendar'); openCalendarTaskDrawer('2026-11-07'); });
+    await page.waitForSelector('#calendarTaskBody .task[data-task-id="logistics-issue-u1"]');
+    const drawer = await page.evaluate(() => [...document.querySelectorAll('#calendarTaskBody .task')].map(el => {
+      const item = buildTaskItems({ includeSnoozed:true }).find(entry => entry.id === el.dataset.taskId);
+      return { type:item.type, name:taskTypeDefs[item.type].label, tag:el.querySelector('.calendar-drawer-tag').textContent, bar:getComputedStyle(el, '::before').backgroundColor };
+    }));
+    drawer.forEach(row => assert.equal(row.tag, row.name, `drawer tag for ${row.type}`));
+    const bar = type => drawer.find(row => row.type === type)?.bar;
+    assert.ok(bar('logisticsIssue') && bar('logistics') && bar('urgent'));
+    assert.equal(bar('logisticsIssue'), bar('urgent'), 'a carrier exception has the same bar as the other urgent reminders');
+    assert.equal(bar('logistics'), bar('urgent'));
+    await page.evaluate(() => { closeCalendarTaskDrawer(); setPage('dashboard'); });
+
+    // 完成后同一次异常不回来（原样再保存一次也不回来）；撤销「完成」照常回来。
+    await h.clearToasts(page);
+    await page.evaluate(() => markTaskDone('logistics-issue-u1'));
+    assert.equal(await issueU1(), '');
+    await h.clickUndo(page, '物流异常');
+    await page.waitForFunction(() => buildTaskItems().some(t => t.id === 'logistics-issue-u1'));
+    await h.clearToasts(page);
+    await page.evaluate(() => markTaskDone('logistics-issue-u1'));
+    await setStatus('异常');
+    assert.equal(await issueU1(), '', 'saving the same exception again does not bring it back');
+    // 改回运输中：已处理记录清掉；过几天再标异常，重新提醒。
+    await setStatus('运输中');
+    assert.equal(await issueU1(), '');
+    assert.deepEqual(await page.evaluate(() => Object.keys(state.doneTasks).filter(key => key.startsWith('logistics-issue-u1-'))), []);
+    await setStatus('异常');
+    assert.equal(await issueU1(), '物流异常：已标记异常', 'marked again after it was resolved: reminds again');
+
+    // 「物流没更新」点完成，订单记录也叫这个名字。
+    await page.evaluate(() => markTaskDone('logistics-risk-x2'));
+    assert.match(await page.evaluate(() => state.orders.find(o => o.id === 'x2').logs[0].text), /待办已处理：物流没更新提醒/);
+
     assert.deepEqual(errors, []);
-    console.log('Task types UI passed: one table covers every task type (labels, filters, tabs, done keys); carrier exception is one to-do per order with the carrier words, done per exception, gone when back in transit or done; stale batches are 物流没更新.');
+    console.log('Task types UI passed: one table covers every task type (labels, filters, tabs, done keys); carrier exception is one to-do per order with the carrier words, done per exception, gone when back in transit or done; a hand-marked exception reminds again after it was resolved; the calendar uses the table names and one bar colour for urgent reminders; stale batches are 物流没更新.');
   } finally {
     await browser.close();
   }

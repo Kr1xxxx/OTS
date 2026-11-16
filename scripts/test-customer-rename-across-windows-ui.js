@@ -46,12 +46,12 @@ const profile = (client, id) => ({ client, id, country:'🇺🇸 美国 United S
     };
     const db = async () => (await api('/api/data')).data.data;
     // Every scenario starts from the same two customers with fixed ids and three orders.
-    const seed = async () => {
+    const seed = async ({ acmeHistory = [] } = {}) => {
       const current = (await api('/api/data')).data;
       const saved = await api('/api/save', { state:{ app:current.app, version:current.version, data:{
         ...current.data,
         orders:[order('x1', 'Acme Hair'), order('x2', 'Acme Hair'), order('y1', 'Beta Wigs')], trashOrders:[], deletedOrders:[],
-        customers:{ 'Acme Hair':profile('Acme Hair', ids.acme), 'Beta Wigs':profile('Beta Wigs', ids.beta) },
+        customers:{ 'Acme Hair':{ ...profile('Acme Hair', ids.acme), history:acmeHistory }, 'Beta Wigs':profile('Beta Wigs', ids.beta) },
         doneTasks:{}, customerDuplicateIgnores:[], demoCleared:true, demoCustomersCleared:true
       } }, baseRevision:current.revision });
       assert.equal(saved.status, 200, JSON.stringify(saved.data));
@@ -144,6 +144,28 @@ const profile = (client, id) => ({ client, id, country:'🇺🇸 美国 United S
     assert.equal(merged.note, 'made-up note from B');
     assert.equal(merged.client, 'Acme Hair Ltd');
     assert.equal(merged.history.length, 2, 'both history entries are kept');
+    await A.close(); await B.close();
+
+    // ---- 2b. A long history (30 entries): A edits the note, stale B the permanent note; the merge keeps all 32 ----
+    const oldHistory = Array.from({ length:30 }, (_, index) => ({ time:`2020-01-${String(index + 1).padStart(2, '0')} 09:00`, text:`made-up change ${index + 1}` })).reverse();
+    await seed({ acmeHistory:oldHistory });
+    A = await openPage();
+    B = await openPage();
+    const editField = (page, field, value) => run(page, ([field, value]) => {
+      openCustomerModal('Acme Hair', { viewOnly:false });
+      const form = document.getElementById('customerForm');
+      form.elements[field].value = value;
+      __otsTrack(saveCustomer(form).then(() => window.flushPendingSave()));
+    }, [field, value]);
+    await editField(A, 'note', 'made-up note from A');
+    await editField(B, 'permanentNote', 'made-up permanent note from B');
+    await settled(B);
+    assert.equal(await confirmShown(B), false);
+    const long = (await db()).customers['Acme Hair'];
+    assert.equal(long.note, 'made-up note from A');
+    assert.equal(long.permanentNote, 'made-up permanent note from B');
+    assert.equal(long.history.length, 32, 'both new entries and all 30 old ones are kept');
+    assert.equal(long.history.at(-1).text, 'made-up change 1', 'the oldest entry is still there');
     await A.close(); await B.close();
 
     // ---- 3. The other way round: A adds an order for the old name first, then B renames ----

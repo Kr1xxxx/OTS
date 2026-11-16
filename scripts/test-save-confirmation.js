@@ -31,7 +31,8 @@ async function scenario(readOnly, saveOK) {
     buildOrderFromFormData:(data,{existing})=>({id:existing?.id || 'order-'+(++ctx.sequence),client:'Test Buyer'}),
     sequence:0, shouldRequestOrderNotification:()=>false, normalizeFeishuNotification:x=>x,
     closeOrder:()=>events.push('closed'), completeOrderNotification:()=>events.push('notified'), rejectDuplicateOrderNum:()=>false,
-    confirmOrderPaymentOverflow:async()=>true, orderStageSaveNote:()=>'', syncOrderFormAfterCustomerSave:()=>{}
+    confirmOrderPaymentOverflow:async()=>true, orderStageSaveNote:()=>'', syncOrderFormAfterCustomerSave:()=>{},
+    clearResolvedLogisticsIssues:()=>({})
   });
   for (const name of ['macIsReadOnly','macSaveWillRetry','canSubmitStoredData','persistFormState']) {
     if (html.includes(`function ${name}(`)) vm.runInContext(extract(name),ctx);

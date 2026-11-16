@@ -108,11 +108,11 @@ async function pageTests() {
     assert.equal(typed.client, 'Acme Ltd', 'order saved under a case variant splits the customer');
 
     // Rename reaches deleted orders, so restoring one does not bring the old name back.
-    await page.evaluate(() => patchAllOrdersForCustomerRename('acme ltd', 'Acme Limited'));
+    await page.evaluate(() => renameCustomerNameKeys('acme ltd', 'Acme Limited'));
     assert.equal(await page.evaluate(() => state.deletedOrders[0].client), 'Acme Limited');
     // 3 orders + the copy made above (the copy keeps the customer name now).
     assert.equal(await page.evaluate(() => state.orders.filter(o => o.client === 'Acme Limited').length), 4);
-    await page.evaluate(() => patchAllOrdersForCustomerRename('Acme Limited', 'Acme Ltd'));
+    await page.evaluate(() => renameCustomerNameKeys('Acme Limited', 'Acme Ltd'));
 
     // An order-only customer does not inherit the order note as its profile note.
     const orderOnly = await page.evaluate(() => clientHistory().find(c => c.client === 'Order Only Co'));

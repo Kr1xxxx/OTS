@@ -25713,10 +25713,13 @@ function restorePreviewBlocks(preview) {
         const items = [];
     if (orders.removed) items.push({ text:`少 ${orders.removed} 张订单`, detail:listWithMore(orders.removedNums || [], orders.removed), tone:'bad' });
     if (customers.removed) items.push({ text:`少 ${customers.removed} 位客户`, detail:listWithMore(customers.removedNames || [], customers.removed), tone:'bad' });
+    // 续费和 WhatsApp 消息没有逐条对比，只比数量。
     const subscriptionsGone = number(now.subscriptions) - number(backup.subscriptions);
+    const messagesGone = number(now.whatsappMessages) - number(backup.whatsappMessages);
     if (subscriptionsGone > 0) items.push({ text:`少 ${subscriptionsGone} 条续费`, tone:'bad' });
-    const counted = (orderCount, customerCount, extra = '') => [orderCount ? `${orderCount} 张订单` : '', customerCount ? `${customerCount} 位客户` : '', extra].filter(Boolean).join('、');
-    const added = counted(orders.added, customers.added, subscriptionsGone < 0 ? `${-subscriptionsGone} 条续费` : '');
+    if (messagesGone > 0) items.push({ text:`少 ${messagesGone} 条 WhatsApp 消息`, tone:'bad' });
+    const counted = (orderCount, customerCount, ...extra) => [orderCount ? `${orderCount} 张订单` : '', customerCount ? `${customerCount} 位客户` : '', ...extra].filter(Boolean).join('、');
+    const added = counted(orders.added, customers.added, subscriptionsGone < 0 ? `${-subscriptionsGone} 条续费` : '', messagesGone < 0 ? `${-messagesGone} 条 WhatsApp 消息` : '');
     if (added) items.push({ text:`多出 ${added}` });
     const changed = counted(orders.changed, customers.changed);
     if (changed) items.push({ text:`${changed}改回备份时的内容` });

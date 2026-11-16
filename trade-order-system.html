@@ -3464,7 +3464,6 @@ html[data-theme] .team { min-height:0; padding:0 4px 0 8px; border:0; background
 html[data-theme] .team .app-version { min-width:0; height:auto; padding:0; border:0; background:none; font-size:12px; font-weight:400; color:var(--gray-500); }
 html[data-theme] .save-pulse { margin-left:auto; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; color:var(--gray-600); }
 /* 确认框副标题（例如冲突框的「本窗口已切换为只读」）：以前用 order-num 的浅灰，浅色 2.68:1、深色 3.55:1。 */
-html[data-theme] #confirmSub { color:var(--gray-600); }
 html[data-theme] .save-pulse i { width:6px; height:6px; border-radius:50%; background:var(--s-green); }
 html[data-theme] .save-pulse.is-busy i { background:var(--accent); animation:uiPing 1s var(--ease) infinite; }
 html[data-theme] .save-pulse.is-error { color:var(--s-red); }
@@ -5235,6 +5234,12 @@ html[data-theme] .pick-notes li { display:grid; grid-template-columns:16px minma
 html[data-theme] .pick-notes li::before { content:"!"; width:16px; height:16px; margin-top:2px; border-radius:50%; background:color-mix(in oklab, var(--s-amber) 16%, transparent); color:var(--s-amber); font-size:11px; font-weight:700; line-height:16px; text-align:center; }
 /* 开关：和订单弹窗「保存后发送到飞书群」同一个样子，下面一行写具体后果。 */
 html[data-theme] .pick-switches { display:grid; gap:12px; }
+/* 确认框：标题下面一行写动的是谁、多少（空就不占行）；有 note（能不能反悔：撤销、备份）时底部变成一条，左边 note、右边按钮，
+   和正文之间一条分隔线，和卡片设置、导出弹窗的底部一个样子。没有 note 时底部和以前一样。 */
+html[data-theme] #confirmSub:empty { display:none; }
+html[data-theme] .confirm-foot { display:flex; align-items:center; justify-content:flex-end; gap:10px 16px; flex-wrap:wrap; }
+html[data-theme] .confirm-foot.has-note { margin:4px -20px -20px; padding:14px 20px; border-top:1px solid var(--surface-border); }
+html[data-theme] .confirm-foot .confirm-actions { margin-left:auto; }
 html[data-theme] .pick-switch { display:grid; grid-template-columns:34px minmax(0, 1fr); gap:12px; align-items:center; cursor:pointer; }
 html[data-theme] .pick-switch[hidden] { display:none; }
 html[data-theme] .pick-switch input { appearance:none; -webkit-appearance:none; position:relative; width:34px; height:20px; margin:0; border:0; border-radius:999px; background:var(--gray-300); cursor:pointer; transition:background var(--motion-fast) var(--ease); }
@@ -7031,11 +7036,11 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
 </div>
 
 <div class="modal-backdrop" id="confirmModal" aria-hidden="true">
-  <div class="modal confirm-modal">
+  <div class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmSub confirmMessage">
     <div class="modal-head">
       <div>
-        <div class="order-num" id="confirmSub">需要确认</div>
         <div class="modal-title" id="confirmTitle">确认操作</div>
+        <div class="pick-sub" id="confirmSub">需要确认</div>
       </div>
       <button class="btn btn-small" id="confirmCloseBtn" type="button" aria-label="关闭" title="关闭">关闭</button>
     </div>
@@ -7046,10 +7051,13 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
         <input class="confirm-input" id="confirmInput" autocomplete="off">
       </div>
       <div class="confirm-error" id="confirmError"></div>
-      <div class="confirm-actions">
-        <button class="btn" id="confirmCancelBtn" type="button">取消</button>
-        <button class="btn" id="confirmAltBtn" type="button" hidden></button>
-        <button class="btn btn-primary" id="confirmOkBtn" type="button">确认</button>
+      <div class="confirm-foot" id="confirmFoot">
+        <div class="pick-foot-info" id="confirmNote" hidden></div>
+        <div class="confirm-actions">
+          <button class="btn" id="confirmCancelBtn" type="button">取消</button>
+          <button class="btn" id="confirmAltBtn" type="button" hidden></button>
+          <button class="btn btn-primary" id="confirmOkBtn" type="button">确认</button>
+        </div>
       </div>
     </div>
   </div>
@@ -12566,7 +12574,9 @@ function appConfirm({
   validate = null,
   defaultFocus = '',
   // 第三个按钮（例如粘贴识别的「只补空字段」）：点它返回 { confirmed:false, alt:true }，和「取消」/ × / Esc 分开。
-  altText = ''
+  altText = '',
+  // 一句让人放心的话（「6 秒内可以撤销」「删除前自动备份」）：放在底部按钮左边。只写调用方真的做得到的事。
+  note = ''
 } = {}) {
   const modal = document.getElementById('confirmModal');
   const titleEl = document.getElementById('confirmTitle');
@@ -12585,6 +12595,12 @@ function appConfirm({
   if (appConfirmActive) appConfirmActive({ confirmed:false, value:'' }, { keepOpen:true });
   titleEl.textContent = title;
   subEl.textContent = sub;
+  const noteEl = document.getElementById('confirmNote');
+  if (noteEl) {
+    noteEl.textContent = note;
+    noteEl.hidden = !note;
+    document.getElementById('confirmFoot')?.classList.toggle('has-note', Boolean(note));
+  }
   messageEl.textContent = message;
   okBtn.textContent = confirmText;
   cancelBtn.textContent = cancelText;
@@ -12654,13 +12670,13 @@ function appConfirm({
   });
 }
 async function confirmDangerFlow({ title, firstMessage, secondMessage, mathA = 7, mathB = 6, confirmText = '确认清除' }) {
-  const first = await appConfirm({ title, sub:'第一步确认', message:firstMessage, confirmText:'继续', danger:true });
+  const first = await appConfirm({ title, sub:'第 1 步，共 3 步', message:firstMessage, confirmText:'继续', danger:true });
   if (!first.confirmed) return false;
-  const second = await appConfirm({ title, sub:'第二步确认', message:secondMessage, confirmText:'继续验证', danger:true });
+  const second = await appConfirm({ title, sub:'第 2 步，共 3 步', message:secondMessage, confirmText:'继续验证', danger:true });
   if (!second.confirmed) return false;
   const math = await appConfirm({
     title,
-    sub:'安全验证',
+    sub:'第 3 步，共 3 步 · 算术验证',
     message:'为防止误操作，请完成算术题。',
     inputLabel:`${mathA} + ${mathB} = ?`,
     inputPlaceholder:'请输入答案',
@@ -17377,8 +17393,8 @@ function cleanupTemporaryOrderAttachments(form = document.getElementById('orderF
 async function confirmAttachmentDelete(item = {}) {
   const result = await appConfirm({
     title: '删除附件',
-    sub: '需要确认',
-    message: `确定从订单中删除「${attachmentDisplayName(item)}」吗？\n\n会同时删除订单记录和本机附件文件。`,
+    sub: attachmentDisplayName(item),
+    message: '从订单中删除这个附件：会同时删除订单记录和本机附件文件。',
     confirmText: '删除附件',
     danger: true
   });
@@ -19309,8 +19325,9 @@ async function clearTargetForMonth() {
   if (!previous) return;
   const answer = await appConfirm({
     title:'清除业绩目标',
-    sub:monthLabel(month),
-    message:`清除 ${monthLabel(month)} 的目标 ${summaryMoney(previous, 'USD')}？清除后工作台目标卡显示「未设」，6 秒内可以撤销。`,
+    sub:`${monthLabel(month)} · 目标 ${summaryMoney(previous, 'USD')}`,
+    message:'清除后工作台目标卡显示「未设」。',
+    note:'6 秒内可以撤销',
     confirmText:'清除目标',
     cancelText:'取消',
     danger:true
@@ -20135,9 +20152,10 @@ async function clearTrackingLookups() {
   if (!all.length) return;
   const pinned = all.filter(item => item.pinned === true).length;
   const answer = await appConfirm({
-    title: `清除 ${all.length} 条查询记录？`,
-    sub: '最近查询物流',
-    message: `${pinned ? `置顶的 ${pinned} 条会保留。` : ''}订单里的物流状态不受影响，清除后可以撤销。`,
+    title: '清除查询记录',
+    sub: `最近查询物流 · ${all.length} 条${pinned ? ` · 置顶的 ${pinned} 条会保留` : ''}`,
+    message: '订单里的物流状态不受影响。',
+    note: '清除后可以撤销',
     confirmText: pinned ? `清除未置顶的 ${all.length - pinned} 条` : '清除',
     altText: pinned ? '连置顶一起清除' : '',
     danger: true
@@ -21485,8 +21503,9 @@ async function backupBeforeCustomerChange(actionLabel = '操作', reason = 'chan
   }
   const next = await appConfirm({
     title:'备份没有完成',
-    sub:`${actionLabel}前的数据备份`,
-    message:`${actionLabel}前的数据备份没有生成：${message}\n\n仍然${actionLabel}吗？${actionLabel}后 6 秒内仍可撤销，但不会有这次${actionLabel}前的备份。`,
+    sub:`${actionLabel}前的数据备份没有生成`,
+    message:`原因：${message}\n\n仍然${actionLabel}吗？`,
+    note:`${actionLabel}后 6 秒内仍可撤销，但不会有这次${actionLabel}前的备份`,
     confirmText:`仍然${actionLabel}`,
     danger:true,
     defaultFocus:'cancel'
@@ -21563,10 +21582,9 @@ async function mergeDuplicateCustomers(primaryName = '', secondaryName = '') {
   const secondary = secondaryRecord.profile || {};
   const targetName = primaryName;
   const conflicts = customerMergeConflicts(primary, secondary);
-  const backupLine = isMacAppMode() ? '合并前会先保存一份数据备份；合并后 6 秒内可以撤销。' : '合并后 6 秒内可以撤销（浏览器预览不会生成本地备份）。';
   const result = await appConfirm({
     title:'合并重复客户',
-    sub:'订单和资料将归入保留的档案',
+    sub:`保留 ${targetName} · 并入 ${secondaryName}`,
     message:[
       `保留：${targetName}（${customerOrderCountText(customerOrderCounts(primaryName))}）`,
       `并入后删除档案：${secondaryName}（${customerOrderCountText(customerOrderCounts(secondaryName))}）`,
@@ -21574,10 +21592,9 @@ async function mergeDuplicateCustomers(primaryName = '', secondaryName = '') {
       `${secondaryName} 的订单（含垃圾箱和已删除订单）、电话、邮箱、联系人、地址、标签和 WhatsApp 聊天会归到 ${targetName}。`,
       conflicts.length
         ? `两边不一样的资料以 ${targetName} 为准，${secondaryName} 的写法记进备注：\n${conflicts.map(item => `· ${item.label}：保留 ${item.keep}，记进备注 ${item.drop}`).join('\n')}`
-        : '两边没有冲突的资料。',
-      '',
-      backupLine
+        : '两边没有冲突的资料。'
     ].join('\n'),
+    note:isMacAppMode() ? '合并前自动备份，6 秒内可以撤销' : '6 秒内可以撤销（浏览器预览不会生成本地备份）',
     confirmText:'确认合并',
     altText:`改为保留 ${secondaryName}`,
     danger:true,
@@ -21714,14 +21731,12 @@ async function deleteCustomerProfile(name = '') {
   if (!Object.hasOwn(state.customers || {}, name)) return;
   const result = await appConfirm({
     title:'删除客户',
-    sub:name,
+    sub:`${name} · 名下没有订单`,
     message:[
-      `删除 ${name} 的客户档案：联系方式、备注、标签和变更记录都会删除。`,
-      '名下没有订单（含垃圾箱和已删除订单）。',
-      ...(isMacAppMode() ? ['WhatsApp 聊天记录不会删除；撤销后会自动接回这位客户。'] : []),
-      '',
-      isMacAppMode() ? '删除前会先保存一份数据备份；删除后 6 秒内可以撤销。' : '删除后 6 秒内可以撤销（浏览器预览不会生成本地备份）。'
+      '客户档案的联系方式、备注、标签和变更记录都会删除。垃圾箱和已删除订单里也没有这位客户的订单。',
+      ...(isMacAppMode() ? ['WhatsApp 聊天记录不会删除，撤销后自动接回这位客户。'] : [])
     ].join('\n'),
+    note:isMacAppMode() ? '删除前自动备份，6 秒内可以撤销' : '6 秒内可以撤销（浏览器预览不会生成本地备份）',
     confirmText:'删除客户',
     danger:true,
     defaultFocus:'cancel'
@@ -25236,8 +25251,8 @@ async function previewImportDataFile(file) {
     if (mode === 'replace' && removedTotal) {
       const second = await appConfirm({
         title:'确认删除并替换',
-        sub:'会删除现有数据',
-        message:`将删除 ${replaceDiff.orders.removed} 张订单、${replaceDiff.customers.removed} 位客户，整份换成文件里的数据。\n\n不想删除的话，请取消后选「合并导入」。`,
+        sub:`删除 ${replaceDiff.orders.removed} 张订单、${replaceDiff.customers.removed} 位客户`,
+        message:'整份换成文件里的数据。不想删除的话，请取消后选「合并」。',
         inputLabel:'输入「替换」两个字确认',
         validate:value => value === '替换' || '请输入「替换」两个字',
         confirmText:'删除并替换',
@@ -25367,7 +25382,7 @@ function restorePreviewMessage(preview) {
     lines.push('', '现在的数据库没有读出来（只读保护），没法逐项对比；恢复后以这份备份为准。');
   }
   if (preview.missingAttachments) lines.push('', `这份备份做的时候有 ${preview.missingAttachments} 个附件文件已经找不到，恢复后这些图片仍然打不开。`);
-  lines.push('', '恢复会换掉整个数据库（订单、客户、设置、续费、WhatsApp 聊天）。恢复前会先把现在的数据另存为一份「恢复前」备份，恢复后可以撤销。页面会重新加载。');
+  lines.push('', '恢复会换掉整个数据库（订单、客户、设置、续费、WhatsApp 聊天），页面会重新加载。');
   return lines.join('\n');
 }
 async function macRestoreBackup(name) {
@@ -25386,7 +25401,7 @@ async function macRestoreBackup(name) {
     toast(`这份备份读不出来：${error.message || '本地服务没有响应'}`, { tone:'error' });
     return;
   }
-  const choice = await appConfirm({ title:'从备份恢复', sub:`${backupTimeText(preview.at)} 的备份`, message:restorePreviewMessage(preview), confirmText:'恢复这份备份', danger:true, defaultFocus:'cancel' });
+  const choice = await appConfirm({ title:'从备份恢复', sub:`${backupTimeText(preview.at)} 的备份`, message:restorePreviewMessage(preview), note:'恢复前先把现在的数据另存为一份「恢复前」备份，恢复后可以撤销', confirmText:'恢复这份备份', danger:true, defaultFocus:'cancel' });
   if (!choice.confirmed) return;
   try {
     const res = await apiFetch('/api/restore-backup', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ name }) });
@@ -27890,8 +27905,8 @@ async function removeSubscriptionOption(kind, value) {
   if (inUse) {
     // Records keep the value; it just is not offered as a regular option any more. Say so before deleting.
     const answer = await appConfirm({
-      title:`删除自定义${subscriptionOptionNames[kind]}？`, sub:`「${label}」`,
-      message:`${inUse} 项续费在用「${label}」。删除后它们保留原值，编辑时仍可以重新选回它。`,
+      title:`删除自定义${subscriptionOptionNames[kind]}`, sub:`「${label}」 · ${inUse} 项续费在用`,
+      message:'删除后它们保留原值，编辑时仍可以重新选回它。',
       confirmText:'删除', cancelText:'不删', danger:true
     });
     if (!answer.confirmed) return;

@@ -431,8 +431,10 @@ const risks = page => page.evaluate(() => buildTaskItems().filter(task => String
     assert.equal(await page.locator('#priceHistoryList .recent-tracking-row').count(), 50);
     await clickAt(page, '#clearTrackingHistoryBtn');
     await page.locator('#confirmModal.open').waitFor();
-    assert.match(await text(page, '#confirmTitle'), /清除 50 条查询记录/);
-    assert.match(await text(page, '#confirmMessage'), /置顶的 1 条会保留/);
+    assert.equal(await text(page, '#confirmTitle'), '清除查询记录');
+    assert.equal(await text(page, '#confirmSub'), '最近查询物流 · 50 条 · 置顶的 1 条会保留');
+    assert.match(await text(page, '#confirmMessage'), /订单里的物流状态不受影响/);
+    assert.equal(await text(page, '#confirmNote'), '清除后可以撤销');
     assert.equal(await text(page, '#confirmAltBtn'), '连置顶一起清除');
     await h.settle(page, '#confirmModal .modal');
     await clickAt(page, '#confirmOkBtn');

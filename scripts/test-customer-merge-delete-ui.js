@@ -109,7 +109,7 @@ const freePort = () => new Promise((resolve, reject) => {
     const confirmOpen = async () => {
       await page.waitForFunction(() => document.getElementById('confirmModal').classList.contains('open'));
       await h.settle(page, '#confirmModal .modal');
-      return page.evaluate(() => ({ title:document.getElementById('confirmTitle').textContent, message:document.getElementById('confirmMessage').textContent, ok:document.getElementById('confirmOkBtn').textContent, alt:document.getElementById('confirmAltBtn').hidden ? '' : document.getElementById('confirmAltBtn').textContent, cancel:document.getElementById('confirmCancelBtn').textContent, danger:document.getElementById('confirmOkBtn').classList.contains('btn-danger') }));
+      return page.evaluate(() => ({ title:document.getElementById('confirmTitle').textContent, sub:document.getElementById('confirmSub').textContent, note:document.getElementById('confirmNote').hidden ? '' : document.getElementById('confirmNote').textContent, message:document.getElementById('confirmMessage').textContent, ok:document.getElementById('confirmOkBtn').textContent, alt:document.getElementById('confirmAltBtn').hidden ? '' : document.getElementById('confirmAltBtn').textContent, cancel:document.getElementById('confirmCancelBtn').textContent, danger:document.getElementById('confirmOkBtn').classList.contains('btn-danger') }));
     };
     // 「删除客户」「合并到其他客户…」收在客户档案（只读）右上角的「⋯」里。
     const openMoreMenu = async () => {
@@ -141,7 +141,9 @@ const freePort = () => new Promise((resolve, reject) => {
     let dialog = await confirmOpen();
     assert.equal(dialog.danger, true, '合并确认用危险样式');
     assert.match(dialog.message, /保留：alice baker（2 单）/);
-    assert.match(dialog.message, /合并前会先保存一份数据备份；合并后 6 秒内可以撤销/);
+    assert.equal(dialog.sub, '保留 alice baker · 并入 Alice B. Hair');
+    assert.equal(dialog.note, '合并前自动备份，6 秒内可以撤销');
+    assert.doesNotMatch(dialog.message, /备份|撤销/, 'the backup / undo line moved to the note');
     await focusOnCancel();
     // 默认焦点在「取消」：直接按回车不会合并。
     await page.keyboard.press('Enter');
@@ -286,7 +288,10 @@ const freePort = () => new Promise((resolve, reject) => {
     dialog = await confirmOpen();
     assert.equal(dialog.title, '删除客户');
     assert.equal(dialog.danger, true);
-    assert.match(dialog.message, /删除前会先保存一份数据备份；删除后 6 秒内可以撤销/);
+    assert.equal(dialog.sub, 'Typo Custmer · 名下没有订单');
+    assert.match(dialog.message, /联系方式、备注、标签和变更记录都会删除。垃圾箱和已删除订单里也没有这位客户的订单/);
+    assert.match(dialog.message, /WhatsApp 聊天记录不会删除，撤销后自动接回这位客户/);
+    assert.equal(dialog.note, '删除前自动备份，6 秒内可以撤销');
     await focusOnCancel();
     await page.keyboard.press('Enter');
     await confirmClosed();

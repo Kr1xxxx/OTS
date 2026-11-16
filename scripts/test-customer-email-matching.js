@@ -178,7 +178,7 @@ const data = {
     assert.match(first, /以下 2 个和示例同名的档案你改过资料或下过单，会保留：/);
     assert.match(first, /Pacific North LLC/);
     assert.match(first, /Global Importers UK/);
-    for (const step of ['第二步确认', '安全验证']) {
+    for (const step of ['第 2 步，共 3 步', '第 3 步，共 3 步 · 算术验证']) {
       await page.waitForFunction(() => document.activeElement?.id === 'confirmCancelBtn');
       await click('#confirmOkBtn');
       await page.waitForFunction(step => document.getElementById('confirmSub').textContent === step, step);

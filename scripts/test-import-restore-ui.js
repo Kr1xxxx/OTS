@@ -187,7 +187,7 @@ const fixture = {
     assert.equal(preview.danger, true);
     await h.click(page, '#importPreviewGoBtn');
     // 第二步：要输入「替换」。先输错一次。
-    await page.waitForFunction(() => document.getElementById('confirmSub').textContent === '会删除现有数据');
+    await page.waitForFunction(() => document.getElementById('confirmSub').textContent === '删除 3 张订单、3 位客户');
     await page.waitForFunction(() => document.activeElement?.id === 'confirmInput');
     await page.keyboard.type('好');
     await page.keyboard.press('Enter');
@@ -251,7 +251,7 @@ const fixture = {
     let dialog = await confirmOpen();
     assert.match(dialog.message, /4 张订单/);
     await h.click(page, '#confirmOkBtn');
-    await page.waitForFunction(() => document.getElementById('confirmSub').textContent === '第二步确认');
+    await page.waitForFunction(() => document.getElementById('confirmSub').textContent === '第 2 步，共 3 步');
     dialog = await confirmOpen();
     assert.match(dialog.message, /客户档案、收款方式、客户标签、编号和汇率等设置都会保留/);
     await h.click(page, '#confirmOkBtn');
@@ -275,7 +275,8 @@ const fixture = {
     dialog = await confirmOpen();
     assert.match(dialog.message, /恢复后和现在比/);
     assert.match(dialog.message, /备份里：订单 4/);
-    assert.match(dialog.message, /恢复前会先把现在的数据另存为一份「恢复前」备份/);
+    assert.match(dialog.message, /恢复会换掉整个数据库（订单、客户、设置、续费、WhatsApp 聊天），页面会重新加载/);
+    assert.equal(await page.locator('#confirmNote').textContent(), '恢复前先把现在的数据另存为一份「恢复前」备份，恢复后可以撤销');
     await page.waitForFunction(() => document.activeElement?.id === 'confirmCancelBtn');
     await Promise.all([page.waitForNavigation(), h.click(page, '#confirmOkBtn')]);
     await page.waitForFunction(() => window.pendingSaveStatus?.().loaded);

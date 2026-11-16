@@ -13,6 +13,7 @@ const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { launchBrowser, h } = require('./helpers/board-page');
 const { freePortSync } = require('./helpers/free-port');
+const { confirmText, confirmChoices } = require('./helpers/confirm-dialog');
 
 const root = path.resolve(__dirname, '..');
 const pad = n => String(n).padStart(2, '0');
@@ -187,9 +188,12 @@ const addMonths = (text, months) => {
     await click('#subscriptionSaveBtn');
     const plan = await confirmOpen();
     assert.equal(plan.title, '这次修改从哪一期起生效？');
-    assert.match(plan.message, new RegExp(`默认从下一期 ${nextCharge}（第 6 期）起按新的价格、扣费周期计，已经发生的 5 笔 ¥50\\.00 保持不变`));
-    assert.match(plan.message, /更正全部历史/);
-    assert.deepEqual([plan.ok, plan.alt, plan.cancel], ['从下一期起', '更正全部历史', '继续编辑']);
+    // 两张卡片：从下一期起（默认，按钮写「从下一期起生效」）/ 更正全部历史，各自的后果写在卡片里。
+    const planText = await confirmText(page);
+    assert.match(planText, new RegExp(`从下一期起：${nextCharge}（第 6 期）起按新的价格、扣费周期计，已经发生的 5 笔 ¥50\\.00 保持不变`));
+    assert.match(planText, /更正全部历史：当初录错了：已发生的扣费变成 /);
+    const planChoices = await confirmChoices(page);
+    assert.deepEqual([planChoices.labels, planChoices.checked, planChoices.ok, planChoices.altHidden, plan.cancel], [['从下一期起', '更正全部历史'], 0, '从下一期起生效', true, '继续编辑']);
     await click('#confirmOkBtn');
     await confirmClosed();
     await editorClosed();

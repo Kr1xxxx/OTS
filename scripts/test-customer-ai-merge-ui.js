@@ -3,6 +3,7 @@
 // 全程真实键盘鼠标；不用固定等待，等元素停稳（h.center / h.settle）、等条件成立。
 const assert = require('node:assert/strict');
 const { launchBrowser, h, html } = require('./helpers/board-page');
+const { confirmText, confirmChoices } = require('./helpers/confirm-dialog');
 
 const fixture = {
   demoCleared:true, demoCustomersCleared:true, doneTasks:{},
@@ -82,12 +83,17 @@ const fixture = {
     assert.doesNotMatch(await results(), /匹配已有客户：Bob Taylor/, 'the customer being edited is not offered as a match to itself');
     await click('[data-customer-paste-fill]');
     await confirmOpen();
-    const message = await page.locator('#confirmMessage').innerText();
+    const message = await confirmText(page);
     assert.match(message, /主电话：\+44 7700 900127 → \+44 7700 900999/);
     assert.match(message, /主邮箱：bob@example\.co\.uk → rob@newmail\.co\.uk/);
     assert.match(message, /客户名不会被改/);
-    assert.equal(await page.locator('#confirmOkBtn').innerText(), '覆盖这些字段');
-    await page.waitForFunction(() => document.activeElement?.id === 'confirmAltBtn');
+    // 两张卡片，默认选中安全的「只补空字段」，焦点在它的单选框上，执行按钮写的就是它。
+    const picked = await confirmChoices(page);
+    assert.deepEqual(picked.labels, ['覆盖这些字段', '只补空字段']);
+    assert.equal(picked.checked, 1);
+    assert.equal(picked.ok, '只补空字段');
+    assert.equal(picked.altHidden, true, 'no third button next to the cards');
+    await page.waitForFunction(() => document.activeElement?.matches('#confirmChoices input[value="1"]'));
     // 直接回车 = 安全选项「只补空字段」。
     await page.keyboard.press('Enter');
     await page.waitForFunction(() => !document.getElementById('confirmModal').classList.contains('open'));
@@ -97,6 +103,8 @@ const fixture = {
     // 再填一次选「覆盖」：新号码排第一，旧号码都还在；名字仍不改，名称框下给出提示。
     await click('[data-customer-paste-fill]');
     await confirmOpen();
+    await click('#confirmChoices .pick-option:nth-child(1)');
+    assert.equal(await page.locator('#confirmOkBtn').innerText(), '覆盖这些字段');
     await click('#confirmOkBtn');
     await page.waitForFunction(() => !document.getElementById('confirmModal').classList.contains('open'));
     assert.equal(await page.locator(`${form} [name="name"]`).inputValue(), 'Bob Taylor', 'overwrite never renames an existing customer');

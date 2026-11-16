@@ -7,6 +7,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
+const { confirmText, pickConfirmChoice } = require('./helpers/confirm-dialog');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'trade-order-system.html'), 'utf8');
 const base = { amount:800, paidAmount:240, depositAmount:240, depositPercent:30, orderType:'定金订单', stage:'balance', productType:'假发', paymentChannel:'Paypal', createdAt:'2025-10-15', orderMonth:'2025-10', updated:'2025-10-15 09:00', logs:[], logisticsStatus:'未发货', shipments:[], attachments:[], note:'' };
@@ -136,15 +137,21 @@ async function launch() {
       await results.locator('.paste-error-card').waitFor();
       return resultsText();
     };
-    // 点一个会填表的按钮；confirm 给了就在确认框里点它，返回确认框里的文字。
+    // 点一个会填表的按钮；confirm 给了就在确认框里回答，返回确认框里的文字。
+    // confirm 是 'all'（选「全部改」执行）、'blank'（选「只补空字段」执行）或要点的按钮。
     const clickFill = async (selector, confirm = null) => {
       const before = await page.evaluate(() => window.__fills.length);
       await results.locator(selector).first().click();
       let message = '';
       if (confirm) {
-        await page.waitForFunction(() => document.getElementById('confirmModal').classList.contains('open'));
-        message = await page.locator('#confirmMessage').innerText();
-        await page.locator(confirm).click();
+        message = await confirmText(page);
+        if (confirm === 'all' || confirm === 'blank') {
+          await pickConfirmChoice(page, confirm === 'all' ? 0 : 1);
+          assert.equal(await page.locator('#confirmOkBtn').innerText(), confirm === 'all' ? '全部改' : '只补空字段', 'the button says what the picked card does');
+          await page.locator('#confirmOkBtn').click();
+        } else {
+          await page.locator(confirm).click();
+        }
       }
       await page.waitForFunction(n => window.__fills.length > n, before);
       assert.equal(await confirmOpen(), false);
@@ -194,7 +201,7 @@ async function launch() {
     assert.match(editCard, /AI 没确定金额、币种，请自己填/);
     assert.match(editCard, /这张单已有的内容不会被直接改掉/);
     assert.doesNotMatch(editCard, /stage|production|阶段：|给 .* 新建订单/i, 'the AI stage is neither shown nor applied');
-    let step = await clickFill('[data-paste-fill-extracted]', '#confirmAltBtn');
+    let step = await clickFill('[data-paste-fill-extracted]', 'blank');
     assert.equal(step.filled, true);
     assert.match(step.message, /订单类型：定金订单 → 全款订单/);
     assert.match(step.message, /收款方式：Paypal → Zelle/);
@@ -203,7 +210,8 @@ async function launch() {
     assert.match(step.message, /改成全款订单、付款状态「已付」后，保存时已收按订单金额记成 \S*800/);
     assert.doesNotMatch(step.message, /付款状态显示「部分已付」/, 'the notice describes the status after the change');
     assert.match(step.message, /只补空字段/);
-    assert.doesNotMatch(step.message.split('\n\n')[0], /创建日期|币种|阶段|stage|orderType|paymentChannel/);
+    // 字段对照（确认框里正文下面那一块）只列有冲突的字段，用中文名。
+    assert.doesNotMatch(step.message.split('\n\n')[1], /创建日期|币种|阶段|stage|orderType|paymentChannel/);
     assert.equal(await value('orderType'), '定金订单');
     assert.equal(await value('paymentChannel'), 'Paypal');
     assert.equal(await value('paidAmount'), '240');
@@ -212,7 +220,7 @@ async function launch() {
     step = await clickFill('[data-paste-fill-extracted]', '#confirmCancelBtn');
     assert.equal(step.filled, false, 'cancel fills nothing');
     assert.equal(await value('orderType'), '定金订单');
-    step = await clickFill('[data-paste-fill-extracted]', '#confirmOkBtn');
+    step = await clickFill('[data-paste-fill-extracted]', 'all');
     assert.equal(step.filled, true);
     assert.equal(await value('orderType'), '全款订单');
     assert.equal(await value('paymentChannel'), 'Zelle');
@@ -386,7 +394,7 @@ async function launch() {
     await page.keyboard.type('500');
     assert.equal(await value('amount'), '500');
     await runAi('total 1280, 30% deposit 384 paid', { amount:1280, currency:'USD', orderType:'定金订单', paidAmount:384, depositAmount:384, depositPercent:30 });
-    step = await clickFill('[data-paste-fill-extracted]', '#confirmAltBtn');
+    step = await clickFill('[data-paste-fill-extracted]', 'blank');
     assert.match(step.message, /金额：500 → 1280/);
     assert.equal(await value('amount'), '500');
     assert.notEqual(await value('paidAmount'), '384');

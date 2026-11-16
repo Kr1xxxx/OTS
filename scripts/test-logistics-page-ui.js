@@ -435,7 +435,11 @@ const risks = page => page.evaluate(() => buildTaskItems().filter(task => String
     assert.equal(await text(page, '#confirmSub'), '最近查询物流 · 50 条 · 置顶的 1 条会保留');
     assert.match(await text(page, '#confirmMessage'), /订单里的物流状态不受影响/);
     assert.equal(await text(page, '#confirmNote'), '清除后可以撤销');
-    assert.equal(await text(page, '#confirmAltBtn'), '连置顶一起清除');
+    // 二选一卡片：默认留着置顶的，执行按钮写的是选中的那张。
+    assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll('#confirmChoices .pick-option > b')].map(b => b.textContent)), ['清除未置顶的 49 条', '连置顶一起清除']);
+    assert.equal(await page.evaluate(() => document.querySelector('#confirmChoices input:checked')?.value), '0');
+    assert.equal(await text(page, '#confirmOkBtn'), '清除未置顶的 49 条');
+    assert.equal(await page.locator('#confirmAltBtn').isVisible(), false);
     await h.settle(page, '#confirmModal .modal');
     await clickAt(page, '#confirmOkBtn');
     await page.waitForFunction(() => state.trackingLookups.length === 1);

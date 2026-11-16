@@ -5255,6 +5255,47 @@ html[data-theme] #confirmSub:empty { display:none; }
 html[data-theme] .confirm-foot { display:flex; align-items:center; justify-content:flex-end; gap:10px 16px; flex-wrap:wrap; }
 html[data-theme] .confirm-foot.has-note { margin:4px -20px -20px; padding:14px 20px; border-top:1px solid var(--surface-border); }
 html[data-theme] .confirm-foot .confirm-actions { margin-left:auto; }
+/* 确认框的结构化正文（appConfirm 的 blocks）：字段对照、数字对照表、要点清单、检查清单。内容多时这一块自己滚动。 */
+html[data-theme] #confirmBlocks { display:grid; gap:14px; max-height:min(52vh, 420px); overflow:auto; overscroll-behavior:contain; }
+html[data-theme] .confirm-block { display:grid; gap:6px; min-width:0; }
+html[data-theme] .confirm-rows { border:1px solid var(--surface-border); border-radius:14px; font-size:13px; line-height:1.5; }
+html[data-theme] .confirm-rows > div { display:grid; grid-template-columns:76px minmax(0, 1fr) minmax(0, 1fr); gap:8px; padding:8px 12px; align-items:baseline; }
+html[data-theme] .confirm-rows > div.two { grid-template-columns:76px minmax(0, 1fr); }
+html[data-theme] .confirm-rows > div + div { border-top:1px solid var(--surface-border); }
+html[data-theme] .confirm-rows .k { color:var(--gray-500); }
+html[data-theme] .confirm-rows .from { color:var(--gray-500); text-decoration-thickness:1px; overflow-wrap:anywhere; }
+html[data-theme] .confirm-rows .to { color:var(--gray-900); overflow-wrap:anywhere; }
+html[data-theme] .confirm-table { width:100%; border-collapse:collapse; font-size:13px; font-variant-numeric:tabular-nums; }
+html[data-theme] .confirm-table :is(th, td) { padding:7px 10px; border-bottom:1px solid var(--surface-border); text-align:right; font-weight:400; color:var(--gray-900); }
+html[data-theme] .confirm-table :is(th, td):first-child { padding-left:0; text-align:left; }
+html[data-theme] .confirm-table thead th { font-size:12px; font-weight:500; color:var(--gray-500); }
+html[data-theme] .confirm-table tbody tr:last-child > * { border-bottom:0; }
+html[data-theme] .confirm-table tr.same > * { color:var(--gray-500); }
+html[data-theme] .confirm-table tr.diff > td { font-weight:600; }
+html[data-theme] .confirm-list { display:grid; gap:6px; margin:0; padding:0; list-style:none; font-size:13px; line-height:1.5; }
+html[data-theme] .confirm-list li { display:grid; grid-template-columns:8px minmax(0, 1fr); gap:10px; align-items:baseline; }
+html[data-theme] .confirm-list li::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--gray-300); transform:translateY(-1px); }
+html[data-theme] .confirm-list li.bad::before { background:var(--s-red); }
+html[data-theme] .confirm-list b { font-weight:500; color:var(--gray-900); }
+html[data-theme] .confirm-list li.bad b { font-weight:600; color:var(--danger-ink); }
+html[data-theme] .confirm-list small { margin-left:8px; font-size:12px; color:var(--gray-600); font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+html[data-theme] .confirm-checks { display:grid; margin:0; padding:0; list-style:none; font-size:13px; line-height:1.5; }
+html[data-theme] .confirm-checks li { display:grid; grid-template-columns:18px minmax(0, 1fr) auto; gap:10px; padding:9px 0; align-items:baseline; }
+html[data-theme] .confirm-checks li + li { border-top:1px solid var(--surface-border); }
+html[data-theme] .confirm-checks li::before { content:"✓"; width:18px; height:18px; border-radius:50%; background:color-mix(in oklab, var(--s-green) 14%, transparent); color:var(--s-green); font-size:11px; font-weight:700; line-height:18px; text-align:center; align-self:start; margin-top:1px; }
+html[data-theme] .confirm-checks li.bad::before { content:"!"; background:color-mix(in oklab, var(--s-red) 14%, transparent); color:var(--danger-ink); }
+html[data-theme] .confirm-checks b { font-weight:500; color:var(--gray-900); }
+html[data-theme] .confirm-checks li.ok b { color:var(--gray-600); }
+html[data-theme] .confirm-checks li.bad b { font-weight:600; color:var(--danger-ink); }
+html[data-theme] .confirm-checks small { display:block; font-size:12px; line-height:1.6; color:var(--gray-600); overflow-wrap:anywhere; }
+html[data-theme] .confirm-checks .n { color:var(--gray-500); font-variant-numeric:tabular-nums; white-space:nowrap; }
+html[data-theme] .confirm-checks li.bad .n { font-weight:600; color:var(--danger-ink); }
+html[data-theme] .confirm-text { margin:0; white-space:pre-line; color:var(--gray-600); line-height:1.65; overflow-wrap:anywhere; }
+html[data-theme] .confirm-text.fine { font-size:12px; line-height:1.6; }
+@media (max-width: 560px) {
+  html[data-theme] .confirm-rows > div { grid-template-columns:64px minmax(0, 1fr); }
+  html[data-theme] .confirm-rows > div > .to { grid-column:2; }
+}
 html[data-theme] .pick-switch { display:grid; grid-template-columns:34px minmax(0, 1fr); gap:12px; align-items:center; cursor:pointer; }
 html[data-theme] .pick-switch[hidden] { display:none; }
 html[data-theme] .pick-switch input { appearance:none; -webkit-appearance:none; position:relative; width:34px; height:20px; margin:0; border:0; border-radius:999px; background:var(--gray-300); cursor:pointer; transition:background var(--motion-fast) var(--ease); }
@@ -7066,6 +7107,8 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
     </div>
     <div class="confirm-body">
       <div class="confirm-message" id="confirmMessage"></div>
+      <div class="confirm-blocks" id="confirmBlocks" hidden></div>
+      <div class="pick-options" id="confirmChoices" role="radiogroup" aria-label="选一种做法" hidden></div>
       <div class="field" id="confirmInputWrap">
         <label id="confirmInputLabel">验证</label>
         <input class="confirm-input" id="confirmInput" autocomplete="off">
@@ -12597,7 +12640,13 @@ function appConfirm({
   // 第三个按钮（例如粘贴识别的「只补空字段」）：点它返回 { confirmed:false, alt:true }，和「取消」/ × / Esc 分开。
   altText = '',
   // 一句让人放心的话（「6 秒内可以撤销」「删除前自动备份」）：放在底部按钮左边。只写调用方真的做得到的事。
-  note = ''
+  note = '',
+  // 正文下面的结构化内容（字段对照、对照表、清单）：只收数据，见 renderConfirmBlocks，所有文字用 textContent 写入。
+  blocks = [],
+  // 二选一：正好两项 [{ label, desc, action?, danger? }]，渲染成两张单选卡片，第三个按钮不再出现。
+  // 执行按钮的字跟着选中的卡片变（action，没有就用 label）。返回值和 altText 一样：选第一张执行 = { confirmed:true }，
+  // 选第二张执行 = { confirmed:false, alt:true }。defaultFocus:'alt' 时默认选第二张。
+  choices = null
 } = {}) {
   const modal = document.getElementById('confirmModal');
   const titleEl = document.getElementById('confirmTitle');
@@ -12623,13 +12672,28 @@ function appConfirm({
     document.getElementById('confirmFoot')?.classList.toggle('has-note', Boolean(note));
   }
   messageEl.textContent = message;
+  const blocksEl = document.getElementById('confirmBlocks');
+  const choicesEl = document.getElementById('confirmChoices');
+  const pick = Array.isArray(choices) && choices.length === 2 ? choices : null;
+  const hasBlocks = renderConfirmBlocks(blocksEl, blocks);
+  // 只有结构化内容时正文那一行不占位置（以前的确认框正文都有字，不受影响）。
+  messageEl.hidden = !message && (hasBlocks || Boolean(pick));
   okBtn.textContent = confirmText;
   cancelBtn.textContent = cancelText;
   cancelBtn.hidden = !cancelText;
   if (altBtn) {
     altBtn.textContent = altText;
-    altBtn.hidden = !altText;
+    altBtn.hidden = !altText || Boolean(pick);
   }
+  const radios = renderConfirmChoices(choicesEl, pick, defaultFocus === 'alt' ? 1 : 0);
+  const pickedIndex = () => radios.findIndex(radio => radio.checked);
+  const syncChoice = () => {
+    if (!pick) return;
+    const chosen = pick[Math.max(0, pickedIndex())];
+    okBtn.textContent = chosen.action || chosen.label;
+    okBtn.classList.toggle('btn-danger', danger || Boolean(chosen.danger));
+    okBtn.classList.toggle('btn-primary', !danger && !chosen.danger);
+  };
   okBtn.hidden = false;
   closeBtn.hidden = false;
   // 右上角是 × 图标：它等于「取消」那个按钮（放弃确认里就是「继续编辑」），读屏和悬停提示照实说。
@@ -12637,6 +12701,7 @@ function appConfirm({
   closeBtn.title = cancelText || '关闭';
   okBtn.classList.toggle('btn-danger', danger);
   okBtn.classList.toggle('btn-primary', !danger);
+  syncChoice();
   inputWrap.style.display = inputLabel ? '' : 'none';
   inputLabelEl.textContent = inputLabel || '验证';
   input.placeholder = inputPlaceholder || '';
@@ -12647,7 +12712,9 @@ function appConfirm({
   setModalOpenState(modal, true);
   // 默认焦点：有输入框给输入框；危险操作（红色按钮）落在安全的「取消 / 继续编辑」上，按回车或空格不会直接丢数据。
   // defaultFocus:'alt' 落在第三个按钮上（客户识别冲突时的「只补空字段」）。
+  // 有选项卡片时落在选中的那张上（回车执行它），危险操作照样先落在「取消」上。
   const focusTarget = inputLabel ? input
+    : pick && !((defaultFocus === 'cancel' || (defaultFocus !== 'confirm' && danger)) && cancelText) ? radios[Math.max(0, pickedIndex())]
     : defaultFocus === 'alt' && altText && altBtn ? altBtn
       : (defaultFocus === 'cancel' || (defaultFocus !== 'confirm' && danger)) && cancelText ? cancelBtn
         : okBtn;
@@ -12663,6 +12730,8 @@ function appConfirm({
       if (altBtn) altBtn.onclick = null;
       closeBtn.onclick = null;
       input.onkeydown = null;
+      choicesEl.onchange = null;
+      choicesEl.onkeydown = null;
       resolve(result);
     };
     appConfirmActive = cleanup;
@@ -12676,7 +12745,18 @@ function appConfirm({
           return;
         }
       }
+      if (pick && pickedIndex() === 1) {
+        cleanup({ confirmed: false, alt: true, value });
+        return;
+      }
       cleanup({ confirmed: true, value });
+    };
+    choicesEl.onchange = syncChoice;
+    // 单选框上按回车 = 按执行按钮（和导入预览一样）；preventDefault 的原因同下面的输入框。
+    choicesEl.onkeydown = e => {
+      if (e.key !== 'Enter' || isImeKeyEvent(e)) return;
+      e.preventDefault();
+      okBtn.click();
     };
     cancelBtn.onclick = () => cleanup({ confirmed: false, value: input.value.trim() });
     if (altBtn) altBtn.onclick = () => cleanup({ confirmed: false, alt: true, value: input.value.trim() });
@@ -12689,6 +12769,116 @@ function appConfirm({
       if (e.key === 'Escape') cancelBtn.click();
     };
   });
+}
+// 确认框的二选一卡片：样子和导入预览的「合并 / 替换全部」一样。返回两个单选框（没有选项时返回空数组并收起）。
+function renderConfirmChoices(container, choices, selected = 0) {
+  container.replaceChildren();
+  container.hidden = !choices;
+  if (!choices) return [];
+  return choices.map((choice, index) => {
+    const card = document.createElement('label');
+    card.className = `pick-option${choice.danger ? ' danger' : ''}`;
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = 'confirmChoice';
+    radio.value = String(index);
+    radio.checked = index === selected;
+    const label = document.createElement('b');
+    label.textContent = choice.label;
+    card.append(radio, label);
+    if (choice.desc) {
+      const desc = document.createElement('span');
+      desc.textContent = choice.desc;
+      card.append(desc);
+    }
+    container.append(card);
+    return radio;
+  });
+}
+// 确认框正文下面的结构化内容。每一块只收数据（不收 HTML），文字一律 textContent：
+// - { type:'rows', label?, rows:[{ label, from?, to }] }：字段对照，旧值划掉、新值在右；from 为空只有两格。
+// - { type:'table', label?, columns:['', '现在', '恢复后'], rows:[{ cells:['订单', 8, 7] }] }：数字对照表，两边一样的行变淡。
+// - { type:'list', label?, items:[{ text, detail?, tone? }] }：要点清单，tone:'bad' 标红。
+// - { type:'checks', items:[{ label, detail?, count, bad? }] }：检查清单，通过的打勾变淡，有问题的标红。
+// - { type:'text', text, fine? }：一段话（fine 是小一号的说明）。
+// 返回有没有内容。
+function renderConfirmBlocks(container, blocks = []) {
+  container.replaceChildren();
+  const el = (tag, className = '', text) => {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = String(text);
+    return node;
+  };
+  (Array.isArray(blocks) ? blocks : []).filter(Boolean).forEach(block => {
+    const wrap = el('div', 'confirm-block');
+    if (block.label) wrap.append(el('div', 'pick-label', block.label));
+    if (block.type === 'rows') {
+      const rows = el('div', 'confirm-rows');
+      (block.rows || []).forEach(row => {
+        const hasFrom = row.from !== undefined && row.from !== null && String(row.from) !== '';
+        const line = el('div', hasFrom ? '' : 'two');
+        line.append(el('span', 'k', row.label));
+        if (hasFrom) line.append(el('s', 'from', row.from));
+        line.append(el('span', 'to', row.to));
+        rows.append(line);
+      });
+      wrap.append(rows);
+    } else if (block.type === 'table') {
+      const table = el('table', 'confirm-table');
+      const head = el('tr');
+      (block.columns || []).forEach(text => {
+        const th = el('th', '', text);
+        th.scope = 'col';
+        head.append(th);
+      });
+      const body = el('tbody');
+      (block.rows || []).forEach(row => {
+        const cells = row.cells || [];
+        const values = cells.slice(1).map(String);
+        const tr = el('tr', values.length > 1 ? (values.every(value => value === values[0]) ? 'same' : 'diff') : '');
+        cells.forEach((text, index) => {
+          const cell = el(index ? 'td' : 'th', '', text);
+          if (!index) cell.scope = 'row';
+          tr.append(cell);
+        });
+        body.append(tr);
+      });
+      table.append(el('thead'), body);
+      table.tHead.append(head);
+      wrap.append(table);
+    } else if (block.type === 'list') {
+      const list = el('ul', 'confirm-list');
+      (block.items || []).forEach(item => {
+        const li = el('li', item.tone === 'bad' ? 'bad' : '');
+        const text = el('span');
+        text.append(el('b', '', item.text));
+        if (item.detail) text.append(el('small', '', item.detail));
+        li.append(text);
+        list.append(li);
+      });
+      wrap.append(list);
+    } else if (block.type === 'checks') {
+      const list = el('ul', 'confirm-checks');
+      (block.items || []).forEach(item => {
+        const li = el('li', item.bad ? 'bad' : 'ok');
+        const text = el('span');
+        text.append(el('b', '', item.label));
+        if (item.detail) text.append(el('small', '', item.detail));
+        li.append(text, el('span', 'n', item.count));
+        list.append(li);
+      });
+      wrap.append(list);
+    } else if (block.type === 'text') {
+      if (!block.text) return;
+      wrap.append(el('p', `confirm-text${block.fine ? ' fine' : ''}`, block.text));
+    } else {
+      return;
+    }
+    container.append(wrap);
+  });
+  container.hidden = !container.childElementCount;
+  return container.childElementCount > 0;
 }
 async function confirmDangerFlow({ title, firstMessage, secondMessage, mathA = 7, mathB = 6, confirmText = '确认清除' }) {
   const first = await appConfirm({ title, sub:'第 1 步，共 3 步', message:firstMessage, confirmText:'继续', danger:true });
@@ -14002,7 +14192,7 @@ async function fillOrderFieldsFromPaste(fields, options = {}) {
   });
   let keepExisting = false;
   if (changes.length) {
-    const lines = changes.map(key => `${pasteOrderFieldLabel(key)}：${pasteOrderFieldText(key, f[key].value)} → ${pasteOrderFieldText(key, values[key])}`);
+    const rows = changes.map(key => ({ label:pasteOrderFieldLabel(key), from:pasteOrderFieldText(key, f[key].value), to:pasteOrderFieldText(key, values[key]) }));
     // 类型和付款状态一起改成全款时，切类型的说明（「付款状态显示部分已付」）和改后的状态对不上：换成按改后状态说。
     const typeNotice = !changes.includes('orderType') ? ''
       : values.orderType === '全款订单' && changes.includes('fullPaymentStatus') && orderTypeChangeNotice(form, values.orderType)
@@ -14010,10 +14200,13 @@ async function fillOrderFieldsFromPaste(fields, options = {}) {
         : orderTypeChangeNotice(form, values.orderType);
     const result = await appConfirm({
       title: existing ? '用识别结果改这张订单？' : '覆盖已经填好的内容？',
-      sub: '粘贴识别',
-      message: `下面这些已经有内容，和识别结果不一样：\n${lines.join('\n')}${typeNotice ? `\n\n${typeNotice}` : ''}\n\n「只补空字段」：上面这些保持不变，只填空着的。`,
-      confirmText: '全部改',
-      altText: '只补空字段',
+      sub: `粘贴识别 · ${changes.length} 处和现在不一样`,
+      message: '下面这些已经有内容，和识别结果不一样：',
+      blocks: [{ type:'rows', rows }, { type:'text', text:typeNotice }],
+      choices: [
+        { label:'全部改', desc:`这 ${changes.length} 处换成识别结果，空着的也填上` },
+        { label:'只补空字段', desc:`这 ${changes.length} 处保持不变，只填空着的` }
+      ],
       cancelText: '取消'
     });
     if (!result.confirmed && !result.alt) return false;
@@ -15856,15 +16049,18 @@ async function fillCustomerFieldsFromPaste(fields = {}, { supplementOnly = false
   }).filter(Boolean);
   let overwrite = false;
   if (conflicts.length && !supplementOnly) {
-    const lines = conflicts.map(item => `${fieldLabel[item.key]}：${item.current} → ${item.incoming}`);
-    const multiNote = conflicts.some(item => item.key === 'phone' || item.key === 'email') ? '\n\n电话、邮箱选「覆盖」：识别到的设为主要，原来的保留在后面，不会删除。' : '';
-    const nameNote = nameDiffers ? `\n\n客户名不会被改：识别到的是「${fields.name}」，要改名请在「客户名称」里自己改（改名会同步所有订单）。` : '';
+    const rows = conflicts.map(item => ({ label:fieldLabel[item.key], from:item.current, to:item.incoming }));
+    const multiNote = conflicts.some(item => item.key === 'phone' || item.key === 'email') ? '电话、邮箱选「覆盖」：识别到的设为主要，原来的保留在后面，不会删除。' : '';
+    const nameNote = nameDiffers ? `客户名不会被改：识别到的是「${fields.name}」，要改名请在「客户名称」里自己改（改名会同步所有订单）。` : '';
     const result = await appConfirm({
       title: isNewCustomer ? '覆盖已经填好的内容？' : `用识别结果改 ${form.elements.name.value} 的资料？`,
-      sub: '客户识别',
-      message: `下面这些已经有内容，和识别结果不一样：\n${lines.join('\n')}${multiNote}${nameNote}\n\n「只补空字段」：上面这些保持不变，只填空着的。`,
-      confirmText: '覆盖这些字段',
-      altText: '只补空字段',
+      sub: `客户识别 · ${conflicts.length} 处和现在不一样`,
+      message: '下面这些已经有内容，和识别结果不一样：',
+      blocks: [{ type:'rows', rows }, { type:'text', text:[multiNote, nameNote].filter(Boolean).join('\n') }],
+      choices: [
+        { label:'覆盖这些字段', desc:`这 ${conflicts.length} 处换成识别结果，空着的也填上` },
+        { label:'只补空字段', desc:`这 ${conflicts.length} 处保持不变，只填空着的` }
+      ],
       cancelText: '取消',
       defaultFocus: 'alt'
     });
@@ -17914,10 +18110,12 @@ async function uiDetailAddShipment() {
     const due = orderDueValue(order);
     const result = await appConfirm({
       title:'移到「已发货」吗？',
-      sub:'补运单号',
-      message:`${order.num || '这张单'} 现在在「${stageDef(stage).name}」。补的是正式发货的单号就移到「已发货」${due > 0 ? `（还有 ${money(due, order.currency || 'USD')} 没收，进已发货会按已收齐记）` : ''}；只是样品等单号，选「只记单号」，阶段不变。`,
-      confirmText:'移到已发货',
-      altText:'只记单号',
+      sub:`补运单号 · ${number}`,
+      message:`${order.num || '这张单'} 现在在「${stageDef(stage).name}」。`,
+      choices:[
+        { label:'移到已发货', desc:`补的是正式发货的单号${due > 0 ? `；还有 ${money(due, order.currency || 'USD')} 没收，进已发货会按已收齐记` : ''}` },
+        { label:'只记单号', desc:'样品等单号，阶段不变' }
+      ],
       cancelText:'取消'
     });
     if (!result.confirmed && !result.alt) return;
@@ -20177,8 +20375,12 @@ async function clearTrackingLookups() {
     sub: `最近查询物流 · ${all.length} 条${pinned ? ` · 置顶的 ${pinned} 条会保留` : ''}`,
     message: '订单里的物流状态不受影响。',
     note: '清除后可以撤销',
-    confirmText: pinned ? `清除未置顶的 ${all.length - pinned} 条` : '清除',
-    altText: pinned ? '连置顶一起清除' : '',
+    confirmText: '清除',
+    // 有置顶时二选一：默认留着置顶的。
+    choices: pinned ? [
+      { label:`清除未置顶的 ${all.length - pinned} 条`, desc:`置顶的 ${pinned} 条留着` },
+      { label:'连置顶一起清除', desc:`${all.length} 条全部清除`, danger:true }
+    ] : null,
     danger: true
   });
   if (!answer.confirmed && !answer.alt) return;
@@ -27399,8 +27601,12 @@ async function toggleSubscriptionStatus() {
     // Stopping here does not stop the provider: ask whether auto-renewal was turned off there.
     const answer = await appConfirm({
       title:'已经在服务商那里关掉自动续费了吗？', sub:item.name,
-      message:`这里只是不再记账。${item.provider || '服务商'}那边如果还开着自动续费，${schedule.paidThrough} 照样会扣 ${subscriptionMoney(schedule.cycleAmount, item.currency)}。还没关的话，到期前铃铛会提醒你去取消。`,
-      confirmText:'已关掉', altText:'还没，提醒我', cancelText:'先不停止'
+      message:`这里只是不再记账。${item.provider || '服务商'}那边如果还开着自动续费，${schedule.paidThrough} 照样会扣 ${subscriptionMoney(schedule.cycleAmount, item.currency)}。`,
+      choices:[
+        { label:'已关掉', desc:`${item.provider || '服务商'}那边已经不会再扣` },
+        { label:'还没，提醒我', desc:'到期前铃铛会提醒你去取消' }
+      ],
+      cancelText:'先不停止'
     });
     if (!answer.confirmed && !answer.alt) return;
     const { providerCancelledOn, ...rest } = extra;
@@ -28144,8 +28350,11 @@ async function subscriptionPlanEdit(old, payload, today) {
     const number = subscriptionTermOffset(old) + subscriptionChargeIndex(old, effective) + 1;
     const answer = await appConfirm({
       title:'这次修改从哪一期起生效？', sub:old.name,
-      message:`默认从下一期 ${effective}（第 ${number} 期）起按新的${what}计，已经发生的 ${before.text} ${kept.signature === before.signature ? '保持不变' : `变成 ${kept.text}`}。\n如果是当初录错了，选「更正全部历史」：已发生的扣费会变成 ${after.text}。`,
-      confirmText:'从下一期起', altText:'更正全部历史', cancelText:'继续编辑'
+      choices:[
+        { label:'从下一期起', action:'从下一期起生效', desc:`${effective}（第 ${number} 期）起按新的${what}计，已经发生的 ${before.text} ${kept.signature === before.signature ? '保持不变' : `变成 ${kept.text}`}` },
+        { label:'更正全部历史', desc:`当初录错了：已发生的扣费变成 ${after.text}` }
+      ],
+      cancelText:'继续编辑'
     });
     if (answer.confirmed) return fromNext;
     return answer.alt ? corrected : null;
@@ -28154,8 +28363,12 @@ async function subscriptionPlanEdit(old, payload, today) {
     // Clearing or moving a stop that already passed would invent the charges in between: offer 重新续费 instead.
     const answer = await appConfirm({
       title:'这一项已经停止', sub:old.name,
-      message:`${old.name} 已在 ${schedule.paidThrough} 停止。直接保存会补出 ${after.count - before.count} 笔没付过的扣费（已发生的扣费从 ${before.text} 变成 ${after.text}）。\n要从今天重新续费吗？会另起一条，旧的历史保留。`,
-      confirmText:'改为重新续费', altText:'仍然补上', cancelText:'继续编辑'
+      message:`${old.name} 已在 ${schedule.paidThrough} 停止。`,
+      choices:[
+        { label:'改为重新续费', desc:'从今天另起一条，旧的历史保留' },
+        { label:'仍然补上', desc:`补出 ${after.count - before.count} 笔没付过的扣费：已发生的扣费从 ${before.text} 变成 ${after.text}` }
+      ],
+      cancelText:'继续编辑'
     });
     if (answer.confirmed) return { resubscribe:true };
     return answer.alt ? corrected : null;

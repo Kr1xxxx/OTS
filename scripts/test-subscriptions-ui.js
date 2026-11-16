@@ -151,13 +151,19 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     await drawer.locator('[data-sub-action="toggle"]').click();
     await page.locator('#confirmModal.open').waitFor();
     assert.match(await page.locator('#confirmTitle').innerText(), /已经在服务商那里关掉自动续费了吗/);
-    assert.equal(await page.locator('#confirmAltBtn').innerText(), '还没，提醒我');
+    // 两张卡片：已关掉（默认）/ 还没，提醒我；没有第三个按钮。
+    assert.deepEqual(await page.locator('#confirmChoices .pick-option > b').allInnerTexts(), ['已关掉', '还没，提醒我']);
+    assert.match(await page.locator('#confirmChoices .pick-option').nth(1).innerText(), /到期前铃铛会提醒你去取消/);
+    assert.equal(await page.locator('#confirmOkBtn').innerText(), '已关掉');
+    assert.equal(await page.locator('#confirmAltBtn').isVisible(), false);
     await clickFooterButton(page, '#confirmCancelBtn');
     await page.waitForFunction(() => !document.getElementById('confirmModal').classList.contains('open'));
     assert.equal(store.list().items.find(item => item.name === '1Password').status, 'active', '先不停止 changes nothing');
     await drawer.locator('[data-sub-action="toggle"]').click();
     await page.locator('#confirmModal.open').waitFor();
-    await clickFooterButton(page, '#confirmAltBtn');
+    await clickFooterButton(page, '#confirmChoices .pick-option:nth-child(2)');
+    await page.waitForFunction(() => document.getElementById('confirmOkBtn').textContent === '还没，提醒我');
+    await clickFooterButton(page, '#confirmOkBtn');
     await drawer.locator('.subs-dh .subs-pill.amber').waitFor();
     // Not cancelled at the provider yet: the drawer offers 已在服务商取消.
     await drawer.locator('[data-sub-action="provider-cancelled"]').waitFor();

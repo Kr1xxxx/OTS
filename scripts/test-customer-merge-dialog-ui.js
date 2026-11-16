@@ -2,7 +2,7 @@
 // 合并客户的对照弹窗（真实页面、假的本地服务，浅色和深色）：
 // - 两张卡片并排，保留的在左；对调后卡片、按钮、说明一起换，真正合并的方向和最后看到的一致（保留的是对调后的那位）；
 // - 两边没有冲突时写「两边没有冲突的资料」，不出空的清单；
-// - 取消、×、Esc、点背景都不改数据；
+// - 取消、×、Esc、点背景都不改数据；搜客户时打字对上就选中，离开搜索框不改写大小写；
 // - 合并后 6 秒内能撤销，撤销后两份档案、订单原样回来；
 // - 窄窗口两张卡片上下排；底部左边写备份和撤销那句。
 const assert = require('node:assert/strict');
@@ -99,7 +99,28 @@ const { freePortSync } = require('./helpers/free-port');
       assert.deepEqual(Object.keys(undone.customers).sort(), Object.keys(original.customers).sort());
       assert.deepEqual(undone.clients, original.clients, 'orders are back with their customers');
 
-      // ---- 5. 窄窗口：两张卡片上下排 ----
+      // ---- 5. 搜客户：打字对上的名字就选中；离开搜索框不把「lena hair」改写成另一位「Lena Hair」 ----
+      await page.evaluate(() => {
+        state.customers['lena hair'] = { client:'lena hair', country:'🇺🇸 美国 United States' };
+        state.customers['Lena Hair'] = { client:'Lena Hair', country:'🇨🇦 加拿大 Canada' };
+        window.__merge = mergeCustomerInto('Nova Wig Shop');
+      });
+      await waitOpen();
+      assert.equal(await page.locator('#customerMergeGoBtn').isDisabled(), true);
+      await page.click('#customerMergeInput');
+      await page.keyboard.type('lena hair');
+      await page.waitForFunction(() => document.querySelector('#customerMergeKeep b').textContent === 'lena hair' && !document.getElementById('customerMergeGoBtn').disabled);
+      await page.keyboard.press('Escape');
+      await page.click('#customerMergeFine');
+      await page.waitForFunction(() => document.activeElement?.id !== 'customerMergeInput');
+      v = await view();
+      assert.equal(await page.locator('#customerMergeInput').inputValue(), 'lena hair', 'the search box is not capitalized on blur');
+      assert.deepEqual([v.keep, v.drop], ['lena hair', 'Nova Wig Shop']);
+      await page.click('#customerMergeCancelBtn');
+      await page.waitForFunction(() => !document.getElementById('customerMergeModal').classList.contains('open'));
+      await page.evaluate(() => { delete state.customers['lena hair']; delete state.customers['Lena Hair']; });
+
+      // ---- 6. 窄窗口：两张卡片上下排 ----
       await page.setViewportSize({ width:480, height:820 });
       await open();
       await waitOpen();

@@ -30526,7 +30526,8 @@ document.getElementById('customerPasteResults').addEventListener('keydown', e =>
     finishCustomerPasteEdit(e.key === 'Enter');
   }
 });
-const autoCapitalizeNameSelector = 'input[name="client"], #customerForm input[name="name"], #combinedCustomerForm input[name="name"], input[name="contact"], [data-customer-multi-kind="contacts"] [data-customer-multi-input]';
+// 合并客户弹窗里的客户搜索框不改写：那里选的是已有的档案，「alice baker」和「Alice Baker」可能是两位客户。
+const autoCapitalizeNameSelector = 'input[name="client"]:not(#customerMergeInput), #customerForm input[name="name"], #combinedCustomerForm input[name="name"], input[name="contact"], [data-customer-multi-kind="contacts"] [data-customer-multi-input]';
 // 只在这次聚焦期间改过名字时才自动首字母大写：光标进出一下不算改动（旧数据的小写客户名以前一进一出就被改写、算作改动）。
 document.addEventListener('focus', e => {
   if (e.target?.matches?.(autoCapitalizeNameSelector)) e.target._valueAtFocus = e.target.value;

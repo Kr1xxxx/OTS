@@ -6156,13 +6156,13 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
             <div class="section-head">
               <div>
                 <div class="section-title">汇率设置</div>
-                <div class="section-meta">手动维护 USD → RMB 汇率，首页已收款按订单月份换算</div>
+                <div class="section-meta">USD → RMB 汇率，当月每天联网更新，首页已收款按订单月份换算</div>
               </div>
             </div>
             <div class="settings-card">
               <form class="settings-form" id="exchangeSettingsForm">
                 <div class="manual-rate-years span-2" id="exchangeMonthlyRateGrid"></div>
-                <div class="exchange-note span-2">手动维护 2026年5月 到 2027年12月。未填写的月份会使用 6.8 作为临时换算值。</div>
+                <div class="exchange-note span-2" id="exchangeRateNote">当月汇率每天联网更新；过去的月份不会自动改，自己填过的月份不自动更新。</div>
                 <div class="span-2" style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
                   <button class="btn btn-primary" type="submit">保存汇率设置</button>
                 </div>
@@ -7291,24 +7291,20 @@ const defaultBoardCardSettings = {
   redDueAmount: true,
   productTint: true
 };
-const manualExchangeMonths = [
-  '2026-05','2026-06','2026-07','2026-08','2026-09','2026-10','2026-11','2026-12',
-  '2027-01','2027-02','2027-03','2027-04','2027-05','2027-06','2027-07','2027-08','2027-09','2027-10','2027-11','2027-12'
-];
-const defaultExchangeSettings = {
-  fallbackRate: 6.8,
-  monthlyRates: Object.fromEntries(manualExchangeMonths.map(month => [month, 6.8])),
-  rate: 0,
-  rateMonth: '',
-  rateDate: '',
-  rateTime: '',
-  source: '备用',
-  lastCheckedAt: '',
-  lastAutoCheckMonth: '',
-  lastAutoCheckResult: '',
-  lastStatus: '尚未联网更新',
-  lastError: ''
-};
+// 汇率表（设置 → 汇率）：从 2026 年 5 月到明年 12 月每月一格，过了年自动多出下一年。没取到、没填过的格子先按 6.8。
+const exchangeFirstMonth = '2026-05';
+const exchangeDefaultRate = 6.8;
+function exchangeMonths(now = new Date()) {
+  const months = [];
+  const lastYear = Math.max(2027, now.getFullYear() + 1);
+  for (let year = Number(exchangeFirstMonth.slice(0, 4)); year <= lastYear; year += 1) {
+    for (let month = 1; month <= 12; month += 1) {
+      const key = `${year}-${String(month).padStart(2, '0')}`;
+      if (key >= exchangeFirstMonth) months.push(key);
+    }
+  }
+  return months;
+}
 const aiSettingsKey = 'trade-order-system-ai-settings-v1';
 const defaultAiSettings = {
   enabled: '否',
@@ -8486,6 +8482,33 @@ function macMergeValue(base, mine, theirs, path, ctx) {
   ctx.conflicts.push({ path, mine, theirs });
   return ctx.prefer === 'mine' ? mine : theirs;
 }
+// 汇率表：联网写进去的当月那格和 auto 是两个窗口各自取到、各写一次的，不算冲突，用取得晚的那一边。
+// 用户自己填的格子（manualMonths 里的月份）和 manualMonths 本身照常合并，两边填了不同的数才问。
+function macMergeExchangeSettings(base, mine, theirs, ctx) {
+  if (!macIsPlainObject(mine) || !macIsPlainObject(theirs)) return macMergeValue(base, mine, theirs, ['exchangeSettings'], ctx);
+  const b = macIsPlainObject(base) ? base : {};
+  const autos = [mine.auto, theirs.auto].filter(macIsPlainObject).sort((x, y) => String(x.checkedAt || '').localeCompare(String(y.checkedAt || '')));
+  const newerAuto = autos.at(-1) || null;
+  const out = {};
+  [...new Set([...Object.keys(theirs), ...Object.keys(mine)])].filter(key => !['auto', 'monthlyRates'].includes(key)).forEach(key => {
+    const value = macMergeValue(b[key], mine[key], theirs[key], ['exchangeSettings', key], ctx);
+    if (value !== undefined) out[key] = value;
+  });
+  const manualMonths = macIsPlainObject(out.manualMonths) ? out.manualMonths : {};
+  const mineRates = macIsPlainObject(mine.monthlyRates) ? mine.monthlyRates : {};
+  const theirRates = macIsPlainObject(theirs.monthlyRates) ? theirs.monthlyRates : {};
+  const baseRates = macIsPlainObject(b.monthlyRates) ? b.monthlyRates : {};
+  const newerRates = newerAuto === mine.auto ? mineRates : theirRates;
+  out.monthlyRates = {};
+  [...new Set([...Object.keys(theirRates), ...Object.keys(mineRates)])].forEach(month => {
+    const value = !manualMonths[month] && newerAuto?.month === month && mineRates[month] !== theirRates[month]
+      ? newerRates[month]
+      : macMergeValue(baseRates[month], mineRates[month], theirRates[month], ['exchangeSettings', 'monthlyRates', month], ctx);
+    if (value !== undefined) out.monthlyRates[month] = value;
+  });
+  out.auto = newerAuto;
+  return out;
+}
 // 两个窗口改了同一位客户的不同资料时，档案里每次保存都会动的几样不算冲突：
 // 变更记录两边各加了一条（合在一起，新的在前，和保存档案时一样最多留 20 条，本来更长的不截）、更新时间（取晚的那个）、
 // 原来没有这个字段、一边存成了空的（表单保存会把没填的字段写成空字符串）。返回 undefined = 照常算冲突。
@@ -8563,7 +8586,9 @@ function mergeMacStates(base = {}, mine = {}, theirs = {}, prefer = 'theirs') {
   const special = new Set([...macOrderBuckets, 'trackingLookups']);
   const merged = {};
   [...new Set([...Object.keys(theirs || {}), ...Object.keys(mine || {})])].filter(key => !special.has(key)).forEach(key => {
-    const value = macMergeValue(base?.[key], mine?.[key], theirs?.[key], [key], ctx);
+    const value = key === 'exchangeSettings'
+      ? macMergeExchangeSettings(base?.[key], mine?.[key], theirs?.[key], ctx)
+      : macMergeValue(base?.[key], mine?.[key], theirs?.[key], [key], ctx);
     if (value !== undefined) merged[key] = value;
   });
   Object.assign(merged, macMergeOrderBuckets(base, mine, theirs, ctx));
@@ -9043,6 +9068,8 @@ async function loadMacAppState() {
     macSaveLastError = '';
     macSaveLastErrorKind = '';
     readOnlyBaselineJson = null;
+    // 数据库读完之前取到的当月汇率，现在写进去。
+    if (!applyAutoExchangeRate()) renderExchangeNote();
     scheduleExistingImageCompression();
     // 启动时检查一次 UPS 满 5 天规则；之后由每分钟的定时检查接着看。
     completeDueUpsOrders();
@@ -9261,25 +9288,38 @@ function trackingCarrierStatusPatch(carrier, message, checkedAt = nowText()) {
     ? { lastFedexCheckedAt: checkedAt, lastFedexStatus: message }
     : { lastDhlCheckedAt: checkedAt, lastDhlStatus: message };
 }
-function normalizeExchangeSettings(raw = {}) {
-  const fallback = Number(raw.fallbackRate);
-  const rate = Number(raw.rate);
-  const monthlyRates = { ...defaultExchangeSettings.monthlyRates };
-  const rawMonthlyRates = raw.monthlyRates || {};
-  manualExchangeMonths.forEach(month => {
-    const monthRate = Number(rawMonthlyRates[month]);
-    monthlyRates[month] = Number.isFinite(monthRate) && monthRate > 0
-      ? monthRate
-      : (Number.isFinite(fallback) && fallback > 0 ? fallback : defaultExchangeSettings.fallbackRate);
+// monthlyRates：每月一格。manualMonths：用户自己填过的月份，联网更新不碰。
+// auto：最近一次联网写进当月那格的情况 { month, rate, source, sourceLabel, publishedAt, checkedAt }，设置页那行状态读它。
+function normalizeExchangeSettings(raw = {}, now = new Date()) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  const rawRates = source.monthlyRates && typeof source.monthlyRates === 'object' ? source.monthlyRates : {};
+  const monthlyRates = {};
+  exchangeMonths(now).forEach(month => { monthlyRates[month] = exchangeDefaultRate; });
+  Object.entries(rawRates).forEach(([month, value]) => {
+    const rate = Number(value);
+    if (/^\d{4}-\d{2}$/.test(month) && Number.isFinite(rate) && rate > 0) monthlyRates[month] = rate;
   });
-  return {
-    ...defaultExchangeSettings,
-    ...(raw || {}),
-    fallbackRate: Number.isFinite(fallback) && fallback > 0 ? fallback : defaultExchangeSettings.fallbackRate,
-    monthlyRates,
-    rate: Number.isFinite(rate) && rate > 0 ? rate : 0,
-    source: '手动'
-  };
+  const manualMonths = {};
+  if (source.manualMonths && typeof source.manualMonths === 'object') {
+    Object.keys(source.manualMonths).forEach(month => { if (source.manualMonths[month] === true && monthlyRates[month]) manualMonths[month] = true; });
+  } else {
+    // 联网更新以前的数据：以后月份里不是 6.8 的格子是用户提前填的，记成手动，到了那个月也不被改。
+    const current = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    Object.entries(monthlyRates).forEach(([month, rate]) => { if (month > current && rate !== exchangeDefaultRate) manualMonths[month] = true; });
+  }
+  const rawAuto = source.auto && typeof source.auto === 'object' ? source.auto : null;
+  const autoRate = Number(rawAuto?.rate);
+  const auto = rawAuto && /^\d{4}-\d{2}$/.test(String(rawAuto.month || '')) && Number.isFinite(autoRate) && autoRate > 0
+    ? {
+      month:String(rawAuto.month),
+      rate:autoRate,
+      source:String(rawAuto.source || ''),
+      sourceLabel:String(rawAuto.sourceLabel || ''),
+      publishedAt:String(rawAuto.publishedAt || ''),
+      checkedAt:String(rawAuto.checkedAt || '')
+    }
+    : null;
+  return { monthlyRates, manualMonths, auto };
 }
 function normalizeBoardCardSettings(raw = {}) {
   return Object.fromEntries(Object.entries(defaultBoardCardSettings).map(([key, value]) => [key, raw[key] === undefined ? value : raw[key] === true]));
@@ -10543,6 +10583,8 @@ async function loadEcbHistoricalRates() {
     retryIn = ecbRatesRetryDelay(ecbRatesAttempts += 1);
   }
   ecbRatesRetryTimer = setTimeout(loadEcbHistoricalRates, retryIn);
+  // 当月汇率跟着同一个节奏取（启动后一次、之后每 12 小时），欧洲央行的数这时已经在手里当备用。
+  refreshAutoExchangeRate();
 }
 function businessAnalysisForMonth(orders = [], month = '', rateRows = ecbHistoricalRates) {
   const formal = orders.filter(order => !order?.isDraft && String(order?.orderMonth || order?.createdAt || order?.updated || '').slice(0, 7) === month);
@@ -10733,42 +10775,159 @@ function getExchangeSettings() {
   state.exchangeSettings = normalizeExchangeSettings(state.exchangeSettings);
   return state.exchangeSettings;
 }
+// 订单月份在表里就用那一格；早于第一格（2026 年 5 月以前）用第一格，晚于最后一格用最后一格。
+// 以前表外的月份用一个「表外汇率」，每次保存汇率都被改成当月那格，老订单折的人民币跟着变。
 function exchangeRateForMonth(month) {
-  const settings = getExchangeSettings();
-  return Number(settings.monthlyRates?.[month] || settings.fallbackRate || defaultExchangeSettings.fallbackRate);
+  const rates = getExchangeSettings().monthlyRates;
+  const target = String(month || '');
+  if (Number(rates[target]) > 0) return Number(rates[target]);
+  const months = Object.keys(rates).sort();
+  if (!months.length) return exchangeDefaultRate;
+  let pick = months[0];
+  months.forEach(item => { if (item <= target) pick = item; });
+  return Number(rates[pick]) || exchangeDefaultRate;
 }
 function usdPaidTotalRmb(orders) {
   return orders
     .reduce((sum, o) => sum + orderPaidUsd(o) * exchangeRateForMonth(o.orderMonth || normalizeMonth(o.createdAt)), 0);
 }
-function exchangeTargetMonth(date = new Date()) {
-  const target = new Date(date.getFullYear(), date.getMonth(), 1);
-  if (date.getDate() < 2) target.setMonth(target.getMonth() - 1);
-  return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}`;
+// 当月那格每天联网更新：服务端按顺序试国内的三个来源（中国银行 → 工商银行 → 外汇交易中心中间价，
+// mac-app/usd-cny-rate.js）。只写本机日期的当月；月份一过那格就停在最后一次取到的数；用户自己填过的月份不碰。
+// 都取不到时什么也不写，当月沿用上次的数，设置页那行写明，太久没更新时提醒一次。
+// 欧洲央行那套只给欧元等订单折美元，不拿来折人民币。
+let usdCnyLatest = null;
+let usdCnyLastError = '';
+let usdCnyRetryTimer = null;
+let usdCnyAttempts = 0;
+let usdCnyStaleWarned = false;
+const usdCnyStaleDays = 4;
+function exchangeLocalMonth(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
-function renderExchangeSettings() {
+function exchangeLocalDay(date = new Date()) {
+  return `${exchangeLocalMonth(date)}-${String(date.getDate()).padStart(2, '0')}`;
+}
+// 牌价发布到今天过了几天（按日期算）；没有日期时算 0。
+function usdCnyAgeDays(publishedAt, now = new Date()) {
+  const day = String(publishedAt || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return 0;
+  const [year, month, date] = day.split('-').map(Number);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.max(0, Math.round((today - new Date(year, month - 1, date)) / 86400000));
+}
+async function refreshAutoExchangeRate() {
+  clearTimeout(usdCnyRetryTimer);
+  let stale = true;
+  try {
+    const response = await apiFetch('/api/usd-cny-rate', { cache:'no-store' });
+    const data = await response.json();
+    if (!response.ok || !data.ok || !(Number(data.rate) > 0)) throw new Error(data.message || `HTTP ${response.status}`);
+    usdCnyLatest = {
+      rate:Number(data.rate),
+      source:String(data.source || ''),
+      sourceLabel:String(data.sourceLabel || ''),
+      // 来源没给发布时间时按服务端取到它的那天算，「多久没更新」才不会因为缓存一直被当成今天的。
+      publishedAt:String(data.publishedAt || exchangeLocalDay(new Date(data.fetchedAt || Date.now()))),
+      checkedAt:new Date().toISOString()
+    };
+    usdCnyLastError = '';
+    stale = Boolean(data.stale);
+  } catch (error) {
+    usdCnyLastError = String(error?.message || error || '取不到');
+    console.warn('当月汇率联网更新失败', usdCnyLastError);
+  }
+  // 没取到、或服务端交的是旧缓存（后台正在取新的）：过一会儿再试，15 秒起逐次加倍，最长半小时。
+  if (stale) usdCnyRetryTimer = setTimeout(refreshAutoExchangeRate, ecbRatesRetryDelay(usdCnyAttempts += 1));
+  else usdCnyAttempts = 0;
+  if (!applyAutoExchangeRate()) renderExchangeNote();
+}
+// 把最近取到的数写进当月那格。数据库可写时才写；数没变而且今天已经记过就不写，一天最多因此多保存几次。
+function applyAutoExchangeRate(now = new Date()) {
+  if (!usdCnyLatest || macStorageMode !== 'ready' || macIsReadOnly()) return false;
   const settings = getExchangeSettings();
-  const grid = document.getElementById('exchangeMonthlyRateGrid');
-  if (!grid) return;
-  const byYear = manualExchangeMonths.reduce((groups, month) => {
-    const year = month.slice(0, 4);
-    groups[year] = groups[year] || [];
-    groups[year].push(month);
-    return groups;
-  }, {});
-  grid.innerHTML = Object.entries(byYear).map(([year, months]) => `
+  const month = exchangeLocalMonth(now);
+  if (settings.manualMonths[month]) return false;
+  const { rate, source, sourceLabel, publishedAt, checkedAt } = usdCnyLatest;
+  const auto = settings.auto;
+  const sameRate = Math.abs(Number(settings.monthlyRates[month]) - rate) < 0.0001;
+  // 今天已经记过这一份（或这次没取到新的，手里还是上次那份）：不再写。
+  const recorded = auto && auto.month === month && auto.source === source && auto.publishedAt === publishedAt
+    && (auto.checkedAt === checkedAt || (auto.checkedAt && exchangeLocalDay(new Date(auto.checkedAt)) === exchangeLocalDay(now)));
+  if (sameRate && recorded) return false;
+  state.exchangeSettings = {
+    ...settings,
+    monthlyRates:{ ...settings.monthlyRates, [month]:rate },
+    auto:{ month, rate, source, sourceLabel, publishedAt, checkedAt }
+  };
+  render();
+  return true;
+}
+function exchangePublishedLabel(publishedAt = '') {
+  const match = String(publishedAt).match(/^(\d{4})-(\d{2})-(\d{2})(?: (\d{2}:\d{2}))?/);
+  if (!match) return '';
+  return `${Number(match[2])}月${Number(match[3])}日${match[4] ? ` ${match[4]}` : ''}`;
+}
+// 设置页汇率卡片底下那行：当月用的是哪个数、哪来的、什么时候的；太久没更新时提醒一次。
+function exchangeNoteText(now = new Date()) {
+  const settings = getExchangeSettings();
+  const month = exchangeLocalMonth(now);
+  const monthName = `${Number(month.slice(5))}月`;
+  const rate = exchangeRateForMonth(month);
+  const tail = '过去的月份不会自动改；自己填过的月份不自动更新（清空再保存就恢复自动）；2026年5月以前的订单按 2026年5月 那格算。';
+  if (settings.manualMonths[month]) return { text:`${monthName}：${rate} · 你自己填的，不联网更新。${tail}`, staleDays:0 };
+  const auto = settings.auto?.month === month ? settings.auto : null;
+  if (!auto) {
+    const why = usdCnyLastError ? '今天没取到汇率，' : '还没联网取到汇率，';
+    return { text:`${monthName}：${why}暂按 ${rate} 算。${tail}`, staleDays:0 };
+  }
+  const published = exchangePublishedLabel(auto.publishedAt);
+  const label = auto.source === 'cfets' ? '外汇交易中心中间价（参考价，比银行买入价高）' : auto.sourceLabel || auto.source;
+  let text = `${monthName}：${auto.rate} · ${label}${published ? ` · ${published} 更新` : ''}`;
+  if (auto.source === 'icbc' || auto.source === 'cfets') text += '（中国银行今天没取到）';
+  text += '。';
+  if (usdCnyLastError) text = `${monthName}：今天没取到汇率，沿用${published ? ` ${published} ` : '上次'}的 ${auto.rate}（${label}）。`;
+  const staleDays = usdCnyAgeDays(auto.publishedAt || auto.checkedAt, now);
+  if (staleDays >= usdCnyStaleDays) text += `汇率已经 ${staleDays} 天没更新，请检查网络；联网后会自动补取。`;
+  return { text:`${text}${tail}`, staleDays };
+}
+function renderExchangeNote() {
+  const { text, staleDays } = exchangeNoteText();
+  const note = document.getElementById('exchangeRateNote');
+  if (note && note.textContent !== text) note.textContent = text;
+  if (staleDays >= usdCnyStaleDays && !usdCnyStaleWarned && macStorageMode === 'ready') {
+    usdCnyStaleWarned = true;
+    toast(`当月汇率已经 ${staleDays} 天没更新`, { tone:'error', desc:'联网没取到新汇率，先沿用上次的数；联网后会自动补取。设置 → 汇率 里能看到详情' });
+  }
+}
+// 格子按设置表单的规矩填：表单里有还没保存的输入时不重画，免得联网更新把正在填的数冲掉。
+function renderExchangeSettings() {
+  renderExchangeNote();
+  const form = document.getElementById('exchangeSettingsForm');
+  settingsFormFill(form, () => {
+    const settings = getExchangeSettings();
+    const grid = document.getElementById('exchangeMonthlyRateGrid');
+    if (!grid) return;
+    form._shownRates = { ...settings.monthlyRates };
+    const byYear = exchangeMonths().reduce((groups, month) => {
+      const year = month.slice(0, 4);
+      groups[year] = groups[year] || [];
+      groups[year].push(month);
+      return groups;
+    }, {});
+    grid.innerHTML = Object.entries(byYear).map(([year, months]) => `
     <div class="manual-rate-year-card">
       <div class="manual-rate-year-title">${year} 年 <span>USD → RMB</span></div>
       <div class="manual-rate-grid">
         ${months.map(month => `
           <div class="manual-rate-item">
             <label for="exchangeRate-${month}">${monthLabel(month)}</label>
-            <input id="exchangeRate-${month}" name="rate-${month}" type="number" min="0" step="0.0001" value="${escapeAttr(settings.monthlyRates[month] || settings.fallbackRate)}" placeholder="6.8">
+            <input id="exchangeRate-${month}" name="rate-${month}" type="number" min="0" step="0.0001" value="${escapeAttr(settings.monthlyRates[month] || exchangeDefaultRate)}" placeholder="6.8">
           </div>
         `).join('')}
       </div>
     </div>
   `).join('');
+  });
 }
 function targetForMonth(month) {
   return Number((state.performanceTargets || {})[month] || 0);
@@ -29763,15 +29922,34 @@ document.getElementById('levelRuleResetBtn')?.addEventListener('click', () => {
 document.getElementById('exchangeSettingsForm').addEventListener('submit', async e => {
   e.preventDefault();
   if (e.currentTarget.dataset.saving || !canSubmitStoredData()) return;
-  const data = Object.fromEntries(new FormData(e.currentTarget).entries());
+  const form = e.currentTarget;
+  const data = Object.fromEntries(new FormData(form).entries());
   const settings = getExchangeSettings();
-  settings.monthlyRates = { ...settings.monthlyRates };
-  manualExchangeMonths.forEach(month => {
-    const value = Number(data[`rate-${month}`]);
-    settings.monthlyRates[month] = Number.isFinite(value) && value > 0 ? value : defaultExchangeSettings.fallbackRate;
+  const shown = form._shownRates || settings.monthlyRates;
+  const current = exchangeLocalMonth();
+  const monthlyRates = { ...settings.monthlyRates };
+  const manualMonths = { ...settings.manualMonths };
+  let backToAuto = false;
+  // 和打开时显示的数不一样的格子 = 这个月手动定了，联网更新不再改它。
+  // 当月和以后的月份清空 = 交回自动（当月马上按最近取到的数补上）；过去的月份清空就保持原来的数。
+  exchangeMonths().forEach(month => {
+    const raw = String(data[`rate-${month}`] ?? '').trim();
+    const value = Number(raw);
+    if (!raw || !(Number.isFinite(value) && value > 0)) {
+      if (month >= current) {
+        if (manualMonths[month]) backToAuto = true;
+        delete manualMonths[month];
+        if (month > current) monthlyRates[month] = exchangeDefaultRate;
+      }
+      return;
+    }
+    if (Math.abs(value - Number(shown[month])) < 0.00005) return;
+    monthlyRates[month] = value;
+    manualMonths[month] = true;
   });
-  settings.fallbackRate = settings.monthlyRates[exchangeTargetMonth()] || defaultExchangeSettings.fallbackRate;
-  settings.source = '手动';
+  state.exchangeSettings = { ...settings, monthlyRates, manualMonths };
+  settingsFormRefill(form);
+  if (backToAuto && !applyAutoExchangeRate()) refreshAutoExchangeRate();
   render();
   if (!await settingsFormPersist(e.currentTarget)) return;
   toast('汇率设置已保存');
@@ -32238,6 +32416,8 @@ function checkMonthRollover() {
   rolloverMonthSeen = current;
   if (activeCalendarMonth === previous || !calendarMonthTouched) activeCalendarMonth = current;
   if (activeBusinessMonth === previous) activeBusinessMonth = current;
+  // 新的一个月：最近取到的汇率马上写进新月份那格，不等下一次联网；上个月那格停在原来的数。
+  applyAutoExchangeRate();
   return true;
 }
 function checkTaskDayRollover() {

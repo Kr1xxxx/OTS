@@ -18,6 +18,7 @@ const { atomicWrite, readJson } = require('./file-store');
 const { createRequestGuard, send, readJsonBody, validateFetchSite, requireJsonContentType } = require('./request-guard');
 const { createAppSettings, aiSettingLimits, trackingSettingLimits, assertSettingFields, assertAutoRunTimes, maskSecret } = require('./app-settings');
 const { createEcbRates } = require('./ecb-rates');
+const { createUsdCnyRate } = require('./usd-cny-rate');
 const { backupReasons, parseBackupName, isOtsBackupFile, timestamp, backupsToRotate } = require('./backup-names');
 const { orderBuckets, payloadCounts, diffStateData } = require('./state-diff');
 const { createTinify } = require('./tinify');
@@ -1438,7 +1439,13 @@ function isAllowedTrackingHost(hostname = '') {
   return ['dhl.com', 'fedex.com', 'ups.com'].some(domain => host === domain || host.endsWith(`.${domain}`));
 }
 
-const { queryEcbHistoricalRates } = createEcbRates({ cacheFile:path.join(supportDir, 'exchange-rates-cache.json') });
+// TRADE_RATES_OFFLINE=1 (set by scripts/run-tests.js): no exchange-rate requests to the outside, so a test's
+// page never gets a real rate and saves it into the test data in the middle of the test.
+const rateRequestText = process.env.TRADE_RATES_OFFLINE === '1'
+  ? async () => { throw new Error('exchange-rate requests are off (TRADE_RATES_OFFLINE)'); }
+  : undefined;
+const { queryEcbHistoricalRates } = createEcbRates({ cacheFile:path.join(supportDir, 'exchange-rates-cache.json'), requestText:rateRequestText });
+const { queryUsdCnyRate } = createUsdCnyRate({ cacheFile:path.join(supportDir, 'usd-cny-rate-cache.json'), requestText:rateRequestText });
 
 async function checkApiStatus(kind) {
   if (kind === 'dhl') return checkDhlApiStatus();
@@ -1799,6 +1806,10 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'GET' && url.pathname === '/api/ecb-rates') {
       const result = await queryEcbHistoricalRates();
+      return send(res, 200, JSON.stringify({ ok:true, ...result }));
+    }
+    if (req.method === 'GET' && url.pathname === '/api/usd-cny-rate') {
+      const result = await queryUsdCnyRate();
       return send(res, 200, JSON.stringify({ ok:true, ...result }));
     }
     return send(res, 404, JSON.stringify({ ok: false, message: 'not found' }));

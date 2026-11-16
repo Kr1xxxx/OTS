@@ -122,6 +122,30 @@ const freePort = () => new Promise((resolve, reject) => {
       await click('.customer-more-menu [data-customer-menu="delete"]');
     };
     const focusOnCancel = () => page.waitForFunction(() => document.activeElement?.id === 'confirmCancelBtn');
+    // 合并客户的对照弹窗：两张卡片（保留 / 并入）、冲突清单、说明、底部左边那句和执行按钮。
+    const mergeOpen = async () => {
+      await page.waitForFunction(() => document.getElementById('customerMergeModal').classList.contains('open'));
+      await h.settle(page, '#customerMergeModal .modal');
+      return page.evaluate(() => {
+        const shown = id => document.getElementById(id).getClientRects().length > 0;
+        return {
+          picking:shown('customerMergePickField'),
+          keep:shown('customerMergePair') ? document.querySelector('#customerMergeKeep b').textContent : '',
+          keepMeta:document.querySelector('#customerMergeKeep span').textContent,
+          drop:shown('customerMergePair') ? document.querySelector('#customerMergeDrop b').textContent : '',
+          dropMeta:document.querySelector('#customerMergeDrop span').textContent,
+          conflicts:shown('customerMergeConflicts') ? [...document.querySelectorAll('#customerMergeConflicts > div')].map(row => [...row.children].map(cell => cell.textContent).join(' | ')) : [],
+          noConflicts:shown('customerMergeNoConflicts'),
+          fine:shown('customerMergeFine') ? document.getElementById('customerMergeFine').textContent : '',
+          note:document.getElementById('customerMergeFootInfo').textContent,
+          go:document.getElementById('customerMergeGoBtn').textContent,
+          goDisabled:document.getElementById('customerMergeGoBtn').disabled,
+          danger:document.getElementById('customerMergeGoBtn').classList.contains('btn-danger')
+        };
+      });
+    };
+    const mergeFocusOnCancel = () => page.waitForFunction(() => document.activeElement?.id === 'customerMergeCancelBtn');
+    const mergeClosed = () => page.waitForFunction(() => !document.getElementById('customerMergeModal').classList.contains('open'));
     const confirmClosed = () => page.waitForFunction(() => !document.getElementById('confirmModal').classList.contains('open'));
     const flush = async () => assert.equal(await page.evaluate(() => window.flushPendingSave()), true, 'saved to the database');
     const db = async () => (await api('/api/data')).data;
@@ -138,20 +162,23 @@ const freePort = () => new Promise((resolve, reject) => {
     const aliceRowText = await page.locator('.customer-duplicate-row', { has:page.locator(aliceRow) }).innerText();
     assert.match(aliceRowText, /alice baker（2 单） ↔ Alice B\. Hair（0 单）/, `提醒行显示原名和订单数：${aliceRowText}`);
     await click(aliceRow);
-    let dialog = await confirmOpen();
-    assert.equal(dialog.danger, true, '合并确认用危险样式');
-    assert.match(dialog.message, /保留：alice baker（2 单）/);
-    assert.equal(dialog.sub, '保留 alice baker · 并入 Alice B. Hair');
-    assert.equal(dialog.note, '合并前自动备份，6 秒内可以撤销');
-    assert.doesNotMatch(dialog.message, /备份|撤销/, 'the backup / undo line moved to the note');
-    await focusOnCancel();
+    let merge = await mergeOpen();
+    assert.equal(merge.picking, false, '从重复提示进来两位都已确定，不显示选客户');
+    assert.equal(merge.danger, true, '合并按钮用危险样式');
+    assert.deepEqual([merge.keep, merge.drop], ['alice baker', 'Alice B. Hair']);
+    assert.match(merge.keepMeta, /^2 单/);
+    assert.match(merge.dropMeta, /^0 单/);
+    assert.equal(merge.go, '合并到 alice baker');
+    assert.equal(merge.note, '合并前自动备份，6 秒内可以撤销');
+    assert.match(merge.fine, /^Alice B\. Hair 的订单（含垃圾箱和已删除订单）、电话、邮箱、联系人、地址、标签和 WhatsApp 聊天会归到 alice baker。$/);
+    await mergeFocusOnCancel();
     // 默认焦点在「取消」：直接按回车不会合并。
     await page.keyboard.press('Enter');
-    await confirmClosed();
+    await mergeClosed();
     assert.ok(await page.evaluate(() => Object.hasOwn(state.customers, 'Alice B. Hair')), '回车只是取消');
     await click(aliceRow);
-    await confirmOpen();
-    await click('#confirmOkBtn');
+    await mergeOpen();
+    await click('#customerMergeGoBtn');
     await h.waitToast(page, '已合并到 alice baker');
     await flush();
     let data = await db();
@@ -173,20 +200,22 @@ const freePort = () => new Promise((resolve, reject) => {
     const lopezBefore = (await db()).customers['Lopez Hair Studio'];
     const mergeRow = '[data-duplicate-merge-secondary="Lopez Hair Studio"]';
     await click(mergeRow);
-    dialog = await confirmOpen();
-    assert.equal(dialog.alt, '改为保留 Lopez Hair Studio');
-    assert.match(dialog.message, /· 国家：保留 🇪🇸 西班牙 Spain，记进备注 🇺🇸 美国 United States/);
-    assert.match(dialog.message, /· 币种：保留 EUR，记进备注 USD/);
-    await focusOnCancel();
-    await click('#confirmAltBtn');
-    await page.waitForFunction(() => /保留：Lopez Hair Studio/.test(document.getElementById('confirmMessage').textContent));
-    dialog = await confirmOpen();
-    assert.equal(dialog.alt, '改为保留 Maria Lopez', '换过来以后还能换回去');
-    await focusOnCancel();
-    await click('#confirmAltBtn');
-    await page.waitForFunction(() => /保留：Maria Lopez/.test(document.getElementById('confirmMessage').textContent));
-    await confirmOpen();
-    await click('#confirmOkBtn');
+    merge = await mergeOpen();
+    assert.deepEqual([merge.keep, merge.drop], ['Maria Lopez', 'Lopez Hair Studio']);
+    assert.ok(merge.conflicts.includes('国家 | 🇪🇸 西班牙 Spain | 备注里记：🇺🇸 美国 United States'), merge.conflicts.join(' / '));
+    assert.ok(merge.conflicts.includes('币种 | EUR | 备注里记：USD'));
+    assert.equal(await page.locator('#customerMergeSwapBtn').getAttribute('aria-label'), '对调：改为保留 Lopez Hair Studio');
+    await mergeFocusOnCancel();
+    // 对调：卡片、冲突、说明、按钮一起换过来；再对调换回去。
+    await click('#customerMergeSwapBtn');
+    merge = await mergeOpen();
+    assert.deepEqual([merge.keep, merge.drop, merge.go], ['Lopez Hair Studio', 'Maria Lopez', '合并到 Lopez Hair Studio']);
+    assert.ok(merge.conflicts.includes('国家 | 🇺🇸 美国 United States | 备注里记：🇪🇸 西班牙 Spain'), 'conflicts follow the swap');
+    assert.match(merge.fine, /^Maria Lopez 的订单.*会归到 Lopez Hair Studio。$/);
+    await click('#customerMergeSwapBtn');
+    merge = await mergeOpen();
+    assert.deepEqual([merge.keep, merge.drop, merge.go], ['Maria Lopez', 'Lopez Hair Studio', '合并到 Maria Lopez'], '换过来以后还能换回去');
+    await click('#customerMergeGoBtn');
     await holdToast('已合并到 Maria Lopez');
     await flush();
     data = await db();
@@ -230,22 +259,34 @@ const freePort = () => new Promise((resolve, reject) => {
     await click('.customer-row[data-view-customer="Bisi Hair Lagos"]');
     await page.waitForFunction(() => document.getElementById('customerModal').classList.contains('open'));
     await menuDelete();
-    dialog = await confirmOpen();
+    let dialog = await confirmOpen();
     assert.equal(dialog.title, '不能直接删除这位客户');
     assert.match(dialog.message, /名下有 1 单/);
     await focusOnCancel();
     await click('#confirmOkBtn');
-    await page.waitForFunction(() => document.getElementById('confirmTitle').textContent === '合并到其他客户' && document.activeElement?.id === 'confirmInput');
+    // 同一个对照弹窗：先在上面搜客户（每一项带国家和订单数，不列自己），没选之前不能合并。
+    merge = await mergeOpen();
+    assert.equal(merge.picking, true);
+    assert.equal(merge.goDisabled, true, '没选客户之前不能合并');
+    assert.equal(merge.keep, '');
+    await click('#customerMergeInput');
     await page.keyboard.type('Nobody Here');
+    await page.waitForSelector('#customerMergeModal .client-menu.open .client-menu-empty');
+    assert.match(await page.locator('#customerMergeModal .client-menu-empty').innerText(), /只能并入已有的客户/);
     await page.keyboard.press('Enter');
-    await page.waitForFunction(() => /没有这位客户/.test(document.getElementById('confirmError').textContent));
-    await page.locator('#confirmInput').evaluate(el => el.setSelectionRange(0, el.value.length));
-    await page.keyboard.type('ada okafor');
+    assert.equal((await mergeOpen()).goDisabled, true, '没有这位客户：还是不能合并');
+    await page.locator('#customerMergeInput').evaluate(el => el.setSelectionRange(0, el.value.length));
+    await page.keyboard.type('ada');
+    const adaOption = page.locator('#customerMergeModal .client-menu.open .client-option[data-client="Ada Okafor"]');
+    await adaOption.waitFor();
+    assert.match(await adaOption.innerText(), /Nigeria · 1 单/);
+    assert.equal(await page.locator('#customerMergeModal .client-menu.open [data-client="Bisi Hair Lagos"]').count(), 0, 'the customer being merged is not listed');
+    assert.equal(await page.locator('#customerMergeModal .client-menu.open [data-open-client]').count(), 0, 'no open-profile arrow inside the merge dialog');
+    await page.keyboard.press('ArrowDown');
     await page.keyboard.press('Enter');
-    await page.waitForFunction(() => /保留：Ada Okafor/.test(document.getElementById('confirmMessage').textContent));
-    await confirmOpen();
-    await focusOnCancel();
-    await click('#confirmOkBtn');
+    merge = await mergeOpen();
+    assert.deepEqual([merge.keep, merge.drop, merge.go, merge.goDisabled], ['Ada Okafor', 'Bisi Hair Lagos', '合并到 Ada Okafor', false], '选中的那位默认保留');
+    await click('#customerMergeGoBtn');
     await h.waitToast(page, '已合并到 Ada Okafor');
     await flush();
     data = await db();
@@ -279,10 +320,13 @@ const freePort = () => new Promise((resolve, reject) => {
     // 「合并到其他客户…」直接打开合并的第一步（以前只能从「不能直接删除」绕过去），取消后什么都不变。
     await openMoreMenu();
     await click('.customer-more-menu [data-customer-menu="merge"]');
-    dialog = await confirmOpen();
-    assert.equal(dialog.title, '合并到其他客户');
-    await click('#confirmCancelBtn');
-    await confirmClosed();
+    merge = await mergeOpen();
+    assert.equal(merge.picking, true);
+    // 叠在客户弹窗上面；Esc 只关合并弹窗。
+    assert.ok(await page.evaluate(() => { const els = [...document.querySelectorAll('.modal-backdrop.open')]; return els.at(-1).id === 'customerMergeModal'; }), 'the merge dialog sits on top of the customer modal');
+    await mergeFocusOnCancel();
+    await page.keyboard.press('Escape');
+    await mergeClosed();
     assert.ok(await page.evaluate(() => Object.hasOwn(state.customers, 'Typo Custmer') && document.getElementById('customerModal').classList.contains('open')), '取消合并：档案还在、弹窗还开着');
     await menuDelete();
     dialog = await confirmOpen();
@@ -359,8 +403,8 @@ const freePort = () => new Promise((resolve, reject) => {
     await page.waitForFunction(() => !document.getElementById('customerModal').classList.contains('open'));
     // 合并：被并掉那位的记录换到保留的那位名下；撤销后回来。
     await page.evaluate(() => { mergeDuplicateCustomers('Tola Hair', 'Kemi Beauty Supply'); });
-    await confirmOpen();
-    await click('#confirmOkBtn');
+    await mergeOpen();
+    await click('#customerMergeGoBtn');
     await holdToast('已合并到 Tola Hair');
     assert.deepEqual(await ignoreKeys(), ['Kemi Wigs | Tola Hair'], '合并后记录换到保留的那位');
     assert.equal(await pairShown('Kemi Wigs', 'Tola Hair'), false);

@@ -81,8 +81,8 @@ const orders = [
     // ===== 6. 两位无档案客户合并后撤销 =====
     assert.equal(await page.evaluate(() => Object.keys(state.customers || {}).length), 0, 'neither customer has a profile');
     await page.evaluate(() => { setPage('customers'); mergeDuplicateCustomers('Plain Buyer Two', 'Plain Buyer One'); });
-    await page.waitForFunction(() => document.getElementById('confirmModal').classList.contains('open') && /保留：Plain Buyer Two/.test(document.getElementById('confirmMessage').textContent));
-    await h.click(page, '#confirmOkBtn', 'confirm merge');
+    await page.waitForFunction(() => document.getElementById('customerMergeModal').classList.contains('open') && document.querySelector('#customerMergeKeep b').textContent === 'Plain Buyer Two');
+    await h.click(page, '#customerMergeGoBtn', 'confirm merge');
     await h.waitToast(page, '已合并到 Plain Buyer Two');
     assert.equal((await h.order(page, 'm1')).client, 'Plain Buyer Two');
     await h.clickUndo(page, '已合并到 Plain Buyer Two');

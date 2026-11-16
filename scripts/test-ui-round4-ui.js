@@ -213,32 +213,35 @@ const waitIdle = page => page.evaluate(() => new Promise(resolve => {
       await page.keyboard.press('Escape');
       await page.evaluate(() => { document.querySelectorAll('.modal-backdrop.open').forEach(modal => setModalOpenState(modal, false)); setPage('dashboard'); });
 
-      // ---- 12. 合并到其他客户：选目标用 App 自己的菜单 ----
+      // ---- 12. 合并到其他客户：选目标用 App 自己的客户选择器（和新建订单同一个），在合并弹窗里 ----
       assert.equal(await page.locator('datalist').count(), 0, 'no system datalist left in the page');
       const merging = page.evaluate(() => mergeCustomerInto('Second Buyer'));
       merging.catch(() => {});
-      await page.waitForFunction(() => document.getElementById('confirmModal').classList.contains('open'));
-      const confirmInput = page.locator('#confirmInput');
-      await page.waitForFunction(() => document.activeElement?.id === 'confirmInput');
+      await page.waitForFunction(() => document.getElementById('customerMergeModal').classList.contains('open'));
+      const mergeInput = page.locator('#customerMergeInput');
+      await h.click(page, '#customerMergeInput', 'merge target');
       await page.keyboard.type('roun', { delay:5 });
-      menu = await suggest();
-      assert.deepEqual([menu.open, menu.items, menu.label], [true, ['Round Four Buyer', 'Rounded Corner Ltd'], '并入的客户'], 'typing filters the customers');
-      // 合并目标打字时不高亮：回车直接进下一步（确认框自己按名字认人），不用先选一下。
+      const mergeMenu = () => page.evaluate(() => {
+        const open = document.querySelector('#customerMergeModal .client-menu.open');
+        return { open:Boolean(open), items:open ? [...open.querySelectorAll('.client-option[data-client]')].map(el => el.dataset.client) : [], active:open?.querySelector('.client-option.active')?.dataset.client || '' };
+      });
+      menu = await mergeMenu();
+      assert.deepEqual([menu.open, menu.items], [true, ['Round Four Buyer', 'Rounded Corner Ltd']], 'typing filters the customers');
       assert.equal(menu.active, '', 'typing does not pick a customer by itself');
       await waitIdle(page);
       await shot(page, `12-merge-target-${theme}`);
       await page.keyboard.press('Escape');
-      assert.equal((await suggest()).open, false, 'Esc closes only the menu');
-      assert.ok(await page.evaluate(() => document.getElementById('confirmModal').classList.contains('open')), 'the confirm dialog stays open');
-      // 框里是打了一半的字：↓ 重新打开筛过的列表并停在第一项。
+      assert.equal((await mergeMenu()).open, false, 'Esc closes only the menu');
+      assert.ok(await page.evaluate(() => document.getElementById('customerMergeModal').classList.contains('open')), 'the merge dialog stays open');
+      // 框里是打了一半的字：↓ 重新打开筛过的列表并停在第一项，回车选中它，不会直接合并。
       await page.keyboard.press('ArrowDown');
       await page.keyboard.press('Enter');
-      assert.equal(await confirmInput.inputValue(), 'Round Four Buyer', 'Enter picks the highlighted customer and does not confirm');
-      assert.ok(await page.evaluate(() => document.getElementById('confirmModal').classList.contains('open')));
-      await h.click(page, '#confirmCancelBtn', 'cancel merge');
+      assert.equal(await mergeInput.inputValue(), 'Round Four Buyer', 'Enter picks the highlighted customer and does not merge');
+      assert.ok(await page.evaluate(() => document.getElementById('customerMergeModal').classList.contains('open')));
+      assert.equal(await page.locator('#customerMergeGoBtn').innerText(), '合并到 Round Four Buyer');
+      await h.click(page, '#customerMergeCancelBtn', 'cancel merge');
       await merging;
-      assert.equal(await confirmInput.getAttribute('role'), null, 'the shared confirm input is plain again afterwards');
-      assert.equal(await page.evaluate(() => document.getElementById('confirmInput').matches(suggestInputSelector)), false);
+      assert.ok(await page.evaluate(() => Object.hasOwn(state.customers, 'Second Buyer') || state.orders.some(o => o.client === 'Second Buyer')), 'cancel merges nothing');
 
       // ---- 6. 搜索面板的小字 ----
       await h.click(page, '#searchInput', 'search');

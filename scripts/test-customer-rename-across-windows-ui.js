@@ -202,10 +202,10 @@ const profile = (client, id) => ({ client, id, country:'🇺🇸 美国 United S
     }, month);
     await rename(A, 'Acme Hair', 'Acme Hair Ltd');
     await A.evaluate(json => { previewImportDataFile(new File([json], 'month.json', { type:'application/json' })); }, fileJson);
-    await A.waitForFunction(() => document.getElementById('confirmModal').classList.contains('open'));
-    const preview = await A.locator('#confirmMessage').innerText();
+    await A.waitForFunction(() => document.getElementById('importPreviewModal').classList.contains('open'));
+    const preview = await A.locator('#importMergeChips').innerText();
     assert.match(preview, /新客户 0 位/, `no new customer in the preview: ${preview}`);
-    await h.click(A, '#confirmOkBtn', '合并导入');
+    await h.click(A, '#importPreviewGoBtn', '合并导入');
     await h.waitToast(A, '已合并导入');
     await flush(A);
     assert.deepEqual(await dbView(), { customers:renamedCustomers, orders:renamedOrders() }, 'orders stay with the renamed customer');

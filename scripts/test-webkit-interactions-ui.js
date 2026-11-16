@@ -298,18 +298,24 @@ const webkitFocusSim = () => {
 
     // 10. Mac App 的导出：交给本地服务写进「下载」文件夹；失败时按钮不显示「已导出」。
     await page.evaluate(() => { setPage('settings'); uiSettingsTab('data'); });
-    await page.locator('#dataExportCsvBtn').click();
+    await page.locator('#openExportBtn').click();
+    await page.waitForFunction(() => document.getElementById('exportModal').classList.contains('open'));
+    assert.equal(await page.locator('#exportFootInfo').innerText(), '保存到「下载」文件夹');
+    await page.locator('#exportGoBtn').click();
     await page.waitForFunction(() => document.getElementById('toast').textContent.includes('已导出到「下载」文件夹'));
     assert.equal(exports.length, 1);
     assert.match(exports[0].name, /^trade-orders-.+\.csv$/);
     assert.ok(exports[0].text.startsWith('﻿'), 'CSV export lost its BOM');
     assert.match(exports[0].text, /K2/);
-    assert.match(await page.locator('#dataExportCsvBtn').innerText(), /已导出/);
+    await page.waitForFunction(() => !document.getElementById('exportModal').classList.contains('open'));
     exportFails = true;
-    await page.locator('#exportDataFileBtn').click();
+    await page.locator('#openExportBtn').click();
+    await page.locator('#exportModal .pick-option', { hasText:'备份' }).click();
+    await page.locator('#exportGoBtn').click();
     await page.waitForFunction(() => document.getElementById('toast').textContent.includes('导出失败'));
     assert.match(await toastText(), /磁盘已满/);
-    assert.doesNotMatch(await page.locator('#exportDataFileBtn').innerText(), /已导出/, 'a failed export showed 已导出');
+    await page.waitForFunction(() => document.getElementById('exportGoBtn').textContent === '导出备份');
+    assert.equal(await page.evaluate(() => document.getElementById('exportModal').classList.contains('open')), true, 'a failed export closed the dialog');
 
     assert.deepEqual(errors, []);
     console.log('WebKit interactions UI passed: client ▾, synced dropdowns, IME Enter/Esc, search →, backdrop drag-select, filter panel, month selects, copy failure, carrier site, Mac exports.');

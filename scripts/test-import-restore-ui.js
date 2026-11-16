@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // 导入、恢复示例、从备份恢复（审查报告 25 P1-1 / P1-2 / P1-4 / P1-5 / P1-6，15 P2-3）：真实 mac-app/server.js（临时数据目录）+ 真实鼠标键盘。
 // - 单月「导出备份」再导入：只合并，其他月份的订单一张不少；导入前强制生成「导入前」备份；
-// - 整份文件导入：预览列出新增 / 修改 / 删除，默认焦点在「合并导入（不删除）」；要删除数据还得输入「替换」；
+// - 整份文件导入：预览是「合并 / 替换全部」两张卡片，默认选中并聚焦「合并」；选「替换全部」才列出会被删除的订单和客户，要删除数据还得输入「替换」；
 //   金额「1,200」「$500」转成数字后存进数据库，不进 500 重试循环；被删的 0 单客户的 WhatsApp 聊天不会挂到新客户名下；6 秒内可撤销；
 // - 导入写库失败：页面回到导入前，不重试；
 // - 恢复示例只换订单相关的数据，客户档案和设置保留，执行前有「恢复示例前」备份；
@@ -93,13 +93,21 @@ const fixture = {
       await page.goto(`${url}/trade-order-system.html?token=${token}`);
       await page.waitForFunction(() => window.pendingSaveStatus?.().loaded || /只读|失败/.test(document.getElementById('macStorageStatusBadge')?.textContent || ''));
       await page.evaluate(() => setPage('settings'));
-      await page.waitForSelector('#exportJsonBtn', { state:'visible' });
+      await page.waitForSelector('#openExportBtn', { state:'visible' });
     };
     const confirmOpen = async () => {
       await page.waitForFunction(() => document.getElementById('confirmModal').classList.contains('open'));
       await h.settle(page, '#confirmModal .modal');
       return page.evaluate(() => ({ sub:document.getElementById('confirmSub').textContent, message:document.getElementById('confirmMessage').textContent, ok:document.getElementById('confirmOkBtn').textContent, alt:document.getElementById('confirmAltBtn').hidden ? '' : document.getElementById('confirmAltBtn').textContent }));
     };
+    // 导入预览弹窗：副标题、主体文字（藏起来的部分不算）、执行按钮的字、有没有「替换全部」那张卡片。
+    const previewOpen = async () => {
+      await page.waitForFunction(() => document.getElementById('importPreviewModal').classList.contains('open'));
+      await h.settle(page, '#importPreviewModal .modal');
+      return page.evaluate(() => ({ sub:document.getElementById('importPreviewSub').textContent, message:document.querySelector('#importPreviewModal .modal-body').innerText, go:document.getElementById('importPreviewGoBtn').textContent, replace:!document.getElementById('importModeReplace').hidden, danger:document.getElementById('importPreviewGoBtn').classList.contains('btn-danger') }));
+    };
+    const previewClosed = () => page.waitForFunction(() => !document.getElementById('importPreviewModal').classList.contains('open'), null, { timeout:15000 });
+    const mergeFocused = () => page.waitForFunction(() => document.activeElement?.matches('#importPreviewModal input[name="importMode"][value="merge"]') && document.activeElement.checked, null, { timeout:5000 });
     const confirmClosed = async () => {
       try { await page.waitForFunction(() => !document.getElementById('confirmModal').classList.contains('open'), null, { timeout:15000 }); }
       catch (error) { throw new Error(`confirm box still open: ${await page.evaluate(() => `${document.getElementById('confirmSub').textContent} / ${document.getElementById('confirmMessage').textContent} / ${document.getElementById('confirmError').textContent}`)}`); }
@@ -122,23 +130,28 @@ const fixture = {
     assert.equal(await page.locator('#macResetBackupDirBtn').evaluate(el => getComputedStyle(el).display), 'none');
 
     // ---- 1. 单月「导出备份」再导入：只合并，其他月份的订单都在；导入前有备份 ----
+    await h.click(page, '#openExportBtn');
+    await page.waitForFunction(() => document.getElementById('exportModal').classList.contains('open'));
+    await h.click(page, '#exportModal .pick-option:has(input[value="json"])', '备份');
     await page.selectOption('#exportMonth', '2026-10');
-    await h.click(page, '#exportJsonBtn');
+    assert.match(await page.locator('#exportSub').textContent(), /^1 笔订单 · /);
+    assert.equal(await page.locator('#exportGoBtn').textContent(), '导出备份');
+    await h.click(page, '#exportGoBtn');
     const monthFile = path.join(exportDir, 'trade-orders-backup-2026-10.json');
-    await page.waitForFunction(() => document.getElementById('exportJsonBtn').textContent.includes('已导出'));
+    await page.waitForFunction(() => !document.getElementById('exportModal').classList.contains('open'));
     const monthJson = JSON.parse(fs.readFileSync(monthFile, 'utf8'));
     assert.equal(monthJson.scope, 'month');
     assert.deepEqual(monthJson.data.orders.map(o => o.num), ['K26100101']);
     await h.clearToasts(page);
     await chooseFile('#importJsonBtn', monthFile);
-    let dialog = await confirmOpen();
-    assert.match(dialog.sub, /只合并/);
-    assert.match(dialog.message, /2026-10 单月订单/);
-    assert.match(dialog.message, /不删除任何现有数据/);
-    assert.equal(dialog.ok, '合并导入');
-    await page.waitForFunction(() => document.activeElement?.id === 'confirmCancelBtn');
-    await h.click(page, '#confirmOkBtn');
-    await confirmClosed();
+    let preview = await previewOpen();
+    assert.equal(preview.replace, false, 'a one-month file can only be merged');
+    assert.match(preview.message, /2026-10 单月订单/);
+    assert.match(preview.message, /不删除任何现有数据/);
+    assert.equal(preview.go, '合并导入');
+    await mergeFocused();
+    await h.click(page, '#importPreviewGoBtn');
+    await previewClosed();
     await h.waitToast(page, '已合并导入');
     assert.deepEqual((await db()).orders.map(o => o.num).sort(), ['K26080101', 'K26090101', 'K26100101', 'K26110101'], 'importing a one-month file keeps every other month');
     assert.equal(backups('import').length, 1, 'a forced before-import backup is taken even within the hourly window');
@@ -155,16 +168,24 @@ const fixture = {
     });
     await h.clearToasts(page);
     await chooseFile('#previewImportDataFileBtn', replaceFile);
-    dialog = await confirmOpen();
-    assert.match(dialog.message, /由 V3\.120 导出 · 全部数据/);
-    assert.match(dialog.message, /订单（含垃圾箱、已删除）：新增 1、修改 1、删除 3 张（K26100101、K26090101、K26080101）/, dialog.message);
-    assert.match(dialog.message, /客户：新增 1、修改 0、删除 3 位/);
-    assert.match(dialog.message, /K26110101 金额「1,200」→ 1200/);
-    assert.match(dialog.message, /K26100901 金额「\$500」→ 500/);
-    assert.equal(dialog.alt, '合并导入（不删除）');
-    assert.equal(dialog.ok, '删除 6 项并替换');
-    await page.waitForFunction(() => document.activeElement?.id === 'confirmAltBtn', null, { timeout:5000 });
-    await h.click(page, '#confirmOkBtn');
+    preview = await previewOpen();
+    assert.match(preview.sub, /^2 张订单 · 2 位客户 · .+ 由 V3\.120 导出$/);
+    assert.equal(preview.replace, true);
+    assert.match(preview.message, /新增 1 张[\s\S]*更新 1 张[\s\S]*新客户 1 位/, preview.message);
+    assert.match(preview.message, /现在 4 张 → 替换后 2 张订单[\s\S]*删除 3 张订单[\s\S]*删除 3 位客户/, preview.message);
+    assert.doesNotMatch(preview.message, /K26090101/, 'the removed orders are listed only after choosing 替换全部');
+    assert.match(preview.message, /K26110101 金额「1,200」→ 1200/);
+    assert.match(preview.message, /K26100901 金额「\$500」→ 500/);
+    assert.equal(preview.go, '合并导入');
+    assert.equal(preview.danger, false);
+    await mergeFocused();
+    await h.click(page, '#importModeReplace', '替换全部');
+    preview = await previewOpen();
+    assert.match(preview.message, /删除 3 张（含垃圾箱、已删除）：K26100101、K26090101、K26080101/, preview.message);
+    assert.match(preview.message, /删除 3 位：Bob Lee、Cara Diaz、Zero Lead/, preview.message);
+    assert.equal(preview.go, '删除 6 项并替换');
+    assert.equal(preview.danger, true);
+    await h.click(page, '#importPreviewGoBtn');
     // 第二步：要输入「替换」。先输错一次。
     await page.waitForFunction(() => document.getElementById('confirmSub').textContent === '会删除现有数据');
     await page.waitForFunction(() => document.activeElement?.id === 'confirmInput');
@@ -203,11 +224,19 @@ const fixture = {
     });
     await h.clearToasts(page);
     await chooseFile('#previewImportDataFileBtn', addFile);
-    dialog = await confirmOpen();
-    assert.equal(dialog.ok, '替换全部');
-    await page.waitForFunction(() => document.activeElement?.id === 'confirmAltBtn');
+    preview = await previewOpen();
+    assert.match(preview.message, /不删除现有数据/);
+    await mergeFocused();
+    // 键盘：在「合并」卡片上按 → 换到「替换全部」，按钮跟着变；再按 ← 回到合并，Tab 到按钮上回车。
+    await page.keyboard.press('ArrowRight');
+    await page.waitForFunction(() => document.getElementById('importPreviewGoBtn').textContent === '替换全部');
+    await page.keyboard.press('ArrowLeft');
+    await page.waitForFunction(() => document.getElementById('importPreviewGoBtn').textContent === '合并导入');
     await page.keyboard.press('Enter');
-    await confirmClosed();
+    assert.equal(await page.evaluate(() => document.getElementById('importPreviewModal').classList.contains('open')), true, 'Enter on a card does not run the import');
+    await page.locator('#importPreviewGoBtn').focus();
+    await page.keyboard.press('Enter');
+    await previewClosed();
     await h.waitToast(page, '导入没有完成，数据保持导入前的样子：database is locked');
     assert.equal(await page.evaluate(() => state.orders.some(o => o.id === 'n2')), false, 'the page goes back to the data before the import');
     const requestsAfterFailure = saveRequests;
@@ -219,7 +248,7 @@ const fixture = {
     // ---- 4. 恢复示例：只换订单，客户档案和设置保留，执行前有备份 ----
     await h.clearToasts(page);
     await h.click(page, '#resetBtn');
-    dialog = await confirmOpen();
+    let dialog = await confirmOpen();
     assert.match(dialog.message, /4 张订单/);
     await h.click(page, '#confirmOkBtn');
     await page.waitForFunction(() => document.getElementById('confirmSub').textContent === '第二步确认');
@@ -267,9 +296,15 @@ const fixture = {
     assert.match(await page.locator('#macStorageStatusText').textContent(), /身份标记对不上.*从备份恢复/);
     const exportsBefore = fs.readdirSync(exportDir).length;
     await h.clearToasts(page);
-    await h.click(page, '#exportDataFileBtn');
+    await h.click(page, '#openExportBtn');
+    await h.click(page, '#exportModal .pick-option:has(input[value="json"])', '备份');
+    await h.click(page, '#exportGoBtn');
     await h.waitToast(page, '数据库没有读出来，现在导出的不是你的数据');
     assert.equal(fs.readdirSync(exportDir).length, exportsBefore, 'no export file while the database could not be read');
+    // 导出没成功：弹窗留着，按钮回到「导出备份」，不显示「已导出」。
+    await page.waitForFunction(() => document.getElementById('exportGoBtn').textContent === '导出备份' && !document.getElementById('exportGoBtn').disabled);
+    assert.equal(await page.evaluate(() => document.getElementById('exportModal').classList.contains('open')), true);
+    await h.click(page, '#exportCancelBtn');
     await h.click(page, '#macRestoreBackupBtn');
     const newest = page.locator('#macRestoreList .backup-restore-item').first();
     await newest.waitFor();

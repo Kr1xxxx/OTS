@@ -4029,6 +4029,9 @@ html[data-theme] .board-column-meta .board-count { font-size:inherit; color:inhe
 /* 卡片 */
 html[data-theme] .board-card.oc-card, html[data-theme] .board-card.oc-card:is(.product-wig, .product-lash) { display:flex; flex-direction:column; gap:4px; padding:10px 12px; border:1px solid var(--surface-border); border-radius:16px; background:var(--surface-bg); box-shadow:var(--shadow); text-align:left; user-select:none; -webkit-user-select:none; transition:box-shadow .2s var(--ease), transform var(--motion-spring) var(--ease-spring), opacity .2s; }
 html[data-theme] .board-card.oc-card:hover { box-shadow:var(--shadow-hover); transform:translateY(-2px); }
+/* 卡片设置「按产品给卡片加色条」：左边一条细色条（以前被上面这条统一的阴影盖掉，开和关看起来一样）。 */
+html[data-theme] .board-card.oc-card:is(.product-wig, .product-lash) { box-shadow:inset 3px 0 0 var(--product-color), var(--shadow); }
+html[data-theme] .board-card.oc-card:is(.product-wig, .product-lash):hover { box-shadow:inset 3px 0 0 var(--product-color), var(--shadow-hover); }
 /* 卡片悬停快捷动作：收齐尾款 / 推进阶段，盖在卡片右下角，不改变卡片高度。 */
 html[data-theme] .board-card.oc-card { position:relative; }
 html[data-theme] .oc-actions { position:absolute; right:6px; bottom:6px; display:none; gap:4px; padding-left:28px; background:linear-gradient(90deg, transparent, var(--surface-bg) 26px); }
@@ -4687,7 +4690,8 @@ html[data-theme] .order-list-count { color:var(--gray-500); font-size:13px; }
 html[data-theme] .order-list-deleted-link { margin:0; color:var(--gray-900); font-size:13px; gap:6px; }
 html[data-theme] .order-list-deleted-link .ui-icon { width:16px; height:16px; }
 html[data-theme] .order-list-controls { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:0; border:0; background:transparent; }
-html[data-theme] .order-list-search { flex:1 1 180px; width:auto; height:38px; padding:0 16px; border-radius:999px; border:1px solid var(--surface-border); background:var(--surface-bg); font-size:13px; text-overflow:ellipsis; }
+/* min-width:0：输入框默认不比它的 size 宽度更窄，最小窗口下工具栏（多了「导出」）会折成两行；让搜索框先让出位置。 */
+html[data-theme] .order-list-search { flex:1 1 180px; width:auto; min-width:0; height:38px; padding:0 16px; border-radius:999px; border:1px solid var(--surface-border); background:var(--surface-bg); font-size:13px; text-overflow:ellipsis; }
 html[data-theme] .order-list-search::placeholder { text-overflow:ellipsis; }
 html[data-theme] .order-list-primary-filters { flex-wrap:nowrap; gap:10px; }
 html[data-theme] .order-list-primary-filters > .inline-select { width:auto; min-width:104px; height:38px; padding:0 34px 0 16px; border-radius:999px; font-size:13px; color:var(--gray-900); text-align:left; }
@@ -4700,7 +4704,7 @@ html[data-theme] .order-list-more[open] summary::before { transform:rotate(45deg
 html[data-theme] .order-list-more .order-list-filter-grid { position:absolute; right:0; top:calc(100% + 8px); z-index:30; width:min(520px, 80vw); grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; padding:12px; border:1px solid var(--surface-border); border-radius:18px; background:var(--surface-bg); box-shadow:var(--floating-shadow); animation:uiRise .24s var(--ease-out); }
 /* 面板里的六个下拉框和工具栏上的三个一个样：胶囊形、38px 高、13px 深色字（以前是 10px 圆角、12px 灰字）。 */
 html[data-theme] .order-list-more .order-list-filter-grid .inline-select { height:38px; min-height:38px; padding-left:6px; border-radius:999px; font-size:13px; color:var(--gray-900); }
-html[data-theme] #orderListResetBtn { height:38px; padding:0 14px; border-radius:999px; }
+html[data-theme] :is(#orderListResetBtn, #orderListExportBtn) { height:38px; padding:0 14px; border-radius:999px; }
 html[data-theme] .order-list-active-filters:not(:empty) { flex-basis:100%; margin:0; }
 html[data-theme] .order-list-filter-chip { animation:uiPop .4s var(--ease-spring) both; border-radius:999px; padding:4px 10px; }
 
@@ -5174,6 +5178,81 @@ html[data-theme] .board-column-head > .board-column-sub { display:block; padding
 /* 没写下一步的那一行叫 .is-empty：叫 .empty 会被全局空状态样式套成虚线大框，卡片比写了下一步的高 29px。 */
 html[data-theme] .oc-next.is-empty { color:var(--gray-400); }
 html[data-theme] .oc-r3 .board-card-amount.due { color:var(--s-amber); }
+/* 选项弹窗（导出、导入预览、卡片设置）：头部标题下一行写范围；主体放选项卡片、勾选块、开关；底部左边一句事实，右边取消 + 执行。
+   内容多时只有主体滚动，头部和底部固定。 */
+html[data-theme] .pick-modal { width:min(520px, 100%); display:flex; flex-direction:column; }
+html[data-theme] .pick-modal > .modal-head { flex:none; align-items:flex-start; padding:20px 16px 10px 24px; border-bottom:0; }
+html[data-theme] .pick-modal .modal-title { font-size:18px; line-height:1.3; }
+html[data-theme] .pick-sub { margin-top:2px; font-size:13px; line-height:1.45; color:var(--gray-600); font-variant-numeric:tabular-nums; }
+html[data-theme] .pick-modal > .modal-body { flex:1 1 auto; min-height:0; max-height:none; padding:6px 24px 20px; gap:16px; }
+html[data-theme] .pick-modal > .modal-foot { flex:none; }
+html[data-theme] .pick-foot-info { flex:1 1 160px; min-width:0; margin-right:auto; font-size:12px; line-height:1.45; color:var(--gray-500); }
+html[data-theme] .pick-field { display:grid; gap:6px; min-width:0; }
+html[data-theme] .pick-field[hidden] { display:none; }
+html[data-theme] .pick-label { display:flex; justify-content:space-between; align-items:baseline; gap:10px; font-size:12px; font-weight:600; color:var(--gray-600); }
+html[data-theme] .pick-count { margin-left:8px; font-weight:400; color:var(--gray-500); font-variant-numeric:tabular-nums; }
+html[data-theme] .pick-links { display:flex; gap:12px; }
+html[data-theme] .pick-link { padding:0; border:0; border-radius:4px; background:none; color:var(--accent-ink); font:inherit; font-weight:500; cursor:pointer; }
+html[data-theme] .pick-link:hover { text-decoration:underline; }
+html[data-theme] .pick-link:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+/* 选项卡片（单选）：里面是真的 radio，左右 / 上下键切换；选中 = 强调色描边 + 淡底，危险选项选中用红色。 */
+html[data-theme] .pick-options { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; }
+html[data-theme] .pick-options.single { grid-template-columns:minmax(0, 1fr); }
+html[data-theme] .pick-option { position:relative; display:grid; align-content:start; gap:2px; min-width:0; padding:12px 38px 12px 14px; border:1px solid var(--surface-border); border-radius:var(--radius); background:var(--surface-bg); cursor:pointer; transition:border-color var(--motion-fast) var(--ease), background-color var(--motion-fast) var(--ease), box-shadow var(--motion-fast) var(--ease); }
+html[data-theme] .pick-option[hidden] { display:none; }
+html[data-theme] .pick-option > input { position:absolute; top:13px; right:13px; width:16px; height:16px; margin:0; cursor:pointer; }
+html[data-theme] .pick-option > b { font-size:14px; font-weight:600; color:var(--gray-900); }
+html[data-theme] .pick-option > span { font-size:12px; line-height:1.5; color:var(--gray-600); }
+html[data-theme] .pick-option:hover { border-color:var(--surface-border-strong); }
+html[data-theme] .pick-option:has(> input:checked) { border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); background:var(--accent-tint); }
+html[data-theme] .pick-option.danger > input { accent-color:var(--s-red); }
+html[data-theme] .pick-option.danger:has(> input:checked) { border-color:var(--s-red); box-shadow:inset 0 0 0 1px var(--s-red); background:color-mix(in oklab, var(--s-red) 9%, transparent); }
+html[data-theme] .pick-option:has(> input:focus-visible) { outline:2px solid var(--accent); outline-offset:2px; }
+html[data-theme] .pick-option > input:focus-visible { outline:none; }
+html[data-theme] .pick-field .app-select { width:100%; height:40px; min-height:40px; border-radius:999px; font-size:14px; }
+html[data-theme] .pick-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+html[data-theme] .pick-chips:empty { display:none; }
+html[data-theme] .pick-chip { padding:1px 8px; border-radius:999px; font-size:12px; font-weight:500; line-height:1.6; font-variant-numeric:tabular-nums; background:color-mix(in oklab, var(--s-green) 12%, transparent); color:color-mix(in oklab, var(--s-green) 80%, var(--gray-900)); }
+html[data-theme] .pick-chip.danger { background:color-mix(in oklab, var(--s-red) 11%, transparent); color:var(--danger-ink); }
+html[data-theme] .pick-chip.plain { background:color-mix(in srgb, var(--gray-900) 6%, transparent); color:var(--gray-600); }
+/* 一组勾选放进淡底色块，项目自己不带边框。 */
+html[data-theme] .pick-well { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:9px 12px; margin:0; padding:12px 14px; border-radius:var(--radius); background:color-mix(in srgb, var(--gray-900) 4%, transparent); }
+html[data-theme] .pick-well.two { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+html[data-theme] .pick-well.one { grid-template-columns:minmax(0, 1fr); }
+html[data-theme] .pick-check { display:flex; align-items:center; gap:8px; min-width:0; font-size:13px; color:var(--gray-900); cursor:pointer; }
+html[data-theme] .pick-check input { flex:none; width:16px; height:16px; margin:0; }
+html[data-theme] .pick-check span { overflow-wrap:anywhere; }
+html[data-theme] .pick-facts > div { display:grid; grid-template-columns:44px minmax(0, 1fr); gap:8px; font-size:13px; line-height:1.5; }
+html[data-theme] .pick-facts > div[hidden] { display:none; }
+html[data-theme] .pick-facts dt { color:var(--gray-500); }
+html[data-theme] .pick-facts dd { margin:0; color:var(--gray-900); overflow-wrap:anywhere; }
+html[data-theme] .pick-note { margin:2px 0 0; font-size:12px; line-height:1.5; color:var(--gray-600); }
+html[data-theme] .pick-note[hidden] { display:none; }
+/* 提示列表：每条前面一个琥珀色「!」。 */
+html[data-theme] .pick-notes { display:grid; gap:6px; margin:0; padding:0; list-style:none; font-size:13px; line-height:1.5; color:var(--gray-600); }
+html[data-theme] .pick-notes:empty { display:none; }
+html[data-theme] .pick-notes li { display:grid; grid-template-columns:16px minmax(0, 1fr); gap:8px; overflow-wrap:anywhere; }
+html[data-theme] .pick-notes li::before { content:"!"; width:16px; height:16px; margin-top:2px; border-radius:50%; background:color-mix(in oklab, var(--s-amber) 16%, transparent); color:var(--s-amber); font-size:11px; font-weight:700; line-height:16px; text-align:center; }
+/* 开关：和订单弹窗「保存后发送到飞书群」同一个样子，下面一行写具体后果。 */
+html[data-theme] .pick-switches { display:grid; gap:12px; }
+html[data-theme] .pick-switch { display:grid; grid-template-columns:34px minmax(0, 1fr); gap:12px; align-items:center; cursor:pointer; }
+html[data-theme] .pick-switch[hidden] { display:none; }
+html[data-theme] .pick-switch input { appearance:none; -webkit-appearance:none; position:relative; width:34px; height:20px; margin:0; border:0; border-radius:999px; background:var(--gray-300); cursor:pointer; transition:background var(--motion-fast) var(--ease); }
+html[data-theme] .pick-switch input::after { content:''; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:#fff; box-shadow:0 1px 2px oklch(0% 0 0 / .25); transition:transform var(--motion-spring) var(--ease-spring); }
+html[data-theme] .pick-switch input:checked { background:var(--accent); }
+html[data-theme] .pick-switch input:checked::after { transform:translateX(14px); }
+html[data-theme] .pick-switch input:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+html[data-theme] .pick-switch:has(input:disabled) { cursor:not-allowed; }
+html[data-theme] .pick-switch input:disabled { opacity:.45; cursor:not-allowed; }
+html[data-theme] .pick-switch b { display:block; font-size:13px; font-weight:500; color:var(--gray-900); }
+html[data-theme] .pick-switch small { display:block; font-size:12px; line-height:1.45; color:var(--gray-500); }
+@media (max-width: 560px) {
+  html[data-theme] .pick-modal > .modal-head { padding:16px 12px 8px 16px; }
+  html[data-theme] .pick-modal > .modal-body { padding:4px 16px 16px; }
+  html[data-theme] .pick-modal > .modal-foot { padding:12px 16px; }
+  html[data-theme] .pick-options { grid-template-columns:minmax(0, 1fr); }
+  html[data-theme] .pick-well { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+}
 </style>
 <style id="ots-form-v3">
 /* 表单字段统一（V3.109）：标签 12px/600、标签到控件 6px、控件高 40px、列距 12px、行距 14px。
@@ -5619,6 +5698,7 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
             </div>
           </details>
           <button class="btn btn-small" id="orderListResetBtn" type="button">重置筛选</button>
+          <button class="btn btn-small" id="orderListExportBtn" type="button" title="导出订单：可以只导出当前筛选的结果">导出</button>
           <div class="order-list-active-filters" id="orderListActiveFilters" aria-label="已选筛选条件"></div>
         </div>
         <div class="order-table-scroll">
@@ -6055,22 +6135,8 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
               </div>
               <div class="data-group-title">导出</div>
               <div class="data-action">
-                <div><strong>导出范围</strong><div class="muted">对「导出表格」「导出备份」生效。选某个月时，备份文件只含这个月的订单，导入时只会合并、不会删除其他数据。</div></div>
-                <select class="inline-select" id="exportMonth">
-                  <option value="all">全部月份</option>
-                </select>
-              </div>
-              <div class="data-action">
-                <div><strong>导出表格</strong><div class="muted">下载 CSV 表格，适合用 Excel 查看。</div></div>
-                <button class="btn" id="dataExportCsvBtn">导出表格</button>
-              </div>
-              <div class="data-action">
-                <div><strong>导出备份</strong><div class="muted">下载 JSON：订单、客户、目标和设置。不含附件图片、续费、WhatsApp 聊天和接口 Key；换电脑请用「从备份恢复」。</div></div>
-                <button class="btn" id="exportJsonBtn">导出备份</button>
-              </div>
-              <div class="data-action">
-                <div><strong>主数据文件</strong><div class="muted">导出全部订单、客户、目标和设置（不跟随导出范围）。不含附件图片、续费、WhatsApp 聊天和接口 Key；完整备份请用 Mac 本地备份。</div></div>
-                <button class="btn btn-primary" id="exportDataFileBtn">导出数据文件</button>
+                <div><strong>导出订单</strong><div class="muted">导出成表格（CSV，可以挑列）或备份（JSON，以后可以再导入），可以只导出某个月。</div></div>
+                <button class="btn" type="button" id="openExportBtn">导出…</button>
               </div>
               <div class="data-group-title">导入备份</div>
               <div class="data-action">
@@ -6642,20 +6708,113 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
 </div>
 
 <div class="modal-backdrop" id="boardCardSettingsModal" aria-hidden="true">
-  <div class="modal confirm-modal">
+  <div class="modal confirm-modal pick-modal" role="dialog" aria-modal="true" aria-labelledby="boardCardSettingsTitle">
     <div class="modal-head">
       <div>
-        <div class="order-num">订单工作台</div>
-        <div class="modal-title">卡片设置</div>
+        <div class="modal-title" id="boardCardSettingsTitle">卡片设置</div>
+        <div class="pick-sub">工作台看板上每张订单卡片的样子</div>
       </div>
-      <div class="modal-head-actions">
-        <button class="btn btn-primary btn-small" type="submit" form="boardCardSettingsForm">保存</button>
-        <button class="btn btn-small" id="boardCardSettingsCloseBtn" type="button">关闭</button>
-      </div>
+      <button class="btn btn-small" id="boardCardSettingsCloseBtn" type="button">关闭</button>
     </div>
     <form class="modal-body" id="boardCardSettingsForm">
-      <div class="settings-toggle-grid" id="boardCardSettingsFields"></div>
+      <div class="pick-field">
+        <div class="pick-label"><span id="boardCardShowLabel">卡片上显示<span class="pick-count" id="boardCardShowCount"></span></span><span class="pick-links"><button class="pick-link" type="button" id="boardCardShowAllBtn">全选</button></span></div>
+        <div class="pick-well two" id="boardCardSettingsFields" role="group" aria-labelledby="boardCardShowLabel"></div>
+      </div>
+      <div class="pick-switches" id="boardCardSettingsSwitches"></div>
     </form>
+    <div class="modal-foot">
+      <div class="pick-foot-info">保存后看板马上按新的样子显示</div>
+      <div class="order-action-group">
+        <button class="btn" type="button" id="boardCardSettingsCancelBtn">取消</button>
+        <button class="btn btn-primary" type="submit" form="boardCardSettingsForm" id="boardCardSettingsSaveBtn">保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="exportModal" aria-hidden="true">
+  <div class="modal confirm-modal pick-modal" role="dialog" aria-modal="true" aria-labelledby="exportTitle">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="exportTitle">导出订单</div>
+        <div class="pick-sub" id="exportSub"></div>
+      </div>
+      <button class="btn btn-small" id="exportCloseBtn" type="button">关闭</button>
+    </div>
+    <div class="modal-body">
+      <div class="pick-field">
+        <div class="pick-label" id="exportFormatLabel">导出成什么</div>
+        <div class="pick-options" role="radiogroup" aria-labelledby="exportFormatLabel">
+          <label class="pick-option"><input type="radio" name="exportFormat" value="csv" checked><b>表格</b><span>CSV，用 Excel 或 Numbers 查看</span></label>
+          <label class="pick-option"><input type="radio" name="exportFormat" value="json"><b>备份</b><span>JSON，以后可以再导入</span></label>
+        </div>
+      </div>
+      <label class="pick-switch" id="exportFilterRow" hidden><input type="checkbox" id="exportFilterToggle" role="switch"><span><b>只导出当前筛选的结果</b><small id="exportFilterDesc"></small></span></label>
+      <div class="pick-field" id="exportMonthField">
+        <label class="pick-label" for="exportMonth">范围</label>
+        <select class="inline-select" id="exportMonth" aria-label="导出范围">
+          <option value="all">全部月份</option>
+        </select>
+      </div>
+      <div class="pick-field" id="exportColumnsField">
+        <div class="pick-label"><span id="exportColumnsLabel">导出哪些列<span class="pick-count" id="exportColumnsCount"></span></span><span class="pick-links"><button class="pick-link" type="button" id="exportColumnsCommon">只留常用</button><button class="pick-link" type="button" id="exportColumnsAll">全选</button></span></div>
+        <div class="pick-well" id="exportColumns" role="group" aria-labelledby="exportColumnsLabel"></div>
+      </div>
+      <div class="pick-field" id="exportBackupField" hidden>
+        <div class="pick-label">备份里有什么</div>
+        <dl class="pick-well one pick-facts">
+          <div><dt>包含</dt><dd id="exportBackupHas"></dd></div>
+          <div><dt>不含</dt><dd>附件图片、续费、WhatsApp 聊天和接口 Key；换电脑请用「从备份恢复」</dd></div>
+          <div id="exportBackupMonthNote" hidden><dt>注意</dt><dd>单月备份再导入时只合并，不会删除其他数据</dd></div>
+        </dl>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <div class="pick-foot-info" id="exportFootInfo"></div>
+      <div class="order-action-group">
+        <button class="btn" type="button" id="exportCancelBtn">取消</button>
+        <button class="btn btn-primary" type="button" id="exportGoBtn">导出表格</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="importPreviewModal" aria-hidden="true">
+  <div class="modal confirm-modal pick-modal" role="dialog" aria-modal="true" aria-labelledby="importPreviewTitle">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="importPreviewTitle">导入数据文件</div>
+        <div class="pick-sub" id="importPreviewSub"></div>
+      </div>
+      <button class="btn btn-small" id="importPreviewCloseBtn" type="button">关闭</button>
+    </div>
+    <div class="modal-body">
+      <div class="pick-field">
+        <div class="pick-label" id="importModeLabel">怎么导入</div>
+        <div class="pick-options" id="importModeOptions" role="radiogroup" aria-labelledby="importModeLabel">
+          <label class="pick-option" id="importModeMerge"><input type="radio" name="importMode" value="merge" checked><b>合并</b><span>只新增和更新，不删除任何现有数据，设置不变</span><span class="pick-chips" id="importMergeChips"></span></label>
+          <label class="pick-option danger" id="importModeReplace"><input type="radio" name="importMode" value="replace"><b>替换全部</b><span>整份换成文件里的数据，收款方式、标签等设置也换成文件里的</span><span class="pick-chips" id="importReplaceChips"></span></label>
+        </div>
+        <p class="pick-note" id="importMergeOnlyNote" hidden></p>
+      </div>
+      <div class="pick-field" id="importRecordsField" hidden>
+        <div class="pick-label">文件里的记录</div>
+        <dl class="pick-well one pick-facts" id="importRecords"></dl>
+      </div>
+      <div class="pick-field" id="importRemovedField" hidden>
+        <div class="pick-label">会被删除的订单和客户</div>
+        <dl class="pick-well one pick-facts" id="importRemoved"></dl>
+      </div>
+      <ul class="pick-notes" id="importNotes"></ul>
+    </div>
+    <div class="modal-foot">
+      <div class="pick-foot-info" id="importPreviewFootInfo"></div>
+      <div class="order-action-group">
+        <button class="btn" type="button" id="importPreviewCancelBtn">取消</button>
+        <button class="btn btn-primary" type="button" id="importPreviewGoBtn">合并导入</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -18487,31 +18646,42 @@ function boardCardSettings() {
   state.boardCardSettings = normalizeBoardCardSettings(state.boardCardSettings || {});
   return state.boardCardSettings;
 }
+// 卡片设置：七个「卡片上显示」的勾选放进一块，带「已选 n / 7」和全选；两项和颜色有关的做成开关，各带一行说明。
+// 表单字段名就是设置的 key（showLevelIcon 等），保存时照旧按 FormData 读。
+const boardCardShowFields = [
+  ['showLevelIcon', '客户等级图标'],
+  ['showOrderNumber', '订单号'],
+  ['showOrderDate', '下单时间'],
+  ['showProductTag', '产品标签'],
+  ['showPaymentTag', '付款标签'],
+  ['showUrgentTag', '加急标签'],
+  ['showAmount', '金额胶囊']
+];
+const boardCardSwitchFields = [
+  ['redDueAmount', '待收金额用琥珀色', '还没收齐钱的订单，卡片上的「待收」金额用琥珀色；关掉就和其他文字同色'],
+  ['productTint', '按产品给卡片加色条', '卡片左边一条细色条：假发用强调色，睫毛用绿色']
+];
 function renderBoardCardSettingsForm() {
   const el = document.getElementById('boardCardSettingsFields');
   if (!el) return;
   const settings = boardCardSettings();
-  const fields = [
-    ['showLevelIcon', '显示客户等级图标'],
-    ['showOrderNumber', '显示订单号'],
-    ['showOrderDate', '显示下单时间'],
-    ['showProductTag', '显示产品标签'],
-    ['showPaymentTag', '显示付款标签'],
-    ['showUrgentTag', '显示加急标签'],
-    ['showAmount', '显示金额胶囊'],
-    ['redDueAmount', '尾款订单金额偏红'],
-    ['productTint', '假发/睫毛淡色底']
-  ];
-  el.innerHTML = fields.map(([key, label]) => `
-    <label class="settings-toggle">
-      <input type="checkbox" name="${escapeAttr(key)}" ${settings[key] ? 'checked' : ''}>
-      <span>${escapeAttr(label)}</span>
-    </label>
-  `).join('');
+  el.innerHTML = boardCardShowFields.map(([key, label]) => `
+    <label class="pick-check"><input type="checkbox" name="${escapeAttr(key)}" ${settings[key] ? 'checked' : ''}><span>${escapeAttr(label)}</span></label>`).join('');
+  document.getElementById('boardCardSettingsSwitches').innerHTML = boardCardSwitchFields.map(([key, label, desc]) => `
+    <label class="pick-switch"><input type="checkbox" role="switch" name="${escapeAttr(key)}" ${settings[key] ? 'checked' : ''}><span><b>${escapeAttr(label)}</b><small>${escapeAttr(desc)}</small></span></label>`).join('');
+  syncBoardCardShowCount();
+}
+function syncBoardCardShowCount() {
+  const picked = document.querySelectorAll('#boardCardSettingsFields input:checked').length;
+  const total = boardCardShowFields.length;
+  document.getElementById('boardCardShowCount').textContent = `已选 ${picked} / ${total}`;
+  document.getElementById('boardCardShowAllBtn').textContent = picked === total ? '全不选' : '全选';
 }
 function openBoardCardSettings() {
   renderBoardCardSettingsForm();
-  setModalOpenState('boardCardSettingsModal', true);
+  const modal = document.getElementById('boardCardSettingsModal');
+  modal.__initialFocus = modal.querySelector('#boardCardSettingsFields input');
+  setModalOpenState(modal, true);
   resetModalScroll('#boardCardSettingsModal');
   uiFormMarkClean(document.getElementById('boardCardSettingsForm'));
 }
@@ -19551,11 +19721,8 @@ function pinOrderListRows() {
   releaseOrderListPin();
   orderListPin = { ids, key:'', timer:setTimeout(checkOrderListPin, 5000) };
 }
-function renderOrderListPage() {
-  const body = document.getElementById('orderTableBody');
-  const pagination = document.getElementById('orderListPagination');
-  if (!body || !pagination) return;
-  renderOrderListFilterOptions();
+// 订单列表现在的筛选条件（快捷标签、搜索词、非默认排序、各个下拉），列表上方的条件标签和导出弹窗的说明行都用它。
+function orderListFilterChips() {
   const filterControls = Array.from(document.querySelectorAll('#page-order-list select[id$="Filter"]'));
   const activeFilters = orderListActiveFilters(filterControls.map(select => ({id:select.id, value:select.value, label:select.selectedOptions[0]?.textContent || select.value})));
   const sort = document.getElementById('orderListSort')?.value || 'updatedDesc';
@@ -19568,13 +19735,27 @@ function renderOrderListPage() {
     searchText ? { id:'search', label:`搜索：${searchText}` } : null,
     sort !== 'updatedDesc' ? { id:'orderListSort', label:`排序：${sortSelect?.selectedOptions[0]?.textContent || sort}` } : null
   ].filter(Boolean);
-  document.getElementById('orderListActiveFilters').innerHTML = [...extraChips, ...activeFilters].map(filter => `<button type="button" class="order-list-filter-chip" data-clear-order-filter="${escapeAttr(filter.id)}" aria-label="移除筛选：${escapeAttr(filter.label)}">${escapeAttr(filter.label)} ×</button>`).join('');
+  return [...extraChips, ...activeFilters];
+}
+// 订单列表按现在的筛选和排序得到的全部订单（不分页）：列表本身和「只导出当前筛选的结果」用同一份。
+function orderListCurrentOrders() {
+  const sort = document.getElementById('orderListSort')?.value || 'updatedDesc';
+  return sortOrdersForList(filterOrdersForList(state.orders || [], orderListFiltersFromControls(), state.customers || {}), sort);
+}
+function renderOrderListPage() {
+  const body = document.getElementById('orderTableBody');
+  const pagination = document.getElementById('orderListPagination');
+  if (!body || !pagination) return;
+  renderOrderListFilterOptions();
+  const filterControls = Array.from(document.querySelectorAll('#page-order-list select[id$="Filter"]'));
+  const activeFilters = orderListActiveFilters(filterControls.map(select => ({id:select.id, value:select.value, label:select.selectedOptions[0]?.textContent || select.value})));
+  const sort = document.getElementById('orderListSort')?.value || 'updatedDesc';
+  document.getElementById('orderListActiveFilters').innerHTML = orderListFilterChips().map(filter => `<button type="button" class="order-list-filter-chip" data-clear-order-filter="${escapeAttr(filter.id)}" aria-label="移除筛选：${escapeAttr(filter.label)}">${escapeAttr(filter.label)} ×</button>`).join('');
   const moreCount = activeFilters.filter(filter => document.getElementById('orderListMoreFilters').contains(document.getElementById(filter.id))).length + (sort !== 'updatedDesc' ? 1 : 0);
   document.getElementById('orderListMoreCount').textContent = moreCount ? `（${moreCount}）` : '';
   const filters = orderListFiltersFromControls();
-  const filtered = filterOrdersForList(state.orders || [], filters, state.customers || {});
-  const sorted = sortOrdersForList(filtered, sort);
-  const page = paginateOrdersForList(sorted, orderListCurrentPage, orderListPageSize);
+  const filtered = orderListCurrentOrders();
+  const page = paginateOrdersForList(filtered, orderListCurrentPage, orderListPageSize);
   orderListCurrentPage = page.currentPage;
   // 行内「收齐 / 推进」之后，这一页先按原来的顺序显示（行不跳走），等鼠标离开表格或改了条件再重排。
   const pinKey = JSON.stringify([filters, sort, page.currentPage]);
@@ -24520,10 +24701,22 @@ async function clearDemoCustomers() {
 }
 // #endregion
 // #region Export, import and replacing all data
-function exportCsv(month = 'all') {
+// 表格的 23 列。key 是记在本机的列名（不存中文表头，以后改表头不会让记住的选择失效）。
+const exportCsvColumns = [
+  ['num', '订单号'], ['client', '客户'], ['country', '国家'], ['createdAt', '创建日期'], ['orderMonth', '订单月份'], ['amount', '金额'],
+  ['paid', '已付款'], ['currency', '币种'], ['productType', '产品类型'], ['paymentChannel', '收款方式'], ['orderType', '订单类型'], ['draft', '草稿'],
+  ['urgent', '加急订单'], ['customerRequiredDate', '客户要求收到日期'], ['latestShipDate', '最晚发出日期'], ['stage', '阶段'], ['tracking', '物流单号'],
+  ['logisticsSummary', '物流汇总'], ['firstShippedAt', '首批发货日'], ['attachments', '附件数量'], ['orderDetail', '订单详情'], ['note', '备注'], ['updated', '更新时间']
+].map(([key, label]) => ({ key, label }));
+// 「只留常用」留下的列。
+const exportCommonColumns = ['num', 'client', 'country', 'createdAt', 'amount', 'paid', 'currency', 'productType', 'stage', 'tracking', 'orderDetail', 'note'];
+// columns：要导出的列（exportCsvColumns 的 key），不传或传空时 23 列全导；orders：要导出的订单（订单列表的筛选结果），不传时按月份取。
+function exportCsv(month = 'all', { columns = null, orders = null, fileName = '' } = {}) {
   if (!exportSourceReady()) return Promise.resolve(false);
-  const header = ['订单号','客户','国家','创建日期','订单月份','金额','已付款','币种','产品类型','收款方式','订单类型','草稿','加急订单','客户要求收到日期','最晚发出日期','阶段','物流单号','物流汇总','首批发货日','附件数量','订单详情','备注','更新时间'];
-  const list = ordersByMonth(month);
+  const wanted = new Set(columns?.length ? columns : exportCsvColumns.map(column => column.key));
+  const picked = exportCsvColumns.map((column, index) => ({ ...column, index })).filter(column => wanted.has(column.key));
+  const header = picked.map(column => column.label);
+  const list = orders || ordersByMonth(month);
   // 物流三列：每批写成「承运商 单号（状态）」用「；」连接；汇总按全部批次（部分签收 1/3 等）；首批发货日取最早一批。
   const logistics = o => {
     const summary = orderLogisticsSummary(o);
@@ -24533,13 +24726,130 @@ function exportCsv(month = 'all') {
       summary.shipments.map(item => item.shippedAt).filter(Boolean).sort()[0] || ''
     ];
   };
-  const rows = list.map(o => [o.num,o.client,o.country,normalizeDate(o.createdAt || o.updated),normalizeMonth(o.orderMonth || o.updated),o.amount,orderPaidValue(o),o.currency || 'USD',o.productType || '',o.paymentChannel || '',o.orderType || '',o.isDraft ? '是' : '否',o.urgentOrder ? '是' : '否',o.customerRequiredDate || '',o.latestShipDate || '',stageDef(o.stage).name,...logistics(o),(o.attachments || []).length,o.orderDetail || '',o.note,o.updated]);
+  const rows = list.map(o => {
+    const row = [o.num,o.client,o.country,normalizeDate(o.createdAt || o.updated),normalizeMonth(o.orderMonth || o.updated),o.amount,orderPaidValue(o),o.currency || 'USD',o.productType || '',o.paymentChannel || '',o.orderType || '',o.isDraft ? '是' : '否',o.urgentOrder ? '是' : '否',o.customerRequiredDate || '',o.latestShipDate || '',stageDef(o.stage).name,...logistics(o),(o.attachments || []).length,o.orderDetail || '',o.note,o.updated];
+    return picked.map(column => row[column.index]);
+  });
   // 客户写的文字以 = + - @ 开头时，Excel / Numbers 会当公式执行：前面加 ' 让它只当文字。
   const cell = v => {
     const text = String(v ?? '');
     return `"${(typeof v === 'string' && /^[=+\-@\t\r]/.test(text) ? `'${text}` : text).replaceAll('"','""')}"`;
   };
-  return download(`trade-orders-${month}.csv`, '\ufeff' + [header, ...rows].map(row => row.map(cell).join(',')).join('\n'));
+  return download(fileName || `trade-orders-${month}.csv`, '﻿' + [header, ...rows].map(row => row.map(cell).join(',')).join('\n'));
+}
+// ---- 导出弹窗 ----
+// 设置页「导出…」和订单列表「导出」打开同一个弹窗。从订单列表打开时多一个开关「只导出当前筛选的结果」，只对表格生效：
+// 备份文件要能再导入，筛选结果没有月份，按单月那种「只能合并」来标需要新的导入规则，这一版不做。
+const exportColumnsStoreKey = 'ots-export-columns-v1';
+let exportModalFromList = false;
+let exportModalRun = 0;
+// 上次选的列；读不到、值不认识或一列都没有时回到 23 列全选。
+function exportStoredColumns() {
+  try {
+    const raw = JSON.parse(safeStorage.getItem(exportColumnsStoreKey) || 'null');
+    const known = Array.isArray(raw) ? exportCsvColumns.map(column => column.key).filter(key => raw.includes(key)) : [];
+    if (known.length) return known;
+  } catch (_) { /* 坏值当没有 */ }
+  return exportCsvColumns.map(column => column.key);
+}
+function exportModalChoice() {
+  const format = document.querySelector('#exportModal input[name="exportFormat"]:checked')?.value === 'json' ? 'json' : 'csv';
+  const month = document.getElementById('exportMonth')?.value || 'all';
+  const filterOn = exportModalFromList && format === 'csv' && Boolean(document.getElementById('exportFilterToggle')?.checked);
+  const columns = [...document.querySelectorAll('#exportColumns input:checked')].map(input => input.value);
+  return { format, month, filterOn, columns, orders:filterOn ? orderListCurrentOrders() : ordersByMonth(month) };
+}
+function syncExportModal() {
+  const modal = document.getElementById('exportModal');
+  if (!modal) return;
+  const choice = exportModalChoice();
+  const json = choice.format === 'json';
+  const total = exportCsvColumns.length;
+  const scope = choice.filterOn ? '订单列表当前筛选' : choice.month === 'all' ? '全部月份' : monthLabel(choice.month);
+  document.getElementById('exportSub').textContent = `${choice.orders.length} 笔订单 · ${scope}`;
+  document.getElementById('exportMonthField').hidden = choice.filterOn;
+  document.getElementById('exportColumnsField').hidden = json;
+  document.getElementById('exportBackupField').hidden = !json;
+  document.getElementById('exportBackupHas').textContent = choice.month === 'all' ? '全部订单（含垃圾箱和已删除）、客户、目标和设置' : '这个月的订单和这些订单的客户档案';
+  document.getElementById('exportBackupMonthNote').hidden = choice.month === 'all';
+  const toggle = document.getElementById('exportFilterToggle');
+  toggle.disabled = json;
+  if (exportModalFromList) {
+    const labels = orderListFilterChips().filter(chip => chip.id !== 'orderListSort').map(chip => chip.label);
+    const count = orderListCurrentOrders().length;
+    document.getElementById('exportFilterDesc').textContent = json ? '备份按月份导出：筛选结果目前只能导出成表格'
+      : labels.length ? `订单列表现在筛的是：${labels.join(' · ')}，${count} 笔` : `订单列表现在没有筛选，${count} 笔`;
+  }
+  const picked = choice.columns.length;
+  document.getElementById('exportColumnsCount').textContent = `已选 ${picked} / ${total}`;
+  document.getElementById('exportColumnsAll').textContent = picked === total ? '全不选' : '全选';
+  const go = document.getElementById('exportGoBtn');
+  if (!go.dataset.morph) {
+    go.textContent = json ? '导出备份' : '导出表格';
+    go.disabled = !json && !picked;
+  }
+  go.title = !json && !picked ? '至少选一列' : '';
+}
+function openExportModal({ fromList = false } = {}) {
+  const modal = document.getElementById('exportModal');
+  if (!modal) return;
+  exportModalFromList = fromList;
+  exportModalRun += 1;
+  const go = document.getElementById('exportGoBtn');
+  if (go.dataset.morph) uiMorph(go, 'idle');
+  go.disabled = false;
+  const stored = new Set(exportStoredColumns());
+  document.getElementById('exportColumns').innerHTML = exportCsvColumns.map(column => `
+    <label class="pick-check"><input type="checkbox" value="${escapeAttr(column.key)}" ${stored.has(column.key) ? 'checked' : ''}><span>${escapeAttr(column.label)}</span></label>`).join('');
+  const csv = modal.querySelector('input[name="exportFormat"][value="csv"]');
+  if (csv) csv.checked = true;
+  document.getElementById('exportFilterRow').hidden = !fromList;
+  document.getElementById('exportFilterToggle').checked = fromList;
+  document.getElementById('exportFootInfo').textContent = isMacAppMode() ? '保存到「下载」文件夹' : '下载到浏览器的下载位置';
+  syncExportModal();
+  modal.__initialFocus = csv;
+  setModalOpenState(modal, true);
+  resetModalScroll(modal);
+}
+function closeExportModal() {
+  const modal = document.getElementById('exportModal');
+  if (!modal?.classList.contains('open')) return;
+  exportModalRun += 1;
+  setModalOpenState(modal, false);
+  resetModalScroll(modal);
+}
+function exportSaveColumns() {
+  try { safeStorage.setItem(exportColumnsStoreKey, JSON.stringify([...document.querySelectorAll('#exportColumns input:checked')].map(input => input.value))); } catch (_) { /* 记不住只是下次回到全选 */ }
+}
+function exportSetColumns(keys) {
+  const wanted = new Set(keys);
+  document.querySelectorAll('#exportColumns input').forEach(input => { input.checked = wanted.has(input.value); });
+  exportSaveColumns();
+  syncExportModal();
+}
+// 导出成功：按钮先变「已导出」，稍后关掉弹窗；失败（读库失败、写文件失败）弹窗留着，按钮回到原样，提示由导出函数给。
+async function runExportFromModal() {
+  const go = document.getElementById('exportGoBtn');
+  if (!go || go.disabled || go.dataset.morph) return;
+  const choice = exportModalChoice();
+  if (choice.format === 'csv' && !choice.columns.length) return;
+  const run = exportModalRun;
+  go.disabled = true;
+  uiMorph(go, 'busy', '导出中…');
+  let ok = false;
+  try {
+    ok = choice.format === 'json' ? await exportJson(choice.month)
+      : await exportCsv(choice.month, { columns:choice.columns, ...(choice.filterOn ? { orders:choice.orders, fileName:'trade-orders-filtered.csv' } : {}) });
+  } finally {
+    if (!ok || run !== exportModalRun) {
+      uiMorph(go, 'idle');
+      go.disabled = false;
+      syncExportModal();
+    }
+  }
+  if (!ok || run !== exportModalRun) return;
+  uiMorph(go, 'ok', '已导出');
+  setTimeout(() => { if (run === exportModalRun) closeExportModal(); }, 700);
 }
 // 当前版本号（例如 3.131），取自左下角的版本标记：升级脚本只改那一处。
 function appVersionLabel() {
@@ -24571,10 +24881,6 @@ function dataFilePayload(data = state, { scope = 'all', month = '' } = {}) {
     ...(month ? { month } : {}),
     data
   };
-}
-function exportDataFile() {
-  if (!exportSourceReady()) return Promise.resolve(false);
-  return download('trade-order-data.json', JSON.stringify(dataFilePayload(state), null, 2));
 }
 function readJsonFile(file) {
   return new Promise((resolve, reject) => {
@@ -24616,14 +24922,15 @@ function similarOrderNumGroups(orders = []) {
   });
   return [...groups.values()].filter(list => list.length > 1);
 }
+// 导入预览头部的「文件里有什么」：订单和客户总写，垃圾箱、已删除订单、业绩目标有才写。
 function dataSummaryText(data) {
   return [
-    `订单：${data.orders.length} 个`,
-    `客户：${Object.keys(data.customers || {}).length} 个`,
-    `垃圾箱：${(data.trashOrders || []).length} 个`,
-    `已删除订单：${(data.deletedOrders || []).length} 个`,
-    `业绩目标：${Object.keys(data.performanceTargets || {}).length} 个`
-  ].join('\n');
+    `${data.orders.length} 张订单`,
+    `${Object.keys(data.customers || {}).length} 位客户`,
+    (data.trashOrders || []).length ? `垃圾箱 ${data.trashOrders.length} 张` : '',
+    (data.deletedOrders || []).length ? `已删除订单 ${data.deletedOrders.length} 张` : '',
+    Object.keys(data.performanceTargets || {}).length ? `业绩目标 ${Object.keys(data.performanceTargets).length} 个` : ''
+  ].filter(Boolean).join(' · ');
 }
 // 导入文件里的金额：手工整理、从表格转出来的 JSON 常写成 "1,200"、"$500"、"1200.50 "。
 // 能确定意思的转成数字（预览里逐条列出），确定不了的（"1.200,50"、"abc"）返回 null，整份文件不导入。
@@ -24803,11 +25110,92 @@ async function missingImportAttachments(data) {
     return { count:result.missing.length, nums:[...new Set(result.missing.map(url => owners.get(url)))] };
   } catch (_) { return null; }
 }
+// 文件从哪来：「2026-10-01 10:00 由 V3.120 导出」；旧格式文件没有导出时间和版本。
 function importSourceText(plan) {
-  if (!plan.exportedAt && !plan.version) return '来源：旧格式文件，没有导出时间和版本';
+  if (!plan.exportedAt && !plan.version) return '旧格式文件';
   const time = Date.parse(plan.exportedAt);
   const when = Number.isFinite(time) ? backupTimeText(time) : plan.exportedAt;
-  return `来源：${when || '导出时间不详'}${plan.version ? ` 由 V${plan.version} 导出` : ''} · ${plan.scope === 'month' ? `${plan.month || '单月'} 单月订单` : plan.scope === 'unsaved-conflict' ? '保存冲突时没存进去的修改' : '全部数据'}`;
+  return `${when || '导出时间不详'}${plan.version ? ` 由 V${plan.version} 导出` : ' 导出'}`;
+}
+// 导入预览：「合并 / 替换全部」两张选项卡片，返回 'merge' | 'replace' | ''（取消、×、Esc、点背景）。
+// 打开时选中并聚焦「合并」：不删数据的那条路，回车不会直接替换。单月文件、冲突文件只有「合并」一张。
+let importPreviewActive = null;
+function importPreviewChoose(preview) {
+  const modal = document.getElementById('importPreviewModal');
+  const { plan, data, mergeOnly, conflictFile, mergeDiff, replaceDiff, removedTotal, notes } = preview;
+  if (importPreviewActive) importPreviewActive('');
+  const chip = (text, tone = '') => `<span class="pick-chip${tone ? ` ${tone}` : ''}">${escapeAttr(text)}</span>`;
+  const count = (label, n, unit) => chip(`${label} ${n}${unit}`, n ? '' : 'plain');
+  document.getElementById('importPreviewSub').textContent = `${dataSummaryText(data)} · ${importSourceText(plan)}`;
+  document.getElementById('importMergeChips').innerHTML = [
+    count('新增', mergeDiff.orders.added, ' 张'),
+    count('更新', mergeDiff.orders.changed, ' 张'),
+    count('新客户', mergeDiff.customers.added, ' 位'),
+    conflictFile ? count('更新客户', mergeDiff.customers.changed, ' 位') : ''
+  ].join('');
+  document.getElementById('importReplaceChips').innerHTML = mergeOnly ? '' : [
+    chip(`现在 ${state.orders.length} 张 → 替换后 ${data.orders.length} 张订单`, 'plain'),
+    replaceDiff.orders.removed ? chip(`删除 ${replaceDiff.orders.removed} 张订单`, 'danger') : '',
+    replaceDiff.customers.removed ? chip(`删除 ${replaceDiff.customers.removed} 位客户`, 'danger') : '',
+    removedTotal ? '' : chip('不删除现有数据', 'plain')
+  ].join('');
+  document.getElementById('importModeReplace').hidden = mergeOnly;
+  document.getElementById('importModeOptions').classList.toggle('single', mergeOnly);
+  const onlyNote = document.getElementById('importMergeOnlyNote');
+  onlyNote.hidden = !mergeOnly;
+  onlyNote.textContent = conflictFile ? '这是保存冲突时导出的「没存进去的修改」，只合并文件里的这些记录，不删除、不改动其它数据；文件里这些订单 / 客户会整条换成导出时本窗口的内容。'
+    : plan.scope === 'month' ? `这是 ${plan.month || '单月'} 单月订单文件，只能合并，不删除任何现有数据。` : '';
+  // 冲突文件：列出文件里的订单号（前 8 个）和客户名（前 5 个）。
+  const records = conflictFile ? [
+    ['订单', [...data.orders, ...data.trashOrders, ...data.deletedOrders].map(order => order.num || order.id), 8, '张'],
+    ['客户', Object.keys(data.customers || {}), 5, '位']
+  ].filter(([, list]) => list.length) : [];
+  document.getElementById('importRecordsField').hidden = !records.length;
+  document.getElementById('importRecords').innerHTML = records.map(([label, list, max, unit]) => `<div><dt>${label}</dt><dd>${escapeAttr(`${list.slice(0, max).join('、')}${list.length > max ? ` 等 ${list.length} ${unit}` : ''}`)}</dd></div>`).join('');
+  // 选「替换全部」且要删东西时展开：会被删除的订单号、客户名（和以前一样最多列 8 个，多了写「等」）。
+  const removedRows = [
+    ['订单', replaceDiff.orders, replaceDiff.orders.removedNums, '张（含垃圾箱、已删除）'],
+    ['客户', replaceDiff.customers, replaceDiff.customers.removedNames, '位']
+  ].filter(([, item]) => item.removed);
+  document.getElementById('importRemoved').innerHTML = removedRows.map(([label, item, list, unit]) => `<div><dt>${label}</dt><dd>${escapeAttr(`删除 ${item.removed} ${unit}：${list.join('、')}${item.removed > list.length ? ' 等' : ''}`)}</dd></div>`).join('');
+  document.getElementById('importNotes').innerHTML = notes.map(text => `<li>${escapeAttr(text)}</li>`).join('');
+  const foot = document.getElementById('importPreviewFootInfo');
+  foot.textContent = isMacAppMode() ? '导入前自动备份，导入后 6 秒内可撤销' : '导入后 6 秒内可撤销';
+  foot.title = isMacAppMode() ? '导入前会先自动备份当前数据；导入后 6 秒内可撤销，之后也可在「从备份恢复…」里找回。' : '';
+  const mergeInput = modal.querySelector('input[name="importMode"][value="merge"]');
+  mergeInput.checked = true;
+  const go = document.getElementById('importPreviewGoBtn');
+  const sync = () => {
+    const replace = !mergeOnly && modal.querySelector('input[name="importMode"]:checked')?.value === 'replace';
+    go.textContent = replace ? (removedTotal ? `删除 ${removedTotal} 项并替换` : '替换全部') : '合并导入';
+    go.classList.toggle('btn-danger', replace);
+    go.classList.toggle('btn-primary', !replace);
+    document.getElementById('importRemovedField').hidden = !replace || !removedRows.length;
+    return replace;
+  };
+  sync();
+  modal.__initialFocus = mergeInput;
+  setModalOpenState(modal, true);
+  resetModalScroll(modal);
+  return new Promise(resolve => {
+    const cleanup = mode => {
+      if (importPreviewActive === cleanup) importPreviewActive = null;
+      modal.onchange = null;
+      go.onclick = null;
+      document.getElementById('importPreviewCancelBtn').onclick = null;
+      document.getElementById('importPreviewCloseBtn').onclick = null;
+      modal.onclick = null;
+      setModalOpenState(modal, false);
+      resetModalScroll(modal);
+      resolve(mode);
+    };
+    importPreviewActive = cleanup;
+    modal.onchange = sync;
+    go.onclick = () => cleanup(sync() ? 'replace' : 'merge');
+    document.getElementById('importPreviewCancelBtn').onclick = () => cleanup('');
+    document.getElementById('importPreviewCloseBtn').onclick = () => cleanup('');
+    modal.onclick = e => { if (e.target === modal) cleanup(''); };
+  });
 }
 async function previewImportDataFile(file) {
   if (!file || !canSubmitStoredData()) return;
@@ -24824,51 +25212,25 @@ async function previewImportDataFile(file) {
     const missing = await missingImportAttachments(data);
     // 只差大小写 / 全角 / 空格的号数据库存得下，不拦导入（自己的旧备份要能恢复），但预览里要说出来。
     const similar = similarOrderNumGroups([...data.orders, ...data.trashOrders, ...data.deletedOrders]);
-    const lines = [importSourceText(plan), `文件里：${dataSummaryText(data).replace(/\n/g, ' · ')}`, ''];
-    if (conflictFile) {
-      // 只合并文件里的这几条记录，不整库覆盖：另一个窗口存过的其它修改都不动。
-      const nums = [...data.orders, ...data.trashOrders, ...data.deletedOrders].map(order => order.num || order.id);
-      const names = Object.keys(data.customers || {});
-      lines.push('这是保存冲突时导出的「没存进去的修改」，只合并文件里的这些记录，不删除、不改动其它数据：');
-      if (nums.length) lines.push(`· 订单 ${nums.slice(0, 8).join('、')}${nums.length > 8 ? ` 等 ${nums.length} 张` : ''}（新增 ${mergeDiff.orders.added}、更新 ${mergeDiff.orders.changed}）`);
-      if (names.length) lines.push(`· 客户 ${names.slice(0, 5).join('、')}${names.length > 5 ? ` 等 ${names.length} 位` : ''}（新增 ${mergeDiff.customers.added}、更新 ${mergeDiff.customers.changed}）`);
-      lines.push('文件里这些订单 / 客户会整条换成导出时本窗口的内容。');
-    } else if (plan.scope === 'month') {
-      lines.push(`这是单月订单文件，只能合并：新增 ${mergeDiff.orders.added} 张、更新 ${mergeDiff.orders.changed} 张、新客户 ${mergeDiff.customers.added} 位，不删除任何现有数据。`);
-    } else {
-      lines.push(`和现在比（现在 ${state.orders.length} 张订单 → 替换后 ${data.orders.length} 张）：`);
-      lines.push(stateDiffLine('订单（含垃圾箱、已删除）', '张', replaceDiff.orders, replaceDiff.orders.removedNums));
-      lines.push(stateDiffLine('客户', '位', replaceDiff.customers, replaceDiff.customers.removedNames));
-      lines.push('', `「合并导入」：只新增、更新文件里的订单（新增 ${mergeDiff.orders.added}、更新 ${mergeDiff.orders.changed}），加上新客户，不删除任何现有数据，设置不变。`);
-      lines.push(`「${removedTotal ? '删除并替换' : '替换全部'}」：整份换成文件里的数据${removedTotal ? '，上面列出的订单和客户会被删除' : ''}，收款方式、标签等设置也换成文件里的。`);
-    }
-    if (merged.skipped.length) lines.push('', `合并时跳过 ${merged.skipped.length} 张：订单号已被现有的另一张订单占用（${merged.skipped.slice(0, 5).join('、')}${merged.skipped.length > 5 ? ' 等' : ''}）。`);
-    if (plan.conversions.length) lines.push('', `${plan.conversions.length} 个金额从文字转成了数字：${plan.conversions.slice(0, 5).join('；')}${plan.conversions.length > 5 ? ' 等' : ''}。`);
-    if (plan.droppedLookups) lines.push('', `物流查询记录里有 ${plan.droppedLookups} 条 ID 重复，只保留第一条。`);
-    if (missing?.count) lines.push('', `${missing.count} 个附件文件在本机找不到（订单 ${missing.nums.slice(0, 5).join('、')}${missing.nums.length > 5 ? ' 等' : ''}），导入后这些图片打不开；备份照常进行。`);
-    if (similar.length) lines.push('', `注意：有 ${similar.length} 组订单号只差大小写、全角或空格（${similar.slice(0, 3).map(list => list.map(o => o.num).join(' / ')).join('；')}${similar.length > 3 ? ' 等' : ''}），导入后建议改掉其中一个。`);
-    lines.push('', isMacAppMode() ? '导入前会先自动备份当前数据；导入后 6 秒内可撤销，之后也可在「从备份恢复…」里找回。' : '导入后 6 秒内可撤销。');
-    const message = lines.join('\n');
-    let mode = '';
-    if (mergeOnly) {
-      const choice = await appConfirm({ title:'导入数据文件', sub:'导入前预览 · 只合并', message, confirmText:'合并导入', defaultFocus:'cancel' });
-      mode = choice.confirmed ? 'merge' : '';
-    } else {
-      // 默认焦点在「合并导入」：不删除任何东西的那一个。替换是红色按钮，要删除数据时还要再输入一次确认。
-      const choice = await appConfirm({ title:'导入数据文件', sub:'导入前预览', message, altText:'合并导入（不删除）', confirmText:removedTotal ? `删除 ${removedTotal} 项并替换` : '替换全部', danger:true, defaultFocus:'alt' });
-      mode = choice.alt ? 'merge' : choice.confirmed ? 'replace' : '';
-      if (mode === 'replace' && removedTotal) {
-        const second = await appConfirm({
-          title:'确认删除并替换',
-          sub:'会删除现有数据',
-          message:`将删除 ${replaceDiff.orders.removed} 张订单、${replaceDiff.customers.removed} 位客户，整份换成文件里的数据。\n\n不想删除的话，请取消后选「合并导入」。`,
-          inputLabel:'输入「替换」两个字确认',
-          validate:value => value === '替换' || '请输入「替换」两个字',
-          confirmText:'删除并替换',
-          danger:true
-        });
-        if (!second.confirmed) mode = '';
-      }
+    // 卡片下面的提示：每条照以前预览里的原话。
+    const notes = [];
+    if (merged.skipped.length) notes.push(`合并时跳过 ${merged.skipped.length} 张：订单号已被现有的另一张订单占用（${merged.skipped.slice(0, 5).join('、')}${merged.skipped.length > 5 ? ' 等' : ''}）。`);
+    if (plan.conversions.length) notes.push(`${plan.conversions.length} 个金额从文字转成了数字：${plan.conversions.slice(0, 5).join('；')}${plan.conversions.length > 5 ? ' 等' : ''}。`);
+    if (plan.droppedLookups) notes.push(`物流查询记录里有 ${plan.droppedLookups} 条 ID 重复，只保留第一条。`);
+    if (missing?.count) notes.push(`${missing.count} 个附件文件在本机找不到（订单 ${missing.nums.slice(0, 5).join('、')}${missing.nums.length > 5 ? ' 等' : ''}），导入后这些图片打不开；备份照常进行。`);
+    if (similar.length) notes.push(`注意：有 ${similar.length} 组订单号只差大小写、全角或空格（${similar.slice(0, 3).map(list => list.map(o => o.num).join(' / ')).join('；')}${similar.length > 3 ? ' 等' : ''}），导入后建议改掉其中一个。`);
+    let mode = await importPreviewChoose({ plan, data, mergeOnly, conflictFile, mergeDiff, replaceDiff, removedTotal, notes });
+    if (mode === 'replace' && removedTotal) {
+      const second = await appConfirm({
+        title:'确认删除并替换',
+        sub:'会删除现有数据',
+        message:`将删除 ${replaceDiff.orders.removed} 张订单、${replaceDiff.customers.removed} 位客户，整份换成文件里的数据。\n\n不想删除的话，请取消后选「合并导入」。`,
+        inputLabel:'输入「替换」两个字确认',
+        validate:value => value === '替换' || '请输入「替换」两个字',
+        confirmText:'删除并替换',
+        danger:true
+      });
+      if (!second.confirmed) mode = '';
     }
     if (!mode || !canSubmitStoredData()) return;
     const added = mergeDiff.orders.added;
@@ -28927,6 +29289,14 @@ document.getElementById('boardProductFilter').addEventListener('click', e => {
 });
 document.getElementById('boardCardSettingsBtn')?.addEventListener('click', openBoardCardSettings);
 document.getElementById('boardCardSettingsCloseBtn')?.addEventListener('click', () => closeBoardCardSettingsGuarded());
+document.getElementById('boardCardSettingsCancelBtn')?.addEventListener('click', () => closeBoardCardSettingsGuarded());
+document.getElementById('boardCardSettingsFields')?.addEventListener('change', syncBoardCardShowCount);
+document.getElementById('boardCardShowAllBtn')?.addEventListener('click', () => {
+  const boxes = [...document.querySelectorAll('#boardCardSettingsFields input')];
+  const all = boxes.every(box => box.checked);
+  boxes.forEach(box => { box.checked = !all; });
+  syncBoardCardShowCount();
+});
 document.getElementById('boardCardSettingsModal')?.addEventListener('click', e => {
   if (e.target.id === 'boardCardSettingsModal') closeBoardCardSettingsGuarded();
 });
@@ -30720,14 +31090,23 @@ document.getElementById('duplicateBtn').addEventListener('click', async () => {
   duplicateOrder();
 });
 document.getElementById('topNewCustomerBtn').addEventListener('click', () => openCustomerModal());
-// 导出成功才把按钮换成「已导出」（Mac App 里要等本地服务写完文件）。
-document.getElementById('dataExportCsvBtn').addEventListener('click', async e => {
-  const button = e.currentTarget;
-  if (await exportCsv(document.getElementById('exportMonth').value)) setButtonFeedback(button, '已导出');
+// 导出弹窗：设置页「导出…」、订单列表「导出」（多一个「只导出当前筛选的结果」）。
+document.getElementById('openExportBtn').addEventListener('click', () => openExportModal());
+document.getElementById('orderListExportBtn').addEventListener('click', () => openExportModal({ fromList:true }));
+document.getElementById('exportModal').addEventListener('change', e => {
+  if (e.target.closest('#exportColumns')) exportSaveColumns();
+  syncExportModal();
 });
-document.getElementById('exportJsonBtn').addEventListener('click', async e => {
-  const button = e.currentTarget;
-  if (await exportJson(document.getElementById('exportMonth').value)) setButtonFeedback(button, '已导出');
+document.getElementById('exportColumnsAll').addEventListener('click', () => {
+  const all = document.querySelectorAll('#exportColumns input:checked').length === exportCsvColumns.length;
+  exportSetColumns(all ? [] : exportCsvColumns.map(column => column.key));
+});
+document.getElementById('exportColumnsCommon').addEventListener('click', () => exportSetColumns(exportCommonColumns));
+document.getElementById('exportGoBtn').addEventListener('click', () => { runExportFromModal(); });
+document.getElementById('exportCancelBtn').addEventListener('click', closeExportModal);
+document.getElementById('exportCloseBtn').addEventListener('click', closeExportModal);
+document.getElementById('exportModal').addEventListener('click', e => {
+  if (e.target.id === 'exportModal') closeExportModal();
 });
 document.getElementById('importJsonBtn').addEventListener('click', e => {
   setButtonFeedback(e.currentTarget, '请选择文件', { restoreAfter: 1800 });
@@ -30736,10 +31115,6 @@ document.getElementById('importJsonBtn').addEventListener('click', e => {
 document.getElementById('importFile').addEventListener('change', e => {
   importJson(e.target.files[0]);
   e.target.value = '';
-});
-document.getElementById('exportDataFileBtn').addEventListener('click', async e => {
-  const button = e.currentTarget;
-  if (await exportDataFile()) setButtonFeedback(button, '已导出');
 });
 document.getElementById('previewImportDataFileBtn').addEventListener('click', e => {
   setButtonFeedback(e.currentTarget, '请选择文件', { restoreAfter: 1800 });
@@ -32011,7 +32386,7 @@ function uiStepNavProgress(form) {
 }
 // 关闭按钮改成原型的图标按钮（id 和行为不变）。确认框右上角的也是 ×（以前写着「关闭」，其实等于「继续编辑」）。
 function uiStepNavCloseIcons() {
-  ['closeModalBtn', 'closeCustomerModalBtn', 'confirmCloseBtn', 'calendarTaskCloseBtn', 'trackingDetailCloseBtn', 'boardCardSettingsCloseBtn', 'combinedCloseBtn', 'attachmentPreviewCloseBtn'].forEach(id => {
+  ['closeModalBtn', 'closeCustomerModalBtn', 'confirmCloseBtn', 'calendarTaskCloseBtn', 'trackingDetailCloseBtn', 'boardCardSettingsCloseBtn', 'combinedCloseBtn', 'attachmentPreviewCloseBtn', 'exportCloseBtn', 'importPreviewCloseBtn'].forEach(id => {
     const btn = document.getElementById(id);
     if (!btn || btn.classList.contains('btn-icon-x')) return;
     btn.classList.add('btn-icon-x');
@@ -32386,6 +32761,8 @@ document.addEventListener('keydown', e => {
     customerModal:() => uiCloseCustomerGuarded(),
     combinedCustomerOrderModal:() => uiCloseCombinedGuarded(),
     boardCardSettingsModal:() => closeBoardCardSettingsGuarded(),
+    exportModal:() => closeExportModal(),
+    importPreviewModal:() => document.getElementById('importPreviewCancelBtn')?.click(),
     trackingDetailDrawer:() => closeTrackingDetail(),
     calendarTaskDrawer:() => closeCalendarTaskDrawer(),
     orderDetailDrawer:() => uiCloseDetailGuarded(),

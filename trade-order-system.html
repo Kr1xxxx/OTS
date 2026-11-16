@@ -3868,6 +3868,16 @@ html[data-theme] .level-tag .level-icon { width:14px; height:14px; font-size:9px
 html[data-theme] .subs-scope { --a-primary:var(--accent); --a-primary-hover:color-mix(in oklab, var(--accent) 88%, black); --a-primary-ink:var(--on-accent); }
 /* 续费详情右上角的「编辑」：图标跟按住删除一样小一号 */
 html[data-theme] .subs-dh-r1 .subs-btn.sm .subs-i { width:15px; height:15px; }
+/* 续费编辑器：字段分四组（费用、时间、续费和提醒、归类），每组一个小标题；同一行的两栏顶端对齐，提示多一行时旁边的输入框不跟着下移 */
+html[data-theme] .subs-groups { display:flex; flex-direction:column; gap:18px; }
+html[data-theme] .subs-grp { align-items:start; }
+html[data-theme] .subs-grp + .subs-grp { padding-top:16px; border-top:1px solid var(--a-hairline); }
+html[data-theme] .subs-grp-h { grid-column:1 / -1; margin:0 0 -4px; padding-left:2px; color:var(--a-ink); font:600 14px/1.3 var(--a-display); letter-spacing:0; }
+html[data-theme] .subs-grp-h small { margin-left:6px; color:var(--a-muted); font:400 12px var(--a-sans); }
+/* hidden 要真的藏住：基础层的 .subs-field { display:flex } 会盖掉它（编辑已有项时「下次扣费日」曾照样显示） */
+html[data-theme] .subs-field[hidden] { display:none; }
+/* 开关和旁边的输入框一样高，放在半行里时两边对齐 */
+html[data-theme] .subs-grp .subs-renew { min-height:44px; }
 /* 客户管理：顶部五张数字卡，分组和列表分成两张卡，行按原型（头像、国旗国家、等级胶囊、待收琥珀） */
 html[data-theme] #page-customers.active { display:flex; flex-direction:column; gap:20px; }
 html[data-theme] .customer-workspace-summary { display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:16px; border:0; background:transparent; }
@@ -7103,56 +7113,68 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
         <span class="subs-amt"><b id="subscriptionPreviewPrice">—</b><small id="subscriptionPreviewCycle"></small></span>
         <span class="subs-pill line" id="subscriptionPreviewWhen"></span>
       </div>
-      <div class="subs-fields">
-        <div class="subs-field"><label for="subscriptionName">名称<em class="subs-req">*</em></label><input class="subs-input" id="subscriptionName" name="subName" maxlength="80" placeholder="例如 VPS、域名、ChatGPT Plus" autocomplete="off"></div>
-        <div class="subs-field"><label for="subscriptionNote">备注</label><input class="subs-input" id="subscriptionNote" name="subNote" maxlength="200" placeholder="例如 2核4G、example.com" autocomplete="off"></div>
-        <div class="subs-field">
-          <label for="subscriptionAmount">金额<em class="subs-req">*</em></label>
-          <div class="subs-dep">
-            <div class="subs-cur"><span class="subs-cur-sym" id="subscriptionCurrencySymbol">¥</span><input class="subs-input" id="subscriptionAmount" name="subAmount" inputmode="decimal" placeholder="0.00" autocomplete="off"></div>
-            <div class="subs-seg" role="group" aria-label="币种" data-sub-segment="currency"><span class="subs-glide" aria-hidden="true"></span><button type="button" data-value="CNY" aria-pressed="false">CNY</button><button type="button" data-value="USD" aria-pressed="false">USD</button></div>
+      <div class="subs-groups">
+        <div class="subs-fields subs-grp" role="group" aria-labelledby="subscriptionGroupCost">
+          <h4 class="subs-grp-h" id="subscriptionGroupCost">费用</h4>
+          <div class="subs-field"><label for="subscriptionName">名称<em class="subs-req">*</em></label><input class="subs-input" id="subscriptionName" name="subName" maxlength="80" placeholder="例如 VPS、域名、ChatGPT Plus" autocomplete="off"></div>
+          <div class="subs-field">
+            <label for="subscriptionAmount">金额<em class="subs-req">*</em></label>
+            <div class="subs-dep">
+              <div class="subs-cur"><span class="subs-cur-sym" id="subscriptionCurrencySymbol">¥</span><input class="subs-input" id="subscriptionAmount" name="subAmount" inputmode="decimal" placeholder="0.00" autocomplete="off"></div>
+              <div class="subs-seg" role="group" aria-label="币种" data-sub-segment="currency"><span class="subs-glide" aria-hidden="true"></span><button type="button" data-value="CNY" aria-pressed="false">CNY</button><button type="button" data-value="USD" aria-pressed="false">USD</button></div>
+            </div>
+            <div class="subs-hint" id="subscriptionAmountHint"></div>
           </div>
-          <div class="subs-hint" id="subscriptionAmountHint"></div>
-        </div>
-        <div class="subs-field"><label for="subscriptionStart">开始日期<em class="subs-req">*</em></label><input class="subs-input" id="subscriptionStart" name="subStart" type="text" data-date-input data-date-required autocomplete="off" spellcheck="false" placeholder="选择日期" min="2000-01-01"><div class="subs-hint" id="subscriptionStartHint"></div></div>
-        <div class="subs-field" id="subscriptionNextField"><label for="subscriptionNext">下次扣费日<small class="subs-opt-note">可选</small></label><input class="subs-input" id="subscriptionNext" name="subNext" type="text" data-date-input autocomplete="off" spellcheck="false" placeholder="选择日期" min="2000-01-01"><div class="subs-hint">录入已经在用的服务：填下次哪天扣，开始日期自动往前推一个周期</div></div>
-        <div class="subs-field full">
-          <span class="subs-label" id="subscriptionCategoryLabel">类型</span>
-          <div class="subs-opts" role="group" aria-labelledby="subscriptionCategoryLabel" data-sub-opts="category"></div>
-          <div class="subs-opt-add" data-sub-opt-add="category" hidden>
-            <input class="subs-input text" name="subCategoryCustom" maxlength="20" placeholder="例如 邮箱、证书、会员" aria-label="自定义类型" autocomplete="off">
-            <button class="subs-btn sm" type="button" data-sub-opt-save="category">添加</button><button class="subs-btn sm ghost" type="button" data-sub-opt-cancel="category">取消</button>
-          </div>
-        </div>
-        <div class="subs-field"><label for="subscriptionProvider">服务商</label><input class="subs-input" id="subscriptionProvider" name="subProvider" maxlength="40" placeholder="例如 Cloudflare、阿里云" autocomplete="off" data-suggest role="combobox" aria-autocomplete="list" aria-expanded="false"></div>
-        <div class="subs-field"><span class="subs-label">续费方式</span><label class="subs-renew"><input type="checkbox" name="subAutoRenew" checked><i aria-hidden="true"></i><span id="subscriptionAutoRenewText">自动续费 <small>到期自动扣费，提前 7 天提醒</small></span></label></div>
-        <div class="subs-field"><label for="subscriptionRemind">提前提醒</label><select class="subs-input subs-select" id="subscriptionRemind" name="subRemind"><option value="">默认</option><option value="-1">不提醒</option><option value="0">当天</option><option value="1">提前 1 天</option><option value="3">提前 3 天</option><option value="7">提前 7 天</option><option value="14">提前 14 天</option><option value="30">提前 30 天</option><option value="60">提前 60 天</option></select></div>
-        <div class="subs-field full">
-          <span class="subs-label" id="subscriptionCycleLabel">扣费周期</span>
-          <div class="subs-opts" role="group" aria-labelledby="subscriptionCycleLabel" data-sub-opts="cycle"></div>
-          <div class="subs-opt-add" data-sub-opt-add="cycle" hidden>
-            <span>每</span><input class="subs-input num" name="subCycleCount" inputmode="numeric" maxlength="4" placeholder="2" aria-label="几个周期单位" autocomplete="off">
-            <div class="subs-seg" role="group" aria-label="周期单位" data-sub-unit><span class="subs-glide" aria-hidden="true"></span><button type="button" data-value="day" aria-pressed="false">天</button><button type="button" data-value="week" aria-pressed="true">周</button><button type="button" data-value="month" aria-pressed="false">月</button><button type="button" data-value="year" aria-pressed="false">年</button></div>
-            <button class="subs-btn sm" type="button" data-sub-opt-save="cycle">添加</button><button class="subs-btn sm ghost" type="button" data-sub-opt-cancel="cycle">取消</button>
+          <div class="subs-field full">
+            <span class="subs-label" id="subscriptionCycleLabel">扣费周期</span>
+            <div class="subs-opts" role="group" aria-labelledby="subscriptionCycleLabel" data-sub-opts="cycle"></div>
+            <div class="subs-opt-add" data-sub-opt-add="cycle" hidden>
+              <span>每</span><input class="subs-input num" name="subCycleCount" inputmode="numeric" maxlength="4" placeholder="2" aria-label="几个周期单位" autocomplete="off">
+              <div class="subs-seg" role="group" aria-label="周期单位" data-sub-unit><span class="subs-glide" aria-hidden="true"></span><button type="button" data-value="day" aria-pressed="false">天</button><button type="button" data-value="week" aria-pressed="true">周</button><button type="button" data-value="month" aria-pressed="false">月</button><button type="button" data-value="year" aria-pressed="false">年</button></div>
+              <button class="subs-btn sm" type="button" data-sub-opt-save="cycle">添加</button><button class="subs-btn sm ghost" type="button" data-sub-opt-cancel="cycle">取消</button>
+            </div>
           </div>
         </div>
-        <div class="subs-field full">
-          <span class="subs-label" id="subscriptionStopLabel">预计停止</span>
-          <div class="subs-opts" role="group" aria-labelledby="subscriptionStopLabel" data-sub-opts="stop"></div>
-          <div class="subs-opt-add" data-sub-stop-custom hidden>
-            <span>扣到</span><input class="subs-input text" id="subscriptionStopDate" name="subStopOn" type="text" data-date-input autocomplete="off" spellcheck="false" placeholder="选择日期" aria-label="预计停止日期"><span>为止</span>
-          </div>
-          <div class="subs-hint" id="subscriptionStopHint"></div>
-        </div>
-        <div class="subs-field full">
-          <span class="subs-label" id="subscriptionPaymentLabel">付款方式</span>
-          <div class="subs-opts" role="group" aria-labelledby="subscriptionPaymentLabel" data-sub-opts="payment"></div>
-          <div class="subs-opt-add" data-sub-opt-add="payment" hidden>
-            <input class="subs-input text" name="subPaymentCustom" maxlength="40" placeholder="例如 招行信用卡 尾号 1234" aria-label="自定义付款方式" autocomplete="off">
-            <button class="subs-btn sm" type="button" data-sub-opt-save="payment">添加</button><button class="subs-btn sm ghost" type="button" data-sub-opt-cancel="payment">取消</button>
+        <div class="subs-fields subs-grp" role="group" aria-labelledby="subscriptionGroupTime">
+          <h4 class="subs-grp-h" id="subscriptionGroupTime">时间</h4>
+          <div class="subs-field" id="subscriptionStartField"><label for="subscriptionStart">开始日期<em class="subs-req">*</em></label><input class="subs-input" id="subscriptionStart" name="subStart" type="text" data-date-input data-date-required autocomplete="off" spellcheck="false" placeholder="选择日期" min="2000-01-01"><div class="subs-hint" id="subscriptionStartHint"></div></div>
+          <div class="subs-field" id="subscriptionNextField"><label for="subscriptionNext">下次扣费日<small class="subs-opt-note">可选</small></label><input class="subs-input" id="subscriptionNext" name="subNext" type="text" data-date-input autocomplete="off" spellcheck="false" placeholder="选择日期" min="2000-01-01"><div class="subs-hint">录入已经在用的服务：填下次哪天扣，开始日期自动往前推一个周期</div></div>
+          <div class="subs-field full">
+            <span class="subs-label" id="subscriptionStopLabel">预计停止</span>
+            <div class="subs-opts" role="group" aria-labelledby="subscriptionStopLabel" data-sub-opts="stop"></div>
+            <div class="subs-opt-add" data-sub-stop-custom hidden>
+              <span>扣到</span><input class="subs-input text" id="subscriptionStopDate" name="subStopOn" type="text" data-date-input autocomplete="off" spellcheck="false" placeholder="选择日期" aria-label="预计停止日期"><span>为止</span>
+            </div>
+            <div class="subs-hint" id="subscriptionStopHint"></div>
           </div>
         </div>
-        <div class="subs-field full"><span class="subs-label" id="subscriptionColorLabel">样式</span><div class="subs-colors" id="subscriptionColors" role="group" aria-labelledby="subscriptionColorLabel"></div></div>
+        <div class="subs-fields subs-grp" role="group" aria-labelledby="subscriptionGroupRenew">
+          <h4 class="subs-grp-h" id="subscriptionGroupRenew">续费和提醒</h4>
+          <div class="subs-field"><span class="subs-label">续费方式</span><label class="subs-renew"><input type="checkbox" name="subAutoRenew" checked><i aria-hidden="true"></i><span id="subscriptionAutoRenewText">自动续费 <small>到期自动扣费，提前 7 天提醒</small></span></label></div>
+          <div class="subs-field"><label for="subscriptionRemind">提前提醒</label><select class="subs-input subs-select" id="subscriptionRemind" name="subRemind"><option value="">默认</option><option value="-1">不提醒</option><option value="0">当天</option><option value="1">提前 1 天</option><option value="3">提前 3 天</option><option value="7">提前 7 天</option><option value="14">提前 14 天</option><option value="30">提前 30 天</option><option value="60">提前 60 天</option></select></div>
+          <div class="subs-field full">
+            <span class="subs-label" id="subscriptionPaymentLabel">付款方式</span>
+            <div class="subs-opts" role="group" aria-labelledby="subscriptionPaymentLabel" data-sub-opts="payment"></div>
+            <div class="subs-opt-add" data-sub-opt-add="payment" hidden>
+              <input class="subs-input text" name="subPaymentCustom" maxlength="40" placeholder="例如 招行信用卡 尾号 1234" aria-label="自定义付款方式" autocomplete="off">
+              <button class="subs-btn sm" type="button" data-sub-opt-save="payment">添加</button><button class="subs-btn sm ghost" type="button" data-sub-opt-cancel="payment">取消</button>
+            </div>
+          </div>
+        </div>
+        <div class="subs-fields subs-grp" role="group" aria-labelledby="subscriptionGroupSort">
+          <h4 class="subs-grp-h" id="subscriptionGroupSort">归类<small>不影响金额</small></h4>
+          <div class="subs-field full">
+            <span class="subs-label" id="subscriptionCategoryLabel">类型</span>
+            <div class="subs-opts" role="group" aria-labelledby="subscriptionCategoryLabel" data-sub-opts="category"></div>
+            <div class="subs-opt-add" data-sub-opt-add="category" hidden>
+              <input class="subs-input text" name="subCategoryCustom" maxlength="20" placeholder="例如 邮箱、证书、会员" aria-label="自定义类型" autocomplete="off">
+              <button class="subs-btn sm" type="button" data-sub-opt-save="category">添加</button><button class="subs-btn sm ghost" type="button" data-sub-opt-cancel="category">取消</button>
+            </div>
+          </div>
+          <div class="subs-field"><label for="subscriptionProvider">服务商</label><input class="subs-input" id="subscriptionProvider" name="subProvider" maxlength="40" placeholder="例如 Cloudflare、阿里云" autocomplete="off" data-suggest role="combobox" aria-autocomplete="list" aria-expanded="false"></div>
+          <div class="subs-field"><label for="subscriptionNote">备注</label><input class="subs-input" id="subscriptionNote" name="subNote" maxlength="200" placeholder="例如 2核4G、example.com" autocomplete="off"></div>
+          <div class="subs-field full"><span class="subs-label" id="subscriptionColorLabel">样式</span><div class="subs-colors" id="subscriptionColors" role="group" aria-labelledby="subscriptionColorLabel"></div></div>
+        </div>
       </div>
     </form>
     <footer class="subs-df">
@@ -27625,7 +27647,9 @@ function openSubscriptionEditor(id = '', { resubscribe = false, origin = '' } = 
   form.elements.subStart.min = draftTerms.length ? draftTerms[draftTerms.length - 1].until || '2000-01-01' : '2000-01-01';
   form.elements.subNext.value = '';
   // 下次扣费日 helps when recording a service already in use; an existing record already has its dates.
+  // Hidden, 开始日期 takes the whole row instead of leaving the other half empty.
   document.getElementById('subscriptionNextField').hidden = Boolean(existing);
+  document.getElementById('subscriptionStartField').classList.toggle('full', Boolean(existing));
   form.elements.subProvider.value = subscriptionDraft.provider;
   form.elements.subAutoRenew.checked = subscriptionDraft.autoRenew;
   form.elements.subRemind.value = subscriptionDraft.remindDays;

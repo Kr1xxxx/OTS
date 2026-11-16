@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// The current month's USD → RMB cell updates itself from /api/usd-cny-rate (中国银行 → 工商银行 → 外汇交易中心,
-// mac-app/usd-cny-rate.js), and nothing else in the table moves:
+// The current month's USD → RMB cell updates itself from /api/usd-cny-rate (the lower of
+// 中国银行 and 工商银行, mac-app/usd-cny-rate.js), and nothing else in the table moves:
 // - only the current month is written; past months, and months the user typed, stay as they are
 // - a cell typed in the form becomes the user's; clearing it hands it back to the automatic rate
 // - months before the table (before 2026-05) use the 2026-05 cell, also after saving the form
@@ -32,7 +32,7 @@ const at = text => new Date(`${text}+08:00`);
       current:{ app:'trade-order-system', data:{ orders:[order], customers:{}, doneTasks:{}, demoCleared:true, demoCustomersCleared:true, exchangeSettings:{ fallbackRate:7.11, monthlyRates:legacyRates, source:'手动', lastStatus:'尚未联网更新' } }, revision:0 },
       saves:0
     };
-    let rateAnswer = { status:200, json:{ ok:true, rate:6.6621, source:'boc', sourceLabel:'中国银行现汇买入价', publishedAt:'2026-11-16 10:30', fetchedAt:'2026-11-16T02:31:00.000Z' } };
+    let rateAnswer = { status:200, json:{ ok:true, rate:6.6621, source:'boc', sourceLabel:'中国银行现汇买入价', publishedAt:'2026-11-16 10:30', fetchedAt:'2026-11-16T02:31:00.000Z', quotes:[{ source:'boc', sourceLabel:'中国银行现汇买入价', rate:6.6621 }, { source:'icbc', sourceLabel:'工商银行现汇买入价', rate:6.6702 }], failed:[] } };
     let rateRequests = 0;
     await page.route('**/*', async route => {
       const pathname = new URL(route.request().url()).pathname;
@@ -64,7 +64,7 @@ const at = text => new Date(`${text}+08:00`);
     await flush();
     let s = await settings();
     assert.equal(saved().monthlyRates['2026-11'], 6.6621, 'the new rate is saved to the database');
-    assert.deepEqual(saved().auto, { month:'2026-11', rate:6.6621, source:'boc', sourceLabel:'中国银行现汇买入价', publishedAt:'2026-11-16 10:30', checkedAt:saved().auto.checkedAt });
+    assert.deepEqual(saved().auto, { month:'2026-11', rate:6.6621, source:'boc', sourceLabel:'中国银行现汇买入价', publishedAt:'2026-11-16 10:30', checkedAt:saved().auto.checkedAt, quotes:rateAnswer.json.quotes, failed:[] });
     assert.equal(s.monthlyRates['2026-10'], 7.0, 'a past month stays');
     assert.equal(s.monthlyRates['2026-12'], 7.2, 'a month typed ahead of time stays');
     assert.deepEqual(s.manualMonths, { '2026-12':true }, 'a later month that was typed before the update counts as typed');
@@ -76,7 +76,7 @@ const at = text => new Date(`${text}+08:00`);
     assert.equal(await page.evaluate(() => Math.round(usdPaidTotalRmb(state.orders))), 6900);
     await page.evaluate(() => setPage('settings'));
     await page.locator('[data-settings-tab="exchange"]').click();
-    assert.match(await note(), /^11月：6\.6621 · 中国银行现汇买入价 · 11月16日 10:30 更新。过去的月份不会自动改/);
+    assert.match(await note(), /^11月：6\.6621 · 中国银行现汇买入价（工商银行 6\.6702，两家取低的） · 11月16日 10:30 更新。过去的月份不会自动改/);
 
     // 2. The same rate again on the same day: no extra save.
     const savesBefore = store.saves;
@@ -110,27 +110,36 @@ const at = text => new Date(`${text}+08:00`);
     assert.equal(s.monthlyRates['2026-10'], 7.0);
     assert.equal(await page.inputValue('#exchangeRate-2026-11'), '6.7', 'the form shows the automatic rate again');
 
-    // 5. Fallback sources are named as such.
-    rateAnswer = { status:200, json:{ ok:true, rate:6.6525, source:'icbc', sourceLabel:'工商银行现汇买入价', publishedAt:'2026-11-16 09:53' } };
+    // 5. The note names both banks when both answered, and the bank that failed when one did.
+    const bocQuote = { source:'boc', sourceLabel:'中国银行现汇买入价', rate:6.6621 };
+    const icbcQuote = { source:'icbc', sourceLabel:'工商银行现汇买入价', rate:6.6525 };
+    rateAnswer = { status:200, json:{ ok:true, ...icbcQuote, publishedAt:'2026-11-16 09:53', quotes:[bocQuote, icbcQuote], failed:[] } };
     await refresh();
     assert.equal((await settings()).monthlyRates['2026-11'], 6.6525);
-    assert.match(await note(), /^11月：6\.6525 · 工商银行现汇买入价 · 11月16日 09:53 更新（中国银行今天没取到）。/);
-    rateAnswer = { status:200, json:{ ok:true, rate:6.7141, source:'cfets', sourceLabel:'外汇交易中心中间价', publishedAt:'2026-11-16' } };
+    assert.match(await note(), /^11月：6\.6525 · 工商银行现汇买入价（中国银行 6\.6621，两家取低的） · 11月16日 09:53 更新。/);
+    rateAnswer = { status:200, json:{ ok:true, ...bocQuote, rate:6.6611, publishedAt:'2026-11-16 10:30', quotes:[{ ...bocQuote, rate:6.6611 }], failed:['icbc'] } };
     await refresh();
-    assert.match(await note(), /^11月：6\.7141 · 外汇交易中心中间价（参考价，比银行买入价高） · 11月16日 更新（中国银行今天没取到）。/);
+    assert.equal((await settings()).monthlyRates['2026-11'], 6.6611);
+    assert.match(await note(), /^11月：6\.6611 · 中国银行现汇买入价 · 11月16日 10:30 更新（工商银行今天没取到）。/);
+    // A rate saved by V3.171–V3.173 from the CFETS central parity is still named as what it is.
+    await page.evaluate(() => {
+      state.exchangeSettings = { ...getExchangeSettings(), auto:{ ...getExchangeSettings().auto, source:'cfets', sourceLabel:'外汇交易中心中间价', quotes:[], failed:[] } };
+      renderExchangeNote();
+    });
+    assert.match(await note(), /^11月：6\.6611 · 外汇交易中心中间价（参考价，比银行买入价高） · 11月16日 10:30 更新。/);
 
     // 6. Nothing to be had: the cell stays, the note says the last rate is kept.
-    rateAnswer = { status:500, json:{ ok:false, message:'中国银行牌价：没找到表头；工商银行牌价：request timeout；外汇交易中心：request timeout' } };
+    rateAnswer = { status:500, json:{ ok:false, message:'中国银行现汇买入价：没找到表头；工商银行现汇买入价：request timeout' } };
     await refresh();
-    assert.equal((await settings()).monthlyRates['2026-11'], 6.7141);
-    assert.match(await note(), /^11月：今天没取到汇率，沿用 11月16日 的 6\.7141（外汇交易中心中间价/);
+    assert.equal((await settings()).monthlyRates['2026-11'], 6.6611);
+    assert.match(await note(), /^11月：今天没取到汇率，沿用 11月16日 10:30 的 6\.6611（中国银行现汇买入价）。/);
 
     // 7. Read-only (another window saved first): nothing is written.
     await flush();
     await page.evaluate(() => macSetStorageMode('conflict'));
     rateAnswer = { status:200, json:{ ok:true, rate:6.65, source:'boc', sourceLabel:'中国银行现汇买入价', publishedAt:'2026-11-16 16:00' } };
     await refresh();
-    assert.equal((await settings()).monthlyRates['2026-11'], 6.7141, 'no write while read-only');
+    assert.equal((await settings()).monthlyRates['2026-11'], 6.6611, 'no write while read-only');
     await page.evaluate(() => macSetStorageMode('ready'));
     await refresh();
     assert.equal((await settings()).monthlyRates['2026-11'], 6.65);
@@ -183,7 +192,7 @@ const at = text => new Date(`${text}+08:00`);
     await flush();
     assert.equal(saved().monthlyRates['2026-12'], 6.61);
     assert.deepEqual(errors, []);
-    console.log('Exchange rate auto update tests passed: current month only, typed months kept, clearing hands back, months before the table fixed, sources named, failure keeps the last rate, read-only writes nothing, month rollover, stale warning.');
+    console.log('Exchange rate auto update tests passed: current month only, typed months kept, clearing hands back, months before the table fixed, both banks named, failure keeps the last rate, read-only writes nothing, month rollover, stale warning.');
   } finally {
     await browser.close();
   }

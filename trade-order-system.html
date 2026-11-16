@@ -7781,7 +7781,7 @@ function renderFeishuNotificationBadge(order = {}, short = false) {
   return '';
 }
 // 群消息发出后，消息里的字段（金额、备注、地址…）又改过：列出改了哪些，群里仍是发出时的内容。
-const feishuFieldLabels = { client:'客户名称', num:'订单号', email:'邮箱', phone:'手机号', address:'收货地址', amount:'订单金额', paymentChannel:'付款方式', note:'订单备注' };
+const feishuFieldLabels = { client:'客户名称', num:'订单号', email:'邮箱', phone:'手机号', address:'收货地址', amount:'订单金额', paymentChannel:'付款方式', orderDetail:'订单详情', note:'订单备注' };
 function feishuNotificationChangedFields(order = {}, notification = normalizeFeishuNotification(order.feishuNotification)) {
   const sent = notification.sentFields;
   if (notification.status !== 'sent' || !sent) return [];
@@ -7796,6 +7796,7 @@ function feishuNotificationChangedFields(order = {}, notification = normalizeFei
     address: text(customer.address),
     amount: `${String(order.currency || 'USD').trim().toUpperCase() || 'USD'} ${Number.isFinite(amount) ? amount.toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 }) : '0.00'}`,
     paymentChannel: text(order.paymentChannel),
+    orderDetail: text(Array.isArray(order.orderDetail) ? order.orderDetail.join('\n') : order.orderDetail),
     note: text(order.note)
   };
   return Object.keys(feishuFieldLabels).filter(key => key in sent && text(sent[key]) !== current[key]).map(key => feishuFieldLabels[key]);

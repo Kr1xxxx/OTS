@@ -31,7 +31,8 @@ const context = vm.createContext({
   feishuStatus: null,
   feishuPendingCopies: new Set(),
   feishuUnconfiguredHint: '还没配置飞书',
-  feishuFieldLabels: { client:'客户名称', num:'订单号', email:'邮箱', phone:'手机号', address:'收货地址', amount:'订单金额', paymentChannel:'付款方式', note:'订单备注' }
+  // 群消息里有哪些字段以页面为准，测试不另抄一份。
+  feishuFieldLabels: vm.runInNewContext(`(${html.match(/^const feishuFieldLabels = (\{.*\});$/m)[1]})`)
 });
 
 [
@@ -129,6 +130,13 @@ context.feishuStatus = null;
   context.state.customers = { Ann:{ email:'ann@example.com' } };
   const staleDetail = evaluate(`renderOrderDetailNotification({ id:'o6', client:'Ann', num:'K1', amount:120, currency:'USD', paymentChannel:'TT', note:'new note', feishuNotification:{ status:'sent', sentAt:'2026-11-08 10:00:00', sentFields:{ client:'Ann', num:'K1', email:'ann@example.com', phone:'', address:'', amount:'USD 100.00', paymentChannel:'TT', note:'old' } } })`);
   assert.match(staleDetail, /发出后改过订单金额、订单备注/, 'edits after sending are pointed out');
+  // 订单详情也在群消息里：发出后改了要提示；没记过订单详情的旧消息不因为它报「改过」。
+  const detailChanged = evaluate(`renderOrderDetailNotification({ id:'o7', client:'Ann', num:'K1', amount:100, currency:'USD', paymentChannel:'TT', note:'old', orderDetail:'Wig A × 2\\nWig B × 1', feishuNotification:{ status:'sent', sentAt:'2026-11-08 10:00:00', sentFields:{ client:'Ann', num:'K1', email:'ann@example.com', phone:'', address:'', amount:'USD 100.00', paymentChannel:'TT', orderDetail:'Wig A × 2', note:'old' } } })`);
+  assert.match(detailChanged, /发出后改过订单详情，/, 'an edited order detail is pointed out');
+  const detailSame = evaluate(`renderOrderDetailNotification({ id:'o8', client:'Ann', num:'K1', amount:100, currency:'USD', paymentChannel:'TT', note:'old', orderDetail:'Wig A × 2\\nWig B × 1', feishuNotification:{ status:'sent', sentAt:'2026-11-08 10:00:00', sentFields:{ client:'Ann', num:'K1', email:'ann@example.com', phone:'', address:'', amount:'USD 100.00', paymentChannel:'TT', orderDetail:'Wig A × 2\\nWig B × 1', note:'old' } } })`);
+  assert.doesNotMatch(detailSame, /发出后改过/, 'an unchanged order detail is not reported');
+  const olderMessage = evaluate(`renderOrderDetailNotification({ id:'o9', client:'Ann', num:'K1', amount:100, currency:'USD', paymentChannel:'TT', note:'old', orderDetail:'Wig A × 2', feishuNotification:{ status:'sent', sentAt:'2026-11-08 10:00:00', sentFields:{ client:'Ann', num:'K1', email:'ann@example.com', phone:'', address:'', amount:'USD 100.00', paymentChannel:'TT', note:'old' } } })`);
+  assert.doesNotMatch(olderMessage, /发出后改过/, 'a message sent before 订单详情 was in it does not count it as changed');
 
   assert.match(html, /renderFeishuNotificationBadge\(order\)/, 'order list must render notification status');
   assert.match(html, /renderOrderDetailNotification\(order\)/, 'order detail must render notification status');

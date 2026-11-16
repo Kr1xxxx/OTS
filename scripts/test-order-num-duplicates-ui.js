@@ -137,18 +137,26 @@ const base = { country:'🇺🇸 美国 United States', currency:'USD', amount:1
     // 缺客户名的那张写出订单号；超过 8 张时只列 8 张，后面写「等 N 张」。
     await page.evaluate(day => {
       window.__healthBackup = JSON.parse(JSON.stringify({ orders:state.orders, trashOrders:state.trashOrders, deletedOrders:state.deletedOrders }));
-      state.orders = state.orders.filter(o => o.id !== 'o5' && o.id !== 'o-empty');
+      state.orders = state.orders.filter(o => o.id !== 'o-empty');
       state.orders.push({ ...state.orders[0], id:'nc', num:`K${day}77`, client:'' });
       for (let i = 0; i < 10; i += 1) state.orders.push({ ...state.orders[0], id:`neg${i}`, num:`K${day}9${i}`, client:'Minus Co', amount:-1 });
+      // 第二组重复号：两组各占一行，看得出哪两张是一组。
+      state.orders.push({ ...state.orders[0], id:'dupA', num:`K${day}66`, client:'Dup A' }, { ...state.orders[0], id:'dupB', num:`k${day}66`, client:'Dup B' });
     }, day);
     health = await healthCheck();
-    assert.deepEqual(health.rows.filter(row => row.bad).map(row => [row.label, row.count]), [['缺少客户名称', '1 张'], ['金额异常', '10 张']]);
+    const groupLines = (await page.locator('#confirmBlocks .confirm-checks li.bad', { hasText:'订单号重复' }).locator('small').innerText()).split('\n');
+    assert.equal(groupLines.length, 2, `each duplicate group on its own line: ${groupLines.join(' | ')}`);
+    assert.deepEqual(groupLines, [
+      `k${day}05（Legacy Lower · 订单） / K${day}05（Legacy Upper · 订单）`,
+      `K${day}66（Dup A · 订单） / k${day}66（Dup B · 订单）`
+    ]);
+    assert.deepEqual(health.rows.filter(row => row.bad).map(row => [row.label, row.count]), [['订单号重复', '2 组'], ['缺少客户名称', '1 张'], ['金额异常', '10 张']]);
     assert.equal(health.rows.find(row => row.label === '缺少客户名称').detail, `K${day}77 · 订单`);
     assert.match(health.rows.find(row => row.label === '金额异常').detail, new RegExp(`^K${day}90 · Minus Co(、K${day}9\\d · Minus Co){7} 等 10 张$`));
     await closeHealth();
     // 全部通过：五行都在、都打勾，副标题写「五项都通过」。
     await page.evaluate(() => {
-      state.orders = state.orders.filter(o => !o.id.startsWith('neg') && o.id !== 'nc');
+      state.orders = state.orders.filter(o => !o.id.startsWith('neg') && !['nc', 'dupA', 'dupB', 'o5'].includes(o.id));
     });
     health = await healthCheck();
     assert.equal(health.sub, `查了 ${await page.evaluate(() => state.orders.length + state.trashOrders.length + state.deletedOrders.length)} 张订单 · 五项都通过`);

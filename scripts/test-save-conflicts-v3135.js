@@ -238,9 +238,10 @@ async function main() {
       window.__importDone = previewImportDataFile(new File([text], 'unsaved.json', { type:'application/json' }));
       window.__importDone.then(() => { window.__importSettled = { error:'' }; }, error => { window.__importSettled = { error:String(error?.message || error) }; });
     }, JSON.stringify(exported));
-    await confirmOpen(A);
-    assert.match(await A.locator('#confirmMessage').innerText(), /保存冲突时导出的「没存进去的修改」[\s\S]*订单 K1/);
-    await h.click(A, '#confirmOkBtn', '合并导入');
+    await A.waitForFunction(() => document.getElementById('importPreviewModal').classList.contains('open'));
+    assert.match(await A.locator('#importPreviewModal .modal-body').innerText(), /保存冲突时导出的「没存进去的修改」[\s\S]*订单\s*K1/);
+    assert.equal(await A.locator('#importModeReplace').isVisible(), false, 'a conflict file can only be merged');
+    await h.click(A, '#importPreviewGoBtn', '合并导入');
     assert.equal((await (await A.waitForFunction(() => window.__importSettled)).jsonValue()).error, '', 'the import finished without an error');
     await A.waitForFunction(() => !window.pendingSaveStatus().pending);
     assert.equal((await dbOrder('o1')).note, 'B 再改 o1');

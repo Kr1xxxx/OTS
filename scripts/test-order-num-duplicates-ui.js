@@ -125,9 +125,10 @@ const base = { country:'🇺🇸 美国 United States', currency:'USD', amount:1
     await page.waitForFunction(() => document.querySelector('#toast .toast-item.is-error'));
     assert.match((await toastTexts()).join('\n'), /导入失败：文件里订单号 K25010101 出现了不止一次/);
     await page.setInputFiles('#dataFileInput', importFile([{ id:'i1', num:'K25010101', client:'Imp A', amount:10 }, { id:'i2', num:'k25010101', client:'Imp B', amount:20 }]));
-    await page.waitForFunction(() => document.getElementById('confirmModal').classList.contains('open'));
-    assert.match(await page.locator('#confirmMessage').innerText(), /1 组订单号只差大小写、全角或空格（K25010101 \/ k25010101）/);
-    await page.locator('#confirmCancelBtn').click();
+    await page.waitForFunction(() => document.getElementById('importPreviewModal').classList.contains('open'));
+    assert.match(await page.locator('#importNotes').innerText(), /1 组订单号只差大小写、全角或空格（K25010101 \/ k25010101）/);
+    await page.locator('#importPreviewCancelBtn').click();
+    await page.waitForFunction(() => !document.getElementById('importPreviewModal').classList.contains('open'));
 
     // 8. 粘贴匹配只认完整单号：K…010 不命中 K…01，空号的单不会命中任何粘贴，K 前缀也认。
     const matched = text => page.evaluate(value => matchOrdersFromPaste(value).map(o => o.id), text);

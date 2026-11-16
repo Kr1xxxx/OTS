@@ -191,7 +191,8 @@ const freePort = () => new Promise((resolve, reject) => {
     assert.equal(data.customers['alice baker'].email, 'alice.b@work.com');
     assert.equal(Object.hasOwn(data.customers, 'Alice B. Hair'), false);
     assert.equal(data.orders.find(o => o.id === 'A1').client, 'Alice Baker', '另一位的订单不动');
-    assert.equal(beforeChangeBackups().length, 1, '合并前生成了一份操作前备份');
+    const backupsAfterFirstMerge = beforeChangeBackups();
+    assert.equal(backupsAfterFirstMerge.length, 1, '合并前生成了一份操作前备份');
     await h.clearToasts(page);
 
     // ---- 2. 0 单客户合并：备份内容、改为保留另一份、冲突写进备注、WhatsApp 跟过去、撤销 ----
@@ -230,9 +231,12 @@ const freePort = () => new Promise((resolve, reject) => {
     assert.equal(await chatCount('Maria Lopez'), 3, '0 单客户的聊天跟着合并过来');
     assert.equal(await chatCount('Lopez Hair Studio'), 0);
     assert.equal(native('sync', { ...lopezChat, messages:[{ id:'l3', direction:'in', kind:'text', timestamp:'[09:00, 07/11/2026]', text:'new' }] }).ok, true, '插件照常同步');
+    // 第二份备份是第 1 段结束时还没有的那一份；不按文件名排序找「最新」，同一秒里的第二份叫 …-before-change-2.sqlite，排在第一份前面。
     const backups = beforeChangeBackups();
     assert.equal(backups.length, 2);
-    assert.ok(fs.readFileSync(path.join(backupsDir, backups.at(-1))).includes(Buffer.from('下月要 200 顶 13x4')), '操作前备份里有合并前最后一次修改');
+    const secondBackup = backups.filter(name => !backupsAfterFirstMerge.includes(name));
+    assert.equal(secondBackup.length, 1);
+    assert.ok(fs.readFileSync(path.join(backupsDir, secondBackup[0])).includes(Buffer.from('下月要 200 顶 13x4')), '操作前备份里有合并前最后一次修改');
     assert.ok(await page.evaluate(() => document.activeElement?.matches('[data-duplicate-view], #customerSearch')), '合并后焦点落在下一条提醒或搜索框');
     await h.clickUndo(page, '已合并到 Maria Lopez');
     await h.waitToast(page, '已撤销合并');

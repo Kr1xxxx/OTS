@@ -9489,7 +9489,8 @@ function normalizeState(raw) {
     performanceTargets: raw.performanceTargets || {},
     customers: normalizeCustomerProfiles({ ...baseCustomerProfiles, ...(raw.customers || {}) }),
     paymentMethods: Array.from(new Set(raw.paymentMethods ? raw.paymentMethods : defaultPaymentMethods)),
-    customerTags: uniqueList((raw.customerTags || []).filter(tag => !legacyCustomerLevels.includes(tag)), defaultCustomerTags),
+    // 和付款方式一样：存下的有就用存下的（删掉的内置标签不再补回来），空了才用默认。
+    customerTags: (tags => tags.length ? tags : uniqueList(defaultCustomerTags))(uniqueList((raw.customerTags || []).filter(tag => !legacyCustomerLevels.includes(tag)))),
     customerLevels: normalizeCustomerLevels(raw.customerLevels || defaultCustomerLevels),
     customerLevelRules: normalizeCustomerLevelRules(raw.customerLevelRules),
     owners: Array.from(new Set(raw.owners ? raw.owners : [...defaultOwners, ...(raw.orders || []).map(o => o.owner).filter(Boolean)])),
@@ -10355,8 +10356,10 @@ function calendarEventsInRange(from, to) {
       // A manual renewal that is due but not yet confirmed still shows on its date (unpaid:true); a charge under
       // earlier settings shows that term's currency, type and payment method.
       subscriptionCharges(item, from, to, subscriptionState.usdCnyRate, { unpaid:true }).forEach(charge => {
-        const manual = item.autoRenew === false;
-        events.push({ date:charge.date, type:'subscription', tone:'subscription', subId:item.id, label:`${item.name} 续费`, sub:[subscriptionMoney(charge.amount, charge.currency), charge.term.category, manual ? '需要手动续费' : charge.term.paymentMethod].filter(Boolean).join(' · ') });
+        // 只有还没续的那几笔写「需要手动续费」：已确认续过的、提前续好的、历史设置下的，照自动续费写付款方式。
+        const toRenew = charge.term === item && item.autoRenew === false
+          && (subscriptionManualTracked(item) ? charge.date > item.renewedThrough : charge.date > subscriptionLocalDate());
+        events.push({ date:charge.date, type:'subscription', tone:'subscription', subId:item.id, label:`${item.name} 续费`, sub:[subscriptionMoney(charge.amount, charge.currency), charge.term.category, toRenew ? '需要手动续费' : charge.term.paymentMethod].filter(Boolean).join(' · ') });
       });
     });
   }
@@ -21917,15 +21920,17 @@ function buildCustomerSavePayload(data = {}, previousProfile = {}, oldName = '',
   const paymentMethod = blank.has('paymentMethod') ? '' : (normalizePaymentChannelValue(data.paymentMethod || previousProfile.paymentMethod || '') || '阿里巴巴');
   const productType = blank.has('productType') ? '' : (productTypeDefs.some(item => item.value === data.productType) ? data.productType : (previousProfile.productType || defaultOrderSettings.defaultProductType || '假发'));
   const tags = normalizeTags(data.tags);
-  const contactFields = normalizeCustomerContactFields(data);
+  // 只取联系方式这几栏：normalizeCustomerContactFields 带着整张表单（国家、隐藏的 name / originalName），
+  // 整个展开会把上面留空的国家盖回默认值。
+  const { contacts, phones, emails, addresses, contact, phone, email, address } = normalizeCustomerContactFields(data);
   const contactPreferences = normalizeCustomerContactPreferences(data.primaryContactMethod, data.alternativeContactMethods);
   const countryFromInput = typeof customerCountryFromInput === 'function' ? customerCountryFromInput(data.country) : '';
   const nextProfile = {
     client: newName,
     country: blank.has('country') ? '' : (countryFromInput || storedCountry(data.country)),
-    ...contactFields,
+    contacts, phones, emails, addresses, phone, email, address,
     // 联系人就是第一位联系人（「Smith, John」带逗号也照存）；以前按地址规则清洗，头部和列表显示「联系人未填写」。
-    contact: contactFields.contact,
+    contact,
     currency: blank.has('currency') ? '' : (storedCurrency(data.currency || previousProfile.currency || 'USD')),
     productType,
     owner: (data.owner || previousProfile.owner || defaultOrderSettings.defaultOwner || '').trim(),
@@ -21984,7 +21989,7 @@ function commitCustomerSavePayload({ oldName = '', nextProfile, historyEntry, pr
     moveRepurchaseDoneTasks(oldName, nextProfile.client);
     renameCustomerDuplicateIgnores(oldName, nextProfile.client);
   }
-  state.customers[nextProfile.client] = { ...nextProfile, history: [historyEntry, ...previousHistory].slice(0, 20) };
+  state.customers[nextProfile.client] = { ...nextProfile, history: [historyEntry, ...previousHistory].slice(0, 200) };
   return nextProfile.client;
 }
 // 客户表单字段下面的应用内提示：红字（error）= 改好才能保存；灰字（note）= 提醒或已自动整理，不挡保存。
@@ -26813,7 +26818,8 @@ function openSubscriptionPriceEditor(date) {
   // Numbered on from the periods under earlier settings, as in the drawer.
   const index = subscriptionTermOffset(item) + local;
   const period = { index, date, until:subscriptionDateFromDay(subscriptionDayNumber(subscriptionChargeDate(item, local + 1)) - 1), term:item };
-  const past = date <= today;
+  // 和详情里的「已发生」同一个口径：提前续好的那一期（到期日不晚于 renewedThrough）也算已发生。
+  const past = date <= today || (subscriptionManualTracked(item) && date <= item.renewedThrough);
   const changes = subscriptionPriceChanges(item).filter(change => change.from === date);
   // A period already paid is usually a one-off correction; a future one usually a price rise.
   const scope = changes.some(change => change.once) ? 'once' : changes.length ? 'onward' : past ? 'once' : 'onward';
@@ -29667,6 +29673,11 @@ document.querySelector('.settings-content').addEventListener('click', e => {
   if (!btn) return;
   const key = btn.dataset.settingsRemove;
   const value = btn.dataset.value;
+  // 内置等级每次加载都会补回来（自动分级要用这几个名字），删不掉就不说「已移除」。
+  if (key === 'customerLevels' && defaultCustomerLevels.includes(value)) {
+    toast('内置等级不能删除（自动分级要用）');
+    return;
+  }
   state[key] = (state[key] || []).filter(item => item !== value);
   render();
   toast('已移除');

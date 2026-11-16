@@ -14,6 +14,8 @@ const { launchBrowser, openBoard, h, base, day } = require('./helpers/board-page
       ],
       customers:{
         'Dubai Buyer':{ client:'Dubai Buyer', currency:'AED', country:'🇦🇪 阿联酋 United Arab Emirates', paymentMethod:'TT' },
+        // 旧档案：没填国家，带 25 条变更记录。
+        'Blank Co':{ client:'Blank Co', currency:'USD', history:Array.from({ length:25 }, (_, i) => ({ time:`2026-01-${String(i + 1).padStart(2, '0')} 10:00`, text:`made-up entry ${i + 1}` })) },
         'Bob Taylor':{ client:'Bob Taylor', country:'🇬🇧 英国 United Kingdom', phones:['+44 7700 900127', '+44 7700 900128'], phone:'+44 7700 900127', emails:['bob@example.co.uk'], email:'bob@example.co.uk' }
       },
       orderSettings:{ ownEmails:['sales@our-shop.example'] }
@@ -128,6 +130,35 @@ const { launchBrowser, openBoard, h, base, day } = require('./helpers/board-page
     await page.evaluate(() => openNewOrderForCustomer('Dubai Buyer'));
     await page.waitForFunction(() => document.getElementById('orderModal').classList.contains('open') && document.querySelector('#orderForm select[name="currency"]').value === 'AED', null, { timeout:3000 });
     await page.evaluate(() => closeOrder());
+
+    // ---- 没填国家的档案：只改备注保存，国家仍是空、不进变更记录；隐藏栏不存进档案；记录不截到 20 条 ----
+    await page.evaluate(() => openCustomerModal('Blank Co', { viewOnly:false }));
+    await page.locator('#customerModal.open').waitFor();
+    await h.settle(page, '#customerModal .modal');
+    await page.locator(`${form} textarea[name="note"]`).click();
+    await page.keyboard.type('made-up note');
+    await click('#customerFooterSaveBtn');
+    await page.waitForFunction(() => !document.getElementById('customerModal').classList.contains('open'));
+    const blankCo = await page.evaluate(() => JSON.parse(JSON.stringify(state.customers['Blank Co'])));
+    assert.equal(blankCo.country || '', '', 'a blank country is not filled with the default country');
+    assert.doesNotMatch(blankCo.history[0].text, /国家/);
+    assert.match(blankCo.history[0].text, /备注/);
+    assert.equal('originalName' in blankCo, false, 'the hidden originalName field is not stored');
+    assert.equal('name' in blankCo, false, 'the hidden name field is not stored');
+    assert.equal(blankCo.history.length, 26, 'an ordinary save keeps more than 20 history entries');
+    // 手动选了国家再保存，照常写入。
+    await page.evaluate(() => openCustomerModal('Blank Co', { viewOnly:false }));
+    await page.locator('#customerModal.open').waitFor();
+    await h.settle(page, '#customerModal .modal');
+    await page.evaluate(() => {
+      const input = document.querySelector('#customerForm [name="country"]');
+      input.value = '🇬🇧 英国 United Kingdom';
+      input.dispatchEvent(new Event('input', { bubbles:true }));
+      input.dispatchEvent(new Event('change', { bubbles:true }));
+    });
+    await click('#customerFooterSaveBtn');
+    await page.waitForFunction(() => !document.getElementById('customerModal').classList.contains('open'));
+    assert.match(await page.evaluate(() => state.customers['Blank Co'].country || ''), /英国/);
 
     // ---- 变更记录记下电话的增删；「设为主要」对调第一条 ----
     await page.evaluate(() => openCustomerModal('Bob Taylor', { viewOnly:false }));

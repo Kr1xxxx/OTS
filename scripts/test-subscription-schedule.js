@@ -12,7 +12,7 @@ vm.runInContext(html.match(/const subscriptionFuturePeriods = [^;]+;/)[0].replac
   'subscriptionCycle', 'subscriptionChargeDate', 'subscriptionCycleEvery', 'subscriptionCycleLabel', 'subscriptionChargeIndex', 'subscriptionSchedule', 'subscriptionSummary', 'subscriptionCompare', 'subscriptionWhen', 'subscriptionRemindWindow',
   'subscriptionInitial', 'subscriptionDayAfter', 'subscriptionPriceChanges', 'subscriptionPriceAt', 'subscriptionToCny', 'subscriptionStopBound', 'subscriptionCharges',
   'subscriptionMonthShift', 'subscriptionMonthEnd', 'subscriptionStopPreset', 'subscriptionWithPrice',
-  'subscriptionPricer', 'subscriptionTerms', 'subscriptionFirstStart', 'subscriptionManualTracked', 'subscriptionTermTotals', 'subscriptionTermOffset',
+  'subscriptionPricer', 'subscriptionTerms', 'subscriptionFirstStart', 'subscriptionManualTracked', 'subscriptionPaidMark', 'subscriptionChargeState', 'subscriptionTermTotals', 'subscriptionTermOffset',
   'subscriptionDefaultRemindWindow', 'subscriptionWhenDate', 'subscriptionPeriods'
 ].forEach(name => vm.runInContext(extractFunction(name), context));
 const call = (name, ...args) => context[name](...args);

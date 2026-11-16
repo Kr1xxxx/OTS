@@ -9999,6 +9999,7 @@ function lastDunningDate(order = {}) {
 // - 最晚发出日期 ship-<id>-<日期>、加急 urgent-<id>-<日期>：日期改了换新键，重新提醒。
 // - 复购 repurchase-<客户>-<日期>：处理后再等一个复购周期（没设按 30 天）。
 // - 物流风险 logistics-risk-<id>-<进度时间>：物流有新进度才重新提醒。
+// - 物流异常 logistics-issue-<id>-<单号>-<承运商时间>：承运商再报一次异常（时间变了）才重新提醒。
 function taskDoneUntil(item = {}, today = normalizeDate(new Date().toISOString())) {
   if (item.remindAgainDays > 0) return addDays(today, item.remindAgainDays);
   return '';
@@ -10070,8 +10071,10 @@ function buildTaskItems({ includeDone = false, includeSnoozed = false, perOrder 
     const latestDays = daysUntil(o.latestShipDate);
     const fallbackDate = today;
     const title = clientDisplayName(o.client);
+    const logisticsIssue = logisticsIssueTask(o, fallbackDate);
     const logisticsRisk = logisticsRiskTask(o, fallbackDate);
     const followReminder = orderFollowReminder(o, today);
+    if (logisticsIssue) reminders.push(logisticsIssue);
     if (logisticsRisk) reminders.push(logisticsRisk);
     if (o.urgentOrder && !settled) reminders.push({ id:`urgent-${o.id}`, doneKey:`urgent-${o.id}-${urgentTaskDate(o)}`, orderId:o.id, client:o.client, date:urgentTaskDate(o) || fallbackDate, type:'urgent', title, reason:`加急订单：${o.note || '等待处理'}`, detail:`${o.num} · ${stageDef(o.stage).name}`, value:o.customerRequiredDate ? `要求 ${o.customerRequiredDate}` : '加急', tag:'加急', tagClass:'tag-orange', priority:1 });
     // 已经有发货日（补了运单号、阶段还停在生产中）的单不再提醒发货期限：和经营分析「超过最晚发出日期」同一个口径，
@@ -10155,7 +10158,8 @@ function todayTaskItems(items = buildTaskItems({ perOrder:true })) {
   return items.filter(taskDueToday);
 }
 // 待办的类型名（问候、副标题里用）。最晚发出日期单独叫「发货期限」，不再算成「物流异常」。
-const taskTypeLabels = { payment:['收款', '笔收款'], follow:['跟进', '个跟进'], urgent:['加急', '个加急单'], ship:['发货期限', '个临近发货期限'], ready:['可以发货', '个可以发货'], tracking:['补运单号', '个待补运单'], logistics:['物流异常', '个物流异常'], repurchase:['复购', '个复购'] };
+// 承运商报异常的包裹叫「物流异常」（logisticsIssue）；几天没有新进度的叫「物流没更新」（logistics）。
+const taskTypeLabels = { payment:['收款', '笔收款'], follow:['跟进', '个跟进'], urgent:['加急', '个加急单'], ship:['发货期限', '个临近发货期限'], ready:['可以发货', '个可以发货'], tracking:['补运单号', '个待补运单'], logisticsIssue:['物流异常', '个物流异常'], logistics:['物流没更新', '个物流没更新'], repurchase:['复购', '个复购'] };
 function taskTypeBreakdown(items = [], { long = false } = {}) {
   return Object.keys(taskTypeLabels)
     .map(type => [type, items.filter(item => item.type === type).length])
@@ -10168,6 +10172,7 @@ function taskDoneLabel(item = {}) {
 }
 function taskKindName(item = {}) {
   if (String(item.id || '').startsWith('logistics-risk-')) return '物流风险提醒';
+  if (item.type === 'logisticsIssue') return '物流异常提醒';
   return { payment:'收款提醒', follow:'跟进提醒', urgent:'加急提醒', ship:'发货期限提醒', ready:'可以发货提醒', tracking:'补运单号提醒', repurchase:'复购提醒' }[item.type] || '提醒';
 }
 // 物流风险按每一批看：哪一批（DHL / FedEx，没签收）查得到却 3 天以上没有新进度，就提醒那一批。以前只看第一批，第一批签收后整单不再检查。
@@ -10175,7 +10180,8 @@ function logisticsRiskTask(order, fallbackDate) {
   const risky = normalizeOrderShipments(order).map(shipment => {
     const clean = shipment.trackingNumber;
     const carrier = carrierName(shipment.carrier === 'auto' ? detectCarrier(clean) : shipment.carrier);
-    if (!['DHL', 'FedEx'].includes(carrier) || shipment.status === '已签收') return null;
+    // 异常的那一批由「物流异常」那条提醒，不再另出「N 天未更新」：一单两条说的是同一件事。
+    if (!['DHL', 'FedEx'].includes(carrier) || shipment.status === '已签收' || shipment.status === '异常') return null;
     // 看「最后一次查询成功」：查询成功的时间记在这一批上（trackOkAt），不再只靠「最近查询」那张有上限的表，
     // 一次限流 / 超时、被挤出列表、点了「清除所有」，提醒都不会消失。旧数据没有 trackOkAt 时仍看查询记录。
     const lookup = latestTrackingLookup(clean);
@@ -10198,6 +10204,30 @@ function logisticsRiskTask(order, fallbackDate) {
     detail:`${carrier} · ${clean} · ${order.num}`,
     value:`${staleDays}天`,
     tag:'物流风险',
+    tagClass:'tag-orange',
+    priority:0
+  };
+}
+// 承运商报异常（扣关、地址问题、Shipment on hold…，用户手动标的异常也算）：一单一条，写承运商原话。
+// 几批都异常时说最近更新的那一批。状态变回运输中 / 已签收、订单完成后不再生成；点「完成」后同一次异常不再提醒。
+function logisticsIssueTask(order, fallbackDate) {
+  const issue = normalizeOrderShipments(order)
+    .filter(shipment => normalizeTrackingStatus(shipment.status) === '异常')
+    .sort((a, b) => parseDate(b.updated) - parseDate(a.updated))[0];
+  if (!issue) return null;
+  const carrier = carrierName(issue.carrier === 'auto' ? detectCarrier(issue.trackingNumber) : issue.carrier);
+  return {
+    id:`logistics-issue-${order.id}`,
+    doneKey:`logistics-issue-${order.id}-${issue.trackingNumber}-${issue.updated || ''}`,
+    orderId: order.id,
+    client: order.client,
+    date: fallbackDate,
+    type:'logisticsIssue',
+    title: clientDisplayName(order.client),
+    reason:`物流异常：${issue.rawStatus || '承运商报告异常'}`,
+    detail:`${carrier} · ${issue.trackingNumber} · ${order.num}`,
+    value:'',
+    tag:'物流异常',
     tagClass:'tag-orange',
     priority:0
   };
@@ -10258,7 +10288,7 @@ function calendarEventsInRange(from, to) {
     }
   });
   // 2. 提醒。
-  const taskTone = item => (item.type === 'logistics' || String(item.id || '').startsWith('logistics-risk-')) ? 'urgent'
+  const taskTone = item => (['logistics', 'logisticsIssue'].includes(item.type) || String(item.id || '').startsWith('logistics-risk-')) ? 'urgent'
     : item.type === 'ship' ? (normalizeDate(item.lateFrom || item.date) < today ? 'urgent' : 'repurchase')
       : item.type === 'urgent' ? 'urgent'
         : item.type === 'payment' ? 'payment' : item.type === 'follow' ? 'follow'
@@ -10357,8 +10387,7 @@ function calendarEventsInRange(from, to) {
       // earlier settings shows that term's currency, type and payment method.
       subscriptionCharges(item, from, to, subscriptionState.usdCnyRate, { unpaid:true }).forEach(charge => {
         // 只有还没续的那几笔写「需要手动续费」：已确认续过的、提前续好的、历史设置下的，照自动续费写付款方式。
-        const toRenew = charge.term === item && item.autoRenew === false
-          && (subscriptionManualTracked(item) ? charge.date > item.renewedThrough : charge.date > subscriptionLocalDate());
+        const toRenew = charge.term === item && item.autoRenew === false && subscriptionChargeState(item, charge.date) !== 'paid';
         events.push({ date:charge.date, type:'subscription', tone:'subscription', subId:item.id, label:`${item.name} 续费`, sub:[subscriptionMoney(charge.amount, charge.currency), charge.term.category, toRenew ? '需要手动续费' : charge.term.paymentMethod].filter(Boolean).join(' · ') });
       });
     });
@@ -16834,7 +16863,7 @@ function customerRoadmapEvents(name = '', history = []) {
   buildTaskItems({ includeSnoozed: true }).filter(item => String(item.client || '').toLowerCase() === clean.toLowerCase()).forEach(item => {
     events.push({
       // 这是还没处理的待办，不是发生过的跟进：标题写明「待办（未处理）」，别画成「跟进记录」。处理过的会作为订单记录出现。
-      type: item.type === 'logistics' ? 'risk' : item.type,
+      type: ['logistics', 'logisticsIssue'].includes(item.type) ? 'risk' : item.type,
       time: item.date || nowText(),
       title: `待办（未处理）：${taskTypeLabels[item.type]?.[0] || '提醒'}`,
       meta: `${item.reason || ''} · ${item.detail || ''}`,
@@ -20542,7 +20571,7 @@ let taskListExpanded = false;
 // 上次画待办是哪一天：App 开着过了午夜，watchTaskDayRollover 发现日期变了就重画。
 let taskListRenderedDay = '';
 function taskIsRisk(item = {}) {
-  return item.tag === '物流风险' || String(item.id || '').startsWith('logistics-risk-');
+  return item.tag === '物流风险' || item.type === 'logisticsIssue' || String(item.id || '').startsWith('logistics-risk-');
 }
 // 点「完成」后还会不会再提醒，按待办类型说（「完成」按钮的悬停提示、完成后的提示条、订单记录、「已处理」页签共用）。
 // until 是存下的再提醒日；beforeDone 是还没点完成时（悬停提示），这时按 remindAgainDays 说「N 天后」。
@@ -20551,6 +20580,7 @@ function taskRemindAgainText(task = {}, until = '', { beforeDone = false } = {})
   if (beforeDone && task.remindAgainDays > 0) return `${task.remindAgainDays} 天后还没解决会再提醒`;
   if (task.type === 'tracking') return '这张单不再提醒补运单号';
   if (String(task.id || '').startsWith('logistics-risk-')) return '物流有新动态后还没到会再提醒';
+  if (task.type === 'logisticsIssue') return '承运商再报异常会再提醒';
   return '日期改了会重新提醒';
 }
 // 「已处理」页签里每一行的说明：哪天处理的，哪天会再提醒。
@@ -20572,7 +20602,7 @@ function renderTasks() {
   const snoozedReminders = snoozedTasks.size ? collapseTasksPerOrder(buildTaskItems({ includeSnoozed:true }).filter(item => snoozedTasks.has(item.id))) : [];
   const doneReminders = buildTaskItems({ includeDone:true, includeSnoozed:true }).filter(item => isTaskDoneKey(item.doneKey || item.id, today));
   // 「物流」页签也收发货期限（ship）、可以发货（ready）、补运单号（tracking），它们不叫「物流异常」。
-  const matches = (item, type) => type === 'all' || item.type === type || (type === 'logistics' && ['ship', 'ready', 'tracking'].includes(item.type));
+  const matches = (item, type) => type === 'all' || item.type === type || (type === 'logistics' && ['ship', 'ready', 'tracking', 'logisticsIssue'].includes(item.type));
   const listMode = taskInboxFilter === 'snoozed' || taskInboxFilter === 'done' ? taskInboxFilter : 'active';
   const pool = listMode === 'snoozed' ? snoozedReminders : listMode === 'done' ? doneReminders : activeReminders.filter(item => matches(item, taskInboxFilter));
   // 今天的在前（物流风险最先），日期在以后的放在「即将到期」下面。
@@ -20701,7 +20731,7 @@ function taskActionButtons(item, { snooze = true, short = false } = {}) {
 // 待办直达抽屉的对应页签：收款 → 收款，发货期限 / 可以发货 / 补运单号 / 物流风险 → 物流，其它 → 订单信息。
 function taskDetailTab(task = {}) {
   if (task.type === 'payment') return 'payment';
-  if (['logistics', 'ship', 'ready', 'tracking'].includes(task.type) || String(task.id || '').startsWith('logistics-risk-')) return 'logistics';
+  if (['logistics', 'logisticsIssue', 'ship', 'ready', 'tracking'].includes(task.type) || String(task.id || '').startsWith('logistics-risk-')) return 'logistics';
   return 'info';
 }
 function postponeRepurchase(client, days) {
@@ -23936,7 +23966,7 @@ function undoOrderChange(id, { before, after, version, logText, doneText }) {
 }
 // 删除时清掉这张单的「已处理」标记，只认 类型-订单id 开头的键：以前按子串匹配，删 …-import-1 会连 …-import-10～19 一起清。
 function orderDoneTaskKeys(id) {
-  const prefixes = ['follow', 'payment', 'logistics-risk', 'urgent', 'ship', 'ready', 'tracking'];
+  const prefixes = ['follow', 'payment', 'logistics-risk', 'logistics-issue', 'urgent', 'ship', 'ready', 'tracking'];
   return Object.keys(state.doneTasks || {}).filter(key => prefixes.some(prefix => key === `${prefix}-${id}` || key.startsWith(`${prefix}-${id}-`)));
 }
 async function softDeleteOrder(id, { closeModal = false } = {}) {
@@ -25109,6 +25139,16 @@ function subscriptionManualTracked(item) {
   // Manual renewals with a 「已续费到」 date: a charge after it is renewed only when the user says so.
   return item.autoRenew === false && /^\d{4}-\d{2}-\d{2}$/.test(item.renewedThrough || '');
 }
+// 「这一笔付没付」只在这里算，列表、详情各期、累计已花费、日历小字、改价格弹窗、铃铛都问它，不再各自比日期。
+// 付到哪天：手动续费记了 renewedThrough 的，付到用户确认的那一期（提前续好的也算）；其余付到今天。
+function subscriptionPaidMark(item, today = subscriptionLocalDate()) {
+  return subscriptionManualTracked(item) ? item.renewedThrough : today;
+}
+// 当前设置下日期为 date 的这一笔：'paid' 已发生、'due' 到期了还没确认、'future' 还没到。历史设置（terms）下的扣费一律算已发生。
+function subscriptionChargeState(item, date, today = subscriptionLocalDate()) {
+  if (date <= subscriptionPaidMark(item, today)) return 'paid';
+  return date <= today ? 'due' : 'future';
+}
 function subscriptionTermTotals(item, today, rate) {
   // Charges made under earlier settings, up to today.
   const totals = { charges:0, spentCny:0, byCurrency:{} };
@@ -25144,7 +25184,7 @@ function subscriptionSchedule(item, today, rate) {
   const tracked = subscriptionManualTracked(item);
   // A manual renewal is paid up to the period the user confirmed, and no further: one not confirmed stays due
   // (overdue once its date passes), and one confirmed before its date (renewed early) already counts as paid.
-  const lastIndex = tracked ? subscriptionChargeIndex(item, item.renewedThrough) : subscriptionChargeIndex(item, today);
+  const lastIndex = subscriptionChargeIndex(item, subscriptionPaidMark(item, today));
   const renewsOn = chargeOn(lastIndex + 1);
   const cancelled = item.status === 'cancelled';
   const endsOn = cancelled ? (item.endsOn || renewsOn) : '';
@@ -25641,7 +25681,7 @@ function subscriptionCharges(item, from, to, rate, { today = subscriptionLocalDa
     let date = subscriptionChargeDate(term, index);
     if (date < from) date = subscriptionChargeDate(term, ++index);
     for (; date <= to && (!end || date < end); date = subscriptionChargeDate(term, ++index)) {
-      if (term === item && subscriptionManualTracked(item) && date > item.renewedThrough && date <= today && !unpaid) continue;
+      if (term === item && !unpaid && subscriptionChargeState(item, date, today) === 'due') continue;
       const amount = price(date);
       charges.push({ item, term, date, index:offset + index, amount, currency:term.currency, cny:subscriptionToCny(term, amount, rate) });
     }
@@ -26421,7 +26461,6 @@ function subscriptionPeriods(item, today, schedule) {
   const bound = subscriptionStopBound(item, schedule.paidThrough);
   const changes = subscriptionPriceChanges(item);
   const price = subscriptionPricer(item);
-  const tracked = subscriptionManualTracked(item);
   const periods = [];
   // Periods under earlier settings come first, read-only: they keep the price and cycle they had.
   let offset = 0;
@@ -26442,12 +26481,12 @@ function subscriptionPeriods(item, today, schedule) {
     if (bound && date >= bound) break;
     // A manual renewal that is due but not confirmed is not paid yet: it shows as 待续费.
     // One renewed ahead of its date (date after today, on or before renewedThrough) is paid already.
-    const unconfirmed = tracked && date > item.renewedThrough;
-    const past = tracked ? !unconfirmed : date <= today;
+    const chargeState = subscriptionChargeState(item, date, today);
+    const past = chargeState === 'paid';
     if (!past) future += 1;
     const next = subscriptionChargeDate(item, index + 1);
     periods.push({
-      index:offset + index, local:index, date, until:subscriptionDateFromDay(subscriptionDayNumber(next) - 1), past, due:unconfirmed && date <= today,
+      index:offset + index, local:index, date, until:subscriptionDateFromDay(subscriptionDayNumber(next) - 1), past, due:chargeState === 'due',
       current:past && date <= today && next > today, amount:price(date), currency:item.currency, term:item, old:false,
       once:changes.some(change => change.once && change.from === date),
       change:index > 0 && changes.some(change => !change.once && change.from === date)
@@ -26818,8 +26857,8 @@ function openSubscriptionPriceEditor(date) {
   // Numbered on from the periods under earlier settings, as in the drawer.
   const index = subscriptionTermOffset(item) + local;
   const period = { index, date, until:subscriptionDateFromDay(subscriptionDayNumber(subscriptionChargeDate(item, local + 1)) - 1), term:item };
-  // 和详情里的「已发生」同一个口径：提前续好的那一期（到期日不晚于 renewedThrough）也算已发生。
-  const past = date <= today || (subscriptionManualTracked(item) && date <= item.renewedThrough);
+  // 和详情同一个口径（subscriptionChargeState）：提前续好的那一期也算已发生；到期没确认的那一期本来就是已经发生的日子，按已发生改。
+  const past = subscriptionChargeState(item, date, today) !== 'future';
   const changes = subscriptionPriceChanges(item).filter(change => change.from === date);
   // A period already paid is usually a one-off correction; a future one usually a price rise.
   const scope = changes.some(change => change.once) ? 'once' : changes.length ? 'onward' : past ? 'once' : 'onward';

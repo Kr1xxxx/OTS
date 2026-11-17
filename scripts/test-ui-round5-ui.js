@@ -220,14 +220,14 @@ const data = { orders, customers };
       await page.setViewportSize({ width:1294, height:847 });
       // 5. 订单页筛选栏搜索框。
       await page.evaluate(() => setPage('order-list'));
-      await page.waitForSelector('#orderTableBody td.col-country');
+      await page.waitForSelector('#orderTableBody td.col-customer .order-table-sub');
       const listSearch = await page.evaluate(() => {
         const input = document.getElementById('orderListSearch');
         return { overflow:getComputedStyle(input).textOverflow };
       });
       assert.equal(listSearch.overflow, 'ellipsis');
-      // 8. 国家名（最长 4 个汉字）放得下。
-      const cut = await page.$$eval('#orderTableBody td.col-country .order-table-ellipsis', els => els.filter(el => el.scrollWidth > el.clientWidth + 0.5).map(el => el.textContent));
+      // 8. 国家名（最长 4 个汉字）放得下：现在写在客户格第二行（这些单没有备注，第二行只有国家）。
+      const cut = await page.$$eval('#orderTableBody td.col-customer .order-table-sub', els => els.filter(el => el.scrollWidth > el.clientWidth + 0.5).map(el => el.textContent));
       assert.deepEqual(cut, [], '国家名被截');
       await shot(page, '5-8-订单页1294');
       // 8. 客户页：客户属性列里看得见的标签都完整。

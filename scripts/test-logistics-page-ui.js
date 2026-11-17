@@ -204,13 +204,14 @@ const risks = page => page.evaluate(() => buildTaskItems().filter(task => String
     assert.doesNotMatch(listText, /Done Long Ago|Done Ups|Draft Holder/, '已完成和草稿默认不在列表里');
     assert.doesNotMatch(listText, /在途 60天/);
     const firstRow = await text(page, '#logisticsList .ship-row');
-    assert.match(firstRow, /Three Parcels[\s\S]*DHL · 异常[\s\S]*第 3\/3 批[\s\S]*异常 · 已 3 天/, '异常件排最前，写明第几批，徽标写「异常 · 已 N 天」');
+    assert.match(firstRow, /Three Parcels[\s\S]*异常[\s\S]*DHL 2222 2222 22[\s\S]*第 3\/3 批[\s\S]*已 3 天/, '异常件排最前，写明第几批，徽标写「已 N 天」');
+    assert.doesNotMatch(firstRow, /DHL · |异常 · 已/, '承运商和「异常」各只写一次（PR-B）');
     assert.equal(await page.locator(`${shipRow('2222222222')} .delivery-timing`).getAttribute('class'), 'delivery-timing bad');
     // P2-8：颜色和文字同一个天数（3 天 → 橙色）。
     assert.match(await text(page, `${shipRow('1234567890')} .delivery-timing`), /^在途 3天10小时$/);
     assert.equal(await page.locator(`${shipRow('1234567890')} .delivery-timing`).getAttribute('class'), 'delivery-timing warn');
     // P2-7：✅ / ❌ 不在状态胶囊里；没单号的行不写 DHL、有「补单号」；UPS 行没有「更新」。
-    assert.equal(await text(page, `${shipRow('1234567890')} .ship-pill`), 'DHL · 运输中');
+    assert.equal(await text(page, `${shipRow('1234567890')} .ship-pill`), '运输中', '右上角只写状态，承运商在单号前面');
     assert.match(await text(page, `${shipRow('1234567890')} .ship-check`), /昨天 08:00 查过 ✓/);
     const noNumber = page.locator('#logisticsList .ship-row', { hasText:'No Number Yet' });
     assert.doesNotMatch(await noNumber.innerText(), /DHL/);
@@ -252,7 +253,7 @@ const risks = page => page.evaluate(() => buildTaskItems().filter(task => String
     const rateToast = (await h.toasts(page)).find(item => item.includes('DHL 调用次数超限'));
     assert.match(rateToast, /约 30 分钟后再试/);
     assert.doesNotMatch(rateToast, /HTTP|\{|Too Many/, '不再显示服务端拼出的 JSON 原文');
-    assert.equal(await text(page, `${shipRow('1234567890')} .ship-pill`), 'DHL · 运输中', '状态不被改成「待 API 查询」');
+    assert.equal(await text(page, `${shipRow('1234567890')} .ship-pill`), '运输中', '状态不被改成「待 API 查询」');
     assert.match(await text(page, `${shipRow('1234567890')} .ship-check`), /今天 10:00 查询失败（限流）/);
     assert.match(await text(page, recentRow('1234567890')), /运输中[\s\S]*查询失败（限流）/);
     assert.deepEqual(await risks(page), ['Alpha Wigs: 物流 5 天未更新进度'], '限流后物流风险提醒还在');
@@ -321,7 +322,7 @@ const risks = page => page.evaluate(() => buildTaskItems().filter(task => String
     assert.ok(!carrier.calls.some(call => call.endsWith('6666666666')), '草稿的单号不查');
     await h.waitToast(page, '限流，跳过');
     assert.match((await h.toasts(page)).find(item => item.includes('自动') || item.includes('手动更新完成')), /成功 1，失败 1；DHL 限流，跳过 3 个/);
-    assert.equal(await text(page, `${shipRow('2222222222')} .ship-pill`), 'DHL · 异常', '跳过的单号不写失败');
+    assert.equal(await text(page, `${shipRow('2222222222')} .ship-pill`), '异常', '跳过的单号不写失败');
     await clickRowAction(page, shipRow('123456789012'), '[data-refresh-logistics]');
     await page.waitForFunction(() => !document.querySelector('#logisticsList .logistics-refreshing'));
     assert.equal(carrier.tokenCalls, 1, 'FedEx token 按有效期复用，不再每查一个单号拿一次');
@@ -344,7 +345,9 @@ const risks = page => page.evaluate(() => buildTaskItems().filter(task => String
     await clickAt(page, `${recentRow('2222222222')} .recent-tracking-code`);
     await page.waitForFunction(() => document.getElementById('trackingDetailDrawer').classList.contains('open'));
     assert.equal(await page.locator('#trackingDetailBody .modal-summary .ship-pill').getAttribute('class'), 'ship-pill tone-red', '异常用红色');
-    assert.match(await text(page, '#trackingDetailBody'), /风险判断 异常 · 需要联系承运商/);
+    const trackingBody = await text(page, '#trackingDetailBody');
+    assert.match(trackingBody, /^Three Parcels 打开订单 L0002 · 已发货 异常 需要联系承运商 昨天 12:00 查过 ✓ 复制单号 重新查询 打开官网 物流节点 共 1 个 Shipment on hold 最新 /, '风险跟在状态后面，异常只写一次');
+    assert.doesNotMatch(trackingBody, /风险判断|物流概览|人工核对/);
     assert.equal(await page.locator('#trackingDetailBody [data-copy-tracking="2222222222"]').count(), 1);
     assert.equal(await page.locator('#trackingDetailBody [data-detail-refresh]').count(), 1);
     assert.equal(await text(page, '#trackingDetailNum'), '2222 2222 22');
@@ -364,12 +367,12 @@ const risks = page => page.evaluate(() => buildTaskItems().filter(task => String
         hero:box(body.querySelector('.detail-hero'))
       };
     });
-    assert(drawerLook.sections.length >= 3, `物流抽屉至少有关联订单、物流概览、物流节点几块 ${drawerLook.sections.length}`);
+    assert(drawerLook.sections.length >= 1, `物流抽屉至少有物流节点一块 ${drawerLook.sections.length}`);
     for (const section of drawerLook.sections) {
       assert.deepEqual([section.top, section.right, section.bottom, section.left], ['1px', '0px', '0px', '0px'], `分块只有上面一条细线 ${JSON.stringify(section)}`);
       assert.equal(section.bg, 'rgba(0, 0, 0, 0)', '分块背景透明');
     }
-    assert(drawerLook.items.length >= 3, '抽屉里有小块');
+    assert(drawerLook.items.length >= 1, '抽屉里有小块');
     for (const item of drawerLook.items) assert.equal(item.bg, drawerLook.soft, `小块是灰底 ${JSON.stringify(item)}`);
     assert(drawerLook.items.every(item => item.top === '0px' || item.borderColor === 'rgba(0, 0, 0, 0)'), '小块没有看得见的边框');
     assert.equal(drawerLook.hero.top, '1px', '顶上那张卡仍有描边');

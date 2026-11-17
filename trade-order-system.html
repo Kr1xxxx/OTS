@@ -3409,6 +3409,8 @@ html[data-theme] .api-status-strip { gap:2px; }
 html[data-theme] .settings-api-strip { display:flex; flex-wrap:wrap; gap:4px 16px; max-width:none; }
 html[data-theme] .settings-api-strip .api-status-dot { flex:none; width:auto; min-height:32px; max-width:none; padding:0 10px; }
 html[data-theme] .settings-api-strip .api-status-state { margin-left:0; }
+/* 备份目录还是默认目录时备份信息那行末尾的提醒句（提醒色，和「目录不可用」那句同一行） */
+html[data-theme] .backup-info .backup-local-hint { color:var(--s-amber); }
 html[data-theme] .api-status-dot { min-height:26px; border:0; border-radius:8px; background:transparent; box-shadow:none; padding:0 4px; gap:8px; font-size:13px; font-weight:400; color:var(--gray-600); }
 html[data-theme] .api-status-dot:hover { background:var(--surface-soft); }
 html[data-theme] .api-status-dot::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--gray-400); flex:none; }
@@ -26024,6 +26026,12 @@ function showRestoredBackupNotice() {
 }
 // 备份目录可选（比如 iCloud Drive）+ 上次备份时间；信息来自 /api/health 和 /api/backup-settings。
 let macBackupSummary = null;
+// 备份目录还是默认目录：备份和数据库在同一块硬盘上，电脑坏了或丢了一起没。设置页备份那一行和通知面板各提醒一句。
+// 用户自己选过目录就不再提醒，也不猜那个目录是不是云盘。浏览器直接打开页面时没有备份信息，不提醒。
+// 只认服务端明说的 isDefault:true；没有这个字段（浏览器直接打开、读不到备份信息）当作不知道，不提醒。
+function macBackupOnlyLocal() {
+  return macBackupSummary?.isDefault === true;
+}
 function uiRelativeTime(ms) {
   const value = Number(ms || 0);
   if (!value) return '';
@@ -26042,14 +26050,17 @@ function renderBackupInfo(summary = macBackupSummary) {
   const pulse = document.getElementById('savePulse');
   if (!macBackupSummary) return;
   const last = macBackupSummary.lastBackupAt ? `上次备份 ${uiRelativeTime(macBackupSummary.lastBackupAt)}` : '还没有备份过';
-  if (pulse) pulse.title = `${last}${macBackupSummary.dir ? ` · ${macBackupSummary.dir}` : ''}`;
+  const onlyLocal = macBackupOnlyLocal();
+  if (pulse) pulse.title = `${last}${macBackupSummary.dir ? ` · ${macBackupSummary.dir}` : ''}${onlyLocal ? '（只在这台电脑上）' : ''}`;
   if (info) {
     const count = Number(macBackupSummary.sqliteCount ?? macBackupSummary.count ?? 0);
     const oldest = Number(macBackupSummary.oldestBackupAt || 0) ? ` · 最早可以回到 ${backupTimeText(macBackupSummary.oldestBackupAt).slice(0, 10)}` : '';
-    info.innerHTML = `<span>${escapeAttr(last)}${count ? ` · 共 ${count} 份` : ''}${escapeAttr(oldest)}${macBackupSummary.dirError ? ` · <b style="color:var(--red-600,#dc2626)">目录不可用，已临时用默认目录：${escapeAttr(macBackupSummary.dirError)}</b>` : ''}</span><span>备份目录：<code>${escapeAttr(macBackupSummary.dir || '')}</code>${macBackupSummary.isDefault ? '（默认）' : ''}</span>`;
+    info.innerHTML = `<span>${escapeAttr(last)}${count ? ` · 共 ${count} 份` : ''}${escapeAttr(oldest)}${macBackupSummary.dirError ? ` · <b style="color:var(--red-600,#dc2626)">目录不可用，已临时用默认目录：${escapeAttr(macBackupSummary.dirError)}</b>` : ''}</span><span>备份目录：<code>${escapeAttr(macBackupSummary.dir || '')}</code>${macBackupSummary.isDefault ? '（默认）' : ''}</span>${onlyLocal ? '<span class="backup-local-hint" id="macBackupLocalHint">备份现在只在这台电脑上，电脑坏了或丢了会一起没有。点「选择备份目录…」放到 iCloud Drive 或网盘。</span>' : ''}`;
   }
   const reset = document.getElementById('macResetBackupDirBtn');
   if (reset) reset.hidden = macBackupSummary.isDefault !== false;
+  // 通知面板里那张「备份只在这台电脑上」跟着出现 / 消失（选目录、恢复默认后不用刷新）。
+  if (typeof uiRenderNotifs === 'function') uiRenderNotifs();
 }
 async function refreshBackupInfo() {
   if (!isMacAppMode()) return null;
@@ -32514,12 +32525,13 @@ function uiNotifRead() {
 }
 // 已读集合存之前先剔掉已经不存在的条目，再留最后 400 个；Set 按「最近一次标已读」排（uiNotifMarkRead 先删再加）。
 // 以前按第一次读的顺序截断：读过 400 个别的 id 以后，还挂在面板上的旧卡（续费、常驻的接口卡）突然变回未读、铃铛再摇。
-// 续费提醒的 id 留着：续费数据可能还没读出来，不能当成已经不存在。订单动态不算未读，不用记。
+// 续费提醒的 id 留着：续费数据可能还没读出来，不能当成已经不存在；「备份只在本机」也一样（备份信息可能还没读到）。
+// 订单动态不算未读，不用记。
 function uiNotifSaveRead(set) {
   try {
     const events = new Set(uiNotifEvents().map(item => item.id));
     const live = new Set(uiNotifItems().map(item => item.id));
-    const keep = [...set].filter(id => typeof id === 'string' && !id.startsWith('log-') && (events.has(id) || live.has(id) || id.startsWith('renew')));
+    const keep = [...set].filter(id => typeof id === 'string' && !id.startsWith('log-') && (events.has(id) || live.has(id) || id.startsWith('renew') || id === 'backup-local'));
     safeStorage.setItem('ots-notif-read-v1', JSON.stringify(keep.slice(-400)));
   } catch (_) { /* 本机存储不可用时只是不记已读 */ }
 }
@@ -32622,6 +32634,11 @@ function uiNotifItems() {
   // 续费提醒不占 40 条的名额（以前订单动态一多，快到期的续费被挤出列表）：3 天内的（含已过期）按天数排在最上面，
   // 其余跟在今天的事件之后。
   const renewals = typeof subscriptionReminders === 'function' ? subscriptionReminders() : [];
+  // 备份只在本机：按当前状态生成的常驻卡（不写进事件列表），排在 3 天内的续费后面；选了备份目录就没有了。
+  // 时间写今天，归在「今天」那组；看过以后照已读规则不再算未读，卡片还在。
+  const sticky = macBackupOnlyLocal()
+    ? [{ id:'backup-local', kind:'info', tone:'warn', title:'备份只在这台电脑上', sub:'放到 iCloud Drive 或网盘，电脑坏了也还有一份', time:normalizeDate(new Date().toISOString()) }]
+    : [];
   const since = now - 3 * 86400000;
   // 飞书发送结果已经作为事件记过了，别再把同一条日志当成「订单已更新」重复露出来。
   state.orders.filter(o => parseDate(o.updated) >= since && !/^飞书群消息/.test(uiNotifLogText((o.logs || [])[0]))).sort((a, b) => parseDate(b.updated) - parseDate(a.updated)).slice(0, 8).forEach(o => {
@@ -32643,7 +32660,7 @@ function uiNotifItems() {
   const todayStart = parseDate(normalizeDate(new Date().toISOString())).getTime() || 0;
   const cut = rest.findIndex(item => stamp(item) < todayStart);
   const at = cut < 0 ? rest.length : cut;
-  return [...urgent, ...rest.slice(0, at), ...later, ...rest.slice(at)];
+  return [...urgent, ...sticky, ...rest.slice(0, at), ...later, ...rest.slice(at)];
 }
 function uiNotifIsRead(item, read) { return Boolean(item.quiet || read.has(item.id)); }
 // 卡片时间：本机时间「今天 / 昨天 HH:MM」，今年的写「MM-DD HH:MM」，不是今年的带年份。
@@ -32899,6 +32916,14 @@ function uiNotifOpenTarget(card) {
     setPage('settings');
     uiSettingsTab('api');
     document.querySelector(`[data-settings-panel="api"] [data-api-check="${api[1]}"]`)?.focus();
+    return;
+  }
+  // 备份只在本机 → 设置「数据管理」，滚到备份那一行（「选择备份目录…」就在旁边）。
+  if (id === 'backup-local') {
+    uiToggleNotifs(false);
+    setPage('settings');
+    uiSettingsTab('data');
+    document.getElementById('macBackupInfo')?.closest('.data-action')?.scrollIntoView({ block:'center' });
     return;
   }
   // 保存失败 → 设置「数据管理」（数据库状态在那里）；还在失败就马上再试一次。

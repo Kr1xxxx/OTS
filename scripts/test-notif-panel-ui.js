@@ -32,6 +32,8 @@ const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return 
   ];
   const customers = Object.fromEntries(orders.map(o => [o.client, { client:o.client, country:o.country }]));
   fs.writeFileSync(path.join(dataDir, 'trade-order-data.json'), JSON.stringify({ app:'trade-order-system', version:1, data:{ orders, customers, trashOrders:[], deletedOrders:[], doneTasks:{}, demoCleared:true, demoCustomersCleared:true } }));
+  // 备份目录选在别处：默认目录时多一张「备份只在这台电脑上」的常驻卡（test-backup-local-reminder-ui 管它），这里不要它占未读。
+  fs.writeFileSync(path.join(dataDir, 'backup-settings.json'), JSON.stringify({ backupDir:path.join(dataDir, 'chosen-backups') }));
   const port = freePortSync();
   const token = `notif-panel-${process.pid}`;
   const env = { ...process.env, TRADE_APP_PORT:String(port), TRADE_APP_DATA_DIR:dataDir, TRADE_API_TOKEN:token, TRADE_APP_NO_OPEN:'1', DHL_API_KEY:'', FEDEX_CLIENT_ID:'', FEDEX_CLIENT_SECRET:'' };

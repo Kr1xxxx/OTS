@@ -134,7 +134,7 @@ const freePort = () => new Promise((resolve, reject) => {
     const { page, context, errors, dialogs } = await open();
     await loaded(page);
     await page.evaluate(() => setPage('dashboard'));
-    assert.equal(await text(page, '#statTargetRate'), '未设');
+    assert.equal(await text(page, '#statTargetRate'), '设目标');
     await click(page, '#targetStat');
     await page.waitForFunction(() => document.getElementById('page-targets')?.classList.contains('active'));
     await page.waitForFunction(() => document.activeElement?.id === 'targetAmountInput');

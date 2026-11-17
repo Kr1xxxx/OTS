@@ -96,8 +96,9 @@ const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return 
     await openBell();
     const own = page.locator('#notifList .notif-card[data-order-id="N1"]');
     await own.waitFor();
-    assert.deepEqual(await own.evaluate(el => [el.classList.contains('is-quiet'), el.classList.contains('is-read'), el.querySelector('.notif-pill').textContent]), [true, true, '订单']);
-    assert.match(await own.locator('small').innerText(), /K3001 · 待发货/, 'the stage moves into the subtitle');
+    // Two lines: the customer with the time on the right, then 「order number · what happened」; no type pill.
+    assert.deepEqual(await own.evaluate(el => [el.classList.contains('is-quiet'), el.classList.contains('is-read'), el.querySelector('.notif-t').textContent, Boolean(el.querySelector('.notif-line .notif-when')?.textContent), el.querySelectorAll('.notif-pill, .notif-foot').length]), [true, true, 'Alpha Hair', true, 0]);
+    assert.match(await own.locator('small').innerText(), /^K3001 · .*待发货/, 'order number first, then the log line');
     assert.equal(await page.locator('#notifReadAll').isDisabled(), true, 'nothing to mark read');
     // The read look keeps full opacity (contrast), the unread dot is gone.
     await h.settle(page, '#notifList .notif-card[data-order-id="N1"]');
@@ -148,6 +149,8 @@ const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return 
     // ---- 4. Feishu failure card opens 订单信息 with 重新发送 focused ----
     await page.evaluate(() => applyOrderNotificationResult('N1', { status:'failed', error:'网络超时' }));
     await openBell();
+    // The recovered API card says 已恢复 at the end of its second line.
+    assert.match(await page.locator('#notifList .notif-card[data-notif-id^="api-dhl-"] small').innerText(), /DHL.* · 已恢复 /);
     await click('#notifList .notif-card[data-notif-id^="feishu-N1-failed"]', 'feishu card');
     await page.waitForFunction(() => document.getElementById('orderDetailDrawer').classList.contains('open') && document.activeElement?.dataset?.retryOrderNotification === 'N1');
     assert.equal(await page.evaluate(() => uiDetailTab.current), 'info');
@@ -179,6 +182,7 @@ const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return 
       const year = new Date().getFullYear() - 1;
       list.unshift({ id:'syn-last-year', kind:'info', title:'去年的事件', sub:'', pill:'物流', time:`${year}-03-05 09:00` });
       for (let i = 0; i < 45; i++) list.push({ id:`syn-${i}`, kind:'info', title:`批量事件 ${i}`, sub:'', pill:'物流', time:`${new Date(Date.now() - (i + 2) * 3600000).toISOString()}` });
+      list.push({ id:'syn-long', kind:'info', title:'Long Note Buyer', sub:`K3999 · ${'订单备注改成了一段很长的话，'.repeat(4)}最后几个字`, pill:'物流', time:new Date().toISOString() });
       localStorage.setItem('ots-notif-events-v1', JSON.stringify(list));
       uiRenderNotifs();
     });
@@ -187,6 +191,13 @@ const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return 
     await openBell();
     assert.equal(await page.locator('#notifUnread').innerText(), `${totalUnread} 条未读`);
     assert.equal(await page.locator('#notifList .notif-card').count(), 40);
+    // A long second line folds onto two lines before it is cut; the whole text stays in the tooltip.
+    const long = await page.locator('#notifList .notif-card[data-notif-id="syn-long"]').evaluate(card => {
+      const small = card.querySelector('small');
+      return { lines:Math.round(small.getBoundingClientRect().height / parseFloat(getComputedStyle(small).lineHeight)), title:card.title };
+    });
+    assert.equal(long.lines, 2, 'long second line takes two lines');
+    assert.match(long.title, /最后几个字$/);
     assert.ok(await page.locator('#notifList .notif-group').count() >= 2, 'today / earlier headings');
     const more = page.locator('#notifList [data-notif-more]');
     assert.match(await more.innerText(), /还有 \d+ 条更早的通知/);

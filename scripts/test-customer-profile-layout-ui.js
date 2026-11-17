@@ -16,7 +16,7 @@ const data = {
     'Vanessa Kroon':{
       client:'Vanessa Kroon', country:'🇪🇸 西班牙 Spain', emails:['vanessa@example.com', 'second@example.com'], email:'vanessa@example.com',
       phones:['+34 600 000 000'], phone:'+34 600 000 000', addresses:[address], address, currency:'USD', paymentMethod:'阿里巴巴',
-      level:'C级白金客户', tags:['批发'], owner:'Kris', note:'普通备注', permanentNote:'只用无品牌包装'
+      level:'C级白金客户', tags:['批发'], owner:'Kris', note:'普通备注', permanentNote:'只用无品牌包装', repurchaseCycle:90
     },
     // 用户实际反馈的那类客户：十行备注 + 两笔订单，在 1102×912 的窗口（Mac App 85% 缩放下的常见大小）里要一屏看完。
     'Long Note Co':{
@@ -59,7 +59,7 @@ const openProfile = async (page, name) => {
     assert.ok(addressBox.width >= 240, `地址宽度太窄：${addressBox.width}`);
     assert.equal(await page.locator('.customer-rail-address').innerText(), address);
     assert.equal(await page.locator('#customerDetailInfoGrid [data-copy-customer-address]').count(), 1);
-    assert.match(await page.locator('#customerDetailInfoGrid').innerText(), /未填写：联系人、联系方式、阿里 ID/);
+    assert.match(await page.locator('#customerDetailInfoGrid').innerText(), /还没填：联系人、联系方式、阿里 ID/);
     assert.match(await page.locator('#customerDetailInfoGrid').innerText(), /主要/);
     assert.match(await page.locator('#customerDetailPermanentNote').innerText(), /只用无品牌包装/);
     assert.match(await page.locator('#customerDetailNote').innerText(), /普通备注/);
@@ -98,12 +98,12 @@ const openProfile = async (page, name) => {
     await page.keyboard.press('ArrowLeft');
     assert.deepEqual(await shown(), ['whatsapp']);
 
-    // 换一个客户再打开：回到关联订单，空资料合并成一行「未填写」。
+    // 换一个客户再打开：回到关联订单，空资料合并成左栏最后一行「还没填」，没设的永久备注不出横幅。
     await page.evaluate(() => closeCustomerModal());
     await openProfile(page, 'Empty Co');
     assert.deepEqual(await shown(), ['orders']);
-    assert.match(await page.locator('#customerDetailInfoGrid').innerText(), /未填写：联系人、电话、邮箱、联系方式、阿里 ID/);
-    assert.match(await page.locator('#customerDetailPermanentNote').innerText(), /未设置/);
+    assert.match(await page.locator('#customerDetailInfoGrid').innerText(), /还没填：联系人、电话、邮箱、联系方式、阿里 ID/);
+    assert.equal(await page.locator('#customerDetailPermanentNote').isHidden(), true);
 
     // 进入编辑再取消：头部说明恢复，不残留只读标签。
     await page.locator('#customerDetailEditBtn').click();

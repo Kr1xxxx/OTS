@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 // Runs every regression test and reports all results instead of stopping at the first failure.
-// Usage: node scripts/run-tests.js [name-filter ...]
+// Usage: node scripts/run-tests.js [--list] [name-filter ...]
+// --list prints the names of this run's tests, one per line (those it would skip too), and starts none.
 //
 // OTS_TEST_BROWSER=webkit runs the tests that open a browser a second time, in Playwright's WebKit instead of
 // Chromium (see helpers/use-webkit.js). The tests that never open one are left out of that run: they would
 // only repeat what the Chromium run showed.
+//
+// OTS_TEST_SHARD=K/N runs one of N parts of the list: the tests are dealt out in turn (the first to part 1, the second
+// to part 2, ...), so the N parts together are every test once and a new test file lands in one of them by itself.
+// CI uses it for the WebKit run, which takes about three times as long as the Chromium one (.github/workflows/ci.yml).
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -44,8 +49,23 @@ const tests = inWebkit
     { name: 'native', file: 'native', command: 'swift', args: ['run', 'TradeOrderSystemCoreTests'], cwd: path.join(root, 'mac-app', 'native') }
   ];
 
-const filters = process.argv.slice(2);
-const selected = tests.filter(test => !filters.length || filters.some(filter => test.name.includes(filter)));
+// check-project (first) is not dealt out: it takes under a second and runs in every part.
+function inShard(list, spec) {
+  if (!spec) return list;
+  const [, part, parts] = /^(\d+)\/(\d+)$/.exec(spec) || [];
+  if (!(Number(part) >= 1 && Number(part) <= Number(parts))) {
+    // Stop here: a part that does not exist would run nothing and report success.
+    console.error(`OTS_TEST_SHARD is ${JSON.stringify(spec)}; it has to be K/N with K from 1 to N, for example 1/2`);
+    process.exit(1);
+  }
+  let dealt = 0;
+  return list.filter(test => test.first || dealt++ % Number(parts) === Number(part) - 1);
+}
+
+const shard = process.env.OTS_TEST_SHARD || '';
+const listOnly = process.argv.includes('--list');
+const filters = process.argv.slice(2).filter(arg => arg !== '--list');
+const selected = inShard(tests, shard).filter(test => !filters.length || filters.some(filter => test.name.includes(filter)));
 const concurrency = Math.max(1, Number(process.env.OTS_TEST_CONCURRENCY) || Math.min(4, os.availableParallelism?.() || os.cpus().length));
 const results = [];
 // The servers that tests start ask no exchange-rate source on the internet (mac-app/server.js, TRADE_RATES_OFFLINE).
@@ -86,6 +106,10 @@ async function runPool(list) {
 }
 
 async function main() {
+  if (listOnly) {
+    selected.forEach(test => console.log(test.name));
+    return;
+  }
   const startedAt = Date.now();
   for (const test of selected.filter(test => test.first)) await run(test);
   await runPool(selected.filter(test => !test.first));
@@ -97,7 +121,7 @@ async function main() {
   }
   for (const result of skipped) console.log(`SKIP  ${result.test.name}  (${result.output})`);
   const passed = results.length - failed.length - skipped.length;
-  console.log(`\n${passed} passed, ${failed.length} failed, ${skipped.length} skipped in ${((Date.now() - startedAt) / 1000).toFixed(1)}s`);
+  console.log(`\n${passed} passed, ${failed.length} failed, ${skipped.length} skipped in ${((Date.now() - startedAt) / 1000).toFixed(1)}s${shard ? ` (part ${shard})` : ''}`);
   if (!selected.length) {
     console.log('No tests matched.');
     process.exitCode = 1;

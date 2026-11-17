@@ -29,9 +29,18 @@ jobs:
 
   # The app's engine. Every test that opens a browser runs once more in Playwright's WebKit on macOS
   # (WebKit's Mac port) instead of Chromium. It is not the app's window: see scripts/helpers/use-webkit.js.
+  #
+  # In parts that run side by side: the same tests take about three times as long here as in Chromium, and as one
+  # job the run had grown to 27 minutes and was cut off at 30 (117 tests, 2026-11-17). Each part is one runner with
+  # every other test of the list (OTS_TEST_SHARD in scripts/run-tests.js); when the parts get long again, add a
+  # number to `shard` and nothing else. A part that fails does not stop the others, so one run shows every failure.
   test-webkit:
     runs-on: macos-15
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -47,6 +56,7 @@ jobs:
         env:
           OTS_TEST_BROWSER: webkit
           OTS_TEST_CONCURRENCY: 2
+          OTS_TEST_SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
 
   test-macos:
     runs-on: macos-15

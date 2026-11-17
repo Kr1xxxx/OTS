@@ -22323,6 +22323,8 @@ function renderCustomers() {
       const visibleTags = otherTags.slice(0, 2);
       const hiddenTagCount = Math.max(0, otherTags.length - visibleTags.length);
       // 第一格只写客户名本身，联系人只在第二行出现一次；没填的项不写「未填写」，那一层不画。
+      // 名字的写法和别处一样（大小写、&amp;、末尾的区号都照 clientDisplayName 的整理），只是不带「（联系人）」。
+      const name = autoCapitalizeCustomerName(c.client) || '未命名客户';
       const email = customerEmailSummary(c, '');
       const contactLine = [contact || c.phone || '', email].filter(Boolean).join(' · ');
       const attrs = [c.productType || '', c.primaryContactMethod ? `首选 ${c.primaryContactMethod}` : c.paymentMethod || ''].filter(Boolean).join(' · ');
@@ -22331,9 +22333,9 @@ function renderCustomers() {
       return `
       <div class="customer-row" data-view-customer="${escapeAttr(c.client)}" tabindex="0" role="button" aria-label="查看客户 ${escapeAttr(clientDisplayName(c.client))}">
         <div class="customer-cell-main">
-          <span class="customer-avatar" aria-hidden="true">${escapeAttr(customerInitials(c.client))}</span>
+          <span class="customer-avatar" aria-hidden="true">${escapeAttr(customerInitials(name))}</span>
           <div class="customer-cell-text">
-            <div class="customer-name-line"><strong class="customer-cell-ellipsis" title="${escapeAttr(`${c.client} · ${c.customerId}`)}">${escapeAttr(c.client)}</strong></div>
+            <div class="customer-name-line"><strong class="customer-cell-ellipsis" title="${escapeAttr(`${name} · ${c.customerId}`)}">${escapeAttr(name)}</strong></div>
             ${contactLine ? `<div class="muted customer-cell-ellipsis" title="${escapeAttr(contactLine)}">${escapeAttr(contactLine)}</div>` : ''}
           </div>
         </div>

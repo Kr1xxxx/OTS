@@ -22,7 +22,9 @@ const fixture = () => ({
     'Aurora Hair Studio':{ client:'Aurora Hair Studio', contact:'Mia Carter', email:'mia@example.com', country:'🇺🇸 美国 United States', address:'1200 Example Ave, Austin', repurchaseCycle:45, updated:'2026-11-05 09:00' },
     [LONG]:{ client:LONG, contact:'Thandi M.', country:'🇿🇦 南非 South Africa', updated:'2026-11-14 09:00' },
     'Halo Extensions':{ client:'Halo Extensions', updated:'2026-11-05 09:00' },
-    'Plain Profile':{ client:'Plain Profile', createdAt:'2025-12-30', updated:'2025-12-30 09:00' }
+    'Plain Profile':{ client:'Plain Profile', createdAt:'2025-12-30', updated:'2025-12-30 09:00' },
+    // 存下来的名字没整理过（小写、带 &amp; 和末尾区号）：列表里照别处的写法显示。
+    'tom &amp; lily hair +86':{ client:'tom &amp; lily hair +86', contact:'lily stone', createdAt:'2025-12-30', updated:'2025-12-30 09:00' }
   }
 });
 
@@ -116,6 +118,7 @@ async function openApp(browser, { width = 1440, height = 920 } = {}) {
     }
     assert.equal(list.auroraName, 'Aurora Hair Studio', 'the first line is the customer name itself');
     assert.ok(list.auroraNameFits, 'the customer name is not cut at 1440 px');
+    assert.equal(await page.evaluate(() => document.querySelector('.customer-row[data-view-customer^="tom "] .customer-name-line strong').textContent), 'Tom & Lily Hair', 'a stored name is shown tidied, as everywhere else, without the contact');
     assert.equal(list.auroraLabel, '查看客户 Aurora Hair Studio（Mia Carter）', 'the row label still names the contact');
     assert.equal(list.aurora.split('Mia Carter').length - 1, 1, `the contact appears once in the row: ${list.aurora}`);
     assert.match(list.aurora, /Mia Carter · mia@example\.com/);

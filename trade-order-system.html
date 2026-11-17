@@ -5944,7 +5944,7 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
           </div>
         </div>
         <div class="amount-kpi-board" id="amountKpiBoard">
-          <div class="report-stat"><div class="report-label">订单额</div><div class="report-value" id="reportUsd">$0 USD</div><div class="report-sub">草稿不计</div></div>
+          <div class="report-stat"><div class="report-label">订单额</div><div class="report-value" id="reportUsd">$0 USD</div><div class="report-sub">草稿和报价不计</div></div>
           <div class="report-stat paid"><div class="report-label">已收</div><div class="report-value" id="reportPaid">$0 USD</div><div class="report-sub" id="reportPaidSub">收款率 0%</div></div>
           <div class="report-stat due"><div class="report-label">待收</div><div class="report-value" id="reportDue">$0 USD</div><div class="report-sub">按订单归属月份</div></div>
           <div class="report-stat risk"><div class="report-label">下单超 30 天未收</div><div class="report-value" id="reportOverdue">$0 USD</div><div class="report-sub" id="reportOverdueSub" title="全部订单里下单超过 30 天、还没收清的欠款，不跟上面选的时间范围走（和工作台待收款卡同一个数）。订单上没有尾款到期日，这里按下单日算账龄，不是付款逾期">全部订单 · 不跟时间范围</div></div>
@@ -5981,7 +5981,7 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
           <button class="link-btn" type="button" data-analysis-list="month">本月待收订单 <span>→</span></button>
           <select id="analysisProduct" aria-label="分析产品"><option value="all">全部产品</option><option value="假发">假发</option><option value="睫毛">睫毛</option></select>
         </div>
-        <div class="analysis-context"><svg class="ui-icon" aria-hidden="true"><use href="#i-chart"/></svg><div><div id="analysisComparison"></div><div id="businessRateStatus"></div><div>已收为这些订单截至目前的累计收款，不是当月现金到账。未记录成本，不统计利润。</div></div></div>
+        <div class="analysis-context"><svg class="ui-icon" aria-hidden="true"><use href="#i-chart"/></svg><div><div id="analysisComparison"></div><div id="businessRateStatus"></div><div>草稿和报价阶段的订单不计。已收为这些订单截至目前的累计收款，不是当月现金到账。未记录成本，不统计利润。</div></div></div>
         <section class="analysis-grid">
           <section class="panel">
             <div class="section-head"><div class="analysis-head"><div class="section-title">收款进度结构</div><div class="section-meta">累计已收 / 订单额</div></div></div>
@@ -6017,7 +6017,7 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
           <section class="panel target-setup">
             <div class="target-setup-head">
               <div class="section-title">设置月度目标</div>
-              <div class="section-meta">按订单归属月份统计，草稿不计入；首页顶部同步完成率</div>
+              <div class="section-meta">按订单归属月份统计，草稿和报价不计入；首页顶部同步完成率</div>
             </div>
             <div class="target-form">
               <div class="field"><label for="targetMonth">月份</label><select class="inline-select" id="targetMonth"></select></div>
@@ -11004,7 +11004,8 @@ async function loadEcbHistoricalRates() {
   refreshAutoExchangeRate();
 }
 function businessAnalysisForMonth(orders = [], month = '', rateRows = ecbHistoricalRates) {
-  const formal = orders.filter(order => !order?.isDraft && String(order?.orderMonth || order?.createdAt || order?.updated || '').slice(0, 7) === month);
+  // 草稿和报价不计（isRevenueOrder：生产中起才算订单额），和工作台、金额统计、业绩目标一个口径。
+  const formal = orders.filter(order => order && isRevenueOrder(order) && String(order.orderMonth || order?.createdAt || order?.updated || '').slice(0, 7) === month);
   const convertedOrders = formal.filter(order => ecbUsdRateForOrder(order, rateRows));
   const productMap = new Map();
   let total = 0;
@@ -11074,13 +11075,17 @@ function analysisDashboardData(orders, month, product, today, rates) {
   const formal = orders.filter(o => !o.isDraft);
   const dateMonth = o => String(o.orderMonth || o.createdAt || o.updated || '').slice(0,7);
   const scoped = formal.filter(o => product === 'all' || o.productType === product);
+  // 客户贡献、新老客户、第一次下单的月份只看算订单额的单（草稿和报价不计），单数加起来等于上面的订单数；
+  // 「现在需要关注」的未收清、超期两张清单不是订单额，仍看全部非草稿订单。
+  const counted = formal.filter(isRevenueOrder);
+  const countedScoped = scoped.filter(isRevenueOrder);
   const [year, number] = month.split('-').map(Number);
   const previousMonth = `${number === 1 ? year - 1 : year}-${String(number === 1 ? 12 : number - 1).padStart(2,'0')}`;
   const current = businessAnalysisForMonth(scoped, month, rates);
   const previous = businessAnalysisForMonth(scoped, previousMonth, rates);
   const first = new Map();
-  formal.forEach(o => { const m = dateMonth(o); if (o.client && m && (!first.has(o.client) || m < first.get(o.client))) first.set(o.client,m); });
-  const monthly = scoped.filter(o => dateMonth(o) === month);
+  counted.forEach(o => { const m = dateMonth(o); if (o.client && m && (!first.has(o.client) || m < first.get(o.client))) first.set(o.client,m); });
+  const monthly = countedScoped.filter(o => dateMonth(o) === month);
   const clients = new Map();
   // 没填客户的单不进排名，单独数一下（以前汇成「未命名客户」排进名次）。
   let unnamedOrders = 0;
@@ -19176,10 +19181,12 @@ function renderStats() {
   } else {
     // 原型文案：当月叫「本月订单额」，别的月份写月份（不是今年的带年份），全部范围叫「订单总额」。
     amountLabel.textContent = totalRange === 'all' ? '订单总额' : totalRange === currentMonth ? '本月订单额' : `${dashboardMonthName(totalRange)}订单额`;
-    amountValue.textContent = summaryMoney(usdTotal(totalOrders), 'USD');
+    // 订单额只算收了定金之后的单（生产中起，isRevenueOrder），和金额统计、业绩目标、经营分析一个口径；报价单不算。
+    const revenueOrders = totalOrders.filter(isRevenueOrder);
+    amountValue.textContent = summaryMoney(usdTotal(revenueOrders), 'USD');
     // 汇率还没取到（或取不到）时，非美元订单折不成美元：写明有几单没算进去，别让人以为订单额就这么多。
-    const unconverted = totalOrders.filter(o => !ecbUsdRateForOrder(o)).length;
-    amountSub.textContent = `${totalOrders.length} 单 · 草稿不计${unconverted ? ` · ${unconverted} 单缺汇率未计入` : ''}`;
+    const unconverted = revenueOrders.filter(o => !ecbUsdRateForOrder(o)).length;
+    amountSub.textContent = `${revenueOrders.length} 单 · 草稿和报价不计${unconverted ? ` · ${unconverted} 单缺汇率未计入` : ''}`;
   }
   amountValue.classList.toggle('is-paid-mode', paidMode);
   amountValue.setAttribute('aria-pressed', paidMode ? 'true' : 'false');
@@ -33339,7 +33346,8 @@ function uiDashboardKpis() {
   const range = document.getElementById('totalRange')?.value || 'all';
   const currentMonth = normalizeMonth(new Date().toISOString());
   const month = range === 'all' ? currentMonth : range;
-  const monthOrders = m => ordersByMonth(m).filter(o => !o.isDraft);
+  // 和卡上的订单额同一个口径：草稿和报价不计。
+  const monthOrders = m => ordersByMonth(m).filter(isRevenueOrder);
   const monthTotal = m => usdTotal(monthOrders(m));
   const months = [-5, -4, -3, -2, -1, 0].map(d => uiMonthShift(month, d));
   const spark = document.getElementById('statSpark');

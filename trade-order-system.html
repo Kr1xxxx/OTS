@@ -885,28 +885,6 @@ html[data-theme="dark"] .deposit-combo select option { color: #f5f5f5; backgroun
 .amount-combo input:focus, .amount-combo select:focus, .deposit-combo input:focus, .deposit-combo select:focus { box-shadow: none; }
 .logistics-grid { display: grid; align-items: start; }
 .logistics-query { display: grid; gap: 10px; }
-.tracking-api-mini-status {
-  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px;
-}
-.tracking-api-mini-item {
-  min-width: 0; min-height: 44px; padding: 7px 8px; border: 1px solid var(--gray-200);
-  border-radius: 8px; background: color-mix(in srgb, var(--gray-50) 72%, var(--white));
-}
-.tracking-api-mini-item span { display: block; color: var(--gray-500); font-size: 10px; font-weight: 600; white-space: nowrap; }
-.tracking-api-mini-item strong {
-  display: block; margin-top: 4px; color: var(--gray-800); font-size: 12px; font-weight: 600;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.tracking-api-mini-item.ok {
-  border-color: color-mix(in srgb, var(--green-500) 24%, var(--gray-200));
-  background: color-mix(in srgb, var(--green-50) 46%, var(--white));
-}
-.tracking-api-mini-item.ok strong { color: var(--green-600); }
-.tracking-api-mini-item.bad {
-  border-color: color-mix(in srgb, var(--red-600) 24%, var(--gray-200));
-  background: color-mix(in srgb, var(--red-50) 46%, var(--white));
-}
-.tracking-api-mini-item.bad strong { color: var(--red-600); }
 .logistics-result {
   display: none; padding: 12px; border: 1px solid var(--gray-200); border-radius: var(--radius);
   background: var(--gray-50);
@@ -1902,12 +1880,6 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
   .shipment-row { grid-template-columns: 1fr; }
   .shipment-row .customer-multi-remove { width: 100%; margin: 0; }
 }
-.fixed-setting-pill {
-  min-height: 42px; display: inline-flex; align-items: center; width: 100%;
-  border: 1px solid color-mix(in srgb, var(--semantic-primary) 18%, var(--gray-200));
-  border-radius: var(--control-radius); background: color-mix(in srgb, var(--green-50) 48%, var(--white));
-  color: var(--green-600); padding: 0 12px; font-weight: 600;
-}
 .addable-select { display: grid; gap: 8px; }
 .addable-select input { display: none; }
 .tag-manager-add {
@@ -2111,7 +2083,6 @@ html[data-theme="dark"] .app-refresh-btn:focus-visible {
   .level-rule-row { grid-template-columns: 1fr; }
   .level-rule-row > div { border-bottom: 1px solid var(--hairline); }
   .level-rule-row > div:last-child { border-bottom: 0; }
-  .tracking-api-mini-status { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .logistics-grid, .logistics-card { grid-template-columns: 1fr; }
   .price-history-row { grid-template-columns: 1fr; align-items: start; }
   .roadmap-event { grid-template-columns: 1fr; gap: 4px; }
@@ -4480,10 +4451,6 @@ html[data-theme] .logistics-query-side { display:flex; flex-direction:column; ga
 html[data-theme] .tracking-detect { display:flex; flex-wrap:wrap; align-items:center; gap:6px; min-height:24px; color:var(--gray-500); font-size:12px; }
 html[data-theme] .tracking-detect-empty { color:var(--gray-500); }
 html[data-theme] #trackingLookupBtn { width:100%; height:38px; border-radius:999px; gap:6px; }
-html[data-theme] .logistics-query-panel .exchange-note { grid-column:1 / -1; margin:0; padding:0; border:0; background:transparent; color:var(--gray-500); font-size:12px; font-weight:400; }
-html[data-theme] .logistics-query-panel .tracking-api-mini-status { grid-column:1 / -1; display:flex; flex-wrap:wrap; gap:6px 16px; margin:0; }
-html[data-theme] .logistics-query-panel .tracking-api-mini-item { display:inline-flex; align-items:baseline; gap:6px; min-height:0; padding:0; border:0; background:transparent; font-size:11.5px; color:var(--gray-500); min-width:0; }
-html[data-theme] .logistics-query-panel .tracking-api-mini-item strong { margin-top:0; font-weight:500; color:var(--gray-700); font-size:11.5px; }
 html[data-theme] .logistics-query-panel .logistics-result { grid-column:1 / -1; }
 html[data-theme] .logistics-query-panel .logistics-result:empty { display:none; }
 /* 数字卡 */
@@ -4562,7 +4529,6 @@ html[data-theme] .price-history-tools :is(select.inline-select, .app-select) { f
 html[data-theme] :is(.logistics-card.ship-row, .price-history-row.recent-tracking-row) { align-items:stretch; text-align:left; grid-template-columns:none; }
 html[data-theme] .logistics-grid .logistics-head { display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
 html[data-theme] .logistics-grid .logistics-head #logisticsCarrierFilter { display:inline-flex !important; width:auto !important; grid-template-columns:none !important; }
-html[data-theme] .logistics-query-panel .tracking-api-mini-item span { font-size:11.5px; }
 /* 设置里的分段选择（主题、缩放）。 */
 html[data-theme] .modal-style-picker { display:flex; align-items:center; gap:6px; padding:0 8px; }
 html[data-theme] .modal-style-picker > span { font-size:12px; color:var(--gray-500); margin-right:auto; }
@@ -5349,6 +5315,34 @@ html[data-theme] .pick-switch small { display:block; font-size:12px; line-height
 html[data-theme] .pick-switch small.is-warning { color:var(--orange-700, var(--orange-600)); }
 /* 设置页的开关占原来分段控件那一格；说明行可以换行，不撑宽网格。 */
 html[data-theme] .settings-form > .settings-switch { align-self:center; min-width:0; }
+/* 设置 › 物流追踪：DHL、FedEx、自动更新各一块；标题行是开关和名字，右边一句它自己的状态，下面是它自己的字段。 */
+html[data-theme] .tracking-group { display:grid; gap:12px; min-width:0; padding:14px 16px; border:1px solid var(--surface-border); border-radius:14px; }
+html[data-theme] .tracking-group > .field, html[data-theme] .tracking-group-fields > .field { margin:0; min-width:0; }
+html[data-theme] .tracking-group-head { display:flex; align-items:center; gap:6px 16px; min-width:0; }
+html[data-theme] .tracking-group-head > .settings-switch { flex:1 1 auto; }
+html[data-theme] .tracking-group-status { flex:0 1 auto; max-width:45%; color:var(--gray-600); font-size:12px; text-align:right; overflow-wrap:anywhere; }
+html[data-theme] .tracking-group-fields { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px; }
+html[data-theme] .tracking-group-line { color:var(--gray-600); font-size:12px; }
+@media (max-width: 720px) {
+  html[data-theme] .tracking-group-head { flex-direction:column; align-items:stretch; }
+  html[data-theme] .tracking-group-status { max-width:none; padding-left:46px; text-align:left; }
+  html[data-theme] .tracking-group-fields { grid-template-columns:minmax(0, 1fr); }
+}
+/* 设置 › 订单设置：改不了的「默认订单类型」只是一行说明，和旁边的输入框一样高。 */
+html[data-theme] .settings-fixed-note { display:flex; align-items:center; min-height:var(--field-h, var(--control-height)); color:var(--gray-600); font-size:13px; }
+/* 设置 › 接口状态：圆点下面 DHL、FedEx 各一行最近调用（从物流页顶部挪来）。 */
+html[data-theme] .api-call-lines { display:grid; gap:4px; margin-top:6px; padding:0 10px; }
+html[data-theme] .api-call-line { display:flex; align-items:baseline; gap:10px; min-width:0; color:var(--gray-600); font-size:12.5px; }
+html[data-theme] .api-call-line b { flex:none; min-width:44px; color:var(--gray-900); font-weight:500; }
+html[data-theme] .api-call-line span { min-width:0; overflow-wrap:anywhere; }
+html[data-theme] .api-call-line.bad span { color:var(--s-red); }
+/* 物流页「查物流」：说明一行，句尾「？识别规则」点开一块小浮层（按标题那一块定位，不会伸出卡片）。 */
+html[data-theme] .logistics-query-heading { position:relative; }
+html[data-theme] .tracking-rules-btn { height:24px; margin-left:6px; padding:0 9px; border:1px solid var(--surface-border-strong); border-radius:999px; background:transparent; color:var(--gray-700); font:inherit; font-size:12px; line-height:1; cursor:pointer; vertical-align:baseline; }
+html[data-theme] .tracking-rules-btn:hover, html[data-theme] .tracking-rules-btn[aria-expanded="true"] { background:var(--surface-soft); color:var(--gray-900); }
+html[data-theme] .tracking-rules-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+html[data-theme] .tracking-rules-pop { position:absolute; top:calc(100% + 6px); left:0; z-index:40; display:grid; gap:4px; width:max-content; max-width:min(420px, 100%); padding:10px 14px; border:1px solid var(--surface-border); border-radius:var(--radius); background:var(--surface-bg); box-shadow:var(--floating-shadow); color:var(--gray-700); font-size:12.5px; line-height:1.5; animation:uiMenuFade var(--motion-fast) var(--ease-out); }
+html[data-theme] .tracking-rules-pop[hidden] { display:none; }
 @media (max-width: 560px) {
   html[data-theme] .pick-modal > .modal-head { padding:16px 12px 8px 16px; }
   html[data-theme] .pick-modal > .modal-body { padding:4px 16px 16px; }
@@ -5857,7 +5851,16 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
           <div class="section-head">
             <div class="logistics-query-heading">
               <div class="section-title">查物流</div>
-              <div class="section-meta">一次可以粘贴多个单号，每行一个（逗号、Tab 隔开也行），每次查 12 个；自动识别 DHL / FedEx / UPS</div>
+              <div class="section-meta logistics-query-meta">每行一个单号，一次最多 12 个，自动识别 DHL / FedEx / UPS
+                <span class="tracking-rules">
+                  <button class="tracking-rules-btn" id="trackingRulesBtn" type="button" aria-expanded="false" aria-controls="trackingRulesPop">？识别规则</button>
+                  <span class="tracking-rules-pop" id="trackingRulesPop" role="note" hidden>
+                    <span>逗号、Tab 隔开也行。</span>
+                    <span>UPS 不接 API，识别出来后给官网链接。</span>
+                    <span>12 位纯数字 FedEx 和 UPS 都在用，默认按 FedEx 查，是 UPS 时到订单里手动选。</span>
+                  </span>
+                </span>
+              </div>
             </div>
           </div>
           <div class="logistics-query">
@@ -5866,8 +5869,6 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
               <div class="tracking-detect" id="trackingDetect" aria-live="polite"></div>
               <button class="btn btn-primary" id="trackingLookupBtn" type="button"><svg class="ui-icon" aria-hidden="true"><use href="#i-search"/></svg><span>批量查询</span></button>
             </div>
-            <div class="exchange-note">UPS 不接 API，识别出来后给官网链接。12 位纯数字 FedEx 和 UPS 都在用，默认按 FedEx 查，是 UPS 时到订单里手动选。</div>
-            <div class="tracking-api-mini-status" id="trackingApiMiniStatus" aria-label="DHL 和 FedEx 最近调用状态"></div>
             <div class="logistics-result" id="trackingLookupResult"></div>
           </div>
         </section>
@@ -6237,19 +6238,14 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
                   <button class="btn" type="button" id="macRestoreBackupBtn" aria-expanded="false" aria-controls="macRestoreList">从备份恢复…</button>
                 </div>
               </div>
-              <div class="data-group-title">导出</div>
+              <div class="data-group-title">导出和导入</div>
               <div class="data-action">
                 <div><strong>导出订单</strong><div class="muted">导出成表格（CSV，可以挑列）或备份（JSON，以后可以再导入），可以只导出某个月。</div></div>
                 <button class="btn" type="button" id="openExportBtn">导出…</button>
               </div>
-              <div class="data-group-title">导入备份</div>
               <div class="data-action">
-                <div><strong>导入备份</strong><div class="muted">选择之前导出的 JSON 文件，先预览和现在数据的差别；默认只合并、不删除，导入前会自动备份。</div></div>
-                <button class="btn" id="importJsonBtn">导入备份</button>
-              </div>
-              <div class="data-action">
-                <div><strong>导入前预览</strong><div class="muted">和「导入备份」相同：先看新增、修改、删除各多少，再选合并或替换。</div></div>
-                <button class="btn" id="previewImportDataFileBtn">预览导入</button>
+                <div><strong>导入备份</strong><div class="muted">选一个之前导出的 JSON 文件。先预览新增、修改、删除各多少，再选合并或替换；导入前会自动备份。</div></div>
+                <button class="btn" type="button" id="importJsonBtn">选择文件…</button>
               </div>
               <div class="data-group-title">维护</div>
               <div class="data-action">
@@ -6316,10 +6312,10 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
                 <div class="field"><label>默认订单阶段</label><select name="defaultStage"></select></div>
                 <div class="field"><label>默认产品类型</label><select name="defaultProductType"></select></div>
                 <div class="field"><label>默认收款方式</label><select name="defaultPaymentChannel"></select></div>
-                <div class="field"><label>默认订单类型</label><input type="hidden" name="defaultOrderType" value="全款订单"><div class="fixed-setting-pill">全款订单</div></div>
+                <div class="field"><label>默认订单类型</label><input type="hidden" name="defaultOrderType" value="全款订单"><div class="settings-fixed-note">固定为全款订单，这里不能改</div></div>
                 <div class="field"><label>默认定金比例 %</label><input name="defaultDepositPercent" type="number" min="0" max="100" step="1" placeholder="30"></div>
                 <div class="field"><label>默认承运商</label><select name="defaultCarrier"><option value="auto">默认自动</option><option value="DHL">DHL</option><option value="FedEx">FedEx</option><option value="UPS">UPS</option></select></div>
-                <div class="field"><label>默认加急订单</label><select name="defaultUrgentOrder"><option value="否">否</option><option value="是">是</option></select></div>
+                <label class="pick-switch settings-switch"><input type="checkbox" role="switch" name="defaultUrgentOrder" value="是"><span><b>新订单默认加急</b><small data-switch-desc="defaultUrgentOrder"></small></span></label>
                 <div class="span-2" style="display:flex;justify-content:flex-end"><button class="btn btn-primary" type="submit">保存订单设置</button></div>
               </form>
             </div>
@@ -6350,59 +6346,47 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
             </div>
             <div class="settings-card">
               <form class="settings-form" id="trackingApiSettingsForm" autocomplete="off">
-                <label class="pick-switch settings-switch"><input type="checkbox" role="switch" name="dhlApiEnabled" value="是" data-on="是" data-off="否"><span><b>DHL 官方查询</b><small data-switch-desc="dhlApiEnabled"></small></span></label>
-                <label class="pick-switch settings-switch"><input type="checkbox" role="switch" name="autoDhlUpdate" value="是" data-on="是" data-off="否"><span><b>自动更新物流</b><small data-switch-desc="autoDhlUpdate"></small></span></label>
-                <div class="field span-2">
-                  <label>DHL API Key</label>
-                  <input name="dhlApiKey" type="password" placeholder="保存在本机 Mac App 数据目录，不写入分享文件">
-                </div>
-                <div class="field">
-                  <label>自动更新时间</label>
-                  <input name="autoRunTimes" placeholder="09:00,18:00">
-                </div>
-                <label class="pick-switch settings-switch"><input type="checkbox" role="switch" name="fedexApiEnabled" value="是" data-on="是" data-off="否"><span><b>FedEx 官方查询</b><small data-switch-desc="fedexApiEnabled"></small></span></label>
-                <div class="field">
-                  <label>FedEx 环境</label>
-                  <select name="fedexEnv" data-segment="always"><option value="test">测试环境</option><option value="prod">正式环境</option></select>
-                </div>
-                <div class="field">
-                  <label>FedEx API Key</label>
-                  <input name="fedexApiKey" type="password" placeholder="保存到本机 Mac App 数据目录">
-                </div>
-                <div class="field">
-                  <label>FedEx Secret</label>
-                  <input name="fedexApiSecret" type="password" placeholder="保存到本机 Mac App 数据目录">
-                </div>
-                <div class="rate-status-grid span-2">
-                  <div class="rate-status-card">
-                    <span>最近查询</span>
-                    <strong id="trackingApiLastChecked">尚未查询</strong>
+                <section class="tracking-group span-2" aria-label="DHL 官方查询">
+                  <div class="tracking-group-head">
+                    <label class="pick-switch settings-switch"><input type="checkbox" role="switch" name="dhlApiEnabled" value="是" data-on="是" data-off="否"><span><b>DHL 官方查询</b><small data-switch-desc="dhlApiEnabled"></small></span></label>
+                    <span class="tracking-group-status" id="trackingApiDhlStatus" title="DHL 查询结果">尚未配置</span>
                   </div>
-                  <div class="rate-status-card">
-                    <span>DHL 查询结果</span>
-                    <strong id="trackingApiDhlStatus">尚未配置</strong>
+                  <div class="field">
+                    <label>DHL API Key</label>
+                    <input name="dhlApiKey" type="password" placeholder="保存在本机 Mac App 数据目录，不写入分享文件">
                   </div>
-                  <div class="rate-status-card">
-                    <span>FedEx 查询结果</span>
-                    <strong id="trackingApiFedexStatus">尚未配置</strong>
+                </section>
+                <section class="tracking-group span-2" aria-label="FedEx 官方查询">
+                  <div class="tracking-group-head">
+                    <label class="pick-switch settings-switch"><input type="checkbox" role="switch" name="fedexApiEnabled" value="是" data-on="是" data-off="否"><span><b>FedEx 官方查询</b><small data-switch-desc="fedexApiEnabled"></small></span></label>
+                    <span class="tracking-group-status" id="trackingApiFedexStatus" title="FedEx 查询结果">尚未配置</span>
                   </div>
-                  <div class="rate-status-card">
-                    <span>自动更新时间</span>
-                    <strong id="trackingApiAutoTimes">09:00,18:00</strong>
+                  <div class="tracking-group-fields">
+                    <div class="field span-2">
+                      <label>FedEx 环境</label>
+                      <select name="fedexEnv" data-segment="always"><option value="test">测试环境</option><option value="prod">正式环境</option></select>
+                    </div>
+                    <div class="field">
+                      <label>FedEx API Key</label>
+                      <input name="fedexApiKey" type="password" placeholder="保存到本机 Mac App 数据目录">
+                    </div>
+                    <div class="field">
+                      <label>FedEx Secret</label>
+                      <input name="fedexApiSecret" type="password" placeholder="保存到本机 Mac App 数据目录">
+                    </div>
                   </div>
-                  <div class="rate-status-card">
-                    <span>自动更新统计</span>
-                    <strong id="trackingApiAutoSummary">成功 0 / 失败 0</strong>
+                </section>
+                <section class="tracking-group span-2" aria-label="自动更新物流">
+                  <div class="tracking-group-head">
+                    <label class="pick-switch settings-switch"><input type="checkbox" role="switch" name="autoDhlUpdate" value="是" data-on="是" data-off="否"><span><b>自动更新物流</b><small data-switch-desc="autoDhlUpdate"></small></span></label>
+                    <span class="tracking-group-status" id="trackingApiNextAuto" title="下一次时段">等待设置</span>
                   </div>
-                  <div class="rate-status-card">
-                    <span>最近自动更新</span>
-                    <strong id="trackingApiLastAuto">尚未自动更新</strong>
+                  <div class="field">
+                    <label>自动更新时间</label>
+                    <input name="autoRunTimes" placeholder="09:00,18:00">
                   </div>
-                  <div class="rate-status-card">
-                    <span>下一次时段</span>
-                    <strong id="trackingApiNextAuto">等待设置</strong>
-                  </div>
-                </div>
+                  <div class="tracking-group-line"><span id="trackingApiLastAuto">尚未自动更新</span> · <span id="trackingApiAutoSummary">成功 0 / 失败 0</span></div>
+                </section>
                 <div class="exchange-note span-2">安全说明：DHL / FedEx 状态只按官方 API 返回同步，成功显示 ✅，失败显示 ❌；UPS 当前保存识别结果并提供官网查询，不会误用 DHL / FedEx API。自动更新每天最多 2 次，仅更新未签收且有物流单号的 DHL / FedEx 订单。</div>
                 <div class="span-2" style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap">
                   <button class="btn" id="runTrackingAutoUpdateBtn" type="button">立即更新物流</button>
@@ -6420,6 +6404,7 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
                 <button class="api-status-dot" type="button" data-api-check="fedex" title="FedEx API：未检测"><span class="api-status-name">FedEx</span><span class="api-status-state">未测</span></button>
                 <button class="api-status-dot" type="button" data-api-check="ai" title="AI API：未检测" onmouseenter="refreshAiUsage()" onfocus="refreshAiUsage()"><span class="api-status-name">AI 识别</span><span class="api-status-state">未测</span></button>
               </div>
+              <div class="api-call-lines" id="trackingApiCallLines" aria-label="DHL 和 FedEx 最近调用"></div>
               <div class="api-feishu-line"><span id="apiFeishuLine">飞书通知：读取中…</span><button class="btn btn-small" type="button" data-open-feishu-settings>飞书设置</button></div>
             </div>
           </div>
@@ -7367,7 +7352,6 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
   <div class="notif-list" id="notifList"></div>
 </aside>
 <input type="file" id="importFile" accept="application/json,.json" hidden>
-<input type="file" id="dataFileInput" accept="application/json,.json" hidden>
 
 <script>
 // #region Constants, static tables, small shared state
@@ -16979,7 +16963,7 @@ function renderPageContent(page, { entering = false } = {}) {
     dashboard: () => { renderMonthSelects(); renderStats(); renderPipeline(); renderTrash(); renderRecentOrders(); renderTasks(); },
     'order-list': renderOrderListPage,
     'search-results': renderFullSearchResults,
-    logistics: () => { renderTrackingApiMiniStatus(); renderLogistics(); renderPriceHistory(); },
+    logistics: () => { renderLogistics(); renderPriceHistory(); },
     amount: () => { renderMonthSelects(); renderAmountReport(); renderAnalysisPage(); },
     targets: renderPerformanceTargets,
     calendar: renderCalendarPage,
@@ -18706,6 +18690,11 @@ function settingsFormData(form) {
 function settingsSwitchDescs(form) {
   const el = form.elements;
   const filled = (input, savedFlag) => Boolean(String(input?.value || '').trim()) || Boolean(form._shownSettings?.[savedFlag]);
+  if (form.id === 'orderSettingsForm') {
+    return {
+      defaultUrgentOrder: el.defaultUrgentOrder.checked ? ['已开启：新建订单时「加急」默认勾上', false] : ['已关闭：新建订单时「加急」默认不勾', false]
+    };
+  }
   if (form.id === 'aiSettingsForm') {
     return {
       enabled: !el.enabled.checked ? ['已关闭：点「AI 识别」不会发给 AI，只能用本地识别', false]
@@ -18776,9 +18765,10 @@ function renderSettings() {
     form.elements.defaultOrderType.value = state.orderSettings.defaultOrderType || defaultOrderSettings.defaultOrderType;
     form.elements.defaultDepositPercent.value = state.orderSettings.defaultDepositPercent ?? defaultOrderSettings.defaultDepositPercent;
     form.elements.defaultCarrier.value = state.orderSettings.defaultCarrier || defaultOrderSettings.defaultCarrier;
-    form.elements.defaultUrgentOrder.value = state.orderSettings.defaultUrgentOrder || defaultOrderSettings.defaultUrgentOrder;
+    form.elements.defaultUrgentOrder.checked = state.orderSettings.defaultUrgentOrder === '是';
     if (form.elements.defaultNext) form.elements.defaultNext.value = state.orderSettings.defaultNext || '';
   });
+  renderSettingsSwitchDescs(document.getElementById('orderSettingsForm'));
   const aiForm = document.getElementById('aiSettingsForm');
   const aiStatus = document.getElementById('aiSettingsStatus');
   if (aiStatus) { const ai = getAiSettings(); aiStatus.textContent = `${ai.lastTestStatus || '尚未测试连接'}${ai.lastTestAt ? ` · ${ai.lastTestAt}` : ''}`; }
@@ -18812,21 +18802,19 @@ function renderSettings() {
       trackingForm.elements.fedexApiSecret.placeholder = savedSecretPlaceholder(tracking.fedexApiSecretSaved, tracking.fedexApiSecretMask, '保存到本机 Mac App 数据目录');
     });
     renderSettingsSwitchDescs(trackingForm);
-    const lastChecked = document.getElementById('trackingApiLastChecked');
     const dhlStatus = document.getElementById('trackingApiDhlStatus');
     const fedexStatus = document.getElementById('trackingApiFedexStatus');
-    if (lastChecked) lastChecked.textContent = tracking.lastCheckedAt || '尚未查询';
     if (dhlStatus) dhlStatus.textContent = trackingStatusTextWithEmoji(tracking.lastDhlStatus || '尚未配置');
     if (fedexStatus) fedexStatus.textContent = trackingStatusTextWithEmoji(tracking.lastFedexStatus || '尚未配置');
-    const autoTimes = document.getElementById('trackingApiAutoTimes');
     const autoSummary = document.getElementById('trackingApiAutoSummary');
     const lastAuto = document.getElementById('trackingApiLastAuto');
     const nextAuto = document.getElementById('trackingApiNextAuto');
-    if (autoTimes) autoTimes.textContent = tracking.autoDhlUpdate === '是' ? dhlAutoRunSlots(tracking).join(', ') || '未设置' : '已关闭';
     if (autoSummary) autoSummary.textContent = `成功 ${Number(tracking.lastAutoOkCount || 0)} / 失败 ${Number(tracking.lastAutoFailCount || 0)}`;
-    if (lastAuto) lastAuto.textContent = tracking.lastAutoRunAt || '尚未自动更新';
-    if (nextAuto) nextAuto.textContent = nextTrackingAutoSlot(tracking);
+    if (lastAuto) lastAuto.textContent = tracking.lastAutoRunAt ? `最近自动更新 ${tracking.lastAutoRunAt}` : '尚未自动更新';
+    const next = nextTrackingAutoSlot(tracking);
+    if (nextAuto) nextAuto.textContent = /^(明天 )?\d/.test(next) ? `下一次 ${next}` : `下一次时段：${next}`;
   }
+  renderTrackingApiCallLines();
 }
 // #endregion
 // #region Client picker
@@ -20603,25 +20591,20 @@ function trackingApiMiniTime(value) {
   const text = String(value || '').trim();
   return text ? text.replace(/^(\d{4})[-/年]?/, '').replace(/^(\d{1,2})月/, '$1月') : '尚未查询';
 }
-function renderTrackingApiMiniStatus() {
-  const el = document.getElementById('trackingApiMiniStatus');
+// 设置 › 接口状态：DHL、FedEx 各一行「最近调用 时间 · 调用情况」。只有这四个已存的值，没有按天的次数。
+function renderTrackingApiCallLines() {
+  const el = document.getElementById('trackingApiCallLines');
   if (!el) return;
   const settings = getTrackingApiSettings();
-  const items = [
-    { label: 'DHL 最近调用', value: trackingApiMiniTime(settings.lastDhlCheckedAt) },
-    { label: 'DHL 调用情况', value: trackingStatusTextWithEmoji(settings.lastDhlStatus || '尚未查询'), status: settings.lastDhlStatus },
-    { label: 'FedEx 最近调用', value: trackingApiMiniTime(settings.lastFedexCheckedAt) },
-    { label: 'FedEx 调用情况', value: trackingStatusTextWithEmoji(settings.lastFedexStatus || '尚未查询'), status: settings.lastFedexStatus }
+  const rows = [
+    { name:'DHL', at:settings.lastDhlCheckedAt, status:settings.lastDhlStatus },
+    { name:'FedEx', at:settings.lastFedexCheckedAt, status:settings.lastFedexStatus }
   ];
-  el.innerHTML = items.map(item => {
-    const cls = item.status ? trackingApiMiniStatusClass(item.status) : '';
-    const value = item.value || '尚未查询';
-    return `
-      <div class="tracking-api-mini-item ${cls}" title="${escapeAttr(item.label)}：${escapeAttr(value)}">
-        <span>${escapeAttr(item.label)}</span>
-        <strong>${escapeAttr(value)}</strong>
-      </div>
-    `;
+  el.innerHTML = rows.map(row => {
+    const queried = Boolean(String(row.at || '').trim() || String(row.status || '').trim());
+    const text = queried ? [String(row.at || '').trim() && `最近调用 ${trackingApiMiniTime(row.at)}`, row.status && trackingStatusTextWithEmoji(row.status)].filter(Boolean).join(' · ') : '尚未查询';
+    const cls = queried && row.status ? trackingApiMiniStatusClass(row.status) : '';
+    return `<div class="api-call-line ${cls}" data-api-call="${row.name.toLowerCase()}" title="${escapeAttr(row.name)}：${escapeAttr(text)}"><b>${row.name}</b><span>${escapeAttr(text)}</span></div>`;
   }).join('');
 }
 // 每个结果都带上按哪家查的（carrier），写回订单时只写承运商一致的批次。
@@ -20893,7 +20876,7 @@ async function refreshTrackingOnce(clean, carrier) {
   const outcome = applyTrackingResultToOrder(number, result, code);
   const lookup = addTrackingLookup(number, code, result);
   saveState();
-  renderTrackingApiMiniStatus();
+  renderTrackingApiCallLines();
   renderLogistics();
   renderPriceHistory(lookup?.id || '');
   renderTasks();
@@ -20985,7 +20968,7 @@ async function runTrackingAutoUpdate(reason = 'manual') {
   };
   saveTrackingApiSettings(nextSettings);
   saveState();
-  renderTrackingApiMiniStatus();
+  renderTrackingApiCallLines();
   render();
   toast(nextSettings.lastStatus, failCount || skipped ? { tone:'warn' } : undefined);
   toastTrackingCompletions(completed);
@@ -21423,7 +21406,7 @@ async function renderTrackingLookup() {
   }
   if (batch.length) {
     saveState();
-    renderTrackingApiMiniStatus();
+    renderTrackingApiCallLines();
     renderPriceHistory();
     renderLogistics();
     renderTasks();
@@ -25723,9 +25706,6 @@ async function previewImportDataFile(file) {
   } catch (e) {
     toast(e instanceof SyntaxError || e.message === 'missing orders' ? '导入失败，请选择正确的 JSON 数据文件' : `导入失败：${e.message}`, { tone:'error' });
   }
-}
-function importJson(file) {
-  previewImportDataFile(file);
 }
 // 导入、恢复示例：先把手上的修改存完、强制备份一份「操作前」，再整份写进数据库；写成功了才算数（失败就留在操作前的样子），
 // 提示里带 6 秒撤销。撤销只在之后没再改过数据时可用，否则请用「从备份恢复…」。
@@ -31075,7 +31055,7 @@ document.getElementById('trackingApiSettingsForm')?.addEventListener('submit', a
 });
 document.getElementById('runTrackingAutoUpdateBtn')?.addEventListener('click', () => runTrackingAutoUpdate('manual'));
 // 开关和 Key、自动更新时间一改，开关下面那行跟着变（还没保存也变；存不存照旧要点保存）。
-['trackingApiSettingsForm', 'aiSettingsForm'].forEach(id => {
+['trackingApiSettingsForm', 'aiSettingsForm', 'orderSettingsForm'].forEach(id => {
   const form = document.getElementById(id);
   ['input', 'change'].forEach(type => form?.addEventListener(type, () => renderSettingsSwitchDescs(form)));
 });
@@ -31391,6 +31371,29 @@ if (workspaceBoard && typeof ResizeObserver === 'function') {
   if (columns) boardOverflowObserver.observe(columns);
 }
 document.getElementById('trackingLookupBtn').addEventListener('click', renderTrackingLookup);
+// 「？识别规则」：点按钮开合；Esc 收起并回到按钮；点别处或 Tab 离开也收起。
+function setTrackingRulesOpen(open, { focusButton = false } = {}) {
+  const btn = document.getElementById('trackingRulesBtn');
+  const pop = document.getElementById('trackingRulesPop');
+  if (!btn || !pop) return;
+  pop.hidden = !open;
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  if (focusButton) btn.focus();
+}
+document.getElementById('trackingRulesBtn')?.addEventListener('click', e => setTrackingRulesOpen(e.currentTarget.getAttribute('aria-expanded') !== 'true'));
+// 挂在 document 上：WebKit 里点按钮不给按钮焦点，Esc 落在 body 上也要收得起来。
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || isImeKeyEvent(e) || document.getElementById('trackingRulesPop')?.hidden !== false) return;
+  e.preventDefault();
+  e.stopPropagation();
+  setTrackingRulesOpen(false, { focusButton:true });
+});
+document.querySelector('.tracking-rules')?.addEventListener('focusout', e => {
+  if (!e.currentTarget.contains(e.relatedTarget)) setTrackingRulesOpen(false);
+});
+document.addEventListener('click', e => {
+  if (!e.target.closest?.('.tracking-rules')) setTrackingRulesOpen(false);
+});
 document.getElementById('trackingLookupInput').addEventListener('keydown', e => {
   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !isImeKeyEvent(e)) {
     e.preventDefault();
@@ -31692,14 +31695,6 @@ document.getElementById('importJsonBtn').addEventListener('click', e => {
   document.getElementById('importFile').click();
 });
 document.getElementById('importFile').addEventListener('change', e => {
-  importJson(e.target.files[0]);
-  e.target.value = '';
-});
-document.getElementById('previewImportDataFileBtn').addEventListener('click', e => {
-  setButtonFeedback(e.currentTarget, '请选择文件', { restoreAfter: 1800 });
-  document.getElementById('dataFileInput').click();
-});
-document.getElementById('dataFileInput').addEventListener('change', e => {
   previewImportDataFile(e.target.files[0]);
   e.target.value = '';
 });

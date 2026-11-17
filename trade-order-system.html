@@ -981,7 +981,6 @@ html[data-theme="dark"] .price-history-row {
   resize: vertical;
   line-height: 1.5;
 }
-.tracking-event-count { color: var(--gray-500); font-size: 13px; font-weight: 600; margin-bottom: 10px; }
 .tracking-detail-list { display: grid; gap: 10px; }
 .tracking-event {
   display: grid; grid-template-columns: auto 1fr; gap: 10px;
@@ -994,7 +993,6 @@ html[data-theme="dark"] .price-history-row {
 .tracking-event-title { color: var(--gray-900); font-weight: 600; }
 .tracking-event-meta { color: var(--gray-500); font-size: 12px; margin-top: 2px; }
 .tracking-freshness-risk { color: var(--red-600); font-weight: 600; }
-.tracking-freshness-ok { color: var(--green-600); font-weight: 600; }
 html[data-theme="dark"] .tag-green {
   background: rgba(34, 197, 94, .14);
   color: #b7f0c0;
@@ -3856,6 +3854,16 @@ html[data-theme] .subs-dh-r1 .subs-btn.sm .subs-i { width:15px; height:15px; }
 html[data-theme] .subs-groups { display:flex; flex-direction:column; gap:18px; }
 html[data-theme] .subs-grp { align-items:start; }
 html[data-theme] .subs-grp + .subs-grp { padding-top:16px; border-top:1px solid var(--a-hairline); }
+/* 续费分析「每月扣费」标题右边的图例：两个小方块用柱子本身的填色（已扣实心、还没到扣费日浅色虚边）。 */
+html[data-theme] .subs-chart-key { display:flex; flex-wrap:wrap; gap:4px 14px; margin:0; padding:0; list-style:none; color:var(--a-muted); font-size:12px; line-height:19px; }
+html[data-theme] .subs-chart-key li { display:inline-flex; align-items:center; gap:6px; }
+html[data-theme] .subs-chart-key i { flex:none; width:10px; height:10px; border-radius:3px; background:color-mix(in oklab, var(--a-accent) 62%, var(--a-card)); }
+html[data-theme] .subs-chart-key i.plan { background:color-mix(in oklab, var(--a-accent) 22%, var(--a-card)); border:1px dashed color-mix(in oklab, var(--a-accent) 55%, var(--a-card)); }
+html[data-theme="dark"] .subs-chart-key i { background:color-mix(in oklab, var(--a-accent) 76%, var(--a-card)); }
+html[data-theme="dark"] .subs-chart-key i.plan { background:color-mix(in oklab, var(--a-accent) 30%, var(--a-card)); }
+/* 续费详情「周期费用」里并起来的未来几期：一行字加「展开」。 */
+html[data-theme] .subs-per.fold { display:flex; align-items:center; gap:10px; min-height:44px; color:var(--a-muted); font-size:12px; font-variant-numeric:tabular-nums; }
+html[data-theme] .subs-per.fold b { color:var(--a-ink-2); font-weight:600; }
 html[data-theme] .subs-grp-h { grid-column:1 / -1; margin:0 0 -4px; padding-left:2px; color:var(--a-ink); font:600 14px/1.3 var(--a-display); letter-spacing:0; }
 html[data-theme] .subs-grp-h small { margin-left:6px; color:var(--a-muted); font:400 12px var(--a-sans); }
 /* hidden 要真的藏住：基础层的 .subs-field { display:flex } 会盖掉它（编辑已有项时「下次扣费日」曾照样显示） */
@@ -3952,6 +3960,7 @@ html[data-theme] .kpi-spark circle { fill:var(--accent); animation:uiPop .4s 1.2
 @keyframes uiDrawLine { from { stroke-dashoffset:1; } }
 html[data-theme] .stat-sub .up { color:var(--s-green); }
 html[data-theme] .stat-sub .down { color:var(--s-red); }
+html[data-theme] .stat-sub .stat-sub-part { white-space:nowrap; }
 html[data-theme] .kpi-bar { height:6px; margin-top:6px; background:var(--surface-soft); border-radius:999px; overflow:hidden; }
 html[data-theme] .kpi-bar i { display:block; height:100%; width:0; background:var(--accent); border-radius:inherit; transition:width .8s var(--ease-spring); }
 html[data-theme] #targetStat .stat-sub { order:4; }
@@ -4530,6 +4539,14 @@ html[data-theme] .tracking-detail-order { display:flex; align-items:center; just
 /* 物流进度抽屉的分块和订单抽屉一样：分块不画框、细线隔开，里面的小块灰底无边框。顶上那张卡（.detail-hero）不是分块，保持原样。 */
 html[data-theme] .tracking-detail-body > .detail-section { padding:18px 2px 4px; border:0; border-top:1px solid var(--hairline); border-radius:0; background:transparent; box-shadow:none; }
 html[data-theme] .tracking-detail-body :is(.detail-item, .tracking-event) { border-color:transparent; border-radius:14px; background:var(--surface-soft); }
+/* 物流进度抽屉顶上的卡：客户和「打开订单」一行，订单号 · 阶段一行，状态、风险、查询时间一行，按钮一行。 */
+html[data-theme] .tracking-detail-hero-head { display:flex; align-items:center; justify-content:space-between; gap:10px; min-width:0; }
+html[data-theme] .tracking-detail-hero-head .btn { flex:none; }
+html[data-theme] .tracking-detail-sub { color:var(--gray-600); font-size:12.5px; }
+html[data-theme] .tracking-detail-status { align-items:center; margin-top:0; }
+html[data-theme] .tracking-detail-status .tracking-freshness-risk { font-size:12.5px; }
+html[data-theme] .tracking-events-title small { margin-left:6px; color:var(--gray-500); font-size:12px; font-weight:500; }
+html[data-theme] .tracking-event-latest { margin-left:6px; padding:1px 7px; font-size:11px; vertical-align:1px; }
 html[data-theme] .logistics-result .paste-result-actions { display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end; }
 html[data-theme] .logistics-result .paste-result-meta.is-bad { color:var(--s-red); }
 html[data-theme] .logistics-result .paste-result-card.is-skipped { opacity:.75; }
@@ -4763,9 +4780,14 @@ html[data-theme] .order-table[data-density="compact"] .order-table-sub { margin-
 html[data-theme] .order-table[data-density="compact"] .col-stage { width:116px; }
 html[data-theme] .order-table[data-density="compact"] .col-action { width:120px; }
 html[data-theme] .order-table[data-density="compact"] .order-table-stage { flex-direction:row; flex-wrap:wrap; align-items:center; }
-html[data-theme] .order-table[data-density="compact"] td.col-money .order-table-payline { display:flex; align-items:center; justify-content:flex-end; gap:6px; margin-top:1px; }
-html[data-theme] .order-table[data-density="compact"] .order-table-paybar { flex:none; width:32px; margin:0; }
+/* 金额格放不下时只往左边（自己的左内边距、阶段格的右内边距）伸，不压物流格：金额和「待收」两行都靠右排、从右往左长。
+   短进度条要么整条放下，要么不出（换到被裁掉的第二行），不再伸进阶段格贴着「加急」。「待收」后面的币种和上一行重复，紧凑下不写。 */
+html[data-theme] .order-table[data-density="compact"] td.col-money { padding-left:0; }
+html[data-theme] .order-table[data-density="compact"] td.col-money .order-table-total { display:flex; justify-content:flex-end; white-space:nowrap; }
+html[data-theme] .order-table[data-density="compact"] td.col-money .order-table-payline { display:flex; flex-direction:row-reverse; flex-wrap:wrap; align-items:center; justify-content:flex-start; gap:8px 6px; max-height:17px; margin-top:1px; overflow-x:visible; overflow-y:clip; }
+html[data-theme] .order-table[data-density="compact"] .order-table-paybar { flex:none; order:1; width:32px; margin:0; }
 html[data-theme] .order-table[data-density="compact"] td.col-money .order-table-due-line { margin-top:0; }
+html[data-theme] .order-table[data-density="compact"] .order-table-due-code { display:none; }
 html[data-theme] .order-table[data-density="compact"] .order-table-actions { flex-direction:row; justify-content:center; gap:4px; }
 @media (max-width: 820px) {
   html[data-theme] .order-list-title-wrap { margin-left:0; }
@@ -4812,8 +4834,9 @@ html[data-theme] .exchange-tag.is-manual { background:var(--accent-tint); color:
 html[data-theme] .exchange-group { display:grid; gap:8px; min-width:0; }
 html[data-theme] .exchange-group-title { color:var(--gray-900); font-size:13px; font-weight:600; }
 html[data-theme] .exchange-group-meta { margin-top:-4px; color:var(--gray-500); font-size:12px; }
-html[data-theme] .exchange-cell-head { display:flex; align-items:center; justify-content:space-between; gap:6px; min-height:19px; margin-bottom:5px; }
-html[data-theme] .exchange-cell-head label { margin:0; }
+/* 月份名不换行；「手填」小标放得下就在同一行，放不下整体换到下一行（格子多了变窄时）。 */
+html[data-theme] .exchange-cell-head { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px; min-height:19px; margin-bottom:5px; }
+html[data-theme] .exchange-cell-head label { margin:0; white-space:nowrap; }
 html[data-theme] .exchange-future { display:grid; gap:8px; }
 html[data-theme] .exchange-future:empty { display:none; }
 html[data-theme] .exchange-future-row { display:grid; grid-template-columns:96px minmax(0, 180px) auto; align-items:center; justify-content:start; gap:10px; }
@@ -5665,7 +5688,7 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.182，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.182</div>
+      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.183，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.183</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会先问一句，再下载并重启" aria-label="检查更新：有新版本会先问一句，再下载并重启" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse is-busy" id="savePulse" aria-live="polite"><i></i><span>读取中</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -5727,7 +5750,7 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
           <div>
             <div class="section-title">订单进度</div>
             <div class="section-meta">按阶段排列</div>
-            <div class="drag-hint"><svg class="ui-icon" aria-hidden="true"><use href="#i-grip"/></svg>拖动卡片改阶段 · 右键（触控板双指点按）卡片有收齐、推进、删除等操作</div>
+            <div class="drag-hint" title="拖动卡片改阶段 · 右键（触控板双指点按）卡片有收齐、推进、删除等操作"><svg class="ui-icon" aria-hidden="true"><use href="#i-grip"/></svg>拖动改阶段 · 右键更多操作</div>
           </div>
           <div class="board-head-actions">
             <div class="segment-control compact board-product-filter" id="boardProductFilter">
@@ -10793,6 +10816,8 @@ function calendarEventsInRange(from, to) {
       date,
       tone: extra.snoozed ? taskTone(item) : taskTone(item),
       ...named(name, `${taskTypeDef(item)?.label || item.tag}${lateDays ? ` · 逾期 ${lateDays} 天` : ''}${extra.snoozed ? '（稍后）' : ''}`),
+      // 月格只写事由本身：「· 逾期 N 天」「（稍后）」会把客户名挤出格子（红色、淡色已经在说），完整的在 title 和日程里。
+      cellWhat: taskTypeDef(item)?.label || item.tag,
       sub: `${lateDays ? `已过 ${lateDays} 天 · ` : ''}${extra.snoozed ? '今天点了「稍后」，明天回到待办 · ' : ''}${item.reason} · ${item.detail || ''}`,
       taskId: extra.snoozed ? '' : item.id,
       snoozedTaskId: extra.snoozed ? item.id : '',
@@ -10907,7 +10932,7 @@ function calendarEventAttrs(event, date) {
 function calendarChipHtml(event, date) {
   const badge = event.badge ? `<i class="calendar-badge" aria-label="新客户">${escapeAttr(event.badge)}</i>` : '';
   // 先写事、再写客户：格子窄，被截的是后面的客户名，不是「发货 / 收款 / 最晚发出」（没拆成事和客户的照旧写 label）。
-  const text = event.what == null ? escapeAttr(event.label) : `<b>${escapeAttr(event.what)}</b>${event.who ? ` ${escapeAttr(event.who)}` : ''}`;
+  const text = event.what == null ? escapeAttr(event.label) : `<b>${escapeAttr(event.cellWhat || event.what)}</b>${event.who ? ` ${escapeAttr(event.who)}` : ''}`;
   return `<button class="calendar-event ${calendarEventTone(event)}${event.faded ? ' faded' : ''}" type="button" ${calendarEventAttrs(event, date)} title="${escapeAttr(`${event.label} · ${event.sub || ''}`)}">${badge}${text}</button>`;
 }
 // 当月日程：看的是本月时从今天排起（今天那组带「今天」，没有事也画出来），今天之前的收在「本月更早 · N 件」里，点开在原位展开；
@@ -16752,7 +16777,7 @@ function globalSearchCustomerProfile(name = '') {
   const savedName = Object.keys(state.customers || {}).find(item => item.toLowerCase() === clean);
   return savedName ? state.customers[savedName] : {};
 }
-// 订单结果的副标题优先显示命中的那一项：第 2 批运单号、邮箱、电话；否则是第一批运单号或备注。
+// 订单结果的副标题优先显示命中的那一项：第 2 批运单号、邮箱、电话；否则是第一批运单号或备注；都没有就是空的（不写「暂无备注」）。
 function globalSearchOrderDetail(order = {}, profile = {}, query = '') {
   const key = cleanTracking(query);
   const shipments = normalizeOrderShipments(order);
@@ -16764,7 +16789,7 @@ function globalSearchOrderDetail(order = {}, profile = {}, query = '') {
     .map(item => typeof item === 'object' && item ? (item.value || item.email || item.phone || '') : item).filter(Boolean);
   const contact = contacts.find(item => searchTextMatchDetail(String(item), query).direct);
   if (contact) return String(contact);
-  return order.trackingNumber || shipments[0]?.trackingNumber || order.note || '暂无备注';
+  return order.trackingNumber || shipments[0]?.trackingNumber || order.note || '';
 }
 function buildGlobalSearchResults(query = '') {
   const cleanQuery = String(query || '').trim();
@@ -16808,7 +16833,7 @@ function buildGlobalSearchResults(query = '') {
     const trackingHit = exactKey.length >= 4 && normalizeOrderShipments(order).some(item => item.trackingNumber === exactKey);
     if (trackingHit || (exactKey.length >= 4 && cleanTracking(order.num) === exactKey)) score = 300;
     const sourceText = source === 'deleted' ? '已删除' : source === 'trash' ? '垃圾箱' : stageDef(order.stage).name;
-    results.push({ type:'order', group:'订单', kind:sourceText, icon:'≡', id:order.id, source, tab:trackingHit ? 'logistics' : '', title, subtitle:`${storedCountry(order.country)} · ${money(order.amount, order.currency)} · ${globalSearchOrderDetail(order, profile, cleanQuery)}`, score:score + 20 });
+    results.push({ type:'order', group:'订单', kind:sourceText, icon:'≡', id:order.id, source, tab:trackingHit ? 'logistics' : '', title, subtitle:[storedCountry(order.country), money(order.amount, order.currency), globalSearchOrderDetail(order, profile, cleanQuery)].filter(Boolean).join(' · '), score:score + 20 });
   });
   (state.trackingLookups || []).forEach(item => {
     const title = item.trackingNumber || '未填写物流单号';
@@ -18276,8 +18301,13 @@ function detailItem(label, value, wide = false, valueClass = '') {
     </div>
   `;
 }
-function renderDetailAttachments(list = []) {
-  if (!list.length) return '<div class="muted">暂无附件 / 凭证记录。</div>';
+// 没有附件：说清楚去哪加，后面的链接等于点抽屉右上角的「完整编辑…」；只读的订单（已删除）只写没有附件。
+function renderDetailAttachments(list = [], editable = false) {
+  if (!list.length) {
+    return editable
+      ? '<div class="muted">还没有附件，在「完整编辑…」里添加 <button class="link-btn" type="button" data-detail-open-edit>打开完整编辑</button></div>'
+      : '<div class="muted">没有附件。</div>';
+  }
   // 和订单弹窗同一个规则：只有 http(s)、本机附件、图片地址才给「打开」，javascript: 之类、普通备注显示成文字。
   return list.map(item => {
     const href = safeAttachmentHref(item.fileUrl || item.link);
@@ -18653,7 +18683,7 @@ function renderOrderDetail(order, source = 'active') {
     <div class="order-detail-panel" data-detail-tab="attachments" hidden>
       <section class="detail-section">
         <div class="detail-section-title">附件 / 凭证</div>
-        ${renderDetailAttachments(order.attachments || [])}
+        ${renderDetailAttachments(order.attachments || [], editable)}
       </section>
     </div>
     <div class="order-detail-panel" data-detail-tab="customer" hidden>
@@ -19312,6 +19342,11 @@ function boardCardAmountHtml(o, balanceDue, cardSettings) {
   }
   return `<span class="board-card-amount" title="总额 ${escapeAttr(total)}">${total}</span>`;
 }
+// 数字卡的小字：每一项连同它前面的「 · 」是一个不换行的小段，换行只发生在两项之间，
+// 分隔点不会落在行尾，「物流异常 1」这样的一项也不会被拆成两行。parts 是纯文字，空的跳过。
+function statSubHtml(parts = []) {
+  return parts.filter(Boolean).map((part, index) => `<span class="stat-sub-part">${index ? '· ' : ''}${escapeAttr(part)}</span>`).join(' ');
+}
 // 工作台卡片上的月份名：今年的写「10 月」，别的年份带上年份「2025 年 12 月」，回看去年同月时不会和今年混。
 function dashboardMonthName(month = '') {
   const [year, num] = String(month).split('-');
@@ -19362,7 +19397,7 @@ function renderStats() {
     // 已收款（人民币）：标题写清楚是哪个月、什么币种；单数只数真的收到过钱的单。
     amountLabel.textContent = `${rangeName === '全部' ? '全部' : rangeName}已收 · RMB`;
     amountValue.textContent = rmbMoney(usdPaidTotalRmb(totalOrders));
-    amountSub.textContent = `${totalOrders.filter(o => orderPaidValue(o) > 0).length} 单有收款 · 点数字切回订单额`;
+    amountSub.innerHTML = statSubHtml([`${totalOrders.filter(o => orderPaidValue(o) > 0).length} 单有收款`, '点数字切回订单额']);
   } else {
     // 原型文案：当月叫「本月订单额」，别的月份写月份（不是今年的带年份），全部范围叫「订单总额」。
     amountLabel.textContent = totalRange === 'all' ? '订单总额' : totalRange === currentMonth ? '本月订单额' : `${dashboardMonthName(totalRange)}订单额`;
@@ -19371,7 +19406,7 @@ function renderStats() {
     amountValue.textContent = summaryMoney(usdTotal(revenueOrders), 'USD');
     // 汇率还没取到（或取不到）时，非美元订单折不成美元：写明有几单没算进去，别让人以为订单额就这么多。
     const unconverted = revenueOrders.filter(o => !ecbUsdRateForOrder(o)).length;
-    amountSub.textContent = `${revenueOrders.length} 单 · 草稿和报价不计${unconverted ? ` · ${unconverted} 单缺汇率未计入` : ''}`;
+    amountSub.innerHTML = statSubHtml([`${revenueOrders.length} 单`, '草稿和报价不计', unconverted ? `${unconverted} 单缺汇率未计入` : '']);
   }
   amountValue.classList.toggle('is-paid-mode', paidMode);
   amountValue.setAttribute('aria-pressed', paidMode ? 'true' : 'false');
@@ -19383,7 +19418,8 @@ function renderStats() {
   const targetValue = document.getElementById('statTargetRate');
   const reached = Boolean(targetGoal) && targetActual >= targetGoal;
   const currentTargetRate = targetGoal ? targetRate(targetActual, targetGoal) : 0;
-  targetValue.textContent = targetGoal ? `${currentTargetRate}%` : '未设';
+  // 没设目标：大字写成要做的事「设目标」（点卡片就去目标页），不写「未设」。
+  targetValue.textContent = targetGoal ? `${currentTargetRate}%` : '设目标';
   targetValue.classList.toggle('has-target', Boolean(targetGoal));
   targetValue.classList.toggle('is-achieved', reached);
   document.getElementById('statTargetSub').textContent = targetGoal ? `已完成 ${summaryMoney(targetActual, 'USD')}` : `点这里设置 ${dashboardMonthName(targetMonth)}目标`;
@@ -19738,12 +19774,15 @@ function renderPerformanceTargets() {
   }
   const clearBtn = document.getElementById('clearTargetBtn');
   if (clearBtn) clearBtn.hidden = !goal;
-  document.getElementById('targetGoal').textContent = goal ? summaryMoney(goal, 'USD') : '未设置';
+  // 这个月没设目标：整页只在完成度旁边写一句「11 月还没设目标」，目标、差额、圆环中间这些格子留空，不写「未设置 / 未设 / -」。
+  document.getElementById('targetGoal').textContent = goal ? summaryMoney(goal, 'USD') : '';
   document.getElementById('targetActual').textContent = summaryMoney(actual, 'USD');
-  document.getElementById('targetRate').textContent = goal ? `${rate}%` : '未设';
+  document.getElementById('targetRate').textContent = goal ? `${rate}%` : '';
+  const ringLabel = document.querySelector('#page-targets .target-ring-text span');
+  if (ringLabel) ringLabel.hidden = !goal;
   const over = goal && actual >= goal;
   const exact = over && Math.round(actual) === Math.round(goal);
-  document.getElementById('targetGap').textContent = goal ? summaryMoney(over ? actual - goal : gap, 'USD') : '-';
+  document.getElementById('targetGap').textContent = goal ? summaryMoney(over ? actual - goal : gap, 'USD') : '';
   document.getElementById('targetGap').classList.toggle('over', Boolean(over));
   const gapLabel = document.getElementById('targetGapLabel');
   if (gapLabel) gapLabel.textContent = over ? '超出' : '差额';
@@ -19761,7 +19800,7 @@ function renderPerformanceTargets() {
   const future = month > currentMonth;
   document.getElementById('targetProgressText').textContent = goal
     ? (exact ? '刚好完成目标。' : over ? `已经超出目标 ${summaryMoney(actual - goal, 'USD')}。` : future && !actual ? `${monthLabel(month)}还没开始，目标 ${summaryMoney(goal, 'USD')}。` : `完成 ${summaryMoney(actual, 'USD')}，还差 ${summaryMoney(gap, 'USD')}。`)
-    : `${monthLabel(month)} 暂未设置业绩目标`;
+    : `${dashboardMonthName(month)}还没设目标`;
 
   // 近月目标记录：只列设过目标的月份 + 本月（按时间倒序），行可以点 / 回车，切到那个月。
   const historyMonths = Array.from(new Set([currentMonth, ...Object.keys(state.performanceTargets || {}).filter(m => targetForMonth(m) > 0)])).sort().reverse();
@@ -19774,17 +19813,17 @@ function renderPerformanceTargets() {
     const monthOver = monthGoal && monthActual >= monthGoal;
     const notStarted = m > currentMonth;
     const diff = Math.abs(monthActual - monthGoal);
-    const diffCell = !monthGoal ? '<span class="muted">-</span>'
+    const diffCell = !monthGoal ? ''
       : notStarted ? '<span class="pending">未开始</span>'
         : `<span class="${monthOver ? 'over' : 'under'}">${monthOver ? '+' : '−'}${summaryMoney(diff, 'USD')}</span>`;
     return `
       <div class="target-history-row ${m === month ? 'selected' : ''}" role="button" tabindex="0" data-target-pick="${m}" aria-label="${escapeAttr(monthLabel(m))}，${monthGoal ? `目标 ${summaryMoney(monthGoal, 'USD')}，完成 ${monthRate}%` : '未设置目标'}"${m === month ? ' aria-current="true"' : ''}>
         <span class="target-history-month">${escapeAttr(monthLabel(m))}${m === currentMonth ? '<i class="target-history-now">当前</i>' : ''}</span>
-        <span class="target-history-amount">${monthGoal ? summaryMoney(monthGoal, 'USD') : '未设置'}</span>
+        <span class="target-history-amount">${monthGoal ? summaryMoney(monthGoal, 'USD') : ''}</span>
         <div class="target-history-values"><span>${summaryMoney(monthActual, 'USD')}</span>${diffCell}</div>
         <div class="target-history-progress">
           <div class="target-history-track"><div class="target-history-fill ${monthGoal ? (monthOver ? 'done' : '') : 'empty'}" style="width:${progress}%"></div></div>
-          <small class="target-history-rate ${monthGoal ? '' : 'empty'}">${monthGoal ? (notStarted ? '未开始' : monthRate + '%') : '未设'}</small>
+          <small class="target-history-rate ${monthGoal ? '' : 'empty'}">${monthGoal ? (notStarted ? '未开始' : monthRate + '%') : ''}</small>
         </div>
         <span class="target-history-count">${monthOrders.length}</span>
       </div>
@@ -20298,6 +20337,13 @@ function orderListFilterChips() {
   ].filter(Boolean);
   return [...extraChips, ...activeFilters];
 }
+// 列表「待收」金额：币种代码单独包一层，紧凑行距下不显示（同一格上一行的订单金额已经写了币种）；没有符号的币种照写代码。
+function orderListDueHtml(amount, currency) {
+  const text = money(amount, currency);
+  const def = currencyDef(currency);
+  if (!def.symbol || !text.endsWith(` ${def.code}`)) return escapeAttr(text);
+  return `${escapeAttr(text.slice(0, -def.code.length - 1))}<span class="order-table-due-code"> ${escapeAttr(def.code)}</span>`;
+}
 // 订单列表按现在的筛选和排序得到的全部订单（不分页）：列表本身和「只导出当前筛选的结果」用同一份。
 function orderListCurrentOrders() {
   const sort = document.getElementById('orderListSort')?.value || 'updatedDesc';
@@ -20370,7 +20416,7 @@ function renderOrderListPage() {
           </td>
           <td class="col-product"><div class="order-table-product"><strong>${escapeAttr(product.value)}</strong><span> · ${escapeAttr(boardPaymentLabel(payment.value))}</span></div><span class="order-table-sub">${escapeAttr(order.orderType || '')}</span></td>
           <td class="col-stage"><div class="order-table-stage"><span class="tag ${stage.tag}">${escapeAttr(stage.name)}</span>${order.isDraft ? '<span class="order-table-mini-flag">草稿</span>' : ''}${order.urgentOrder ? '<span class="order-table-mini-flag urgent">加急</span>' : ''}${logistics.partial ? `<span class="order-table-mini-flag partial" title="${escapeAttr(logistics.partial)}">${escapeAttr(logistics.partial.startsWith('部分发货') ? '部分发货' : logistics.partial)}</span>` : ''}</div></td>
-          <td class="col-money" title="已收 ${escapeAttr(money(paid, order.currency))}${escapeAttr(usdHint)}"><span class="order-table-money order-table-total">${money(order.amount, order.currency)}</span><span class="order-table-payline"><span class="order-table-paybar" aria-hidden="true"><i style="width:${Math.min(100, orderAmountValue(order) ? Math.round(paid / orderAmountValue(order) * 100) : 0)}%"></i></span>${due > 0 ? `<span class="order-table-due-line">待收 ${money(due, order.currency)}</span>` : ''}</span></td>
+          <td class="col-money" title="已收 ${escapeAttr(money(paid, order.currency))}${escapeAttr(usdHint)}"><span class="order-table-money order-table-total">${money(order.amount, order.currency)}</span><span class="order-table-payline"><span class="order-table-paybar" aria-hidden="true"><i style="width:${Math.min(100, orderAmountValue(order) ? Math.round(paid / orderAmountValue(order) * 100) : 0)}%"></i></span>${due > 0 ? `<span class="order-table-due-line">待收 ${orderListDueHtml(due, order.currency)}</span>` : ''}</span></td>
           <td class="col-logistics"><div class="order-table-logistics${logistics.exception ? ' exception' : ''}${logistics.missing ? ' missing' : ''}${logistics.none ? ' none' : ''}"><strong${logistics.none ? ' title="还没到发货阶段"' : ''}>${escapeAttr(logistics.status)}</strong><span class="order-table-sub" title="${escapeAttr([logistics.carrier, logistics.tracking].filter(Boolean).join(' '))}">${escapeAttr(logistics.carrier || '')}${logistics.carrier && logistics.tracking ? '  ' : ''}${escapeAttr(logistics.tracking || '')}</span></div></td>
           <td class="col-date"><span class="order-table-date">${escapeAttr(normalizeDate(order.createdAt || order.updated))}</span></td>
           <td class="col-action">${(() => {
@@ -20516,11 +20562,24 @@ function trackingCheckNote(shipment = null, lookup = null) {
   if (error?.at && (!okAt || parseDate(error.at) >= parseDate(okAt))) {
     return { tone:'bad', text:`${orderListWhen(error.at)} 查询失败（${trackingCheckCodeLabel(error.code)}）`, title:error.message || '' };
   }
-  if (okAt) return { tone:'ok', text:`${orderListWhen(okAt)} 查过 ✓`, title:'最近一次查询成功的时间' };
+  if (okAt) return { tone:'ok', text:`${orderListWhen(okAt)} 查过 ✓`, title:'最近一次查询成功的时间', at:okAt };
   return null;
 }
 function trackingCheckBadge(note) {
   return note ? `<span class="ship-check ${note.tone}" title="${escapeAttr(note.title || note.text)}">${escapeAttr(note.text)}</span>` : '';
+}
+// 「发货订单」列表里今天查成功的不再写「今天 … 查过 ✓」（一屏好几行写同一句）；不是今天查的、查询失败的照写。按本机日期比。
+function trackingCheckedToday(note, now = new Date()) {
+  if (note?.tone !== 'ok') return false;
+  const at = parseDate(note.at);
+  return at.getFullYear() > 1970 && at.toDateString() === now.toDateString();
+}
+// 两张物流列表里的时长小标。签收了的灰色：这件事已经结束，红色只留给还在路上、要盯的；悬停只写发货日。
+// 异常件同一行已经有「异常」状态，这里只写「已 N 天」。只改列表里的显示，deliveryTimingInfo 的返回值不动，待办等别处照旧。
+function logisticsListTimingBadge(timing) {
+  if (!timing) return '';
+  if (timing.delivered) return deliveryTimingBadge({ ...timing, cls:'neutral', title:String(timing.title || '').split('；')[0] });
+  return deliveryTimingBadge({ ...timing, label:String(timing.label || '').replace(/^异常 · /, '') });
 }
 function renderLogistics() {
   renderLogisticsKpis();
@@ -20550,6 +20609,7 @@ function renderLogistics() {
     const url = clean ? trackingUrl(clean, code) : '';
     const lookup = clean ? latestTrackingLookup(clean) : null;
     const timing = row.done ? null : deliveryTimingInfo(lookup || {}, { shippedAt:shipment?.shippedAt || o.shippedAt, status:row.status, deliveredAt:shipment?.updated });
+    const check = clean ? trackingCheckNote(shipment, lookup) : null;
     const batch = row.total > 1 ? `第 ${row.index}/${row.total} 批` : '';
     const label = `${clientDisplayName(o.client)} · ${o.num}${batch ? ` · ${batch}` : ''}`;
     return `
@@ -20558,14 +20618,14 @@ function renderLogistics() {
           <strong class="ship-row-client">${escapeAttr(clientDisplayName(o.client))}</strong>
           <span class="ship-row-tags">
             ${o.partialShipment === true && !row.done ? '<span class="ship-pill tone-line">部分发货</span>' : ''}
-            <span class="ship-pill ${clean ? logisticsTone(row.status) : 'tone-line'}">${clean ? `${carrierName(code)} · ` : ''}${escapeAttr(row.status)}</span>
+            <span class="ship-pill ${clean ? logisticsTone(row.status) : 'tone-line'}">${escapeAttr(row.status)}</span>
           </span>
         </div>
         <div class="ship-row-sub">
           <span class="tracking-code">${clean ? `${carrierName(code)} ${escapeAttr(groupTrackingNumber(clean))}` : '未填写物流单号'}</span><span>· ${escapeAttr(o.num)}</span>
           ${batch ? `<span class="ship-batch">· ${batch}</span>` : ''}
-          ${row.done ? '<span class="delivery-timing neutral" title="订单已完成，不再跟进物流">已完成</span>' : deliveryTimingBadge(timing)}
-          ${clean && code !== 'UPS' ? trackingCheckBadge(trackingCheckNote(shipment, lookup)) : ''}
+          ${row.done ? '<span class="delivery-timing neutral" title="订单已完成，不再跟进物流">已完成</span>' : logisticsListTimingBadge(timing)}
+          ${clean && code !== 'UPS' && !trackingCheckedToday(check) ? trackingCheckBadge(check) : ''}
           <span class="ship-row-actions">
             ${clean ? `<button class="btn btn-small copy-tracking-btn" type="button" title="复制单号" data-copy-tracking="${escapeAttr(clean)}">复制</button>` : ''}
             ${clean && code !== 'UPS' ? `<button class="btn btn-small" type="button" data-refresh-logistics="${escapeAttr(o.id)}" data-refresh-tracking="${escapeAttr(clean)}" data-refresh-carrier="${escapeAttr(code)}">更新</button>` : ''}
@@ -21188,6 +21248,8 @@ function renderPriceHistory(activeLookupId = '') {
     const linked = view.orders.length > 0 || Boolean(view.deleted);
     const timing = deliveryTimingInfo(item, { shippedAt:view.shippedAt, status:view.status, deliveredAt:view.shipment?.updated });
     const official = item.carrier === 'UPS' && !/已签收|异常|运输中|派送中/.test(view.status || '');
+    // 右上角已经写了查询时间：查询成功的不再写「查过 ✓」，失败的照写（红色，带原因）。
+    const check = trackingCheckNote(null, item);
     const label = `${item.carrier} ${groupTrackingNumber(item.trackingNumber)} · ${view.client}`;
     return `
       <div class="price-history-row recent-tracking-row ${item.pinned ? 'pinned' : ''} ${item.id === activeLookupId ? 'just-updated' : ''}" ${item.orderId ? `data-recent-order-id="${escapeAttr(item.orderId)}"` : ''} data-lookup-id="${escapeAttr(item.id)}" tabindex="0" role="button" aria-label="打开 ${escapeAttr(label)} 的物流详情" title="查询 ${escapeAttr(monthDayTimeLabel(item.checkedAt))} · 更新 ${escapeAttr(monthDayTimeLabel(item.statusUpdatedAt || item.checkedAt))}">
@@ -21198,8 +21260,8 @@ function renderPriceHistory(activeLookupId = '') {
         <div class="recent-tracking-sub">
           <span class="ship-pill ${official ? 'tone-line' : logisticsTone(view.status)}">${escapeAttr(official ? '官网查询' : view.status)}</span>
           <span class="recent-tracking-client">${escapeAttr(view.client)}${view.orderText ? ` · ${escapeAttr(view.orderText)}` : ''}</span>
-          ${view.deleted ? '' : deliveryTimingBadge(timing)}
-          ${item.carrier !== 'UPS' ? trackingCheckBadge(trackingCheckNote(null, item)) : ''}
+          ${view.deleted ? '' : logisticsListTimingBadge(timing)}
+          ${item.carrier !== 'UPS' && check?.tone !== 'ok' ? trackingCheckBadge(check) : ''}
         </div>
         <div class="recent-tracking-actions">
           <button class="btn btn-small copy-tracking-btn" type="button" title="复制单号" data-copy-tracking="${escapeAttr(item.trackingNumber)}">复制</button>
@@ -21213,16 +21275,17 @@ function renderPriceHistory(activeLookupId = '') {
     `;
   }).join('') + (list.length > 18 ? `<button class="link-btn recent-tracking-more" type="button" data-toggle-lookups>${priceHistoryExpanded ? '收起' : `还有 ${list.length - 18} 条 · 全部显示`}</button>` : '');
 }
-function renderTrackingEvents(item) {
-  const events = sortTrackingEvents(uniqueTrackingEvents(normalizeTrackingEvents(item?.events || [])));
+// 物流节点列表，最新的在最上面并带「最新」小标；节点数写在分块标题右边（openTrackingDetail）。
+// 没有节点时，hint 是「还没有查到（原因）」「UPS 不查 API…」这类说明，写进空状态。
+function renderTrackingEvents(events, hint = '') {
   if (!events.length) {
-    return '<div class="empty">暂无详细节点。DHL / FedEx 返回扫描节点后会显示；UPS 可打开官网查看实时轨迹。</div>';
+    return `<div class="empty">${hint ? `暂无详细节点：${escapeAttr(hint)}。` : '暂无详细节点。DHL / FedEx 返回扫描节点后会显示；UPS 可打开官网查看实时轨迹。'}</div>`;
   }
-  return `<div class="tracking-event-count">共 ${events.length} 个物流节点</div><div class="tracking-detail-list">${events.map(event => `
+  return `<div class="tracking-detail-list">${events.map((event, index) => `
     <div class="tracking-event">
       <span class="tracking-event-dot"></span>
       <div>
-        <div class="tracking-event-title">${escapeAttr(event.title)}</div>
+        <div class="tracking-event-title">${escapeAttr(event.title)}${index === 0 ? ' <span class="tag tag-neutral tracking-event-latest">最新</span>' : ''}</div>
         <div class="tracking-event-meta">${escapeAttr([event.time, event.location].filter(Boolean).join(' · ') || '-')}</div>
         ${event.description ? `<div class="tracking-event-meta">${escapeAttr(event.description)}</div>` : ''}
       </div>
@@ -21332,58 +21395,55 @@ function trackingRiskText(item = {}, view = trackingLookupView(item)) {
   const days = daysBetween(item.statusUpdatedAt || view.shipment?.updated || okAt);
   return days > 3 ? { text:`${days} 天没更新`, risk:true } : { text:'正常', risk:false };
 }
+// 物流进度抽屉：顶部一张卡（客户、订单号 · 阶段、状态和风险、查询时间、按钮）加物流节点两块。
+// 客户和订单号、查询时间、最新节点各只写一遍；拼箱或订单已删除时才另列「关联订单」。
 function openTrackingDetail(id) {
   const item = findTrackingLookup(id);
   if (!item) return;
   const view = trackingLookupView(item);
   const risk = trackingRiskText(item, view);
-  const fresh = trackingFreshness(item);
   const official = carrierName(item.carrier) === 'UPS';
+  const officialOnly = official && !/已签收|异常|运输中|派送中/.test(view.status);
   document.getElementById('trackingDetailNum').textContent = groupTrackingNumber(item.trackingNumber) || '物流详情';
   document.getElementById('trackingDetailTitle').textContent = `${carrierName(item.carrier)} 物流进度`;
   const check = trackingCheckNote(null, item);
+  const single = view.orders.length === 1 && !view.deleted ? view.orders[0] : null;
+  const orderLine = view.orderText || '未关联订单';
+  const events = sortTrackingEvents(uniqueTrackingEvents(normalizeTrackingEvents(item.events || [])));
+  // 「正常」「已签收」不写；要处理的（异常、N 天没更新）跟在状态后面；其余的说明（UPS 不查 API、还没有查到）只在没有节点时写进空状态。
+  const riskNote = risk.risk ? risk.text.replace(/^异常 · /, '') : '';
+  const emptyHint = !risk.risk && !['正常', '已签收'].includes(risk.text) ? risk.text : '';
   document.getElementById('trackingDetailBody').dataset.lookupId = id;
   document.getElementById('trackingDetailBody').innerHTML = `
-    <section class="detail-hero" data-tracking-detail="${escapeAttr(item.id)}">
-      <div class="detail-num">${escapeAttr(view.orderText || '未关联订单')}</div>
-      <div class="detail-client-line">
+    <section class="detail-hero tracking-detail-hero" data-tracking-detail="${escapeAttr(item.id)}">
+      <div class="tracking-detail-hero-head">
         <div class="detail-client">${escapeAttr(view.client)}</div>
-        <span class="carrier-badge ${carrierBadgeClass(item.carrier)}">${escapeAttr(item.carrier)}</span>
+        ${single ? `<button class="btn btn-small" type="button" data-tracking-open-order="${escapeAttr(single.id)}">打开订单</button>` : ''}
       </div>
-      <div class="modal-summary">
-        <span class="ship-pill ${official && !/已签收|异常|运输中|派送中/.test(view.status) ? 'tone-line' : logisticsTone(view.status)}">${escapeAttr(official && !/已签收|异常|运输中|派送中/.test(view.status) ? '官网查询' : view.status)}</span>
-        <span class="tag tag-neutral">查询 ${escapeAttr(item.checkedAt || '-')}</span>
-        <span class="tag tag-neutral">更新 ${escapeAttr(item.statusUpdatedAt || '-')}</span>
-        ${check ? trackingCheckBadge(check) : ''}
+      ${single ? `<div class="tracking-detail-sub"><span class="detail-num">${escapeAttr(single.num)}</span> · ${escapeAttr(stageDef(single.stage).name)}</div>`
+        : orderLine !== view.client ? `<div class="tracking-detail-sub">${escapeAttr(orderLine)}</div>` : ''}
+      <div class="modal-summary tracking-detail-status">
+        <span class="ship-pill ${officialOnly ? 'tone-line' : logisticsTone(view.status)}">${escapeAttr(officialOnly ? '官网查询' : view.status)}</span>
+        ${riskNote ? `<span class="tracking-freshness-risk">${escapeAttr(riskNote)}</span>` : ''}
+        ${check ? trackingCheckBadge(check) : `<span class="ship-check">查询 ${escapeAttr(orderListWhen(item.checkedAt))}</span>`}
       </div>
       <div class="tracking-detail-actions">
         <button class="btn btn-small" type="button" data-copy-tracking="${escapeAttr(item.trackingNumber)}">复制单号</button>
         ${official ? '' : `<button class="btn btn-small" type="button" data-refresh-recent-tracking="${escapeAttr(item.trackingNumber)}" data-recent-carrier="${escapeAttr(item.carrier)}" data-detail-refresh="${escapeAttr(item.id)}">重新查询</button>`}
+        <button class="btn btn-small" type="button" data-open-official-tracking="${escapeAttr(item.trackingNumber)}" data-official-carrier="${escapeAttr(item.carrier)}">打开官网</button>
       </div>
     </section>
-    ${view.orders.length || view.deleted ? `<section class="detail-section">
+    ${!single && (view.orders.length || view.deleted) ? `<section class="detail-section">
       <div class="detail-section-title">关联订单</div>
       ${view.orders.map(order => `<div class="tracking-detail-order"><span>${escapeAttr(clientDisplayName(order.client))} · ${escapeAttr(order.num)} · ${escapeAttr(stageDef(order.stage).name)}</span><button class="btn btn-small" type="button" data-tracking-open-order="${escapeAttr(order.id)}">打开订单</button></div>`).join('')}
       ${view.deleted ? `<div class="tracking-detail-order"><span>${escapeAttr(clientDisplayName(view.deleted.client))} · ${escapeAttr(view.deleted.num)} · 订单已删除</span><button class="btn btn-small" type="button" data-tracking-restore-order="${escapeAttr(view.deleted.id)}">恢复订单</button></div>` : ''}
     </section>` : ''}
     <section class="detail-section">
-      <div class="detail-section-title">物流概览</div>
-      <div class="detail-grid">
-        ${detailItem('最后有效节点', fresh.event ? `${fresh.event.title || '-'} · ${fresh.event.location || '-'}` : '-')}
-        ${detailItem('节点时间', fresh.event?.time || item.statusUpdatedAt || '-')}
-        ${detailItem('风险判断', risk.text, false, risk.risk ? 'tracking-freshness-risk' : 'tracking-freshness-ok')}
-      </div>
-    </section>
-    <section class="detail-section">
-      <div class="detail-section-title">物流节点</div>
-      ${renderTrackingEvents(item)}
+      <div class="detail-section-title tracking-events-title">物流节点${events.length ? ` <small>共 ${events.length} 个</small>` : ''}</div>
+      ${renderTrackingEvents(events, emptyHint)}
     </section>
     ${item.lastError ? `<section class="detail-section"><div class="detail-section-title">最近一次查询</div><div class="detail-value">${escapeAttr(`${item.lastError.at} 查询失败：${item.lastError.message}`)}${item.lastOkAt ? escapeAttr(`；上面是 ${item.lastOkAt} 查到的结果`) : ''}</div></section>`
       : item.queryMessage ? `<section class="detail-section"><div class="detail-section-title">查询结果</div><div class="detail-value">${escapeAttr(item.queryMessage)}</div></section>` : ''}
-    <section class="detail-section">
-      <div class="detail-section-title">人工核对</div>
-      <button class="btn btn-small" type="button" data-open-official-tracking="${escapeAttr(item.trackingNumber)}" data-official-carrier="${escapeAttr(item.carrier)}">打开官网查询</button>
-    </section>
   `;
   if (!document.getElementById('trackingDetailDrawer').classList.contains('open')) {
     setModalOpenState('trackingDetailDrawer', true);
@@ -26841,8 +26901,8 @@ function renderSubscriptionHero(summary, rate, roll) {
       <span class="subs-hl" id="subsHeroYear">一年约 ¥${Math.round(summary.yearlyCny).toLocaleString('zh-CN')} · 美元按 ${rateHtml} 折算</span>
     </div>
     <div class="subs-hr" id="subsHeroSide">
-      <span class="subs-pill">${subscriptionIcon('check')}${summary.total} 项续费</span>
-      <span class="subs-hl">${summary.active} 项续费中 · ${summary.cancelled} 项不再续费</span>
+      <span class="subs-pill">${subscriptionIcon('check')}${summary.active} 项续费中</span>
+      ${summary.cancelled ? `<span class="subs-hl">${summary.cancelled} 项不再续费</span>` : ''}
       <span class="subs-hl">未来 30 天要付 ${subscriptionMoney(summary.upcomingCny)} · ${summary.upcoming.length} 笔</span>
       ${summary.dueSoon ? `<span class="subs-hl">${summary.dueSoon} 项快到续费日</span>` : ''}
     </div>`;
@@ -27392,13 +27452,13 @@ function renderSubscriptionAnalysisPage({ entering = false } = {}) {
       <b class="arc-metric-v" data-target="${value}">${subscriptionMoney(0)}</b>
       <p>${escapeAttr(context)}</p></article>`).join('')}</div>
     <section class="subs-panel subs-enter wide" style="--i:4">
-      <header><div><h3>每月扣费</h3><p>实心是已扣的金额，浅色虚边是还没到扣费日的（本月待扣和右边 6 个月的预计）；鼠标在图上移动或按方向键查看每个月</p></div></header>
-      <div id="subsArcBars"></div>
+      <header><div><h3>每月扣费</h3></div><ul class="subs-chart-key" aria-label="图例"><li><i aria-hidden="true"></i>已扣</li><li><i class="plan" aria-hidden="true"></i>还没到扣费日（本月待扣和之后 6 个月的预计）</li></ul></header>
+      <div id="subsArcBars" title="鼠标在图上移动或按方向键查看每个月"></div>
     </section>
     <div class="subs-an-grid">
       <section class="subs-panel subs-enter" style="--i:5">
-        <header><div><h3>类型占比</h3><p>按月均花费；点图例（或按空格）显示或隐藏，点圆环或在图例上按回车去列表筛选</p></div></header>
-        <div id="subsArcCategory"></div>
+        <header><div><h3>类型占比</h3><p>按月均花费</p></div></header>
+        <div id="subsArcCategory" title="点图例（或按空格）显示或隐藏，点圆环或在图例上按回车去列表筛选"></div>
       </section>
       <section class="subs-panel subs-enter" style="--i:6">
         <header><div><h3>付款方式</h3><p>每月从哪张卡、哪个账户扣</p></div></header>
@@ -27716,6 +27776,8 @@ async function commitSubscriptionRate({ cancel = false, fromBlur = false } = {})
 }
 // 周期费用：已经发生的每期记当期价格；未来的期默认沿用上一期价格，可以单独改一期，或从某期起调价。
 let subscriptionPeriodsAll = false;
+// 未来第二期起价钱相同的几期并成一行「第 6 到 10 期都是 …」；展开后逐期列出。打开另一项或关掉抽屉就复位。
+let subscriptionPeriodsFuture = false;
 const subscriptionFuturePeriods = 6;
 function subscriptionPeriods(item, today, schedule) {
   const bound = subscriptionStopBound(item, schedule.paidThrough);
@@ -27777,7 +27839,7 @@ function subscriptionPeriodsHtml(item, schedule) {
     ? `≈${subscriptionMoney(list.reduce((sum, period) => sum + subscriptionToCny(period, period.amount, rate), 0))}`
     : subscriptionMoney(list.reduce((sum, period) => sum + period.amount, 0), item.currency);
   const upcoming = periods.filter(period => !period.past);
-  const rows = shown.map(period => {
+  const row = period => {
     const tag = period.due ? ['red', '待续费'] : period.current ? ['accent', '本期'] : period.past ? ['', '已发生'] : ['line', '未来'];
     const mark = period.old ? `<em class="subs-per-mark">${escapeAttr(subscriptionCycleLabel(period.term))}·旧设置</em>`
       : period.once ? '<em class="subs-per-mark">单独改价</em>' : period.change ? '<em class="subs-per-mark">起调价</em>' : '';
@@ -27790,6 +27852,22 @@ function subscriptionPeriodsHtml(item, schedule) {
       <span class="subs-per-v"><b>${subscriptionMoney(period.amount, period.currency)}</b>${mark}</span>
       ${edit}
     </div>`;
+  };
+  // The first future period stays on its own row; from the second on, consecutive periods at the same price
+  // (not due, not repriced on their own, not where a price change starts) fold into one row. Only the listing changes.
+  const firstFuture = shown.findIndex(period => !period.past && !period.due);
+  const segments = [];
+  shown.forEach((period, i) => {
+    const run = segments[segments.length - 1];
+    const fold = firstFuture >= 0 && i > firstFuture && !period.past && !period.due && !period.once && !period.change;
+    if (fold && run?.fold && run.list[0].amount === period.amount && run.list[0].currency === period.currency) run.list.push(period);
+    else segments.push({ fold, list:[period] });
+  });
+  const folds = segments.some(segment => segment.fold && segment.list.length > 1);
+  const rows = segments.map(({ fold, list }) => {
+    if (!fold || list.length < 2 || subscriptionPeriodsFuture) return list.map(row).join('');
+    const range = `第 ${list[0].index + 1} 到 ${list[list.length - 1].index + 1} 期`;
+    return `<div class="subs-per fold"><span>${range}都是 <b>${subscriptionMoney(list[0].amount, list[0].currency)}</b></span><button class="subs-pers-more" type="button" data-sub-action="periods-future" aria-label="展开${range}">展开</button></div>`;
   }).join('');
   const foot = bound && item.stopOn && subscriptionDayAfter(item.stopOn) === bound
     ? `预计 ${item.stopOn} 停止，之后不再计费${schedule.coveredUntil ? `（${item.stopOn} 当天那一期仍会扣，覆盖到 ${schedule.coveredUntil}）` : ''}`
@@ -27799,6 +27877,7 @@ function subscriptionPeriodsHtml(item, schedule) {
     <header class="subs-pers-h"><b>周期费用</b><span>已发生 ${past.length} 期 ${total(past)}${upcoming.length ? ` · 未来 ${upcoming.length} 期 ${total(upcoming)}` : ''}</span></header>
     ${hidden ? `<button class="subs-pers-more" type="button" data-sub-action="periods-all">再看更早的 ${hidden} 期</button>` : ''}
     <div class="subs-pers-list">${rows}</div>
+    ${folds && subscriptionPeriodsFuture ? '<button class="subs-pers-more" type="button" data-sub-action="periods-future-fold">收起</button>' : ''}
     ${foot ? `<p class="subs-pers-foot">${escapeAttr(foot)}</p>` : ''}
   </section>`;
 }
@@ -27806,7 +27885,7 @@ function openSubscriptionDetail(id) {
   if (!findSubscription(id)) return;
   const wasOpen = document.getElementById('subscriptionDrawer').classList.contains('open');
   if (!wasOpen) subscriptionReturnFocus = uiOpenedFrom();
-  if (subscriptionDetailId !== id) subscriptionPeriodsAll = false;
+  if (subscriptionDetailId !== id) subscriptionPeriodsAll = subscriptionPeriodsFuture = false;
   subscriptionDetailId = id;
   renderSubscriptionDetail({ entering:!wasOpen });
   setModalOpenState('subscriptionDrawer', true);
@@ -27847,12 +27926,13 @@ function renderSubscriptionDetail({ entering = false } = {}) {
   const kv = [
     ['开始日期', subscriptionFirstStart(item) === item.startDate ? item.startDate : `${subscriptionFirstStart(item)}（现在的设置从 ${item.startDate} 起）`],
     ['类型', item.category],
-    ['服务商', item.provider || '未填写'],
+    ['服务商', item.provider],
     // The same reminder rule the bell and the editor use (the drawer used to say 30 / 7 days whatever the cycle).
     ['状态', { active:subscriptionRemindText(item), ending:planned ? '预计停止，之后不再扣费' : '已取消，等待到期', expired:planned ? '已停止，不再扣费' : '已到期，不再扣费' }[schedule.state]],
     ['扣费周期', subscriptionCycleEvery(item)],
-    ['预计停止', item.stopOn ? `${item.stopOn}，之后的周期不再计费` : '未设置'],
-    ['付款方式', item.paymentMethod || '未设置'],
+    // Not filled in: the row is left out, not written as 未设置.
+    ['预计停止', item.stopOn ? `${item.stopOn}，之后的周期不再计费` : ''],
+    ['付款方式', item.paymentMethod],
     ['币种', item.currency === 'USD' ? `美元 · 1 USD = ${rate} CNY` : '人民币']
   ];
   const toggle = {
@@ -27886,7 +27966,7 @@ function renderSubscriptionDetail({ entering = false } = {}) {
       </div>
       ${renewAction}${providerAction}
       ${subscriptionPeriodsHtml(item, schedule)}
-      <dl class="subs-kv">${kv.map(([label, value]) => `<dt>${label}</dt><dd>${escapeAttr(value)}</dd>`).join('')}</dl>
+      <dl class="subs-kv">${kv.filter(([, value]) => value).map(([label, value]) => `<dt>${label}</dt><dd>${escapeAttr(value)}</dd>`).join('')}</dl>
       <div class="subs-acts">
         <button class="subs-act" type="button" data-sub-action="${toggle[0]}"><b>${toggle[1]}</b><small>${toggle[2]}</small></button>
         <div class="subs-act danger"><b>删除记录</b><small>${escapeAttr(deleteNote)}</small><button class="subs-btn sm subs-hold" type="button" data-sub-action="hold" aria-label="按住删除 ${name}"><span class="subs-hold-fill"></span><span class="lbl">${subscriptionIcon('trash')}<span class="subs-hold-text">按住删除</span></span></button></div>
@@ -29027,6 +29107,12 @@ document.getElementById('subscriptionDrawer').addEventListener('click', event =>
     subscriptionPeriodsAll = true;
     renderSubscriptionDetail();
   }
+  if (action === 'periods-future' || action === 'periods-future-fold') {
+    // The button pressed is redrawn: focus moves to the one that undoes it.
+    subscriptionPeriodsFuture = action === 'periods-future';
+    renderSubscriptionDetail();
+    document.querySelector(`#subscriptionDrawer [data-sub-action="${subscriptionPeriodsFuture ? 'periods-future-fold' : 'periods-future'}"]`)?.focus({ preventScroll:true });
+  }
   const period = event.target.closest('[data-sub-period]');
   if (period) openSubscriptionPriceEditor(period.dataset.subPeriod);
 });
@@ -29881,7 +29967,8 @@ document.getElementById('orderTableBody')?.addEventListener('click', e => {
     return;
   }
   // 「收齐」点完按钮就换了（紧凑行里两个按钮并排，剩下的那个挪到中间）：双击的第二下落在空出来的地方，不当成点了这一行去开详情。
-  if (Date.now() - orderListQuickActionAt < 400) return;
+  // 双击的第二下不看隔了多久（机器忙的时候两下之间会超过 400ms）；点一行本来第一下就开详情，第二下没有别的用处。
+  if (e.detail > 1 || Date.now() - orderListQuickActionAt < 400) return;
   const row = e.target.closest('[data-order-list-id]');
   const id = openButton?.dataset.orderListOpen || row?.dataset.orderListId;
   if (id) openOrderDetail(id);
@@ -30366,6 +30453,12 @@ document.getElementById('orderDetailDrawer').addEventListener('click', e => {
     e.preventDefault();
     e.stopPropagation();
     retryOrderNotification(retryNotificationBtn.dataset.retryOrderNotification);
+    return;
+  }
+  if (e.target.closest('[data-detail-open-edit]')) {
+    e.preventDefault();
+    e.stopPropagation();
+    document.getElementById('detailEditBtn').click();
     return;
   }
   const customerBtn = e.target.closest('[data-order-open-customer]');
@@ -33695,7 +33788,9 @@ function uiDashboardKpis() {
     const now = monthTotal(month);
     if (before > 0) {
       const pct = Math.round((now - before) / before * 100);
-      amountSub.insertAdjacentHTML('afterbegin', `<span class="${pct >= 0 ? 'up' : 'down'}" title="${isCurrent ? `本月 1–${todayDay} 日对比上月 1–${todayDay} 日` : '整月对比上月整月'}">比 ${escapeAttr(dashboardMonthName(prev))}${isCurrent ? '同期' : ''} ${pct >= 0 ? '+' : ''}${pct}%</span> · `);
+      // 环比是第一段：原来的第一段补上它前面的「 · 」（小字的分段见 statSubHtml）。
+      amountSub.querySelector('.stat-sub-part')?.prepend('· ');
+      amountSub.insertAdjacentHTML('afterbegin', `<span class="stat-sub-part"><span class="${pct >= 0 ? 'up' : 'down'}" title="${isCurrent ? `本月 1–${todayDay} 日对比上月 1–${todayDay} 日` : '整月对比上月整月'}">比 ${escapeAttr(dashboardMonthName(prev))}${isCurrent ? '同期' : ''} ${pct >= 0 ? '+' : ''}${pct}%</span></span> `);
     }
   }
   const dueOrders = state.orders.filter(o => !o.isDraft && orderDueValue(o) > 0);
@@ -33703,7 +33798,7 @@ function uiDashboardKpis() {
   if (paymentSub) {
     // 订单上没有尾款到期日，不说「逾期」：只数已确认订单里「下单超过 30 天还有欠款」的（不含报价单，不看最后修改时间）。
     const aged = dueOrders.filter(o => orderDueAged(o)).length;
-    paymentSub.textContent = dueOrders.length ? `历史累计 · 待收 ${dueOrders.length} 笔${aged ? ` · 下单超 ${dueAgeAlertDays} 天未收清 ${aged}` : ''}` : '历史累计 · 没有待收款';
+    paymentSub.innerHTML = statSubHtml(dueOrders.length ? ['历史累计', `待收 ${dueOrders.length} 笔`, aged ? `下单超 ${dueAgeAlertDays} 天未收清 ${aged}` : ''] : ['历史累计', '没有待收款']);
     paymentSub.title = aged ? `已确认的订单（生产中 / 待发货 / 已发货 / 已完成）里，下单已超过 ${dueAgeAlertDays} 天、还有欠款的有 ${aged} 笔。订单上没有尾款到期日，这不是付款逾期。` : '';
   }
   const tasksSub = document.getElementById('statTasksSub');
@@ -33712,7 +33807,8 @@ function uiDashboardKpis() {
     const items = buildTaskItems({ perOrder:true });
     const todayItems = todayTaskItems(items);
     const later = items.length - todayItems.length;
-    tasksSub.textContent = [...taskTypeBreakdown(todayItems), later ? `另有 ${later} 件即将到期` : ''].filter(Boolean).join(' · ') || '今天没有待办';
+    const parts = [...taskTypeBreakdown(todayItems), later ? `另有 ${later} 件即将到期` : ''];
+    tasksSub.innerHTML = statSubHtml(parts.some(Boolean) ? parts : ['今天没有待办']);
   }
   const goal = targetForMonth(month);
   const label = document.getElementById('statTargetLabel');

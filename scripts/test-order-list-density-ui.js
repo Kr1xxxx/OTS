@@ -55,6 +55,12 @@ async function quickPaid(page, id, expectedPaid) {
   await page.mouse.move(5, 5);
 }
 
+// 刷新前等上一次保存发完：WebKit 把被刷新打断的 /api/save 报成页面错误（「… due to access control checks」），机器忙的时候正好撞上。
+async function reload(page) {
+  await page.waitForFunction(() => { const s = window.pendingSaveStatus?.(); return !s || (!s.saving && !s.pending); });
+  await page.reload();
+}
+
 (async () => {
   const browser = await launchBrowser();
   try {
@@ -109,7 +115,7 @@ async function quickPaid(page, id, expectedPaid) {
     await quickPaid(page, 'o9', 1000);
 
     // 5. 刷新后还是宽松。
-    await page.reload();
+    await reload(page);
     await page.waitForFunction(() => window.pendingSaveStatus?.().loaded);
     await page.evaluate(() => setPage('order-list'));
     await rowOf(page, 'o1').waitFor();
@@ -120,13 +126,13 @@ async function quickPaid(page, id, expectedPaid) {
     let served = {};
     await page.route('**/api/ui-prefs', route => { posted.push(route.request().postDataJSON()); return route.fulfill({ json:{ ok:true } }); });
     await page.route('**/trade-order-system.html', route => route.fulfill({ contentType:'text/html', body:pageWithPrefs(html, served) }));
-    await page.reload();
+    await reload(page);
     await page.waitForFunction(() => window.pendingSaveStatus?.().loaded);
     await assert.doesNotReject(() => page.waitForFunction(() => !localStorage.getItem('ots-prefs-unsent'), null, { timeout:5000 }), 'the stored choice reaches the server');
     assert.ok(posted.some(body => body.set?.[key] === 'comfortable'), `the server gets the stored choice: ${JSON.stringify(posted)}`);
     served = { [key]:'comfortable' };
     await page.evaluate(() => localStorage.clear());
-    await page.reload();
+    await reload(page);
     await page.waitForFunction(() => window.pendingSaveStatus?.().loaded);
     await page.evaluate(() => setPage('order-list'));
     await rowOf(page, 'o1').waitFor();

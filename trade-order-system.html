@@ -29826,7 +29826,8 @@ document.getElementById('orderTableBody')?.addEventListener('click', e => {
     return;
   }
   // 「收齐」点完按钮就换了（紧凑行里两个按钮并排，剩下的那个挪到中间）：双击的第二下落在空出来的地方，不当成点了这一行去开详情。
-  if (Date.now() - orderListQuickActionAt < 400) return;
+  // 双击的第二下不看隔了多久（机器忙的时候两下之间会超过 400ms）；点一行本来第一下就开详情，第二下没有别的用处。
+  if (e.detail > 1 || Date.now() - orderListQuickActionAt < 400) return;
   const row = e.target.closest('[data-order-list-id]');
   const id = openButton?.dataset.orderListOpen || row?.dataset.orderListId;
   if (id) openOrderDetail(id);

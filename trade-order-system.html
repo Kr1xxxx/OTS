@@ -10078,6 +10078,23 @@ function isUpsTrackingNumber(value = '', { allowAmbiguous12 = false } = {}) {
   if (/^\d{9}$/.test(clean)) return true;
   return allowAmbiguous12 && /^\d{12}$/.test(clean);
 }
+// 填进来的运单号能不能存：空字符串表示可以，否则是一句给用户看的原因。所有让人填运单号的地方都用这一个
+// （订单弹窗、新客户加订单、抽屉补单号、已发货补单号小卡片、AI 识别），不各写一份。
+// 只拦明显不是单号的：网址、一个数字都没有、太短太长、1Z 开头却不是 18 位（UPS 的 1Z 单号都是 18 位）。
+// UPS 1Z、DHL 的 JJD / GM 前缀都带字母，所以不能只认纯数字；别的承运商位数不止一种，不按家细拦。
+// 已经存着的单号不在这里过滤（normalizeOrderShipments 不调它）：以前存进去的照样能打开、能保存别的字段。
+function trackingNumberProblem(value = '') {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const clean = cleanTracking(raw);
+  // 网址：带 ://、www. 开头、或者像 ups.com/… 这样的域名；单号框失焦后会被改成纯字母数字，所以 HTTPS… / WWW… 开头的也算。
+  if (/:\/\/|^www\.|[a-z0-9-]\.(?:com|net|org|cn|io|co|de|us|uk|html?|php|aspx?)(?:[/?#:.]|$)/i.test(raw) || /^(?:HTTPS?|WWW)/.test(clean)) return '这是网址，不是运单号，只填单号本身';
+  if (!/\d/.test(clean)) return '没有数字，不像运单号';
+  if (/^1Z/.test(clean) && clean.length !== 18) return `UPS 的 1Z 单号是 18 位，这里是 ${clean.length} 位`;
+  if (clean.length < 8) return `只有 ${clean.length} 位，太短，不像运单号`;
+  if (clean.length > 40) return `有 ${clean.length} 位，太长，不像运单号`;
+  return '';
+}
 function carrierHintFromTrackingText(value = '') {
   const text = String(value || '').toLowerCase();
   if (/\bups\b|united\s+parcel\s+service/.test(text)) return 'UPS';
@@ -14594,7 +14611,9 @@ function normalizeAiExtractedFields(raw = {}) {
   const explicitPaidAmount = raw.paidAmount === undefined || raw.paidAmount === null || raw.paidAmount === ''
     ? ''
     : aiMoneyNumber(raw.paidAmount);
-  const trackingNumber = cleanTracking(raw.trackingNumber || raw.tracking || '');
+  // AI 偶尔把网址、「待补」之类当成单号返回：不像单号的不填进表单。
+  const trackingText = String(raw.trackingNumber || raw.tracking || '');
+  const trackingNumber = trackingNumberProblem(trackingText) ? '' : cleanTracking(trackingText);
   const currency = String(raw.currency || '').toUpperCase();
   const carrier = String(raw.carrier || '').toLowerCase();
   const depositAmount = Number.isFinite(amount) && amount > 0 && Number.isFinite(depositPercentValue) && depositPercentValue > 0
@@ -18322,10 +18341,11 @@ async function uiDetailAddShipment() {
   const order = state.orders.find(o => o.id === id);
   if (!order || !input) return;
   const number = cleanTracking(input.value);
-  if (!number) {
+  const problem = trackingNumberProblem(input.value);
+  if (!number || problem) {
     input.classList.remove('ui-err'); void input.offsetWidth; input.classList.add('ui-err');
     input.focus();
-    toast('先填运单号', { tone:'error' });
+    toast(problem || '先填运单号', { tone:'error' });
     return;
   }
   if (normalizeOrderShipments(order).some(item => item.trackingNumber === number)) {
@@ -21411,7 +21431,7 @@ function strictTrackingCarrier(clean) {
 function planTrackingEntry(entry) {
   const orderCarrier = orderTrackingCarrier(entry.clean);
   const linked = trackingLinkedOrders(entry.clean).length > 0;
-  const valid = linked || (entry.hint ? entry.clean.length >= 8 && /\d{6,}/.test(entry.clean) : Boolean(strictTrackingCarrier(entry.clean)));
+  const valid = linked || (!trackingNumberProblem(entry.raw) && (entry.hint ? entry.clean.length >= 8 && /\d{6,}/.test(entry.clean) : Boolean(strictTrackingCarrier(entry.clean))));
   const carrier = !valid ? '' : entry.hint || orderCarrier || (linked ? detectCarrier(entry.clean) : strictTrackingCarrier(entry.clean));
   return { ...entry, valid, carrier, conflict:Boolean(entry.hint && orderCarrier && entry.hint !== orderCarrier), orderCarrier };
 }
@@ -23936,25 +23956,36 @@ function removeShipmentRow(row) {
   }
   syncShipmentRowHints(form);
 }
-// 同一单里重复的单号：标红、保存前拦下（以前保存时静默丢掉后面那行）。别的订单也用这个单号（拼箱）：灰色提示，不拦。
-function shipmentRowDuplicateState(form) {
+// 每一批单号的毛病，标红、保存前拦下：不像运单号（trackingNumberProblem：网址、没有数字……），或者同一单里重复
+// （以前保存时静默丢掉后面那行）。别的订单也用这个单号（拼箱）：灰色提示，不拦。
+// 打开表单时就存着、一直没改过的旧单号（kept）不拦，只灰字提示：一张旧单不能因为以前存进去的单号连别的字段都存不了。
+function shipmentRowProblems(form) {
   const seen = new Map();
   return Array.from(form?.querySelectorAll?.('[data-shipment-primary-row], [data-shipment-extra-row]') || []).map((row, index) => {
-    const number = cleanTracking(row.querySelector('[data-shipment-number]')?.value || '');
-    if (!number) return { row, index, number, duplicateOf:0 };
-    if (seen.has(number)) return { row, index, number, duplicateOf:seen.get(number) };
+    const raw = row.querySelector('[data-shipment-number]')?.value || '';
+    const number = cleanTracking(raw);
+    const problem = trackingNumberProblem(raw);
+    const kept = Boolean(problem && number) && row.dataset?.shipmentOpenedNumber === number;
+    if (!number) return { row, index, number, duplicateOf:0, problem, kept };
+    if (seen.has(number)) return { row, index, number, duplicateOf:seen.get(number), problem, kept };
     seen.set(number, index + 1);
-    return { row, index, number, duplicateOf:0 };
+    return { row, index, number, duplicateOf:0, problem, kept };
   });
 }
 function syncShipmentRowHints(form) {
   const ownId = form?.elements?.id?.value || '';
-  shipmentRowDuplicateState(form).forEach(({ row, number, duplicateOf }) => {
+  shipmentRowProblems(form).forEach(({ row, number, duplicateOf, problem, kept }) => {
     let text = '';
     let tone = '';
-    if (duplicateOf) {
+    if (problem && !kept) {
+      text = `${problem}，改正或删掉这一行`;
+      tone = 'error';
+    } else if (duplicateOf) {
       text = `和第 ${duplicateOf} 批单号重复，删掉这一行或改正单号`;
       tone = 'error';
+    } else if (problem) {
+      text = `这是以前存的单号：${problem}。不改也能保存`;
+      tone = 'info';
     } else if (number) {
       const others = (state.orders || []).filter(o => o.id !== ownId && normalizeOrderShipments(o).some(item => item.trackingNumber === number));
       if (others.length) {
@@ -23963,6 +23994,7 @@ function syncShipmentRowHints(form) {
         tone = 'info';
       }
     }
+    // 类名沿用最早只拦重复时的叫法，现在不像单号的也用它标红。
     row.classList.toggle('is-duplicate', tone === 'error');
     let hint = row.querySelector('[data-shipment-hint]');
     if (!text) {
@@ -23979,13 +24011,14 @@ function syncShipmentRowHints(form) {
     hint.dataset.tone = tone;
   });
 }
-function rejectDuplicateShipmentRows(form) {
+function rejectBadShipmentRows(form) {
   if (!form?.querySelector?.('[data-shipment-editor]')) return false;
   syncShipmentRowHints(form);
-  const duplicate = shipmentRowDuplicateState(form).find(item => item.duplicateOf);
-  if (!duplicate) return false;
-  toast(`第 ${duplicate.index + 1} 批单号和第 ${duplicate.duplicateOf} 批重复，删掉重复的一行或改正单号后再保存`);
-  const input = duplicate.row.querySelector('[data-shipment-number]');
+  const bad = shipmentRowProblems(form).find(item => (item.problem && !item.kept) || item.duplicateOf);
+  if (!bad) return false;
+  if (bad.problem && !bad.kept) toast(`第 ${bad.index + 1} 批物流单号：${bad.problem}。改正或删掉这一行后再保存`, { tone:'error' });
+  else toast(`第 ${bad.index + 1} 批单号和第 ${bad.duplicateOf} 批重复，删掉重复的一行或改正单号后再保存`);
+  const input = bad.row.querySelector('[data-shipment-number]');
   input?.scrollIntoView?.({ block:'center' });
   input?.focus();
   return true;
@@ -24006,7 +24039,13 @@ function orderShipmentsFromForm(form) {
 function syncShipmentRowFromTracking(input) {
   const row = input?.closest('.shipment-row');
   const clean = cleanTracking(input?.value || '');
-  if (!row || !clean) return;
+  if (!row) return;
+  // 不像单号的输入原样留着（网址改写成一串大写字母就认不出来了），只更新红字。
+  if (!clean || trackingNumberProblem(input.value)) {
+    const form = input.closest('form');
+    if (form) syncShipmentRowHints(form);
+    return;
+  }
   input.value = clean;
   const carrier = row.querySelector('[data-shipment-carrier]');
   // 承运商还是「自动识别」、或者上次是自动识别填的：每次离开输入框都按新单号重新识别；用户手动选过就不动。
@@ -24688,6 +24727,7 @@ async function saveCombinedCustomerOrder() {
   try {
   // 客户这一栏和客户弹窗同一套检查：邮箱、电话格式不对给红字，不再静默丢掉。
   if (!validateCustomerForm(customerForm) || !validateOrderRequiredFields(orderForm)) return;
+  if (rejectBadShipmentRows(orderForm)) return;
   const customerData = { ...Object.fromEntries(new FormData(customerForm).entries()), ...customerMultiFieldData(customerForm), ...customerContactPreferenceData(customerForm) };
   const orderData = { ...Object.fromEntries(new FormData(orderForm).entries()), shipments:orderShipmentsFromForm(orderForm) };
   const oldName = customerData.originalName || '';
@@ -24769,8 +24809,8 @@ async function upsertOrder(form, options = {}) {
     toast('请填写客户名称', { tone:'error' });
     return;
   }
-  // 同一张单里重复的物流单号：以前保存时静默丢掉后面那一行（连它的承运商、状态一起），现在先拦下来。
-  if (typeof rejectDuplicateShipmentRows === 'function' && rejectDuplicateShipmentRows(form)) return;
+  // 不像运单号的输入、同一张单里重复的物流单号：先拦下来（重复的以前保存时静默丢掉后面那一行，连它的承运商、状态一起）。
+  if (rejectBadShipmentRows(form)) return;
   const overflowField = await confirmOrderPaymentOverflow(data);
   if (overflowField !== true) { focusOrderFormField(form.elements[overflowField]); return; }
   return await saveOrderData({ ...data, attachments: orderAttachmentsFromForm(form) }, {
@@ -25817,6 +25857,9 @@ async function previewImportDataFile(file) {
     if (plan.conversions.length) notes.push(`${plan.conversions.length} 个金额从文字转成了数字：${plan.conversions.slice(0, 5).join('；')}${plan.conversions.length > 5 ? ' 等' : ''}。`);
     if (plan.droppedLookups) notes.push(`物流查询记录里有 ${plan.droppedLookups} 条 ID 重复，只保留第一条。`);
     if (missing?.count) notes.push(`${missing.count} 个附件文件在本机找不到（订单 ${missing.nums.slice(0, 5).join('、')}${missing.nums.length > 5 ? ' 等' : ''}），导入后这些图片打不开；备份照常进行。`);
+    // 不像运单号的单号（网址、没有数字……）照原样导入，不删不改（自己的旧备份要原样恢复），只在预览里点出来。
+    const oddTracking = data.orders.filter(order => normalizeOrderShipments(order).some(item => trackingNumberProblem(item.trackingNumber)));
+    if (oddTracking.length) notes.push(`注意：有 ${oddTracking.length} 张订单的物流单号不像正常单号（${oddTracking.slice(0, 5).map(o => o.num || o.id).join('、')}${oddTracking.length > 5 ? ' 等' : ''}），照原样导入，导入后建议到订单里改正。`);
     if (similar.length) notes.push(`注意：有 ${similar.length} 组订单号只差大小写、全角或空格（${similar.slice(0, 3).map(list => list.map(o => o.num).join(' / ')).join('；')}${similar.length > 3 ? ' 等' : ''}），导入后建议改掉其中一个。`);
     let mode = await importPreviewChoose({ plan, data, mergeOnly, conflictFile, mergeDiff, replaceDiff, removedTotal, notes });
     if (mode === 'replace' && removedTotal) {
@@ -33508,7 +33551,8 @@ function uiTrackingQuickCard(id) {
     const value = input.value.trim();
     const current = state.orders.find(o => o.id === id);
     if (!value) { uiTrackingQuickCardClose(id); return; }
-    if (!cleanTracking(value)) { input.classList.remove('ui-err'); void input.offsetWidth; input.classList.add('ui-err'); toast('运单号格式不对'); return; }
+    const problem = trackingNumberProblem(value);
+    if (problem) { input.classList.remove('ui-err'); void input.offsetWidth; input.classList.add('ui-err'); toast(problem, { tone:'error' }); return; }
     if (!current) { uiTrackingQuickCardClose(id); toast(`${card.dataset.orderLabel} 已不在看板上，运单号没有保存`, { tone:'warn' }); return; }
     if (current.stage !== 'shipment') { uiTrackingQuickCardClose(id); toast('这张订单已不在「已发货」，运单号请在订单详情里补'); return; }
     if (!canSubmitStoredData()) return;

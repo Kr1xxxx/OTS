@@ -27,7 +27,7 @@ async function scenario(readOnly, saveOK) {
     commitCustomerSavePayload:()=>events.push('mutated'),
     closeCustomerModal:()=>events.push('closed'), openPendingCombinedOrder:()=>false,
     render:()=>{}, toast:message=>events.push(message), flushPendingSave:()=>pending,
-    orderShipmentsFromForm:()=>[], orderAttachmentsFromForm:()=>[],
+    orderShipmentsFromForm:()=>[], orderAttachmentsFromForm:()=>[], rejectBadShipmentRows:()=>false,
     buildOrderFromFormData:(data,{existing})=>({id:existing?.id || 'order-'+(++ctx.sequence),client:'Test Buyer'}),
     sequence:0, shouldRequestOrderNotification:()=>false, normalizeFeishuNotification:x=>x,
     closeOrder:()=>events.push('closed'), completeOrderNotification:()=>events.push('notified'), rejectDuplicateOrderNum:()=>false,

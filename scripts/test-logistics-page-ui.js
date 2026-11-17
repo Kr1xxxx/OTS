@@ -266,7 +266,35 @@ const risks = page => page.evaluate(() => buildTaskItems().filter(task => String
     assert.match(notFound, /DHL 查不到这个单号（刚发出的包裹可能要几小时后才有记录）/);
     assert.match(notFound, /未关联订单/);
     assert.doesNotMatch(notFound, /\{|HTTP 404|待 API 查询 · 更新/);
-    assert.doesNotMatch(await text(page, '#trackingApiMiniStatus'), /\{/, '调用情况小条也不带 JSON');
+    // 调用情况不在物流页顶部了，挪到 设置 › 接口状态：DHL 那行是这次的时间和结果，也不带 JSON。
+    assert.equal(await page.locator('#trackingApiMiniStatus, #page-logistics .api-call-line').count(), 0, '物流页没有调用情况那一排');
+    const lastDhl = await page.evaluate(() => { const s = getTrackingApiSettings(); return { at:trackingApiMiniTime(s.lastDhlCheckedAt), status:trackingStatusTextWithEmoji(s.lastDhlStatus) }; });
+    assert.notEqual(lastDhl.at, '尚未查询', '这次查询记下了时间');
+    await page.evaluate(() => { setPage('settings'); uiSettingsTab('api'); });
+    const dhlLine = await text(page, '#trackingApiCallLines [data-api-call="dhl"]');
+    assert.equal(dhlLine, `DHL 最近调用 ${lastDhl.at} · ${lastDhl.status}`.replace(/\s+/g, ' '));
+    assert.doesNotMatch(dhlLine, /\{|HTTP 404/, '调用情况不带 JSON');
+    assert.match(await text(page, '#trackingApiCallLines [data-api-call="fedex"]'), /^FedEx\s*尚未查询$/, '没查过的写「尚未查询」，没有按天的次数');
+    await page.evaluate(() => setPage('logistics'));
+    // 顶部说明一行；「？识别规则」点开能读到 UPS 和 12 位单号两条，Esc 收起、焦点回到按钮。
+    assert.equal(await text(page, '#page-logistics .logistics-query-meta'), '每行一个单号，一次最多 12 个，自动识别 DHL / FedEx / UPS ？识别规则');
+    assert.equal(await page.locator('#page-logistics .logistics-query-panel .exchange-note').count(), 0, '输入框下面那行说明收进了「识别规则」');
+    assert.equal(await page.locator('#trackingRulesPop').isVisible(), false, '规则默认收着');
+    await clickAt(page, '#trackingRulesBtn');
+    assert.equal(await page.locator('#trackingRulesPop').isVisible(), true);
+    assert.equal(await page.getAttribute('#trackingRulesBtn', 'aria-expanded'), 'true');
+    const rules = await text(page, '#trackingRulesPop');
+    assert.match(rules, /UPS 不接 API，识别出来后给官网链接/);
+    assert.match(rules, /12 位纯数字 FedEx 和 UPS 都在用，默认按 FedEx 查，是 UPS 时到订单里手动选/);
+    assert.match(rules, /逗号、Tab 隔开也行/);
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('#trackingRulesPop').isVisible(), false, 'Esc 收起');
+    assert.equal(await page.getAttribute('#trackingRulesBtn', 'aria-expanded'), 'false');
+    assert.equal(await page.evaluate(() => document.activeElement?.id), 'trackingRulesBtn', '焦点回到按钮');
+    await page.keyboard.press('Enter');
+    assert.equal(await page.locator('#trackingRulesPop').isVisible(), true, '键盘回车也能打开');
+    await clickAt(page, '#trackingLookupInput');
+    assert.equal(await page.locator('#trackingRulesPop').isVisible(), false, '点别处收起');
 
     // 签收的单（4444 拼箱）先成功查一次，节点停在 5 天前：两张单都挂上提醒，记在批次上。
     carrier.dhl['4444444444'] = dhlOk('transit', 'Processed at hub', `${day(-5)}T08:00:00+08:00`);

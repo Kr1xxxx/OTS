@@ -1,10 +1,11 @@
 #!/usr/bin/env node
-// 设置页的四个开关（物流追踪的 DHL 官方查询 / 自动更新物流 / FedEx 官方查询，AI 识别），真实本地服务 + 真实鼠标键盘：
+// 设置页的五个开关（物流追踪的 DHL 官方查询 / 自动更新物流 / FedEx 官方查询，AI 识别，订单设置的新订单默认加急），真实本地服务 + 真实鼠标键盘：
 // - 开关和服务端存的值一致；点一下、键盘空格都能切换；切换算表单改动（离开设置页会问），但不自己保存；
 // - 下面那行跟着开关、Key、自动更新时间实时变：开和关各一句，自动更新写表单里填的时间；
 //   开着但缺 Key（DHL、FedEx 的 Key / Secret、AI 的 API Key）、自动更新没有可查的承运商或时间填错时用警示色；
 // - 点「保存」后服务端存的仍是「是」/「否」，和以前分段控件存的一样；
-// - 窄窗口单列，说明行换行不撑破网格；警示色在两个主题下都看得清。
+// - 窄窗口单列，说明行换行不撑破网格；警示色在两个主题下都看得清；
+// - 物流追踪分 DHL / FedEx / 自动更新三块，每块的开关和自己的字段在一起；新订单默认加急开着时新建订单默认加急。
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -181,8 +182,60 @@ const root = path.resolve(__dirname, '..');
       if (width === 520) box.rows.forEach(row => assert.ok(row.width > (box.formRight - box.formLeft) * 0.9, '520px: one column'));
     }
 
+    // ---- 7. 物流追踪分三块：每块的开关和它自己的字段在一起，状态格不重复 ----
+    await page.setViewportSize({ width:1440, height:920 });
+    const groups = await page.evaluate(() => [...document.querySelectorAll('#trackingApiSettingsForm .tracking-group')].map(group => ({
+      label:group.getAttribute('aria-label'),
+      switches:[...group.querySelectorAll('input[role="switch"]')].map(input => input.name),
+      fields:[...group.querySelectorAll('input:not([role="switch"]), select')].map(input => input.name),
+      status:group.querySelector('.tracking-group-status')?.id || ''
+    })));
+    assert.deepEqual(groups, [
+      { label:'DHL 官方查询', switches:['dhlApiEnabled'], fields:['dhlApiKey'], status:'trackingApiDhlStatus' },
+      { label:'FedEx 官方查询', switches:['fedexApiEnabled'], fields:['fedexEnv', 'fedexApiKey', 'fedexApiSecret'], status:'trackingApiFedexStatus' },
+      { label:'自动更新物流', switches:['autoDhlUpdate'], fields:['autoRunTimes'], status:'trackingApiNextAuto' }
+    ]);
+    assert.equal(await page.locator('#trackingApiLastChecked, #trackingApiAutoTimes, #trackingApiSettingsForm .rate-status-grid').count(), 0, '和上面重复的两格去掉了');
+    assert.match(await page.locator('#trackingApiNextAuto').innerText(), /^下一次时段：已关闭$/, 'auto update was saved off above');
+    assert.match(await page.locator('#trackingApiSettingsForm .tracking-group-line').innerText(), /^尚未自动更新 · 成功 \d+ \/ 失败 \d+$/);
+
+    // ---- 8. 订单设置：「新订单默认加急」是开关，存的还是「是」/「否」；默认订单类型只是一行说明 ----
+    const O = '#orderSettingsForm';
+    const saveOrderSettings = async () => {
+      await h.clearToasts(page);
+      await page.locator(`${O} button[type="submit"]`).click();
+      await h.waitToast(page, '订单设置已保存');
+    };
+    const newOrderUrgent = () => page.evaluate(() => {
+      openOrder();
+      const value = document.querySelector('#orderForm [name="urgentOrder"]').value;
+      closeOrder();
+      return value;
+    });
+    await page.evaluate(() => uiSettingsTab('order'));
+    assert.equal(await page.locator(`${O} select[name="defaultUrgentOrder"]`).count(), 0, 'no 否 / 是 select left');
+    assert.equal(await page.locator(`${O} .fixed-setting-pill`).count(), 0);
+    assert.equal(await page.locator(`${O} .settings-fixed-note`).innerText(), '固定为全款订单，这里不能改');
+    assert.equal(await page.locator(`${O} input[name="defaultOrderType"]`).inputValue(), '全款订单');
+    assert.equal(await checked(sw(O, 'defaultUrgentOrder')), false, 'off by default');
+    assert.deepEqual(await desc(O, 'defaultUrgentOrder'), { text:'已关闭：新建订单时「加急」默认不勾', warning:false });
+    await page.locator(sw(O, 'defaultUrgentOrder')).click();
+    assert.deepEqual(await desc(O, 'defaultUrgentOrder'), { text:'已开启：新建订单时「加急」默认勾上', warning:false });
+    assert.equal(await dirty(O), true, 'flipping it is an unsaved change');
+    await saveOrderSettings();
+    assert.equal(await page.evaluate(() => state.orderSettings.defaultUrgentOrder), '是');
+    assert.equal(await dirty(O), false);
+    assert.equal(await checked(sw(O, 'defaultUrgentOrder')), true, 'the form shows what was saved');
+    assert.equal(await newOrderUrgent(), '是', 'a new order starts urgent');
+    await page.evaluate(() => { setPage('settings'); uiSettingsTab('order'); });
+    await page.locator(sw(O, 'defaultUrgentOrder')).focus();
+    await page.keyboard.press('Space');
+    await saveOrderSettings();
+    assert.equal(await page.evaluate(() => state.orderSettings.defaultUrgentOrder), '否');
+    assert.equal(await newOrderUrgent(), '否', 'and not once it is off');
+
     assert.deepEqual(errors, [], `page errors: ${errors.join(' | ')}`);
-    console.log('Settings switches UI passed: switches match the server, click / Space flip without saving, live descriptions with times and missing-key warnings, saved as 是 / 否, readable warnings in both themes, one column when narrow.');
+    console.log('Settings switches UI passed: switches match the server, click / Space flip without saving, live descriptions with times and missing-key warnings, saved as 是 / 否, readable warnings in both themes, one column when narrow, tracking split into three groups, default-urgent switch reaches new orders.');
   } finally {
     if (browser) await browser.close();
     server.kill();

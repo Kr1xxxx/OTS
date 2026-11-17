@@ -168,10 +168,10 @@ const base = { country:'🇺🇸 美国 United States', currency:'USD', amount:1
     // 7. 导入预览：完全相同的号拒绝导入；只差大小写的号可以导入，但预览里要说出来。
     await clearToasts();
     const importFile = orders => ({ name:'import.json', mimeType:'application/json', buffer:Buffer.from(JSON.stringify({ app:'trade-order-system', data:{ orders, customers:{}, demoCleared:true, demoCustomersCleared:true } })) });
-    await page.setInputFiles('#dataFileInput', importFile([{ id:'i1', num:'K25010101', client:'Imp A', amount:10 }, { id:'i2', num:'K25010101', client:'Imp B', amount:20 }]));
+    await page.setInputFiles('#importFile', importFile([{ id:'i1', num:'K25010101', client:'Imp A', amount:10 }, { id:'i2', num:'K25010101', client:'Imp B', amount:20 }]));
     await page.waitForFunction(() => document.querySelector('#toast .toast-item.is-error'));
     assert.match((await toastTexts()).join('\n'), /导入失败：文件里订单号 K25010101 出现了不止一次/);
-    await page.setInputFiles('#dataFileInput', importFile([{ id:'i1', num:'K25010101', client:'Imp A', amount:10 }, { id:'i2', num:'k25010101', client:'Imp B', amount:20 }]));
+    await page.setInputFiles('#importFile', importFile([{ id:'i1', num:'K25010101', client:'Imp A', amount:10 }, { id:'i2', num:'k25010101', client:'Imp B', amount:20 }]));
     await page.waitForFunction(() => document.getElementById('importPreviewModal').classList.contains('open'));
     assert.match(await page.locator('#importNotes').innerText(), /1 组订单号只差大小写、全角或空格（K25010101 \/ k25010101）/);
     await page.locator('#importPreviewCancelBtn').click();

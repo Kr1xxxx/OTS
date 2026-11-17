@@ -144,6 +144,10 @@ const fixture = {
     assert.equal(monthJson.scope, 'month');
     assert.deepEqual(monthJson.data.orders.map(o => o.num), ['K26100101']);
     await h.clearToasts(page);
+    // 数据管理里只有一个导入入口（以前「导入备份」「预览导入」两个按钮打开同一个预览）。
+    assert.equal(await page.locator('#previewImportDataFileBtn, #dataFileInput').count(), 0);
+    assert.equal(await page.locator('[data-settings-panel="data"] .data-action', { hasText:'导入备份' }).count(), 1, 'one import row');
+    assert.equal((await page.locator('#importJsonBtn').innerText()).trim(), '选择文件…');
     await chooseFile('#importJsonBtn', monthFile);
     let preview = await previewOpen();
     assert.equal(preview.replace, false, 'a one-month file can only be merged');
@@ -168,7 +172,7 @@ const fixture = {
       }
     });
     await h.clearToasts(page);
-    await chooseFile('#previewImportDataFileBtn', replaceFile);
+    await chooseFile('#importJsonBtn', replaceFile);
     preview = await previewOpen();
     assert.match(preview.sub, /^2 张订单 · 2 位客户 · .+ 由 V3\.120 导出$/);
     assert.equal(preview.replace, true);
@@ -224,7 +228,7 @@ const fixture = {
       return route.continue();
     });
     await h.clearToasts(page);
-    await chooseFile('#previewImportDataFileBtn', addFile);
+    await chooseFile('#importJsonBtn', addFile);
     preview = await previewOpen();
     assert.match(preview.message, /不删除现有数据/);
     await mergeFocused();

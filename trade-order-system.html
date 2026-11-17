@@ -10786,6 +10786,8 @@ function calendarEventsInRange(from, to) {
       date,
       tone: extra.snoozed ? taskTone(item) : taskTone(item),
       ...named(name, `${taskTypeDef(item)?.label || item.tag}${lateDays ? ` · 逾期 ${lateDays} 天` : ''}${extra.snoozed ? '（稍后）' : ''}`),
+      // 月格只写事由本身：「· 逾期 N 天」「（稍后）」会把客户名挤出格子（红色、淡色已经在说），完整的在 title 和日程里。
+      cellWhat: taskTypeDef(item)?.label || item.tag,
       sub: `${lateDays ? `已过 ${lateDays} 天 · ` : ''}${extra.snoozed ? '今天点了「稍后」，明天回到待办 · ' : ''}${item.reason} · ${item.detail || ''}`,
       taskId: extra.snoozed ? '' : item.id,
       snoozedTaskId: extra.snoozed ? item.id : '',
@@ -10900,7 +10902,7 @@ function calendarEventAttrs(event, date) {
 function calendarChipHtml(event, date) {
   const badge = event.badge ? `<i class="calendar-badge" aria-label="新客户">${escapeAttr(event.badge)}</i>` : '';
   // 先写事、再写客户：格子窄，被截的是后面的客户名，不是「发货 / 收款 / 最晚发出」（没拆成事和客户的照旧写 label）。
-  const text = event.what == null ? escapeAttr(event.label) : `<b>${escapeAttr(event.what)}</b>${event.who ? ` ${escapeAttr(event.who)}` : ''}`;
+  const text = event.what == null ? escapeAttr(event.label) : `<b>${escapeAttr(event.cellWhat || event.what)}</b>${event.who ? ` ${escapeAttr(event.who)}` : ''}`;
   return `<button class="calendar-event ${calendarEventTone(event)}${event.faded ? ' faded' : ''}" type="button" ${calendarEventAttrs(event, date)} title="${escapeAttr(`${event.label} · ${event.sub || ''}`)}">${badge}${text}</button>`;
 }
 // 当月日程：看的是本月时从今天排起（今天那组带「今天」，没有事也画出来），今天之前的收在「本月更早 · N 件」里，点开在原位展开；

@@ -50,7 +50,7 @@ console.log('Dashboard month test passed: current-month default and manual selec
     const errors=[]; let saves=0;
     page.on('pageerror', error=>errors.push(error.message));
     const orders = [
-      {id:'old-due',num:'TEST-1',client:'History Buyer',orderMonth:'2026-07',stage:'deposit',amount:300,paidAmount:100,currency:'USD'},
+      {id:'old-due',num:'TEST-1',client:'History Buyer',orderMonth:'2026-07',stage:'production',amount:300,paidAmount:100,currency:'USD'},
       {id:'current-due',num:'TEST-2',client:'Current Buyer',orderMonth:'2026-08',stage:'production',amount:200,paidAmount:50,currency:'USD'},
       {id:'quote-due',num:'TEST-3',client:'Quote Buyer',orderMonth:'2026-08',stage:'quote',amount:80,paidAmount:20,currency:'USD'},
       {id:'settled',num:'TEST-4',client:'Settled Buyer',orderMonth:'2026-08',stage:'shipment',amount:500,paidAmount:0,currency:'USD'},
@@ -65,7 +65,8 @@ console.log('Dashboard month test passed: current-month default and manual selec
     });
     await page.goto('http://127.0.0.1:47999/trade-order-system.html');
     await page.waitForFunction(()=>window.pendingSaveStatus?.().loaded);
-    for(const [month,total] of [['2026-08',780],['2026-07',300],['all',1080]]) {
+    // 报价单（quote-due）不算订单额，待收款照算。
+    for(const [month,total] of [['2026-08',700],['2026-07',300],['all',1000]]) {
       await page.locator('#totalRange').selectOption(month,{force:true});
       assert.equal(await page.locator('#statPayment').innerText(),'$410','historical receivables must remain unchanged when switching amount months');
       assert.equal(await page.locator('#statAmount').innerText(),`$${total.toLocaleString('en-US')}`,'order total must still follow the selected month');
@@ -80,7 +81,7 @@ console.log('Dashboard month test passed: current-month default and manual selec
     });
     assert.equal(await page.locator('#statAmount').innerText(),'$12,346','Homepage USD total uses the prototype whole-dollar format');
     assert.equal(await page.locator('#statPayment').innerText(),'$12,246','Homepage historical receivables must use the same display precision');
-    assert.equal(await page.locator('#statAmountSub').innerText(),'13 单 · 草稿不计','The homepage caption follows the prototype: count + 草稿不计 (the month is in the label)');
+    assert.equal(await page.locator('#statAmountSub').innerText(),'13 单 · 草稿和报价不计','The homepage caption: count + 草稿和报价不计 (the month is in the label)');
     assert.equal(rawAmounts.before,rawAmounts.after,'Display rounding must not modify underlying order amounts');
     assert.equal(rawAmounts.ordinaryMoney,'$123.456 USD','Amounts outside the homepage retain their existing display precision');
     await page.evaluate(()=>{amountStatMode='paidRmb';renderStats();});

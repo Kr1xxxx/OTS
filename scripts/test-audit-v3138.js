@@ -171,7 +171,7 @@ async function moneyAndRateTests(browser) {
       const first = await page.evaluate(() => ({ ms:window.__longTimers[0].ms, loaded:ecbHistoricalRates.length, sub:document.getElementById('statAmountSub').textContent }));
       assert.equal(first.loaded, 0);
       assert.equal(first.ms, 15000, 'the first retry comes 15 seconds after a failed load');
-      assert.match(first.sub, /2 单 · 草稿不计 · 1 单缺汇率未计入/, 'the dashboard says one order is not converted');
+      assert.match(first.sub, /2 单 · 草稿和报价不计 · 1 单缺汇率未计入/, 'the dashboard says one order is not converted');
       assert.deepEqual(await page.evaluate(() => [1, 2, 3, 8, 20].map(ecbRatesRetryDelay)), [15000, 30000, 60000, 1800000, 1800000], 'retries back off and stop growing at 30 minutes');
       // Only start the retry (its promise is not handed back to Playwright, see boardAndLogTests) and wait for what it does.
       await page.evaluate(() => { window.__longTimers.shift().fn(); });

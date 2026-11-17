@@ -119,7 +119,7 @@ const freePort = () => new Promise((resolve, reject) => {
     await slow.page.waitForFunction(() => !document.getElementById('dashboard').classList.contains('is-loading'));
     await slow.page.waitForFunction(() => document.getElementById('statAmount').textContent === '$3,000');
     // 本月 2 张有金额的单 + 1 张 0 元单：单数只数 2 张。环比和上月同期（1–7 日：Old Buyer $1,500）比。
-    assert.equal(await text(slow.page, '#statAmountSub'), '比 10 月同期 +100% · 2 单 · 草稿不计');
+    assert.equal(await text(slow.page, '#statAmountSub'), '比 10 月同期 +100% · 2 单 · 草稿和报价不计');
     assert.deepEqual(slow.errors, [], slow.errors.join('\n'));
     await slow.context.close();
 

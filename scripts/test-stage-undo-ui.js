@@ -78,7 +78,7 @@ const { chromium } = require('playwright');
     await page.evaluate(()=>{ state.orders = []; setPage('amount'); render(); });
     const ticks = await page.locator('#amountChart .chart-axis-y').allTextContents();
     assert.equal(new Set(ticks).size,ticks.length,`empty chart repeats y-axis ticks: ${ticks.join(' ')}`);
-    assert.equal(await page.locator('#amountMonth option[value="all"]').textContent(),'跟随图表范围');
+    assert.equal(await page.locator('#amountMonth').count(),0,'数字卡 no longer has its own month');
 
     assert.equal(errors.length,0,errors.join('\n'));
     console.log('Stage undo UI passed: undo restores payment and shipment, keeps later edits, saves; agenda shows every entry; empty chart axis is unique.');

@@ -14,13 +14,18 @@ function pageMarkup(id) {
 assert.doesNotMatch(html, /data-page="freight"/, 'navigation still exposes the retired freight page');
 assert.doesNotMatch(html, /id="page-freight"/, 'retired freight page is still rendered');
 assert.match(html, /data-page="calendar"[^>]*>[\s\S]*?<span class="nav-text">日历<\/span>/, 'calendar navigation entry is missing');
-// 分析 merged into the 金额统计 page (PM review P1 #13): no separate tab or page any more.
-assert.doesNotMatch(html, /data-page="analysis"/, 'analysis must not keep a separate navigation entry');
-assert.doesNotMatch(html, /id="page-analysis"/, 'analysis must not keep a separate page');
+// 数据与目标拆成三个页签（金额统计 / 经营分析 / 业绩目标）：经营分析是自己的一页，侧栏仍只有「数据与目标」一项。
+assert.doesNotMatch(html, /class="nav-item"[^>]*data-page="analysis"/, 'analysis must not get its own sidebar entry');
+assert.match(html, /id="page-analysis"/, '经营分析 has its own page');
+for (const page of ['amount', 'analysis', 'targets']) {
+  assert.deepEqual([...pageMarkup(page).matchAll(/role="tab" data-page="(\w+)"/g)].map(m => m[1]), ['amount', 'analysis', 'targets'], `${page} page shows the three insight tabs`);
+}
+assert.doesNotMatch(html, /id="amountMonth"/, '金额统计 keeps one time control (the 数字卡 month is gone)');
 
 const calendarPage = pageMarkup('calendar');
-const analysisPage = pageMarkup('amount');
-assert.match(analysisPage, /id="analysisSection"/, '金额统计 page must host the 经营分析 section');
+const analysisPage = pageMarkup('analysis');
+assert.match(analysisPage, /id="analysisSection"/, '经营分析 page hosts the analysis section');
+assert.doesNotMatch(pageMarkup('amount'), /id="analysisSection"/, '金额统计 no longer carries the analysis section');
 assert.match(calendarPage, /id="calendarGrid"/, 'calendar page must own the month grid');
 assert.match(calendarPage, /id="calendarAgenda"/, 'calendar page must own the monthly agenda');
 assert.doesNotMatch(calendarPage, /id="customerGrowthChart"/, 'calendar page still contains customer analysis');

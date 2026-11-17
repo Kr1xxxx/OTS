@@ -26,10 +26,12 @@ async function readAll(page) {
     setPage('amount');
     renderAmountReport();
     const amount = { amount:text('reportUsd'), count:text('reportCount'), sub:text('reportUsd').length && document.querySelector('#reportUsd + .report-sub').textContent };
+    setPage('analysis');
     activeBusinessMonth = m;
     analysisMonthTouched = true;
     renderAnalysisPage();
-    const analysis = { comparison:text('analysisComparison'), clients:document.querySelectorAll('#analysisClients .analysis-rank').length };
+    const card = key => document.querySelector(`#analysisCompare [data-compare="${key}"] .report-value`).textContent;
+    const analysis = { amount:card('total'), count:card('count'), clients:document.querySelectorAll('#analysisClients .analysis-rank').length };
     setPage('targets');
     renderPerformanceTargets();
     const targets = { actual:text('targetActual'), count:text('targetOrderCount') };
@@ -50,12 +52,13 @@ async function readAll(page) {
     assert.equal(number(before.amount.amount), 800, `金额统计订单额：${before.amount.amount}`);
     assert.equal(before.amount.count, '3');
     assert.equal(before.amount.sub, '草稿和报价不计');
-    assert.match(before.analysis.comparison, /订单额 \$800 · 3 单/, `经营分析：${before.analysis.comparison}`);
+    assert.equal(number(before.analysis.amount), 800, `经营分析订单额：${before.analysis.amount}`);
+    assert.equal(before.analysis.count, '3 单');
     assert.equal(before.analysis.clients, 3, '报价单的客户不进客户贡献');
     assert.equal(number(before.targets.actual), 800, `业绩目标实际完成：${before.targets.actual}`);
     assert.equal(before.targets.count, '3');
     assert.match(before.dashboard.target, /已完成 \$800/);
-    assert.match(await page.locator('#page-analysis, #analysisSection').first().innerText(), /草稿和报价阶段的订单不计/);
+    assert.match(await page.locator('#analysisSection .analysis-footnote').textContent(), /草稿和报价阶段的订单不计/);
     assert.match(await page.locator('#page-targets .target-setup-head .section-meta').innerText(), /草稿和报价不计入/);
 
     // 「已收 · RMB」：收到的钱照算，报价单收的 100 也在里面（和改之前一样，用全部非草稿、有金额的单）。
@@ -78,7 +81,8 @@ async function readAll(page) {
     assert.match(after.dashboard.sub, /4 单 · 草稿和报价不计/);
     assert.equal(number(after.amount.amount), 1100);
     assert.equal(after.amount.count, '4');
-    assert.match(after.analysis.comparison, /订单额 \$1,100 · 4 单/);
+    assert.equal(number(after.analysis.amount), 1100);
+    assert.equal(after.analysis.count, '4 单');
     assert.equal(after.analysis.clients, 4);
     assert.equal(number(after.targets.actual), 1100);
     assert.equal(after.targets.count, '4');

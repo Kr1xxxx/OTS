@@ -1826,7 +1826,6 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
 .calendar-more { font-weight: 600; }
 .calendar-agenda { display: grid; gap: 8px; }
 .agenda-row[data-calendar-order-id] { cursor: pointer; }
-.agenda-main { min-width: 0; }
 .calendar-task-list { display: grid; gap: 10px; }
 .tag-input-hint { margin-top: 4px; color: var(--gray-600); font-size: 12px; }
 .customer-multi-field { display: grid; gap: 8px; align-content: start; }
@@ -3775,9 +3774,23 @@ html[data-theme] .calendar-agenda-heading { display:flex; align-items:baseline; 
 html[data-theme] .calendar-agenda { overflow:auto; margin:0 -4px; padding:0 4px; }
 html[data-theme] .agenda-group { padding:12px 0 8px; border-top:1px solid var(--hairline); }
 html[data-theme] .agenda-date { margin-bottom:6px; color:var(--gray-600); font-size:12px; font-weight:500; }
-html[data-theme] .agenda-row { display:grid; grid-template-columns:8px minmax(0,1fr) auto; align-items:center; gap:10px; min-height:30px; padding:0 6px; border:0; border-radius:10px; background:transparent; cursor:pointer; }
+html[data-theme] .agenda-row { display:grid; grid-template-columns:8px auto minmax(0,1fr) auto; align-items:center; gap:8px; min-height:30px; padding:0 6px; border:0; border-radius:10px; background:transparent; cursor:pointer; font-size:13px; }
 html[data-theme] .agenda-row:hover { background:var(--surface-soft); }
-html[data-theme] .agenda-title { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; font-weight:400; color:var(--gray-900); }
+/* 每行先写事（不截），再写客户（写不下截它），最后订单号。 */
+html[data-theme] .agenda-what { white-space:nowrap; font-weight:500; color:var(--gray-900); }
+html[data-theme] .agenda-what.urgent { color:var(--s-red); }
+html[data-theme="light"] .agenda-what.urgent { color:color-mix(in srgb, var(--s-red) 75%, #000); }
+html[data-theme] .agenda-who { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--gray-600); }
+html[data-theme] .agenda-today-mark { display:inline-block; margin-right:8px; padding:0 8px; border-radius:999px; background:var(--accent-tint); color:var(--accent-ink); font-size:11.5px; font-weight:600; line-height:18px; }
+html[data-theme] .agenda-empty { padding:4px 6px; color:var(--gray-500); font-size:12.5px; }
+/* 「本月更早 · N 件」：点开在原位展开今天之前的各组，淡一点。 */
+html[data-theme] .agenda-earlier-toggle { width:100%; height:34px; margin:4px 0 8px; padding:0 12px; display:flex; align-items:center; justify-content:space-between; border:1px dashed var(--surface-border); border-radius:12px; background:transparent; color:var(--gray-600); font:inherit; font-size:12.5px; font-weight:500; cursor:pointer; }
+html[data-theme] .agenda-earlier-toggle:hover { background:var(--surface-soft); color:var(--gray-900); }
+html[data-theme] .agenda-earlier-toggle:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+html[data-theme] .agenda-earlier-chevron { transition:transform var(--motion-fast) ease; }
+html[data-theme] .agenda-earlier-toggle[aria-expanded="true"] .agenda-earlier-chevron { transform:rotate(90deg); }
+html[data-theme] .agenda-earlier { opacity:.72; }
+html[data-theme] .agenda-earlier[hidden] { display:none; }
 html[data-theme] .agenda-num { color:var(--gray-500); font-family:var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size:11.5px; }
 html[data-theme] .agenda-dot { width:7px; height:7px; border-radius:50%; background:var(--s-blue, #2f6fdf); }
 html[data-theme] .agenda-dot.repurchase { background:var(--s-teal, #0f8f81); }
@@ -3938,6 +3951,7 @@ html[data-theme] .customer-cell-text { display:grid; gap:2px; min-width:0; }
 html[data-theme] .customer-avatar { flex:none; width:32px; height:32px; display:grid; place-items:center; border-radius:50%; background:var(--surface-soft); color:var(--gray-700); font-size:12px; font-weight:600; letter-spacing:.02em; }
 html[data-theme] .customer-name-line strong { font-size:15px; font-weight:600; letter-spacing:-.01em; color:var(--gray-900); }
 html[data-theme] .customer-row .muted { font-size:12px; color:var(--gray-500); }
+html[data-theme] .customer-row .customer-updated { white-space:nowrap; }
 html[data-theme] .customer-cell-stack { gap:3px; }
 html[data-theme] .customer-cell-stack > strong { font-size:14px; font-weight:500; color:var(--gray-900); }
 /* 客户属性列窄（最小窗口）时放不下的标签整个藏起来，不再被列边切掉半个：标签折到第二行，最多只露第一行（标签 11.5px × 1.5 行高 + 上下各 1px 内边距和边框）；全部标签在这一格的 title 里。
@@ -4119,7 +4133,7 @@ html[data-theme] .task-icon.tone-teal { background:color-mix(in srgb, var(--s-te
 html[data-theme] .task-icon.tone-gray { background:var(--surface-soft); color:var(--gray-500); }
 html[data-theme] #taskList .task-main { min-width:0; display:block; }
 html[data-theme] #taskList .task-title { font-size:14px; font-weight:500; color:var(--gray-900); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-html[data-theme] #taskList .task-reason { margin-left:8px; font-weight:400; color:var(--gray-600); }
+html[data-theme] .task-sub .task-reason { font-weight:500; color:var(--gray-900); }
 html[data-theme] #taskList .task-sub { margin-top:2px; font-size:13px; color:var(--gray-500); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 html[data-theme] #taskList .task-actions { display:flex; gap:6px; align-items:center; }
 html[data-theme] #taskList .task-action-btn { height:30px; padding:0 12px; border-radius:999px; border:1px solid var(--surface-border); background:var(--surface-bg); color:var(--gray-800); font-size:13px; }
@@ -4197,7 +4211,7 @@ html[data-theme] #page-dashboard #tasks { container:dash-tasks / inline-size; }
   @container dash-tasks (max-width: 560px) {
     html[data-theme] #tasks:is([data-dash-span="4"], [data-dash-span="5"], [data-dash-span="6"]) #taskList .task { grid-template-columns:auto minmax(0, 1fr); column-gap:12px; row-gap:10px; align-items:start; padding:14px 0; }
     html[data-theme] #tasks:is([data-dash-span="4"], [data-dash-span="5"], [data-dash-span="6"]) #taskList .task-title { white-space:normal; line-height:1.45; }
-    html[data-theme] #tasks:is([data-dash-span="4"], [data-dash-span="5"], [data-dash-span="6"]) #taskList .task-reason { display:block; margin:2px 0 0; white-space:normal; }
+    html[data-theme] #tasks:is([data-dash-span="4"], [data-dash-span="5"], [data-dash-span="6"]) #taskList .task-sub { white-space:normal; line-height:1.45; }
     html[data-theme] #tasks:is([data-dash-span="4"], [data-dash-span="5"], [data-dash-span="6"]) #taskList .task-actions { grid-column:2; justify-content:flex-start; flex-wrap:nowrap; }
     html[data-theme] #tasks:is([data-dash-span="4"], [data-dash-span="5"], [data-dash-span="6"]) > .section-head .section-meta { display:none; }
   }
@@ -10687,6 +10701,8 @@ function calendarEventsInRange(from, to) {
   const inRange = date => Boolean(date) && date >= from && date <= to;
   const deadlineIndex = new Map();
   const formalOrders = state.orders.filter(order => !order.isDraft);
+  // 每件事分成「谁」（客户名或续费项名）和「什么事」：当月日程先写事再写谁；格子小条、title、当天抽屉照旧用拼好的 label。
+  const named = (who, what) => ({ who, what, label:`${who} ${what}` });
   // 1. 交期：没发货、没完成、也没有发货日的正式订单。加急单的最晚发出日期用红色。
   formalOrders.forEach(order => {
     if (isSettledStage(order.stage) || order.shippedAt) return;
@@ -10702,14 +10718,14 @@ function calendarEventsInRange(from, to) {
       const late = order.latestShipDate < today;
       add(order.latestShipDate, 'ship', {
         tone: order.urgentOrder || late ? 'urgent' : 'repurchase',
-        label: `${name} ${order.urgentOrder ? '加急 · ' : ''}最晚发出`,
+        ...named(name, `${order.urgentOrder ? '加急 · ' : ''}最晚发出`),
         sub: `${late ? '已过最晚发出日期、还没发货 · ' : ''}最晚发出日期 ${order.latestShipDate} · ${order.num}${order.customerRequiredDate ? ` · 客户要求到货 ${order.customerRequiredDate}` : ''}`
       });
     }
     if (order.customerRequiredDate && order.customerRequiredDate !== order.latestShipDate) {
       add(order.customerRequiredDate, 'arrive', {
         tone: 'repurchase',
-        label: `${name} ${order.urgentOrder ? '加急 · ' : ''}要求到货`,
+        ...named(name, `${order.urgentOrder ? '加急 · ' : ''}要求到货`),
         sub: `客户要求到货 ${order.customerRequiredDate} · ${order.num}${order.latestShipDate ? ` · 最晚发出 ${order.latestShipDate}` : ''}`
       });
     }
@@ -10734,7 +10750,7 @@ function calendarEventsInRange(from, to) {
       ...item,
       date,
       tone: extra.snoozed ? taskTone(item) : taskTone(item),
-      label: `${name} ${taskTypeDef(item)?.label || item.tag}${lateDays ? ` · 逾期 ${lateDays} 天` : ''}${extra.snoozed ? '（稍后）' : ''}`,
+      ...named(name, `${taskTypeDef(item)?.label || item.tag}${lateDays ? ` · 逾期 ${lateDays} 天` : ''}${extra.snoozed ? '（稍后）' : ''}`),
       sub: `${lateDays ? `已过 ${lateDays} 天 · ` : ''}${extra.snoozed ? '今天点了「稍后」，明天回到待办 · ' : ''}${item.reason} · ${item.detail || ''}`,
       taskId: extra.snoozed ? '' : item.id,
       snoozedTaskId: extra.snoozed ? item.id : '',
@@ -10760,7 +10776,7 @@ function calendarEventsInRange(from, to) {
     if (dueRepurchase.has(c.client)) return;
     const next = nextRepurchaseDate(c.client);
     if (!next || next <= today || !inRange(next)) return;
-    events.push({ date:next, type:'repurchase-plan', tone:'repurchase', client:c.client, label:`${calendarShortName(c.client)} 复购`, sub:`下次复购提醒 ${next}` });
+    events.push({ date:next, type:'repurchase-plan', tone:'repurchase', client:c.client, ...named(calendarShortName(c.client), '复购'), sub:`下次复购提醒 ${next}` });
   });
   // 4. 下单：第一单带「新」角标（新客户不再单独占一条）。
   const firstOrder = new Map();
@@ -10774,7 +10790,7 @@ function calendarEventsInRange(from, to) {
     const created = normalizeDate(order.createdAt || order.updated);
     if (!inRange(created)) return;
     const isNew = Boolean(order.client) && firstOrder.get(order.client)?.id === order.id;
-    events.push({ date:created, type:'order', tone:'order', badge:isNew ? '新' : '', label:`${calendarShortName(order.client)} 下单`, sub:`${isNew ? '新客户第一单 · ' : ''}${order.num} · ${money(order.amount, order.currency || 'USD')}`, orderId:order.id, client:order.client });
+    events.push({ date:created, type:'order', tone:'order', badge:isNew ? '新' : '', ...named(calendarShortName(order.client), '下单'), sub:`${isNew ? '新客户第一单 · ' : ''}${order.num} · ${money(order.amount, order.currency || 'USD')}`, orderId:order.id, client:order.client });
   });
   // 5. 物流：按批次画。每批在发货日画「发货」，在最近一次进度那天画「承运商 + 状态」，单号用这一批的。
   formalOrders.forEach(order => {
@@ -10785,12 +10801,12 @@ function calendarEventsInRange(from, to) {
       const updated = normalizeDate(shipment.updated || '');
       const sub = `${order.client || ''} · ${carrier} ${shipment.trackingNumber} · ${order.num}`;
       if (inRange(shipped) && !(updated === shipped && ['已发货', '未发货'].includes(shipment.status))) {
-        events.push({ date:shipped, type:'logistics', tone:'logistics', label:`${name} ${carrier} 发货`, sub, orderId:order.id });
+        events.push({ date:shipped, type:'logistics', tone:'logistics', ...named(name, `${carrier} 发货`), sub, orderId:order.id });
       }
       if (inRange(updated)) {
         const status = shipment.status || '更新';
         const tone = status === '异常' ? 'urgent' : status === '已签收' ? 'done' : 'logistics';
-        events.push({ date:updated, type:'logistics', tone, label:`${name} ${carrier} ${status === '已发货' && updated === shipped ? '发货' : status}`, sub, orderId:order.id });
+        events.push({ date:updated, type:'logistics', tone, ...named(name, `${carrier} ${status === '已发货' && updated === shipped ? '发货' : status}`), sub, orderId:order.id });
       }
     });
   });
@@ -10802,7 +10818,7 @@ function calendarEventsInRange(from, to) {
     const historyTimes = (profile.history || []).map(item => String(item?.time || '')).filter(Boolean).sort();
     const created = normalizeDate(profile.createdAt || historyTimes[0] || '');
     if (!inRange(created)) return;
-    events.push({ date:created, type:'customer', tone:'customer', client:name, label:`${calendarShortName(name)} 新客户`, sub:`${profile.country || ''} 建档`.trim() });
+    events.push({ date:created, type:'customer', tone:'customer', client:name, ...named(calendarShortName(name), '新客户'), sub:`${profile.country || ''} 建档`.trim() });
   });
   // 7. 续费扣费日。
   if (typeof subscriptionState !== 'undefined' && subscriptionState.loaded) {
@@ -10813,7 +10829,7 @@ function calendarEventsInRange(from, to) {
         // 只有还没续的那几笔写「需要手动续费」：已确认续过的、提前续好的、历史设置下的，照自动续费写付款方式。
         // 历史设置下的不问 subscriptionChargePaid：提前续好之后改了设置，那一期日期还没到，却是续过的。
         const toRenew = charge.term === item && item.autoRenew === false && !subscriptionChargePaid(charge);
-        events.push({ date:charge.date, type:'subscription', tone:'subscription', subId:item.id, label:`${item.name} 续费`, sub:[subscriptionMoney(charge.amount, charge.currency), charge.term.category, toRenew ? '需要手动续费' : charge.term.paymentMethod].filter(Boolean).join(' · ') });
+        events.push({ date:charge.date, type:'subscription', tone:'subscription', subId:item.id, ...named(item.name, '续费'), sub:[subscriptionMoney(charge.amount, charge.currency), charge.term.category, toRenew ? '需要手动续费' : charge.term.paymentMethod].filter(Boolean).join(' · ') });
       });
     });
   }
@@ -10851,33 +10867,64 @@ function calendarChipHtml(event, date) {
   const badge = event.badge ? `<i class="calendar-badge" aria-label="新客户">${escapeAttr(event.badge)}</i>` : '';
   return `<button class="calendar-event ${calendarEventTone(event)}${event.faded ? ' faded' : ''}" type="button" ${calendarEventAttrs(event, date)} title="${escapeAttr(`${event.label} · ${event.sub || ''}`)}">${badge}${escapeAttr(event.label)}</button>`;
 }
-function renderCalendarAgenda(targetId, events, limit = Infinity) {
+// 当月日程：看的是本月时从今天排起（今天那组带「今天」，没有事也画出来），今天之前的收在「本月更早 · N 件」里，点开在原位展开；
+// 别的月份照旧从 1 号排。展开只记在这个月份上，翻到别的月份就复位。每行先写事、再写客户（截的是客户名），最后是订单号。
+let calendarAgendaEarlierMonth = '';
+function calendarAgendaRowHtml(event, date) {
+  const order = event.orderId ? state.orders.find(item => item.id === event.orderId) : null;
+  const tone = calendarEventTone(event);
+  const what = event.what ?? event.label;
+  const who = event.what == null ? '' : event.who;
+  return `
+        <div class="agenda-row${event.faded ? ' faded' : ''}" role="button" tabindex="0" ${calendarEventAttrs(event, date)} title="${escapeAttr([event.label, event.sub].filter(Boolean).join(' · '))}">
+          <span class="agenda-dot ${tone}" aria-hidden="true"></span>
+          <span class="agenda-what ${tone}">${event.badge ? `<i class="calendar-badge">${escapeAttr(event.badge)}</i>` : ''}${escapeAttr(what)}</span>
+          <span class="agenda-who">${escapeAttr(who || '')}</span>
+          <span class="agenda-num">${escapeAttr(order?.num || '')}</span>
+        </div>`;
+}
+function calendarAgendaGroupHtml(date, list, { today = false } = {}) {
+  const d = parseDate(date);
+  return `
+    <div class="agenda-group${today ? ' agenda-today' : ''}">
+      <button type="button" class="agenda-date" data-calendar-date="${escapeAttr(date)}">${today ? '<span class="agenda-today-mark">今天</span>' : ''}${d.getMonth() + 1} 月 ${String(d.getDate()).padStart(2, '0')} 日 · 周${calendarWeekdays[d.getDay()]}</button>
+      ${list.length ? list.map(event => calendarAgendaRowHtml(event, date)).join('') : '<div class="agenda-empty">今天没有安排</div>'}
+    </div>`;
+}
+function renderCalendarAgenda(targetId, events, month = activeCalendarMonth) {
   const agenda = document.getElementById(targetId);
   if (!agenda) return;
   const count = document.getElementById('calendarAgendaCount');
   if (count) count.textContent = `${events.length} 件`;
   const groups = new Map();
-  events.slice().sort((a, b) => parseDate(a.date) - parseDate(b.date)).slice(0, limit).forEach(event => {
+  events.slice().sort((a, b) => parseDate(a.date) - parseDate(b.date)).forEach(event => {
     const date = normalizeDate(event.date);
     groups.set(date, [...(groups.get(date) || []), event]);
   });
-  // 日程的行可以 Tab 到、回车打开；日期标题点开当天抽屉。
-  agenda.innerHTML = [...groups].map(([date, list]) => {
-    const d = parseDate(date);
-    return `
-    <div class="agenda-group">
-      <button type="button" class="agenda-date" data-calendar-date="${escapeAttr(date)}">${d.getMonth() + 1} 月 ${String(d.getDate()).padStart(2, '0')} 日 · 周${calendarWeekdays[d.getDay()]}</button>
-      ${list.map(event => {
-        const order = event.orderId ? state.orders.find(item => item.id === event.orderId) : null;
-        return `
-        <div class="agenda-row${event.faded ? ' faded' : ''}" role="button" tabindex="0" ${calendarEventAttrs(event, date)} title="${escapeAttr(event.sub || '')}">
-          <span class="agenda-dot ${calendarEventTone(event)}" aria-hidden="true"></span>
-          <div class="agenda-main"><div class="agenda-title">${event.badge ? `<i class="calendar-badge">${escapeAttr(event.badge)}</i>` : ''}${escapeAttr(event.label)}</div></div>
-          <span class="agenda-num">${escapeAttr(order?.num || '')}</span>
-        </div>`;
-      }).join('')}
-    </div>`;
-  }).join('') || '<div class="empty">这个月份暂无日程。</div>';
+  const today = normalizeDate(new Date().toISOString());
+  if (normalizeMonth(today) !== month) {
+    calendarAgendaEarlierMonth = '';
+    // 日程的行可以 Tab 到、回车打开；日期标题点开当天抽屉。
+    agenda.innerHTML = [...groups].map(([date, list]) => calendarAgendaGroupHtml(date, list)).join('') || '<div class="empty">这个月份暂无日程。</div>';
+    return;
+  }
+  if (calendarAgendaEarlierMonth !== month) calendarAgendaEarlierMonth = '';
+  const open = calendarAgendaEarlierMonth === month;
+  const earlier = [...groups].filter(([date]) => date < today);
+  const upcoming = [...groups].filter(([date]) => date > today);
+  const earlierCount = earlier.reduce((sum, [, list]) => sum + list.length, 0);
+  agenda.innerHTML = (earlierCount ? `
+    <button type="button" class="agenda-earlier-toggle" data-agenda-earlier aria-expanded="${open}" aria-controls="calendarAgendaEarlier"><span>本月更早 · ${earlierCount} 件</span><span class="agenda-earlier-chevron" aria-hidden="true">›</span></button>
+    <div class="agenda-earlier" id="calendarAgendaEarlier"${open ? '' : ' hidden'}>${earlier.map(([date, list]) => calendarAgendaGroupHtml(date, list)).join('')}</div>` : '')
+    + calendarAgendaGroupHtml(today, groups.get(today) || [], { today:true })
+    + upcoming.map(([date, list]) => calendarAgendaGroupHtml(date, list)).join('');
+}
+function toggleCalendarAgendaEarlier(button) {
+  const open = button.getAttribute('aria-expanded') !== 'true';
+  button.setAttribute('aria-expanded', String(open));
+  const panel = document.getElementById(button.getAttribute('aria-controls'));
+  if (panel) panel.hidden = !open;
+  calendarAgendaEarlierMonth = open ? activeCalendarMonth : '';
 }
 // 日历里能用键盘选的那一天（只有它 tabindex=0，方向键移动）。
 let calendarFocusDate = '';
@@ -17094,13 +17141,13 @@ function autoCapitalizeCustomerName(value = '') {
   });
 }
 // 列表第二行、档案头部的邮箱：没有联系邮箱时，名字本身是邮箱就显示它，只有付款邮箱就显示付款邮箱并标明。
-function customerEmailSummary(record = {}) {
+function customerEmailSummary(record = {}, empty = '邮箱未填写') {
   const email = String(record.email || '').trim() || normalizeCustomerContactFields(record).emails[0] || '';
   if (email) return email;
   const nameEmail = normalizeCustomerEmail(String(record.client || '').trim());
   if (nameEmail) return nameEmail;
   const pay = normalizeCustomerEmail(record.paymentEmail || '');
-  return pay ? `${pay}（付款邮箱）` : '邮箱未填写';
+  return pay ? `${pay}（付款邮箱）` : empty;
 }
 function clientDisplayName(name = '') {
   const rawClient = String(name || '').trim();
@@ -21428,14 +21475,11 @@ function renderTasks() {
   };
   const taskHtml = (item, index) => {
     const [icon, tone] = taskTypeDef(item)?.look || ['info', 'gray'];
-    const sub = listMode === 'done' ? `${item.detail || ''} · ${taskDoneNote(item)}` : `${item.detail || ''}${item.value ? ` · ${item.value}` : ''}${item.more ? ` · ${item.more}` : ''}`;
+    const sub = listMode === 'done' ? [item.detail, taskDoneNote(item)] : [item.detail, item.value, item.more];
     return `
       <div class="task ${item.type}${taskIsRisk(item) ? ' task-risk' : ''}" data-task-id="${escapeAttr(item.id)}" data-order-id="${escapeAttr(item.orderId || '')}" data-task-client="${escapeAttr(item.client || item.title || '')}" style="--i:${index}">
         <div class="task-icon tone-${tone}">${uiIcon(icon)}</div>
-        <div class="task-main">
-          <div class="task-title">${escapeAttr(item.title)}<span class="task-reason">${escapeAttr(item.reason)}</span></div>
-          <div class="task-sub">${escapeAttr(sub)}</div>
-        </div>
+        ${taskTextHtml(item, sub)}
         <div class="task-actions">
           ${actions(item)}
         </div>
@@ -21449,20 +21493,27 @@ function renderTasks() {
     : taskListExpanded && ordered.length > taskListLimit ? '<button class="task-more" type="button" data-task-more="collapse">收起</button>' : '';
   el.innerHTML = rows.join('') + more;
 }
+// 待办的文字：第一行客户名，第二行事由开头、后面跟细节。写不下时截行尾：客户名太长截客户名，细节太长截细节，事由（欠多少、逾期几天）留着。
+// 整条的完整文字放在 title 上。
+function taskTextHtml(item, details = [], extra = '') {
+  const rest = details.map(part => String(part || '').trim()).filter(Boolean);
+  const full = [item.title, item.reason, ...rest].filter(Boolean).join(' · ');
+  return `<div class="task-main" title="${escapeAttr(full)}">
+          <div class="task-title">${escapeAttr(item.title)}</div>
+          <div class="task-sub"><strong class="task-reason">${escapeAttr(item.reason)}</strong>${rest.map(part => ` · ${escapeAttr(part)}`).join('')}</div>${extra}
+        </div>`;
+}
 function renderCalendarTaskRows(tasks, toneOf = {}) {
   if (!tasks.length) return '';
   return `
     <div class="calendar-task-list">
       ${tasks.map(item => `
         <div class="task ${item.type}${taskIsRisk(item) ? ' task-risk' : ''}" data-task-id="${escapeAttr(item.id)}" data-order-id="${escapeAttr(item.orderId || '')}" data-task-client="${escapeAttr(item.client || item.title || '')}">
-          <div class="task-main">
-            <div class="task-title">${escapeAttr(item.title)}</div>
-            <div class="task-sub">${escapeAttr(item.reason)} · ${escapeAttr(item.detail || '')}</div>
+          ${taskTextHtml(item, [item.detail], `
             <div class="task-meta">
               <span class="calendar-event calendar-drawer-tag ${toneOf[item.id] || 'repurchase'}">${escapeAttr(taskTypeDef(item)?.label || item.tag)}</span>
               <span class="muted">${escapeAttr(item.value || '')}</span>
-            </div>
-          </div>
+            </div>`)}
           <div class="task-actions">
             ${taskActionButtons(item, { snooze:normalizeDate(item.date || '') <= normalizeDate(new Date().toISOString()), short:true })}
             <button class="task-action-btn done" type="button" data-task-action="done"${calendarTaskIsDateBound(item) ? ' title="只关掉这条提醒，日历上的日期还在"' : ''}>${escapeAttr(calendarTaskIsDateBound(item) ? '不再提醒' : taskDoneLabel(item))}</button>
@@ -22205,6 +22256,12 @@ function renderCustomerWorkspaceSummary(customers = []) {
     <div class="customer-summary-item"><span>待跟进</span><strong>${followups}</strong><small>${followups ? '复购日期已到' : '暂无到期提醒'}</small></div>
   `;
 }
+// 客户列表「跟进计划」格：今年的写 MM-DD，别的年份写 YYYY-MM-DD。
+function customerUpdatedShort(value = '', today = normalizeDate(new Date().toISOString())) {
+  if (parseDate(value).getFullYear() <= 1970) return String(value || '');
+  const date = normalizeDate(value);
+  return date.slice(0, 4) === today.slice(0, 4) ? date.slice(5) : date;
+}
 function customerInitials(name = '') {
   const words = String(name).replace(/[（(].*$/, '').trim().split(/\s+/).filter(Boolean);
   if (!words.length) return '?';
@@ -22265,21 +22322,28 @@ function renderCustomers() {
       const otherTags = c.tags.filter(tag => tag !== c.level);
       const visibleTags = otherTags.slice(0, 2);
       const hiddenTagCount = Math.max(0, otherTags.length - visibleTags.length);
-      const displayName = clientDisplayName(c.client);
+      // 第一格只写客户名本身，联系人只在第二行出现一次；没填的项不写「未填写」，那一层不画。
+      const email = customerEmailSummary(c, '');
+      const contactLine = [contact || c.phone || '', email].filter(Boolean).join(' · ');
+      const attrs = [c.productType || '', c.primaryContactMethod ? `首选 ${c.primaryContactMethod}` : c.paymentMethod || ''].filter(Boolean).join(' · ');
+      const line = (text, title = '') => text ? `<span class="muted customer-cell-ellipsis"${title ? ` title="${escapeAttr(title)}"` : ''}>${escapeAttr(text)}</span>` : '';
+      const country = orderListCountryShort(c.country);
       return `
       <div class="customer-row" data-view-customer="${escapeAttr(c.client)}" tabindex="0" role="button" aria-label="查看客户 ${escapeAttr(clientDisplayName(c.client))}">
         <div class="customer-cell-main">
-          <span class="customer-avatar" aria-hidden="true">${escapeAttr(customerInitials(displayName))}</span>
+          <span class="customer-avatar" aria-hidden="true">${escapeAttr(customerInitials(c.client))}</span>
           <div class="customer-cell-text">
-            <div class="customer-name-line"><strong class="customer-cell-ellipsis" title="${escapeAttr(c.customerId)}">${escapeAttr(displayName)}</strong></div>
-            <div class="muted customer-cell-ellipsis">${escapeAttr(contact || c.phone || '联系人未填写')} · ${escapeAttr(customerEmailSummary(c))}</div>
+            <div class="customer-name-line"><strong class="customer-cell-ellipsis" title="${escapeAttr(`${c.client} · ${c.customerId}`)}">${escapeAttr(c.client)}</strong></div>
+            ${contactLine ? `<div class="muted customer-cell-ellipsis" title="${escapeAttr(contactLine)}">${escapeAttr(contactLine)}</div>` : ''}
           </div>
         </div>
-        <div class="customer-cell-stack"><strong class="customer-cell-ellipsis" title="${escapeAttr(c.country || '')}">${escapeAttr(orderListCountryShort(c.country) || '国家未填写')}</strong><span class="muted customer-cell-ellipsis" title="${escapeAttr(c.address || '')}">${escapeAttr(c.address || '地址未填写')}</span></div>
-        <div class="customer-cell-stack"><div class="customer-tag-stack"${otherTags.length ? ` title="${escapeAttr([c.level, ...otherTags].filter(Boolean).join(' · '))}"` : ''}><span class="customer-level-pill" title="${escapeAttr(c.level)}">${escapeAttr(String(c.level || '').slice(0, 2))}</span>${visibleTags.map(tag => `<span class="level-tag">${escapeAttr(tag)}</span>`).join('')}${hiddenTagCount ? `<span class="level-tag">+${hiddenTagCount}</span>` : ''}</div><span class="muted customer-cell-ellipsis">${escapeAttr(c.productType || '产品未设')} · ${c.primaryContactMethod ? `首选 ${escapeAttr(c.primaryContactMethod)}` : escapeAttr(c.paymentMethod || '收款未设')}</span></div>
-        <div class="customer-cell-stack"><strong>${c.orderCount} 单${c.latestOrder ? ` · ${escapeAttr(c.latestOrder.num || '')}` : ''}</strong><span class="muted customer-cell-ellipsis">${c.latestOrder ? `${escapeAttr(stageDef(c.latestOrder.stage).name)} · ${c.latestOrderDate}` : '暂无订单'}</span></div>
+        <div class="customer-cell-stack">${country ? `<strong class="customer-cell-ellipsis" title="${escapeAttr(c.country || '')}">${escapeAttr(country)}</strong>` : ''}${line(c.address || '', c.address || '')}</div>
+        <div class="customer-cell-stack"><div class="customer-tag-stack"${otherTags.length ? ` title="${escapeAttr([c.level, ...otherTags].filter(Boolean).join(' · '))}"` : ''}><span class="customer-level-pill" title="${escapeAttr(c.level)}">${escapeAttr(String(c.level || '').slice(0, 2))}</span>${visibleTags.map(tag => `<span class="level-tag">${escapeAttr(tag)}</span>`).join('')}${hiddenTagCount ? `<span class="level-tag">+${hiddenTagCount}</span>` : ''}</div>${line(attrs, attrs)}</div>
+        <div class="customer-cell-stack"><strong>${c.orderCount} 单${c.latestOrder ? ` · ${escapeAttr(c.latestOrder.num || '')}` : ''}</strong>${c.latestOrder ? line(`${stageDef(c.latestOrder.stage).name} · ${c.latestOrderDate}`) : ''}</div>
         <div class="customer-cell-stack customer-cell-money"><strong>${money(c.total, 'USD', 2)}</strong><span class="${c.due > 0 ? 'customer-due-amount' : (c.total > 0 ? 'paid-amount' : 'muted')}">${c.due > 0 ? `待收 ${money(c.due, 'USD', 2)}` : (c.total > 0 ? '已收清' : '暂无成交')}</span></div>
-        <div class="customer-cell-stack"><strong>${escapeAttr(c.repurchaseDate || (c.repurchaseCycle ? '发货后计算' : '未设提醒'))}</strong><span class="muted customer-cell-ellipsis">${c.repurchaseCycle ? `每 ${escapeAttr(c.repurchaseCycle)} 天复购` : `更新 ${escapeAttr(c.updated || '-')}`}</span></div>
+        <div class="customer-cell-stack">${c.repurchaseCycle
+          ? `<strong>${escapeAttr(c.repurchaseDate || '发货后计算')}</strong>${line(`每 ${c.repurchaseCycle} 天复购`)}`
+          : c.updated ? `<span class="muted customer-updated" title="${escapeAttr(`更新 ${c.updated}`)}">更新 ${escapeAttr(customerUpdatedShort(c.updated))}</span>` : ''}</div>
       </div>
     `;
     }).join('') || (baseCustomers.length
@@ -29442,6 +29506,8 @@ function setPage(page) {
   if ((window.location.hash || '').replace('#', '') !== target) window.location.hash = target;
   closeClientMenus();
   if (changed) cancelDashboardLayoutEdit();
+  // 日程里展开的「本月更早」只在这次停留期间记住，重新进日历是收起的。
+  if (changed && target === 'calendar') calendarAgendaEarlierMonth = '';
   if (changed) {
     renderPageContent(target, { entering:true });
     renderSegmentControls();
@@ -31481,6 +31547,8 @@ document.getElementById('calendarGrid')?.addEventListener('keydown', e => {
   document.querySelector(`#calendarGrid .calendar-day[data-calendar-date="${next}"]`)?.focus();
 });
 document.getElementById('calendarAgenda')?.addEventListener('click', e => {
+  const earlier = e.target.closest('[data-agenda-earlier]');
+  if (earlier) { toggleCalendarAgendaEarlier(earlier); return; }
   activateCalendarTarget(e.target.closest(calendarTargetSelector));
 });
 document.getElementById('calendarAgenda')?.addEventListener('keydown', e => {

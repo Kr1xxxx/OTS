@@ -5,7 +5,7 @@
 // - a cell typed in the form becomes the user's; clearing it hands it back to the automatic rate
 // - months before the table (before 2026-05) use the 2026-05 cell, also after saving the form
 //   (bug review 2026-11-16 item 6: saving used to move every older order's RMB amount to the current month's rate)
-// - the note under the table says where the number came from; a failed fetch writes nothing and says so
+// - the note on the current-month card says where the number came from; a failed fetch writes nothing and says so
 // - nothing is written while the page is read-only; a new month starts with the newest rate, the old month stays
 // The clock is fixed in the page (Asia/Shanghai); the rates are made up.
 const assert = require('node:assert/strict');
@@ -76,7 +76,7 @@ const at = text => new Date(`${text}+08:00`);
     assert.equal(await page.evaluate(() => Math.round(usdPaidTotalRmb(state.orders))), 6900);
     await page.evaluate(() => setPage('settings'));
     await page.locator('[data-settings-tab="exchange"]').click();
-    assert.match(await note(), /^11月：6\.6621 · 中国银行现汇买入价（工商银行 6\.6702，两家取低的） · 11月16日 10:30 更新。过去的月份不会自动改/);
+    assert.equal(await note(), '11月：6.6621 · 中国银行现汇买入价（工商银行 6.6702，两家取低的） · 11月16日 10:30 更新。');
 
     // 2. The same rate again on the same day: no extra save.
     const savesBefore = store.saves;

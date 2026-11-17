@@ -1960,16 +1960,6 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
 }
 .rate-status-card span { color: var(--gray-500); font-size: 12px; font-weight: 600; }
 .rate-status-card strong { color: var(--gray-900); font-size: 14px; line-height: 1.25; overflow-wrap: anywhere; }
-.manual-rate-years { display: grid; gap: 12px; }
-.manual-rate-year-card {
-  padding: 12px; border: 1px solid var(--surface-border); border-radius: 16px;
-  background: var(--surface-soft); box-shadow: 0 8px 18px rgba(0,0,0,.035);
-}
-.manual-rate-year-title {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  margin-bottom: 10px; color: var(--gray-900); font-size: 13px; font-weight: 600;
-}
-.manual-rate-year-title span { color: var(--gray-500); font-size: 12px; font-weight: 600; }
 .manual-rate-grid {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px;
 }
@@ -3538,12 +3528,12 @@ html[data-theme="dark"] .segment-option.active { background:var(--surface-raised
 
 /* 输入框、下拉 */
 /* 汇率表、等级门槛里的输入框不在 .field 里，以前是系统默认的黑边方框。 */
-html[data-theme] :is(.field input, .field select, .field textarea, .confirm-input, .manual-rate-item input, .level-rule-input input) { border:1px solid var(--surface-border); border-radius:var(--control-radius); background:var(--surface-bg); color:var(--gray-900); }
-html[data-theme] :is(.field input, .field select, .field textarea, .manual-rate-item input, .level-rule-input input):hover { border-color:var(--surface-border-strong); }
-html[data-theme] :is(.field input, .field select, .field textarea, .confirm-input, .manual-rate-item input, .level-rule-input input):focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-tint); }
+html[data-theme] :is(.field input, .field select, .field textarea, .confirm-input, .exchange-panel input, .level-rule-input input) { border:1px solid var(--surface-border); border-radius:var(--control-radius); background:var(--surface-bg); color:var(--gray-900); }
+html[data-theme] :is(.field input, .field select, .field textarea, .exchange-panel input, .level-rule-input input):hover { border-color:var(--surface-border-strong); }
+html[data-theme] :is(.field input, .field select, .field textarea, .confirm-input, .exchange-panel input, .level-rule-input input):focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-tint); }
 /* 输入框聚焦已经有「强调色边框 + 一圈浅色」：不再叠全局那条 2px 轮廓（文字输入框用鼠标点也算 :focus-visible，
    每点一个框都是里外两圈）。勾选框、单选框没有自己的聚焦样式，仍用全局轮廓。 */
-html[data-theme] :is(.field input:not([type="checkbox"], [type="radio"]), .field textarea, .confirm-input, .detail-ship-add input, .order-list-search, .paste-assist textarea, .manual-rate-item input, .level-rule-input input):focus-visible { outline:none; }
+html[data-theme] :is(.field input:not([type="checkbox"], [type="radio"]), .field textarea, .confirm-input, .detail-ship-add input, .order-list-search, .paste-assist textarea, .exchange-panel input, .level-rule-input input):focus-visible { outline:none; }
 
 /* 勾选框和单选一律用强调色（规范：强调色用在「开关打开」这类选中状态）。原来卡片设置里是黑色、物流页是系统蓝。 */
 html[data-theme] input:is([type="checkbox"], [type="radio"]) { accent-color:var(--accent); }
@@ -4809,6 +4799,29 @@ html[data-theme] .field .app-select.inline-select:has(#aiUsageModel) .app-select
 html[data-theme] .data-action :is(select.inline-select, .app-select) { width:auto; min-width:150px; height:34px; min-height:34px; border-radius:999px; }
 html[data-theme] .settings-card { gap:12px; padding:16px 0; margin:0; border:0; border-bottom:1px solid var(--hairline); border-radius:0; background:transparent; box-shadow:none; }
 html[data-theme] .settings-card:last-child { border-bottom:0; }
+/* 设置 › 汇率：本月一张卡（数、自动 / 手填、来源），过去的月份一格一格，提前定好的月份一行一行，几条规矩在最下面。 */
+html[data-theme] .exchange-panel { display:grid; gap:18px; min-width:0; }
+html[data-theme] .exchange-now { display:grid; gap:8px; padding:14px 16px; border:1px solid var(--accent); border-radius:16px; background:color-mix(in oklab, var(--accent) 5%, var(--surface-bg)); }
+html[data-theme] .exchange-now-head { display:flex; align-items:center; gap:8px; }
+html[data-theme] .exchange-now-head label { color:var(--gray-900); font-size:13px; font-weight:600; }
+html[data-theme] .exchange-now-main { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
+html[data-theme] .exchange-now-main input { width:168px; max-width:100%; height:44px; padding:0 12px; font-family:var(--display); font-size:22px; font-weight:600; font-variant-numeric:tabular-nums; }
+html[data-theme] .exchange-now-note { color:var(--gray-600); font-size:12px; line-height:1.5; }
+html[data-theme] .exchange-tag { display:inline-flex; align-items:center; flex:none; padding:1px 8px; border-radius:999px; background:var(--surface-soft); color:var(--gray-600); font-size:11px; font-weight:500; line-height:1.5; white-space:nowrap; }
+html[data-theme] .exchange-tag.is-manual { background:var(--accent-tint); color:var(--accent); }
+html[data-theme] .exchange-group { display:grid; gap:8px; min-width:0; }
+html[data-theme] .exchange-group-title { color:var(--gray-900); font-size:13px; font-weight:600; }
+html[data-theme] .exchange-group-meta { margin-top:-4px; color:var(--gray-500); font-size:12px; }
+html[data-theme] .exchange-cell-head { display:flex; align-items:center; justify-content:space-between; gap:6px; min-height:19px; margin-bottom:5px; }
+html[data-theme] .exchange-cell-head label { margin:0; }
+html[data-theme] .exchange-future { display:grid; gap:8px; }
+html[data-theme] .exchange-future:empty { display:none; }
+html[data-theme] .exchange-future-row { display:grid; grid-template-columns:96px minmax(0, 180px) auto; align-items:center; justify-content:start; gap:10px; }
+html[data-theme] .exchange-future-row label { color:var(--gray-700); font-size:12.5px; font-weight:500; }
+html[data-theme] .exchange-future-row input { width:100%; min-width:0; height:36px; padding:0 10px; font-size:13px; }
+html[data-theme] .exchange-add { width:200px; max-width:100%; }
+html[data-theme] .exchange-add[hidden] { display:none; }
+html[data-theme] .exchange-rules { color:var(--gray-500); font-size:12px; line-height:1.5; }
 @media (max-width: 820px) {
   html[data-theme] .settings-shell { grid-template-columns:1fr; }
   html[data-theme] .settings-menu { position:static; min-height:0; display:flex; overflow-x:auto; gap:4px; }
@@ -6320,8 +6333,8 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
             </div>
             <div class="settings-card">
               <form class="settings-form" id="exchangeSettingsForm">
-                <div class="manual-rate-years span-2" id="exchangeMonthlyRateGrid"></div>
-                <div class="exchange-note span-2" id="exchangeRateNote">当月汇率每天联网更新；过去的月份不会自动改，自己填过的月份不自动更新。</div>
+                <div class="exchange-panel span-2" id="exchangeMonthlyRateGrid"></div>
+                <div class="exchange-rules span-2">过去的月份不会自动改；自己填过的月份不自动更新（清空再保存就恢复自动）；2026年5月以前的订单按 2026年5月 那格算。</div>
                 <div class="span-2" style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
                   <button class="btn btn-primary" type="submit">保存汇率设置</button>
                 </div>
@@ -11293,18 +11306,18 @@ function exchangePublishedLabel(publishedAt = '') {
   if (!match) return '';
   return `${Number(match[2])}月${Number(match[3])}日${match[4] ? ` ${match[4]}` : ''}`;
 }
-// 设置页汇率卡片底下那行：当月用的是哪个数、哪来的、什么时候的；太久没更新时提醒一次。
+// 设置 › 汇率本月卡片里那行：当月用的是哪个数、哪来的、什么时候的；太久没更新时提醒一次。
+// 几条规矩（过去的月份不自动改等）固定写在面板最下面一行，不在这里。
 function exchangeNoteText(now = new Date()) {
   const settings = getExchangeSettings();
   const month = exchangeLocalMonth(now);
   const monthName = `${Number(month.slice(5))}月`;
   const rate = exchangeRateForMonth(month);
-  const tail = '过去的月份不会自动改；自己填过的月份不自动更新（清空再保存就恢复自动）；2026年5月以前的订单按 2026年5月 那格算。';
-  if (settings.manualMonths[month]) return { text:`${monthName}：${rate} · 你自己填的，不联网更新。${tail}`, staleDays:0 };
+  if (settings.manualMonths[month]) return { text:`${monthName}：${rate} · 你自己填的，不联网更新。`, staleDays:0 };
   const auto = settings.auto?.month === month ? settings.auto : null;
   if (!auto) {
     const why = usdCnyLastError ? '今天没取到汇率，' : '还没联网取到汇率，';
-    return { text:`${monthName}：${why}暂按 ${rate} 算。${tail}`, staleDays:0 };
+    return { text:`${monthName}：${why}暂按 ${rate} 算。`, staleDays:0 };
   }
   const published = exchangePublishedLabel(auto.publishedAt);
   const label = auto.source === 'cfets' ? '外汇交易中心中间价（参考价，比银行买入价高）' : auto.sourceLabel || auto.source;
@@ -11318,7 +11331,7 @@ function exchangeNoteText(now = new Date()) {
   if (usdCnyLastError) text = `${monthName}：今天没取到汇率，沿用${published ? ` ${published} ` : '上次'}的 ${auto.rate}（${label}）。`;
   const staleDays = usdCnyAgeDays(auto.publishedAt || auto.checkedAt, now);
   if (staleDays >= usdCnyStaleDays) text += `汇率已经 ${staleDays} 天没更新，请检查网络；联网后会自动补取。`;
-  return { text:`${text}${tail}`, staleDays };
+  return { text, staleDays };
 }
 function renderExchangeNote() {
   const { text, staleDays } = exchangeNoteText();
@@ -11329,35 +11342,87 @@ function renderExchangeNote() {
     toast(`当月汇率已经 ${staleDays} 天没更新`, { tone:'error', desc:'联网没取到新汇率，先沿用上次的数；联网后会自动补取。设置 → 汇率 里能看到详情' });
   }
 }
+// 汇率页分三段，存的东西（monthlyRates、manualMonths、auto）不变：
+// 1. 本月一张卡：数（可以改）、「自动 / 手填」、来源那行；手填时有「恢复自动」（清空输入框，保存后交回自动）。
+// 2. 过去的月份，新的在前，照旧能改；只有 manualMonths 里的标「手填」——过去某个月的数是不是联网取的没有记录，不标「自动」。
+// 3. 以后的月份只列提前定过数的（manualMonths 里、晚于本月），「取消」= 清空，保存后交回自动；「加一个月份」再加一行。
+// 没列出来的月份表单里就没有这一格，保存时整个跳过（见汇率表单的 submit）。
+function exchangeTagHtml(manual) {
+  return manual ? '<span class="exchange-tag is-manual">手填</span>' : '<span class="exchange-tag">自动</span>';
+}
+function exchangeRateInputHtml(month, value, extra = '') {
+  return `<input id="exchangeRate-${month}" name="rate-${month}" type="number" min="0" step="0.0001" inputmode="decimal" value="${escapeAttr(value)}"${extra}>`;
+}
+function exchangeFutureRowHtml(month, value, added = false) {
+  const extra = added ? ' data-exchange-added="true" placeholder="填这个月的汇率"' : ' placeholder="保存后交回自动"';
+  return `
+    <div class="exchange-future-row" data-exchange-month="${month}">
+      <label for="exchangeRate-${month}">${monthLabel(month)}</label>
+      ${exchangeRateInputHtml(month, value, extra)}
+      <button class="btn btn-small" type="button" data-exchange-cancel="${month}" aria-label="取消 ${monthLabel(month)} 提前定的汇率">取消</button>
+    </div>`;
+}
+// 「加一个月份」能选的：表里本月以后、还没列出来的月份。
+function exchangeAddableMonths(form, now = new Date()) {
+  const current = exchangeLocalMonth(now);
+  return exchangeMonths(now).filter(month => month > current && !form?.elements.namedItem(`rate-${month}`));
+}
+function renderExchangeAddMonth(form) {
+  const select = form?.querySelector('#exchangeAddMonth');
+  if (!select) return;
+  const months = exchangeAddableMonths(form);
+  select.innerHTML = `<option value="">加一个月份…</option>${months.map(month => `<option value="${month}">${monthLabel(month)}</option>`).join('')}`;
+  select.value = '';
+  select.closest('.exchange-add').hidden = !months.length;
+  enhanceAppSelect(select);
+}
 // 格子按设置表单的规矩填：表单里有还没保存的输入时不重画，免得联网更新把正在填的数冲掉。
 function renderExchangeSettings() {
-  renderExchangeNote();
   const form = document.getElementById('exchangeSettingsForm');
   settingsFormFill(form, () => {
     const settings = getExchangeSettings();
     const grid = document.getElementById('exchangeMonthlyRateGrid');
     if (!grid) return;
     form._shownRates = { ...settings.monthlyRates };
-    const byYear = exchangeMonths().reduce((groups, month) => {
-      const year = month.slice(0, 4);
-      groups[year] = groups[year] || [];
-      groups[year].push(month);
-      return groups;
-    }, {});
-    grid.innerHTML = Object.entries(byYear).map(([year, months]) => `
-    <div class="manual-rate-year-card">
-      <div class="manual-rate-year-title">${year} 年 <span>USD → RMB</span></div>
-      <div class="manual-rate-grid">
-        ${months.map(month => `
-          <div class="manual-rate-item">
-            <label for="exchangeRate-${month}">${monthLabel(month)}</label>
-            <input id="exchangeRate-${month}" name="rate-${month}" type="number" min="0" step="0.0001" value="${escapeAttr(settings.monthlyRates[month] || exchangeDefaultRate)}" placeholder="6.8">
-          </div>
-        `).join('')}
-      </div>
-    </div>
-  `).join('');
+    const current = exchangeLocalMonth();
+    const months = exchangeMonths();
+    const rateOf = month => settings.monthlyRates[month] || exchangeDefaultRate;
+    const past = months.filter(month => month < current).reverse();
+    const future = months.filter(month => month > current && settings.manualMonths[month]);
+    const currentManual = Boolean(settings.manualMonths[current]);
+    const now = months.includes(current) ? `
+      <section class="exchange-now" aria-label="本月汇率">
+        <div class="exchange-now-head">
+          <label for="exchangeRate-${current}">${monthLabel(current)} · 本月</label>
+          ${exchangeTagHtml(currentManual)}
+        </div>
+        <div class="exchange-now-main">
+          ${exchangeRateInputHtml(current, rateOf(current), currentManual ? ' placeholder="保存后恢复自动"' : ' placeholder="6.8"')}
+          ${currentManual ? '<button class="btn btn-small" type="button" data-exchange-reset>恢复自动</button>' : ''}
+        </div>
+        <div class="exchange-now-note" id="exchangeRateNote"></div>
+      </section>` : '';
+    const pastHtml = past.length ? `
+      <div class="exchange-group">
+        <div class="exchange-group-title">过去的月份</div>
+        <div class="manual-rate-grid">
+          ${past.map(month => `
+            <div class="manual-rate-item">
+              <div class="exchange-cell-head"><label for="exchangeRate-${month}">${monthLabel(month)}</label>${settings.manualMonths[month] ? exchangeTagHtml(true) : ''}</div>
+              ${exchangeRateInputHtml(month, rateOf(month), ' placeholder="6.8"')}
+            </div>`).join('')}
+        </div>
+      </div>` : '';
+    grid.innerHTML = `${now}${pastHtml}
+      <div class="exchange-group">
+        <div class="exchange-group-title">提前定好的月份</div>
+        <div class="exchange-group-meta">以后的月份到了当月自动取，想提前定一个数可以点「加一个月份」。</div>
+        <div class="exchange-future" id="exchangeFutureRows">${future.map(month => exchangeFutureRowHtml(month, rateOf(month))).join('')}</div>
+        <div class="exchange-add"><select id="exchangeAddMonth" aria-label="加一个月份"></select></div>
+      </div>`;
+    renderExchangeAddMonth(form);
   });
+  renderExchangeNote();
 }
 function targetForMonth(month) {
   return Number((state.performanceTargets || {})[month] || 0);
@@ -30878,8 +30943,11 @@ document.getElementById('exchangeSettingsForm').addEventListener('submit', async
   let backToAuto = false;
   // 和打开时显示的数不一样的格子 = 这个月手动定了，联网更新不再改它。
   // 当月和以后的月份清空 = 交回自动（当月马上按最近取到的数补上）；过去的月份清空就保持原来的数。
+  // 以后的月份只列提前定过数的：表单里没有这一格的月份整个跳过，数和手填标记都不动（不是「清空」）。
   exchangeMonths().forEach(month => {
-    const raw = String(data[`rate-${month}`] ?? '').trim();
+    const key = `rate-${month}`;
+    if (!Object.prototype.hasOwnProperty.call(data, key)) return;
+    const raw = String(data[key] ?? '').trim();
     const value = Number(raw);
     if (!raw || !(Number.isFinite(value) && value > 0)) {
       if (month >= current) {
@@ -30889,7 +30957,9 @@ document.getElementById('exchangeSettingsForm').addEventListener('submit', async
       }
       return;
     }
-    if (Math.abs(value - Number(shown[month])) < 0.00005) return;
+    // 「加一个月份」加的那行填了数就是手填，等于 6.8 也算：打开时那格本来就是 6.8，和打开时比看不出改过。
+    const added = form.elements.namedItem(key)?.dataset?.exchangeAdded === 'true';
+    if (!added && Math.abs(value - Number(shown[month])) < 0.00005) return;
     monthlyRates[month] = value;
     manualMonths[month] = true;
   });
@@ -30899,6 +30969,40 @@ document.getElementById('exchangeSettingsForm').addEventListener('submit', async
   render();
   if (!await settingsFormPersist(e.currentTarget)) return;
   toast('汇率设置已保存');
+});
+// 汇率页的几个按钮只动表单里的输入框，存不存、怎么存都交给上面的保存（清空再保存 = 交回自动）。
+document.getElementById('exchangeSettingsForm').addEventListener('click', e => {
+  const form = e.currentTarget;
+  const reset = e.target.closest('[data-exchange-reset]');
+  const cancel = e.target.closest('[data-exchange-cancel]');
+  if (!reset && !cancel) return;
+  const month = reset ? exchangeLocalMonth() : cancel.dataset.exchangeCancel;
+  const input = form.elements.namedItem(`rate-${month}`);
+  if (!input) return;
+  if (input.dataset.exchangeAdded === 'true') {
+    // 刚加的、还没保存的一行：直接拿掉，回到没加之前。
+    input.closest('.exchange-future-row').remove();
+    renderExchangeAddMonth(form);
+    form.querySelector('.exchange-add .app-select-button')?.focus();
+    return;
+  }
+  input.value = '';
+  input.focus();
+});
+document.getElementById('exchangeSettingsForm').addEventListener('change', e => {
+  if (e.target.id !== 'exchangeAddMonth') return;
+  const form = e.currentTarget;
+  const month = e.target.value;
+  if (!month || form.elements.namedItem(`rate-${month}`)) return;
+  const rows = form.querySelector('#exchangeFutureRows');
+  // 按月份顺序插进去。
+  const after = [...rows.querySelectorAll('[data-exchange-month]')].find(row => row.dataset.exchangeMonth > month);
+  const holder = document.createElement('div');
+  holder.innerHTML = exchangeFutureRowHtml(month, '', true);
+  rows.insertBefore(holder.firstElementChild, after || null);
+  renderExchangeAddMonth(form);
+  // 下拉菜单选完会把焦点还给它自己的按钮（同一次点击里、在这之后），所以等它收完再把焦点给新的输入框。
+  queueMicrotask(() => form.elements.namedItem(`rate-${month}`)?.focus());
 });
 document.getElementById('aiSettingsForm')?.addEventListener('submit', async e => {
   e.preventDefault();

@@ -146,14 +146,14 @@ const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return 
     await page.keyboard.press('Enter');
     await page.waitForFunction(() => uiNotifEvents().find(e => e.id.startsWith('api-dhl-'))?.resolvedAt);
 
-    // ---- 4. Feishu failure card opens 订单信息 with 重新发送 focused ----
+    // ---- 4. Feishu failure card opens 记录 (the Feishu block is on top there) with 重新发送 focused ----
     await page.evaluate(() => applyOrderNotificationResult('N1', { status:'failed', error:'网络超时' }));
     await openBell();
     // The recovered API card says 已恢复 at the end of its second line.
     assert.match(await page.locator('#notifList .notif-card[data-notif-id^="api-dhl-"] small').innerText(), /DHL.* · 已恢复 /);
     await click('#notifList .notif-card[data-notif-id^="feishu-N1-failed"]', 'feishu card');
     await page.waitForFunction(() => document.getElementById('orderDetailDrawer').classList.contains('open') && document.activeElement?.dataset?.retryOrderNotification === 'N1');
-    assert.equal(await page.evaluate(() => uiDetailTab.current), 'info');
+    assert.equal(await page.evaluate(() => uiDetailTab.current), 'records');
     await page.evaluate(() => closeOrderDetail());
     await page.waitForFunction(() => !document.getElementById('orderDetailDrawer').classList.contains('open'));
 

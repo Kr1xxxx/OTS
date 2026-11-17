@@ -3,7 +3,7 @@
 // 1. 通知面板开着时后面轻轻压暗、不模糊；
 // 2. 「国家 / 地区」栏的建议列表是 App 自己的菜单：打字筛选（UK 排第一、高亮第一项，回车选它）、↑ ↓ 加回车选中、点一项选中、Esc 只收菜单不关弹窗 / 抽屉，
 //    列表外的写法照样能填；外框和下拉框的菜单一样，箭头展开时朝上；
-// 3. 订单抽屉里「交期」和「这位客户」的小方块都是灰底、没有边框；
+// 3. 订单抽屉「客户」页签里累计数的小方块是灰底、没有边框；
 // 4. 订单、客户、已删除订单没有数据时是图标、标题、说明，能新建的带按钮；
 // 5. 设置里的等级规则表是灰字白底表头、没有竖线、等级那一列不再是紫底。
 const assert = require('node:assert/strict');
@@ -178,14 +178,14 @@ const orders = [
       return { background:s.backgroundColor, border:s.borderTopWidth, radius:s.borderTopLeftRadius, padding:s.padding,
         label:getComputedStyle(el.firstElementChild).fontSize, value:getComputedStyle(el.lastElementChild).fontSize };
     }, selector);
-    await page.locator('[data-detail-tab-btn="payment"]').click();
+    await page.locator('[data-detail-tab-btn="customer"]').click();
+    await page.waitForFunction(() => !document.querySelector('#orderDetailBody [data-detail-tab="customer"]').hidden);
     const customerTile = await tile('#orderDetailBody .order-detail-customer-stat');
-    await page.locator('[data-detail-tab-btn="logistics"]').click();
-    await page.waitForFunction(() => !document.querySelector('#orderDetailBody [data-detail-tab="logistics"]').hidden);
-    const deliveryTile = await tile('#orderDetailBody [data-detail-tab="logistics"] .detail-grid > .detail-item');
-    assert.deepEqual(deliveryTile, customerTile, 'the delivery tiles look like the customer tiles');
-    assert.equal(deliveryTile.border, '0px', 'read-only tiles have no border');
-    assert.notEqual(deliveryTile.background, 'rgba(0, 0, 0, 0)');
+    assert.equal(customerTile.border, '0px', 'read-only tiles have no border');
+    assert.notEqual(customerTile.background, 'rgba(0, 0, 0, 0)');
+    assert.equal(customerTile.radius, '14px');
+    assert.equal(customerTile.padding, '10px 12px');
+    assert.deepEqual([customerTile.label, customerTile.value], ['11.5px', '15px']);
 
     // ---- 5. 等级规则表 ----
     await page.evaluate(() => { closeOrderDetail(); setPage('settings'); });

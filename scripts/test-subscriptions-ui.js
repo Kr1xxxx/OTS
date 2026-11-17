@@ -96,7 +96,8 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     await page.waitForFunction(() => document.getElementById('subsHeroMonthly')?.getAttribute('aria-label') === '168.98');
     assert.equal(await page.locator('#subsHeroMonthly .subs-wh').count(), 5, 'every digit of 168.98 is a rolling strip');
     assert.equal(await page.locator('#subsHeroYear').innerText(), '一年约 ¥2,028 · 美元按 7.1 折算');
-    assert.match(await page.locator('#subsHeroSide').innerText(), /3 项续费[\s\S]*3 项续费中 · 0 项不再续费[\s\S]*未来 30 天要付 ¥211\.00 · 2 笔[\s\S]*2 项快到续费日/);
+    assert.match(await page.locator('#subsHeroSide').innerText(), /^3 项续费中\s+未来 30 天要付 ¥211\.00 · 2 笔\s+2 项快到续费日$/);
+    assert.doesNotMatch(await page.locator('#subsHeroSide').innerText(), /0 项|不再续费/, 'nothing cancelled: no 「0 项不再续费」 line');
 
     // Category filter with a sliding highlight, and in-page search.
     await page.locator('[data-sub-filter="AI"]').click();
@@ -170,7 +171,7 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     await drawer.locator('[data-sub-action="provider-cancelled"]').waitFor();
     assert.match(await drawer.locator('.subs-card').first().innerText(), /有效期至\s*2026-05-18\s*61天后到期，不再扣费/);
     assert.equal(store.list().items.find(item => item.name === '1Password').endsOn, '2026-05-18');
-    assert.match(await page.locator('#subsHeroSide').innerText(), /2 项续费中 · 1 项不再续费/);
+    assert.match(await page.locator('#subsHeroSide').innerText(), /^2 项续费中\s+1 项不再续费\s/);
     // The pill names the date as well as the countdown.
     assert.match(await rows.filter({ hasText:'1Password' }).locator('.subs-pill').innerText(), /^05-18\s+61天后到期$/);
     assert.match(await rows.filter({ hasText:'1Password' }).locator('.subs-meta').innerText(), /有效期至 5月18日/, 'the row keeps the end date');

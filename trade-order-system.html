@@ -3856,6 +3856,16 @@ html[data-theme] .subs-dh-r1 .subs-btn.sm .subs-i { width:15px; height:15px; }
 html[data-theme] .subs-groups { display:flex; flex-direction:column; gap:18px; }
 html[data-theme] .subs-grp { align-items:start; }
 html[data-theme] .subs-grp + .subs-grp { padding-top:16px; border-top:1px solid var(--a-hairline); }
+/* 续费分析「每月扣费」标题右边的图例：两个小方块用柱子本身的填色（已扣实心、还没到扣费日浅色虚边）。 */
+html[data-theme] .subs-chart-key { display:flex; flex-wrap:wrap; gap:4px 14px; margin:0; padding:0; list-style:none; color:var(--a-muted); font-size:12px; line-height:19px; }
+html[data-theme] .subs-chart-key li { display:inline-flex; align-items:center; gap:6px; }
+html[data-theme] .subs-chart-key i { flex:none; width:10px; height:10px; border-radius:3px; background:color-mix(in oklab, var(--a-accent) 62%, var(--a-card)); }
+html[data-theme] .subs-chart-key i.plan { background:color-mix(in oklab, var(--a-accent) 22%, var(--a-card)); border:1px dashed color-mix(in oklab, var(--a-accent) 55%, var(--a-card)); }
+html[data-theme="dark"] .subs-chart-key i { background:color-mix(in oklab, var(--a-accent) 76%, var(--a-card)); }
+html[data-theme="dark"] .subs-chart-key i.plan { background:color-mix(in oklab, var(--a-accent) 30%, var(--a-card)); }
+/* 续费详情「周期费用」里并起来的未来几期：一行字加「展开」。 */
+html[data-theme] .subs-per.fold { display:flex; align-items:center; gap:10px; min-height:44px; color:var(--a-muted); font-size:12px; font-variant-numeric:tabular-nums; }
+html[data-theme] .subs-per.fold b { color:var(--a-ink-2); font-weight:600; }
 html[data-theme] .subs-grp-h { grid-column:1 / -1; margin:0 0 -4px; padding-left:2px; color:var(--a-ink); font:600 14px/1.3 var(--a-display); letter-spacing:0; }
 html[data-theme] .subs-grp-h small { margin-left:6px; color:var(--a-muted); font:400 12px var(--a-sans); }
 /* hidden 要真的藏住：基础层的 .subs-field { display:flex } 会盖掉它（编辑已有项时「下次扣费日」曾照样显示） */
@@ -5672,7 +5682,7 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
   </nav>
   <div class="sidebar-foot">
     <div class="team">
-      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.182，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.182</div>
+      <div class="app-version" tabindex="0" title="发布时间未知" aria-label="V3.183，发布时间未知" onmouseenter="refreshAppVersionTooltip()" onfocus="refreshAppVersionTooltip()">V3.183</div>
       <button class="app-update-btn" id="appUpdateBtn" type="button" title="检查更新：有新版本会先问一句，再下载并重启" aria-label="检查更新：有新版本会先问一句，再下载并重启" onclick="requestAppUpdate()"><span>更新</span></button>
       <span class="save-pulse is-busy" id="savePulse" aria-live="polite"><i></i><span>读取中</span></span>
       <button class="app-refresh-btn" id="appRefreshBtn" type="button" title="刷新页面" aria-label="刷新页面"><svg class="ui-icon" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -10859,8 +10869,7 @@ function calendarEventsInRange(from, to) {
       // earlier settings shows that term's currency, type and payment method.
       subscriptionCharges(item, from, to, subscriptionState.usdCnyRate, { unpaid:true }).forEach(charge => {
         // 只有还没续的那几笔写「需要手动续费」：已确认续过的、提前续好的、历史设置下的，照自动续费写付款方式。
-        // 历史设置下的不问 subscriptionChargePaid：提前续好之后改了设置，那一期日期还没到，却是续过的。
-        const toRenew = charge.term === item && item.autoRenew === false && !subscriptionChargePaid(charge);
+        const toRenew = item.autoRenew === false && !subscriptionChargePaid(charge);
         events.push({ date:charge.date, type:'subscription', tone:'subscription', subId:item.id, ...named(item.name, '续费'), sub:[subscriptionMoney(charge.amount, charge.currency), charge.term.category, toRenew ? '需要手动续费' : charge.term.paymentMethod].filter(Boolean).join(' · ') });
       });
     });
@@ -26384,22 +26393,22 @@ function subscriptionManualTracked(item) {
 function subscriptionPaidMark(item, today = subscriptionLocalDate()) {
   return subscriptionManualTracked(item) ? item.renewedThrough : today;
 }
-// 当前设置下日期为 date 的这一笔：'paid' 已发生、'due' 到期了还没确认、'future' 还没到。历史设置（terms）下的扣费一律算已发生。
+// 当前设置下日期为 date 的这一笔：'paid' 已发生、'due' 到期了还没确认、'future' 还没到。历史设置（terms）下的扣费一律算已发生：
+// 一段历史设置到「付到哪天之后的第一期」为止（subscriptionFromNext 的 effective = schedule.renewsOn），里面每一期都付过，
+// 包括手动续费提前续好、日期还在今天之后的那一期，所以不再拿今天去卡它们的日期。
 function subscriptionChargeState(item, date, today = subscriptionLocalDate()) {
   if (date <= subscriptionPaidMark(item, today)) return 'paid';
   return date <= today ? 'due' : 'future';
 }
-// subscriptionCharges 交回来的一笔付了没有：历史设置（terms）下的照旧按日期，当前设置下的问 subscriptionChargeState。
+// subscriptionCharges 交回来的一笔付了没有：历史设置（terms）下的一律付过，当前设置下的问 subscriptionChargeState。
 function subscriptionChargePaid(charge, today = subscriptionLocalDate()) {
-  return charge.term !== charge.item ? charge.date <= today : subscriptionChargeState(charge.item, charge.date, today) === 'paid';
+  return charge.term !== charge.item || subscriptionChargeState(charge.item, charge.date, today) === 'paid';
 }
-function subscriptionTermTotals(item, today, rate) {
-  // Charges made under earlier settings, up to today.
+function subscriptionTermTotals(item, rate) {
+  // Charges made under earlier settings: every one before the term's end was paid (see subscriptionChargeState).
   const totals = { charges:0, spentCny:0, byCurrency:{} };
   subscriptionTerms(item).forEach(term => {
-    const last = subscriptionDateFromDay(subscriptionDayNumber(term.until) - 1);
-    const end = last < today ? last : today;
-    const count = subscriptionChargeIndex(term, end) + 1;
+    const count = subscriptionChargeIndex(term, subscriptionDateFromDay(subscriptionDayNumber(term.until) - 1)) + 1;
     if (count <= 0) return;
     const price = subscriptionPricer(term);
     for (let index = 0; index < count; index += 1) {
@@ -26454,7 +26463,7 @@ function subscriptionSchedule(item, today, rate) {
   const recurringCny = subscriptionToCny(item, recurringAmount, rate);
   const monthlyCny = unit === 'day' ? recurringCny * 365 / 12 / count : recurringCny / count;
   // Charges made under earlier settings (see subscriptionTerms) count in what was spent.
-  const past = subscriptionTermTotals(item, today, rate);
+  const past = subscriptionTermTotals(item, rate);
   const base = {
     cycleAmount, cycleCny, recurringAmount, monthlyCny, yearlyCny:monthlyCny * 12,
     charges:charges + past.charges, spent:spent + (past.byCurrency[item.currency] || 0), spentCny:subscriptionToCny(item, spent, rate) + past.spentCny,
@@ -26827,8 +26836,8 @@ function renderSubscriptionHero(summary, rate, roll) {
       <span class="subs-hl" id="subsHeroYear">一年约 ¥${Math.round(summary.yearlyCny).toLocaleString('zh-CN')} · 美元按 ${rateHtml} 折算</span>
     </div>
     <div class="subs-hr" id="subsHeroSide">
-      <span class="subs-pill">${subscriptionIcon('check')}${summary.total} 项续费</span>
-      <span class="subs-hl">${summary.active} 项续费中 · ${summary.cancelled} 项不再续费</span>
+      <span class="subs-pill">${subscriptionIcon('check')}${summary.active} 项续费中</span>
+      ${summary.cancelled ? `<span class="subs-hl">${summary.cancelled} 项不再续费</span>` : ''}
       <span class="subs-hl">未来 30 天要付 ${subscriptionMoney(summary.upcomingCny)} · ${summary.upcoming.length} 笔</span>
       ${summary.dueSoon ? `<span class="subs-hl">${summary.dueSoon} 项快到续费日</span>` : ''}
     </div>`;
@@ -27378,13 +27387,13 @@ function renderSubscriptionAnalysisPage({ entering = false } = {}) {
       <b class="arc-metric-v" data-target="${value}">${subscriptionMoney(0)}</b>
       <p>${escapeAttr(context)}</p></article>`).join('')}</div>
     <section class="subs-panel subs-enter wide" style="--i:4">
-      <header><div><h3>每月扣费</h3><p>实心是已扣的金额，浅色虚边是还没到扣费日的（本月待扣和右边 6 个月的预计）；鼠标在图上移动或按方向键查看每个月</p></div></header>
-      <div id="subsArcBars"></div>
+      <header><div><h3>每月扣费</h3></div><ul class="subs-chart-key" aria-label="图例"><li><i aria-hidden="true"></i>已扣</li><li><i class="plan" aria-hidden="true"></i>还没到扣费日（本月待扣和之后 6 个月的预计）</li></ul></header>
+      <div id="subsArcBars" title="鼠标在图上移动或按方向键查看每个月"></div>
     </section>
     <div class="subs-an-grid">
       <section class="subs-panel subs-enter" style="--i:5">
-        <header><div><h3>类型占比</h3><p>按月均花费；点图例（或按空格）显示或隐藏，点圆环或在图例上按回车去列表筛选</p></div></header>
-        <div id="subsArcCategory"></div>
+        <header><div><h3>类型占比</h3><p>按月均花费</p></div></header>
+        <div id="subsArcCategory" title="点图例（或按空格）显示或隐藏，点圆环或在图例上按回车去列表筛选"></div>
       </section>
       <section class="subs-panel subs-enter" style="--i:6">
         <header><div><h3>付款方式</h3><p>每月从哪张卡、哪个账户扣</p></div></header>
@@ -27702,6 +27711,8 @@ async function commitSubscriptionRate({ cancel = false, fromBlur = false } = {})
 }
 // 周期费用：已经发生的每期记当期价格；未来的期默认沿用上一期价格，可以单独改一期，或从某期起调价。
 let subscriptionPeriodsAll = false;
+// 未来第二期起价钱相同的几期并成一行「第 6 到 10 期都是 …」；展开后逐期列出。打开另一项或关掉抽屉就复位。
+let subscriptionPeriodsFuture = false;
 const subscriptionFuturePeriods = 6;
 function subscriptionPeriods(item, today, schedule) {
   const bound = subscriptionStopBound(item, schedule.paidThrough);
@@ -27714,7 +27725,8 @@ function subscriptionPeriods(item, today, schedule) {
     const termPrice = subscriptionPricer(term);
     for (let index = 0; ; index += 1) {
       const date = subscriptionChargeDate(term, index);
-      if (date >= term.until || date > today) break;
+      // Every period under earlier settings was paid, one renewed early (dated after today) included.
+      if (date >= term.until) break;
       const next = subscriptionChargeDate(term, index + 1);
       const end = next < term.until ? next : term.until;
       periods.push({ index:offset + index, date, until:subscriptionDateFromDay(subscriptionDayNumber(end) - 1), past:true, current:false, amount:termPrice(date), currency:term.currency, term, old:true, cycleMonths:subscriptionCycle(term).unit === 'month' ? subscriptionCycle(term).count : 0 });
@@ -27762,7 +27774,7 @@ function subscriptionPeriodsHtml(item, schedule) {
     ? `≈${subscriptionMoney(list.reduce((sum, period) => sum + subscriptionToCny(period, period.amount, rate), 0))}`
     : subscriptionMoney(list.reduce((sum, period) => sum + period.amount, 0), item.currency);
   const upcoming = periods.filter(period => !period.past);
-  const rows = shown.map(period => {
+  const row = period => {
     const tag = period.due ? ['red', '待续费'] : period.current ? ['accent', '本期'] : period.past ? ['', '已发生'] : ['line', '未来'];
     const mark = period.old ? `<em class="subs-per-mark">${escapeAttr(subscriptionCycleLabel(period.term))}·旧设置</em>`
       : period.once ? '<em class="subs-per-mark">单独改价</em>' : period.change ? '<em class="subs-per-mark">起调价</em>' : '';
@@ -27775,6 +27787,22 @@ function subscriptionPeriodsHtml(item, schedule) {
       <span class="subs-per-v"><b>${subscriptionMoney(period.amount, period.currency)}</b>${mark}</span>
       ${edit}
     </div>`;
+  };
+  // The first future period stays on its own row; from the second on, consecutive periods at the same price
+  // (not due, not repriced on their own, not where a price change starts) fold into one row. Only the listing changes.
+  const firstFuture = shown.findIndex(period => !period.past && !period.due);
+  const segments = [];
+  shown.forEach((period, i) => {
+    const run = segments[segments.length - 1];
+    const fold = firstFuture >= 0 && i > firstFuture && !period.past && !period.due && !period.once && !period.change;
+    if (fold && run?.fold && run.list[0].amount === period.amount && run.list[0].currency === period.currency) run.list.push(period);
+    else segments.push({ fold, list:[period] });
+  });
+  const folds = segments.some(segment => segment.fold && segment.list.length > 1);
+  const rows = segments.map(({ fold, list }) => {
+    if (!fold || list.length < 2 || subscriptionPeriodsFuture) return list.map(row).join('');
+    const range = `第 ${list[0].index + 1} 到 ${list[list.length - 1].index + 1} 期`;
+    return `<div class="subs-per fold"><span>${range}都是 <b>${subscriptionMoney(list[0].amount, list[0].currency)}</b></span><button class="subs-pers-more" type="button" data-sub-action="periods-future" aria-label="展开${range}">展开</button></div>`;
   }).join('');
   const foot = bound && item.stopOn && subscriptionDayAfter(item.stopOn) === bound
     ? `预计 ${item.stopOn} 停止，之后不再计费${schedule.coveredUntil ? `（${item.stopOn} 当天那一期仍会扣，覆盖到 ${schedule.coveredUntil}）` : ''}`
@@ -27784,6 +27812,7 @@ function subscriptionPeriodsHtml(item, schedule) {
     <header class="subs-pers-h"><b>周期费用</b><span>已发生 ${past.length} 期 ${total(past)}${upcoming.length ? ` · 未来 ${upcoming.length} 期 ${total(upcoming)}` : ''}</span></header>
     ${hidden ? `<button class="subs-pers-more" type="button" data-sub-action="periods-all">再看更早的 ${hidden} 期</button>` : ''}
     <div class="subs-pers-list">${rows}</div>
+    ${folds && subscriptionPeriodsFuture ? '<button class="subs-pers-more" type="button" data-sub-action="periods-future-fold">收起</button>' : ''}
     ${foot ? `<p class="subs-pers-foot">${escapeAttr(foot)}</p>` : ''}
   </section>`;
 }
@@ -27791,7 +27820,7 @@ function openSubscriptionDetail(id) {
   if (!findSubscription(id)) return;
   const wasOpen = document.getElementById('subscriptionDrawer').classList.contains('open');
   if (!wasOpen) subscriptionReturnFocus = uiOpenedFrom();
-  if (subscriptionDetailId !== id) subscriptionPeriodsAll = false;
+  if (subscriptionDetailId !== id) subscriptionPeriodsAll = subscriptionPeriodsFuture = false;
   subscriptionDetailId = id;
   renderSubscriptionDetail({ entering:!wasOpen });
   setModalOpenState('subscriptionDrawer', true);
@@ -27832,12 +27861,13 @@ function renderSubscriptionDetail({ entering = false } = {}) {
   const kv = [
     ['开始日期', subscriptionFirstStart(item) === item.startDate ? item.startDate : `${subscriptionFirstStart(item)}（现在的设置从 ${item.startDate} 起）`],
     ['类型', item.category],
-    ['服务商', item.provider || '未填写'],
+    ['服务商', item.provider],
     // The same reminder rule the bell and the editor use (the drawer used to say 30 / 7 days whatever the cycle).
     ['状态', { active:subscriptionRemindText(item), ending:planned ? '预计停止，之后不再扣费' : '已取消，等待到期', expired:planned ? '已停止，不再扣费' : '已到期，不再扣费' }[schedule.state]],
     ['扣费周期', subscriptionCycleEvery(item)],
-    ['预计停止', item.stopOn ? `${item.stopOn}，之后的周期不再计费` : '未设置'],
-    ['付款方式', item.paymentMethod || '未设置'],
+    // Not filled in: the row is left out, not written as 未设置.
+    ['预计停止', item.stopOn ? `${item.stopOn}，之后的周期不再计费` : ''],
+    ['付款方式', item.paymentMethod],
     ['币种', item.currency === 'USD' ? `美元 · 1 USD = ${rate} CNY` : '人民币']
   ];
   const toggle = {
@@ -27871,7 +27901,7 @@ function renderSubscriptionDetail({ entering = false } = {}) {
       </div>
       ${renewAction}${providerAction}
       ${subscriptionPeriodsHtml(item, schedule)}
-      <dl class="subs-kv">${kv.map(([label, value]) => `<dt>${label}</dt><dd>${escapeAttr(value)}</dd>`).join('')}</dl>
+      <dl class="subs-kv">${kv.filter(([, value]) => value).map(([label, value]) => `<dt>${label}</dt><dd>${escapeAttr(value)}</dd>`).join('')}</dl>
       <div class="subs-acts">
         <button class="subs-act" type="button" data-sub-action="${toggle[0]}"><b>${toggle[1]}</b><small>${toggle[2]}</small></button>
         <div class="subs-act danger"><b>删除记录</b><small>${escapeAttr(deleteNote)}</small><button class="subs-btn sm subs-hold" type="button" data-sub-action="hold" aria-label="按住删除 ${name}"><span class="subs-hold-fill"></span><span class="lbl">${subscriptionIcon('trash')}<span class="subs-hold-text">按住删除</span></span></button></div>
@@ -28264,7 +28294,7 @@ function openSubscriptionEditor(id = '', { resubscribe = false, origin = '' } = 
   // Re-subscribing starts a fresh billing cycle from today as a NEW record: the expired one stays as it is,
   // so its past charges keep counting in 历史 / 累计已付 / 分析. The price starts at the last recurring price paid.
   if (existing && resubscribe) {
-    const paid = schedule.charges - subscriptionTermTotals(existing, today, subscriptionState.usdCnyRate).charges;
+    const paid = schedule.charges - subscriptionTermTotals(existing, subscriptionState.usdCnyRate).charges;
     const lastCharge = subscriptionChargeDate(existing, Math.max(0, paid - 1));
     const recurring = subscriptionPriceChanges(existing).filter(change => !change.once);
     Object.assign(subscriptionDraft, {
@@ -29011,6 +29041,12 @@ document.getElementById('subscriptionDrawer').addEventListener('click', event =>
   if (action === 'periods-all') {
     subscriptionPeriodsAll = true;
     renderSubscriptionDetail();
+  }
+  if (action === 'periods-future' || action === 'periods-future-fold') {
+    // The button pressed is redrawn: focus moves to the one that undoes it.
+    subscriptionPeriodsFuture = action === 'periods-future';
+    renderSubscriptionDetail();
+    document.querySelector(`#subscriptionDrawer [data-sub-action="${subscriptionPeriodsFuture ? 'periods-future-fold' : 'periods-future'}"]`)?.focus({ preventScroll:true });
   }
   const period = event.target.closest('[data-sub-period]');
   if (period) openSubscriptionPriceEditor(period.dataset.subPeriod);

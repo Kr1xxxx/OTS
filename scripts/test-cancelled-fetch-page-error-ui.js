@@ -12,9 +12,8 @@
 // test that reloaded at one of those moments failed now and then, in WebKit only (test-order-list-density-ui,
 // test-followup-tasks-ui, test-dashboard-layout-ui). scripts/helpers/use-webkit.js drops that line from 'pageerror'.
 //
-// Here a page that keeps asking, and asks once more in pagehide, is reloaded, and the new copy arrives only after
-// the old one has asked a few more times. The test's 'pageerror' list must hold nothing but an exception the page
-// really throws afterwards.
+// Here a page that keeps asking, and asks once more in pagehide, is reloaded, and the new copy takes 600 ms to
+// arrive. The test's 'pageerror' list must hold nothing but an exception the page really throws afterwards.
 const assert = require('node:assert/strict');
 const { launchBrowser } = require('./helpers/board-page');
 const { freePortSync } = require('./helpers/free-port');
@@ -45,18 +44,16 @@ const text = error => `${error.name}: ${error.message}`;
       }
       loads += 1;
       if (loads === 1) return route.fulfill({ contentType:'text/html', body:`<!doctype html><title>asking</title>${asking}` });
-      // The new copy takes a while: the old page asks five more times first (two seconds at most).
-      const before = asked;
-      for (let i = 0; i < 400 && asked < before + 5; i += 1) await new Promise(resolve => setTimeout(resolve, 5));
+      // The new copy takes a while to arrive, like the real page's 1.4 MB: the old page's timer fires many times
+      // meanwhile. (Not counted here: WebKit refuses most of those requests before they reach this handler.)
+      await new Promise(resolve => setTimeout(resolve, 600));
       return route.fulfill({ contentType:'text/html', body:'<!doctype html><title>quiet</title>' });
     });
     await page.goto(`http://127.0.0.1:${freePortSync()}/page.html`);
     for (let i = 0; i < 400 && asked < 3; i += 1) await page.evaluate(() => new Promise(requestAnimationFrame));
     assert.ok(asked >= 3, 'the page is asking');
-    const beforeReload = asked;
     await page.reload();
     assert.equal(await page.title(), 'quiet');
-    assert.ok(asked >= beforeReload + 5, `the old page kept asking while the new one was on its way (${asked - beforeReload} more)`);
 
     // An exception thrown now arrives after anything the reload reported, so once it is here both lists are
     // complete; and it shows that real exceptions still reach the test.

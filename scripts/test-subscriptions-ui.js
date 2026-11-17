@@ -117,8 +117,9 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     const renewCards = page.locator('#notifList .notif-card[data-sub-id]:not([data-sub-id=""])');
     await renewCards.first().waitFor();
     // Name (shortened with … when long) and the countdown are separate, so the countdown always shows whole.
-    assert.deepEqual((await renewCards.evaluateAll(cards => cards.map(card => `${card.querySelector('.notif-t').textContent} | ${card.querySelector('.notif-cd').textContent} | ${card.querySelector('.notif-foot time').textContent}`))).sort(),
-      ['ChatGPT Plus · 续费 | 今天扣费 | 03-18 扣费', '阿里云域名 · 续费 | 7天后扣费 | 03-25 扣费']);
+    // The charge date opens the second line; no separate time on a renewal card.
+    assert.deepEqual((await renewCards.evaluateAll(cards => cards.map(card => `${card.querySelector('.notif-t').textContent} | ${card.querySelector('.notif-cd').textContent} | ${card.querySelector('small').textContent.split(' · ')[0]} | ${card.querySelectorAll('time').length}`))).sort(),
+      ['ChatGPT Plus · 续费 | 今天扣费 | 2026-03-18 | 0', '阿里云域名 · 续费 | 7天后扣费 | 2026-03-25 | 0']);
     // Due today sits above due in a week, ahead of everything else in the bell.
     assert.deepEqual(await page.locator('#notifList .notif-card').evaluateAll(cards => cards.slice(0, 2).map(card => card.dataset.subId ? card.querySelector('.notif-t').textContent : '')), ['ChatGPT Plus · 续费', '阿里云域名 · 续费']);
     await renewCards.filter({ hasText:'阿里云域名' }).click();

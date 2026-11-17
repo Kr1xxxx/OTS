@@ -277,9 +277,9 @@ const contrast = page => page.evaluate(() => {
       const events = date => [...(cell(date)?.querySelectorAll('.calendar-event') || [])].map(el => `${el.className.replace('calendar-event', '').trim()}|${el.textContent.trim()}`);
       return { today:events('2026-11-07'), ship:events('2026-11-09'), legend:document.querySelector('.calendar-legend').textContent };
     });
-    // 色块先写客户名、再写事项；过期的写明逾期几天。
-    assert.ok(cal.today.some(item => item.startsWith('follow|Quiet Lead 跟进 · 逾期')), `今天的格子里没有过期的跟进：${cal.today}`);
-    assert.ok(cal.ship.some(item => item.startsWith('repurchase|Ship Soon')), `最晚发出日期应是交期色：${cal.ship}`);
+    // 色块先写事项、再写客户名（格子窄时截的是客户名）；过期的写明逾期几天。
+    assert.ok(cal.today.some(item => item.startsWith('follow|跟进 · 逾期') && item.endsWith('Quiet Lead')), `今天的格子里没有过期的跟进：${cal.today}`);
+    assert.ok(cal.ship.some(item => item.startsWith('repurchase|最晚发出 Ship Soon')), `最晚发出日期应是交期色：${cal.ship}`);
     assert.equal(cal.ship.filter(item => item.includes('Ship Soon')).length, 1, `同一张单同一天的发货提醒和交期只出一块：${cal.ship}`);
     assert.match(cal.legend, /跟进/);
 

@@ -50,7 +50,6 @@
   --ease-drawer:cubic-bezier(.32,.72,0,1);
   --ease-spring:cubic-bezier(.34,1.4,.64,1);
   --notif-warn-ink:oklch(48% .13 70);
-  --notif-info-ink:oklch(46% .15 255);
   --notif-ok-ink:oklch(45% .15 150);
 }
 html[data-theme="dark"] {
@@ -73,7 +72,6 @@ html[data-theme="dark"] {
   --date-icon:url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='2.25' y='3.25' width='11.5' height='10.5' rx='2.5' stroke='%23aaa' stroke-width='1.4'/%3E%3Cpath d='M2.5 6.5h11M5.5 1.75v2.5M10.5 1.75v2.5' stroke='%23aaa' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
   color-scheme: dark;
   --notif-warn-ink:var(--s-amber);
-  --notif-info-ink:var(--s-blue);
   --notif-ok-ink:var(--s-green);
   --page-bg:oklch(16.5% .012 285);
   --surface-soft:oklch(13.5% .012 285);
@@ -3705,6 +3703,7 @@ html[data-theme] .calendar-more { padding:0 7px; color:var(--gray-500); font-siz
 /* 日历新增的类型：新客户（只有档案的）、续费扣费日；「新」角标；明天回来的「稍后」用淡色。 */
 html[data-theme] .calendar-event.customer { background:color-mix(in srgb, var(--s-blue, #2f6fdf) 8%, transparent); color:var(--s-blue, #2f6fdf); box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--s-blue, #2f6fdf) 30%, transparent); }
 html[data-theme] .calendar-event.subscription { background:color-mix(in srgb, var(--gray-500) 12%, transparent); color:var(--gray-700); }
+html[data-theme] .calendar-event > b { font-weight:650; }
 html[data-theme] .calendar-event.faded { opacity:.6; background:transparent; box-shadow:inset 0 0 0 1px currentColor; }
 html[data-theme] .calendar-badge { display:inline-grid; place-items:center; min-width:14px; height:14px; margin-right:4px; padding:0 2px; border:1px solid currentColor; border-radius:4px; font-style:normal; font-size:9.5px; font-weight:600; line-height:1; vertical-align:1px; }
 html[data-theme] button.calendar-more { width:auto; border:0; background:transparent; text-align:left; cursor:pointer; white-space:nowrap; border-radius:6px; }
@@ -4643,16 +4642,9 @@ html[data-theme="dark"] .notif-unread { color:var(--accent); }
 .notif-card.is-success .notif-ic { background:var(--green-50); color:var(--s-green); }
 .notif-card.is-warn .notif-ic { background:color-mix(in oklab, var(--s-amber) var(--s-tint), transparent); color:var(--s-amber); }
 .notif-body { display:flex; flex-direction:column; gap:3px; min-width:0; }
-.notif-foot { display:flex; align-items:center; gap:8px; margin-top:4px; font-size:11.5px; color:var(--gray-500); font-variant-numeric:tabular-nums; }
 .notif-body b { font-weight:600; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.notif-body small { font-size:12px; color:var(--gray-500); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.notif-pill { padding:1px 8px; border-radius:999px; background:var(--gray-100); color:var(--gray-600); font-size:11px; }
-.notif-pill.is-info { background:color-mix(in oklab, var(--s-blue) 12%, transparent); color:var(--notif-info-ink, var(--s-blue)); }
-.notif-pill.is-quiet { background:var(--gray-100); color:var(--gray-600); }
+.notif-body small { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; font-size:12px; color:var(--gray-500); overflow:hidden; overflow-wrap:anywhere; }
 .notif-ok { color:var(--notif-ok-ink, var(--s-green)); }
-.notif-pill.is-error { background:var(--red-50); color:var(--s-red); }
-.notif-pill.is-success { background:var(--green-50); color:var(--s-green); }
-.notif-pill.is-warn { background:color-mix(in oklab, var(--s-amber) var(--s-tint), transparent); color:var(--notif-warn-ink, var(--s-amber)); }
 /* 分组小标题（今天 / 昨天 / 更早）和列表末尾的「显示更多」 */
 .notif-group { position:sticky; top:-2px; z-index:1; margin:2px 0 -2px; padding:4px 6px; background:var(--surface-bg); color:var(--gray-600); font-size:12px; font-weight:600; }
 .notif-more { flex:none; padding:10px; border:1px dashed var(--surface-border); border-radius:var(--radius); background:none; color:var(--gray-700); font-size:12.5px; cursor:pointer; }
@@ -4660,9 +4652,10 @@ html[data-theme="dark"] .notif-unread { color:var(--accent); }
 .notif-empty-all { display:block; margin:8px auto 0; }
 /* 面板开着时提示框让到面板左边，不压在底部的卡片上（窄窗口面板占满宽度，照旧）。 */
 @media (min-width: 900px) { html[data-theme] .toast.beside-notif { right:calc(min(440px, 100vw - 24px) + 24px); } }
-/* A renewal card: the name shortens with … and the countdown always stays whole on the right. */
-.notif-body b.notif-tl { display:flex; align-items:baseline; gap:8px; }
+/* First line: the title shortens with … and the time (a renewal: its countdown) always stays whole on the right. */
+.notif-line { display:flex; align-items:baseline; gap:8px; min-width:0; }
 .notif-t { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.notif-when { flex:none; margin-left:auto; font-size:11.5px; color:var(--gray-500); font-variant-numeric:tabular-nums; white-space:nowrap; }
 .notif-cd { flex:none; margin-left:auto; color:var(--notif-warn-ink, var(--s-amber)); font-size:12.5px; font-weight:600; }
 .notif-card.is-error .notif-cd { color:var(--s-red); }
 .notif-empty { padding:48px 0; text-align:center; color:var(--gray-500); font-size:13px; }
@@ -4934,13 +4927,14 @@ html[data-theme] .customer-value-copy .ui-icon:last-child { opacity:0; transform
 html[data-theme] .customer-value-copy.is-copied { color:var(--s-green); }
 html[data-theme] .customer-value-copy.is-copied .ui-icon:first-child { opacity:0; transform:scale(.4); }
 html[data-theme] .customer-value-copy.is-copied .ui-icon:last-child { opacity:1; transform:none; }
-html[data-theme] .customer-rail-missing { color:var(--gray-500); font-size:12px; line-height:18px; }
+html[data-theme] .customer-rail-missing { display:block; color:var(--gray-500); font-size:12px; line-height:18px; }
+html[data-theme] .customer-rail-missing .link-btn { display:inline; margin-left:6px; padding:0; color:var(--accent); font-size:12px; white-space:nowrap; }
 html[data-theme] .customer-rail-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:2px; }
 html[data-theme] .customer-rail-head .customer-info-title { margin:0; color:var(--gray-900); }
 html[data-theme] .customer-rail-country { min-width:0; color:var(--gray-600); font-size:13px; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 html[data-theme] .customer-rail-address { margin:0; color:var(--gray-900); font-size:14px; line-height:22px; font-weight:500; white-space:pre-wrap; overflow-wrap:anywhere; }
 html[data-theme] .customer-rail-address .customer-value-primary { display:inline-block; margin:0 6px 0 0; vertical-align:1px; }
-html[data-theme] :is(.customer-rail-address, .customer-rail-country, .customer-rail-kv > strong).is-empty { color:var(--gray-500); font-weight:400; }
+html[data-theme] .customer-rail-kv > strong.is-empty { color:var(--gray-500); font-weight:400; }
 html[data-theme] .copy-customer-address-btn { width:100%; height:34px; min-height:34px; margin-top:4px; justify-content:center; font-size:13px; }
 html[data-theme] .customer-rail-kv { display:flex; align-items:baseline; justify-content:space-between; gap:12px; min-width:0; font-size:13px; line-height:20px; }
 html[data-theme] .customer-rail-kv > :is(span, .customer-copy-label) { flex:none; color:var(--gray-500); }
@@ -4950,12 +4944,10 @@ html[data-theme] .customer-detail-main > div:empty { display:none; }
 html[data-theme] .customer-permanent-note-card { display:flex; flex-direction:column; gap:4px; padding:12px 16px; border:1px solid color-mix(in oklab, var(--s-orange) 36%, var(--surface-border)); border-radius:14px; background:color-mix(in oklab, var(--s-orange) 9%, var(--surface-bg)); }
 html[data-theme] .customer-permanent-note-card .customer-info-title { margin:0; color:color-mix(in oklab, var(--s-orange) 78%, var(--gray-900)); font-size:13px; }
 html[data-theme] .customer-permanent-note-card .customer-note-text { color:var(--gray-800); }
-html[data-theme] .customer-permanent-note-card.is-empty { flex-direction:row; flex-wrap:wrap; align-items:baseline; column-gap:10px; padding:10px 16px; }
-html[data-theme] .customer-permanent-note-card.is-empty .customer-note-text { color:var(--gray-600); }
 html[data-theme] .customer-note-text { color:var(--gray-700); font-size:13px; line-height:21px; white-space:pre-wrap; overflow-wrap:anywhere; }
-html[data-theme] .customer-note-text.is-empty { color:var(--gray-500); }
 html[data-theme] .customer-info-card { min-width:0; display:flex; flex-direction:column; gap:4px; padding:16px 20px; border:1px solid var(--surface-border); border-radius:18px; background:var(--surface-bg); box-shadow:0 1px 2px oklch(0% 0 0 / .04); }
 html[data-theme] .customer-profile-metrics { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:12px; margin:0; }
+html[data-theme] .customer-metric-card.is-wide { grid-column:span 2; }
 html[data-theme] .customer-metric-card { display:flex; flex-direction:column; gap:3px; padding:12px 14px; border:1px solid var(--surface-border); border-radius:16px; background:var(--surface-bg); }
 html[data-theme] .customer-metric-card span { color:var(--gray-500); font-size:12px; line-height:17px; }
 html[data-theme] .customer-metric-card strong { color:var(--gray-900); font-family:var(--display); font-size:17px; line-height:22px; font-weight:600; font-variant-numeric:tabular-nums; }
@@ -10895,7 +10887,9 @@ function calendarEventAttrs(event, date) {
 }
 function calendarChipHtml(event, date) {
   const badge = event.badge ? `<i class="calendar-badge" aria-label="新客户">${escapeAttr(event.badge)}</i>` : '';
-  return `<button class="calendar-event ${calendarEventTone(event)}${event.faded ? ' faded' : ''}" type="button" ${calendarEventAttrs(event, date)} title="${escapeAttr(`${event.label} · ${event.sub || ''}`)}">${badge}${escapeAttr(event.label)}</button>`;
+  // 先写事、再写客户：格子窄，被截的是后面的客户名，不是「发货 / 收款 / 最晚发出」（没拆成事和客户的照旧写 label）。
+  const text = event.what == null ? escapeAttr(event.label) : `<b>${escapeAttr(event.what)}</b>${event.who ? ` ${escapeAttr(event.who)}` : ''}`;
+  return `<button class="calendar-event ${calendarEventTone(event)}${event.faded ? ' faded' : ''}" type="button" ${calendarEventAttrs(event, date)} title="${escapeAttr(`${event.label} · ${event.sub || ''}`)}">${badge}${text}</button>`;
 }
 // 当月日程：看的是本月时从今天排起（今天那组带「今天」，没有事也画出来），今天之前的收在「本月更早 · N 件」里，点开在原位展开；
 // 别的月份照旧从 1 号排。展开只记在这个月份上，翻到别的月份就复位。每行先写事、再写客户（截的是客户名），最后是订单号。
@@ -22489,14 +22483,15 @@ function renderCustomerProfileMetrics(name = '') {
   el.style.display = '';
   const source = clientHistory().find(c => c.client === clean) || { client:clean };
   const record = customerWorkspaceRecord(source);
-  const repurchase = record.repurchaseCycle ? `${record.repurchaseCycle} 天` : '未设置';
+  // 没设复购周期就不出「复购提醒」卡（左栏「还没填」里有），「最近订单」占两格。
+  const repurchase = record.repurchaseCycle ? `${record.repurchaseCycle} 天` : '';
   el.innerHTML = `
     <div class="customer-metric-card"><span>订单数</span><strong>${record.orderCount}</strong><small>${record.orderCount > 1 ? '复购客户' : record.orderCount ? '首单客户' : '暂无订单'}</small></div>
     <div class="customer-metric-card"><span>总成交</span><strong class="summary-money">${summaryMoney(record.total, 'USD')}</strong><small>全部币种折算 USD</small></div>
     <div class="customer-metric-card"><span>已收款</span><strong class="summary-money">${summaryMoney(record.paid, 'USD')}</strong><small>${record.total ? `${Math.round(record.paid / record.total * 100)}% 已收` : '暂无收款'}</small></div>
     <div class="customer-metric-card"><span>待收款</span><strong class="summary-money ${record.due > 0 ? 'customer-due-amount' : ''}">${summaryMoney(record.due, 'USD')}</strong><small>${record.due > 0 ? '需要跟进' : '暂无待收'}</small></div>
-    <div class="customer-metric-card"><span>最近订单</span><strong>${escapeAttr(record.latestOrder?.num || '暂无')}</strong><small>${escapeAttr(record.latestOrder ? `${stageDef(record.latestOrder.stage).name} · ${record.latestOrderDate}` : '还没有订单')}</small></div>
-    <div class="customer-metric-card"><span>复购提醒</span><strong>${escapeAttr(record.repurchaseDate || repurchase)}</strong><small title="${escapeAttr(!record.repurchaseCycle ? '' : !record.repurchaseDate ? '有进行中的订单，发货后再算' : '')}">${escapeAttr(!record.repurchaseCycle ? '未设置提醒' : !record.repurchaseDate ? '有进行中的订单，发货后再算' : record.nextFollow && record.nextFollow === record.repurchaseDate ? '已推迟到这天' : `每 ${record.repurchaseCycle} 天，从上次发货算`)}</small></div>
+    <div class="customer-metric-card${record.repurchaseCycle ? '' : ' is-wide'}"><span>最近订单</span><strong>${escapeAttr(record.latestOrder?.num || '暂无')}</strong><small>${escapeAttr(record.latestOrder ? `${stageDef(record.latestOrder.stage).name} · ${record.latestOrderDate}` : '还没有订单')}</small></div>
+    ${record.repurchaseCycle ? `<div class="customer-metric-card"><span>复购提醒</span><strong>${escapeAttr(record.repurchaseDate || repurchase)}</strong><small title="${escapeAttr(!record.repurchaseDate ? '有进行中的订单，发货后再算' : '')}">${escapeAttr(!record.repurchaseDate ? '有进行中的订单，发货后再算' : record.nextFollow && record.nextFollow === record.repurchaseDate ? '已推迟到这天' : `每 ${record.repurchaseCycle} 天，从上次发货算`)}</small></div>` : ''}
   `;
 }
 let whatsappReadSequence = 0;
@@ -22571,46 +22566,49 @@ function renderCustomerDetailView(name = '', data = {}) {
     contactMethods !== '未设置' ? railRow('chat', '联系方式', `<span class="customer-value-line"><span class="customer-value-text">${escapeAttr(contactMethods)}</span></span>`) : '',
     record.alibabaId ? `<div class="customer-rail-row is-labelled"><button class="customer-copy-label" type="button" data-copy-customer-detail="alibabaId" title="点击复制阿里 ID">阿里 ID</button><div class="customer-rail-values"><span class="customer-value-line"><span class="customer-value-text">${escapeAttr(record.alibabaId)}</span></span></div></div>` : ''
   ].filter(Boolean).join('');
+  // 空着的项不占位：没内容的行不列，一节一行不剩就整节不出；空着的项按页面从上到下并成左栏最后一行「还没填：…」。
+  // 「客户等级」没设是「自动判断」、「负责人」没设是「未分配」，这两个是状态，照旧写出来。「下次跟进」是按复购周期算出来的，不算没填。
   const missing = [
     [contacts.length, '联系人'], [record.phones?.length, '电话'], [record.emails?.length, '邮箱'],
-    [contactMethods !== '未设置', '联系方式'], [record.alibabaId, '阿里 ID']
+    [contactMethods !== '未设置', '联系方式'], [record.alibabaId, '阿里 ID'],
+    [record.country, '国家'], [record.addresses?.length, '详细地址'],
+    [record.paymentMethod, '收款方式'], [record.productType, '产品类型'], [record.paymentEmail, '付款邮箱'],
+    [record.repurchaseCycle, '复购周期'], [record.permanentNote, '永久备注'], [record.note, '客户备注']
   ].filter(([filled]) => !filled).map(([, label]) => label);
-  const kv = (label, value, empty = '未设置') => `<div class="customer-rail-kv"><span>${label}</span><strong class="${value ? '' : 'is-empty'}">${escapeAttr(value || empty)}</strong></div>`;
-  if (info) info.innerHTML = `
-    <section class="customer-rail-section">
-      <div class="customer-info-title">联系方式</div>
-      ${contactRows}
-      ${missing.length ? `<div class="customer-rail-missing">未填写：${missing.join('、')}</div>` : ''}
-    </section>
-    <section class="customer-rail-section">
+  const kv = (label, value, state = '') => value || state ? `<div class="customer-rail-kv"><span>${label}</span><strong class="${value ? '' : 'is-empty'}">${escapeAttr(value || state)}</strong></div>` : '';
+  const railSection = body => body ? `<section class="customer-rail-section">${body}</section>` : '';
+  const hasAddress = Boolean(record.addresses?.length);
+  if (info) info.innerHTML = [
+    contactRows ? railSection(`<div class="customer-info-title">联系方式</div>${contactRows}`) : '',
+    hasAddress || record.country ? railSection(`
       <div class="customer-rail-head">
         <button class="customer-copy-label customer-info-title" type="button" data-copy-customer-detail="addresses" title="点击复制全部地址">收货地址</button>
-        <span class="customer-rail-country ${record.country ? '' : 'is-empty'}">${escapeAttr(record.country || '国家未填写')}</span>
+        ${record.country ? `<span class="customer-rail-country">${escapeAttr(record.country)}</span>` : ''}
       </div>
-      ${record.addresses?.length ? record.addresses.map((address, index) => `<p class="customer-rail-address">${record.addresses.length > 1 && index === 0 ? '<span class="customer-value-primary">主要</span>' : ''}${escapeAttr(address)}</p>`).join('') : '<p class="customer-rail-address is-empty">地址未填写</p>'}
-      <button class="btn btn-small copy-customer-address-btn" type="button" data-copy-customer-address>${icon('copy')}复制地址信息</button>
-    </section>
-    <section class="customer-rail-section">
+      ${hasAddress ? `${record.addresses.map((address, index) => `<p class="customer-rail-address">${record.addresses.length > 1 && index === 0 ? '<span class="customer-value-primary">主要</span>' : ''}${escapeAttr(address)}</p>`).join('')}
+      <button class="btn btn-small copy-customer-address-btn" type="button" data-copy-customer-address>${icon('copy')}复制地址信息</button>` : ''}`) : '',
+    railSection(`
       <div class="customer-info-title">交易偏好</div>
       ${kv('默认币种', record.currency || 'USD')}
       ${kv('收款方式', record.paymentMethod)}
       ${kv('产品类型', record.productType)}
-      <div class="customer-rail-kv"><button class="customer-copy-label" type="button" data-copy-customer-detail="paymentEmail" title="点击复制付款邮箱">付款邮箱</button><strong class="${record.paymentEmail ? '' : 'is-empty'}">${escapeAttr(record.paymentEmail || '未填写')}</strong></div>
-    </section>
-    <section class="customer-rail-section">
+      ${record.paymentEmail ? `<div class="customer-rail-kv"><button class="customer-copy-label" type="button" data-copy-customer-detail="paymentEmail" title="点击复制付款邮箱">付款邮箱</button><strong>${escapeAttr(record.paymentEmail)}</strong></div>` : ''}`),
+    railSection(`
       <div class="customer-info-title">客户管理</div>
       ${kv('客户等级', record.level, '自动判断')}
       ${kv('负责人', record.owner, '未分配')}
       ${kv('复购周期', record.repurchaseCycle ? `${record.repurchaseCycle} 天` : '')}
-      ${kv('下次跟进', record.repurchaseDate)}
-    </section>`;
+      ${kv('下次跟进', record.repurchaseDate)}`),
+    missing.length ? `<section class="customer-rail-section customer-rail-missing">还没填：${missing.join('、')}<button class="link-btn" type="button" data-customer-fill-missing>去填写 <span>→</span></button></section>` : ''
+  ].join('');
   // 右侧：永久备注（每笔订单都会带上，放最上面）、数字卡、客户备注、标签页。
   const permanentEl = document.getElementById('customerDetailPermanentNote');
+  // 永久备注、客户备注没填时不出（容器空了 CSS 就把它藏起来），列在左栏的「还没填」里。
   if (permanentEl) permanentEl.innerHTML = record.permanentNote
     ? `<section class="customer-permanent-note-card"><div class="customer-info-title">客户永久备注 · 每笔订单显示</div><div class="customer-note-text">${escapeAttr(record.permanentNote)}</div></section>`
-    : '<section class="customer-permanent-note-card is-empty"><div class="customer-info-title">客户永久备注</div><div class="customer-note-text">未设置 · 设置后每笔订单都会显示</div></section>';
+    : '';
   const noteEl = document.getElementById('customerDetailNote');
-  if (noteEl) noteEl.innerHTML = `<section class="customer-info-card customer-note-card"><div class="customer-info-title">客户备注</div><div class="customer-note-text ${record.note ? '' : 'is-empty'}">${escapeAttr(record.note || '暂无备注')}</div></section>`;
+  if (noteEl) noteEl.innerHTML = record.note ? `<section class="customer-info-card customer-note-card"><div class="customer-info-title">客户备注</div><div class="customer-note-text">${escapeAttr(record.note)}</div></section>` : '';
   if (ordersCount) ordersCount.textContent = record.orderCount ? String(record.orderCount) : '';
   // 标签页卡片的最小高度跟着订单笔数走（CSS 里按每行 57px 算，2–7 行），订单少时不留一大块空白。
   ordersEl?.closest('.customer-detail-tabs-card')?.style.setProperty('--customer-order-rows', String(record.sortedOrders.length));
@@ -30684,6 +30682,10 @@ document.getElementById('customerDetailEditBtn').addEventListener('click', () =>
   // 「编辑资料」按钮自己被藏起来了：焦点交给客户名称，不掉到页面上。
   document.getElementById('customerForm')?.elements.name?.focus({ preventScroll:true });
 });
+// 左栏最后一行「还没填：… 去填写 →」：和点「编辑资料」一样。
+document.getElementById('customerDetailInfoGrid').addEventListener('click', e => {
+  if (e.target.closest('[data-customer-fill-missing]')) document.getElementById('customerDetailEditBtn').click();
+});
 document.getElementById('customerMoreBtn').addEventListener('click', e => {
   const btn = e.currentTarget;
   // 菜单开着时再点「⋯」：按下那一刻菜单已经被关掉了（见 pointerdown），这一下不再打开。
@@ -32627,7 +32629,8 @@ function uiNotifItems() {
     if (logAt > 0 && Math.abs(updatedAt - logAt) > 60000) return;
     // 同一张单同一时间已经有事件卡（物流变化、UPS / 签收自动完成）：一件事只出一张卡。
     if ((eventAt.get(o.id) || []).some(at => Math.abs(at - updatedAt) <= 120000)) return;
-    items.push({ id:`log-${o.id}-${o.updated}`, kind:'info', label:'订单', quiet:true, title:uiNotifLogText(log) || '订单已更新', sub:`${clientDisplayName(o.client)} · ${o.num} · ${stageDef(o.stage).name}`, orderId:o.id, time:o.updated });
+    // 第一行写客户，第二行写「订单号 · 日志原文」（日志常常长过一行，放在可以折成两行的那层）。
+    items.push({ id:`log-${o.id}-${o.updated}`, kind:'info', label:'订单', quiet:true, title:clientDisplayName(o.client), sub:`${o.num} · ${uiNotifLogText(log) || '订单已更新'}`, orderId:o.id, time:o.updated });
   });
   const stamp = item => parseDate(item.time).getTime() || 0;
   const byDays = (a, b) => (a.days ?? 0) - (b.days ?? 0);
@@ -32669,7 +32672,7 @@ function uiRenderNotifs() {
   if (typeof uiBellRing === 'function') uiBellRing(unread);
   const panel = document.getElementById('notifPanel');
   if (!panel || panel.hidden) return;
-  // 原型：未读数是强调色胶囊，没有未读就隐藏；页签带数量；卡片底部是时间 + 类型胶囊。
+  // 原型：未读数是强调色胶囊，没有未读就隐藏；页签带数量。卡片两层：标题 + 右边的时间（续费是倒计时），下面是说明。
   const unreadEl = document.getElementById('notifUnread');
   unreadEl.textContent = unread ? `${unread} 条未读` : '';
   unreadEl.hidden = !unread;
@@ -32691,11 +32694,13 @@ function uiRenderNotifs() {
     const label = pillLabel(item);
     const suffix = `${item.pill && item.pill !== label ? ` · ${escapeAttr(item.pill)}` : ''}${Number(item.count) > 1 ? ` ×${Number(item.count)}` : ''}`;
     const full = `${item.title}${item.pill && item.pill !== label ? ` · ${item.pill}` : ''}${Number(item.count) > 1 ? ` ×${Number(item.count)}` : ''}${item.countdown ? ` · ${item.countdown}` : ''}${item.sub ? `\n${item.sub}` : ''}`;
-    const time = item.timeLabel || uiNotifWhen(item.time);
+    // 续费卡右边是倒计时，日期已经是说明的第一段，不另写时间。类别不再写小标：页签和左边的图标已经在分类。
+    const time = item.countdown ? '' : item.timeLabel || uiNotifWhen(item.time);
+    const aside = item.countdown ? `<span class="notif-cd">${escapeAttr(item.countdown)}</span>` : time ? `<time class="notif-when">${escapeAttr(time)}</time>` : '';
+    const ok = item.resolvedAt ? `<span class="notif-ok">已恢复 ${escapeAttr(uiNotifWhen(item.resolvedAt))}</span>` : '';
     return `<button class="notif-card is-${item.kind}${item.tone ? ` is-${item.tone}` : ''}${item.quiet ? ' is-quiet' : ''}${isRead ? ' is-read' : ''}" type="button" title="${escapeAttr(full)}" data-notif-id="${escapeAttr(item.id)}" data-order-id="${escapeAttr(item.orderId || '')}" data-sub-id="${escapeAttr(item.subId || '')}" data-tab="${escapeAttr(item.tab || '')}">
       <span class="notif-ic">${uiIcon(item.tone === 'warn' ? 'bolt' : icons[item.kind])}</span>
-      <span class="notif-body">${isRead ? '' : '<span class="visually-hidden">未读，</span>'}<b${item.countdown ? ' class="notif-tl"' : ''}>${item.countdown ? `<span class="notif-t">${escapeAttr(item.title)}${suffix}</span><span class="notif-cd">${escapeAttr(item.countdown)}</span>` : `${escapeAttr(item.title)}${suffix}`}</b><small>${escapeAttr(item.sub)}</small>
-        <span class="notif-foot">${time ? `<time>${escapeAttr(time)}</time>` : ''}<span class="notif-pill is-${item.kind}${item.tone ? ` is-${item.tone}` : ''}${item.quiet ? ' is-quiet' : ''}">${escapeAttr(label)}</span>${item.resolvedAt ? `<span class="notif-ok">已恢复 ${escapeAttr(uiNotifWhen(item.resolvedAt))}</span>` : ''}</span></span>
+      <span class="notif-body">${isRead ? '' : '<span class="visually-hidden">未读，</span>'}<span class="notif-line"><b class="notif-t">${escapeAttr(item.title)}${suffix}</b>${aside}</span>${item.sub || ok ? `<small>${escapeAttr(item.sub)}${item.sub && ok ? ' · ' : ''}${ok}</small>` : ''}</span>
     </button>`;
   };
   // 今天 / 昨天 / 更早 分组：续费提醒算今天（它们排在今天那段里）。只有一组时不加小标题。

@@ -981,7 +981,6 @@ html[data-theme="dark"] .price-history-row {
   resize: vertical;
   line-height: 1.5;
 }
-.tracking-event-count { color: var(--gray-500); font-size: 13px; font-weight: 600; margin-bottom: 10px; }
 .tracking-detail-list { display: grid; gap: 10px; }
 .tracking-event {
   display: grid; grid-template-columns: auto 1fr; gap: 10px;
@@ -994,7 +993,6 @@ html[data-theme="dark"] .price-history-row {
 .tracking-event-title { color: var(--gray-900); font-weight: 600; }
 .tracking-event-meta { color: var(--gray-500); font-size: 12px; margin-top: 2px; }
 .tracking-freshness-risk { color: var(--red-600); font-weight: 600; }
-.tracking-freshness-ok { color: var(--green-600); font-weight: 600; }
 html[data-theme="dark"] .tag-green {
   background: rgba(34, 197, 94, .14);
   color: #b7f0c0;
@@ -4541,6 +4539,14 @@ html[data-theme] .tracking-detail-order { display:flex; align-items:center; just
 /* 物流进度抽屉的分块和订单抽屉一样：分块不画框、细线隔开，里面的小块灰底无边框。顶上那张卡（.detail-hero）不是分块，保持原样。 */
 html[data-theme] .tracking-detail-body > .detail-section { padding:18px 2px 4px; border:0; border-top:1px solid var(--hairline); border-radius:0; background:transparent; box-shadow:none; }
 html[data-theme] .tracking-detail-body :is(.detail-item, .tracking-event) { border-color:transparent; border-radius:14px; background:var(--surface-soft); }
+/* 物流进度抽屉顶上的卡：客户和「打开订单」一行，订单号 · 阶段一行，状态、风险、查询时间一行，按钮一行。 */
+html[data-theme] .tracking-detail-hero-head { display:flex; align-items:center; justify-content:space-between; gap:10px; min-width:0; }
+html[data-theme] .tracking-detail-hero-head .btn { flex:none; }
+html[data-theme] .tracking-detail-sub { color:var(--gray-600); font-size:12.5px; }
+html[data-theme] .tracking-detail-status { align-items:center; margin-top:0; }
+html[data-theme] .tracking-detail-status .tracking-freshness-risk { font-size:12.5px; }
+html[data-theme] .tracking-events-title small { margin-left:6px; color:var(--gray-500); font-size:12px; font-weight:500; }
+html[data-theme] .tracking-event-latest { margin-left:6px; padding:1px 7px; font-size:11px; vertical-align:1px; }
 html[data-theme] .logistics-result .paste-result-actions { display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end; }
 html[data-theme] .logistics-result .paste-result-meta.is-bad { color:var(--s-red); }
 html[data-theme] .logistics-result .paste-result-card.is-skipped { opacity:.75; }
@@ -20536,11 +20542,24 @@ function trackingCheckNote(shipment = null, lookup = null) {
   if (error?.at && (!okAt || parseDate(error.at) >= parseDate(okAt))) {
     return { tone:'bad', text:`${orderListWhen(error.at)} 查询失败（${trackingCheckCodeLabel(error.code)}）`, title:error.message || '' };
   }
-  if (okAt) return { tone:'ok', text:`${orderListWhen(okAt)} 查过 ✓`, title:'最近一次查询成功的时间' };
+  if (okAt) return { tone:'ok', text:`${orderListWhen(okAt)} 查过 ✓`, title:'最近一次查询成功的时间', at:okAt };
   return null;
 }
 function trackingCheckBadge(note) {
   return note ? `<span class="ship-check ${note.tone}" title="${escapeAttr(note.title || note.text)}">${escapeAttr(note.text)}</span>` : '';
+}
+// 「发货订单」列表里今天查成功的不再写「今天 … 查过 ✓」（一屏好几行写同一句）；不是今天查的、查询失败的照写。按本机日期比。
+function trackingCheckedToday(note, now = new Date()) {
+  if (note?.tone !== 'ok') return false;
+  const at = parseDate(note.at);
+  return at.getFullYear() > 1970 && at.toDateString() === now.toDateString();
+}
+// 两张物流列表里的时长小标。签收了的灰色：这件事已经结束，红色只留给还在路上、要盯的；悬停只写发货日。
+// 异常件同一行已经有「异常」状态，这里只写「已 N 天」。只改列表里的显示，deliveryTimingInfo 的返回值不动，待办等别处照旧。
+function logisticsListTimingBadge(timing) {
+  if (!timing) return '';
+  if (timing.delivered) return deliveryTimingBadge({ ...timing, cls:'neutral', title:String(timing.title || '').split('；')[0] });
+  return deliveryTimingBadge({ ...timing, label:String(timing.label || '').replace(/^异常 · /, '') });
 }
 function renderLogistics() {
   renderLogisticsKpis();
@@ -20570,6 +20589,7 @@ function renderLogistics() {
     const url = clean ? trackingUrl(clean, code) : '';
     const lookup = clean ? latestTrackingLookup(clean) : null;
     const timing = row.done ? null : deliveryTimingInfo(lookup || {}, { shippedAt:shipment?.shippedAt || o.shippedAt, status:row.status, deliveredAt:shipment?.updated });
+    const check = clean ? trackingCheckNote(shipment, lookup) : null;
     const batch = row.total > 1 ? `第 ${row.index}/${row.total} 批` : '';
     const label = `${clientDisplayName(o.client)} · ${o.num}${batch ? ` · ${batch}` : ''}`;
     return `
@@ -20578,14 +20598,14 @@ function renderLogistics() {
           <strong class="ship-row-client">${escapeAttr(clientDisplayName(o.client))}</strong>
           <span class="ship-row-tags">
             ${o.partialShipment === true && !row.done ? '<span class="ship-pill tone-line">部分发货</span>' : ''}
-            <span class="ship-pill ${clean ? logisticsTone(row.status) : 'tone-line'}">${clean ? `${carrierName(code)} · ` : ''}${escapeAttr(row.status)}</span>
+            <span class="ship-pill ${clean ? logisticsTone(row.status) : 'tone-line'}">${escapeAttr(row.status)}</span>
           </span>
         </div>
         <div class="ship-row-sub">
           <span class="tracking-code">${clean ? `${carrierName(code)} ${escapeAttr(groupTrackingNumber(clean))}` : '未填写物流单号'}</span><span>· ${escapeAttr(o.num)}</span>
           ${batch ? `<span class="ship-batch">· ${batch}</span>` : ''}
-          ${row.done ? '<span class="delivery-timing neutral" title="订单已完成，不再跟进物流">已完成</span>' : deliveryTimingBadge(timing)}
-          ${clean && code !== 'UPS' ? trackingCheckBadge(trackingCheckNote(shipment, lookup)) : ''}
+          ${row.done ? '<span class="delivery-timing neutral" title="订单已完成，不再跟进物流">已完成</span>' : logisticsListTimingBadge(timing)}
+          ${clean && code !== 'UPS' && !trackingCheckedToday(check) ? trackingCheckBadge(check) : ''}
           <span class="ship-row-actions">
             ${clean ? `<button class="btn btn-small copy-tracking-btn" type="button" title="复制单号" data-copy-tracking="${escapeAttr(clean)}">复制</button>` : ''}
             ${clean && code !== 'UPS' ? `<button class="btn btn-small" type="button" data-refresh-logistics="${escapeAttr(o.id)}" data-refresh-tracking="${escapeAttr(clean)}" data-refresh-carrier="${escapeAttr(code)}">更新</button>` : ''}
@@ -21208,6 +21228,8 @@ function renderPriceHistory(activeLookupId = '') {
     const linked = view.orders.length > 0 || Boolean(view.deleted);
     const timing = deliveryTimingInfo(item, { shippedAt:view.shippedAt, status:view.status, deliveredAt:view.shipment?.updated });
     const official = item.carrier === 'UPS' && !/已签收|异常|运输中|派送中/.test(view.status || '');
+    // 右上角已经写了查询时间：查询成功的不再写「查过 ✓」，失败的照写（红色，带原因）。
+    const check = trackingCheckNote(null, item);
     const label = `${item.carrier} ${groupTrackingNumber(item.trackingNumber)} · ${view.client}`;
     return `
       <div class="price-history-row recent-tracking-row ${item.pinned ? 'pinned' : ''} ${item.id === activeLookupId ? 'just-updated' : ''}" ${item.orderId ? `data-recent-order-id="${escapeAttr(item.orderId)}"` : ''} data-lookup-id="${escapeAttr(item.id)}" tabindex="0" role="button" aria-label="打开 ${escapeAttr(label)} 的物流详情" title="查询 ${escapeAttr(monthDayTimeLabel(item.checkedAt))} · 更新 ${escapeAttr(monthDayTimeLabel(item.statusUpdatedAt || item.checkedAt))}">
@@ -21218,8 +21240,8 @@ function renderPriceHistory(activeLookupId = '') {
         <div class="recent-tracking-sub">
           <span class="ship-pill ${official ? 'tone-line' : logisticsTone(view.status)}">${escapeAttr(official ? '官网查询' : view.status)}</span>
           <span class="recent-tracking-client">${escapeAttr(view.client)}${view.orderText ? ` · ${escapeAttr(view.orderText)}` : ''}</span>
-          ${view.deleted ? '' : deliveryTimingBadge(timing)}
-          ${item.carrier !== 'UPS' ? trackingCheckBadge(trackingCheckNote(null, item)) : ''}
+          ${view.deleted ? '' : logisticsListTimingBadge(timing)}
+          ${item.carrier !== 'UPS' && check?.tone !== 'ok' ? trackingCheckBadge(check) : ''}
         </div>
         <div class="recent-tracking-actions">
           <button class="btn btn-small copy-tracking-btn" type="button" title="复制单号" data-copy-tracking="${escapeAttr(item.trackingNumber)}">复制</button>
@@ -21233,16 +21255,17 @@ function renderPriceHistory(activeLookupId = '') {
     `;
   }).join('') + (list.length > 18 ? `<button class="link-btn recent-tracking-more" type="button" data-toggle-lookups>${priceHistoryExpanded ? '收起' : `还有 ${list.length - 18} 条 · 全部显示`}</button>` : '');
 }
-function renderTrackingEvents(item) {
-  const events = sortTrackingEvents(uniqueTrackingEvents(normalizeTrackingEvents(item?.events || [])));
+// 物流节点列表，最新的在最上面并带「最新」小标；节点数写在分块标题右边（openTrackingDetail）。
+// 没有节点时，hint 是「还没有查到（原因）」「UPS 不查 API…」这类说明，写进空状态。
+function renderTrackingEvents(events, hint = '') {
   if (!events.length) {
-    return '<div class="empty">暂无详细节点。DHL / FedEx 返回扫描节点后会显示；UPS 可打开官网查看实时轨迹。</div>';
+    return `<div class="empty">${hint ? `暂无详细节点：${escapeAttr(hint)}。` : '暂无详细节点。DHL / FedEx 返回扫描节点后会显示；UPS 可打开官网查看实时轨迹。'}</div>`;
   }
-  return `<div class="tracking-event-count">共 ${events.length} 个物流节点</div><div class="tracking-detail-list">${events.map(event => `
+  return `<div class="tracking-detail-list">${events.map((event, index) => `
     <div class="tracking-event">
       <span class="tracking-event-dot"></span>
       <div>
-        <div class="tracking-event-title">${escapeAttr(event.title)}</div>
+        <div class="tracking-event-title">${escapeAttr(event.title)}${index === 0 ? ' <span class="tag tag-neutral tracking-event-latest">最新</span>' : ''}</div>
         <div class="tracking-event-meta">${escapeAttr([event.time, event.location].filter(Boolean).join(' · ') || '-')}</div>
         ${event.description ? `<div class="tracking-event-meta">${escapeAttr(event.description)}</div>` : ''}
       </div>
@@ -21352,58 +21375,55 @@ function trackingRiskText(item = {}, view = trackingLookupView(item)) {
   const days = daysBetween(item.statusUpdatedAt || view.shipment?.updated || okAt);
   return days > 3 ? { text:`${days} 天没更新`, risk:true } : { text:'正常', risk:false };
 }
+// 物流进度抽屉：顶部一张卡（客户、订单号 · 阶段、状态和风险、查询时间、按钮）加物流节点两块。
+// 客户和订单号、查询时间、最新节点各只写一遍；拼箱或订单已删除时才另列「关联订单」。
 function openTrackingDetail(id) {
   const item = findTrackingLookup(id);
   if (!item) return;
   const view = trackingLookupView(item);
   const risk = trackingRiskText(item, view);
-  const fresh = trackingFreshness(item);
   const official = carrierName(item.carrier) === 'UPS';
+  const officialOnly = official && !/已签收|异常|运输中|派送中/.test(view.status);
   document.getElementById('trackingDetailNum').textContent = groupTrackingNumber(item.trackingNumber) || '物流详情';
   document.getElementById('trackingDetailTitle').textContent = `${carrierName(item.carrier)} 物流进度`;
   const check = trackingCheckNote(null, item);
+  const single = view.orders.length === 1 && !view.deleted ? view.orders[0] : null;
+  const orderLine = view.orderText || '未关联订单';
+  const events = sortTrackingEvents(uniqueTrackingEvents(normalizeTrackingEvents(item.events || [])));
+  // 「正常」「已签收」不写；要处理的（异常、N 天没更新）跟在状态后面；其余的说明（UPS 不查 API、还没有查到）只在没有节点时写进空状态。
+  const riskNote = risk.risk ? risk.text.replace(/^异常 · /, '') : '';
+  const emptyHint = !risk.risk && !['正常', '已签收'].includes(risk.text) ? risk.text : '';
   document.getElementById('trackingDetailBody').dataset.lookupId = id;
   document.getElementById('trackingDetailBody').innerHTML = `
-    <section class="detail-hero" data-tracking-detail="${escapeAttr(item.id)}">
-      <div class="detail-num">${escapeAttr(view.orderText || '未关联订单')}</div>
-      <div class="detail-client-line">
+    <section class="detail-hero tracking-detail-hero" data-tracking-detail="${escapeAttr(item.id)}">
+      <div class="tracking-detail-hero-head">
         <div class="detail-client">${escapeAttr(view.client)}</div>
-        <span class="carrier-badge ${carrierBadgeClass(item.carrier)}">${escapeAttr(item.carrier)}</span>
+        ${single ? `<button class="btn btn-small" type="button" data-tracking-open-order="${escapeAttr(single.id)}">打开订单</button>` : ''}
       </div>
-      <div class="modal-summary">
-        <span class="ship-pill ${official && !/已签收|异常|运输中|派送中/.test(view.status) ? 'tone-line' : logisticsTone(view.status)}">${escapeAttr(official && !/已签收|异常|运输中|派送中/.test(view.status) ? '官网查询' : view.status)}</span>
-        <span class="tag tag-neutral">查询 ${escapeAttr(item.checkedAt || '-')}</span>
-        <span class="tag tag-neutral">更新 ${escapeAttr(item.statusUpdatedAt || '-')}</span>
-        ${check ? trackingCheckBadge(check) : ''}
+      ${single ? `<div class="tracking-detail-sub"><span class="detail-num">${escapeAttr(single.num)}</span> · ${escapeAttr(stageDef(single.stage).name)}</div>`
+        : orderLine !== view.client ? `<div class="tracking-detail-sub">${escapeAttr(orderLine)}</div>` : ''}
+      <div class="modal-summary tracking-detail-status">
+        <span class="ship-pill ${officialOnly ? 'tone-line' : logisticsTone(view.status)}">${escapeAttr(officialOnly ? '官网查询' : view.status)}</span>
+        ${riskNote ? `<span class="tracking-freshness-risk">${escapeAttr(riskNote)}</span>` : ''}
+        ${check ? trackingCheckBadge(check) : `<span class="ship-check">查询 ${escapeAttr(orderListWhen(item.checkedAt))}</span>`}
       </div>
       <div class="tracking-detail-actions">
         <button class="btn btn-small" type="button" data-copy-tracking="${escapeAttr(item.trackingNumber)}">复制单号</button>
         ${official ? '' : `<button class="btn btn-small" type="button" data-refresh-recent-tracking="${escapeAttr(item.trackingNumber)}" data-recent-carrier="${escapeAttr(item.carrier)}" data-detail-refresh="${escapeAttr(item.id)}">重新查询</button>`}
+        <button class="btn btn-small" type="button" data-open-official-tracking="${escapeAttr(item.trackingNumber)}" data-official-carrier="${escapeAttr(item.carrier)}">打开官网</button>
       </div>
     </section>
-    ${view.orders.length || view.deleted ? `<section class="detail-section">
+    ${!single && (view.orders.length || view.deleted) ? `<section class="detail-section">
       <div class="detail-section-title">关联订单</div>
       ${view.orders.map(order => `<div class="tracking-detail-order"><span>${escapeAttr(clientDisplayName(order.client))} · ${escapeAttr(order.num)} · ${escapeAttr(stageDef(order.stage).name)}</span><button class="btn btn-small" type="button" data-tracking-open-order="${escapeAttr(order.id)}">打开订单</button></div>`).join('')}
       ${view.deleted ? `<div class="tracking-detail-order"><span>${escapeAttr(clientDisplayName(view.deleted.client))} · ${escapeAttr(view.deleted.num)} · 订单已删除</span><button class="btn btn-small" type="button" data-tracking-restore-order="${escapeAttr(view.deleted.id)}">恢复订单</button></div>` : ''}
     </section>` : ''}
     <section class="detail-section">
-      <div class="detail-section-title">物流概览</div>
-      <div class="detail-grid">
-        ${detailItem('最后有效节点', fresh.event ? `${fresh.event.title || '-'} · ${fresh.event.location || '-'}` : '-')}
-        ${detailItem('节点时间', fresh.event?.time || item.statusUpdatedAt || '-')}
-        ${detailItem('风险判断', risk.text, false, risk.risk ? 'tracking-freshness-risk' : 'tracking-freshness-ok')}
-      </div>
-    </section>
-    <section class="detail-section">
-      <div class="detail-section-title">物流节点</div>
-      ${renderTrackingEvents(item)}
+      <div class="detail-section-title tracking-events-title">物流节点${events.length ? ` <small>共 ${events.length} 个</small>` : ''}</div>
+      ${renderTrackingEvents(events, emptyHint)}
     </section>
     ${item.lastError ? `<section class="detail-section"><div class="detail-section-title">最近一次查询</div><div class="detail-value">${escapeAttr(`${item.lastError.at} 查询失败：${item.lastError.message}`)}${item.lastOkAt ? escapeAttr(`；上面是 ${item.lastOkAt} 查到的结果`) : ''}</div></section>`
       : item.queryMessage ? `<section class="detail-section"><div class="detail-section-title">查询结果</div><div class="detail-value">${escapeAttr(item.queryMessage)}</div></section>` : ''}
-    <section class="detail-section">
-      <div class="detail-section-title">人工核对</div>
-      <button class="btn btn-small" type="button" data-open-official-tracking="${escapeAttr(item.trackingNumber)}" data-official-carrier="${escapeAttr(item.carrier)}">打开官网查询</button>
-    </section>
   `;
   if (!document.getElementById('trackingDetailDrawer').classList.contains('open')) {
     setModalOpenState('trackingDetailDrawer', true);
@@ -29904,7 +29924,8 @@ document.getElementById('orderTableBody')?.addEventListener('click', e => {
     return;
   }
   // 「收齐」点完按钮就换了（紧凑行里两个按钮并排，剩下的那个挪到中间）：双击的第二下落在空出来的地方，不当成点了这一行去开详情。
-  if (Date.now() - orderListQuickActionAt < 400) return;
+  // 双击的第二下不看隔了多久（机器忙的时候两下之间会超过 400ms）；点一行本来第一下就开详情，第二下没有别的用处。
+  if (e.detail > 1 || Date.now() - orderListQuickActionAt < 400) return;
   const row = e.target.closest('[data-order-list-id]');
   const id = openButton?.dataset.orderListOpen || row?.dataset.orderListId;
   if (id) openOrderDetail(id);

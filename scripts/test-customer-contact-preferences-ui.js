@@ -109,7 +109,8 @@ const { chromium } = require('playwright');
     const detailText = await page.locator('#orderDetailBody').innerText();
     assert.match(detailText, /客户永久备注/);
     assert.match(detailText, /发货前再次确认地址/);
-    assert.match(detailText, /邮件 · 备选：阿里巴巴、iMessage/);
+    await page.evaluate(() => uiDetailTab('customer', true));
+    assert.match(await page.locator('#orderDetailBody').innerText(), /邮件 · 备选：阿里巴巴、iMessage/);
     await page.evaluate(() => closeOrderDetail());
 
     await page.evaluate(() => openOrder('order-priority'));

@@ -259,8 +259,8 @@ const waitIdle = page => page.evaluate(() => new Promise(resolve => {
       const filter = await contrast(page, '#boardProductFilter .segment-option');
       assert.ok(filter.size >= 11.5, `board filter ${filter.size}px`);
 
-      // ---- 9. 订单抽屉「记录」里的相关订单 ----
-      await page.evaluate(() => openOrderDetail('r1', { tab:'records' }));
+      // ---- 9. 订单抽屉「客户」里的历史订单 ----
+      await page.evaluate(() => openOrderDetail('r1', { tab:'customer' }));
       await page.waitForSelector('#orderDetailBody .order-detail-related-order', { state:'visible' });
       const smalls = await page.evaluate(() => [...document.querySelectorAll('#orderDetailBody .order-detail-related-order small')].map(el => parseFloat(getComputedStyle(el).fontSize)));
       assert.ok(smalls.length && smalls.every(size => size >= 11.5), `related orders small text ${smalls.join(', ')}px`);

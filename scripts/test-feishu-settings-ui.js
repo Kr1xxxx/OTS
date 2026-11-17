@@ -121,6 +121,8 @@ if (args.includes('+messages-send') && ctl.delayMs) setTimeout(finish, ctl.delay
       await click(`#pipeline .board-card[data-id="${id}"]`, `card ${id}`);
       await page.waitForFunction(id => detailOrderId === id && document.getElementById('orderDetailDrawer').classList.contains('open'), id);
     };
+    // 飞书群通知在抽屉「记录」页签的最上面。
+    const openRecords = () => click('#detailTabs [data-detail-tab-btn="records"]', '记录');
     const closeDrawer = async () => {
       await page.keyboard.press('Escape');
       await page.waitForFunction(() => !document.getElementById('orderDetailDrawer').classList.contains('open'));
@@ -141,6 +143,7 @@ if (args.includes('+messages-send') && ctl.delayMs) setTimeout(finish, ctl.delay
 
     // The unsent order's drawer offers to go to the settings, not a send that cannot work.
     await openCard('A1');
+    await openRecords();
     const section = '#orderDetailBody [data-order-notification-section]';
     assert.match(await page.locator(section).innerText(), /未发送到飞书群/);
     assert.equal(await page.locator(`${section} [data-retry-order-notification]`).count(), 0);
@@ -212,6 +215,7 @@ if (args.includes('+messages-send') && ctl.delayMs) setTimeout(finish, ctl.delay
     setCtl({ mode:'notInChat' });
     await closeDrawer();
     await openCard('A1');
+    await openRecords();
     await click(`${section} [data-retry-order-notification]`, '发送到飞书群');
     await page.waitForFunction(() => state.orders.find(o => o.id === 'A1').feishuNotification?.status === 'failed');
     await page.waitForFunction(sel => /机器人不在「外贸订单通知群」里.*拉进/.test(document.querySelector(sel)?.textContent || ''), section);
@@ -252,6 +256,7 @@ if (args.includes('+messages-send') && ctl.delayMs) setTimeout(finish, ctl.delay
       o.feishuNotification = normalizeFeishuNotification({ requested:true, status:'failed', errorKind:'timeout', chatName:'外贸订单通知群', error:'飞书 45 秒内没有回应，消息可能已经发到群里：请先看一眼群，再决定是否重新发送' });
     });
     await openCard('B1');
+    await openRecords();
     await click(`${section} [data-retry-order-notification]`, '重新发送');
     await page.waitForFunction(() => document.getElementById('confirmModal').classList.contains('open'));
     assert.match(await page.locator('#confirmModal').innerText(), /可能已经发到群里/);

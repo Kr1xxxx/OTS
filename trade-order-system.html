@@ -4303,11 +4303,11 @@ html[data-theme] .order-detail-payment-head .value-balance { color:var(--s-amber
 html[data-theme] .order-detail-payment-head .value-paid { color:var(--semantic-paid); }
 html[data-theme] .order-detail-paybar { height:6px; margin:16px 0 10px; border-radius:6px; background:var(--gray-100); overflow:hidden; }
 html[data-theme] .order-detail-paybar i { display:block; height:100%; border-radius:inherit; background:var(--accent); }
-/* 抽屉里只读的「标签 + 数」小方块（这位客户、交期）都用灰底，和能填写的描边输入框分得开。 */
+/* 抽屉「客户」页签里只读的「标签 + 数」小方块用灰底，和能填写的描边输入框分得开。 */
 html[data-theme] .order-detail-customer-stats { gap:8px; }
-html[data-theme] :is(.order-detail-customer-stat, .order-detail-panel .detail-grid:not(.order-detail-facts) > .detail-item) { padding:10px 12px; border-radius:14px; border:0; background:var(--surface-soft); }
-html[data-theme] :is(.order-detail-customer-stat span, .order-detail-panel .detail-grid:not(.order-detail-facts) > .detail-item .detail-label) { font-size:11.5px; font-weight:400; }
-html[data-theme] :is(.order-detail-customer-stat strong, .order-detail-panel .detail-grid:not(.order-detail-facts) > .detail-item .detail-value) { font-size:15px; font-weight:600; }
+html[data-theme] .order-detail-customer-stat { padding:10px 12px; border-radius:14px; border:0; background:var(--surface-soft); }
+html[data-theme] .order-detail-customer-stat span { font-size:11.5px; font-weight:400; }
+html[data-theme] .order-detail-customer-stat strong { font-size:15px; font-weight:600; }
 html[data-theme] .order-detail-related-order { padding:10px 12px; border-radius:14px; border-color:var(--surface-border); background:var(--surface-bg); }
 html[data-theme] .order-detail-related-order:hover { border-color:var(--gray-300, var(--surface-border)); background:var(--surface-soft); }
 html[data-theme="dark"] :is(.order-detail-stagebar i, .order-detail-paybar) { background:var(--gray-200); }
@@ -6788,6 +6788,7 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
         <button type="button" role="tab" data-detail-tab-btn="payment" aria-selected="false">收款</button>
         <button type="button" role="tab" data-detail-tab-btn="logistics" aria-selected="false">物流</button>
         <button type="button" role="tab" data-detail-tab-btn="attachments" aria-selected="false">附件 <span id="detailAttachmentCount"></span></button>
+        <button type="button" role="tab" data-detail-tab-btn="customer" aria-selected="false">客户</button>
         <button type="button" role="tab" data-detail-tab-btn="records" aria-selected="false">记录</button>
         <i class="tab-line" aria-hidden="true"></i>
       </nav>
@@ -8066,7 +8067,7 @@ function applyOrderNotificationResult(orderId = '', result = {}, { log = true } 
   const updated = { ...current, feishuNotification:next, logs };
   state.orders[index] = updated;
   if (log && (next.status === 'failed' || next.status === 'sent') && typeof uiNotifLogEvent === 'function') {
-    uiNotifLogEvent({ id:`feishu-${orderId}-${next.status}-${next.sentAt || next.updatedAt || ''}`, kind:next.status === 'failed' ? 'error' : 'success', title:next.status === 'failed' ? '飞书群消息发送失败' : '飞书群消息已发送', sub:`${clientDisplayName(current.client)} · ${current.num}${next.status === 'failed' ? ` · ${next.error || '可在订单信息里重新发送'}` : next.chatName ? ` · ${next.chatName}` : ''}`, pill:'飞书', orderId, tab:'info' });
+    uiNotifLogEvent({ id:`feishu-${orderId}-${next.status}-${next.sentAt || next.updatedAt || ''}`, kind:next.status === 'failed' ? 'error' : 'success', title:next.status === 'failed' ? '飞书群消息发送失败' : '飞书群消息已发送', sub:`${clientDisplayName(current.client)} · ${current.num}${next.status === 'failed' ? ` · ${next.error || '可在订单的「记录」里重新发送'}` : next.chatName ? ` · ${next.chatName}` : ''}`, pill:'飞书', orderId, tab:'records' });
   }
   return updated;
 }
@@ -10607,7 +10608,7 @@ const taskTypeDefs = {
   tracking:{ label:'补运单号', count:'个待补运单', kind:'补运单号提醒', inbox:'logistics', roadmap:'logistics', detailTab:'logistics', look:['truck', 'amber'], calendar:'logistics', done:'完成', again:'这张单不再提醒补运单号', prefix:'tracking' },
   logisticsIssue:{ label:'物流异常', count:'个物流异常', kind:'物流异常提醒', inbox:'logistics', roadmap:'logistics', detailTab:'logistics', look:['alert', 'red'], calendar:'urgent', risk:true, done:'完成', again:'承运商再报异常会再提醒', prefix:'logistics-issue' },
   logistics:{ label:'物流没更新', count:'个物流没更新', kind:'物流没更新提醒', inbox:'logistics', roadmap:'logistics', detailTab:'logistics', look:['alert', 'red'], calendar:'urgent', risk:true, done:'完成', again:'物流有新动态后还没到会再提醒', prefix:'logistics-risk' },
-  repurchase:{ label:'复购', count:'个复购', kind:'复购提醒', inbox:'repurchase', roadmap:'follow', detailTab:'info', look:['repeat', 'teal'], calendar:'repurchase', done:'完成', again:'日期改了会重新提醒', prefix:'' }
+  repurchase:{ label:'复购', count:'个复购', kind:'复购提醒', inbox:'repurchase', roadmap:'follow', detailTab:'customer', look:['repeat', 'teal'], calendar:'repurchase', done:'完成', again:'日期改了会重新提醒', prefix:'' }
 };
 function taskTypeDef(item = {}) {
   return taskTypeDefs[item.type] || null;
@@ -18289,17 +18290,20 @@ function renderDetailLogisticsSection(order = {}, editable = false) {
   const stage = normalizeStage(order.stage);
   const shipped = ['shipment', 'done'].includes(stage);
   const latest = latestShipmentUpdate(summary.shipments) || order.logisticsUpdated || '';
-  const head = summary.total
+  // 只有一批（也没勾「还有批次没发」）时不写汇总行：状态、「1 批」、最近更新下面那一批里都有。
+  const head = summary.total > 1 || (summary.total && summary.partialShipment)
     ? `<div class="detail-ship-summary"><span class="ship-pill ${logisticsTone(summary.status)}">${escapeAttr(summary.label)}</span>${summary.partialShipment ? '<span class="oc-pill amber">部分发货 · 还有批次没发</span>' : ''}<small>${summary.total} 批${summary.delivered ? ` · 已签收 ${summary.delivered}` : ''}${latest ? ` · 最近更新 ${escapeAttr(latest)}` : ''}</small></div>`
-    : `<div class="detail-ship-empty"><strong>${shipped ? '已发货 · 还没填物流单号' : '还没发货'}</strong><small>${editable ? '发货后在下面补运单号，承运商会自动识别。' : '没有物流单号。'}</small></div>`;
+    : summary.total ? '' : `<div class="detail-ship-empty"><strong>${shipped ? '已发货 · 还没填物流单号' : '还没发货'}</strong><small>${editable ? '发货后在下面补运单号，承运商会自动识别。' : '没有物流单号。'}</small></div>`;
   const rows = summary.shipments.map((item, index) => {
     const carrier = carrierName(item.carrier);
     const url = trackingUrl(item.trackingNumber, carrier);
     const raw = item.rawStatus && item.rawStatus !== item.status ? ` · 承运商原文：${escapeAttr(item.rawStatus)}` : '';
     const canRefresh = editable && carrier !== 'UPS' && item.status !== '已签收';
+    // 发货日、更新时间哪个空就不写哪个，都空（也没有承运商原文）就不出这一行。
+    const meta = [item.shippedAt ? `发货 ${escapeAttr(item.shippedAt)}` : '', item.updated ? `更新 ${escapeAttr(item.updated)}` : ''].filter(Boolean).join(' · ') + raw;
     return `<div class="detail-ship-row" data-detail-shipment="${escapeAttr(item.trackingNumber)}">
       <div class="detail-ship-main"><span class="detail-ship-index">第 ${index + 1} 批</span><span class="carrier-badge ${carrierBadgeClass(carrier)}">${escapeAttr(carrier)}</span><strong class="detail-ship-num">${escapeAttr(groupTrackingNumber(item.trackingNumber))}</strong><span class="ship-pill ${logisticsTone(item.status)}">${escapeAttr(item.status)}</span></div>
-      <div class="detail-ship-meta">发货 ${escapeAttr(item.shippedAt || '-')} · 更新 ${escapeAttr(item.updated || '-')}${raw}</div>
+      ${meta ? `<div class="detail-ship-meta">${meta.replace(/^ · /, '')}</div>` : ''}
       <div class="detail-ship-actions"><button class="btn btn-small" type="button" data-detail-ship-copy="${escapeAttr(item.trackingNumber)}">复制</button>${url ? `<button class="btn btn-small" type="button" data-detail-ship-official="${escapeAttr(item.trackingNumber)}" data-carrier="${escapeAttr(carrier)}">官网</button>` : ''}${canRefresh ? `<button class="btn btn-small" type="button" data-detail-ship-refresh="${escapeAttr(item.trackingNumber)}" data-carrier="${escapeAttr(carrier)}">更新</button>` : ''}</div>
     </div>`;
   }).join('');
@@ -18312,15 +18316,6 @@ function renderDetailLogisticsSection(order = {}, editable = false) {
       ${head}
       ${rows ? `<div class="detail-ship-list">${rows}</div>` : ''}
       ${add}
-    </section>
-    <section class="detail-section">
-      <div class="detail-section-title">交期</div>
-      <div class="detail-grid">
-        ${detailItem('客户要求收到', order.customerRequiredDate || '-')}
-        ${detailItem('最晚发出', order.latestShipDate || '-')}
-        ${detailItem('首批发出', summary.shipments.map(item => item.shippedAt).filter(Boolean).sort()[0] || order.shippedAt || '-')}
-        ${detailItem('加急', order.urgentOrder ? '是' : '否')}
-      </div>
     </section>
   `;
 }
@@ -18535,7 +18530,7 @@ function renderOrderDetail(order, source = 'active') {
   const product = productTypeDef(order.productType);
   const payment = paymentChannelDef(order.paymentChannel);
   const customer = orderDetailCustomerRecord(order);
-  const contact = cleanContactValue(customer.contact || '', customer.address || '') || '未填写';
+  const contact = cleanContactValue(customer.contact || '', customer.address || '');
   const balance = orderDueValue(order);
   const paid = orderPaidValue(order);
   const paidRate = orderAmountValue(order) ? Math.min(100, Math.round(paid / orderAmountValue(order) * 100)) : 0;
@@ -18583,10 +18578,10 @@ function renderOrderDetail(order, source = 'active') {
         <div class="detail-section-title-row"><div class="detail-section-title">订单详情</div></div>
         <div class="detail-note-body"><div class="detail-value detail-items-text">${escapeAttr(order.orderDetail)}</div></div>
       </section>` : ''}
-      <section class="detail-section" data-detail-note-section>
+      ${order.note ? `<section class="detail-section" data-detail-note-section>
         <div class="detail-section-title-row"><div class="detail-section-title">订单备注</div></div>
-        <div class="detail-note-body"><div class="detail-value">${escapeAttr(order.note || '暂无备注')}</div></div>
-      </section>`;
+        <div class="detail-note-body"><div class="detail-value">${escapeAttr(order.note)}</div></div>
+      </section>` : ''}`;
   const paymentEdit = editable ? `
       <section class="detail-section detail-edit-section">
         <div class="detail-edit-grid">
@@ -18606,30 +18601,28 @@ function renderOrderDetail(order, source = 'active') {
   const phones = (contactFields.phones || []).join('、');
   const rateMissing = (customer.orders || []).some(item => storedCurrency(item.currency) !== 'USD' && typeof ecbUsdRateForOrder === 'function' && !ecbUsdRateForOrder(item));
   const usdStat = value => rateMissing ? `${money(value, 'USD', 2)} · 汇率未加载` : money(value, 'USD', 2);
-  return `
-    <div class="order-detail-panel" data-detail-tab="info">${infoSection}
-      <section class="detail-section">
-        <div class="detail-section-title-row"><div class="detail-section-title">客户资料</div><button class="link-btn" type="button" data-detail-open-customer>客户档案 <span>→</span></button></div>
-        <div class="order-detail-customer-info">
-          <div class="order-detail-customer-info-row"><span>客户等级</span><strong>${escapeAttr(customer.level || '自动判断')}</strong></div>
-          <div class="order-detail-customer-info-row"><span>联系人</span><strong>${escapeAttr(contact)}</strong></div>
-          <div class="order-detail-customer-info-row"><span>邮箱</span><strong>${escapeAttr(customer.email || '未填写')}</strong></div>
-          <div class="order-detail-customer-info-row"><span>电话 / WhatsApp</span><strong>${escapeAttr(phones || '未填写')}</strong></div>
-          <div class="order-detail-customer-info-row"><span>联系偏好</span><strong>${escapeAttr(renderCustomerContactMethods(customer))}</strong></div>
-          <div class="order-detail-customer-info-row"><span>地址</span><strong>${escapeAttr(customer.address || '未填写')}</strong></div>
-          <div class="order-detail-customer-info-row"><span>交易偏好</span><strong>${escapeAttr(orderDetailCustomerPreference(customer, order))}</strong></div>
-          <div class="order-detail-customer-info-row"><span>复购提醒</span><strong>${escapeAttr(customer.repurchaseDate || '未设置')}</strong></div>
-        </div>
-      </section>
-      <section class="detail-section">
+  // 「客户」页签的资料：没填的行不列（不写「未填写 / 未设置」），等级没设时「自动判断」是真实状态，照写。
+  const contactMethods = renderCustomerContactMethods(customer);
+  const preference = orderDetailCustomerPreference(customer, order);
+  const customerRows = [
+    ['客户等级', customer.level || '自动判断'],
+    ['联系人', contact],
+    ['邮箱', customer.email],
+    ['电话 / WhatsApp', phones],
+    ['联系偏好', contactMethods === '未设置' ? '' : contactMethods],
+    ['地址', customer.address],
+    ['交易偏好', preference === '未设置' ? '' : preference],
+    ['复购提醒', customer.repurchaseDate]
+  ].filter(([, value]) => String(value || '').trim())
+    .map(([label, value]) => `<div class="order-detail-customer-info-row"><span>${label}</span><strong>${escapeAttr(value)}</strong></div>`).join('');
+  // 永久备注「每笔订单显示」：有内容时放在「订单信息」最上面，没有就整节不出。
+  const permanentNote = String(customer.permanentNote || '').trim() ? `
+      <section class="detail-section" data-detail-permanent-note>
         <div class="detail-section-title">客户永久备注 · 每笔订单显示</div>
-        <div class="order-detail-permanent-note">${escapeAttr(customer.permanentNote || '未设置永久备注')}</div>
-      </section>
-      <section class="detail-section">
-        <div class="detail-section-title">客户备注</div>
-        <div class="order-detail-customer-note">${escapeAttr(customer.note || '暂无客户备注')}</div>
-      </section>
-      ${renderOrderDetailNotification(order)}
+        <div class="order-detail-permanent-note">${escapeAttr(customer.permanentNote)}</div>
+      </section>` : '';
+  return `
+    <div class="order-detail-panel" data-detail-tab="info">${permanentNote}${infoSection}
     </div>
     <div class="order-detail-panel" data-detail-tab="payment" hidden>
       <section class="detail-section order-detail-payment">
@@ -18638,14 +18631,6 @@ function renderOrderDetail(order, source = 'active') {
         <div class="muted" data-detail-pay-meta>已收 ${paidRate}% · 收款方式 ${escapeAttr(payment.value)} · ${escapeAttr(order.orderType || '定金订单')}</div>
         ${depositLine}
       </section>${paymentEdit}
-      <section class="detail-section">
-        <div class="detail-section-title">这位客户</div>
-        <div class="order-detail-customer-stats">
-          <div class="order-detail-customer-stat"><span title="这位客户所有正式订单的金额（含报价单），折算 USD">累计下单</span><strong>${usdStat(customer.total)}</strong></div>
-          <div class="order-detail-customer-stat"><span>订单数量</span><strong>${customer.orderCount} 单</strong></div>
-          <div class="order-detail-customer-stat"><span>客户待收</span><strong class="${customer.due > 0 ? 'customer-due-amount' : ''}">${usdStat(customer.due)}</strong></div>
-        </div>
-      </section>
     </div>
     <div class="order-detail-panel" data-detail-tab="logistics" hidden>
       ${renderDetailLogisticsSection(order, editable)}
@@ -18656,11 +18641,29 @@ function renderOrderDetail(order, source = 'active') {
         ${renderDetailAttachments(order.attachments || [])}
       </section>
     </div>
-    <div class="order-detail-panel" data-detail-tab="records" hidden>
+    <div class="order-detail-panel" data-detail-tab="customer" hidden>
       <section class="detail-section">
-        <div class="detail-section-title-row"><div class="detail-section-title">客户历史订单</div><span class="muted">最近 ${Math.min(5, customer.orderCount)} 单</span></div>
+        <div class="order-detail-customer-stats">
+          <div class="order-detail-customer-stat"><span title="这位客户所有正式订单的金额（含报价单），折算 USD">累计下单</span><strong>${usdStat(customer.total)}</strong></div>
+          <div class="order-detail-customer-stat"><span>订单数量</span><strong>${customer.orderCount} 单</strong></div>
+          <div class="order-detail-customer-stat"><span>客户待收</span><strong class="${customer.due > 0 ? 'customer-due-amount' : ''}">${usdStat(customer.due)}</strong></div>
+        </div>
+      </section>
+      <section class="detail-section">
+        <div class="detail-section-title-row"><div class="detail-section-title">客户资料</div><button class="link-btn" type="button" data-detail-open-customer>客户档案 <span>→</span></button></div>
+        <div class="order-detail-customer-info">${customerRows}</div>
+      </section>
+      ${String(customer.note || '').trim() ? `<section class="detail-section">
+        <div class="detail-section-title">客户备注</div>
+        <div class="order-detail-customer-note">${escapeAttr(customer.note)}</div>
+      </section>` : ''}
+      <section class="detail-section">
+        <div class="detail-section-title-row"><div class="detail-section-title">历史订单</div><span class="muted">最近 ${Math.min(5, customer.orderCount)} 单</span></div>
         ${renderOrderDetailRelatedOrders(customer, order.id)}
       </section>
+    </div>
+    <div class="order-detail-panel" data-detail-tab="records" hidden>
+      ${renderOrderDetailNotification(order)}
       <section class="detail-section">
         <div class="detail-section-title">订单时间线</div>
         <div class="detail-timeline">${renderDetailLogs(order)}</div>
@@ -21696,7 +21699,7 @@ function taskActionButtons(item, { snooze = true, short = false } = {}) {
     <button class="task-action-btn" type="button" data-task-action="open">${item.orderId && !short ? '打开订单' : '打开'}</button>
     ${snooze ? '<button class="task-action-btn" type="button" data-task-action="snooze" title="暂缓到明天">稍后</button>' : ''}`;
 }
-// 待办直达抽屉的对应页签：收款 → 收款，发货期限 / 可以发货 / 补运单号 / 物流风险 → 物流，其它 → 订单信息。
+// 待办直达抽屉的对应页签：收款 → 收款，发货期限 / 可以发货 / 补运单号 / 物流风险 → 物流，复购 → 客户，其它 → 订单信息。
 function taskDetailTab(task = {}) {
   return taskTypeDef(task)?.detailTab || 'info';
 }
@@ -32855,9 +32858,9 @@ function uiNotifOpenTarget(card) {
   }
   if (card.dataset.orderId && state.orders.some(o => o.id === card.dataset.orderId)) {
     uiToggleNotifs(false);
-    // 飞书卡去「订单信息」页签底部的「重新发送」（以前跳到「记录」页签，那里没有这个按钮）；旧记录里存的是 records。
+    // 飞书卡去「记录」页签最上面的「飞书群通知」，聚焦「重新发送」（旧记录里存的页签可能是 info，这里不看它）。
     if (id.startsWith('feishu-')) {
-      openOrderDetail(card.dataset.orderId, { tab:'info' });
+      openOrderDetail(card.dataset.orderId, { tab:'records' });
       requestAnimationFrame(() => requestAnimationFrame(() => {
         const body = document.getElementById('orderDetailBody');
         const target = body?.querySelector('[data-retry-order-notification]') || body?.querySelector('[data-order-notification-section]');

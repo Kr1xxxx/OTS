@@ -302,8 +302,10 @@ async function launch() {
     await openDrawer('ev');
     const info = await page.locator('#orderDetailBody [data-detail-tab="info"]').innerText();
     assert.match(info, /只收 GBP/, '永久备注能显示');
-    assert.match(info, /eve@stone\.test/);
-    assert.match(info, /\+44 20 7946 0000/);
+    await page.evaluate(() => uiDetailTab('customer', true));
+    const customerTab = await page.locator('#orderDetailBody [data-detail-tab="customer"]').innerText();
+    assert.match(customerTab, /eve@stone\.test/);
+    assert.match(customerTab, /\+44 20 7946 0000/);
     assert.equal(await page.evaluate(() => document.getElementById('detailCustomerBtn').dataset.customer), 'Eve Stone');
     await closeDrawer();
 

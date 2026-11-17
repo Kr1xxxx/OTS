@@ -69,7 +69,7 @@ const { html } = require('./helpers/page-source');
     events = await page.evaluate(()=>uiNotifEvents());
     const feishu = events.find(e=>e.pill==='飞书');
     assert.equal(feishu?.kind,'error');
-    assert.equal(feishu?.tab,'info','the retry button lives on the 订单信息 tab');
+    assert.equal(feishu?.tab,'records','the retry button lives on the 记录 tab');
     assert.match(feishu?.sub||'',/Alice Chen · K1 · 网络超时/);
     assert.equal(events.filter(e=>e.id==='update-4.00').length,1,'version event must be logged once');
 

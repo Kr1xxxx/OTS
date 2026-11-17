@@ -24,6 +24,8 @@ const orders = [
   ...Array.from({ length:8 }, (_, i) => order(`o${7 + i}`, { country:'🇬🇧 英国 United Kingdom', next:i % 2 ? '周五前催尾款' : '' }))
 ];
 
+// 重载前等保存落地：WebKit 里重载打断还在路上的 /api/save，会报一条页面错误「Fetch API cannot load … due to access control checks」。
+const saved = page => page.waitForFunction(() => { const s = window.pendingSaveStatus(); return !s.pending && !s.saving; });
 const rowOf = (page, id) => page.locator(`#orderTableBody [data-order-list-id="${id}"]`);
 const density = page => page.evaluate(() => ({
   table:document.querySelector('#page-order-list .order-table').dataset.density,
@@ -53,12 +55,6 @@ async function quickPaid(page, id, expectedPaid) {
   assert.equal(after.indexOf(id), before.indexOf(id), `${id}: the row stays where it was after 收齐`);
   assert.equal(await page.locator('#orderDetailDrawer.open').count(), 0, '收齐 does not open the order');
   await page.mouse.move(5, 5);
-}
-
-// 刷新前等上一次保存发完：WebKit 把被刷新打断的 /api/save 报成页面错误（「… due to access control checks」），机器忙的时候正好撞上。
-async function reload(page) {
-  await page.waitForFunction(() => { const s = window.pendingSaveStatus?.(); return !s || (!s.saving && !s.pending); });
-  await page.reload();
 }
 
 (async () => {
@@ -115,7 +111,8 @@ async function reload(page) {
     await quickPaid(page, 'o9', 1000);
 
     // 5. 刷新后还是宽松。
-    await reload(page);
+    await saved(page);
+    await page.reload();
     await page.waitForFunction(() => window.pendingSaveStatus?.().loaded);
     await page.evaluate(() => setPage('order-list'));
     await rowOf(page, 'o1').waitFor();
@@ -126,13 +123,15 @@ async function reload(page) {
     let served = {};
     await page.route('**/api/ui-prefs', route => { posted.push(route.request().postDataJSON()); return route.fulfill({ json:{ ok:true } }); });
     await page.route('**/trade-order-system.html', route => route.fulfill({ contentType:'text/html', body:pageWithPrefs(html, served) }));
-    await reload(page);
+    await saved(page);
+    await page.reload();
     await page.waitForFunction(() => window.pendingSaveStatus?.().loaded);
     await assert.doesNotReject(() => page.waitForFunction(() => !localStorage.getItem('ots-prefs-unsent'), null, { timeout:5000 }), 'the stored choice reaches the server');
     assert.ok(posted.some(body => body.set?.[key] === 'comfortable'), `the server gets the stored choice: ${JSON.stringify(posted)}`);
     served = { [key]:'comfortable' };
     await page.evaluate(() => localStorage.clear());
-    await reload(page);
+    await saved(page);
+    await page.reload();
     await page.waitForFunction(() => window.pendingSaveStatus?.().loaded);
     await page.evaluate(() => setPage('order-list'));
     await rowOf(page, 'o1').waitFor();

@@ -38,7 +38,8 @@ assert.match(html, /name="permanentNote"/);
 assert.match(html, /客户永久备注/);
 assert.match(html, /每笔订单显示/);
 assert.match(html, /client-permanent-note-banner/);
-assert.match(html, /customer\.permanentNote \|\| '未设置永久备注'/);
+assert.match(html, /String\(customer\.permanentNote \|\| ''\)\.trim\(\) \?/, '订单抽屉：永久备注有内容才出那一节');
+assert.doesNotMatch(html, /未设置永久备注/, '订单抽屉不写「未设置永久备注」');
 assert.match(html, /\['primaryContactMethod', '主要联系方式'\]/);
 assert.match(html, /\['permanentNote', '客户永久备注'\]/);
 

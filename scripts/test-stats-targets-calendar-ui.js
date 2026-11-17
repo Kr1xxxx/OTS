@@ -218,7 +218,12 @@ const freePort = () => new Promise((resolve, reject) => {
     await click(page, '.nav-item[data-page="calendar"]');
     await page.waitForFunction(() => document.getElementById('page-calendar')?.classList.contains('active'));
     const chips = date => page.locator(`#calendarGrid .calendar-day[data-calendar-date="${date}"] .calendar-event`).evaluateAll(els => els.map(el => el.textContent.trim()));
-    assert.ok((await chips('2026-11-20')).some(label => label.startsWith('Beta Wigs')), `将来的最晚发出日期上日历：${await chips('2026-11-20')}`);
+    assert.ok((await chips('2026-11-20')).some(label => /^(加急 · )?最晚发出 Beta Wigs/.test(label)), `将来的最晚发出日期上日历，先写事再写客户：${await chips('2026-11-20')}`);
+    // 格子里先写事（粗一点），客户名在后；被截时 title 仍是完整的一句。
+    const shipChip = await page.locator('#calendarGrid .calendar-day[data-calendar-date="2026-11-20"] .calendar-event', { hasText:'Beta Wigs' }).first().evaluate(el => ({ what:el.querySelector('b')?.textContent, weight:getComputedStyle(el.querySelector('b')).fontWeight, title:el.title }));
+    assert.match(shipChip.what, /最晚发出$/);
+    assert.ok(Number(shipChip.weight) > 500, `事由要粗一点：${shipChip.weight}`);
+    assert.match(shipChip.title, /^Beta Wigs (加急 · )?最晚发出 · 最晚发出日期 2026-11-20 · /);
     assert.ok((await chips('2026-11-06')).some(label => label.includes('New Lead')), `只有档案的新客户上日历：${await chips('2026-11-06')}`);
     assert.equal((await chips('2026-11-08')).filter(label => label.includes('Shipped Late')).length, 0, '已发货的单没有发货期限');
 

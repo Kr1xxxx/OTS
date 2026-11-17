@@ -253,6 +253,7 @@ const webkitFocusSim = () => {
     // 7. 月份改成下拉选（Mac App 的 WebKit 不支持 type=month）；开始晚于结束时另一头跟过去。
     await page.evaluate(() => setPage('amount'));
     const monthInfo = await page.evaluate(() => ['chartFrom', 'chartTo', 'analysisMonthInput'].map(id => {
+      if (id === 'analysisMonthInput') setPage('analysis');
       const el = document.getElementById(id);
       return { id, tag:el.tagName, count:el.options?.length || 0, value:el.value };
     }));
@@ -261,13 +262,14 @@ const webkitFocusSim = () => {
       assert.ok(info.count >= 12, `${info.id} needs month options`);
       assert.match(info.value, /^\d{4}-\d{2}$/);
     });
+    await page.evaluate(() => setPage('amount'));
     const months = await page.evaluate(() => Array.from(document.getElementById('chartFrom').options).map(o => o.value));
     await page.evaluate(newest => { const from = document.getElementById('chartFrom'); from.value = newest; from.dispatchEvent(new Event('change', { bubbles:true })); }, months[0]);
     const range = await page.evaluate(() => ({ from:chartFrom.value, to:chartTo.value, range:document.getElementById('chartRange').value, months:chartMonths().length }));
     assert.equal(range.range, 'custom');
     assert.ok(range.from <= range.to, `custom range ${range.from} > ${range.to}`);
     assert.ok(range.months >= 1, 'custom range produced an empty chart');
-    await page.evaluate(() => { activeBusinessMonth = monthOffset(normalizeMonth(new Date().toISOString()), -20); analysisMonthTouched = true; renderAnalysisPage(); });
+    await page.evaluate(() => { setPage('analysis'); activeBusinessMonth = monthOffset(normalizeMonth(new Date().toISOString()), -20); analysisMonthTouched = true; renderAnalysisPage(); });
     const analysis = await page.evaluate(() => ({ value:document.getElementById('analysisMonthInput').value, active:activeBusinessMonth, label:document.getElementById('analysisMonthInput').parentElement.querySelector('.app-select-value')?.textContent }));
     assert.equal(analysis.value, analysis.active, 'analysis month select does not show the month being analysed');
     assert.match(analysis.label || '', /年\d+月/);

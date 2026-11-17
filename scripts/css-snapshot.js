@@ -163,6 +163,7 @@ const PAGES = [
   ['search-results', p => p.evaluate(() => { openFullSearchResults('Trading'); })],
   ['logistics', p => p.evaluate(() => setPage('logistics'))],
   ['amount', p => p.evaluate(() => setPage('amount'))],
+  ['analysis', p => p.evaluate(() => setPage('analysis'))],
   ['targets', p => p.evaluate(() => setPage('targets'))],
   ['calendar', p => p.evaluate(() => setPage('calendar'))],
   ['customers', p => p.evaluate(() => setPage('customers'))],

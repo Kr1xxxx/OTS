@@ -66,20 +66,29 @@ const { html } = require('./helpers/page-source');
     assert.equal(await page.locator('#macResetBackupDirBtn').isHidden(),false,'non-default dir shows 恢复默认目录');
     assert.match(await page.locator('#savePulse').getAttribute('title'),/上次备份 3 小时前/);
 
-    // 2. 金额统计 + 分析 are one page; 分析 tab is gone; old links still land there.
-    await page.evaluate(()=>setPage('analysis'));
+    // 2. 数据与目标三个页签：金额统计 / 经营分析 / 业绩目标，互相能切，侧栏「数据与目标」一直亮着。
+    await page.evaluate(()=>setPage('amount'));
     await settle();
-    assert.equal(await page.evaluate(()=>document.querySelector('.page.active')?.id),'page-amount');
-    assert.equal(await page.locator('#page-amount .insights-tabs [data-page="analysis"]').count(),0,'分析 tab removed');
-    assert.equal(await page.locator('#page-amount #analysisSection').count(),1,'analysis lives inside the 金额统计 page');
-    assert.equal(await page.locator('#page-analysis').count(),0);
+    for (const target of ['analysis','targets','amount']) {
+      await page.locator('.page.active .insights-tabs [data-page="'+target+'"]').click();
+      await settle();
+      assert.equal(await page.evaluate(()=>document.querySelector('.page.active')?.id),'page-'+target,'insight tab '+target);
+      assert.equal(await page.locator('.page.active .insights-tabs [data-page="'+target+'"]').evaluate(el=>el.classList.contains('active')),true,'the tab of the page shown is active');
+      assert.equal(await page.locator('.nav-item[data-nav-group="insights"]').evaluate(el=>el.classList.contains('active')),true,'sidebar 数据与目标 stays highlighted on '+target);
+    }
+    assert.equal(await page.locator('#page-analysis #analysisSection').count(),1,'analysis lives on its own page');
+    assert.equal(await page.locator('#amountMonth').count(),0,'金额统计 keeps only the chart range');
     // Empty current month → chart range falls back to 上月 and the analysis month to the last month with data.
     // 下拉框仍是「本月」，只是数字临时按上月算，并写明原因（以前直接把下拉框改成「上月」）。
     assert.equal(await page.locator('#chartRange').inputValue(),'this','the select keeps 本月');
     assert.equal(await page.evaluate(()=>effectiveChartRange()),'last','本月 empty → numbers use 上月');
     assert.match(await page.locator('#amountRangeNote').innerText(),/本月还没有正式订单/);
+    await page.locator('.page.active .insights-tabs [data-page="analysis"]').click();
+    await settle();
     assert.equal(await page.evaluate(()=>activeBusinessMonth),last,'analysis month falls back to the latest month with orders');
     assert.equal(await page.locator('#analysisFallbackNote').isHidden(),false);
+    await page.locator('.page.active .insights-tabs [data-page="amount"]').click();
+    await settle();
     assert.equal(await page.locator('#reportUsd').innerText(),'$1,800','numbers follow the fallback month');
     // 重画（保存、汇率到达）后说明还在，数字也还按上月（以前重画一次说明就没了）。
     await page.evaluate(()=>render());
@@ -87,10 +96,14 @@ const { html } = require('./helpers/page-source');
     assert.match(await page.locator('#amountRangeNote').innerText(),/本月还没有正式订单/,'fallback note survives a re-render');
     assert.equal(await page.locator('#reportUsd').innerText(),'$1,800');
     // Touching the month stops the fallback.
+    await page.locator('.page.active .insights-tabs [data-page="analysis"]').click();
+    await settle();
     await page.locator('#businessNextBtn').click();
     await settle();
     assert.equal(await page.evaluate(()=>activeBusinessMonth),ym(0));
     assert.equal(await page.locator('#analysisFallbackNote').isHidden(),true,'manual month choice is respected');
+    await page.locator('.page.active .insights-tabs [data-page="amount"]').click();
+    await settle();
     await page.locator('#chartRange').selectOption('last');
     await page.locator('#chartRange').selectOption('this');
     await page.evaluate(()=>render());
@@ -140,6 +153,6 @@ const { html } = require('./helpers/page-source');
     await page.evaluate(()=>closeOrder());
 
     assert.equal(errors.length,0,errors.join('\n'));
-    console.log('Settings / sidebar UI passed: 配色+弹窗+API moved to settings with red-dot alert, merged 金额统计+分析 with empty-month fallback, column subtitles, Feishu choice memory, backup info.');
+    console.log('Settings / sidebar UI passed: 配色+弹窗+API moved to settings with red-dot alert, 数据与目标 three tabs with empty-month fallback, column subtitles, Feishu choice memory, backup info.');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

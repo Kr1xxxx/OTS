@@ -4694,19 +4694,19 @@ html[data-theme] .order-table .tag, html[data-theme] .order-table-view { white-s
 html[data-theme] .order-table tbody tr, html[data-theme] .order-table tbody tr:nth-child(even) { background:var(--surface-bg); }
 html[data-theme] :is(.order-table .col-customer, .order-table .col-action) { box-shadow:none; }
 html[data-theme] .order-table .col-order { width:116px; }
-html[data-theme] .order-table th.col-customer, html[data-theme] .order-table td.col-customer { width:176px; left:116px; }
-html[data-theme] .order-table .col-country { width:104px; }
-html[data-theme] .order-table .col-product { width:102px; }
-html[data-theme] .order-table .col-stage { width:84px; }
-html[data-theme] .order-table .col-money { width:132px; }
+/* 国家并进了客户格，那一列的宽度大半给客户：1440 宽的窗口里「Kora Hair Johannesburg（Thandi M.）」这么长的名字放得下。
+   紧凑下各列加起来 1006px：最小窗口（1294）里表格不用左右滚。 */
+html[data-theme] .order-table th.col-customer, html[data-theme] .order-table td.col-customer { width:240px; left:116px; }
+html[data-theme] .order-table .col-product { width:94px; }
+html[data-theme] .order-table .col-stage { width:92px; }
+html[data-theme] .order-table .col-money { width:118px; }
 html[data-theme] .order-table .col-logistics { width:104px; }
-html[data-theme] .order-table .col-date { width:96px; }
-html[data-theme] .order-table .col-action { width:92px; }
+html[data-theme] .order-table .col-date { width:98px; }
+html[data-theme] .order-table .col-action { width:104px; }
 html[data-theme] .order-table-primary .order-num { font-family:var(--sans); font-size:13px; font-weight:500; font-variant-numeric:tabular-nums; }
 html[data-theme] .order-table-sub { margin-top:3px; font-size:11.5px; }
 html[data-theme] .order-table-customer { letter-spacing:-.01em; }
 html[data-theme] .order-table-customer:hover { color:var(--gray-900); }
-html[data-theme] .order-table td.col-country { font-size:13px; color:var(--gray-900); }
 html[data-theme] .order-table-product { display:flex; align-items:baseline; min-width:0; white-space:nowrap; overflow:hidden; }
 html[data-theme] .order-table-product strong { color:var(--gray-900); }
 html[data-theme] .order-table-product span { color:var(--gray-500); font-size:11.5px; overflow:hidden; text-overflow:ellipsis; }
@@ -4733,6 +4733,24 @@ html[data-theme] .order-table-actions .order-table-view { height:24px; padding:0
 html[data-theme] .order-table-actions .order-table-view:hover { border-color:var(--accent); }
 html[data-theme] .order-table-view:hover { color:var(--accent); }
 html[data-theme="dark"] .order-table-paybar { background:var(--gray-200); }
+html[data-theme] .order-table-payline { display:block; }
+/* 没有单号：还没到发货的只放一道淡色「—」，已发货 / 已完成的「待补单号」用提醒色。 */
+html[data-theme] .order-table-logistics.none strong { color:var(--gray-400); font-weight:400; }
+html[data-theme] .order-table-logistics.missing strong { color:var(--s-amber); }
+/* 行距切换在列表右上角（「已删除」后面），和左边的快捷筛选一样大。筛选工具栏在最小窗口下已经排满一行，放不下它。 */
+html[data-theme] .order-list-density.segment-control { display:inline-flex; width:auto; margin:0; flex:none; }
+html[data-theme] .order-list-density .segment-option { flex:none; height:30px; min-height:30px; padding:0 14px; font-size:13px; }
+/* 紧凑（默认）：每行最多两层字。金额下面一行是短进度条加「待收」，阶段和「加急」等小标并排，两个按钮并排。
+   宽松就是上面这些规则本身（V3.180 的排法）。 */
+html[data-theme] .order-table[data-density="compact"] td { height:54px; padding-top:8px; padding-bottom:8px; line-height:1.4; }
+html[data-theme] .order-table[data-density="compact"] .order-table-sub { margin-top:1px; line-height:1.35; }
+html[data-theme] .order-table[data-density="compact"] .col-stage { width:116px; }
+html[data-theme] .order-table[data-density="compact"] .col-action { width:120px; }
+html[data-theme] .order-table[data-density="compact"] .order-table-stage { flex-direction:row; flex-wrap:wrap; align-items:center; }
+html[data-theme] .order-table[data-density="compact"] td.col-money .order-table-payline { display:flex; align-items:center; justify-content:flex-end; gap:6px; margin-top:1px; }
+html[data-theme] .order-table[data-density="compact"] .order-table-paybar { flex:none; width:32px; margin:0; }
+html[data-theme] .order-table[data-density="compact"] td.col-money .order-table-due-line { margin-top:0; }
+html[data-theme] .order-table[data-density="compact"] .order-table-actions { flex-direction:row; justify-content:center; gap:4px; }
 @media (max-width: 820px) {
   html[data-theme] .order-list-title-wrap { margin-left:0; }
   html[data-theme] .order-list-primary-filters { flex-wrap:wrap; }
@@ -5764,6 +5782,10 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
               <div class="order-list-title visually-hidden" id="orderListPageTitle">全部订单</div>
               <div class="order-list-count" id="orderListResultCount">0 个订单</div>
               <button class="link-btn order-list-deleted-link" type="button" data-page-link="deleted"><svg class="ui-icon" aria-hidden="true"><use href="#i-trash"/></svg>已删除 <span id="orderListDeletedCount">0</span></button>
+              <div class="segment-control compact order-list-density" id="orderListDensity" role="group" aria-label="订单列表行距">
+                <button class="segment-option active" type="button" data-order-list-density="compact" aria-pressed="true" title="每行两层字，一屏看到更多订单">紧凑</button>
+                <button class="segment-option" type="button" data-order-list-density="comfortable" aria-pressed="false" title="行高一些，金额、阶段、按钮上下排">宽松</button>
+              </div>
             </div>
         </div>
         <div class="order-list-controls">
@@ -5800,12 +5822,11 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
           <div class="order-list-active-filters" id="orderListActiveFilters" aria-label="已选筛选条件"></div>
         </div>
         <div class="order-table-scroll">
-          <table class="order-table" aria-label="全部订单列表">
+          <table class="order-table" aria-label="全部订单列表" data-density="compact">
             <thead>
               <tr>
                 <th class="col-order" scope="col">订单号</th>
                 <th class="col-customer" scope="col">客户</th>
-                <th class="col-country" scope="col">国家地区</th>
                 <th class="col-product" scope="col">产品 · 收款</th>
                 <th class="col-stage" scope="col">阶段</th>
                 <th class="col-money" scope="col">金额 · 收款</th>
@@ -7368,12 +7389,12 @@ const safeStorage = {
     queueServerPref(key, null);
   }
 };
-// 主题、强调色、「发送到飞书群」的选择、每日问候、通知列表和已读、工作台布局。
+// 主题、强调色、「发送到飞书群」的选择、每日问候、通知列表和已读、工作台布局、订单列表行距。
 // localStorage 跟着页面地址走，地址里有端口：上次的端口被占、Mac App 换了端口启动，这些就全没了
 // （主题回到默认，几百条通知全部变回未读）。所以本机服务在数据目录里也存一份，并写进它发出的页面
 // （ots-prefs 这个 meta）：页面一开始就用它盖住 localStorage，之后每次改动两边都写。
 // 服务那边的 null 表示「特意清掉了」（比如主题改回跟随系统），页面这边还留着旧值的话也清掉。
-const serverPrefKeys = new Set(['trade-order-system-theme', 'ots-accent-v1', 'ots-feishu-send-v1', 'ots-greet-v1', 'ots-notif-read-v1', 'ots-notif-events-v1', 'ots-dashboard-layout-v1']);
+const serverPrefKeys = new Set(['trade-order-system-theme', 'ots-accent-v1', 'ots-feishu-send-v1', 'ots-greet-v1', 'ots-notif-read-v1', 'ots-notif-events-v1', 'ots-dashboard-layout-v1', 'ots-order-list-density-v1']);
 const pendingServerPrefs = new Map();
 let serverPrefsAdopted = false;
 let serverPrefTimer = 0;
@@ -20092,13 +20113,18 @@ function orderListFiltersFromControls() {
   };
 }
 // 列表「物流」列：状态按全部批次汇总（「异常 1/3 批」「部分签收 1/2」），单号写第一批，多批时后面注明「等 3 批」。
+// 没有单号时：已发货 / 已完成的单写「待补单号」（和物流页一个说法，missing）；还没到发货的单只放一道淡色「—」（none），
+// 不再每行写「未填写运单」；物流状态已经往前走了的（运输中、异常…）照旧写「状态 · 未填运单」。只管显示，筛选不看这里。
 function orderListLogisticsDisplay(order = {}) {
   const summary = orderLogisticsSummary(order);
   const tracking = cleanTracking(order.trackingNumber || '') || summary.shipments[0]?.trackingNumber || '';
-  const status = tracking ? summary.label : (summary.status && summary.status !== '未发货' ? `${summary.status} · 未填运单` : '未填写运单');
+  const notMoved = !summary.status || summary.status === '未发货';
+  const missing = !tracking && (notMoved || summary.status === '已发货') && isSettledStage(normalizeStage(order.stage));
+  const none = !tracking && !missing && notMoved;
+  const status = tracking ? summary.label : (missing ? '待补单号' : (none ? '—' : `${summary.status} · 未填运单`));
   const first = summary.shipments[0];
   const carrier = tracking ? (first?.carrier && first.carrier !== 'auto' ? first.carrier : (['DHL','FedEx','UPS'].includes(order.carrier) ? order.carrier : detectCarrier(tracking))) : '';
-  return { tracking:summary.total > 1 ? `${tracking} 等 ${summary.total} 批` : tracking, status, carrier, exception:summary.status === '异常', partial:orderShipmentProgressLabel(order) };
+  return { tracking:summary.total > 1 ? `${tracking} 等 ${summary.total} 批` : tracking, status, carrier, exception:summary.status === '异常', missing, none, partial:orderShipmentProgressLabel(order) };
 }
 function orderListPaginationButtons(currentPage, totalPages) {
   const pages = [];
@@ -20132,6 +20158,22 @@ function orderListWhen(value) {
 function orderListCountryShort(country = '') {
   const parts = String(country || '').trim().split(/\s+/);
   return /\p{Regional_Indicator}/u.test(parts[0] || '') && parts[1] ? `${parts[0]} ${parts[1]}` : String(country || '');
+}
+// 行距：紧凑（默认，每行最多两层字）/ 宽松（金额、阶段、按钮上下排）。两种共用一份行模板，只差表格上的 data-density 和样式。
+// 是界面偏好，不进 state：本机存储加本机服务的 ui-prefs.json（见 serverPrefKeys），没存过 = 紧凑。
+const orderListDensityKey = 'ots-order-list-density-v1';
+function orderListDensity() {
+  return safeStorage.getItem(orderListDensityKey) === 'comfortable' ? 'comfortable' : 'compact';
+}
+function applyOrderListDensity() {
+  const density = orderListDensity();
+  const table = document.querySelector('#page-order-list .order-table');
+  if (table) table.dataset.density = density;
+  document.querySelectorAll('[data-order-list-density]').forEach(button => {
+    const on = button.dataset.orderListDensity === density;
+    button.classList.toggle('active', on);
+    button.setAttribute('aria-pressed', String(on));
+  });
 }
 let orderListPin = null;
 let orderListQuickActionAt = 0;
@@ -20179,6 +20221,7 @@ function renderOrderListPage() {
   const pagination = document.getElementById('orderListPagination');
   if (!body || !pagination) return;
   renderOrderListFilterOptions();
+  applyOrderListDensity();
   const filterControls = Array.from(document.querySelectorAll('#page-order-list select[id$="Filter"]'));
   const activeFilters = orderListActiveFilters(filterControls.map(select => ({id:select.id, value:select.value, label:select.selectedOptions[0]?.textContent || select.value})));
   const sort = document.getElementById('orderListSort')?.value || 'updatedDesc';
@@ -20209,10 +20252,10 @@ function renderOrderListPage() {
   const noOrders = !(state.orders || []).length;
   body.closest('.order-table-panel')?.classList.toggle('no-orders', noOrders);
   if (!page.items.length && noOrders) {
-    body.innerHTML = `<tr><td class="order-table-empty" colspan="9">${emptyStateHtml({ icon:'list', title:'还没有订单', text:'新建的订单会按阶段排在这里。',
+    body.innerHTML = `<tr><td class="order-table-empty" colspan="8">${emptyStateHtml({ icon:'list', title:'还没有订单', text:'新建的订单会按阶段排在这里。',
       action:`<button class="btn btn-small btn-primary" type="button" data-order-list-new>${uiIcon('plus')}新建订单</button>` })}</td></tr>`;
   } else if (!page.items.length) {
-    body.innerHTML = `<tr><td class="order-table-empty" colspan="9">${emptyStateHtml({ icon:'search', title:'没有符合条件的订单', text:'换个关键词，或者清掉筛选再看。',
+    body.innerHTML = `<tr><td class="order-table-empty" colspan="8">${emptyStateHtml({ icon:'search', title:'没有符合条件的订单', text:'换个关键词，或者清掉筛选再看。',
       action:'<button class="btn btn-small" type="button" data-order-list-reset>重置筛选</button>' })}</td></tr>`;
   } else {
     body.innerHTML = page.items.map(order => {
@@ -20224,6 +20267,10 @@ function renderOrderListPage() {
       const logistics = orderListLogisticsDisplay(order);
       const usdRate = ecbUsdRateForOrder(order);
       const usdHint = String(order.currency || 'USD').toUpperCase() === 'USD' ? '' : (usdRate ? ` · ≈ ${summaryMoney(orderAmountUsd(order), 'USD')}` : ' · 缺汇率，未换算成美元');
+      // 客户格第二行：国旗 + 国家短名 · 备注，哪边空就只写另一边，都空就不写这一行（国家不再单独占一列）。
+      const remark = order.next || order.note || '';
+      const customerSub = [orderListCountryShort(order.country).trim(), remark].filter(Boolean).join(' · ');
+      const customerSubTitle = [String(order.country || '').trim(), remark].filter(Boolean).join(' · ');
       return `
         <tr data-order-list-id="${escapeAttr(order.id)}" tabindex="0" aria-label="查看订单 ${escapeAttr(order.num || '')}">
           <td class="col-order">
@@ -20232,13 +20279,12 @@ function renderOrderListPage() {
           </td>
           <td class="col-customer">
             <button class="order-table-customer" type="button" data-order-list-customer="${escapeAttr(order.client || '')}" title="${escapeAttr(clientDisplayName(order.client || '未命名客户'))} · 查看客户资料"><span class="order-table-ellipsis">${escapeAttr(clientDisplayName(order.client || '未命名客户'))}</span></button>
-            <span class="order-table-sub order-table-ellipsis">${escapeAttr(order.next || order.note || '')}</span>
+            ${customerSub ? `<span class="order-table-sub order-table-ellipsis" title="${escapeAttr(customerSubTitle)}">${escapeAttr(customerSub)}</span>` : ''}
           </td>
-          <td class="col-country"><span class="order-table-ellipsis" title="${escapeAttr(order.country || '未填写')}">${escapeAttr(orderListCountryShort(order.country) || '未填写')}</span></td>
           <td class="col-product"><div class="order-table-product"><strong>${escapeAttr(product.value)}</strong><span> · ${escapeAttr(boardPaymentLabel(payment.value))}</span></div><span class="order-table-sub">${escapeAttr(order.orderType || '')}</span></td>
           <td class="col-stage"><div class="order-table-stage"><span class="tag ${stage.tag}">${escapeAttr(stage.name)}</span>${order.isDraft ? '<span class="order-table-mini-flag">草稿</span>' : ''}${order.urgentOrder ? '<span class="order-table-mini-flag urgent">加急</span>' : ''}${logistics.partial ? `<span class="order-table-mini-flag partial" title="${escapeAttr(logistics.partial)}">${escapeAttr(logistics.partial.startsWith('部分发货') ? '部分发货' : logistics.partial)}</span>` : ''}</div></td>
-          <td class="col-money" title="已收 ${escapeAttr(money(paid, order.currency))}${escapeAttr(usdHint)}"><span class="order-table-money order-table-total">${money(order.amount, order.currency)}</span><span class="order-table-paybar" aria-hidden="true"><i style="width:${Math.min(100, orderAmountValue(order) ? Math.round(paid / orderAmountValue(order) * 100) : 0)}%"></i></span>${due > 0 ? `<span class="order-table-due-line">待收 ${money(due, order.currency)}</span>` : ''}</td>
-          <td class="col-logistics"><div class="order-table-logistics ${logistics.exception ? 'exception' : ''}"><strong>${escapeAttr(logistics.status)}</strong><span class="order-table-sub">${escapeAttr(logistics.carrier || '')}${logistics.carrier && logistics.tracking ? '  ' : ''}${escapeAttr(logistics.tracking || '')}</span></div></td>
+          <td class="col-money" title="已收 ${escapeAttr(money(paid, order.currency))}${escapeAttr(usdHint)}"><span class="order-table-money order-table-total">${money(order.amount, order.currency)}</span><span class="order-table-payline"><span class="order-table-paybar" aria-hidden="true"><i style="width:${Math.min(100, orderAmountValue(order) ? Math.round(paid / orderAmountValue(order) * 100) : 0)}%"></i></span>${due > 0 ? `<span class="order-table-due-line">待收 ${money(due, order.currency)}</span>` : ''}</span></td>
+          <td class="col-logistics"><div class="order-table-logistics${logistics.exception ? ' exception' : ''}${logistics.missing ? ' missing' : ''}${logistics.none ? ' none' : ''}"><strong${logistics.none ? ' title="还没到发货阶段"' : ''}>${escapeAttr(logistics.status)}</strong><span class="order-table-sub" title="${escapeAttr([logistics.carrier, logistics.tracking].filter(Boolean).join(' '))}">${escapeAttr(logistics.carrier || '')}${logistics.carrier && logistics.tracking ? '  ' : ''}${escapeAttr(logistics.tracking || '')}</span></div></td>
           <td class="col-date"><span class="order-table-date">${escapeAttr(normalizeDate(order.createdAt || order.updated))}</span></td>
           <td class="col-action">${(() => {
             // 草稿不在列表上收款 / 推进：要先在详情里转为正式订单。
@@ -29619,6 +29665,12 @@ document.getElementById('orderListQuickFilters')?.addEventListener('click', e =>
   orderListCurrentPage = 1;
   renderOrderListPage();
 });
+document.getElementById('orderListDensity')?.addEventListener('click', e => {
+  const button = e.target.closest('[data-order-list-density]');
+  if (!button) return;
+  safeStorage.setItem(orderListDensityKey, button.dataset.orderListDensity === 'comfortable' ? 'comfortable' : 'compact');
+  applyOrderListDensity();
+});
 document.getElementById('orderListResetBtn')?.addEventListener('click', resetOrderListFilters);
 // 「更多筛选与排序」在桌面版是浮在列表上方的面板：点面板外面或按 Esc 收起（以前只能再点一次标题，一直挡着下面的订单）。
 // 面板里的下拉菜单挂在 body 上，点菜单项不算点外面；手机版面板是普通的展开区，不自动收起。
@@ -29683,6 +29735,8 @@ document.getElementById('orderTableBody')?.addEventListener('click', e => {
     else quickAdvanceStage(openButton.dataset.orderListOpen);
     return;
   }
+  // 「收齐」点完按钮就换了（紧凑行里两个按钮并排，剩下的那个挪到中间）：双击的第二下落在空出来的地方，不当成点了这一行去开详情。
+  if (Date.now() - orderListQuickActionAt < 400) return;
   const row = e.target.closest('[data-order-list-id]');
   const id = openButton?.dataset.orderListOpen || row?.dataset.orderListId;
   if (id) openOrderDetail(id);

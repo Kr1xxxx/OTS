@@ -3962,6 +3962,7 @@ html[data-theme] .kpi-spark circle { fill:var(--accent); animation:uiPop .4s 1.2
 @keyframes uiDrawLine { from { stroke-dashoffset:1; } }
 html[data-theme] .stat-sub .up { color:var(--s-green); }
 html[data-theme] .stat-sub .down { color:var(--s-red); }
+html[data-theme] .stat-sub .stat-sub-part { white-space:nowrap; }
 html[data-theme] .kpi-bar { height:6px; margin-top:6px; background:var(--surface-soft); border-radius:999px; overflow:hidden; }
 html[data-theme] .kpi-bar i { display:block; height:100%; width:0; background:var(--accent); border-radius:inherit; transition:width .8s var(--ease-spring); }
 html[data-theme] #targetStat .stat-sub { order:4; }
@@ -4773,9 +4774,14 @@ html[data-theme] .order-table[data-density="compact"] .order-table-sub { margin-
 html[data-theme] .order-table[data-density="compact"] .col-stage { width:116px; }
 html[data-theme] .order-table[data-density="compact"] .col-action { width:120px; }
 html[data-theme] .order-table[data-density="compact"] .order-table-stage { flex-direction:row; flex-wrap:wrap; align-items:center; }
-html[data-theme] .order-table[data-density="compact"] td.col-money .order-table-payline { display:flex; align-items:center; justify-content:flex-end; gap:6px; margin-top:1px; }
-html[data-theme] .order-table[data-density="compact"] .order-table-paybar { flex:none; width:32px; margin:0; }
+/* 金额格放不下时只往左边（自己的左内边距、阶段格的右内边距）伸，不压物流格：金额和「待收」两行都靠右排、从右往左长。
+   短进度条要么整条放下，要么不出（换到被裁掉的第二行），不再伸进阶段格贴着「加急」。「待收」后面的币种和上一行重复，紧凑下不写。 */
+html[data-theme] .order-table[data-density="compact"] td.col-money { padding-left:0; }
+html[data-theme] .order-table[data-density="compact"] td.col-money .order-table-total { display:flex; justify-content:flex-end; white-space:nowrap; }
+html[data-theme] .order-table[data-density="compact"] td.col-money .order-table-payline { display:flex; flex-direction:row-reverse; flex-wrap:wrap; align-items:center; justify-content:flex-start; gap:8px 6px; max-height:17px; margin-top:1px; overflow-x:visible; overflow-y:clip; }
+html[data-theme] .order-table[data-density="compact"] .order-table-paybar { flex:none; order:1; width:32px; margin:0; }
 html[data-theme] .order-table[data-density="compact"] td.col-money .order-table-due-line { margin-top:0; }
+html[data-theme] .order-table[data-density="compact"] .order-table-due-code { display:none; }
 html[data-theme] .order-table[data-density="compact"] .order-table-actions { flex-direction:row; justify-content:center; gap:4px; }
 @media (max-width: 820px) {
   html[data-theme] .order-list-title-wrap { margin-left:0; }
@@ -4822,8 +4828,9 @@ html[data-theme] .exchange-tag.is-manual { background:var(--accent-tint); color:
 html[data-theme] .exchange-group { display:grid; gap:8px; min-width:0; }
 html[data-theme] .exchange-group-title { color:var(--gray-900); font-size:13px; font-weight:600; }
 html[data-theme] .exchange-group-meta { margin-top:-4px; color:var(--gray-500); font-size:12px; }
-html[data-theme] .exchange-cell-head { display:flex; align-items:center; justify-content:space-between; gap:6px; min-height:19px; margin-bottom:5px; }
-html[data-theme] .exchange-cell-head label { margin:0; }
+/* 月份名不换行；「手填」小标放得下就在同一行，放不下整体换到下一行（格子多了变窄时）。 */
+html[data-theme] .exchange-cell-head { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px; min-height:19px; margin-bottom:5px; }
+html[data-theme] .exchange-cell-head label { margin:0; white-space:nowrap; }
 html[data-theme] .exchange-future { display:grid; gap:8px; }
 html[data-theme] .exchange-future:empty { display:none; }
 html[data-theme] .exchange-future-row { display:grid; grid-template-columns:96px minmax(0, 180px) auto; align-items:center; justify-content:start; gap:10px; }
@@ -5737,7 +5744,7 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
           <div>
             <div class="section-title">订单进度</div>
             <div class="section-meta">按阶段排列</div>
-            <div class="drag-hint"><svg class="ui-icon" aria-hidden="true"><use href="#i-grip"/></svg>拖动卡片改阶段 · 右键（触控板双指点按）卡片有收齐、推进、删除等操作</div>
+            <div class="drag-hint" title="拖动卡片改阶段 · 右键（触控板双指点按）卡片有收齐、推进、删除等操作"><svg class="ui-icon" aria-hidden="true"><use href="#i-grip"/></svg>拖动改阶段 · 右键更多操作</div>
           </div>
           <div class="board-head-actions">
             <div class="segment-control compact board-product-filter" id="boardProductFilter">
@@ -16745,7 +16752,7 @@ function globalSearchCustomerProfile(name = '') {
   const savedName = Object.keys(state.customers || {}).find(item => item.toLowerCase() === clean);
   return savedName ? state.customers[savedName] : {};
 }
-// 订单结果的副标题优先显示命中的那一项：第 2 批运单号、邮箱、电话；否则是第一批运单号或备注。
+// 订单结果的副标题优先显示命中的那一项：第 2 批运单号、邮箱、电话；否则是第一批运单号或备注；都没有就是空的（不写「暂无备注」）。
 function globalSearchOrderDetail(order = {}, profile = {}, query = '') {
   const key = cleanTracking(query);
   const shipments = normalizeOrderShipments(order);
@@ -16757,7 +16764,7 @@ function globalSearchOrderDetail(order = {}, profile = {}, query = '') {
     .map(item => typeof item === 'object' && item ? (item.value || item.email || item.phone || '') : item).filter(Boolean);
   const contact = contacts.find(item => searchTextMatchDetail(String(item), query).direct);
   if (contact) return String(contact);
-  return order.trackingNumber || shipments[0]?.trackingNumber || order.note || '暂无备注';
+  return order.trackingNumber || shipments[0]?.trackingNumber || order.note || '';
 }
 function buildGlobalSearchResults(query = '') {
   const cleanQuery = String(query || '').trim();
@@ -16801,7 +16808,7 @@ function buildGlobalSearchResults(query = '') {
     const trackingHit = exactKey.length >= 4 && normalizeOrderShipments(order).some(item => item.trackingNumber === exactKey);
     if (trackingHit || (exactKey.length >= 4 && cleanTracking(order.num) === exactKey)) score = 300;
     const sourceText = source === 'deleted' ? '已删除' : source === 'trash' ? '垃圾箱' : stageDef(order.stage).name;
-    results.push({ type:'order', group:'订单', kind:sourceText, icon:'≡', id:order.id, source, tab:trackingHit ? 'logistics' : '', title, subtitle:`${storedCountry(order.country)} · ${money(order.amount, order.currency)} · ${globalSearchOrderDetail(order, profile, cleanQuery)}`, score:score + 20 });
+    results.push({ type:'order', group:'订单', kind:sourceText, icon:'≡', id:order.id, source, tab:trackingHit ? 'logistics' : '', title, subtitle:[storedCountry(order.country), money(order.amount, order.currency), globalSearchOrderDetail(order, profile, cleanQuery)].filter(Boolean).join(' · '), score:score + 20 });
   });
   (state.trackingLookups || []).forEach(item => {
     const title = item.trackingNumber || '未填写物流单号';
@@ -18269,8 +18276,13 @@ function detailItem(label, value, wide = false, valueClass = '') {
     </div>
   `;
 }
-function renderDetailAttachments(list = []) {
-  if (!list.length) return '<div class="muted">暂无附件 / 凭证记录。</div>';
+// 没有附件：说清楚去哪加，后面的链接等于点抽屉右上角的「完整编辑…」；只读的订单（已删除）只写没有附件。
+function renderDetailAttachments(list = [], editable = false) {
+  if (!list.length) {
+    return editable
+      ? '<div class="muted">还没有附件，在「完整编辑…」里添加 <button class="link-btn" type="button" data-detail-open-edit>打开完整编辑</button></div>'
+      : '<div class="muted">没有附件。</div>';
+  }
   // 和订单弹窗同一个规则：只有 http(s)、本机附件、图片地址才给「打开」，javascript: 之类、普通备注显示成文字。
   return list.map(item => {
     const href = safeAttachmentHref(item.fileUrl || item.link);
@@ -18645,7 +18657,7 @@ function renderOrderDetail(order, source = 'active') {
     <div class="order-detail-panel" data-detail-tab="attachments" hidden>
       <section class="detail-section">
         <div class="detail-section-title">附件 / 凭证</div>
-        ${renderDetailAttachments(order.attachments || [])}
+        ${renderDetailAttachments(order.attachments || [], editable)}
       </section>
     </div>
     <div class="order-detail-panel" data-detail-tab="customer" hidden>
@@ -19304,6 +19316,11 @@ function boardCardAmountHtml(o, balanceDue, cardSettings) {
   }
   return `<span class="board-card-amount" title="总额 ${escapeAttr(total)}">${total}</span>`;
 }
+// 数字卡的小字：每一项连同它前面的「 · 」是一个不换行的小段，换行只发生在两项之间，
+// 分隔点不会落在行尾，「物流异常 1」这样的一项也不会被拆成两行。parts 是纯文字，空的跳过。
+function statSubHtml(parts = []) {
+  return parts.filter(Boolean).map((part, index) => `<span class="stat-sub-part">${index ? '· ' : ''}${escapeAttr(part)}</span>`).join(' ');
+}
 // 工作台卡片上的月份名：今年的写「10 月」，别的年份带上年份「2025 年 12 月」，回看去年同月时不会和今年混。
 function dashboardMonthName(month = '') {
   const [year, num] = String(month).split('-');
@@ -19354,7 +19371,7 @@ function renderStats() {
     // 已收款（人民币）：标题写清楚是哪个月、什么币种；单数只数真的收到过钱的单。
     amountLabel.textContent = `${rangeName === '全部' ? '全部' : rangeName}已收 · RMB`;
     amountValue.textContent = rmbMoney(usdPaidTotalRmb(totalOrders));
-    amountSub.textContent = `${totalOrders.filter(o => orderPaidValue(o) > 0).length} 单有收款 · 点数字切回订单额`;
+    amountSub.innerHTML = statSubHtml([`${totalOrders.filter(o => orderPaidValue(o) > 0).length} 单有收款`, '点数字切回订单额']);
   } else {
     // 原型文案：当月叫「本月订单额」，别的月份写月份（不是今年的带年份），全部范围叫「订单总额」。
     amountLabel.textContent = totalRange === 'all' ? '订单总额' : totalRange === currentMonth ? '本月订单额' : `${dashboardMonthName(totalRange)}订单额`;
@@ -19363,7 +19380,7 @@ function renderStats() {
     amountValue.textContent = summaryMoney(usdTotal(revenueOrders), 'USD');
     // 汇率还没取到（或取不到）时，非美元订单折不成美元：写明有几单没算进去，别让人以为订单额就这么多。
     const unconverted = revenueOrders.filter(o => !ecbUsdRateForOrder(o)).length;
-    amountSub.textContent = `${revenueOrders.length} 单 · 草稿和报价不计${unconverted ? ` · ${unconverted} 单缺汇率未计入` : ''}`;
+    amountSub.innerHTML = statSubHtml([`${revenueOrders.length} 单`, '草稿和报价不计', unconverted ? `${unconverted} 单缺汇率未计入` : '']);
   }
   amountValue.classList.toggle('is-paid-mode', paidMode);
   amountValue.setAttribute('aria-pressed', paidMode ? 'true' : 'false');
@@ -19375,7 +19392,8 @@ function renderStats() {
   const targetValue = document.getElementById('statTargetRate');
   const reached = Boolean(targetGoal) && targetActual >= targetGoal;
   const currentTargetRate = targetGoal ? targetRate(targetActual, targetGoal) : 0;
-  targetValue.textContent = targetGoal ? `${currentTargetRate}%` : '未设';
+  // 没设目标：大字写成要做的事「设目标」（点卡片就去目标页），不写「未设」。
+  targetValue.textContent = targetGoal ? `${currentTargetRate}%` : '设目标';
   targetValue.classList.toggle('has-target', Boolean(targetGoal));
   targetValue.classList.toggle('is-achieved', reached);
   document.getElementById('statTargetSub').textContent = targetGoal ? `已完成 ${summaryMoney(targetActual, 'USD')}` : `点这里设置 ${dashboardMonthName(targetMonth)}目标`;
@@ -19730,12 +19748,15 @@ function renderPerformanceTargets() {
   }
   const clearBtn = document.getElementById('clearTargetBtn');
   if (clearBtn) clearBtn.hidden = !goal;
-  document.getElementById('targetGoal').textContent = goal ? summaryMoney(goal, 'USD') : '未设置';
+  // 这个月没设目标：整页只在完成度旁边写一句「11 月还没设目标」，目标、差额、圆环中间这些格子留空，不写「未设置 / 未设 / -」。
+  document.getElementById('targetGoal').textContent = goal ? summaryMoney(goal, 'USD') : '';
   document.getElementById('targetActual').textContent = summaryMoney(actual, 'USD');
-  document.getElementById('targetRate').textContent = goal ? `${rate}%` : '未设';
+  document.getElementById('targetRate').textContent = goal ? `${rate}%` : '';
+  const ringLabel = document.querySelector('#page-targets .target-ring-text span');
+  if (ringLabel) ringLabel.hidden = !goal;
   const over = goal && actual >= goal;
   const exact = over && Math.round(actual) === Math.round(goal);
-  document.getElementById('targetGap').textContent = goal ? summaryMoney(over ? actual - goal : gap, 'USD') : '-';
+  document.getElementById('targetGap').textContent = goal ? summaryMoney(over ? actual - goal : gap, 'USD') : '';
   document.getElementById('targetGap').classList.toggle('over', Boolean(over));
   const gapLabel = document.getElementById('targetGapLabel');
   if (gapLabel) gapLabel.textContent = over ? '超出' : '差额';
@@ -19753,7 +19774,7 @@ function renderPerformanceTargets() {
   const future = month > currentMonth;
   document.getElementById('targetProgressText').textContent = goal
     ? (exact ? '刚好完成目标。' : over ? `已经超出目标 ${summaryMoney(actual - goal, 'USD')}。` : future && !actual ? `${monthLabel(month)}还没开始，目标 ${summaryMoney(goal, 'USD')}。` : `完成 ${summaryMoney(actual, 'USD')}，还差 ${summaryMoney(gap, 'USD')}。`)
-    : `${monthLabel(month)} 暂未设置业绩目标`;
+    : `${dashboardMonthName(month)}还没设目标`;
 
   // 近月目标记录：只列设过目标的月份 + 本月（按时间倒序），行可以点 / 回车，切到那个月。
   const historyMonths = Array.from(new Set([currentMonth, ...Object.keys(state.performanceTargets || {}).filter(m => targetForMonth(m) > 0)])).sort().reverse();
@@ -19766,17 +19787,17 @@ function renderPerformanceTargets() {
     const monthOver = monthGoal && monthActual >= monthGoal;
     const notStarted = m > currentMonth;
     const diff = Math.abs(monthActual - monthGoal);
-    const diffCell = !monthGoal ? '<span class="muted">-</span>'
+    const diffCell = !monthGoal ? ''
       : notStarted ? '<span class="pending">未开始</span>'
         : `<span class="${monthOver ? 'over' : 'under'}">${monthOver ? '+' : '−'}${summaryMoney(diff, 'USD')}</span>`;
     return `
       <div class="target-history-row ${m === month ? 'selected' : ''}" role="button" tabindex="0" data-target-pick="${m}" aria-label="${escapeAttr(monthLabel(m))}，${monthGoal ? `目标 ${summaryMoney(monthGoal, 'USD')}，完成 ${monthRate}%` : '未设置目标'}"${m === month ? ' aria-current="true"' : ''}>
         <span class="target-history-month">${escapeAttr(monthLabel(m))}${m === currentMonth ? '<i class="target-history-now">当前</i>' : ''}</span>
-        <span class="target-history-amount">${monthGoal ? summaryMoney(monthGoal, 'USD') : '未设置'}</span>
+        <span class="target-history-amount">${monthGoal ? summaryMoney(monthGoal, 'USD') : ''}</span>
         <div class="target-history-values"><span>${summaryMoney(monthActual, 'USD')}</span>${diffCell}</div>
         <div class="target-history-progress">
           <div class="target-history-track"><div class="target-history-fill ${monthGoal ? (monthOver ? 'done' : '') : 'empty'}" style="width:${progress}%"></div></div>
-          <small class="target-history-rate ${monthGoal ? '' : 'empty'}">${monthGoal ? (notStarted ? '未开始' : monthRate + '%') : '未设'}</small>
+          <small class="target-history-rate ${monthGoal ? '' : 'empty'}">${monthGoal ? (notStarted ? '未开始' : monthRate + '%') : ''}</small>
         </div>
         <span class="target-history-count">${monthOrders.length}</span>
       </div>
@@ -20290,6 +20311,13 @@ function orderListFilterChips() {
   ].filter(Boolean);
   return [...extraChips, ...activeFilters];
 }
+// 列表「待收」金额：币种代码单独包一层，紧凑行距下不显示（同一格上一行的订单金额已经写了币种）；没有符号的币种照写代码。
+function orderListDueHtml(amount, currency) {
+  const text = money(amount, currency);
+  const def = currencyDef(currency);
+  if (!def.symbol || !text.endsWith(` ${def.code}`)) return escapeAttr(text);
+  return `${escapeAttr(text.slice(0, -def.code.length - 1))}<span class="order-table-due-code"> ${escapeAttr(def.code)}</span>`;
+}
 // 订单列表按现在的筛选和排序得到的全部订单（不分页）：列表本身和「只导出当前筛选的结果」用同一份。
 function orderListCurrentOrders() {
   const sort = document.getElementById('orderListSort')?.value || 'updatedDesc';
@@ -20362,7 +20390,7 @@ function renderOrderListPage() {
           </td>
           <td class="col-product"><div class="order-table-product"><strong>${escapeAttr(product.value)}</strong><span> · ${escapeAttr(boardPaymentLabel(payment.value))}</span></div><span class="order-table-sub">${escapeAttr(order.orderType || '')}</span></td>
           <td class="col-stage"><div class="order-table-stage"><span class="tag ${stage.tag}">${escapeAttr(stage.name)}</span>${order.isDraft ? '<span class="order-table-mini-flag">草稿</span>' : ''}${order.urgentOrder ? '<span class="order-table-mini-flag urgent">加急</span>' : ''}${logistics.partial ? `<span class="order-table-mini-flag partial" title="${escapeAttr(logistics.partial)}">${escapeAttr(logistics.partial.startsWith('部分发货') ? '部分发货' : logistics.partial)}</span>` : ''}</div></td>
-          <td class="col-money" title="已收 ${escapeAttr(money(paid, order.currency))}${escapeAttr(usdHint)}"><span class="order-table-money order-table-total">${money(order.amount, order.currency)}</span><span class="order-table-payline"><span class="order-table-paybar" aria-hidden="true"><i style="width:${Math.min(100, orderAmountValue(order) ? Math.round(paid / orderAmountValue(order) * 100) : 0)}%"></i></span>${due > 0 ? `<span class="order-table-due-line">待收 ${money(due, order.currency)}</span>` : ''}</span></td>
+          <td class="col-money" title="已收 ${escapeAttr(money(paid, order.currency))}${escapeAttr(usdHint)}"><span class="order-table-money order-table-total">${money(order.amount, order.currency)}</span><span class="order-table-payline"><span class="order-table-paybar" aria-hidden="true"><i style="width:${Math.min(100, orderAmountValue(order) ? Math.round(paid / orderAmountValue(order) * 100) : 0)}%"></i></span>${due > 0 ? `<span class="order-table-due-line">待收 ${orderListDueHtml(due, order.currency)}</span>` : ''}</span></td>
           <td class="col-logistics"><div class="order-table-logistics${logistics.exception ? ' exception' : ''}${logistics.missing ? ' missing' : ''}${logistics.none ? ' none' : ''}"><strong${logistics.none ? ' title="还没到发货阶段"' : ''}>${escapeAttr(logistics.status)}</strong><span class="order-table-sub" title="${escapeAttr([logistics.carrier, logistics.tracking].filter(Boolean).join(' '))}">${escapeAttr(logistics.carrier || '')}${logistics.carrier && logistics.tracking ? '  ' : ''}${escapeAttr(logistics.tracking || '')}</span></div></td>
           <td class="col-date"><span class="order-table-date">${escapeAttr(normalizeDate(order.createdAt || order.updated))}</span></td>
           <td class="col-action">${(() => {
@@ -30363,6 +30391,12 @@ document.getElementById('orderDetailDrawer').addEventListener('click', e => {
     retryOrderNotification(retryNotificationBtn.dataset.retryOrderNotification);
     return;
   }
+  if (e.target.closest('[data-detail-open-edit]')) {
+    e.preventDefault();
+    e.stopPropagation();
+    document.getElementById('detailEditBtn').click();
+    return;
+  }
   const customerBtn = e.target.closest('[data-order-open-customer]');
   if (customerBtn) {
     e.preventDefault();
@@ -33689,7 +33723,9 @@ function uiDashboardKpis() {
     const now = monthTotal(month);
     if (before > 0) {
       const pct = Math.round((now - before) / before * 100);
-      amountSub.insertAdjacentHTML('afterbegin', `<span class="${pct >= 0 ? 'up' : 'down'}" title="${isCurrent ? `本月 1–${todayDay} 日对比上月 1–${todayDay} 日` : '整月对比上月整月'}">比 ${escapeAttr(dashboardMonthName(prev))}${isCurrent ? '同期' : ''} ${pct >= 0 ? '+' : ''}${pct}%</span> · `);
+      // 环比是第一段：原来的第一段补上它前面的「 · 」（小字的分段见 statSubHtml）。
+      amountSub.querySelector('.stat-sub-part')?.prepend('· ');
+      amountSub.insertAdjacentHTML('afterbegin', `<span class="stat-sub-part"><span class="${pct >= 0 ? 'up' : 'down'}" title="${isCurrent ? `本月 1–${todayDay} 日对比上月 1–${todayDay} 日` : '整月对比上月整月'}">比 ${escapeAttr(dashboardMonthName(prev))}${isCurrent ? '同期' : ''} ${pct >= 0 ? '+' : ''}${pct}%</span></span> `);
     }
   }
   const dueOrders = state.orders.filter(o => !o.isDraft && orderDueValue(o) > 0);
@@ -33697,7 +33733,7 @@ function uiDashboardKpis() {
   if (paymentSub) {
     // 订单上没有尾款到期日，不说「逾期」：只数已确认订单里「下单超过 30 天还有欠款」的（不含报价单，不看最后修改时间）。
     const aged = dueOrders.filter(o => orderDueAged(o)).length;
-    paymentSub.textContent = dueOrders.length ? `历史累计 · 待收 ${dueOrders.length} 笔${aged ? ` · 下单超 ${dueAgeAlertDays} 天未收清 ${aged}` : ''}` : '历史累计 · 没有待收款';
+    paymentSub.innerHTML = statSubHtml(dueOrders.length ? ['历史累计', `待收 ${dueOrders.length} 笔`, aged ? `下单超 ${dueAgeAlertDays} 天未收清 ${aged}` : ''] : ['历史累计', '没有待收款']);
     paymentSub.title = aged ? `已确认的订单（生产中 / 待发货 / 已发货 / 已完成）里，下单已超过 ${dueAgeAlertDays} 天、还有欠款的有 ${aged} 笔。订单上没有尾款到期日，这不是付款逾期。` : '';
   }
   const tasksSub = document.getElementById('statTasksSub');
@@ -33706,7 +33742,8 @@ function uiDashboardKpis() {
     const items = buildTaskItems({ perOrder:true });
     const todayItems = todayTaskItems(items);
     const later = items.length - todayItems.length;
-    tasksSub.textContent = [...taskTypeBreakdown(todayItems), later ? `另有 ${later} 件即将到期` : ''].filter(Boolean).join(' · ') || '今天没有待办';
+    const parts = [...taskTypeBreakdown(todayItems), later ? `另有 ${later} 件即将到期` : ''];
+    tasksSub.innerHTML = statSubHtml(parts.some(Boolean) ? parts : ['今天没有待办']);
   }
   const goal = targetForMonth(month);
   const label = document.getElementById('statTargetLabel');

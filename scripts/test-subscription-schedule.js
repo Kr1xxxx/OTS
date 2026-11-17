@@ -211,7 +211,9 @@ assert.equal(switchedNow.mixedCurrency, true);
 assert.equal(switchedNow.nextCharge, '2027-01-05');
 assert.equal(call('subscriptionTermOffset', switched), 3);
 assert.equal(call('subscriptionFirstStart', switched), '2026-01-05');
-assert.equal(call('subscriptionTermTotals', switched, '2026-02-10', 7).charges, 2, 'only charges up to today count');
+// A term ends at the first charge not paid yet, so every charge in it was paid, whatever today is
+// (a manual renewal renewed early and then changed from the next period has one dated after today).
+assert.deepEqual(JSON.parse(JSON.stringify(call('subscriptionTermTotals', switched, 7))), { charges:3, spentCny:32 * 7, byCurrency:{ USD:32 } }, 'every charge under earlier settings counts');
 
 // Manual renewals with a confirmed date: a due date that passes without 「已续费」 is overdue, not paid.
 const domain = item({ startDate:'2025-04-10', cycleMonths:12, amount:60, autoRenew:false, renewedThrough:'2025-04-10' });

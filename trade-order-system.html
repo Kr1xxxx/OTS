@@ -10857,8 +10857,7 @@ function calendarEventsInRange(from, to) {
       // earlier settings shows that term's currency, type and payment method.
       subscriptionCharges(item, from, to, subscriptionState.usdCnyRate, { unpaid:true }).forEach(charge => {
         // 只有还没续的那几笔写「需要手动续费」：已确认续过的、提前续好的、历史设置下的，照自动续费写付款方式。
-        // 历史设置下的不问 subscriptionChargePaid：提前续好之后改了设置，那一期日期还没到，却是续过的。
-        const toRenew = charge.term === item && item.autoRenew === false && !subscriptionChargePaid(charge);
+        const toRenew = item.autoRenew === false && !subscriptionChargePaid(charge);
         events.push({ date:charge.date, type:'subscription', tone:'subscription', subId:item.id, ...named(item.name, '续费'), sub:[subscriptionMoney(charge.amount, charge.currency), charge.term.category, toRenew ? '需要手动续费' : charge.term.paymentMethod].filter(Boolean).join(' · ') });
       });
     });
@@ -26344,22 +26343,22 @@ function subscriptionManualTracked(item) {
 function subscriptionPaidMark(item, today = subscriptionLocalDate()) {
   return subscriptionManualTracked(item) ? item.renewedThrough : today;
 }
-// 当前设置下日期为 date 的这一笔：'paid' 已发生、'due' 到期了还没确认、'future' 还没到。历史设置（terms）下的扣费一律算已发生。
+// 当前设置下日期为 date 的这一笔：'paid' 已发生、'due' 到期了还没确认、'future' 还没到。历史设置（terms）下的扣费一律算已发生：
+// 一段历史设置到「付到哪天之后的第一期」为止（subscriptionFromNext 的 effective = schedule.renewsOn），里面每一期都付过，
+// 包括手动续费提前续好、日期还在今天之后的那一期，所以不再拿今天去卡它们的日期。
 function subscriptionChargeState(item, date, today = subscriptionLocalDate()) {
   if (date <= subscriptionPaidMark(item, today)) return 'paid';
   return date <= today ? 'due' : 'future';
 }
-// subscriptionCharges 交回来的一笔付了没有：历史设置（terms）下的照旧按日期，当前设置下的问 subscriptionChargeState。
+// subscriptionCharges 交回来的一笔付了没有：历史设置（terms）下的一律付过，当前设置下的问 subscriptionChargeState。
 function subscriptionChargePaid(charge, today = subscriptionLocalDate()) {
-  return charge.term !== charge.item ? charge.date <= today : subscriptionChargeState(charge.item, charge.date, today) === 'paid';
+  return charge.term !== charge.item || subscriptionChargeState(charge.item, charge.date, today) === 'paid';
 }
-function subscriptionTermTotals(item, today, rate) {
-  // Charges made under earlier settings, up to today.
+function subscriptionTermTotals(item, rate) {
+  // Charges made under earlier settings: every one before the term's end was paid (see subscriptionChargeState).
   const totals = { charges:0, spentCny:0, byCurrency:{} };
   subscriptionTerms(item).forEach(term => {
-    const last = subscriptionDateFromDay(subscriptionDayNumber(term.until) - 1);
-    const end = last < today ? last : today;
-    const count = subscriptionChargeIndex(term, end) + 1;
+    const count = subscriptionChargeIndex(term, subscriptionDateFromDay(subscriptionDayNumber(term.until) - 1)) + 1;
     if (count <= 0) return;
     const price = subscriptionPricer(term);
     for (let index = 0; index < count; index += 1) {
@@ -26414,7 +26413,7 @@ function subscriptionSchedule(item, today, rate) {
   const recurringCny = subscriptionToCny(item, recurringAmount, rate);
   const monthlyCny = unit === 'day' ? recurringCny * 365 / 12 / count : recurringCny / count;
   // Charges made under earlier settings (see subscriptionTerms) count in what was spent.
-  const past = subscriptionTermTotals(item, today, rate);
+  const past = subscriptionTermTotals(item, rate);
   const base = {
     cycleAmount, cycleCny, recurringAmount, monthlyCny, yearlyCny:monthlyCny * 12,
     charges:charges + past.charges, spent:spent + (past.byCurrency[item.currency] || 0), spentCny:subscriptionToCny(item, spent, rate) + past.spentCny,
@@ -27674,7 +27673,8 @@ function subscriptionPeriods(item, today, schedule) {
     const termPrice = subscriptionPricer(term);
     for (let index = 0; ; index += 1) {
       const date = subscriptionChargeDate(term, index);
-      if (date >= term.until || date > today) break;
+      // Every period under earlier settings was paid, one renewed early (dated after today) included.
+      if (date >= term.until) break;
       const next = subscriptionChargeDate(term, index + 1);
       const end = next < term.until ? next : term.until;
       periods.push({ index:offset + index, date, until:subscriptionDateFromDay(subscriptionDayNumber(end) - 1), past:true, current:false, amount:termPrice(date), currency:term.currency, term, old:true, cycleMonths:subscriptionCycle(term).unit === 'month' ? subscriptionCycle(term).count : 0 });
@@ -28224,7 +28224,7 @@ function openSubscriptionEditor(id = '', { resubscribe = false, origin = '' } = 
   // Re-subscribing starts a fresh billing cycle from today as a NEW record: the expired one stays as it is,
   // so its past charges keep counting in 历史 / 累计已付 / 分析. The price starts at the last recurring price paid.
   if (existing && resubscribe) {
-    const paid = schedule.charges - subscriptionTermTotals(existing, today, subscriptionState.usdCnyRate).charges;
+    const paid = schedule.charges - subscriptionTermTotals(existing, subscriptionState.usdCnyRate).charges;
     const lastCharge = subscriptionChargeDate(existing, Math.max(0, paid - 1));
     const recurring = subscriptionPriceChanges(existing).filter(change => !change.once);
     Object.assign(subscriptionDraft, {

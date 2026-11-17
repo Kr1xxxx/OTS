@@ -164,7 +164,9 @@ const data = {
     await page.evaluate(() => setPage('customers'));
     await page.waitForSelector('.customer-row[data-view-customer="Pay Only Buyer"]');
     const rows = await page.evaluate(() => Object.fromEntries(['john.smith@gmail.com', 'Pay Only Buyer'].map(name => [name, document.querySelector(`.customer-row[data-view-customer="${name}"]`).innerText.replace(/\s+/g, ' ')])));
-    assert.match(rows['john.smith@gmail.com'], /john\.smith@gmail\.com 联系人未填写 · john\.smith@gmail\.com/);
+    // 联系人没填：第二行只写邮箱，不写「联系人未填写」。
+    assert.match(rows['john.smith@gmail.com'], / john\.smith@gmail\.com john\.smith@gmail\.com 🇺🇸/);
+    assert.doesNotMatch(rows['john.smith@gmail.com'], /未填写/);
     assert.doesNotMatch(rows['john.smith@gmail.com'], /Gmail/);
     assert.match(rows['Pay Only Buyer'], /payonly@example\.com（付款邮箱）/);
 

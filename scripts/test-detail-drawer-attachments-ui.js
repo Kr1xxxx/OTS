@@ -41,6 +41,15 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
     });
     await page.route('**/attachments/**', route => route.fulfill({ contentType:'image/png', body:png }));
 
+    // 选文件用的图：页面里 canvas 画的普通 RGBA PNG（和订单弹窗的测试一样），不用手写的 1×1 灰度 PNG。
+    const picked = Buffer.from(await page.evaluate(() => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 160; canvas.height = 100;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#f3e8d7'; ctx.fillRect(0, 0, 160, 100);
+      ctx.fillStyle = '#0f8f81'; ctx.fillRect(16, 20, 128, 16);
+      return canvas.toDataURL('image/png').split(',')[1];
+    }), 'base64');
     const stored = id => store.current.data.orders.find(order => order.id === id);
     const panel = page.locator('#orderDetailBody [data-detail-tab="attachments"]');
     const busy = () => page.evaluate(() => Boolean(document.getElementById('orderDetailBody').dataset.attachmentBusy));
@@ -65,10 +74,13 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
     // ---- 选文件：进度卡、处理中不能离开，传完存进订单 ----
     hold = Promise.withResolvers ? Promise.withResolvers() : (() => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; })();
     const savesBefore = store.saves;
-    await panel.locator('[data-detail-attach-input]').setInputFiles({ name:'payment.png', mimeType:'image/png', buffer:png });
+    await panel.locator('[data-detail-attach-input]').setInputFiles({ name:'payment.png', mimeType:'image/png', buffer:picked });
     await page.waitForFunction(() => document.querySelectorAll('#orderDetailBody [data-detail-upload-list] [role="progressbar"]').length === 1);
     // 请求已经发到上传接口（被挡住）：卡片在「上传中 / 优化保存中」。
-    await page.waitForFunction(() => /上传中|优化保存中/.test(document.querySelector('#orderDetailBody [data-detail-upload-list] .image-upload-stage')?.textContent || ''), null, { timeout:5000 });
+    const cardState = () => page.evaluate(() => [...document.querySelectorAll('#orderDetailBody .image-upload-card')].map(card => `${card.dataset.state} ${card.getAttribute('aria-valuenow')}% ${card.querySelector('.image-upload-stage')?.textContent}`).join(' | '));
+    await page.waitForFunction(() => /上传中|优化保存中/.test(document.querySelector('#orderDetailBody [data-detail-upload-list] .image-upload-stage')?.textContent || '')).catch(async error => {
+      throw new Error(`图片没走到上传（上传接口收到 ${uploads.length} 次）：${await cardState()}\n${error.message}`);
+    });
     for (let tries = 0; !uploads.length && tries < 250; tries++) await page.waitForTimeout(20);
     assert.equal(uploads.length, 1, '图片发到了上传接口');
     assert(Number(await panel.locator('.image-upload-card').getAttribute('aria-valuenow')) < 100, '服务没确认前不能写 100%');
@@ -161,7 +173,7 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
     // ---- 上传失败：订单不动，失败的卡留着说原因 ----
     fail = true;
     const savesBeforeFail = store.saves;
-    await panel.locator('[data-detail-attach-input]').setInputFiles({ name:'broken.png', mimeType:'image/png', buffer:png });
+    await panel.locator('[data-detail-attach-input]').setInputFiles({ name:'broken.png', mimeType:'image/png', buffer:picked });
     await page.waitForFunction(() => document.querySelector('#orderDetailBody .image-upload-card[data-state="error"]'));
     await waitIdle();
     fail = false;
@@ -196,8 +208,8 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
     await panel.waitFor({ state:'visible' });
     const uploadsBefore = uploads.length;
     await panel.locator('[data-detail-attach-input]').setInputFiles([
-      { name:'one.png', mimeType:'image/png', buffer:png },
-      { name:'two.png', mimeType:'image/png', buffer:png }
+      { name:'one.png', mimeType:'image/png', buffer:picked },
+      { name:'two.png', mimeType:'image/png', buffer:picked }
     ]);
     await h.waitToast(page, '附件最多保留 20 个');
     assert.equal(uploads.length, uploadsBefore);

@@ -71,8 +71,16 @@ const orders = [
     assert.equal(await page.locator('#statTasks').innerText(), '5');
     assert.equal(await page.locator('#taskInboxFilters [data-task-filter="all"] .c').innerText(), '5');
     assert.equal(await page.locator('#taskInboxFilters [data-task-filter="logistics"] .c').innerText(), '4', '物流页签收发货期限、可以发货、补运单号');
-    assert.equal(await page.locator('#taskInboxFilters [data-task-filter="follow"] .c').innerText(), '0');
-    assert.equal(await page.locator('#taskInboxFilters [data-task-filter="urgent"] .c').innerText(), '0');
+    // 0 的页签变灰、不写「0」，读屏照样念「跟进，0 条」。
+    for (const [type, name] of [['follow', '跟进'], ['urgent', '加急']]) {
+      const tab = page.locator(`#taskInboxFilters [data-task-filter="${type}"]`);
+      assert.equal(await tab.locator('.c').count(), 0, `${type} tab writes no 0`);
+      assert.equal(await tab.innerText(), name);
+      assert.equal(await tab.getAttribute('aria-label'), `${name}，0 条`);
+      assert.ok(await tab.evaluate(el => el.classList.contains('is-empty')), `${type} tab is greyed`);
+    }
+    assert.equal(await page.locator('#taskInboxFilters [data-task-filter="all"]').getAttribute('aria-label'), '全部，5 条');
+    assert.equal(await page.locator('#taskInboxFilters [data-task-filter="all"]').evaluate(el => el.classList.contains('is-empty')), false);
     assert.equal(await page.locator('#statTasksSub').innerText(), '收款 1 · 发货期限 2 · 可以发货 1 · 补运单号 1');
     const m1Row = page.locator('#taskList .task[data-task-id="ship-m1"]');
     assert.match(await m1Row.locator('.task-sub').innerText(), / · 另有 加急、跟进$/);

@@ -1582,7 +1582,6 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
 }
 .customer-group-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .customer-group-title { color: var(--gray-900); }
-.customer-group-total { color: var(--gray-500); font-size: 12px; }
 .customer-group-list { display: grid; gap: 2px; }
 .customer-group-item {
   width: 100%; border: 0; background: transparent;
@@ -1604,7 +1603,6 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
 .customer-toolbar .inline-select:not(.segment-source) { height: 42px; min-height: 42px; }
 .customer-toolbar .segment-control { align-items: center; padding: 4px; }
 .customer-toolbar .segment-option { height: 34px; min-height: 34px; }
-.customer-toolbar-meta { white-space: nowrap; }
 .customer-summary-item {
   grid-template-columns: auto minmax(0, 1fr); align-items: baseline;
 }
@@ -3887,6 +3885,8 @@ html[data-theme] .customer-group-item { min-height:38px; padding:0 12px; border-
 html[data-theme] .customer-group-item.active { font-weight:600; }
 html[data-theme] .customer-group-item [class*="level-icon"] { display:none; }
 html[data-theme] .customer-group-count { color:var(--gray-500); font-weight:400; }
+/* 数量是 0 的分组、待办页签、通知页签：变灰、不写「0」；选中的照选中样式。 */
+html[data-theme] :is(.customer-group-item, .task-filter-bar .segment-option, .notif-tabs .segment-option).is-empty:not(.active) { color:var(--gray-400); }
 html[data-theme] .customer-main { display:flex; flex-direction:column; gap:14px; }
 /* 没有重复客户提醒时这个空容器还占一格间距，工具条比左边的分组卡低 14px。 */
 html[data-theme] #customerDuplicateAlerts:empty { display:none; }
@@ -3895,10 +3895,8 @@ html[data-theme] #customerDuplicateAlerts:empty { display:none; }
 html[data-theme] .customer-main .customer-toolbar { padding:0; border:0; background:transparent; gap:10px; flex-wrap:wrap; }
 html[data-theme] .customer-toolbar .search { flex:1 1 220px; width:auto; height:40px; min-height:40px; border-radius:999px; }
 html[data-theme] .customer-toolbar .search-action { display:none; }
-html[data-theme] #customerLevelSegments { display:none; }
 html[data-theme] .customer-toolbar select.inline-select, html[data-theme] .customer-toolbar .app-select { flex:none; width:auto; min-width:120px; height:40px; min-height:40px; border-radius:999px; }
 /* 统计文字可以被压短（省略号），不把「新建客户」挤到下一行。 */
-html[data-theme] .customer-toolbar-meta { margin-left:auto; min-width:0; flex:1 1 120px; max-width:max-content; overflow:hidden; text-overflow:ellipsis; font-size:12.5px; font-weight:400; color:var(--gray-500); }
 html[data-theme] .customer-toolbar .customer-toolbar-new { height:40px; min-height:40px; padding:0 16px; border-radius:999px; gap:6px; }
 html[data-theme] .customer-toolbar .customer-toolbar-new:hover { background:color-mix(in srgb, var(--gray-900) 86%, transparent); }
 /* 重复客户提醒：琥珀横幅 */
@@ -3945,7 +3943,6 @@ html[data-theme] .customer-row .paid-amount { color:var(--s-green); font-size:12
   html[data-theme] .customer-workspace-summary { grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
   html[data-theme] .customer-crm { grid-template-columns:1fr; }
   html[data-theme] .customer-groups { position:static; }
-  html[data-theme] .customer-toolbar-meta { margin-left:0; flex-basis:100%; }
 }
 html[data-theme] :is(.customer-summary-item strong, .customer-summary-item small) { overflow:visible; text-overflow:clip; white-space:normal; }
 /* 工作台：按原型重排的数字卡、看板卡片、列头、待办与最近订单 */
@@ -6169,7 +6166,6 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
         <aside class="customer-groups">
           <div class="customer-group-head">
             <div class="customer-group-title">客户分组</div>
-            <div class="customer-group-total" id="customerGroupTotal">0 个客户</div>
           </div>
           <div class="customer-group-list" id="customerGroups"></div>
         </aside>
@@ -6181,15 +6177,6 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
               <input id="customerSearch" type="search" placeholder="搜索姓名、邮箱、电话、地址、订单号">
               <button class="search-action" id="customerSearchBtn" type="button" title="搜索" aria-label="搜索"><svg class="ui-icon" aria-hidden="true"><use href="#i-arrow"/></svg></button>
             </div>
-            <select class="inline-select" id="customerLevelFilter">
-              <option value="all">全部等级</option>
-              <option>A级钻石客户</option>
-              <option>B级翡翠客户</option>
-              <option>C级白金客户</option>
-              <option>D级黄金客户</option>
-              <option>E级白银客户</option>
-              <option>F级青铜客户</option>
-            </select>
             <select class="inline-select" id="customerSort" aria-label="客户排序">
               <option value="recent">最近更新</option>
               <option value="sales">成交金额</option>
@@ -6197,7 +6184,6 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
               <option value="orders">订单数量</option>
               <option value="name">客户名称</option>
             </select>
-            <div class="customer-toolbar-meta" id="customerResultMeta">0 个结果</div>
             <button class="btn btn-primary customer-toolbar-new" type="button" data-new-customer><svg class="ui-icon" aria-hidden="true"><use href="#i-user-plus"/></svg><span>新建客户</span></button>
           </div>
           <div class="customer-table">
@@ -6999,7 +6985,6 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
                 <button type="button" role="tab" data-customer-detail-tab="whatsapp" aria-selected="false">WhatsApp 聊天记录</button>
                 <i class="tab-line" aria-hidden="true"></i>
               </nav>
-              <div class="customer-detail-section-meta" id="customerDetailOrdersMeta" data-customer-detail-meta="orders"></div>
               <div class="customer-detail-section-meta" data-customer-detail-meta="activity" hidden>资料、订单与跟进记录</div>
             </div>
             <div class="customer-detail-panel" data-customer-detail-panel="orders" id="customerDetailOrdersPanel">
@@ -21826,7 +21811,12 @@ function renderTasks() {
     const type = btn.dataset.taskFilter;
     btn.classList.toggle('active', type === taskInboxFilter);
     const n = type === 'snoozed' ? snoozedReminders.length : type === 'done' ? doneReminders.length : activeReminders.filter(item => matches(item, type)).length;
-    btn.innerHTML = `${{ all:'全部', payment:'收款', follow:'跟进', urgent:'加急', repurchase:'复购', logistics:'物流', snoozed:'稍后', done:'已处理' }[type] || btn.textContent}<span class="c">${n}</span>`;
+    const name = { all:'全部', payment:'收款', follow:'跟进', urgent:'加急', repurchase:'复购', logistics:'物流', snoozed:'稍后', done:'已处理' }[type] || btn.dataset.taskLabel || btn.textContent;
+    btn.dataset.taskLabel = name;
+    // 0 的页签变灰、不写「0」，照样能点；读屏念「收款，0 条」。
+    btn.classList.toggle('is-empty', !n);
+    btn.setAttribute('aria-label', `${name}，${n} 条`);
+    btn.innerHTML = n ? `${escapeAttr(name)}<span class="c">${n}</span>` : escapeAttr(name);
   });
   if (summaryEl) summaryEl.innerHTML = '';
   document.getElementById('statTasks').textContent = isMacAppMode() && !macStateReady ? '—' : dueToday.length;
@@ -22626,7 +22616,7 @@ function renderCustomerWorkspaceSummary(customers = []) {
     <div class="customer-summary-item"><span>待跟进</span><strong>${followups}</strong><small>${followups ? '复购日期已到' : '暂无到期提醒'}</small></div>
   `;
 }
-// 客户列表「跟进计划」格：今年的写 MM-DD，别的年份写 YYYY-MM-DD。
+// 客户列表「复购 / 更新」格：今年的写 MM-DD，别的年份写 YYYY-MM-DD。
 function customerUpdatedShort(value = '', today = normalizeDate(new Date().toISOString())) {
   if (parseDate(value).getFullYear() <= 1970) return String(value || '');
   const date = normalizeDate(value);
@@ -22643,38 +22633,39 @@ function renderCustomers() {
   if (!el) return;
   renderCustomerDuplicateAlerts();
   const query = document.getElementById('customerSearch')?.value.trim() || '';
-  const levelFilter = document.getElementById('customerLevelFilter')?.value || 'all';
   const baseCustomers = clientHistory().map(customerWorkspaceRecord);
+  // 等级只在左边分组里选（搜索框旁边的等级下拉去掉了，两处同时生效会筛空）。分组按设置里的等级列表生成：
+  // 六个默认等级的 id 照旧是 level-a … level-f，设置里加的等级用「level:等级名」。
+  const levelGroups = normalizeCustomerLevels(state.customerLevels || defaultCustomerLevels).map(level => {
+    const def = levelIconDef(level);
+    return { id:def === 'level-custom' ? `level:${level}` : def, name:level, level, test: c => c.level === level };
+  });
   const groupDefs = [
     { id:'all', name:'全部客户', test: () => true },
-    { id:'level-a', name:'A级钻石客户', level:'A级钻石客户', test: c => c.level === 'A级钻石客户' },
-    { id:'level-b', name:'B级翡翠客户', level:'B级翡翠客户', test: c => c.level === 'B级翡翠客户' },
-    { id:'level-c', name:'C级白金客户', level:'C级白金客户', test: c => c.level === 'C级白金客户' },
-    { id:'level-d', name:'D级黄金客户', level:'D级黄金客户', test: c => c.level === 'D级黄金客户' },
-    { id:'level-e', name:'E级白银客户', level:'E级白银客户', test: c => c.level === 'E级白银客户' },
-    { id:'level-f', name:'F级青铜客户', level:'F级青铜客户', test: c => c.level === 'F级青铜客户' },
+    ...levelGroups,
     { id:'paid', name:'已收全款客户', test: c => c.total > 0 && c.paid >= c.total },
     { id:'unpaid', name:'待收款客户', test: c => c.total > 0 && c.paid < c.total }
   ];
   if (!groupDefs.some(g => g.id === customerGroupFilter)) customerGroupFilter = 'all';
   const groupEl = document.getElementById('customerGroups');
   if (groupEl) {
-    groupEl.innerHTML = groupDefs.map(g => `
-      <button class="customer-group-item ${customerGroupFilter === g.id ? 'active' : ''}" data-customer-group="${g.id}">
-        <span>${renderLevelIcon(g.level)}${g.name}</span><span class="customer-group-count">${baseCustomers.filter(g.test).length}</span>
+    // 数量是 0 的分组变灰、不写「0」，位置和能不能点都不变；读屏照样念出「0 个」。
+    groupEl.innerHTML = groupDefs.map(g => {
+      const n = baseCustomers.filter(g.test).length;
+      return `
+      <button class="customer-group-item${customerGroupFilter === g.id ? ' active' : ''}${n ? '' : ' is-empty'}" data-customer-group="${escapeAttr(g.id)}" aria-label="${escapeAttr(`${g.name}，${n} 个`)}">
+        <span>${renderLevelIcon(g.level)}${escapeAttr(g.name)}</span>${n ? `<span class="customer-group-count">${n}</span>` : ''}
       </button>
-    `).join('');
+    `;
+    }).join('');
   }
-  const totalEl = document.getElementById('customerGroupTotal');
-  if (totalEl) totalEl.textContent = `${baseCustomers.length} 个客户`;
   const activeGroup = groupDefs.find(g => g.id === customerGroupFilter) || groupDefs[0];
   const sort = document.getElementById('customerSort')?.value || 'recent';
   const customers = baseCustomers.filter(c => {
     const orderText = c.orders.map(o => `${o.num || ''} ${o.trackingNumber || ''} ${o.note || ''}`).join(' ');
     const text = `${globalSearchText(c)} ${c.client} ${c.country || ''} ${c.productType || ''} ${c.paymentMethod || ''} ${c.paymentEmail || ''} ${c.tags.join(' ')} ${orderText}`;
     const queryOk = !query || searchTextMatches(text, query);
-    const levelOk = levelFilter === 'all' || c.level === levelFilter;
-    return queryOk && levelOk && activeGroup.test(c);
+    return queryOk && activeGroup.test(c);
   }).sort((a, b) => {
     if (sort === 'sales') return b.total - a.total || a.client.localeCompare(b.client);
     if (sort === 'due') return b.due - a.due || b.total - a.total;
@@ -22683,10 +22674,8 @@ function renderCustomers() {
     return parseDate(b.updated) - parseDate(a.updated) || a.client.localeCompare(b.client);
   });
   renderCustomerWorkspaceSummary(customers);
-  const resultMeta = document.getElementById('customerResultMeta');
-  if (resultMeta) resultMeta.textContent = `${customers.length} 个结果 · 成交 ${summaryMoney(customers.reduce((sum, c) => sum + c.total, 0), 'USD')} · 待收 ${summaryMoney(customers.reduce((sum, c) => sum + Number(c.due || 0), 0), 'USD')}`;
   el.innerHTML = `
-    <div class="customer-row head"><div>客户与联系</div><div>地区与地址</div><div>客户属性</div><div>订单动态</div><div>成交与收款</div><div>跟进计划</div></div>
+    <div class="customer-row head"><div>客户与联系</div><div>地区与地址</div><div>客户属性</div><div>订单动态</div><div>成交与收款</div><div>复购 / 更新</div></div>
     ${customers.map(c => {
       const contact = cleanContactValue(c.contact || '', c.address || '');
       const otherTags = c.tags.filter(tag => tag !== c.level);
@@ -22796,7 +22785,6 @@ function renderCustomerDetailView(name = '', data = {}) {
   const record = normalizeCustomerContactFields(customerWorkspaceRecord({ client:name, ...data }));
   const info = document.getElementById('customerDetailInfoGrid');
   const ordersEl = document.getElementById('customerDetailOrders');
-  const ordersMeta = document.getElementById('customerDetailOrdersMeta');
   const ordersCount = document.getElementById('customerDetailOrdersCount');
   const icon = id => `<svg class="ui-icon" aria-hidden="true"><use href="#i-${id}"/></svg>`;
   // 标题栏：客户编号、只读状态，第二行放等级 / 标签（以前正文里还有一张重复的姓名卡）。
@@ -22865,7 +22853,6 @@ function renderCustomerDetailView(name = '', data = {}) {
   if (ordersCount) ordersCount.textContent = record.orderCount ? String(record.orderCount) : '';
   // 标签页卡片的最小高度跟着订单笔数走（CSS 里按每行 57px 算，2–7 行），订单少时不留一大块空白。
   ordersEl?.closest('.customer-detail-tabs-card')?.style.setProperty('--customer-order-rows', String(record.sortedOrders.length));
-  if (ordersMeta) ordersMeta.textContent = `${record.orderCount} 个订单 · ${summaryMoney(record.total, 'USD')}`;
   if (ordersEl) ordersEl.innerHTML = record.sortedOrders.length ? record.sortedOrders.map(order => {
     const currency = order.currency || 'USD';
     const due = orderDueValue(order);
@@ -23621,13 +23608,6 @@ function fillStageSelects() {
     sel.innerHTML = '<option value="自动判断">自动判断</option>' + levels.map(level => `<option value="${escapeAttr(level)}">${escapeAttr(level)}</option>`).join('');
     sel.value = current === '自动判断' || levels.includes(current) ? current : '自动判断';
   });
-  const levelFilter = document.getElementById('customerLevelFilter');
-  if (levelFilter) {
-    const current = levelFilter.value || 'all';
-    const levels = normalizeCustomerLevels(state.customerLevels || defaultCustomerLevels);
-    levelFilter.innerHTML = '<option value="all">全部等级</option>' + levels.map(level => `<option>${escapeAttr(level)}</option>`).join('');
-    levelFilter.value = current === 'all' || levels.includes(current) ? current : 'all';
-  }
   document.querySelectorAll('select[name="productType"], select[name="defaultProductType"]').forEach(sel => {
     const current = sel.value;
     sel.innerHTML = productTypeDefs.map(item => `<option>${item.value}</option>`).join('');
@@ -30232,12 +30212,6 @@ document.getElementById('amountSideChart').addEventListener('click', e => {
   amountStructureView = btn.dataset.amountStructure;
   renderAmountReport();
 });
-document.getElementById('customerLevelSegments')?.addEventListener('click', e => {
-  const btn = e.target.closest('[data-segment-value]');
-  if (!btn) return;
-  document.getElementById('customerLevelFilter').value = btn.dataset.segmentValue;
-  render();
-});
 document.getElementById('boardProductFilter').addEventListener('click', e => {
   const btn = e.target.closest('[data-board-product]');
   if (!btn) return;
@@ -31174,7 +31148,6 @@ document.getElementById('customerSearch').addEventListener('keydown', e => {
     renderCustomers();
   }
 });
-document.getElementById('customerLevelFilter').addEventListener('change', render);
 document.getElementById('customerSort').addEventListener('change', renderCustomers);
 document.querySelector('.settings-menu').addEventListener('click', e => {
   const btn = e.target.closest('[data-settings-tab]');
@@ -33038,7 +33011,13 @@ function uiRenderNotifs() {
     const key = btn.dataset.notifTab;
     btn.classList.toggle('active', key === tab);
     btn.setAttribute('aria-pressed', String(key === tab));
-    btn.innerHTML = `${tabNames[key] || btn.textContent}<span class="c">${key === 'all' ? items.length : items.filter(item => item.kind === key).length}</span>`;
+    const name = tabNames[key] || btn.dataset.notifLabel || btn.textContent;
+    btn.dataset.notifLabel = name;
+    const n = key === 'all' ? items.length : items.filter(item => item.kind === key).length;
+    // 0 的页签变灰、不写「0」，照样能点；读屏念「错误，0 条」。
+    btn.classList.toggle('is-empty', !n);
+    btn.setAttribute('aria-label', `${name}，${n} 条`);
+    btn.innerHTML = n ? `${escapeAttr(name)}<span class="c">${n}</span>` : escapeAttr(name);
   });
   const list = items.filter(item => tab === 'all' || item.kind === tab);
   const icons = { error:'alert', success:'check', info:'info' };

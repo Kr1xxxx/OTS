@@ -10526,13 +10526,21 @@ function buildTaskItems({ includeDone = false, includeSnoozed = false, perOrder 
   const today = normalizeDate(new Date().toISOString());
   const orderTasks = state.orders.flatMap(o => {
     const reminders = [];
-    // Drafts and finished orders need nothing more; a shipped order only still needs its parcel watched.
-    if (o.isDraft || o.stage === 'done') return reminders;
-    const settled = isSettledStage(o.stage);
+    if (o.isDraft) return reminders;
     const due = orderDueValue(o);
-    const latestDays = daysUntil(o.latestShipDate);
     const fallbackDate = today;
     const title = clientDisplayName(o.client);
+    // 收款提醒：待发货、已发货、已完成还欠钱都出（阶段不动钱，用户 2026-11-18）；生产中不催。
+    // 「已催款」后 3 天再提醒，收到一笔钱（已收变了）立刻按新欠款提醒，收齐后消失。
+    const paymentReminder = () => {
+      const age = orderAgeDays(o);
+      const dunned = lastDunningDate(o);
+      return { id:`payment-${o.id}`, doneKey:`payment-${o.id}-${orderPaidValue(o)}`, remindAgainDays:paymentRemindAgainDays, orderId:o.id, client:o.client, date:fallbackDate, type:'payment', title, reason:`待收款 ${money(due, o.currency)}`, detail:`${o.num} · ${stageDef(o.stage).name} · 下单 ${age} 天`, value:dunned ? `上次催款 ${dunned.slice(5)}` : '', tag:'收款', tagClass:'tag-green', priority:2, sortWeight:age };
+    };
+    // 已完成的单只剩钱要管：DHL / FedEx 全部签收就自动移到已完成，不看钱收没收齐，所以还欠钱的照样提醒收款。
+    if (o.stage === 'done') return due > 0 ? [paymentReminder()] : reminders;
+    const settled = isSettledStage(o.stage);
+    const latestDays = daysUntil(o.latestShipDate);
     const logisticsIssue = logisticsIssueTask(o, fallbackDate);
     const logisticsRisk = logisticsRiskTask(o, fallbackDate);
     const followReminder = orderFollowReminder(o, today);
@@ -10564,12 +10572,7 @@ function buildTaskItems({ includeDone = false, includeSnoozed = false, perOrder 
       const shippedDays = o.shippedAt ? daysBetween(o.shippedAt) : 0;
       reminders.push({ id:`tracking-${o.id}`, doneKey:`tracking-${o.id}`, orderId:o.id, client:o.client, date:fallbackDate, type:'tracking', title, reason:'已发货，还没填运单号', detail:`${o.num} · 发货 ${shippedDays} 天`, value:'', tag:'补运单号', tagClass:'tag-orange', priority:2 });
     }
-    // 待发货、已发货还欠钱：收款提醒（进已发货不再算收齐，用户 2026-11-18）。已完成的单没有待办，欠款由待收款卡兜着。
-    if (due > 0 && (o.stage === 'balance' || o.stage === 'shipment')) {
-      const age = orderAgeDays(o);
-      const dunned = lastDunningDate(o);
-      reminders.push({ id:`payment-${o.id}`, doneKey:`payment-${o.id}-${orderPaidValue(o)}`, remindAgainDays:paymentRemindAgainDays, orderId:o.id, client:o.client, date:fallbackDate, type:'payment', title, reason:`待收款 ${money(due, o.currency)}`, detail:`${o.num} · ${stageDef(o.stage).name} · 下单 ${age} 天`, value:dunned ? `上次催款 ${dunned.slice(5)}` : '', tag:'收款', tagClass:'tag-green', priority:2, sortWeight:age });
-    }
+    if (due > 0 && (o.stage === 'balance' || o.stage === 'shipment')) reminders.push(paymentReminder());
     if (followReminder) reminders.push(followReminder);
     return reminders;
   });

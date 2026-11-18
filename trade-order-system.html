@@ -5116,6 +5116,8 @@ html[data-theme] .target-ring-text { position:absolute; inset:0; display:flex; f
 html[data-theme] .target-ring-text strong { font-size:30px; font-weight:600; letter-spacing:-.03em; color:var(--gray-900); line-height:1; }
 html[data-theme] .target-ring-text span { color:var(--gray-500); font-size:12.5px; }
 html[data-theme] #targetProgressText { font-size:12.5px; color:var(--gray-600); }
+/* 没设目标的月份不出「清除这个月的目标」（.link-btn 的 display 盖过了 hidden，以前一直显示，点了什么也不做）。 */
+html[data-theme] .target-clear-btn[hidden] { display:none; }
 /* 近月记录表 */
 html[data-theme] .target-history-card { margin:0; padding:20px 22px; border:1px solid var(--surface-border); border-radius:var(--radius-panel); display:flex; flex-direction:column; gap:14px; }
 html[data-theme] .target-history-table { border:1px solid var(--surface-border); border-radius:18px; overflow:hidden; }

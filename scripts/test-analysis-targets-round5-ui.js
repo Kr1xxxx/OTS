@@ -113,6 +113,7 @@ const varColor = (page, name, prop = 'color') => page.evaluate(([name, prop]) =>
     await page.waitForFunction(() => document.getElementById('page-targets')?.classList.contains('active'));
     assert.equal(await page.locator('#page-targets .target-metrics, #page-targets .target-metric').count(), 0);
     assert.equal(await page.locator('#targetProgressText').innerText(), '11 月还没设目标 · 已完成 $14,500 · 3 单');
+    assert.equal(await page.locator('#clearTargetBtn').isVisible(), false, 'no 清除 link without a goal');
     await page.locator('#targetMonth').selectOption('2026-12');
     assert.equal(await page.locator('#targetProgressText').innerText(), '12 月还没设目标', 'a month without orders says only that');
     await page.locator('#targetMonth').selectOption('2026-11');

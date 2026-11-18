@@ -87,7 +87,7 @@ async function quickPaid(page, id, expectedPaid) {
     assert.equal(await rowOf(page, 'o7').locator('.col-customer .order-table-sub').innerText(), '🇬🇧 英国');
     assert.equal(await rowOf(page, 'o2').locator('.col-customer .order-table-sub').innerText(), '🌐 其他 Other', 'an empty country is read as 其他 (shown as before), never 未填写');
     const logistics = async id => (await rowOf(page, id).locator('.order-table-logistics strong').innerText()).trim();
-    assert.equal(await logistics('o2'), '—', 'a quote has no shipping yet');
+    assert.equal(await logistics('o2'), '', 'a quote has no shipping yet: the cell stays empty');
     assert.equal(await logistics('o3'), '待补单号', 'shipped without a tracking number');
     assert.equal(await logistics('o4'), '待补单号', 'done without a tracking number');
     assert.equal(await logistics('o5'), '运输中 · 未填运单', 'a status of its own stays as it was');

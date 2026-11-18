@@ -326,8 +326,6 @@ button { cursor: pointer; }
   box-shadow: 0 0 0 3px rgba(156,163,175,.14), 0 0 10px rgba(156,163,175,.35);
 }
 .api-status-dot[data-api-check="ai"] { cursor: default; }
-.settings-api-strip { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
-.settings-api-strip .api-status-dot { font-size: 12px; justify-content: flex-start; gap: 10px; }
 html[data-theme] .board-column-head .board-column-title { white-space: nowrap; flex: 1 1 auto; min-width: 0; }
 html[data-theme] .board-column-head .board-column-meta { flex: none; }
 .nav-item { position: relative; }
@@ -351,7 +349,6 @@ html[data-theme] .board-column-head .board-column-meta { flex: none; }
 .api-status-dot.ok::before { box-shadow: 0 0 0 3px rgba(34,197,94,.18), 0 0 10px rgba(34,197,94,.6); }
 .api-status-dot.bad::before { box-shadow: 0 0 0 3px rgba(239,68,68,.18), 0 0 10px rgba(239,68,68,.55); }
 .api-status-dot.checking::before { box-shadow: 0 0 0 3px rgba(245,158,11,.18), 0 0 10px rgba(245,158,11,.6); }
-.api-status-name { color: var(--gray-700); overflow: hidden; text-overflow: ellipsis; }
 .api-status-state { margin-left: auto; }
 .top-actions { margin-left: auto; display: flex; align-items: center; }
 .btn {
@@ -1359,7 +1356,6 @@ html[data-theme="dark"] .binary-option { color: #d7d7d7; }
 .order-notification-option small.is-warning, .detail-switch small.is-warning { color: var(--orange-700, var(--orange-600)); }
 .feishu-status { display: grid; gap: 6px; margin-bottom: 12px; color: var(--gray-700); font-size: 13px; line-height: 1.5; }
 .feishu-status-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.api-feishu-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; color: var(--gray-700); font-size: 13px; }
 .order-notification-detail-error { color: var(--orange-600); font-size: 12px; font-weight: 600; }
 .history { display: flex; flex-direction: column; gap: 10px; }
 .log { display: grid; grid-template-columns: 10px minmax(0, 1fr); gap: 10px; }
@@ -3392,10 +3388,6 @@ html[data-theme] .nav-glide { position:absolute; left:0; top:0; z-index:-1; bord
   transition:transform var(--motion-spring) var(--ease-spring), height var(--motion-spring) var(--ease-spring), width var(--motion-spring) var(--ease-spring); }
 html[data-theme] .nav-glide.no-t { transition:none; }
 html[data-theme] .api-status-strip { gap:2px; }
-/* 设置里的接口状态：三项各占 180px，状态字被推到格子最右边，紧贴着下一项的圆点。改成一项挨一项。 */
-html[data-theme] .settings-api-strip { display:flex; flex-wrap:wrap; gap:4px 16px; max-width:none; }
-html[data-theme] .settings-api-strip .api-status-dot { flex:none; width:auto; min-height:32px; max-width:none; padding:0 10px; }
-html[data-theme] .settings-api-strip .api-status-state { margin-left:0; }
 /* 备份目录还是默认目录时备份信息那行末尾的提醒句（提醒色，和「目录不可用」那句同一行） */
 html[data-theme] .backup-info .backup-local-hint { color:var(--s-amber); }
 html[data-theme] .api-status-dot { min-height:26px; border:0; border-radius:8px; background:transparent; box-shadow:none; padding:0 4px; gap:8px; font-size:13px; font-weight:400; color:var(--gray-600); }
@@ -3857,6 +3849,8 @@ html[data-theme="dark"] .subs-chart-key i.plan { background:color-mix(in oklab, 
 /* 续费详情「周期费用」里并起来的未来几期：一行字加「展开」。 */
 html[data-theme] .subs-per.fold { display:flex; align-items:center; gap:10px; min-height:44px; color:var(--a-muted); font-size:12px; font-variant-numeric:tabular-nums; }
 html[data-theme] .subs-per.fold b { color:var(--a-ink-2); font-weight:600; }
+/* 「展开」和同一行的「第 6 到 10 期都是 …」竖直居中对齐（按钮原来贴着行顶，高出 3 像素）。 */
+html[data-theme] .subs-per.fold .subs-pers-more { align-self:center; }
 html[data-theme] .subs-grp-h { grid-column:1 / -1; margin:0 0 -4px; padding-left:2px; color:var(--a-ink); font:600 14px/1.3 var(--a-display); letter-spacing:0; }
 html[data-theme] .subs-grp-h small { margin-left:6px; color:var(--a-muted); font:400 12px var(--a-sans); }
 /* hidden 要真的藏住：基础层的 .subs-field { display:flex } 会盖掉它（编辑已有项时「下次扣费日」曾照样显示） */
@@ -4765,7 +4759,6 @@ html[data-theme] .order-table-view:hover { color:var(--accent); }
 html[data-theme="dark"] .order-table-paybar { background:var(--gray-200); }
 html[data-theme] .order-table-payline { display:block; }
 /* 没有单号：还没到发货的只放一道淡色「—」，已发货 / 已完成的「待补单号」用提醒色。 */
-html[data-theme] .order-table-logistics.none strong { color:var(--gray-400); font-weight:400; }
 html[data-theme] .order-table-logistics.missing strong { color:var(--s-amber); }
 /* 行距切换在列表右上角（「已删除」后面），和左边的快捷筛选一样大。筛选工具栏在最小窗口下已经排满一行，放不下它。 */
 html[data-theme] .order-list-density.segment-control { display:inline-flex; width:auto; margin:0; flex:none; }
@@ -5380,12 +5373,18 @@ html[data-theme] .tracking-group-line { color:var(--gray-600); font-size:12px; }
 }
 /* 设置 › 订单设置：改不了的「默认订单类型」只是一行说明，和旁边的输入框一样高。 */
 html[data-theme] .settings-fixed-note { display:flex; align-items:center; min-height:var(--field-h, var(--control-height)); color:var(--gray-600); font-size:13px; }
-/* 设置 › 接口状态：圆点下面 DHL、FedEx 各一行最近调用（从物流页顶部挪来）。 */
-html[data-theme] .api-call-lines { display:grid; gap:4px; margin-top:6px; padding:0 10px; }
-html[data-theme] .api-call-line { display:flex; align-items:baseline; gap:10px; min-width:0; color:var(--gray-600); font-size:12.5px; }
-html[data-theme] .api-call-line b { flex:none; min-width:44px; color:var(--gray-900); font-weight:500; }
-html[data-theme] .api-call-line span { min-width:0; overflow-wrap:anywhere; }
-html[data-theme] .api-call-line.bad span { color:var(--s-red); }
+/* 设置 › 接口状态：一个接口一行（名字 · 状态 · 最近调用 · 去设置的链接）。最近调用从物流页顶部挪来。 */
+html[data-theme] .api-status-list { display:block; padding-top:4px; padding-bottom:4px; }
+html[data-theme] .api-status-row { display:grid; grid-template-columns:96px 110px minmax(0,1fr) auto; gap:12px; align-items:center; min-height:44px; padding:6px 0; border-top:1px solid var(--hairline); }
+html[data-theme] .api-status-row:first-child { border-top:0; }
+html[data-theme] .api-status-row-name { color:var(--gray-900); font-size:13px; font-weight:500; }
+html[data-theme] .api-status-list .api-status-dot { justify-self:start; width:auto; min-height:30px; padding:0 8px; margin-left:-8px; }
+html[data-theme] .api-status-list .api-status-state { margin-left:0; font-size:13px; }
+html[data-theme] .api-status-dot.api-status-static { cursor:default; }
+html[data-theme] .api-status-dot.api-status-static:hover { background:transparent; }
+html[data-theme] .api-status-list .api-status-link { margin-left:0; }
+html[data-theme] .api-call-line { min-width:0; color:var(--gray-600); font-size:12.5px; overflow-wrap:anywhere; }
+html[data-theme] .api-call-line.bad { color:var(--s-red); }
 /* 物流页「查物流」：说明一行，句尾「？识别规则」点开一块小浮层（按标题那一块定位，不会伸出卡片）。 */
 html[data-theme] .logistics-query-heading { position:relative; }
 html[data-theme] .tracking-rules-btn { height:24px; margin-left:6px; padding:0 9px; border:1px solid var(--surface-border-strong); border-radius:999px; background:transparent; color:var(--gray-700); font:inherit; font-size:12px; line-height:1; cursor:pointer; vertical-align:baseline; }
@@ -6437,16 +6436,13 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
             </div>
           </div>
           <div class="settings-panel" data-settings-panel="api">
-            <div class="section-head"><div><div class="section-title">接口状态</div><div class="section-meta">DHL / FedEx / AI 识别的连接检测；有异常时侧栏「设置」上会出现红点</div></div></div>
-            <div class="settings-card">
-              <div><strong>API 检测</strong><div class="muted">点一下重新检测。密钥在「物流追踪」和「AI 识别」里维护。</div></div>
-              <div class="api-status-strip settings-api-strip" id="apiStatusStrip" aria-label="API 连接状态">
-                <button class="api-status-dot" type="button" data-api-check="dhl" title="DHL API：未检测"><span class="api-status-name">DHL</span><span class="api-status-state">未测</span></button>
-                <button class="api-status-dot" type="button" data-api-check="fedex" title="FedEx API：未检测"><span class="api-status-name">FedEx</span><span class="api-status-state">未测</span></button>
-                <button class="api-status-dot" type="button" data-api-check="ai" title="AI API：未检测" onmouseenter="refreshAiUsage()" onfocus="refreshAiUsage()"><span class="api-status-name">AI 识别</span><span class="api-status-state">未测</span></button>
-              </div>
-              <div class="api-call-lines" id="trackingApiCallLines" aria-label="DHL 和 FedEx 最近调用"></div>
-              <div class="api-feishu-line"><span id="apiFeishuLine">飞书通知：读取中…</span><button class="btn btn-small" type="button" data-open-feishu-settings>飞书设置</button></div>
+            <div class="section-head"><div><div class="section-title">接口状态</div><div class="section-meta">点状态重新检测。有异常时侧栏「设置」上会出现红点。</div></div></div>
+            <!-- 一个接口一行：名字 · 状态（点一下重新检测）· 最近调用 · 去填密钥的页签。 -->
+            <div class="settings-card api-status-list" id="apiStatusStrip" aria-label="API 连接状态">
+              <div class="api-status-row" data-api-row="dhl"><span class="api-status-row-name">DHL</span><button class="api-status-dot" type="button" data-api-check="dhl" title="DHL API：未检测"><span class="api-status-state">未测</span></button><span class="api-call-line" data-api-call="dhl"></span><button class="link-btn api-status-link" type="button" data-settings-jump="tracking-api">物流追踪 <span aria-hidden="true">→</span></button></div>
+              <div class="api-status-row" data-api-row="fedex"><span class="api-status-row-name">FedEx</span><button class="api-status-dot" type="button" data-api-check="fedex" title="FedEx API：未检测"><span class="api-status-state">未测</span></button><span class="api-call-line" data-api-call="fedex"></span><button class="link-btn api-status-link" type="button" data-settings-jump="tracking-api">物流追踪 <span aria-hidden="true">→</span></button></div>
+              <div class="api-status-row" data-api-row="ai"><span class="api-status-row-name">AI 识别</span><button class="api-status-dot" type="button" data-api-check="ai" title="AI API：未检测" onmouseenter="refreshAiUsage()" onfocus="refreshAiUsage()"><span class="api-status-state">未测</span></button><span></span><button class="link-btn api-status-link" type="button" data-settings-jump="ai">AI 识别 <span aria-hidden="true">→</span></button></div>
+              <div class="api-status-row" data-api-row="feishu"><span class="api-status-row-name">飞书通知</span><span class="api-status-dot api-status-static" id="apiFeishuState"><span class="api-status-state" id="apiFeishuLine">读取中…</span></span><span></span><button class="link-btn api-status-link" type="button" data-open-feishu-settings>飞书通知 <span aria-hidden="true">→</span></button></div>
             </div>
           </div>
           <div class="settings-panel" data-settings-panel="feishu">
@@ -7872,7 +7868,11 @@ function renderFeishuSettingsStatus() {
     ? `${status.lastSentAt ? `<div>上次成功发送：${escapeAttr(status.lastSentAt)}</div>` : ''}${status.lastError ? `<div class="order-notification-detail-error">最近一次失败：${escapeAttr(status.lastError)}</div>` : ''}`
     : '';
   if (box) box.innerHTML = `<div class="feishu-status-row">${tag}<span>${detail}</span></div>${extra}`;
-  if (apiLine) apiLine.textContent = plain;
+  // 设置 › 接口状态的飞书那一行：名字已经在行首，状态字去掉「飞书通知：」；配置好了圆点是绿的。
+  if (apiLine) {
+    apiLine.textContent = plain.replace(/^飞书通知：/, '');
+    apiLine.closest('.api-status-dot')?.classList.toggle('ok', Boolean(status?.configured));
+  }
   const form = document.getElementById('feishuSettingsForm');
   if (form && status && status.ok !== false) {
     form.elements.profile.placeholder = status.profileSaved ? '已保存（不显示），留空表示不改' : '例如 ots-bot';
@@ -20414,7 +20414,7 @@ function orderListFiltersFromControls() {
   };
 }
 // 列表「物流」列：状态按全部批次汇总（「异常 1/3 批」「部分签收 1/2」），单号写第一批，多批时后面注明「等 3 批」。
-// 没有单号时：已发货 / 已完成的单写「待补单号」（和物流页一个说法，missing）；还没到发货的单只放一道淡色「—」（none），
+// 没有单号时：已发货 / 已完成的单写「待补单号」（和物流页一个说法，missing）；还没到发货的单这一格留空（none），
 // 不再每行写「未填写运单」；物流状态已经往前走了的（运输中、异常…）照旧写「状态 · 未填运单」。只管显示，筛选不看这里。
 function orderListLogisticsDisplay(order = {}) {
   const summary = orderLogisticsSummary(order);
@@ -20422,7 +20422,7 @@ function orderListLogisticsDisplay(order = {}) {
   const notMoved = !summary.status || summary.status === '未发货';
   const missing = !tracking && (notMoved || summary.status === '已发货') && isSettledStage(normalizeStage(order.stage));
   const none = !tracking && !missing && notMoved;
-  const status = tracking ? summary.label : (missing ? '待补单号' : (none ? '—' : `${summary.status} · 未填运单`));
+  const status = tracking ? summary.label : (missing ? '待补单号' : (none ? '' : `${summary.status} · 未填运单`));
   const first = summary.shipments[0];
   const carrier = tracking ? (first?.carrier && first.carrier !== 'auto' ? first.carrier : (['DHL','FedEx','UPS'].includes(order.carrier) ? order.carrier : detectCarrier(tracking))) : '';
   return { tracking:summary.total > 1 ? `${tracking} 等 ${summary.total} 批` : tracking, status, carrier, exception:summary.status === '异常', missing, none, partial:orderShipmentProgressLabel(order) };
@@ -20592,7 +20592,7 @@ function renderOrderListPage() {
           <td class="col-product"><div class="order-table-product"><strong>${escapeAttr(product.value)}</strong><span> · ${escapeAttr(boardPaymentLabel(payment.value))}</span></div><span class="order-table-sub">${escapeAttr(order.orderType || '')}</span></td>
           <td class="col-stage"><div class="order-table-stage"><span class="tag ${stage.tag}">${escapeAttr(stage.name)}</span>${order.isDraft ? '<span class="order-table-mini-flag">草稿</span>' : ''}${order.urgentOrder ? '<span class="order-table-mini-flag urgent">加急</span>' : ''}${logistics.partial ? `<span class="order-table-mini-flag partial" title="${escapeAttr(logistics.partial)}">${escapeAttr(logistics.partial.startsWith('部分发货') ? '部分发货' : logistics.partial)}</span>` : ''}</div></td>
           <td class="col-money" title="已收 ${escapeAttr(money(paid, order.currency))}${escapeAttr(usdHint)}"><span class="order-table-money order-table-total">${money(order.amount, order.currency)}</span><span class="order-table-payline"><span class="order-table-paybar" aria-hidden="true"><i style="width:${Math.min(100, orderAmountValue(order) ? Math.round(paid / orderAmountValue(order) * 100) : 0)}%"></i></span>${due > 0 ? `<span class="order-table-due-line">待收 ${orderListDueHtml(due, order.currency)}</span>` : ''}</span></td>
-          <td class="col-logistics"><div class="order-table-logistics${logistics.exception ? ' exception' : ''}${logistics.missing ? ' missing' : ''}${logistics.none ? ' none' : ''}"><strong${logistics.none ? ' title="还没到发货阶段"' : ''}>${escapeAttr(logistics.status)}</strong><span class="order-table-sub" title="${escapeAttr([logistics.carrier, logistics.tracking].filter(Boolean).join(' '))}">${escapeAttr(logistics.carrier || '')}${logistics.carrier && logistics.tracking ? '  ' : ''}${escapeAttr(logistics.tracking || '')}</span></div></td>
+          <td class="col-logistics"><div class="order-table-logistics${logistics.exception ? ' exception' : ''}${logistics.missing ? ' missing' : ''}${logistics.none ? ' none' : ''}"><strong>${escapeAttr(logistics.status)}</strong><span class="order-table-sub" title="${escapeAttr([logistics.carrier, logistics.tracking].filter(Boolean).join(' '))}">${escapeAttr(logistics.carrier || '')}${logistics.carrier && logistics.tracking ? '  ' : ''}${escapeAttr(logistics.tracking || '')}</span></div></td>
           <td class="col-date"><span class="order-table-date">${escapeAttr(normalizeDate(order.createdAt || order.updated))}</span></td>
           <td class="col-action">${(() => {
             // 草稿不在列表上收款 / 推进：要先在详情里转为正式订单。
@@ -20959,21 +20959,22 @@ function trackingApiMiniTime(value) {
   const text = String(value || '').trim();
   return text ? text.replace(/^(\d{4})[-/年]?/, '').replace(/^(\d{1,2})月/, '$1月') : '尚未查询';
 }
-// 设置 › 接口状态：DHL、FedEx 各一行「最近调用 时间 · 调用情况」。只有这四个已存的值，没有按天的次数。
+// 设置 › 接口状态：DHL、FedEx 那两行中间一格写「最近调用 时间 · 调用情况」。只有这四个已存的值，没有按天的次数。
 function renderTrackingApiCallLines() {
-  const el = document.getElementById('trackingApiCallLines');
-  if (!el) return;
   const settings = getTrackingApiSettings();
   const rows = [
     { name:'DHL', at:settings.lastDhlCheckedAt, status:settings.lastDhlStatus },
     { name:'FedEx', at:settings.lastFedexCheckedAt, status:settings.lastFedexStatus }
   ];
-  el.innerHTML = rows.map(row => {
+  rows.forEach(row => {
+    const el = document.querySelector(`#apiStatusStrip [data-api-call="${row.name.toLowerCase()}"]`);
+    if (!el) return;
     const queried = Boolean(String(row.at || '').trim() || String(row.status || '').trim());
     const text = queried ? [String(row.at || '').trim() && `最近调用 ${trackingApiMiniTime(row.at)}`, row.status && trackingStatusTextWithEmoji(row.status)].filter(Boolean).join(' · ') : '尚未查询';
-    const cls = queried && row.status ? trackingApiMiniStatusClass(row.status) : '';
-    return `<div class="api-call-line ${cls}" data-api-call="${row.name.toLowerCase()}" title="${escapeAttr(row.name)}：${escapeAttr(text)}"><b>${row.name}</b><span>${escapeAttr(text)}</span></div>`;
-  }).join('');
+    el.className = `api-call-line ${queried && row.status ? trackingApiMiniStatusClass(row.status) : ''}`.trim();
+    el.title = `${row.name}：${text}`;
+    el.textContent = text;
+  });
 }
 // 每个结果都带上按哪家查的（carrier），写回订单时只写承运商一致的批次。
 async function queryTrackingStatus(clean, carrier) {
@@ -29991,6 +29992,11 @@ document.addEventListener('pointerdown', e => {
   if (!e.target.closest('.topbar .search')) closeGlobalSearchPanel();
 });
 document.getElementById('apiStatusStrip').addEventListener('click', e => {
+  const jump = e.target.closest('[data-settings-jump]');
+  if (jump) {
+    document.querySelector(`.settings-menu [data-settings-tab="${jump.dataset.settingsJump}"]`)?.click();
+    return;
+  }
   const btn = e.target.closest('[data-api-check]');
   if (!btn) return;
   checkApiStatus(btn.dataset.apiCheck);

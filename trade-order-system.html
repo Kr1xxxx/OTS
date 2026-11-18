@@ -17921,15 +17921,18 @@ function renderOrderAttachments(list = []) {
     </div>
   `).join('') : '<div class="muted">暂无附件记录。</div>';
 }
+// 列表里那张 88×46 的小图用上传时一起存的缩略图（最长边 720）；点开预览才读整张图。
+// 以前小图也读整张（最长边 2560），一张单十几张截图就是十几张大图同时解码，缩略图存了却从没用上。
 function attachmentPreviewButton(item = {}, variant = 'attachment') {
   const image = item.fileUrl || item.thumbUrl || '';
   const source = item.fileUrl || item.link || image;
   if (!image) return '';
+  const thumb = item.thumbUrl || image;
   const name = item.name || item.type || '图片附件';
   const btnClass = variant === 'hero' ? 'detail-hero-thumb-btn' : 'attachment-thumb-btn';
   const imgClass = variant === 'hero' ? 'detail-hero-thumb' : 'attachment-thumb';
   return `<button class="${btnClass}" type="button" data-preview-image="${escapeAttr(image)}" data-preview-source="${escapeAttr(source)}" data-preview-name="${escapeAttr(name)}" data-preview-folder="${escapeAttr(item.fileUrl || '')}" title="预览 ${escapeAttr(name)}">
-    <img class="${imgClass}" src="${escapeAttr(image)}" alt="">
+    <img class="${imgClass}" src="${escapeAttr(thumb)}" alt="">
   </button>`;
 }
 function blobToDataUrl(blob) {
@@ -18233,9 +18236,24 @@ async function compressExistingOrderImages() {
     existingImageCompressionRunning = false;
   }
 }
-async function handleOrderImagePaste(e) {
+// 一次粘贴 / 拖进来 / 选的图片最多传几张（订单弹窗和抽屉附件页同一个数）：多出来的不加，提示里说清楚是几张
+// （以前只说「已添加 5 张」，第 6 张起悄悄丢了）。
+const attachmentImageBatchMax = 5;
+function imageBatchSkipNote(total, taken) {
+  const skipped = Math.max(0, (Number(total) || 0) - (Number(taken) || 0));
+  return skipped ? `一次最多 ${attachmentImageBatchMax} 张，另外 ${skipped} 张没加，可以再加一次` : '';
+}
+// 这次粘贴是不是给订单弹窗的：焦点在弹窗里，或者焦点不在任何地方、也没有别的弹窗 / 抽屉开着。
+// 订单详情抽屉、客户档案、确认框盖在订单弹窗上面时，粘进来的图以前会加到下面那张看不见的单里。
+function orderModalTakesPaste(e) {
   const modal = document.getElementById('orderModal');
-  if (!modal?.classList.contains('open')) return;
+  if (!modal?.classList.contains('open')) return false;
+  const target = e?.target instanceof Element ? e.target : null;
+  if (target && target !== document.body && target !== document.documentElement) return modal.contains(target);
+  return ![...document.querySelectorAll('.modal-backdrop.open')].some(el => el !== modal);
+}
+async function handleOrderImagePaste(e) {
+  if (!orderModalTakesPaste(e)) return;
   const files = Array.from(e.clipboardData?.files || []).filter(file => /^image\//i.test(file.type));
   if (!files.length) return;
   e.preventDefault();
@@ -18246,7 +18264,7 @@ async function handleOrderImagePaste(e) {
   }
   if (!canSubmitStoredData()) return;
   const existing = orderAttachmentsFromForm(form);
-  const batch = files.slice(0, 5);
+  const batch = files.slice(0, attachmentImageBatchMax);
   if (existing.length + batch.length > 20) {
     toast('附件最多保留 20 个');
     return;
@@ -18271,7 +18289,9 @@ async function handleOrderImagePaste(e) {
         failureCount++;
       }
     }
-    toast(failureCount ? `已添加 ${successCount} 张图片，${failureCount} 张失败，可重新粘贴失败图片` : `已添加 ${successCount} 张高清图片附件`);
+    const skipNote = imageBatchSkipNote(files.length, batch.length);
+    toast(failureCount ? `已添加 ${successCount} 张图片，${failureCount} 张失败，可重新粘贴失败图片` : `已添加 ${successCount} 张高清图片附件`,
+      skipNote ? { tone:'warn', desc:skipNote } : undefined);
   } finally {
     delete form.dataset.uploading;
   }
@@ -18435,7 +18455,6 @@ async function uiDetailAddShipment() {
 let detailImageUploads = { id:'', cards:[] };
 let detailImageUploadPreviews = [];
 const detailAttachmentMax = 20;
-const detailImageBatchMax = 5;
 function uiDetailClearUploadCards() {
   detailImageUploadPreviews.forEach(url => URL.revokeObjectURL(url));
   detailImageUploadPreviews = [];
@@ -18521,7 +18540,9 @@ async function uiDetailAddImages(fileList = []) {
   }
   if (!canSubmitStoredData()) return;
   const existing = Array.isArray(order.attachments) ? order.attachments : [];
-  const batch = files.slice(0, detailImageBatchMax);
+  // 一次最多 attachmentImageBatchMax 张（和订单弹窗同一个数），多出来的在提示里说出来。
+  const batch = files.slice(0, attachmentImageBatchMax);
+  const skipNote = imageBatchSkipNote(files.length, batch.length);
   if (existing.length + batch.length > detailAttachmentMax) {
     toast(`附件最多保留 ${detailAttachmentMax} 个`);
     return;
@@ -18554,7 +18575,7 @@ async function uiDetailAddImages(fileList = []) {
       }
     }
     if (!uploaded.length) {
-      toast(`${failures} 张图片没加上，可以重新添加`, { tone:'error' });
+      toast(`${failures} 张图片没加上，可以重新添加`, { tone:'error', ...(skipNote ? { desc:skipNote } : {}) });
       return;
     }
     const result = await uiDetailCommitAttachments(id, { add:uploaded });
@@ -18568,7 +18589,8 @@ async function uiDetailAddImages(fileList = []) {
       return;
     }
     if (result !== 'saved') return; // 没存进数据库：persistFormState 已经说了是排队重试、只读还是冲突。
-    toast(failures ? `已添加 ${uploaded.length} 张图片，${failures} 张失败，可以重新添加失败的图片` : `已添加 ${uploaded.length} 张图片`);
+    toast(failures ? `已添加 ${uploaded.length} 张图片，${failures} 张失败，可以重新添加失败的图片` : `已添加 ${uploaded.length} 张图片`,
+      skipNote ? { tone:'warn', desc:skipNote } : undefined);
   } finally {
     delete body.dataset.attachmentBusy;
     uiDetailSyncAttachmentBusy();

@@ -687,7 +687,6 @@ html[data-theme="dark"] .segment-option:hover { color: var(--gray-900); backgrou
 .task-main { display: grid; gap: 5px; min-width: 0; }
 .task-title { color: var(--gray-900); font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .task-sub { color: var(--gray-500); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.task-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .task-actions { display: flex; gap: 6px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
 .task-action-btn {
   min-height: 28px; padding: 0 9px; border-radius: 999px; border: 1px solid var(--gray-200);
@@ -1583,7 +1582,6 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
 }
 .customer-group-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .customer-group-title { color: var(--gray-900); }
-.customer-group-total { color: var(--gray-500); font-size: 12px; }
 .customer-group-list { display: grid; gap: 2px; }
 .customer-group-item {
   width: 100%; border: 0; background: transparent;
@@ -1605,7 +1603,6 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
 .customer-toolbar .inline-select:not(.segment-source) { height: 42px; min-height: 42px; }
 .customer-toolbar .segment-control { align-items: center; padding: 4px; }
 .customer-toolbar .segment-option { height: 34px; min-height: 34px; }
-.customer-toolbar-meta { white-space: nowrap; }
 .customer-summary-item {
   grid-template-columns: auto minmax(0, 1fr); align-items: baseline;
 }
@@ -3270,7 +3267,6 @@ html[data-theme] .client-letter-btn.active { background:var(--accent-tint); colo
 html[data-theme] :is(.binary-segment, .side-chart-tabs) { background:var(--gray-100); border:0; box-shadow:none; }
 html[data-theme] :is(.analysis-trend-track span, .business-product-fill, .legend-dot, .tracking-event-dot, .roadmap-event:first-of-type .roadmap-dot) { background:var(--accent); }
 html[data-theme] .contact-method-check input:checked { background:var(--accent); border-color:var(--accent); }
-html[data-theme] .task-action-btn.done { background:var(--s-green); border-color:transparent; color:var(--surface-bg); }
 html[data-theme] :is(.analysis-trend-track span, .business-product-fill, .target-history-fill) { transform-origin:left; animation:uiGrowX var(--motion-slow) var(--ease-out) backwards; }
 @keyframes uiGrowX { from { transform:scaleX(0); } }
 
@@ -3733,17 +3729,20 @@ html[data-theme] .calendar-record-list { display:flex; flex-direction:column; }
 html[data-theme] .calendar-record { display:grid; grid-template-columns:10px minmax(0,1fr) auto; align-items:center; gap:10px; padding:10px 2px; border-bottom:1px solid var(--hairline); }
 html[data-theme] .calendar-record.faded { opacity:.65; }
 html[data-theme] .calendar-record-title { font-size:13px; font-weight:500; color:var(--gray-900); overflow-wrap:anywhere; }
-html[data-theme] .calendar-drawer-tag { display:inline-block; width:auto; cursor:default; padding:2px 8px; border-radius:999px; }
 html[data-theme] .calendar-drawer-foot { display:flex; justify-content:flex-end; margin-top:16px; }
+/* 当天抽屉的待办和工作台同一个样子（规则和 #taskList 共用）；抽屉和订单详情抽屉一样宽，第二行写不下折行、不截。 */
+html[data-theme] #calendarTaskDrawer .drawer { width:min(640px, 100%); }
+html[data-theme] .calendar-task-list { display:flex; flex-direction:column; gap:0; }
+html[data-theme] #calendarTaskDrawer .calendar-task-list .task-sub { white-space:normal; overflow:visible; text-overflow:clip; line-height:1.45; overflow-wrap:anywhere; }
 /* 当月日程 */
 html[data-theme] .calendar-agenda-panel { position:sticky; top:16px; max-height:calc(100vh - 150px); display:flex; flex-direction:column; }
 html[data-theme] .calendar-agenda-heading { display:flex; align-items:baseline; gap:10px; }
 html[data-theme] .calendar-agenda { overflow:auto; margin:0 -4px; padding:0 4px; }
 html[data-theme] .agenda-group { padding:12px 0 8px; border-top:1px solid var(--hairline); }
 html[data-theme] .agenda-date { margin-bottom:6px; color:var(--gray-600); font-size:12px; font-weight:500; }
-html[data-theme] .agenda-row { display:grid; grid-template-columns:8px auto minmax(0,1fr) auto; align-items:center; gap:8px; min-height:30px; padding:0 6px; border:0; border-radius:10px; background:transparent; cursor:pointer; font-size:13px; }
+html[data-theme] .agenda-row { display:grid; grid-template-columns:8px auto minmax(0,1fr); align-items:center; gap:8px; min-height:30px; padding:0 6px; border:0; border-radius:10px; background:transparent; cursor:pointer; font-size:13px; }
 html[data-theme] .agenda-row:hover { background:var(--surface-soft); }
-/* 每行先写事（不截），再写客户（写不下截它），最后订单号。 */
+/* 每行先写事（不截），再写客户（写不下截它）；订单号在悬停提示里。 */
 html[data-theme] .agenda-what { white-space:nowrap; font-weight:500; color:var(--gray-900); }
 html[data-theme] .agenda-what.urgent { color:var(--s-red); }
 html[data-theme="light"] .agenda-what.urgent { color:color-mix(in srgb, var(--s-red) 75%, #000); }
@@ -3758,7 +3757,6 @@ html[data-theme] .agenda-earlier-chevron { transition:transform var(--motion-fas
 html[data-theme] .agenda-earlier-toggle[aria-expanded="true"] .agenda-earlier-chevron { transform:rotate(90deg); }
 html[data-theme] .agenda-earlier { opacity:.72; }
 html[data-theme] .agenda-earlier[hidden] { display:none; }
-html[data-theme] .agenda-num { color:var(--gray-500); font-family:var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size:11.5px; }
 html[data-theme] .agenda-dot { width:7px; height:7px; border-radius:50%; background:var(--s-blue, #2f6fdf); }
 html[data-theme] .agenda-dot.repurchase { background:var(--s-teal, #0f8f81); }
 html[data-theme] .agenda-dot.payment { background:var(--s-amber); }
@@ -3887,6 +3885,8 @@ html[data-theme] .customer-group-item { min-height:38px; padding:0 12px; border-
 html[data-theme] .customer-group-item.active { font-weight:600; }
 html[data-theme] .customer-group-item [class*="level-icon"] { display:none; }
 html[data-theme] .customer-group-count { color:var(--gray-500); font-weight:400; }
+/* 数量是 0 的分组、待办页签、通知页签：变灰、不写「0」；选中的照选中样式。 */
+html[data-theme] :is(.customer-group-item, .task-filter-bar .segment-option, .notif-tabs .segment-option).is-empty:not(.active) { color:var(--gray-400); }
 html[data-theme] .customer-main { display:flex; flex-direction:column; gap:14px; }
 /* 没有重复客户提醒时这个空容器还占一格间距，工具条比左边的分组卡低 14px。 */
 html[data-theme] #customerDuplicateAlerts:empty { display:none; }
@@ -3895,10 +3895,8 @@ html[data-theme] #customerDuplicateAlerts:empty { display:none; }
 html[data-theme] .customer-main .customer-toolbar { padding:0; border:0; background:transparent; gap:10px; flex-wrap:wrap; }
 html[data-theme] .customer-toolbar .search { flex:1 1 220px; width:auto; height:40px; min-height:40px; border-radius:999px; }
 html[data-theme] .customer-toolbar .search-action { display:none; }
-html[data-theme] #customerLevelSegments { display:none; }
 html[data-theme] .customer-toolbar select.inline-select, html[data-theme] .customer-toolbar .app-select { flex:none; width:auto; min-width:120px; height:40px; min-height:40px; border-radius:999px; }
 /* 统计文字可以被压短（省略号），不把「新建客户」挤到下一行。 */
-html[data-theme] .customer-toolbar-meta { margin-left:auto; min-width:0; flex:1 1 120px; max-width:max-content; overflow:hidden; text-overflow:ellipsis; font-size:12.5px; font-weight:400; color:var(--gray-500); }
 html[data-theme] .customer-toolbar .customer-toolbar-new { height:40px; min-height:40px; padding:0 16px; border-radius:999px; gap:6px; }
 html[data-theme] .customer-toolbar .customer-toolbar-new:hover { background:color-mix(in srgb, var(--gray-900) 86%, transparent); }
 /* 重复客户提醒：琥珀横幅 */
@@ -3945,7 +3943,6 @@ html[data-theme] .customer-row .paid-amount { color:var(--s-green); font-size:12
   html[data-theme] .customer-workspace-summary { grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
   html[data-theme] .customer-crm { grid-template-columns:1fr; }
   html[data-theme] .customer-groups { position:static; }
-  html[data-theme] .customer-toolbar-meta { margin-left:0; flex-basis:100%; }
 }
 html[data-theme] :is(.customer-summary-item strong, .customer-summary-item small) { overflow:visible; text-overflow:clip; white-space:normal; }
 /* 工作台：按原型重排的数字卡、看板卡片、列头、待办与最近订单 */
@@ -4098,9 +4095,9 @@ html[data-theme] .reminder-summary:empty { display:none; }
 html[data-theme] .task-inbox-head { margin-bottom:8px; }
 html[data-theme] .task-filter-bar .segment-option .c { margin-left:4px; color:var(--gray-500); font-variant-numeric:tabular-nums; }
 html[data-theme] #taskList.tasks { display:flex; flex-direction:column; gap:0; }
-html[data-theme] #taskList .task { display:grid; grid-template-columns:36px minmax(0,1fr) auto; gap:12px; align-items:center; padding:12px 4px; margin:0; border:0; border-top:1px solid var(--surface-border); border-radius:0; background:transparent; box-shadow:none; }
-html[data-theme] #taskList .task::before { display:none; }
-html[data-theme] #taskList .task:first-child { border-top:0; }
+html[data-theme] :is(#taskList, .calendar-task-list) .task { display:grid; grid-template-columns:36px minmax(0,1fr) auto; gap:12px; align-items:center; padding:12px 4px; margin:0; border:0; border-top:1px solid var(--surface-border); border-radius:0; background:transparent; box-shadow:none; }
+html[data-theme] :is(#taskList, .calendar-task-list) .task::before { display:none; }
+html[data-theme] :is(#taskList, .calendar-task-list) .task:first-child { border-top:0; }
 html[data-theme] .task-icon { width:36px; height:36px; border-radius:12px; display:grid; place-items:center; transition:transform var(--motion-spring) var(--ease-spring); }
 html[data-theme] .task:hover .task-icon { transform:rotate(-6deg) scale(1.06); }
 html[data-theme] .task-icon .ui-icon { width:18px; height:18px; }
@@ -4109,13 +4106,13 @@ html[data-theme] .task-icon.tone-red { background:color-mix(in srgb, var(--s-red
 html[data-theme] .task-icon.tone-blue { background:color-mix(in srgb, var(--s-blue) 12%, transparent); color:var(--s-blue); }
 html[data-theme] .task-icon.tone-teal { background:color-mix(in srgb, var(--s-teal) 14%, transparent); color:var(--s-teal); }
 html[data-theme] .task-icon.tone-gray { background:var(--surface-soft); color:var(--gray-500); }
-html[data-theme] #taskList .task-main { min-width:0; display:block; }
-html[data-theme] #taskList .task-title { font-size:14px; font-weight:500; color:var(--gray-900); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+html[data-theme] :is(#taskList, .calendar-task-list) .task-main { min-width:0; display:block; }
+html[data-theme] :is(#taskList, .calendar-task-list) .task-title { font-size:14px; font-weight:500; color:var(--gray-900); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 html[data-theme] .task-sub .task-reason { font-weight:500; color:var(--gray-900); }
-html[data-theme] #taskList .task-sub { margin-top:2px; font-size:13px; color:var(--gray-500); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-html[data-theme] #taskList .task-actions { display:flex; gap:6px; align-items:center; }
-html[data-theme] #taskList .task-action-btn { height:30px; padding:0 12px; border-radius:999px; border:1px solid var(--surface-border); background:var(--surface-bg); color:var(--gray-800); font-size:13px; }
-html[data-theme] #taskList .task-action-btn[data-task-action="snooze"] { border-color:transparent; background:transparent; color:var(--gray-600); }
+html[data-theme] :is(#taskList, .calendar-task-list) .task-sub { margin-top:2px; font-size:13px; color:var(--gray-500); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+html[data-theme] :is(#taskList, .calendar-task-list) .task-actions { display:flex; gap:6px; align-items:center; }
+html[data-theme] :is(#taskList, .calendar-task-list) .task-action-btn { height:30px; padding:0 12px; border-radius:999px; border:1px solid var(--surface-border); background:var(--surface-bg); color:var(--gray-800); font-size:13px; }
+html[data-theme] :is(#taskList, .calendar-task-list) .task-action-btn[data-task-action="snooze"] { border-color:transparent; background:transparent; color:var(--gray-600); }
 /* 「完成 / 已催款 / 已跟进」：带文字的按钮，描边和文字用绿色（对白底、深色卡片都超过 3:1），不再是看不清的空心圆。 */
 html[data-theme] .task-tick { height:30px; padding:0 12px 0 9px; border-radius:999px; border:1.5px solid var(--s-green); background:transparent; display:inline-flex; align-items:center; gap:5px; color:var(--s-green); font-size:13px; font-weight:500; white-space:nowrap; cursor:pointer; transition:all var(--motion-spring) var(--ease-spring); }
 html[data-theme] .task-tick:hover { background:color-mix(in srgb, var(--s-green) 12%, transparent); }
@@ -4123,7 +4120,7 @@ html[data-theme] .task-tick:active { background:var(--s-green); color:var(--surf
 html[data-theme] .task-tick:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 html[data-theme] .task-tick .ui-icon { width:14px; height:14px; }
 /* 「完成」两个字、「已跟进」「已催款」三个字：按三个字留宽，每行的「打开订单 / 稍后」才竖着对齐。 */
-html[data-theme] #taskList .task-tick { min-width:82px; justify-content:center; }
+html[data-theme] :is(#taskList, .calendar-task-list) .task-tick { min-width:82px; justify-content:center; }
 html[data-theme] .task-icon.tone-orange { background:color-mix(in srgb, var(--s-orange) 14%, transparent); color:var(--s-orange); }
 html[data-theme] #taskList .task-group-head { padding:14px 4px 6px; border-top:1px solid var(--surface-border); font-size:12px; font-weight:600; color:var(--gray-600); }
 html[data-theme] #taskList .task-group-head + .task { border-top:0; }
@@ -4359,6 +4356,13 @@ html[data-theme] .detail-ship-summary small, html[data-theme] .detail-ship-empty
 html[data-theme] .detail-ship-empty { display:grid; gap:4px; padding:12px 14px; border:1px dashed var(--surface-border); border-radius:var(--radius-panel); }
 html[data-theme] .detail-ship-empty strong { font-size:14px; font-weight:600; color:var(--gray-900); }
 html[data-theme] .detail-ship-list { display:grid; gap:8px; }
+/* 抽屉附件页：上传区（和没发货的物流空白卡同一种虚线框）+ 进度卡 + 附件列表。 */
+html[data-theme] .detail-attach-body { display:grid; gap:10px; }
+html[data-theme] .detail-attachment-list { display:grid; gap:8px; }
+html[data-theme] .detail-attachment > div { flex:1; min-width:0; }
+html[data-theme] .detail-attach-drop { display:grid; justify-items:center; gap:8px; padding:18px 14px; border:1px dashed var(--surface-border-strong); border-radius:var(--radius-panel); color:var(--gray-500); font-size:13px; text-align:center; transition:border-color var(--motion-fast) var(--ease), background var(--motion-fast) var(--ease); }
+html[data-theme] .detail-attach-drop.is-over { border-color:var(--accent); background:var(--accent-tint); color:var(--gray-900); }
+html[data-theme] .detail-attach-drop[aria-disabled="true"] { opacity:.6; }
 html[data-theme] .detail-ship-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:4px 10px; padding:10px 12px; border:1px solid var(--surface-border); border-radius:var(--radius-panel); background:var(--surface-bg); }
 html[data-theme] .detail-ship-main { display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; min-width:0; }
 html[data-theme] .detail-ship-index { font-size:12px; color:var(--gray-500); }
@@ -6162,7 +6166,6 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
         <aside class="customer-groups">
           <div class="customer-group-head">
             <div class="customer-group-title">客户分组</div>
-            <div class="customer-group-total" id="customerGroupTotal">0 个客户</div>
           </div>
           <div class="customer-group-list" id="customerGroups"></div>
         </aside>
@@ -6174,15 +6177,6 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
               <input id="customerSearch" type="search" placeholder="搜索姓名、邮箱、电话、地址、订单号">
               <button class="search-action" id="customerSearchBtn" type="button" title="搜索" aria-label="搜索"><svg class="ui-icon" aria-hidden="true"><use href="#i-arrow"/></svg></button>
             </div>
-            <select class="inline-select" id="customerLevelFilter">
-              <option value="all">全部等级</option>
-              <option>A级钻石客户</option>
-              <option>B级翡翠客户</option>
-              <option>C级白金客户</option>
-              <option>D级黄金客户</option>
-              <option>E级白银客户</option>
-              <option>F级青铜客户</option>
-            </select>
             <select class="inline-select" id="customerSort" aria-label="客户排序">
               <option value="recent">最近更新</option>
               <option value="sales">成交金额</option>
@@ -6190,7 +6184,6 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
               <option value="orders">订单数量</option>
               <option value="name">客户名称</option>
             </select>
-            <div class="customer-toolbar-meta" id="customerResultMeta">0 个结果</div>
             <button class="btn btn-primary customer-toolbar-new" type="button" data-new-customer><svg class="ui-icon" aria-hidden="true"><use href="#i-user-plus"/></svg><span>新建客户</span></button>
           </div>
           <div class="customer-table">
@@ -6831,7 +6824,6 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
   <aside class="modal drawer" role="dialog" aria-modal="true" aria-labelledby="calendarTaskTitle">
     <div class="modal-head">
       <div>
-        <div class="order-num" id="calendarTaskDate">日历任务</div>
         <div class="modal-title" id="calendarTaskTitle" tabindex="-1">当天任务</div>
       </div>
       <button class="btn btn-small" id="calendarTaskCloseBtn" type="button">关闭</button>
@@ -6997,7 +6989,6 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
                 <button type="button" role="tab" data-customer-detail-tab="whatsapp" aria-selected="false">WhatsApp 聊天记录</button>
                 <i class="tab-line" aria-hidden="true"></i>
               </nav>
-              <div class="customer-detail-section-meta" id="customerDetailOrdersMeta" data-customer-detail-meta="orders"></div>
               <div class="customer-detail-section-meta" data-customer-detail-meta="activity" hidden>资料、订单与跟进记录</div>
             </div>
             <div class="customer-detail-panel" data-customer-detail-panel="orders" id="customerDetailOrdersPanel">
@@ -9768,6 +9759,7 @@ function normalizeOrderPaymentInput(data = {}, amountValue = 0, orderTypeValue =
   let paidAmount = hasValue(data.paidAmount) ? clampMoney(data.paidAmount) : null;
   let depositAmount = hasValue(data.depositAmount) ? clampMoney(data.depositAmount) : null;
   let depositPercentValue = hasValue(data.depositPercent) ? Math.min(100, Math.max(0, Number(data.depositPercent))) : null;
+  let depositFromPaid = false;
   if (orderType === '全款订单') {
     depositAmount = amount;
     depositPercentValue = amount > 0 ? 100 : 0;
@@ -9778,9 +9770,17 @@ function normalizeOrderPaymentInput(data = {}, amountValue = 0, orderTypeValue =
     // 定金没填（空或 0、比例也没填）、已收有数：收到的就是定金，按已收记——和粘贴识别、订单表单回显同一个口径。
     // 以前存成 0，再打开表单时定金框回显成已收，随便保存一次就从 0 变成已收，记录里还多一条「定金」改动。
     // 载入时也按这条算，以前存成 0 的单不用等下一次保存。
+    // 这样推出来的定金带上 depositFromPaid：它不是谈好的定金，已收清回 0 时跟着清掉，
+    // 不留到下次拖进生产中被当成约定定金自动记成已收（adjustPaymentForManualMove 也不认它）。
     if (!(depositAmount > 0) && !(depositPercentValue > 0) && paidAmount > 0) {
       depositAmount = paidAmount;
       depositPercentValue = null;
+      depositFromPaid = true;
+    } else if (data.depositFromPaid === true && !(paidAmount > 0)) {
+      depositAmount = 0;
+      depositPercentValue = null;
+    } else {
+      depositFromPaid = data.depositFromPaid === true && depositAmount > 0;
     }
     if (depositAmount === null) depositAmount = 0;
     if (depositPercentValue === null) depositPercentValue = depositPercent(amount, depositAmount);
@@ -9788,7 +9788,8 @@ function normalizeOrderPaymentInput(data = {}, amountValue = 0, orderTypeValue =
   return {
     paidAmount: clampMoney(paidAmount),
     depositAmount: clampMoney(depositAmount),
-    depositPercent: roundMoneyValue(depositPercentValue)
+    depositPercent: roundMoneyValue(depositPercentValue),
+    ...(depositFromPaid ? { depositFromPaid:true } : {})
   };
 }
 function normalizeOrderShipments(order = {}) {
@@ -9901,7 +9902,7 @@ function normalizeActiveOrder(o = {}) {
   const shipments = normalizeOrderShipments({ ...o, stage });
   const primaryShipment = shipments[0];
   const wasShippedWithoutStatus = stage === 'shipment' && (!o.logisticsStatus || o.logisticsStatus === '未发货');
-  return {
+  const normalized = {
     ...o,
     // 不在内置列表里的国家 / 币种保留原文（阿联酋、Nigeria、XYZ），以前加载时改成「其他」/ USD，下次随便保存一下就永久丢了。
     country: storedCountry(o.country),
@@ -9929,6 +9930,8 @@ function normalizeActiveOrder(o = {}) {
     isDraft: o.isDraft === true || o.isDraft === 'true',
     stage
   };
+  if (!payment.depositFromPaid) delete normalized.depositFromPaid;
+  return normalized;
 }
 function normalizeArchivedOrder(o = {}, timeKey = 'trashedAt') {
   const normalized = normalizeActiveOrder(o);
@@ -10945,19 +10948,19 @@ function calendarChipHtml(event, date) {
   return `<button class="calendar-event ${calendarEventTone(event)}${event.faded ? ' faded' : ''}" type="button" ${calendarEventAttrs(event, date)} title="${escapeAttr(`${event.label} · ${event.sub || ''}`)}">${badge}${text}</button>`;
 }
 // 当月日程：看的是本月时从今天排起（今天那组带「今天」，没有事也画出来），今天之前的收在「本月更早 · N 件」里，点开在原位展开；
-// 别的月份照旧从 1 号排。展开只记在这个月份上，翻到别的月份就复位。每行先写事、再写客户（截的是客户名），最后是订单号。
+// 别的月份照旧从 1 号排。展开只记在这个月份上，翻到别的月份就复位。每行先写事、再写客户（截的是客户名）；订单号不占一列，写在悬停提示里。
 let calendarAgendaEarlierMonth = '';
 function calendarAgendaRowHtml(event, date) {
   const order = event.orderId ? state.orders.find(item => item.id === event.orderId) : null;
   const tone = calendarEventTone(event);
   const what = event.what ?? event.label;
   const who = event.what == null ? '' : event.who;
+  const num = order?.num && !String(event.sub || '').includes(order.num) ? order.num : '';
   return `
-        <div class="agenda-row${event.faded ? ' faded' : ''}" role="button" tabindex="0" ${calendarEventAttrs(event, date)} title="${escapeAttr([event.label, event.sub].filter(Boolean).join(' · '))}">
+        <div class="agenda-row${event.faded ? ' faded' : ''}" role="button" tabindex="0" ${calendarEventAttrs(event, date)} title="${escapeAttr([event.label, event.sub, num].filter(Boolean).join(' · '))}">
           <span class="agenda-dot ${tone}" aria-hidden="true"></span>
           <span class="agenda-what ${tone}">${event.badge ? `<i class="calendar-badge">${escapeAttr(event.badge)}</i>` : ''}${escapeAttr(what)}</span>
           <span class="agenda-who">${escapeAttr(who || '')}</span>
-          <span class="agenda-num">${escapeAttr(order?.num || '')}</span>
         </div>`;
 }
 function calendarAgendaGroupHtml(date, list, { today = false } = {}) {
@@ -18012,13 +18015,17 @@ async function compactImageBlob(file, { maxSide = attachmentImageMaxSide, qualit
 function attachmentImageExtension(type = '') {
   return /avif/i.test(type) ? 'avif' : /jpe?g/i.test(type) ? 'jpg' : /webp/i.test(type) ? 'webp' : 'png';
 }
-function orderAttachmentBucket(form = document.getElementById('orderForm')) {
-  return String(form?.elements?.num?.value || form?.elements?.id?.value || `draft-${Date.now()}`)
+// 图片存到哪张单名下：订单号和 id。订单弹窗读表单里的；订单抽屉不借用那张表，直接传当前订单的。
+function orderAttachmentRefFromForm(form = document.getElementById('orderForm')) {
+  return { num: form?.elements?.num?.value || '', id: form?.elements?.id?.value || '' };
+}
+function orderAttachmentBucket(ref = orderAttachmentRefFromForm()) {
+  return String(ref?.num || ref?.id || `draft-${Date.now()}`)
     .replace(/[^A-Za-z0-9_-]+/g, '-')
     .slice(0, 80) || `draft-${Date.now()}`;
 }
-function orderAttachmentImageName(index = 1, form = document.getElementById('orderForm')) {
-  const orderNum = String(form?.elements?.num?.value || '').trim() || orderAttachmentBucket(form);
+function orderAttachmentImageName(index = 1, ref = orderAttachmentRefFromForm()) {
+  const orderNum = String(ref?.num || '').trim() || orderAttachmentBucket(ref);
   const safeBase = orderNum.replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || `draft-${Date.now()}`;
   return `${safeBase}-${Math.max(1, Number(index) || 1)}`;
 }
@@ -18054,9 +18061,10 @@ function clearOrderImageUploads() {
   orderImageUploadPreviews = [];
   document.getElementById('orderImageUploads')?.replaceChildren();
 }
-function createOrderImageUploadCard(file) {
+// list：进度卡放在哪（订单弹窗的 #orderImageUploads，或抽屉附件页的那一格）；previews：预览地址记在哪，清掉时一起释放。
+function createOrderImageUploadCard(file, list = document.getElementById('orderImageUploads'), previews = orderImageUploadPreviews) {
   const url = URL.createObjectURL(file);
-  orderImageUploadPreviews.push(url);
+  previews.push(url);
   const card = document.createElement('div');
   card.className = 'image-upload-card';
   card.setAttribute('role', 'progressbar');
@@ -18077,7 +18085,7 @@ function createOrderImageUploadCard(file) {
   card.querySelector('.image-upload-name').textContent = file.name || '粘贴图片';
   card.title = file.name || '粘贴图片';
   updateOrderImageUploadCard(card, 0, '排队中', 'queued');
-  document.getElementById('orderImageUploads').append(card);
+  list.append(card);
   return card;
 }
 function updateOrderImageUploadCard(card, percent, label, status = 'uploading') {
@@ -18090,10 +18098,10 @@ function updateOrderImageUploadCard(card, percent, label, status = 'uploading') 
   card.querySelector('.image-upload-ring-progress').setAttribute('stroke-dasharray', `${value} 100`);
   card.querySelector('.image-upload-ring-progress').style.opacity = value ? '1' : '0';
 }
-async function saveCompressedImageAttachment(file, imageIndex = 1, onProgress = null) {
+async function saveCompressedImageAttachment(file, imageIndex = 1, onProgress = null, ref = orderAttachmentRefFromForm()) {
   if (!isMacAppMode()) throw new Error('图片附件需要在安装版 App 内保存到本机文件夹。');
-  const attachmentName = orderAttachmentImageName(imageIndex);
-  const bucket = orderAttachmentBucket();
+  const attachmentName = orderAttachmentImageName(imageIndex, ref);
+  const bucket = orderAttachmentBucket(ref);
   onProgress?.(5, '压缩图片');
   // 交给本机服务的只有压缩版：原图只在这一页的内存里，不上传、不落盘。
   const imageBlob = await compactImageBlob(file, { maxSide: attachmentImageMaxSide, quality: attachmentImageQuality });
@@ -18248,7 +18256,7 @@ async function handleOrderImagePaste(e) {
     return;
   }
   clearOrderImageUploads();
-  const cards = batch.map(createOrderImageUploadCard);
+  const cards = batch.map(file => createOrderImageUploadCard(file));
   form.dataset.uploading = 'true';
   let successCount = 0;
   let failureCount = 0;
@@ -18291,15 +18299,24 @@ function detailItem(label, value, wide = false, valueClass = '') {
     </div>
   `;
 }
-// 没有附件：说清楚去哪加，后面的链接等于点抽屉右上角的「完整编辑…」；只读的订单（已删除）只写没有附件。
-function renderDetailAttachments(list = [], editable = false) {
-  if (!list.length) {
-    return editable
-      ? '<div class="muted">还没有附件，在「完整编辑…」里添加 <button class="link-btn" type="button" data-detail-open-edit>打开完整编辑</button></div>'
-      : '<div class="muted">没有附件。</div>';
-  }
+// 能改的订单：上面一块上传区（粘贴、拖进来、选文件），下面是进度卡和已有附件，每个附件能删。
+// 只读的订单（垃圾箱、已删除）没有上传区和「删除」，没有附件时只写没有附件。
+// busy：抽屉里的图片正在上传或删除，上传区和「删除」先不能点。
+function renderDetailAttachments(list = [], editable = false, busy = false) {
+  if (!editable) return list.length ? `<div class="detail-attachment-list">${renderDetailAttachmentRows(list, false, false)}</div>` : '<div class="muted">没有附件。</div>';
+  return `<div class="detail-attach-body">
+    <div class="detail-attach-drop" data-detail-attach-drop${busy ? ' aria-disabled="true"' : ''}>
+      <span>把截图粘贴或拖到这里</span>
+      <button class="btn btn-small" type="button" data-detail-attach-pick${busy ? ' disabled' : ''}>选择文件</button>
+      <input type="file" accept="image/*" multiple hidden data-detail-attach-input>
+    </div>
+    <div class="image-upload-list" data-detail-upload-list aria-label="图片上传进度"></div>
+    ${list.length ? `<div class="detail-attachment-list">${renderDetailAttachmentRows(list, true, busy)}</div>` : ''}
+  </div>`;
+}
+function renderDetailAttachmentRows(list = [], editable = false, busy = false) {
   // 和订单弹窗同一个规则：只有 http(s)、本机附件、图片地址才给「打开」，javascript: 之类、普通备注显示成文字。
-  return list.map(item => {
+  return list.map((item, index) => {
     const href = safeAttachmentHref(item.fileUrl || item.link);
     const open = href
       ? `<a class="btn btn-small" href="${escapeAttr(href)}" target="_blank" rel="noopener">打开</a>`
@@ -18313,6 +18330,7 @@ function renderDetailAttachments(list = [], editable = false) {
       </div>
       ${open}
       ${item.fileUrl ? `<button class="btn btn-small" type="button" data-open-attachment-folder="${escapeAttr(item.fileUrl)}">文件夹</button>` : ''}
+      ${editable ? `<button class="btn btn-small" type="button" data-detail-remove-attachment="${index}"${busy ? ' disabled' : ''}>删除</button>` : ''}
     </div>
   `;
   }).join('');
@@ -18413,6 +18431,198 @@ async function uiDetailAddShipment() {
     const done = stage === 'done';
     toast(`已记录第 ${current.shipments.length} 批 ${shipment.trackingNumber}`, done ? { undo:() => moveOrderToStage(id, 'shipment'), undoText:'移回已发货', desc:'这单已完成，新加的一批不会再跟进签收' } : undefined);
   }
+}
+// 抽屉「附件」页直接加 / 删附件（以前要绕到「完整编辑…」）。图片和订单弹窗走同一条压缩上传（只存压缩版），
+// 一批传完把这张单的附件存一次：只动 attachments、更新时间和一条记录，照常整份保存（/api/save，冲突时合并重试），
+// 不经过抽屉里别的输入框——那些没保存的修改原样留着、仍算没保存。
+// 正在上传或删除时 #orderDetailBody 上记着 data-attachment-busy：上传区、删除、抽屉的保存和离开这张单都先等它做完。
+let detailImageUploads = { id:'', cards:[] };
+let detailImageUploadPreviews = [];
+const detailAttachmentMax = 20;
+const detailImageBatchMax = 5;
+function uiDetailClearUploadCards() {
+  detailImageUploadPreviews.forEach(url => URL.revokeObjectURL(url));
+  detailImageUploadPreviews = [];
+  detailImageUploads.cards.forEach(card => card.remove());
+  detailImageUploads = { id:'', cards:[] };
+}
+// 抽屉重画（同一张单就地刷新）后把进度卡放回新的那一格；换了一张单就清掉。
+function uiDetailKeepUploadCards(id) {
+  if (!detailImageUploads.cards.length) return;
+  if (detailImageUploads.id !== id) {
+    if (!document.getElementById('orderDetailBody')?.dataset.attachmentBusy) uiDetailClearUploadCards();
+    return;
+  }
+  document.querySelector('#orderDetailBody [data-detail-upload-list]')?.append(...detailImageUploads.cards);
+}
+function uiDetailSyncAttachmentBusy() {
+  const body = document.getElementById('orderDetailBody');
+  if (!body) return;
+  const busy = Boolean(body.dataset.attachmentBusy);
+  const drop = body.querySelector('[data-detail-attach-drop]');
+  if (busy) drop?.setAttribute('aria-disabled', 'true');
+  else drop?.removeAttribute('aria-disabled');
+  body.querySelectorAll('[data-detail-attach-pick], [data-detail-remove-attachment]').forEach(btn => { btn.disabled = busy; });
+}
+// 附件在列表里的位置：先认同一个对象，后台补压等把对象换掉了就按内容认。
+function attachmentIndexIn(list = [], item = {}) {
+  const same = list.indexOf(item);
+  if (same >= 0) return same;
+  const text = JSON.stringify(item);
+  return list.findIndex(entry => JSON.stringify(entry) === text);
+}
+// 把这次加的 / 删的写进订单并保存。返回 'saved'（存进数据库）、'pending'（留在内存里，后台重试或等用户决定）、
+// 'full'（上传期间附件已经满了 20 个）、''（订单或要删的附件不在了）。
+// 没存进数据库时和抽屉的「保存」一样记下撤回：关抽屉、换单时选放弃，就去掉这次加的、放回这次删的。
+async function uiDetailCommitAttachments(id, { add = [], remove = null } = {}) {
+  const body = document.getElementById('orderDetailBody');
+  const order = state.orders.find(o => o.id === id);
+  if (!order) return '';
+  const before = Array.isArray(order.attachments) ? order.attachments : [];
+  const removedIndex = remove ? attachmentIndexIn(before, remove) : -1;
+  if (remove && removedIndex < 0) return '';
+  const removed = removedIndex >= 0 ? before[removedIndex] : null;
+  const kept = before.filter((_, index) => index !== removedIndex);
+  // 上传期间另一个窗口也加了附件：超出 20 个的这次不加（文件交给附件清理），已有的一个不丢。
+  const added = finalizedOrderAttachments(add).slice(0, Math.max(0, detailAttachmentMax - kept.length));
+  if (!added.length && !removed) return 'full';
+  const previousUpdated = order.updated;
+  const log = { time:nowText(), text:removed ? `删除附件：${attachmentDisplayName(removed)}` : `添加附件：${added.map(item => attachmentDisplayName(item)).join('、')}` };
+  order.attachments = [...added, ...kept];
+  order.updated = nowText();
+  order.logs = [log, ...(order.logs || [])];
+  const saved = await persistFormState(body);
+  if (saved) failedSaveForget(body);
+  else {
+    const addedUrls = new Set(added.map(item => item.fileUrl).filter(Boolean));
+    failedSaveRemember(body, () => {
+      const current = state.orders.find(o => o.id === id);
+      if (!current) return;
+      const list = (current.attachments || []).filter(item => !(item?.fileUrl && addedUrls.has(item.fileUrl)));
+      if (removed) list.splice(Math.min(removedIndex, list.length), 0, removed);
+      current.attachments = list;
+      current.logs = (current.logs || []).filter(entry => entry !== log);
+      current.updated = previousUpdated;
+    });
+  }
+  render();
+  if (detailOrderId === id && document.getElementById('orderDetailDrawer')?.classList.contains('open')) openOrderDetail(id, { tab:'attachments' });
+  return saved ? 'saved' : 'pending';
+}
+async function uiDetailAddImages(fileList = []) {
+  const id = detailOrderId;
+  const body = document.getElementById('orderDetailBody');
+  const { order, source } = findOrderRecord(id);
+  if (!order || source !== 'active' || !body) return;
+  const files = [...fileList].filter(file => /^image\//i.test(file?.type || ''));
+  if (!files.length) {
+    toast('只能添加图片', { tone:'warn' });
+    return;
+  }
+  if (body.dataset.attachmentBusy || body.dataset.saving) {
+    toast('当前图片正在处理，请完成后再添加');
+    return;
+  }
+  if (!canSubmitStoredData()) return;
+  const existing = Array.isArray(order.attachments) ? order.attachments : [];
+  const batch = files.slice(0, detailImageBatchMax);
+  if (existing.length + batch.length > detailAttachmentMax) {
+    toast(`附件最多保留 ${detailAttachmentMax} 个`);
+    return;
+  }
+  // 抽屉下面开着这张单的订单弹窗：弹窗再保存会用它表单里的旧附件盖掉这次加的，和抽屉的「保存」一样先问、关掉它。
+  if (!await uiDetailGuardOrderModal(id, '添加附件')) return;
+  if (detailOrderId !== id || body.dataset.attachmentBusy || body.dataset.saving) return;
+  body.dataset.attachmentBusy = 'upload';
+  uiDetailSyncAttachmentBusy();
+  uiDetailClearUploadCards();
+  const list = body.querySelector('[data-detail-upload-list]') || document.createElement('div');
+  const cards = batch.map(file => createOrderImageUploadCard(file, list, detailImageUploadPreviews));
+  detailImageUploads = { id, cards };
+  const ref = { num:order.num || '', id };
+  const uploaded = [];
+  let failures = 0;
+  try {
+    const imageCount = existing.filter(item => item?.thumbUrl || item?.fileUrl || item?.type === '图片附件').length;
+    for (const [index, file] of batch.entries()) {
+      const card = cards[index];
+      try {
+        // 文件传到本机算 95%，存进订单才是 100%。
+        const item = await saveCompressedImageAttachment(file, imageCount + index + 1,
+          (percent, label) => updateOrderImageUploadCard(card, Math.min(95, percent), percent >= 100 ? '存进订单' : label), ref);
+        card.dataset.attachmentFileUrl = item.fileUrl;
+        uploaded.push(item);
+      } catch (error) {
+        updateOrderImageUploadCard(card, Number(card.getAttribute('aria-valuenow')), error.message || '图片保存失败', 'error');
+        failures++;
+      }
+    }
+    if (!uploaded.length) {
+      toast(`${failures} 张图片没加上，可以重新添加`, { tone:'error' });
+      return;
+    }
+    const result = await uiDetailCommitAttachments(id, { add:uploaded });
+    // 存进订单的那几张已经在下面的列表里：进度卡只留失败的，让人看得到是哪张、为什么。
+    cards.filter(card => card.dataset.state !== 'error').forEach(card => {
+      card.remove();
+      detailImageUploads.cards = detailImageUploads.cards.filter(item => item !== card);
+    });
+    if (!result || result === 'full') {
+      toast(result ? `附件已经有 ${detailAttachmentMax} 个，图片没存进订单` : '这张订单已经不在了，图片没存进订单', { tone:'error' });
+      return;
+    }
+    if (result !== 'saved') return; // 没存进数据库：persistFormState 已经说了是排队重试、只读还是冲突。
+    toast(failures ? `已添加 ${uploaded.length} 张图片，${failures} 张失败，可以重新添加失败的图片` : `已添加 ${uploaded.length} 张图片`);
+  } finally {
+    delete body.dataset.attachmentBusy;
+    uiDetailSyncAttachmentBusy();
+  }
+}
+async function uiDetailRemoveAttachment(index) {
+  const id = detailOrderId;
+  const body = document.getElementById('orderDetailBody');
+  const order = state.orders.find(o => o.id === id);
+  const item = order?.attachments?.[Number(index)];
+  if (!item || !body) return;
+  if (body.dataset.attachmentBusy || body.dataset.saving) {
+    toast('附件正在处理，请完成后再删除');
+    return;
+  }
+  if (!canSubmitStoredData()) return;
+  body.dataset.attachmentBusy = 'delete';
+  uiDetailSyncAttachmentBusy();
+  try {
+    if (!await confirmAttachmentDelete(item)) return;
+    if (!await uiDetailGuardOrderModal(id, '删除附件')) return;
+    if (detailOrderId !== id) return;
+    const result = await uiDetailCommitAttachments(id, { remove:item });
+    if (!result) {
+      toast('这个附件已经不在这张单里了', { tone:'warn' });
+      return;
+    }
+    // 订单先存好再删文件：没存进数据库时文件留着（订单里还引用它），以后没人引用了由附件清理删掉。
+    if (result !== 'saved') return;
+    await deleteAttachmentFiles(item);
+    toast('附件已删除');
+  } finally {
+    delete body.dataset.attachmentBusy;
+    uiDetailSyncAttachmentBusy();
+  }
+}
+// 抽屉开在「附件」页、焦点不在输入框里、上面没有别的弹窗时，粘贴的图片加进这张单。
+// 抽屉叠在订单弹窗上时抽屉在上面，归抽屉（加之前 uiDetailGuardOrderModal 先问、关掉弹窗）；弹窗已经接了这次粘贴就不再接。
+function handleDetailImagePaste(e) {
+  if (e.defaultPrevented) return;
+  const drawer = document.getElementById('orderDetailDrawer');
+  if (!drawer?.classList.contains('open') || uiDetailTab.current !== 'attachments') return;
+  if (document.querySelector('.modal-backdrop.open:not(#orderDetailDrawer):not(#orderModal)')) return;
+  if (!document.querySelector('#orderDetailBody [data-detail-tab="attachments"]:not([hidden]) [data-detail-attach-drop]')) return;
+  const active = document.activeElement;
+  if (active?.closest?.('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) return;
+  const files = Array.from(e.clipboardData?.files || []).filter(file => /^image\//i.test(file.type));
+  if (!files.length) return;
+  e.preventDefault();
+  uiDetailAddImages(files);
 }
 let attachmentPreviewZoom = 1;
 let attachmentPreviewFolderUrl = '';
@@ -18625,7 +18835,7 @@ function renderOrderDetail(order, source = 'active') {
           ${editField('收款方式', 'paymentChannel', `<select data-dedit="paymentChannel">${editOptions('paymentChannel', payment.value)}</select>`)}
           ${editField('币种', 'currency', `<select data-dedit="currency">${currencyOptions}</select>`)}
         </div>
-        <p class="muted detail-edit-hint">只记一个已付金额，收到尾款时改成总额即可；付款截图在「完整编辑…」的附件里添加。保存后阶段和待收会一起更新。</p>
+        <p class="muted detail-edit-hint">只记一个已付金额，收到尾款时改成总额即可；付款截图可以在「附件」页直接加。保存后阶段和待收会一起更新。</p>
       </section>` : '';
   const depositLine = depositOrder && depositValue > 0
     ? `<div class="order-detail-deposit">定金：${money(depositValue, currencyCode)}${orderAmountValue(order) ? `（${Math.round(depositValue / orderAmountValue(order) * 100)}%）` : ''} · ${paid >= depositValue ? '已收' : (paid > 0 ? `已收 ${money(paid, currencyCode)}，还差 ${money(depositValue - paid, currencyCode)}` : '未收')}</div>`
@@ -18671,7 +18881,7 @@ function renderOrderDetail(order, source = 'active') {
     <div class="order-detail-panel" data-detail-tab="attachments" hidden>
       <section class="detail-section">
         <div class="detail-section-title">附件 / 凭证</div>
-        ${renderDetailAttachments(order.attachments || [], editable)}
+        ${renderDetailAttachments(order.attachments || [], editable, Boolean(document.getElementById('orderDetailBody')?.dataset.attachmentBusy))}
       </section>
     </div>
     <div class="order-detail-panel" data-detail-tab="customer" hidden>
@@ -18750,6 +18960,7 @@ function openOrderDetail(id, { tab = '' } = {}) {
   document.getElementById('detailNum').textContent = order.num || '订单详情';
   document.getElementById('detailTitle').textContent = clientDisplayName(order.client || '未命名客户');
   document.getElementById('orderDetailBody').innerHTML = renderOrderDetail(order, source);
+  uiDetailKeepUploadCards(id);
   renderOrderDetailHeader(order, source);
   if (typeof uiDetailTab === 'function') {
     if (tab) uiDetailTab.current = tab;
@@ -18809,6 +19020,7 @@ function closeOrderDetail() {
   const drawer = document.getElementById('orderDetailDrawer');
   // 关抽屉 = 放弃抽屉里的修改：之前保存失败、留在内存里的改动一起撤回。
   if (typeof failedSaveUndo === 'function') failedSaveUndo(document.getElementById('orderDetailBody'));
+  if (!document.getElementById('orderDetailBody')?.dataset.attachmentBusy) uiDetailClearUploadCards();
   setModalOpenState(drawer, false);
   resetModalScroll(drawer);
 }
@@ -21603,7 +21815,12 @@ function renderTasks() {
     const type = btn.dataset.taskFilter;
     btn.classList.toggle('active', type === taskInboxFilter);
     const n = type === 'snoozed' ? snoozedReminders.length : type === 'done' ? doneReminders.length : activeReminders.filter(item => matches(item, type)).length;
-    btn.innerHTML = `${{ all:'全部', payment:'收款', follow:'跟进', urgent:'加急', repurchase:'复购', logistics:'物流', snoozed:'稍后', done:'已处理' }[type] || btn.textContent}<span class="c">${n}</span>`;
+    const name = { all:'全部', payment:'收款', follow:'跟进', urgent:'加急', repurchase:'复购', logistics:'物流', snoozed:'稍后', done:'已处理' }[type] || btn.dataset.taskLabel || btn.textContent;
+    btn.dataset.taskLabel = name;
+    // 0 的页签变灰、不写「0」，照样能点；读屏念「收款，0 条」。
+    btn.classList.toggle('is-empty', !n);
+    btn.setAttribute('aria-label', `${name}，${n} 条`);
+    btn.innerHTML = n ? `${escapeAttr(name)}<span class="c">${n}</span>` : escapeAttr(name);
   });
   if (summaryEl) summaryEl.innerHTML = '';
   document.getElementById('statTasks').textContent = isMacAppMode() && !macStateReady ? '—' : dueToday.length;
@@ -21611,26 +21828,17 @@ function renderTasks() {
     el.innerHTML = `<div class="empty">${listMode === 'done' ? '没有已处理的待办。点过「完成」的提醒会在这里留到再提醒那天，可以恢复。' : listMode === 'snoozed' ? '今天没有暂缓的待办。' : '当前筛选下没有待办。'}</div>`;
     return;
   }
-  const doneTitle = item => `${taskDoneLabel(item)}：${taskRemindAgainText(item, '', { beforeDone:true })}`;
   const actions = item => {
     if (listMode === 'done') return `<button class="task-action-btn" type="button" data-task-action="undone" title="放回待办">恢复提醒</button>`;
     const extra = listMode === 'snoozed' ? '<button class="task-action-btn" type="button" data-task-action="unsnooze" title="放回今天的待办">取消稍后</button>' : '';
     return `${taskActionButtons(item, { snooze:listMode !== 'snoozed' })}${extra}
-          <button class="task-tick" type="button" data-task-action="done" title="${escapeAttr(doneTitle(item))}">${uiIcon('check')}<span>${escapeAttr(taskDoneLabel(item))}</span></button>`;
+          ${taskTickHtml(item)}`;
   };
-  const taskHtml = (item, index) => {
-    const [icon, tone] = taskTypeDef(item)?.look || ['info', 'gray'];
-    const sub = listMode === 'done' ? [item.detail, taskDoneNote(item)] : [item.detail, item.value, item.more];
-    return `
-      <div class="task ${item.type}${taskIsRisk(item) ? ' task-risk' : ''}" data-task-id="${escapeAttr(item.id)}" data-order-id="${escapeAttr(item.orderId || '')}" data-task-client="${escapeAttr(item.client || item.title || '')}" style="--i:${index}">
-        <div class="task-icon tone-${tone}">${uiIcon(icon)}</div>
-        ${taskTextHtml(item, sub)}
-        <div class="task-actions">
-          ${actions(item)}
-        </div>
-      </div>
-    `;
-  };
+  const taskHtml = (item, index) => taskRowHtml(item, {
+    sub:listMode === 'done' ? [item.detail, taskDoneNote(item)] : [item.detail, item.value, item.more],
+    actions:actions(item),
+    index
+  });
   const firstLater = shown.findIndex(item => laterPool.includes(item));
   const rows = shown.map((item, index) => (index === firstLater ? `<div class="task-group-head">即将到期 · ${laterPool.length}</div>` : '') + taskHtml(item, index));
   const more = hidden > 0
@@ -21648,23 +21856,36 @@ function taskTextHtml(item, details = [], extra = '') {
           <div class="task-sub"><strong class="task-reason">${escapeAttr(item.reason)}</strong>${rest.map(part => ` · ${escapeAttr(part)}`).join('')}</div>${extra}
         </div>`;
 }
-function renderCalendarTaskRows(tasks, toneOf = {}) {
+// 一条待办：左边类型图标，中间两层字（taskTextHtml），右边按钮。工作台和日历当天抽屉共用，两处长成一个样子。
+function taskRowHtml(item, { sub = [], actions = '', index = 0 } = {}) {
+  const [icon, tone] = taskTypeDef(item)?.look || ['info', 'gray'];
+  return `
+      <div class="task ${item.type}${taskIsRisk(item) ? ' task-risk' : ''}" data-task-id="${escapeAttr(item.id)}" data-order-id="${escapeAttr(item.orderId || '')}" data-task-client="${escapeAttr(item.client || item.title || '')}" style="--i:${index}">
+        <div class="task-icon tone-${tone}">${uiIcon(icon)}</div>
+        ${taskTextHtml(item, sub)}
+        <div class="task-actions">
+          ${actions}
+        </div>
+      </div>
+    `;
+}
+// 「完成 / 已催款 / 已跟进」描边按钮；label、title 不传时按待办类型写。
+function taskTickHtml(item, { label = taskDoneLabel(item), title = `${taskDoneLabel(item)}：${taskRemindAgainText(item, '', { beforeDone:true })}` } = {}) {
+  return `<button class="task-tick" type="button" data-task-action="done" title="${escapeAttr(title)}">${uiIcon('check')}<span>${escapeAttr(label)}</span></button>`;
+}
+// 日历当天抽屉的待办：和工作台同一个样子；第二行写不下时折行（CSS 只在抽屉里放开），不截。
+function renderCalendarTaskRows(tasks) {
   if (!tasks.length) return '';
+  const today = normalizeDate(new Date().toISOString());
+  const tick = item => calendarTaskIsDateBound(item) ? taskTickHtml(item, { label:'不再提醒', title:'只关掉这条提醒，日历上的日期还在' }) : taskTickHtml(item);
   return `
     <div class="calendar-task-list">
-      ${tasks.map(item => `
-        <div class="task ${item.type}${taskIsRisk(item) ? ' task-risk' : ''}" data-task-id="${escapeAttr(item.id)}" data-order-id="${escapeAttr(item.orderId || '')}" data-task-client="${escapeAttr(item.client || item.title || '')}">
-          ${taskTextHtml(item, [item.detail], `
-            <div class="task-meta">
-              <span class="calendar-event calendar-drawer-tag ${toneOf[item.id] || 'repurchase'}">${escapeAttr(taskTypeDef(item)?.label || item.tag)}</span>
-              <span class="muted">${escapeAttr(item.value || '')}</span>
-            </div>`)}
-          <div class="task-actions">
-            ${taskActionButtons(item, { snooze:normalizeDate(item.date || '') <= normalizeDate(new Date().toISOString()), short:true })}
-            <button class="task-action-btn done" type="button" data-task-action="done"${calendarTaskIsDateBound(item) ? ' title="只关掉这条提醒，日历上的日期还在"' : ''}>${escapeAttr(calendarTaskIsDateBound(item) ? '不再提醒' : taskDoneLabel(item))}</button>
-          </div>
-        </div>
-      `).join('')}
+      ${tasks.map((item, index) => taskRowHtml(item, {
+        sub:[item.detail, item.value, item.more],
+        actions:`${taskActionButtons(item, { snooze:normalizeDate(item.date || '') <= today, short:true })}
+          ${tick(item)}`,
+        index
+      })).join('')}
     </div>
   `;
 }
@@ -21677,10 +21898,8 @@ function openCalendarTaskDrawer(date) {
   selectedCalendarDate = normalizeDate(date || new Date().toISOString());
   const dayEvents = calendarEventsInRange(selectedCalendarDate, selectedCalendarDate);
   const taskIds = new Set(dayEvents.map(event => event.taskId).filter(Boolean));
-  const toneOf = Object.fromEntries(dayEvents.filter(event => event.taskId).map(event => [event.taskId, calendarEventTone(event)]));
   const tasks = buildTaskItems().filter(item => taskIds.has(item.id));
   const records = dayEvents.filter(event => !event.taskId || event.type === 'deadline');
-  document.getElementById('calendarTaskDate').textContent = selectedCalendarDate;
   document.getElementById('calendarTaskTitle').textContent = `${calendarDayTitle(selectedCalendarDate)} · ${dayEvents.length} 件`;
   const recordAction = event => event.orderId ? `<button class="task-action-btn" type="button" data-calendar-order-id="${escapeAttr(event.orderId)}">打开订单</button>`
     : event.subId ? `<button class="task-action-btn" type="button" data-calendar-sub="${escapeAttr(event.subId)}">打开续费</button>`
@@ -21692,7 +21911,7 @@ function openCalendarTaskDrawer(date) {
       ${recordAction(event)}
     </div>`).join('');
   const body = [
-    tasks.length ? `<div class="calendar-drawer-section">待处理 · ${tasks.length}</div>${renderCalendarTaskRows(tasks, toneOf)}` : '',
+    tasks.length ? `<div class="calendar-drawer-section">待处理 · ${tasks.length}</div>${renderCalendarTaskRows(tasks)}` : '',
     records.length ? `<div class="calendar-drawer-section">当天记录 · ${records.length}</div><div class="calendar-record-list">${recordRows}</div>` : '',
     !tasks.length && !records.length ? '<div class="empty">这一天没有安排。</div>' : '',
     `<div class="calendar-drawer-foot"><button class="btn btn-small" type="button" data-calendar-new-order>新建订单</button></div>`
@@ -22401,7 +22620,7 @@ function renderCustomerWorkspaceSummary(customers = []) {
     <div class="customer-summary-item"><span>待跟进</span><strong>${followups}</strong><small>${followups ? '复购日期已到' : '暂无到期提醒'}</small></div>
   `;
 }
-// 客户列表「跟进计划」格：今年的写 MM-DD，别的年份写 YYYY-MM-DD。
+// 客户列表「复购 / 更新」格：今年的写 MM-DD，别的年份写 YYYY-MM-DD。
 function customerUpdatedShort(value = '', today = normalizeDate(new Date().toISOString())) {
   if (parseDate(value).getFullYear() <= 1970) return String(value || '');
   const date = normalizeDate(value);
@@ -22418,38 +22637,39 @@ function renderCustomers() {
   if (!el) return;
   renderCustomerDuplicateAlerts();
   const query = document.getElementById('customerSearch')?.value.trim() || '';
-  const levelFilter = document.getElementById('customerLevelFilter')?.value || 'all';
   const baseCustomers = clientHistory().map(customerWorkspaceRecord);
+  // 等级只在左边分组里选（搜索框旁边的等级下拉去掉了，两处同时生效会筛空）。分组按设置里的等级列表生成：
+  // 六个默认等级的 id 照旧是 level-a … level-f，设置里加的等级用「level:等级名」。
+  const levelGroups = normalizeCustomerLevels(state.customerLevels || defaultCustomerLevels).map(level => {
+    const def = levelIconDef(level);
+    return { id:def === 'level-custom' ? `level:${level}` : def, name:level, level, test: c => c.level === level };
+  });
   const groupDefs = [
     { id:'all', name:'全部客户', test: () => true },
-    { id:'level-a', name:'A级钻石客户', level:'A级钻石客户', test: c => c.level === 'A级钻石客户' },
-    { id:'level-b', name:'B级翡翠客户', level:'B级翡翠客户', test: c => c.level === 'B级翡翠客户' },
-    { id:'level-c', name:'C级白金客户', level:'C级白金客户', test: c => c.level === 'C级白金客户' },
-    { id:'level-d', name:'D级黄金客户', level:'D级黄金客户', test: c => c.level === 'D级黄金客户' },
-    { id:'level-e', name:'E级白银客户', level:'E级白银客户', test: c => c.level === 'E级白银客户' },
-    { id:'level-f', name:'F级青铜客户', level:'F级青铜客户', test: c => c.level === 'F级青铜客户' },
+    ...levelGroups,
     { id:'paid', name:'已收全款客户', test: c => c.total > 0 && c.paid >= c.total },
     { id:'unpaid', name:'待收款客户', test: c => c.total > 0 && c.paid < c.total }
   ];
   if (!groupDefs.some(g => g.id === customerGroupFilter)) customerGroupFilter = 'all';
   const groupEl = document.getElementById('customerGroups');
   if (groupEl) {
-    groupEl.innerHTML = groupDefs.map(g => `
-      <button class="customer-group-item ${customerGroupFilter === g.id ? 'active' : ''}" data-customer-group="${g.id}">
-        <span>${renderLevelIcon(g.level)}${g.name}</span><span class="customer-group-count">${baseCustomers.filter(g.test).length}</span>
+    // 数量是 0 的分组变灰、不写「0」，位置和能不能点都不变；读屏照样念出「0 个」。
+    groupEl.innerHTML = groupDefs.map(g => {
+      const n = baseCustomers.filter(g.test).length;
+      return `
+      <button class="customer-group-item${customerGroupFilter === g.id ? ' active' : ''}${n ? '' : ' is-empty'}" data-customer-group="${escapeAttr(g.id)}" aria-label="${escapeAttr(`${g.name}，${n} 个`)}">
+        <span>${renderLevelIcon(g.level)}${escapeAttr(g.name)}</span>${n ? `<span class="customer-group-count">${n}</span>` : ''}
       </button>
-    `).join('');
+    `;
+    }).join('');
   }
-  const totalEl = document.getElementById('customerGroupTotal');
-  if (totalEl) totalEl.textContent = `${baseCustomers.length} 个客户`;
   const activeGroup = groupDefs.find(g => g.id === customerGroupFilter) || groupDefs[0];
   const sort = document.getElementById('customerSort')?.value || 'recent';
   const customers = baseCustomers.filter(c => {
     const orderText = c.orders.map(o => `${o.num || ''} ${o.trackingNumber || ''} ${o.note || ''}`).join(' ');
     const text = `${globalSearchText(c)} ${c.client} ${c.country || ''} ${c.productType || ''} ${c.paymentMethod || ''} ${c.paymentEmail || ''} ${c.tags.join(' ')} ${orderText}`;
     const queryOk = !query || searchTextMatches(text, query);
-    const levelOk = levelFilter === 'all' || c.level === levelFilter;
-    return queryOk && levelOk && activeGroup.test(c);
+    return queryOk && activeGroup.test(c);
   }).sort((a, b) => {
     if (sort === 'sales') return b.total - a.total || a.client.localeCompare(b.client);
     if (sort === 'due') return b.due - a.due || b.total - a.total;
@@ -22458,10 +22678,8 @@ function renderCustomers() {
     return parseDate(b.updated) - parseDate(a.updated) || a.client.localeCompare(b.client);
   });
   renderCustomerWorkspaceSummary(customers);
-  const resultMeta = document.getElementById('customerResultMeta');
-  if (resultMeta) resultMeta.textContent = `${customers.length} 个结果 · 成交 ${summaryMoney(customers.reduce((sum, c) => sum + c.total, 0), 'USD')} · 待收 ${summaryMoney(customers.reduce((sum, c) => sum + Number(c.due || 0), 0), 'USD')}`;
   el.innerHTML = `
-    <div class="customer-row head"><div>客户与联系</div><div>地区与地址</div><div>客户属性</div><div>订单动态</div><div>成交与收款</div><div>跟进计划</div></div>
+    <div class="customer-row head"><div>客户与联系</div><div>地区与地址</div><div>客户属性</div><div>订单动态</div><div>成交与收款</div><div>复购 / 更新</div></div>
     ${customers.map(c => {
       const contact = cleanContactValue(c.contact || '', c.address || '');
       const otherTags = c.tags.filter(tag => tag !== c.level);
@@ -22571,7 +22789,6 @@ function renderCustomerDetailView(name = '', data = {}) {
   const record = normalizeCustomerContactFields(customerWorkspaceRecord({ client:name, ...data }));
   const info = document.getElementById('customerDetailInfoGrid');
   const ordersEl = document.getElementById('customerDetailOrders');
-  const ordersMeta = document.getElementById('customerDetailOrdersMeta');
   const ordersCount = document.getElementById('customerDetailOrdersCount');
   const icon = id => `<svg class="ui-icon" aria-hidden="true"><use href="#i-${id}"/></svg>`;
   // 标题栏：客户编号、只读状态，第二行放等级 / 标签（以前正文里还有一张重复的姓名卡）。
@@ -22640,7 +22857,6 @@ function renderCustomerDetailView(name = '', data = {}) {
   if (ordersCount) ordersCount.textContent = record.orderCount ? String(record.orderCount) : '';
   // 标签页卡片的最小高度跟着订单笔数走（CSS 里按每行 57px 算，2–7 行），订单少时不留一大块空白。
   ordersEl?.closest('.customer-detail-tabs-card')?.style.setProperty('--customer-order-rows', String(record.sortedOrders.length));
-  if (ordersMeta) ordersMeta.textContent = `${record.orderCount} 个订单 · ${summaryMoney(record.total, 'USD')}`;
   if (ordersEl) ordersEl.innerHTML = record.sortedOrders.length ? record.sortedOrders.map(order => {
     const currency = order.currency || 'USD';
     const due = orderDueValue(order);
@@ -23396,13 +23612,6 @@ function fillStageSelects() {
     sel.innerHTML = '<option value="自动判断">自动判断</option>' + levels.map(level => `<option value="${escapeAttr(level)}">${escapeAttr(level)}</option>`).join('');
     sel.value = current === '自动判断' || levels.includes(current) ? current : '自动判断';
   });
-  const levelFilter = document.getElementById('customerLevelFilter');
-  if (levelFilter) {
-    const current = levelFilter.value || 'all';
-    const levels = normalizeCustomerLevels(state.customerLevels || defaultCustomerLevels);
-    levelFilter.innerHTML = '<option value="all">全部等级</option>' + levels.map(level => `<option>${escapeAttr(level)}</option>`).join('');
-    levelFilter.value = current === 'all' || levels.includes(current) ? current : 'all';
-  }
   document.querySelectorAll('select[name="productType"], select[name="defaultProductType"]').forEach(sel => {
     const current = sel.value;
     sel.innerHTML = productTypeDefs.map(item => `<option>${item.value}</option>`).join('');
@@ -24539,7 +24748,9 @@ function buildOrderFromFormData(data = {}, { existing = null, isDraft = false, s
   const amount = Math.max(0, roundMoneyValue(data.amount));
   const orderType = data.orderType || '定金订单';
   const selectedStage = normalizeStage(data.stage);
-  const paymentValues = normalizeOrderPaymentInput(data, amount, orderType);
+  // 定金是按已收推出来的、表单里定金没改：标记跟着走（已收清回 0 时定金跟着清）；改过定金就是用户自己填的。
+  const depositStillFromPaid = existing?.depositFromPaid === true && roundMoneyValue(data.depositAmount) === roundMoneyValue(existing.depositAmount);
+  const paymentValues = normalizeOrderPaymentInput({ ...data, depositFromPaid:depositStillFromPaid }, amount, orderType);
   // 草稿转正式单时阶段也按收款推断，和新建一样；编辑已有订单时登记了收款也会推进（见 resolveOrderSaveStage）。
   const stageValue = resolveOrderSaveStage({
     existing,
@@ -24613,6 +24824,7 @@ function buildOrderFromFormData(data = {}, { existing = null, isDraft = false, s
     orderType,
     depositAmount: paymentValues.depositAmount,
     depositPercent: paymentValues.depositPercent,
+    ...(paymentValues.depositFromPaid ? { depositFromPaid:true } : {}),
     stage: stageValue,
     // 「下一步」：订单弹窗和抽屉都能改（表单里有这个字段）；没交这个字段的入口沿用原来的值。
     next: data.next !== undefined ? String(data.next || '').trim() : (existing?.next || ''),
@@ -25154,7 +25366,7 @@ function adjustPaymentForManualMove(order, fromStage, toStage) {
   const to = normalizeStage(toStage);
   const amount = orderAmountValue(order);
   let text = '';
-  if (from === 'quote' && ['production', 'balance'].includes(to) && (order.orderType || '定金订单') === '定金订单' && Number(order.paidAmount || 0) <= 0 && Number(order.depositAmount || 0) > 0) {
+  if (from === 'quote' && ['production', 'balance'].includes(to) && (order.orderType || '定金订单') === '定金订单' && Number(order.paidAmount || 0) <= 0 && Number(order.depositAmount || 0) > 0 && order.depositFromPaid !== true) {
     order.paidBeforeDeposit = Math.max(0, Number(order.paidAmount || 0));
     order.paidAmount = Math.min(amount, Number(order.depositAmount));
     order.depositAutoPaid = order.paidAmount;
@@ -30052,12 +30264,6 @@ document.getElementById('amountSideChart').addEventListener('click', e => {
   amountStructureView = btn.dataset.amountStructure;
   renderAmountReport();
 });
-document.getElementById('customerLevelSegments')?.addEventListener('click', e => {
-  const btn = e.target.closest('[data-segment-value]');
-  if (!btn) return;
-  document.getElementById('customerLevelFilter').value = btn.dataset.segmentValue;
-  render();
-});
 document.getElementById('boardProductFilter').addEventListener('click', e => {
   const btn = e.target.closest('[data-board-product]');
   if (!btn) return;
@@ -30439,10 +30645,16 @@ document.getElementById('orderDetailDrawer').addEventListener('click', e => {
     retryOrderNotification(retryNotificationBtn.dataset.retryOrderNotification);
     return;
   }
-  if (e.target.closest('[data-detail-open-edit]')) {
+  if (e.target.closest('[data-detail-attach-pick]')) {
+    e.preventDefault();
+    document.querySelector('#orderDetailBody [data-detail-attach-input]')?.click();
+    return;
+  }
+  const removeAttachmentBtn = e.target.closest('[data-detail-remove-attachment]');
+  if (removeAttachmentBtn) {
     e.preventDefault();
     e.stopPropagation();
-    document.getElementById('detailEditBtn').click();
+    uiDetailRemoveAttachment(removeAttachmentBtn.dataset.detailRemoveAttachment);
     return;
   }
   const customerBtn = e.target.closest('[data-order-open-customer]');
@@ -30461,6 +30673,34 @@ document.getElementById('orderDetailDrawer').addEventListener('click', e => {
     return;
   }
   if (e.target.id === 'orderDetailDrawer') uiCloseDetailGuarded();
+});
+// 抽屉「附件」页：选文件、把图片拖到上传区（抽屉每次重画都换新的上传区，所以挂在抽屉上）。
+document.getElementById('orderDetailDrawer').addEventListener('change', e => {
+  const input = e.target.closest?.('[data-detail-attach-input]');
+  if (!input) return;
+  const files = [...(input.files || [])];
+  input.value = '';
+  if (files.length) uiDetailAddImages(files);
+});
+const detailAttachDrop = e => e.target.closest?.('[data-detail-attach-drop]');
+const detailDragHasFiles = e => [...(e.dataTransfer?.types || [])].includes('Files');
+document.getElementById('orderDetailDrawer').addEventListener('dragover', e => {
+  const drop = detailAttachDrop(e);
+  if (!drop || !detailDragHasFiles(e)) return;
+  e.preventDefault();
+  if (e.dataTransfer) e.dataTransfer.dropEffect = drop.getAttribute('aria-disabled') === 'true' ? 'none' : 'copy';
+  drop.classList.add('is-over');
+});
+document.getElementById('orderDetailDrawer').addEventListener('dragleave', e => {
+  const drop = detailAttachDrop(e);
+  if (drop && !drop.contains(e.relatedTarget)) drop.classList.remove('is-over');
+});
+document.getElementById('orderDetailDrawer').addEventListener('drop', e => {
+  const drop = detailAttachDrop(e);
+  if (!drop || !detailDragHasFiles(e)) return;
+  e.preventDefault();
+  drop.classList.remove('is-over');
+  uiDetailAddImages(e.dataTransfer.files || []);
 });
 document.getElementById('trackingDetailCloseBtn')?.addEventListener('click', closeTrackingDetail);
 document.getElementById('trackingDetailDrawer')?.addEventListener('click', e => {
@@ -30697,6 +30937,7 @@ document.getElementById('attachmentList').addEventListener('click', async e => {
   } finally { delete form.dataset.deletingAttachment; }
 });
 document.addEventListener('paste', handleOrderImagePaste);
+document.addEventListener('paste', handleDetailImagePaste);
 document.querySelectorAll('#orderForm, #combinedOrderForm').forEach(form => {
   if (!form?.elements?.amount) return;
   form.elements.amount.addEventListener('input', () => syncDepositFields(form, 'amount'));
@@ -30959,7 +31200,6 @@ document.getElementById('customerSearch').addEventListener('keydown', e => {
     renderCustomers();
   }
 });
-document.getElementById('customerLevelFilter').addEventListener('change', render);
 document.getElementById('customerSort').addEventListener('change', renderCustomers);
 document.querySelector('.settings-menu').addEventListener('click', e => {
   const btn = e.target.closest('[data-settings-tab]');
@@ -32824,7 +33064,13 @@ function uiRenderNotifs() {
     const key = btn.dataset.notifTab;
     btn.classList.toggle('active', key === tab);
     btn.setAttribute('aria-pressed', String(key === tab));
-    btn.innerHTML = `${tabNames[key] || btn.textContent}<span class="c">${key === 'all' ? items.length : items.filter(item => item.kind === key).length}</span>`;
+    const name = tabNames[key] || btn.dataset.notifLabel || btn.textContent;
+    btn.dataset.notifLabel = name;
+    const n = key === 'all' ? items.length : items.filter(item => item.kind === key).length;
+    // 0 的页签变灰、不写「0」，照样能点；读屏念「错误，0 条」。
+    btn.classList.toggle('is-empty', !n);
+    btn.setAttribute('aria-label', `${name}，${n} 条`);
+    btn.innerHTML = n ? `${escapeAttr(name)}<span class="c">${n}</span>` : escapeAttr(name);
   });
   const list = items.filter(item => tab === 'all' || item.kind === tab);
   const icons = { error:'alert', success:'check', info:'info' };
@@ -33452,6 +33698,10 @@ async function uiDetailConfirmLeave(sub, message) {
   const body = document.getElementById('orderDetailBody');
   if (body?.dataset.saving || document.getElementById('orderForm')?.dataset.saving) {
     toast('正在保存，请稍候', { tone:'info' });
+    return false;
+  }
+  if (body?.dataset.attachmentBusy) {
+    toast('附件正在处理，请完成后再离开这张订单');
     return false;
   }
   if (!uiDetailUnsaved()) return true;
@@ -34086,6 +34336,11 @@ async function uiDetailSave({ promote = false } = {}) {
   const saveBtn = document.getElementById(promote ? 'detailPromoteBtn' : 'detailSaveBtn');
   if (['detailSaveBtn', 'detailPromoteBtn'].some(btnId => document.getElementById(btnId)?.dataset.morph === 'busy')) return;
   const body = document.getElementById('orderDetailBody');
+  // 附件页正在上传 / 删除：它存完会改这张单的附件，抽屉的保存等它做完（不然两次保存互相盖掉附件）。
+  if (body?.dataset.attachmentBusy) {
+    toast('附件正在处理，请完成后再保存');
+    return;
+  }
   const keepDraft = order.isDraft === true && !promote;
   // 日期框里手打的内容先落定（⌘S 不让输入框失焦，没有 change）：认得出改成 YYYY-MM-DD，认不出就改回原值、不保存。
   const badDate = uiDetailSettleDates(body);

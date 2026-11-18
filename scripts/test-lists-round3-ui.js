@@ -139,7 +139,9 @@ async function openApp(browser, { width = 1440, height = 920 } = {}) {
         toggle:toggle ? { text:toggle.querySelector('span').textContent, expanded:toggle.getAttribute('aria-expanded') } : null,
         first:firstGroup?.querySelector('.agenda-date').textContent.trim() || '',
         todayMarks:box.querySelectorAll('.agenda-today-mark').length,
-        rows:visibleRows.map(row => [row.querySelector('.agenda-what').textContent, row.querySelector('.agenda-who').textContent, row.querySelector('.agenda-num').textContent]),
+        // 订单号不占一列了，写在悬停提示里。
+        rows:visibleRows.map(row => [row.querySelector('.agenda-what').textContent, row.querySelector('.agenda-who').textContent, state.orders.map(o => o.num).find(num => num && row.title.includes(num)) || '']),
+        nums:box.querySelectorAll('.agenda-num').length,
         allRows:box.querySelectorAll('.agenda-row').length,
         toggleBeforeToday:Boolean(toggle && firstGroup && (toggle.compareDocumentPosition(firstGroup) & Node.DOCUMENT_POSITION_FOLLOWING))
       };
@@ -163,6 +165,7 @@ async function openApp(browser, { width = 1440, height = 920 } = {}) {
     assert.equal(now.todayMarks, 1);
     assert.deepEqual(now.rows, expected.fromToday, 'collapsed: today and later, what first');
     assert.equal(now.allRows, expected.all.length, 'every entry is still in the agenda');
+    assert.equal(now.nums, 0, 'no order number column');
     // 长客户名：事完整，截的是客户名。
     const cut = await page.evaluate(name => {
       const row = [...document.querySelectorAll('#calendarAgenda .agenda-row')].find(r => r.querySelector('.agenda-who').textContent.startsWith(name.slice(0, 20)) && r.offsetParent !== null);

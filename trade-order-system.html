@@ -10192,10 +10192,12 @@ function customerCountryFromInput(value = '') {
   return zh ? countryDefs.find(def => def.split(' ')[1] === zh) || '' : '';
 }
 // 订单里存的国家：认得出的统一成内置写法，认不出的原样保留（显示和保存都用原文），空的才算「其他」。
+// 常用别名（UAE、KSA、England…）也归进列表写法：以前列表里没有阿联酋，旧单按原文存成 UAE，新单从列表选成「阿联酋」，
+// 不归到一起的话按国家筛选、统计里会分成两个。
 function storedCountry(value) {
   const text = String(value || '').trim();
   if (!text) return '🌐 其他 Other';
-  return canonicalCountry(text) || text;
+  return customerCountryFromInput(text) || text;
 }
 // 订单里存的币种：内置 6 种照用；其它三个字母的代码（XYZ、JPY…）原样保留，显示为代码本身、不并进美元汇总；空的才用 USD。
 function storedCurrency(value) {
@@ -12321,7 +12323,7 @@ const countryMenuCommonSize = 8;
 function countryMenuCommon(current = '') {
   const counts = new Map();
   const count = value => {
-    const def = canonicalCountry(value);
+    const def = customerCountryFromInput(value);
     if (def && def !== '🌐 其他 Other') counts.set(def, (counts.get(def) || 0) + 1);
   };
   (state?.orders || []).forEach(order => count(order?.country));
@@ -13500,7 +13502,8 @@ function searchCountryAliasGroups() {
     ['沙特阿拉伯', 'saudi arabia', 'saudi', 'ksa', '沙特'],
     ['土耳其', 'turkey', 'turkiye'],
     ['刚果（金）', 'dr congo', 'drc', 'democratic republic of the congo', 'congo kinshasa', '刚果金', '刚果 金'],
-    ['刚果（布）', 'republic of the congo', 'congo', 'congo brazzaville', '刚果布', '刚果 布'],
+    // 只写 Congo 不知道是哪一个（刚果（金）大得多），不替人猜：按原文保留，菜单里两个都列出来。
+    ['刚果（布）', 'republic of the congo', 'congo brazzaville', '刚果布', '刚果 布'],
     ['中非共和国', 'central african republic', '中非'],
     ['科特迪瓦', 'cote d ivoire', 'ivory coast'],
     ['佛得角', 'cape verde', 'cabo verde'],

@@ -44,6 +44,10 @@ const orders = [
     assert.equal(list.flagUnique, list.size - 2, 'every flag belongs to one entry');
     assert.deepEqual(list.others, ['🌐 其他 Other'], '「其他」 stays the only entry without a flag');
     assert.deepEqual([list.zw, list.zwEn, list.zwStored, list.oldOrder], [ZW, ZW, ZW, ZW], 'Zimbabwe is in the list; an old order saved as 津巴布韦 is read as the list entry');
+    // 以前只能按原文存的别名（UAE、KSA）读进来也归到列表写法，按国家筛选、统计不分成两个；只写 Congo 不替人猜是哪个刚果。
+    const stored = await page.evaluate(() => ['UAE', 'KSA', 'England', 'Congo', 'Atlantis'].map(storedCountry));
+    assert.deepEqual(stored, ['🇦🇪 阿联酋 United Arab Emirates', '🇸🇦 沙特阿拉伯 Saudi Arabia', GB, 'Congo', 'Atlantis'],
+      'an old order saved under a common other name joins the list entry; an ambiguous or unknown name stays as written');
 
     const names = await page.evaluate(() => Object.fromEntries([
       'UAE', 'Ivory Coast', "Cote d'Ivoire", 'Korea', '香港', '刚果(金)', 'Swaziland', 'Burma', 'turkiye', 'Deutschland', 'US'

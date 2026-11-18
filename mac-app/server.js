@@ -10,6 +10,7 @@ const { createAiUsageStore } = require('./ai-usage-store');
 const { createSubscriptionStore } = require('./subscription-store');
 const { readFeishuSettings, writeFeishuSettings } = require('./feishu-settings');
 const { createAttachmentCopier } = require('./backup-attachments');
+const { measureStorage } = require('./storage-usage');
 const { ordersOf, compressedSuccessors, replacedOriginalUrls } = require('./attachment-cleanup');
 const { createCarrierTracking, cleanTracking, detectCarrier } = require('./carrier-tracking');
 const { httpError } = require('./http-error');
@@ -1330,6 +1331,47 @@ function backupSummary() {
   };
 }
 
+// 设置 → 数据管理 →「占用空间」：图片按订单汇总（订单号 + 它引用的附件，含垃圾箱和已删除订单），缩略图单独认。
+// 软件本身只有从 .app 里跑起来时才有（开发、测试时 resourcesDir 不在 .app 里）。
+const bundleId = 'com.local.tradeordersystem';
+function storageUsage() {
+  ensureStorage();
+  let payload = {};
+  try { payload = readCurrentPayload().data || {}; } catch (_) {}
+  const owners = [];
+  const thumbs = new Set();
+  const noteThumbs = value => {
+    if (!value || typeof value !== 'object') return;
+    if (Array.isArray(value)) { value.forEach(noteThumbs); return; }
+    if (value.thumbUrl && value.thumbUrl !== value.fileUrl) {
+      try { thumbs.add(attachmentTargetFromUrl(value.thumbUrl)); } catch (_) {}
+    }
+    Object.values(value).forEach(noteThumbs);
+  };
+  for (const key of orderBuckets) {
+    for (const order of Array.isArray(payload[key]) ? payload[key] : []) {
+      owners.push({ label: String(order?.num || '').trim() || '未编号订单', files: collectAttachmentRefs(order) });
+      noteThumbs(order);
+    }
+  }
+  // 客户档案、物流查询记录里引用的附件：不按订单列，但算「在用」。
+  const rest = { ...payload };
+  orderBuckets.forEach(key => { delete rest[key]; });
+  owners.push({ label: '', files: collectAttachmentRefs(rest) });
+  noteThumbs(rest);
+  // 只认正在跑的这个软件：运行环境（node-runtime）就在这个 .app 里。开发时 mac-app/ 下另有一份本机构建，那份不算。
+  const bundle = /\.app\/Contents\/Resources$/.test(resourcesDir) ? path.resolve(resourcesDir, '..', '..') : '';
+  const appDir = bundle && process.execPath.startsWith(bundle + path.sep) ? bundle : '';
+  const library = path.join(os.homedir(), 'Library');
+  return measureStorage({
+    appDir, runtimeFile: process.execPath, supportDir, attachmentsDir, databaseFile, backupDir, owners, thumbs, top: 3,
+    cacheDirs: process.platform === 'darwin' ? [
+      path.join(library, 'Caches', bundleId), path.join(library, 'WebKit', bundleId),
+      path.join(library, 'HTTPStorages', bundleId), path.join(library, 'HTTPStorages', `${bundleId}.binarycookies`)
+    ] : []
+  }).then(result => ({ ...result, backups: { ...result.backups, isDefault: backupDir === defaultBackupDir } }));
+}
+
 // ---- 从备份恢复 ----
 // 设置 → 数据管理 →「从备份恢复…」：列出备份目录里的每一份；选一份先看和当前数据的对比，确认后由服务端一次做完：
 // 先给当前数据做一份「恢复前」快照 → 校验备份 → 关库、原子替换 → 并回附件（不覆盖已有文件）→ 身份标记换成备份的 → 版本号调大。
@@ -1720,6 +1762,9 @@ const server = http.createServer(async (req, res) => {
       const reason = backupReasons.includes(body.reason) ? body.reason : 'change';
       const result = createBackup(true, { reason });
       return send(res, result.ok ? 200 : 503, JSON.stringify(result));
+    }
+    if (req.method === 'GET' && url.pathname === '/api/storage-usage') {
+      return send(res, 200, JSON.stringify(await storageUsage()));
     }
     if (req.method === 'GET' && url.pathname === '/api/backups') {
       return send(res, 200, JSON.stringify(listBackups()));

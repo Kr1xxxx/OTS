@@ -6288,6 +6288,10 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
                 <button class="btn" type="button" id="importJsonBtn">选择文件…</button>
               </div>
               <div class="data-group-title">维护</div>
+              <div class="data-action mac-only">
+                <div><strong>占用空间</strong><div class="muted">软件本身、图片和附件、备份、数据库各占这台 Mac 多少硬盘。</div></div>
+                <button class="btn" type="button" id="macStorageUsageBtn">查看…</button>
+              </div>
               <div class="data-action">
                 <div><strong>数据健康检查</strong><div class="muted">检查重复订单号、缺少客户名和异常金额。</div></div>
                 <button class="btn" id="dataHealthCheckBtn">开始检查</button>
@@ -26142,6 +26146,7 @@ function backupTimeText(ms) {
 }
 function backupSizeText(bytes = 0) {
   const value = Number(bytes) || 0;
+  if (value >= 1073741824) return `${(value / 1073741824).toFixed(2)} GB`;
   return value >= 1048576 ? `${(value / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(value / 1024))} KB`;
 }
 function renderRestoreList(data) {
@@ -26406,6 +26411,53 @@ function runDataHealthCheck() {
     confirmText: '知道了',
     // 纯信息，只留一个「知道了」。
     cancelText: ''
+  });
+}
+// 占用空间：本地服务量好（storage-usage.js），这里只摆成「分项」表 + 图片和附件清单 + 两句说明。
+// 0 的行不列；软件本身只在 .app 里跑时有；备份在另一块硬盘上时不算进「一共」，行名写明。
+function storageUsageBlocks(usage = {}) {
+  const size = backupSizeText;
+  const bytes = value => Number(value) || 0;
+  const app = usage.app || null;
+  const files = usage.attachments || {};
+  const backups = usage.backups || {};
+  const rows = [
+    ['软件本身', bytes(app?.bytes)],
+    ['图片和附件', bytes(files.bytes)],
+    [backups.otherDisk ? '备份（在另一块硬盘上）' : '备份', bytes(backups.bytes)],
+    ['数据库', bytes(usage.database?.bytes)],
+    ['缓存', bytes(usage.caches?.bytes)],
+    ['其他', bytes(usage.other?.bytes)]
+  ].filter(([, value]) => value > 0);
+  const blocks = [{ type:'table', columns:['', '占用'], rows:rows.map(([label, value]) => ({ cells:[label, size(value)] })) }];
+  const items = [];
+  const top = (files.top || []).map(order => `${order.label} ${size(order.bytes)}`).join('、');
+  if (bytes(files.files)) items.push({ text:`在用 ${bytes(files.files)} 个 · ${size(bytes(files.bytes) - bytes(files.unusedBytes))}`, detail:top ? `占得最多的订单：${top}` : '' });
+  if (bytes(files.unusedFiles)) items.push({ text:`不再使用的旧文件 ${bytes(files.unusedFiles)} 个 · ${size(files.unusedBytes)}`, detail:'订单已经不用了，留给备份；备份也不用了以后会自动删掉' });
+  if (items.length) blocks.push({ type:'list', label:'图片和附件', items });
+  if (bytes(backups.sharedBytes)) blocks.push({ type:'text', fine:true, text:`访达「显示简介」看备份文件夹会多出约 ${size(backups.sharedBytes)}：备份里的图片和原图共用同一份硬盘空间，访达把它们各算了一遍，这里只算一次。` });
+  return blocks;
+}
+async function macShowStorageUsage(btn) {
+  if (!isMacAppMode()) return;
+  let usage;
+  try {
+    usage = await withButtonBusy(btn, '计算中…', '已算好', async () => {
+      const res = await apiFetch('/api/storage-usage', { cache:'no-store' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) throw new Error(data.message || `HTTP ${res.status}`);
+      return data;
+    });
+  } catch (error) {
+    toast(`占用空间没算出来：${error.message || '本地服务没有响应'}`, { tone:'error' });
+    return;
+  }
+  appConfirm({
+    title:'占用空间',
+    sub:`一共 ${backupSizeText(usage.total)} · 这台 Mac 的硬盘`,
+    blocks:storageUsageBlocks(usage),
+    confirmText:'知道了',
+    cancelText:''
   });
 }
 // 导出文件，返回是否成功。浏览器里走普通下载；Mac App 的 WebKit 会拦下 blob 下载（以前点了导出只提示「已导出」，
@@ -32191,6 +32243,7 @@ document.getElementById('macRestoreList')?.addEventListener('click', e => {
   if (btn) macRestoreBackup(btn.dataset.restoreBackup);
 });
 document.getElementById('macOpenDataFolderBtn')?.addEventListener('click', e => macOpenDataFolder(e.currentTarget));
+document.getElementById('macStorageUsageBtn')?.addEventListener('click', e => macShowStorageUsage(e.currentTarget));
 document.getElementById('macChooseBackupDirBtn')?.addEventListener('click', e => macChooseBackupDir(e.currentTarget));
 document.getElementById('macResetBackupDirBtn')?.addEventListener('click', e => macResetBackupDir(e.currentTarget));
 // 恢复示例只换订单相关的数据（订单、垃圾箱、已删除、目标、已处理提醒），客户档案、收款方式、标签、编号 / 汇率等设置都保留。

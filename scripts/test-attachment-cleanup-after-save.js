@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // 保存订单之后就清一轮附件，不用等下次打开 App（用户 2026-11-18）：真实 mac-app/server.js + 临时数据目录。
-// - 放了一天以上、数据库和备份都没用到的图：保存后删掉；订单里用着的图、刚传上来还没保存的图留着。
+// - 保存后只删下面这一种。别的没人用的图仍只在启动时清：订单弹窗粘贴了还没保存的图也是「没人用」，
+//   弹窗开过一天再有别的保存就会被删（审查 2026-11-18）。
 // - 补压换成压缩版的旧原图：附件文件夹和备份的附件文件夹里一起删掉，不等备份轮换；
 //   用户删掉的附件（没有压缩版接替）照旧留在备份里，恢复时还能找回。
 // - attachment-cleanup.js 认「换掉的」规则：同一张单、同名同时间、现在是压缩版且指向别的文件。
@@ -78,27 +79,13 @@ const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
 const order = attachments => ({ id:'c1', num:'K26110101', client:'Cleanup Buyer', amount:100, paidAmount:0, currency:'USD', stage:'quote', orderType:'定金订单', orderMonth:'2026-11', logs:[], shipments:[], attachments });
 
 (async () => {
-  // 没人用的旧图：保存后删；用着的、刚传上来的留着。
-  await withServer(async ({ dataDir, save }) => {
-    // 服务启动时那一轮清理已经跑过：下面的文件是之后才放进去的，只有保存后的那一轮能删它们。
-    const folder = path.join(dataDir, 'attachments', 'K26110101');
-    fs.mkdirSync(folder, { recursive:true });
-    const file = name => path.join(folder, name);
-    ['K26110101-1.webp', 'K26110101-1-thumb.webp', 'unused-old.png', 'unused-old-thumb.webp', 'just-pasted.webp'].forEach(name => fs.writeFileSync(file(name), name));
-    ['K26110101-1.webp', 'K26110101-1-thumb.webp', 'unused-old.png', 'unused-old-thumb.webp'].forEach(name => fs.utimesSync(file(name), twoDaysAgo, twoDaysAgo));
-    await save([order([{ name:'K26110101-1', time:'2026-11-01 10:00', type:'图片附件', fileUrl:'/attachments/K26110101/K26110101-1.webp', thumbUrl:'/attachments/K26110101/K26110101-1-thumb.webp', compressed:true }])]);
-    await waitFor(() => !fs.existsSync(file('unused-old.png')) && !fs.existsSync(file('unused-old-thumb.webp')), 'unused old images removed after the save');
-    assert.equal(fs.existsSync(file('K26110101-1.webp')), true, '订单里用着的图要留着');
-    assert.equal(fs.existsSync(file('K26110101-1-thumb.webp')), true, '订单里用着的缩略图要留着');
-    assert.equal(fs.existsSync(file('just-pasted.webp')), true, '刚传上来、还没保存进订单的图要留着');
-  });
-
   // 补压换掉的旧原图：连备份里的一起删；用户删掉的附件留在备份里。
   await withServer(async ({ dataDir, save }) => {
     const folder = path.join(dataDir, 'attachments', 'K26110101');
     fs.mkdirSync(folder, { recursive:true });
     const file = name => path.join(folder, name);
-    ['orig.png', 'orig-thumb.webp', 'deleted.png', 'deleted-thumb.webp'].forEach(name => {
+    // pasted-unsaved.webp：一天前在订单弹窗里粘贴、弹窗一直开着没保存的图。
+    ['orig.png', 'orig-thumb.webp', 'deleted.png', 'deleted-thumb.webp', 'pasted-unsaved.webp'].forEach(name => {
       fs.writeFileSync(file(name), name);
       fs.utimesSync(file(name), twoDaysAgo, twoDaysAgo);
     });
@@ -117,8 +104,9 @@ const order = attachments => ({ id:'c1', num:'K26110101', client:'Cleanup Buyer'
     assert.equal(fs.existsSync(path.join(backupFolder, 'orig.png')), false, '备份里的旧原图也删');
     assert.equal(fs.existsSync(path.join(backupFolder, 'orig-thumb.webp')), false, '备份里的旧缩略图也删');
     assert.equal(fs.existsSync(file('compact.webp')), true, '压缩版留着');
+    assert.equal(fs.existsSync(file('pasted-unsaved.webp')), true, '粘贴了还没保存的图：放了一天以上也不在保存后删');
     assert.equal(fs.existsSync(file('deleted.png')), true, '用户删掉的附件：备份还用着，附件文件夹里留着');
     assert.equal(fs.existsSync(path.join(backupFolder, 'deleted.png')), true, '用户删掉的附件留在备份里');
   });
-  console.log('Attachment cleanup after save passed: unused images older than a day go right after a save, replaced originals go from backups too, deleted attachments stay in backups.');
+  console.log('Attachment cleanup after save passed: replaced originals go from the attachments folder and backups, pasted images not saved yet and deleted attachments stay.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -1108,20 +1108,29 @@ function removeEmptyDirsUnder(dir) {
   });
 }
 
-// 保存之后也清一轮没人用的附件，不用等下次打开 App（用户 2026-11-18）。规则和启动时同一条（cleanupOrphanAttachments）。
+// 保存之后清一轮已被压缩版换掉的旧原图（removeReplacedOriginals），不用等下次打开 App（用户 2026-11-18）。
+// 别的没人用的图（放了一天以上、数据库和备份都没用到）仍只在启动时清（cleanupOrphanAttachments）：App 开着的时候，
+// 订单弹窗或抽屉里粘贴了还没保存的图也是「没人用」，弹窗开过一天再有别的保存，就会把它删掉。
 // 读备份要一点时间，放在回复之后：一次保存后过几秒做（连着保存只做一次），两轮之间至少隔几分钟。
 // 两个环境变量只给测试用（TRADE_ATTACHMENT_CLEANUP_DELAY_MS / _GAP_MS）。
 const orphanCleanupDelayMs = Math.max(0, Number(process.env.TRADE_ATTACHMENT_CLEANUP_DELAY_MS ?? 10 * 1000) || 0);
 const orphanCleanupGapMs = Math.max(0, Number(process.env.TRADE_ATTACHMENT_CLEANUP_GAP_MS ?? 5 * 60 * 1000) || 0);
 let orphanCleanupLastAt = 0;
 let orphanCleanupTimer = null;
+function cleanupReplacedOriginals() {
+  ensureStorage();
+  if (!fs.existsSync(attachmentsDir)) return { replaced: 0 };
+  let data;
+  try { data = readCurrentPayload(); } catch (_) { return { replaced: 0 }; }
+  return { replaced: removeReplacedOriginals(data) };
+}
 function scheduleOrphanAttachmentCleanup() {
   if (orphanCleanupTimer) return;
   const wait = Math.max(orphanCleanupDelayMs, orphanCleanupLastAt ? orphanCleanupLastAt + orphanCleanupGapMs - Date.now() : 0);
   orphanCleanupTimer = setTimeout(() => {
     orphanCleanupTimer = null;
     orphanCleanupLastAt = Date.now();
-    try { cleanupOrphanAttachments(); } catch (error) { console.error(`Attachment cleanup skipped: ${error.message}`); }
+    try { cleanupReplacedOriginals(); } catch (error) { console.error(`Attachment cleanup skipped: ${error.message}`); }
   }, wait);
   orphanCleanupTimer.unref?.();
 }

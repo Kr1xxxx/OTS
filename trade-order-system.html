@@ -7528,6 +7528,9 @@ const orderTypeDefs = [
   { value:'定金订单' }
 ];
 
+// 国家 / 地区：联合国 193 个会员国，加梵蒂冈、巴勒斯坦、科索沃和常见的海外地区。写法「国旗 中文名 英文名」，中文名里不带空格
+// （canonicalCountry 按第一个空格拆中文名）。前面的老顺序不动，新加的按地区排在后面；下拉一打开只列常用的（countryMenuCommon）。
+// 台湾用中国国旗：中国大陆地区设置的 Mac 不显示 🇹🇼，会变成一个方框。
 const countryDefs = [
   '🇺🇸 美国 United States',
   '🇨🇦 加拿大 Canada',
@@ -7613,6 +7616,145 @@ const countryDefs = [
   '🇧🇾 白俄罗斯 Belarus',
   '🇷🇺 俄罗斯 Russia',
   '🇿🇦 南非 South Africa',
+  '🇨🇳 中国 China',
+  '🇭🇰 中国香港 Hong Kong',
+  '🇲🇴 中国澳门 Macau',
+  '🇨🇳 中国台湾 Taiwan',
+  '🇯🇵 日本 Japan',
+  '🇰🇷 韩国 South Korea',
+  '🇰🇵 朝鲜 North Korea',
+  '🇲🇳 蒙古 Mongolia',
+  '🇸🇬 新加坡 Singapore',
+  '🇲🇾 马来西亚 Malaysia',
+  '🇹🇭 泰国 Thailand',
+  '🇻🇳 越南 Vietnam',
+  '🇵🇭 菲律宾 Philippines',
+  '🇮🇩 印度尼西亚 Indonesia',
+  '🇰🇭 柬埔寨 Cambodia',
+  '🇱🇦 老挝 Laos',
+  '🇲🇲 缅甸 Myanmar',
+  '🇧🇳 文莱 Brunei',
+  '🇹🇱 东帝汶 Timor-Leste',
+  '🇮🇳 印度 India',
+  '🇵🇰 巴基斯坦 Pakistan',
+  '🇧🇩 孟加拉国 Bangladesh',
+  '🇱🇰 斯里兰卡 Sri Lanka',
+  '🇳🇵 尼泊尔 Nepal',
+  '🇧🇹 不丹 Bhutan',
+  '🇲🇻 马尔代夫 Maldives',
+  '🇦🇫 阿富汗 Afghanistan',
+  '🇰🇿 哈萨克斯坦 Kazakhstan',
+  '🇺🇿 乌兹别克斯坦 Uzbekistan',
+  '🇹🇲 土库曼斯坦 Turkmenistan',
+  '🇰🇬 吉尔吉斯斯坦 Kyrgyzstan',
+  '🇹🇯 塔吉克斯坦 Tajikistan',
+  '🇦🇪 阿联酋 United Arab Emirates',
+  '🇸🇦 沙特阿拉伯 Saudi Arabia',
+  '🇶🇦 卡塔尔 Qatar',
+  '🇰🇼 科威特 Kuwait',
+  '🇧🇭 巴林 Bahrain',
+  '🇴🇲 阿曼 Oman',
+  '🇾🇪 也门 Yemen',
+  '🇮🇶 伊拉克 Iraq',
+  '🇮🇷 伊朗 Iran',
+  '🇯🇴 约旦 Jordan',
+  '🇱🇧 黎巴嫩 Lebanon',
+  '🇸🇾 叙利亚 Syria',
+  '🇮🇱 以色列 Israel',
+  '🇵🇸 巴勒斯坦 Palestine',
+  '🇹🇷 土耳其 Turkey',
+  '🇬🇪 格鲁吉亚 Georgia',
+  '🇦🇲 亚美尼亚 Armenia',
+  '🇦🇿 阿塞拜疆 Azerbaijan',
+  '🇳🇬 尼日利亚 Nigeria',
+  '🇬🇭 加纳 Ghana',
+  '🇰🇪 肯尼亚 Kenya',
+  '🇪🇬 埃及 Egypt',
+  '🇲🇦 摩洛哥 Morocco',
+  '🇩🇿 阿尔及利亚 Algeria',
+  '🇹🇳 突尼斯 Tunisia',
+  '🇱🇾 利比亚 Libya',
+  '🇸🇩 苏丹 Sudan',
+  '🇸🇸 南苏丹 South Sudan',
+  '🇪🇹 埃塞俄比亚 Ethiopia',
+  '🇪🇷 厄立特里亚 Eritrea',
+  '🇩🇯 吉布提 Djibouti',
+  '🇸🇴 索马里 Somalia',
+  '🇺🇬 乌干达 Uganda',
+  '🇹🇿 坦桑尼亚 Tanzania',
+  '🇷🇼 卢旺达 Rwanda',
+  '🇧🇮 布隆迪 Burundi',
+  '🇨🇩 刚果（金） DR Congo',
+  '🇨🇬 刚果（布） Republic of the Congo',
+  '🇬🇦 加蓬 Gabon',
+  '🇬🇶 赤道几内亚 Equatorial Guinea',
+  '🇨🇲 喀麦隆 Cameroon',
+  '🇨🇫 中非共和国 Central African Republic',
+  '🇹🇩 乍得 Chad',
+  '🇳🇪 尼日尔 Niger',
+  '🇲🇱 马里 Mali',
+  '🇧🇫 布基纳法索 Burkina Faso',
+  '🇸🇳 塞内加尔 Senegal',
+  '🇬🇲 冈比亚 Gambia',
+  '🇬🇳 几内亚 Guinea',
+  '🇬🇼 几内亚比绍 Guinea-Bissau',
+  '🇸🇱 塞拉利昂 Sierra Leone',
+  '🇱🇷 利比里亚 Liberia',
+  "🇨🇮 科特迪瓦 Côte d'Ivoire",
+  '🇹🇬 多哥 Togo',
+  '🇧🇯 贝宁 Benin',
+  '🇲🇷 毛里塔尼亚 Mauritania',
+  '🇨🇻 佛得角 Cape Verde',
+  '🇸🇹 圣多美和普林西比 Sao Tome and Principe',
+  '🇦🇴 安哥拉 Angola',
+  '🇿🇲 赞比亚 Zambia',
+  '🇿🇼 津巴布韦 Zimbabwe',
+  '🇲🇼 马拉维 Malawi',
+  '🇲🇿 莫桑比克 Mozambique',
+  '🇳🇦 纳米比亚 Namibia',
+  '🇧🇼 博茨瓦纳 Botswana',
+  '🇱🇸 莱索托 Lesotho',
+  '🇸🇿 斯威士兰 Eswatini',
+  '🇲🇬 马达加斯加 Madagascar',
+  '🇲🇺 毛里求斯 Mauritius',
+  '🇸🇨 塞舌尔 Seychelles',
+  '🇰🇲 科摩罗 Comoros',
+  '🇷🇪 留尼汪 Réunion',
+  '🇫🇯 斐济 Fiji',
+  '🇵🇬 巴布亚新几内亚 Papua New Guinea',
+  '🇸🇧 所罗门群岛 Solomon Islands',
+  '🇻🇺 瓦努阿图 Vanuatu',
+  '🇼🇸 萨摩亚 Samoa',
+  '🇹🇴 汤加 Tonga',
+  '🇰🇮 基里巴斯 Kiribati',
+  '🇹🇻 图瓦卢 Tuvalu',
+  '🇳🇷 瑙鲁 Nauru',
+  '🇫🇲 密克罗尼西亚 Micronesia',
+  '🇲🇭 马绍尔群岛 Marshall Islands',
+  '🇵🇼 帕劳 Palau',
+  '🇵🇫 法属波利尼西亚 French Polynesia',
+  '🇳🇨 新喀里多尼亚 New Caledonia',
+  '🇬🇺 关岛 Guam',
+  '🇦🇸 美属萨摩亚 American Samoa',
+  '🇨🇰 库克群岛 Cook Islands',
+  '🇵🇷 波多黎各 Puerto Rico',
+  '🇬🇱 格陵兰 Greenland',
+  '🇧🇲 百慕大 Bermuda',
+  '🇰🇾 开曼群岛 Cayman Islands',
+  '🇦🇼 阿鲁巴 Aruba',
+  '🇨🇼 库拉索 Curaçao',
+  '🇸🇽 荷属圣马丁 Sint Maarten',
+  '🇻🇬 英属维尔京群岛 British Virgin Islands',
+  '🇻🇮 美属维尔京群岛 U.S. Virgin Islands',
+  '🇹🇨 特克斯和凯科斯群岛 Turks and Caicos Islands',
+  '🇬🇵 瓜德罗普 Guadeloupe',
+  '🇲🇶 马提尼克 Martinique',
+  '🇬🇫 法属圭亚那 French Guiana',
+  '🇬🇮 直布罗陀 Gibraltar',
+  '🇫🇴 法罗群岛 Faroe Islands',
+  '🇮🇲 马恩岛 Isle of Man',
+  '🇯🇪 泽西岛 Jersey',
+  '🇬🇬 根西岛 Guernsey',
   '🌐 其他 Other'
 ];
 
@@ -10015,6 +10157,10 @@ function normalizeCountry(value) {
   const flag = text.match(/^[\u{1F1E6}-\u{1F1FF}]{2}/u)?.[0];
   const byFlag = flag ? countryDefs.find(c => c.startsWith(flag)) : '';
   if (byFlag) return byFlag;
+  // 先整个对上（含 UAE、Korea 这类别名）：列表里 Niger / Nigeria、Dominica / Dominican Republic、Sudan / South Sudan
+  // 互相包含，只按包含找会拿到排在前面的那个。
+  const exact = typeof customerCountryFromInput === 'function' ? customerCountryFromInput(text) : canonicalCountry(text);
+  if (exact) return exact;
   const plain = text.replace(/^[\u{1F1E6}-\u{1F1FF}]{2}\s*/u, '').toLowerCase();
   return countryDefs.find(c => c.toLowerCase().includes(plain)) || '🌐 其他 Other';
 }
@@ -12111,12 +12257,13 @@ let activeSuggestInput = null;
 let suggestMenu = null;
 let suggestMenuItems = [];
 let suggestMenuIndex = -1;
+let suggestMenuNote = '';
 function setSuggestItems(input, items = []) {
   if (input) input._suggestItems = [...new Set(items.map(item => String(item || '').trim()).filter(Boolean))];
 }
 // 一个框的数据源：全部建议、按输入筛选、菜单的名字（读屏用）。
 function suggestSource(input) {
-  if (input.matches('[data-country-input]')) return { items:countryDefs, matches:countryMenuMatches, label:'国家 / 地区', minWidth:240, pickFirst:countryMenuPicksFirst };
+  if (input.matches('[data-country-input]')) return { items:countryDefs, browse:countryMenuCommon, note:'其他国家 / 地区：输入中文或英文名查找', matches:countryMenuMatches, label:'国家 / 地区', minWidth:240, pickFirst:countryMenuPicksFirst };
   const items = input._suggestItems || [];
   const label = input.getAttribute('aria-label') || input.labels?.[0]?.textContent.trim()
     || input.closest('.field, .subs-field')?.querySelector('label')?.textContent.trim() || input.placeholder || '建议';
@@ -12168,6 +12315,22 @@ function countryMenuMatchGroups(text = '') {
   });
   return { strong:[...(known ? [known] : []), ...starts], contains };
 }
+// 没在打字时（点开、按 ↓）只列常用的：订单和客户档案里用得最多的几个，不够的用默认国家和几个主要市场补上；
+// 框里已经选的不在里面就放在第一个。列表有两百多个国家，其余的打字查（中文名、英文名、UK / UAE 这类叫法都行）。
+const countryMenuCommonSize = 8;
+function countryMenuCommon(current = '') {
+  const counts = new Map();
+  const count = value => {
+    const def = canonicalCountry(value);
+    if (def && def !== '🌐 其他 Other') counts.set(def, (counts.get(def) || 0) + 1);
+  };
+  (state?.orders || []).forEach(order => count(order?.country));
+  Object.values(state?.customers || {}).forEach(profile => count(profile?.country));
+  const ranked = [...counts.keys()].sort((a, b) => counts.get(b) - counts.get(a) || countryDefs.indexOf(a) - countryDefs.indexOf(b));
+  const fallback = [state?.orderSettings?.defaultCountry || defaultOrderSettings.defaultCountry, ...countryDefs.slice(0, countryMenuCommonSize)];
+  const common = [...new Set([...ranked, ...fallback.map(value => canonicalCountry(value)).filter(Boolean)])].slice(0, countryMenuCommonSize);
+  return countryDefs.includes(current) && !common.includes(current) ? [current, ...common] : common;
+}
 function countryMenuMatches(text = '') {
   const { strong, contains } = countryMenuMatchGroups(text);
   return [...strong, ...contains];
@@ -12197,6 +12360,14 @@ function renderSuggestMenu() {
     item.append(label, check);
     return item;
   }));
+  // 只列了常用项时，底下一行灰字说其余的怎么找（和下拉框的分组小标题一个样子，不能选）。
+  if (suggestMenuNote) {
+    const note = document.createElement('div');
+    note.className = 'app-select-group';
+    note.setAttribute('role', 'presentation');
+    note.textContent = suggestMenuNote;
+    menu.append(note);
+  }
   if (suggestMenuIndex >= 0) input?.setAttribute('aria-activedescendant', `${menu.id}-option-${suggestMenuIndex}`);
   else input?.removeAttribute('aria-activedescendant');
 }
@@ -12216,7 +12387,7 @@ function openSuggestMenu(input, { typing = false } = {}) {
   const source = suggestSource(input);
   const value = String(input.value || '').trim();
   const showAll = !typing && (!value || source.items.includes(value));
-  const items = showAll ? [...source.items] : source.matches(value);
+  const items = showAll ? (source.browse ? source.browse(value) : [...source.items]) : source.matches(value);
   // 没有匹配、或者框里已经是唯一的那一项：不弹（列表外的写法照样能填）。
   if (!items.length || (typing && items.length === 1 && items[0] === value)) {
     closeSuggestMenu();
@@ -12230,6 +12401,7 @@ function openSuggestMenu(input, { typing = false } = {}) {
   const wasOpen = activeSuggestInput === input && !menu.hidden;
   activeSuggestInput = input;
   suggestMenuItems = items;
+  suggestMenuNote = showAll ? source.note || '' : '';
   suggestMenuIndex = showAll ? items.indexOf(value) : (typing && source.pickFirst(value) ? 0 : -1);
   menu.setAttribute('aria-label', source.label);
   input.setAttribute('aria-expanded', 'true');
@@ -12247,6 +12419,7 @@ function closeSuggestMenu() {
   if (!input) return;
   activeSuggestInput = null;
   suggestMenuItems = [];
+  suggestMenuNote = '';
   suggestMenuIndex = -1;
   input.setAttribute('aria-expanded', 'false');
   input.removeAttribute('aria-activedescendant');
@@ -12278,13 +12451,63 @@ function repositionSuggestMenu() {
   if (dateInputVisible(input)) positionSuggestMenu();
   else closeSuggestMenu();
 }
+// 国家栏里已经是列表里的一项（选好的国家）时，它是一个整体：点进去整段选中（不放光标），再打字、删除、粘贴（含中文输入法）都是换一个、
+// 重新查，不会把字插进「🇺🇸 美国 United States」中间。框里是列表外的写法时照常能挪光标改。
+function countryInputHoldsChoice(input) {
+  return Boolean(input?.matches?.('input[data-country-input]')) && countryDefs.includes(String(input.value || '').trim());
+}
+function selectWholeCountryChoice(input) {
+  if (!countryInputHoldsChoice(input) || (input.selectionStart === 0 && input.selectionEnd === input.value.length)) return;
+  input.select();
+}
+// 万一输入法在别处起了头（没先收到按键），组字结束后再收一次：原来的国家名还在、只是中间多了字，就只留新打的字。
+function keepCountryChoiceWhole(input, before) {
+  if (!before) return;
+  const value = String(input.value || '');
+  const head = before.value.slice(0, before.start);
+  const tail = before.value.slice(before.end);
+  if (value === before.value || value.length < head.length + tail.length || !value.startsWith(head) || !value.endsWith(tail)) return;
+  const typed = value.slice(head.length, value.length - tail.length);
+  if (!typed || (head + tail) === '') return;
+  input.value = typed;
+  input.setSelectionRange(typed.length, typed.length);
+  input.dispatchEvent(new Event('input', { bubbles:true }));
+}
+// 点进去不放光标：按下鼠标时自己聚焦并整段选中（点在已选中的字上，浏览器松开鼠标后会把选区收成一个光标，所以要在按下时拦）。
+document.addEventListener('mousedown', e => {
+  const input = e.target;
+  if (e.button !== 0 || !countryInputHoldsChoice(input) || input.disabled || input.readOnly) return;
+  e.preventDefault();
+  if (document.activeElement !== input) input.focus();
+  input.select();
+}, true);
 document.addEventListener('click', e => {
   const input = e.target;
   if (input?.matches?.(suggestInputSelector) && activeSuggestInput !== input) openSuggestMenu(input);
 });
+document.addEventListener('keydown', e => {
+  const input = e.target;
+  if (!countryInputHoldsChoice(input) || e.metaKey || e.ctrlKey) return;
+  if (isImeKeyEvent(e) || e.key === 'Backspace' || e.key === 'Delete' || (e.key?.length === 1 && !e.altKey)) selectWholeCountryChoice(input);
+}, true);
+document.addEventListener('paste', e => selectWholeCountryChoice(e.target), true);
+document.addEventListener('compositionstart', e => {
+  const input = e.target;
+  input._countryChoiceBefore = countryInputHoldsChoice(input)
+    ? { value:input.value, start:input.selectionStart ?? 0, end:input.selectionEnd ?? 0 } : null;
+}, true);
+document.addEventListener('compositionend', e => {
+  const input = e.target;
+  if (!input?.matches?.(suggestInputSelector)) return;
+  const before = input._countryChoiceBefore;
+  input._countryChoiceBefore = null;
+  if (before && before.end - before.start < before.value.length) keepCountryChoiceWhole(input, before);
+  // 组字时不跟着拼音筛菜单（sa'd 这种半截拼音筛不出东西，菜单会一闪一收），字上屏了再按它筛。
+  if (document.activeElement === input) openSuggestMenu(input, { typing:true });
+});
 document.addEventListener('input', e => {
   const input = e.target;
-  if (!input?.matches?.(suggestInputSelector) || input._suggestDispatching) return;
+  if (!input?.matches?.(suggestInputSelector) || input._suggestDispatching || e.isComposing) return;
   if (document.activeElement === input) openSuggestMenu(input, { typing:true });
 });
 document.addEventListener('focusout', e => {
@@ -13261,7 +13484,33 @@ function searchCountryAliasGroups() {
     ['乌克兰', 'ukraine', 'ua'],
     ['白俄罗斯', 'belarus', 'by'],
     ['俄罗斯', 'russia', 'ru'],
-    ['南非', 'south africa', 'za']
+    ['南非', 'south africa', 'za'],
+    // 后加的国家：中文名、英文名本身已经在列表写法里，这里只放常见的另一种叫法（不加两位代码：客户选择框把整个等于别名的输入当国家查，
+    // 两个字母的 in / my / to 都是常见的名字开头）。
+    ['中国', 'china', 'prc', 'mainland china', '中国大陆'],
+    ['中国香港', 'hong kong', 'hong kong sar', '香港'],
+    ['中国澳门', 'macau', 'macao', '澳门'],
+    ['中国台湾', 'taiwan', '台湾'],
+    ['韩国', 'south korea', 'korea', 'republic of korea', '南韩'],
+    ['朝鲜', 'north korea', 'dprk', '北韩'],
+    ['越南', 'vietnam', 'viet nam'],
+    ['缅甸', 'myanmar', 'burma'],
+    ['东帝汶', 'timor leste', 'east timor'],
+    ['阿联酋', 'united arab emirates', 'uae', 'emirates', '阿拉伯联合酋长国'],
+    ['沙特阿拉伯', 'saudi arabia', 'saudi', 'ksa', '沙特'],
+    ['土耳其', 'turkey', 'turkiye'],
+    ['刚果（金）', 'dr congo', 'drc', 'democratic republic of the congo', 'congo kinshasa', '刚果金', '刚果 金'],
+    ['刚果（布）', 'republic of the congo', 'congo', 'congo brazzaville', '刚果布', '刚果 布'],
+    ['中非共和国', 'central african republic', '中非'],
+    ['科特迪瓦', 'cote d ivoire', 'ivory coast'],
+    ['佛得角', 'cape verde', 'cabo verde'],
+    ['冈比亚', 'gambia', 'the gambia'],
+    ['斯威士兰', 'eswatini', 'swaziland', '埃斯瓦蒂尼'],
+    ['留尼汪', 'reunion'],
+    ['库拉索', 'curacao'],
+    ['美属维尔京群岛', 'us virgin islands', 'u s virgin islands'],
+    ['密克罗尼西亚', 'micronesia', 'federated states of micronesia'],
+    ['圣多美和普林西比', 'sao tome and principe']
   ];
 }
 // 国家别名表只规范化一次（以前每段被搜索的文本都把 90 组别名重新规范化一遍，搜一次 1000 单要半秒）。
@@ -13390,17 +13639,17 @@ function countrySearchParts(country) {
   const parts = text.split(/\s+/).filter(Boolean);
   return [text, parts[0] || '', parts.slice(1).join(' ')].filter(Boolean);
 }
-function textContainsCountryAlias(text, alias) {
-  const normalized = normalizeSearchText(alias);
-  if (!normalized) return false;
-  if (/^[a-z.]{2,4}$/.test(normalized)) {
-    const escaped = normalized.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return new RegExp(`(^|[^a-z])${escaped}(?=$|[^a-z])`, 'i').test(text);
-  }
-  return text.includes(normalized);
-}
 // #endregion
 // #region Order paste recognition: local rules, client matching, result cards
+// 整段文字里找国家时不认的名字（要明确写在「国家：」后面、或者整个框只填它才认）：
+// 中国、港澳台常出现在我们自己这边（发货地、银行、Made in China）；越南、印度、缅甸、柬埔寨、马来西亚、蒙古、韩国、日本
+// 在产品名里是原料产地（越南发、韩国丝）；Jordan、Chad、Georgia（美国的州）、Israel 是常见人名，Turkey、Jersey、Reunion 是普通词；
+// 马里在马里兰（美国的州）里、阿曼在阿曼达里。
+const countryFreeTextSkip = new Set([
+  '中国', 'china', '中国香港', '香港', 'hong kong', '中国澳门', '澳门', 'macau', '中国台湾', '台湾', 'taiwan',
+  '越南', 'vietnam', '印度', '缅甸', '柬埔寨', '马来西亚', '蒙古', '韩国', '日本',
+  'jordan', 'chad', 'georgia', 'israel', 'turkey', 'jersey', 'guernsey', 'reunion', '马里', '阿曼'
+]);
 function findCountryInText(text) {
   const lower = normalizeSearchText(text);
   const aliasMap = [
@@ -13413,16 +13662,30 @@ function findCountryInText(text) {
     ['荷兰', ['holland']]
   ];
   // 英文国名按整词找：德语 Perücke（假发）里的 peru 不算秘鲁；中文国名没有词边界，照旧按包含找。
-  const containsPart = part => /^[a-z .'-]+$/.test(part)
-    ? new RegExp(`(^|[^a-z])${part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=$|[^a-z])`).test(lower)
-    : lower.includes(part);
-  for (const country of countryDefs) {
-    const parts = countrySearchParts(country).map(normalizeSearchText).filter(part => part.length >= 2);
-    if (parts.some(containsPart)) return country;
-    const zh = parts[0] || '';
-    const aliases = aliasMap.find(([name]) => zh.includes(name))?.[1] || [];
-    if (aliases.some(alias => textContainsCountryAlias(lower, alias))) return country;
-  }
+  // 记下每处对上的位置：被另一个国家更长的名字整个盖住的不算（印度在印度尼西亚里、马里在索马里里、
+  // Guinea 在 Papua New Guinea 里、Sudan 在 South Sudan 里），剩下的按列表顺序取第一个。
+  // 每个国家要找的写法（含上面的别名）只整理一次：两百多个国家，客户识别会一行一行地找。
+  const table = findCountryInText.table || (findCountryInText.table = countryDefs.map(country => {
+    const zh = normalizeSearchText(countrySearchParts(country)[0] || '');
+    const parts = countrySearchParts(country).map(normalizeSearchText).filter(part => part.length >= 2 && !countryFreeTextSkip.has(part));
+    const aliases = (aliasMap.find(([name]) => zh.includes(name))?.[1] || []).map(normalizeSearchText);
+    return { country, needles:[...new Set([...parts, ...aliases])].map(part => /^[a-z .'-]+$/.test(part)
+      ? { length:part.length, pattern:new RegExp(`(?<![a-z])${part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![a-z])`, 'g') }
+      : { length:part.length, text:part }) };
+  }));
+  const spansOf = needle => {
+    const spans = [];
+    if (needle.pattern) {
+      for (const match of lower.matchAll(needle.pattern)) spans.push([match.index, match.index + needle.length]);
+    } else {
+      for (let at = lower.indexOf(needle.text); at >= 0; at = lower.indexOf(needle.text, at + 1)) spans.push([at, at + needle.length]);
+    }
+    return spans;
+  };
+  const hits = table.map(({ country, needles }) => ({ country, spans:needles.flatMap(spansOf) })).filter(hit => hit.spans.length);
+  const covered = (span, own) => hits.some(other => other !== own && other.spans.some(([start, end]) => start <= span[0] && span[1] <= end && end - start > span[1] - span[0]));
+  const found = hits.find(hit => hit.spans.some(span => !covered(span, hit)));
+  if (found) return found.country;
   if (/\+44(?=\D|$)/.test(String(text || ''))) return countryDefs.find(country => country.includes('英国')) || '';
   if (/\+34(?=\D|$)/.test(String(text || ''))) return countryDefs.find(country => country.includes('西班牙')) || '';
   return '';

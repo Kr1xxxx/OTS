@@ -156,7 +156,8 @@ const PASTE_FORCE_KEYS = ['createdAt', 'currency', 'paymentChannel', 'productTyp
     await page.waitForFunction(() => document.getElementById('confirmModal').classList.contains('open'));
     await page.locator('#confirmOkBtn').click();
     await waitSaved();
-    assert.deepEqual(await order('Overflow Buyer'), { stage:'production', amount:1000, paidAmount:1000, depositAmount:0, depositPercent:0, orderType:'定金订单' });
+    // 定金没填：收到的就是定金，按已收（按订单金额记的那个数）记。
+    assert.deepEqual(await order('Overflow Buyer'), { stage:'production', amount:1000, paidAmount:1000, depositAmount:1000, depositPercent:100, orderType:'定金订单' });
 
     // P1-1：新单默认「全款 + 已付」，阶段框还是报价，但头部标签和提示提前说出保存后进生产中，保存的提示也写明。
     await openNew('Default Buyer');

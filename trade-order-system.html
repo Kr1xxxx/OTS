@@ -9770,8 +9770,15 @@ function normalizeOrderPaymentInput(data = {}, amountValue = 0, orderTypeValue =
     if (paidAmount === null) paidAmount = 0;
   } else {
     if (depositAmount === null && depositPercentValue !== null && amount > 0) depositAmount = clampMoney(amount * depositPercentValue / 100);
-    if (depositAmount === null) depositAmount = 0;
     if (paidAmount === null) paidAmount = 0;
+    // 定金没填（空或 0、比例也没填）、已收有数：收到的就是定金，按已收记——和粘贴识别、订单表单回显同一个口径。
+    // 以前存成 0，再打开表单时定金框回显成已收，随便保存一次就从 0 变成已收，记录里还多一条「定金」改动。
+    // 载入时也按这条算，以前存成 0 的单不用等下一次保存。
+    if (!(depositAmount > 0) && !(depositPercentValue > 0) && paidAmount > 0) {
+      depositAmount = paidAmount;
+      depositPercentValue = null;
+    }
+    if (depositAmount === null) depositAmount = 0;
     if (depositPercentValue === null) depositPercentValue = depositPercent(amount, depositAmount);
   }
   return {

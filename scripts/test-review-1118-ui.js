@@ -1,7 +1,9 @@
 #!/usr/bin/env node
-// 第七轮 bug 审查（2026-11-18）待办里的两条，在真页面上跑（续费停止日那条在 test-subscription-schedule.js）：
+// 第七轮 bug 审查（2026-11-18）待办里的三条，在真页面上跑（续费停止日那条在 test-subscription-schedule.js）：
 // 1. 带「未发货」或 UPS 批次的单直接移到已完成：订单的发货日当场写上，和重新载入后一样。
 // 2. 粘贴识别填进「一起确认客户和订单」的坏单号不算「以前存的单号」，照样拦；打开旧单时存着的坏单号仍只提示。
+// 3. 定金单定金没填、已收有数：定金按已收记（用户 2026-11-18 定的）；以前存成 0 的单载入就按已收算，
+//    不改直接保存不再改定金、不多一条记录。
 const assert = require('node:assert/strict');
 const { launchBrowser, openBoard, base } = require('./helpers/board-page');
 const { freePortSync } = require('./helpers/free-port');
@@ -17,7 +19,8 @@ const order = (id, extra = {}) => ({ ...base, id, num:`R-${id}`, client:`Client 
     const orders = [
       order('d1', { shipments:[{ id:'s1', trackingNumber:'1234567890', carrier:'DHL', status:'未发货', shippedAt:'' }], trackingNumber:'1234567890', carrier:'DHL' }),
       order('u1', { shipments:[{ id:'s2', trackingNumber:'1Z999AA10123456784', carrier:'UPS', status:'已发货', shippedAt:'' }], trackingNumber:'1Z999AA10123456784', carrier:'UPS' }),
-      order('k1', { stage:'balance', shipments:[{ id:'s3', trackingNumber:'1Z12345678', carrier:'UPS', status:'未发货', shippedAt:'' }], trackingNumber:'1Z12345678', carrier:'UPS' })
+      order('k1', { stage:'balance', shipments:[{ id:'s3', trackingNumber:'1Z12345678', carrier:'UPS', status:'未发货', shippedAt:'' }], trackingNumber:'1Z12345678', carrier:'UPS' }),
+      order('z1', { stage:'balance', depositAmount:0, depositPercent:0, paidAmount:100 })
     ];
     const { page, errors, dialogs } = await openBoard(browser, { orders }, { port:freePortSync() });
 
@@ -51,10 +54,31 @@ const order = (id, extra = {}) => ({ ...base, id, num:`R-${id}`, client:`Client 
     });
     assert.deepEqual(kept, [{ number:'1Z12345678', kept:true }], '旧单存着的坏单号照旧放行');
 
+    // 3. 定金没填、已收 100。
+    const pay = id => page.evaluate(id => { const o = state.orders.find(x => x.id === id); return { deposit:o.depositAmount, paid:o.paidAmount, logs:o.logs.length }; }, id);
+    const z1 = await pay('z1');
+    assert.deepEqual([z1.deposit, z1.paid], [100, 100], '以前存成定金 0 的单载入就按已收算');
+    await page.evaluate(() => openOrder('z1'));
+    await page.waitForSelector('#orderModal.open');
+    assert.equal(await page.inputValue('#orderForm [name=depositAmount]'), '100');
+    await page.evaluate(() => document.getElementById('orderForm').requestSubmit());
+    await page.waitForFunction(() => !document.getElementById('orderModal').classList.contains('open'));
+    const after = await page.evaluate(() => state.orders.find(x => x.id === 'z1'));
+    assert.equal(after.depositAmount, 100, '不改直接保存：定金不变');
+    assert.ok(!after.logs.some(log => /定金/.test(log.text || '')), '不改直接保存：没有「定金」改动记录');
+    // 新填的单：定金框空着、已收 100，存下来定金就是 100。
+    const built = await page.evaluate(() => {
+      const fresh = { ...state.orders.find(x => x.id === 'd1'), id:'', num:'R-new', stage:'production', shipments:[], trackingNumber:'', carrier:'', logs:[] };
+      const data = { ...orderFormDataFromOrder(fresh), depositAmount:'', depositPercent:'', paidAmount:'100' };
+      const o = buildOrderFromFormData(data, { isDraft:false });
+      return { deposit:o.depositAmount, percent:o.depositPercent, paid:o.paidAmount };
+    });
+    assert.deepEqual(built, { deposit:100, percent:15.38, paid:100 }, '定金没填：按已收记');
+
     assert.deepEqual(errors, [], '页面没有报错');
     assert.deepEqual(dialogs, [], '没有原生弹窗');
   } finally {
     await browser.close();
   }
-  console.log('Review 2026-11-18 UI test passed: done move fills shippedAt, pasted bad numbers are blocked.');
+  console.log('Review 2026-11-18 UI test passed: done move fills shippedAt, pasted bad numbers are blocked, blank deposit follows paid.');
 })().catch(error => { console.error(error); process.exit(1); });

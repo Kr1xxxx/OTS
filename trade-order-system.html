@@ -13670,13 +13670,18 @@ function findCountryInText(text) {
     const parts = countrySearchParts(country).map(normalizeSearchText).filter(part => part.length >= 2 && !countryFreeTextSkip.has(part));
     const aliases = (aliasMap.find(([name]) => zh.includes(name))?.[1] || []).map(normalizeSearchText);
     return { country, needles:[...new Set([...parts, ...aliases])].map(part => /^[a-z .'-]+$/.test(part)
-      ? { length:part.length, pattern:new RegExp(`(?<![a-z])${part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![a-z])`, 'g') }
+      ? { length:part.length, text:part, pattern:new RegExp(`(^|[^a-z])${part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=$|[^a-z])`, 'g') }
       : { length:part.length, text:part }) };
   }));
   const spansOf = needle => {
     const spans = [];
+    // 先用 indexOf 看有没有这几个字，有才跑正则：两百多个国家的正则逐个扫长文本太慢（WebKit 尤其慢）。
+    if (!lower.includes(needle.text)) return spans;
     if (needle.pattern) {
-      for (const match of lower.matchAll(needle.pattern)) spans.push([match.index, match.index + needle.length]);
+      for (const match of lower.matchAll(needle.pattern)) {
+        const start = match.index + match[1].length;
+        spans.push([start, start + needle.length]);
+      }
     } else {
       for (let at = lower.indexOf(needle.text); at >= 0; at = lower.indexOf(needle.text, at + 1)) spans.push([at, at + needle.length]);
     }

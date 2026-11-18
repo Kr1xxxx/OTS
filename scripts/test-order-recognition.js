@@ -31,17 +31,6 @@ const context = vm.createContext({
   paymentChannelDefs: [{ value: '阿里巴巴' }, { value: 'Paypal' }, { value: '西联' }, { value: 'Zelle' }, { value: 'Stripe' }, { value: 'TT' }],
   renamedPaymentChannels: { '信用卡': 'Stripe' },
   orderTypeDefs: [{ value: '定金订单' }, { value: '全款订单' }],
-  countryDefs: [
-    '🇺🇸 美国 United States',
-    '🇨🇦 加拿大 Canada',
-    '🇩🇪 德国 Germany',
-    '🇬🇧 英国 United Kingdom',
-    '🇫🇷 法国 France',
-    '🇮🇹 意大利 Italy',
-    '🇪🇸 西班牙 Spain',
-    '🇦🇺 澳大利亚 Australia',
-    '🌐 其他 Other'
-  ],
   currencyDefs: [{ code: 'USD' }, { code: 'EUR' }, { code: 'GBP' }, { code: 'CNY' }, { code: 'AUD' }, { code: 'CAD' }],
   usStateNamePattern: 'Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West Virginia|Wisconsin|Wyoming|District of Columbia',
   canadaProvinceNamePattern: 'Alberta|British Columbia|Manitoba|New Brunswick|Newfoundland and Labrador|Nova Scotia|Ontario|Prince Edward Island|Quebec|Saskatchewan|Northwest Territories|Nunavut|Yukon',
@@ -54,6 +43,9 @@ context.clientHistory = () => Object.entries(context.state.customers || {}).map(
 // Load the shared production labels used by both read-only and editable previews.
 vm.runInContext(html.match(/^const localCustomerLabelDefs = \[[\s\S]*?\];$/m)[0].replace('const ','var ') + html.match(/^const localCustomerLabelPattern = .*$/m)[0].replace('const ','var ') + html.match(/^const localCustomerNameStopWords = .*$/m)[0].replace('const ','var '), context);
 vm.runInContext(html.match(/^const customerPasteLabels = .*;$/m)[0], context);
+// 真实的国家列表和整段找国家时不认的名字：两百多个国家里互相包含的名字（印度 / 印度尼西亚、Guinea / Papua New Guinea）要按真列表测。
+vm.runInContext(html.match(/^const countryDefs = \[[\s\S]*?\];$/m)[0].replace('const ', 'var '), context);
+vm.runInContext(html.match(/^const countryFreeTextSkip = new Set\(\[[\s\S]*?\]\);$/m)[0].replace('const ', 'var '), context);
 vm.runInContext(html.match(/^const customerPasteFieldOrder = .*;$/m)[0].replace('const ', 'var '), context);
 [
   'isMacAppMode',
@@ -81,7 +73,6 @@ vm.runInContext(html.match(/^const customerPasteFieldOrder = .*;$/m)[0].replace(
   'textSaysNotPaidYet',
   'findPartialPaymentInText',
   'countrySearchParts',
-  'textContainsCountryAlias',
   'findCountryInText',
   'findCurrencyInText',
   'findProductTypeInText',

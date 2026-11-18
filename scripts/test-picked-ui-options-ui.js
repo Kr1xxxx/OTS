@@ -58,7 +58,9 @@ const orders = [
     await h.click(page, orderCountry, 'order country');
     let state = await menu();
     assert.ok(state.open, 'clicking the country field opens the menu');
-    assert.ok(state.items.length > 20, 'an empty or listed value shows every country');
+    // 点开只列常用的几个（订单里用得多的 + 默认国家和主要市场），底下一行灰字说其余的打字查。
+    assert.ok(state.items.length >= 8 && state.items.length <= 9 && state.items.includes(US), `an empty or listed value shows the common countries (${state.items.join(' / ')})`);
+    assert.match(await page.locator('#suggestMenu .app-select-group').innerText(), /输入中文或英文名查找/);
     assert.equal(await orderCountry.getAttribute('aria-expanded'), 'true');
     // 箭头换向有一下淡入淡出（栏位的 background 过渡），等它走完再看。
     await page.waitForFunction(closed => getComputedStyle(document.querySelector('#orderForm [name="country"]')).backgroundImage !== closed, closedArrow, { timeout:2000 })
@@ -98,7 +100,7 @@ const orders = [
     await page.keyboard.press('ArrowDown');
     state = await menu();
     assert.ok(state.open, '↓ opens the menu');
-    assert.equal(state.selected, US, 'the current country is marked in the full list');
+    assert.equal(state.selected, US, 'the current country is marked in the list');
     assert.equal(state.active, US, '↓ on a closed menu lands on the current country, not the one after it');
     await page.keyboard.press('ArrowDown');
     assert.notEqual((await menu()).active, US, 'the next ↓ moves on');
@@ -106,9 +108,9 @@ const orders = [
     assert.equal((await menu()).open, false, 'Esc closes the menu');
     assert.ok(await isOpen('orderModal'), 'Esc on the menu leaves the order modal open');
 
-    await retype(orderCountry, 'Nigeria');
+    await retype(orderCountry, 'Atlantis');
     assert.equal((await menu()).open, false, 'no menu for a country outside the list');
-    assert.equal(await orderCountry.inputValue(), 'Nigeria', 'free text is kept as typed');
+    assert.equal(await orderCountry.inputValue(), 'Atlantis', 'free text is kept as typed');
     await retype(orderCountry, 'fra');
     await page.keyboard.press('Tab');
     assert.equal((await menu()).open, false, 'Tab closes the menu');
@@ -126,15 +128,15 @@ const orders = [
     await page.keyboard.press('Enter');
     assert.equal(await orderCountry.inputValue(), DE, 'Enter on a half-typed name picks the only match');
     assert.ok(await isOpen('orderModal'), 'Enter on the menu does not save the order');
-    // 只在词中间出现（oman 在 R-oman-ia 里）：菜单照样列出来但不高亮，回车留下原文，不能存成罗马尼亚；↓ 再回车才选。
-    await retype(orderCountry, 'Oman');
+    // 只在词中间出现（mania 在 Ro-mania 里）：菜单照样列出来但不高亮，回车留下原文，不能存成罗马尼亚；↓ 再回车才选。
+    await retype(orderCountry, 'Mania');
     state = await menu();
-    assert.deepEqual([state.open, state.items.includes(RO), state.active], [true, true, ''], 'Oman lists Romania without highlighting it');
+    assert.deepEqual([state.open, state.items.includes(RO), state.active], [true, true, ''], 'Mania lists Romania without highlighting it');
     await page.keyboard.press('Enter');
-    assert.equal(await orderCountry.inputValue(), 'Oman', 'Enter keeps Oman as typed');
+    assert.equal(await orderCountry.inputValue(), 'Mania', 'Enter keeps Mania as typed');
     assert.equal((await menu()).open, false, 'Enter closes the menu');
     assert.ok(await isOpen('orderModal'), 'Enter on the country field does not save the order');
-    await retype(orderCountry, 'oman');
+    await retype(orderCountry, 'mania');
     await page.keyboard.press('ArrowDown');
     assert.equal((await menu()).active, RO, '↓ highlights Romania');
     await page.keyboard.press('Enter');

@@ -75,10 +75,46 @@ const order = (id, extra = {}) => ({ ...base, id, num:`R-${id}`, client:`Client 
     });
     assert.deepEqual(built, { deposit:100, percent:15.38, paid:100 }, '定金没填：按已收记');
 
+    // 4. 按已收推出来的定金不是谈好的定金：已收清回 0 时跟着清掉，拖进生产中也不会被自动记成已收。
+    const cleared = await page.evaluate(() => {
+      const seed = { ...state.orders.find(x => x.id === 'd1'), stage:'production', shipments:[], trackingNumber:'', carrier:'', logs:[] };
+      const save = (existing, patch) => buildOrderFromFormData({ ...orderFormDataFromOrder(existing), ...patch }, { existing, isDraft:false });
+      const pick = o => ({ deposit:o.depositAmount, paid:o.paidAmount, stage:o.stage, derived:o.depositFromPaid === true });
+      // 定金没填、已收填成 300 → 再把已收清空。
+      const typo = save({ ...seed, id:'t1', depositAmount:0, depositPercent:0, paidAmount:0 }, { depositAmount:'', depositPercent:'', paidAmount:'300' });
+      const fixed = save(typo, { paidAmount:'' });
+      const moved = { ...fixed };
+      adjustPaymentForManualMove(moved, 'quote', 'production');
+      // 后来收了尾款再清空，也一样。
+      const later = save(save(typo, { paidAmount:'650' }), { paidAmount:'' });
+      // 用户自己填的定金 300：已收清空后定金还在，拖进生产中照旧按定金记。
+      const agreed = save({ ...seed, id:'t2', depositAmount:300, depositPercent:46.15, paidAmount:300 }, { paidAmount:'' });
+      const agreedMoved = { ...agreed };
+      adjustPaymentForManualMove(agreedMoved, 'quote', 'production');
+      // 推出来的定金被用户改成别的数：算用户填的。
+      const retyped = save(typo, { depositAmount:'200', depositPercent:'' });
+      // 标记还在、已收已经是 0 的单（比如撤销留下的）：载入时清掉，拖动时也不认。
+      const stale = { ...seed, id:'t3', stage:'quote', depositAmount:300, paidAmount:0, depositFromPaid:true };
+      const staleMoved = { ...stale };
+      adjustPaymentForManualMove(staleMoved, 'quote', 'production');
+      return { typo:pick(typo), fixed:pick(fixed), moved:moved.paidAmount, later:pick(later), agreed:pick(agreed), agreedMoved:agreedMoved.paidAmount,
+        retyped:pick(retyped), staleMoved:staleMoved.paidAmount, staleLoaded:pick(normalizeActiveOrder(stale)), hasKey:'depositFromPaid' in normalizeActiveOrder(agreed) };
+    });
+    assert.deepEqual(cleared.typo, { deposit:300, paid:300, stage:'production', derived:true });
+    assert.deepEqual(cleared.fixed, { deposit:0, paid:0, stage:'quote', derived:false }, '已收清回 0：推出来的定金跟着清');
+    assert.equal(cleared.moved, 0, '再拖进生产中：不会自动记一笔定金');
+    assert.deepEqual(cleared.later, { deposit:0, paid:0, stage:'quote', derived:false });
+    assert.deepEqual(cleared.agreed, { deposit:300, paid:0, stage:'quote', derived:false }, '用户填的定金不受影响');
+    assert.equal(cleared.agreedMoved, 300, '用户填的定金：拖进生产中照旧记为已收');
+    assert.deepEqual(cleared.retyped, { deposit:200, paid:300, stage:'production', derived:false });
+    assert.equal(cleared.staleMoved, 0);
+    assert.deepEqual(cleared.staleLoaded, { deposit:0, paid:0, stage:'quote', derived:false });
+    assert.equal(cleared.hasKey, false, '没有推出来的定金就不带这个字段');
+
     assert.deepEqual(errors, [], '页面没有报错');
     assert.deepEqual(dialogs, [], '没有原生弹窗');
   } finally {
     await browser.close();
   }
-  console.log('Review 2026-11-18 UI test passed: done move fills shippedAt, pasted bad numbers are blocked, blank deposit follows paid.');
+  console.log('Review 2026-11-18 UI test passed: done move fills shippedAt, pasted bad numbers are blocked, blank deposit follows paid and leaves with it.');
 })().catch(error => { console.error(error); process.exit(1); });

@@ -10,6 +10,7 @@ const { createAiUsageStore } = require('./ai-usage-store');
 const { createSubscriptionStore } = require('./subscription-store');
 const { readFeishuSettings, writeFeishuSettings } = require('./feishu-settings');
 const { createAttachmentCopier } = require('./backup-attachments');
+const { ordersOf, compressedSuccessors, replacedOriginalUrls } = require('./attachment-cleanup');
 const { createCarrierTracking, cleanTracking, detectCarrier } = require('./carrier-tracking');
 const { httpError } = require('./http-error');
 const { createFeishuNotifier, deliveryPublicFields, larkFailureText } = require('./feishu-notify');
@@ -1029,6 +1030,9 @@ function cleanupOrphanAttachments({ minAgeMs = 24 * 60 * 60 * 1000 } = {}) {
   let refs;
   try { refs = retainedAttachmentRefs(data); }
   catch (_) { return { deleted: 0, skipped:true, reason:'backup references unavailable' }; }
+  // 已经被压缩版换掉的旧原图：附件文件夹和每份备份的附件文件夹里一起删（用户 2026-11-18），不等备份轮换。
+  let replaced = 0;
+  try { replaced = removeReplacedOriginals(data); } catch (error) { console.error(`Replaced originals kept: ${error.message}`); }
   const now = Date.now();
   let deleted = 0;
   const walk = dir => {
@@ -1049,7 +1053,77 @@ function cleanupOrphanAttachments({ minAgeMs = 24 * 60 * 60 * 1000 } = {}) {
   };
   walk(attachmentsDir);
   removeEmptyDirs(attachmentsDir);
-  return { deleted };
+  return { deleted, replaced };
+}
+
+function backupOrders(file) {
+  if (file.endsWith('.json')) {
+    const payload = readJson(file);
+    return ordersOf(payload?.data || payload);
+  }
+  const backup = new DatabaseSync(file, { readOnly:true });
+  try {
+    const hasOrders = backup.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'orders'").get();
+    return hasOrders ? backup.prepare('SELECT data_json FROM orders').all().map(row => JSON.parse(row.data_json)) : [];
+  } finally { backup.close(); }
+}
+// 旧原图（补压时换成了压缩版、只剩备份还用着的那份）从附件文件夹和所有备份的附件文件夹里删掉，返回删了几个文件。
+// 哪些算「换掉的」见 attachment-cleanup.js：用户删掉的附件、彻底删除的订单上的图不算，备份里照旧留着。
+// 一份备份读不出来就整轮不删：不知道它里面的图是不是被换掉的。
+function removeReplacedOriginals(data) {
+  const currentOrders = ordersOf(data?.data || data);
+  const successors = compressedSuccessors(currentOrders);
+  if (!successors.size || !fs.existsSync(backupDir)) return 0;
+  const backups = fs.readdirSync(backupDir).filter(name => isOtsBackupFile(name));
+  const urls = new Set();
+  for (const name of backups) {
+    for (const url of replacedOriginalUrls(currentOrders, backupOrders(path.join(backupDir, name)), successors)) urls.add(url);
+  }
+  const inUse = collectAttachmentRefs(data);
+  const root = path.resolve(attachmentsDir);
+  const folders = [attachmentsDir, ...backups.map(name => path.join(backupDir, name) + '.attachments').filter(dir => fs.existsSync(dir))];
+  let removed = 0;
+  urls.forEach(url => {
+    let target;
+    try { target = attachmentTargetFromUrl(url); } catch (_) { return; }
+    if (inUse.has(target)) return;
+    const relative = path.relative(root, target);
+    folders.forEach(folder => {
+      try {
+        fs.unlinkSync(path.join(folder, relative));
+        removed += 1;
+      } catch (_) {}
+    });
+  });
+  folders.slice(1).forEach(removeEmptyDirsUnder);
+  return removed;
+}
+function removeEmptyDirsUnder(dir) {
+  if (!fs.existsSync(dir)) return;
+  fs.readdirSync(dir, { withFileTypes:true }).forEach(entry => {
+    if (!entry.isDirectory()) return;
+    const sub = path.join(dir, entry.name);
+    removeEmptyDirsUnder(sub);
+    try { if (fs.readdirSync(sub).length === 0) fs.rmdirSync(sub); } catch (_) {}
+  });
+}
+
+// 保存之后也清一轮没人用的附件，不用等下次打开 App（用户 2026-11-18）。规则和启动时同一条（cleanupOrphanAttachments）。
+// 读备份要一点时间，放在回复之后：一次保存后过几秒做（连着保存只做一次），两轮之间至少隔几分钟。
+// 两个环境变量只给测试用（TRADE_ATTACHMENT_CLEANUP_DELAY_MS / _GAP_MS）。
+const orphanCleanupDelayMs = Math.max(0, Number(process.env.TRADE_ATTACHMENT_CLEANUP_DELAY_MS ?? 10 * 1000) || 0);
+const orphanCleanupGapMs = Math.max(0, Number(process.env.TRADE_ATTACHMENT_CLEANUP_GAP_MS ?? 5 * 60 * 1000) || 0);
+let orphanCleanupLastAt = 0;
+let orphanCleanupTimer = null;
+function scheduleOrphanAttachmentCleanup() {
+  if (orphanCleanupTimer) return;
+  const wait = Math.max(orphanCleanupDelayMs, orphanCleanupLastAt ? orphanCleanupLastAt + orphanCleanupGapMs - Date.now() : 0);
+  orphanCleanupTimer = setTimeout(() => {
+    orphanCleanupTimer = null;
+    orphanCleanupLastAt = Date.now();
+    try { cleanupOrphanAttachments(); } catch (error) { console.error(`Attachment cleanup skipped: ${error.message}`); }
+  }, wait);
+  orphanCleanupTimer.unref?.();
 }
 
 function backupAttachmentRefs(file) {
@@ -1569,6 +1643,7 @@ const server = http.createServer(async (req, res) => {
       try { backup = createBackup(false); } catch (error) {
         backup = { ok: false, message: error.message || 'automatic backup failed' };
       }
+      scheduleOrphanAttachmentCleanup();
       return send(res, 200, JSON.stringify({ ok: true, storageMode, ...result, backup }));
     }
     if (req.method === 'GET' && url.pathname === '/api/subscriptions') {

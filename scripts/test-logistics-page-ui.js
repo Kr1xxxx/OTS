@@ -272,10 +272,10 @@ const risks = page => page.evaluate(() => buildTaskItems().filter(task => String
     const lastDhl = await page.evaluate(() => { const s = getTrackingApiSettings(); return { at:trackingApiMiniTime(s.lastDhlCheckedAt), status:trackingStatusTextWithEmoji(s.lastDhlStatus) }; });
     assert.notEqual(lastDhl.at, '尚未查询', '这次查询记下了时间');
     await page.evaluate(() => { setPage('settings'); uiSettingsTab('api'); });
-    const dhlLine = await text(page, '#trackingApiCallLines [data-api-call="dhl"]');
-    assert.equal(dhlLine, `DHL 最近调用 ${lastDhl.at} · ${lastDhl.status}`.replace(/\s+/g, ' '));
+    const dhlLine = await text(page, '#apiStatusStrip [data-api-call="dhl"]');
+    assert.equal(dhlLine, `最近调用 ${lastDhl.at} · ${lastDhl.status}`.replace(/\s+/g, ' '));
     assert.doesNotMatch(dhlLine, /\{|HTTP 404/, '调用情况不带 JSON');
-    assert.match(await text(page, '#trackingApiCallLines [data-api-call="fedex"]'), /^FedEx\s*尚未查询$/, '没查过的写「尚未查询」，没有按天的次数');
+    assert.equal(await text(page, '#apiStatusStrip [data-api-call="fedex"]'), '尚未查询', '没查过的写「尚未查询」，没有按天的次数');
     await page.evaluate(() => setPage('logistics'));
     // 顶部说明一行；「？识别规则」点开能读到 UPS 和 12 位单号两条，Esc 收起、焦点回到按钮。
     assert.equal(await text(page, '#page-logistics .logistics-query-meta'), '每行一个单号，一次最多 12 个，自动识别 DHL / FedEx / UPS ？识别规则');

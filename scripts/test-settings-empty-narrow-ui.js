@@ -72,16 +72,25 @@ const orders = [];
     await tab('api');
     const api = await page.evaluate(() => {
       const root = document.documentElement;
-      const dots = [...document.querySelectorAll('#apiStatusStrip .api-status-dot')].map(dot => {
-        const name = dot.querySelector('.api-status-name').getBoundingClientRect();
-        const stateBox = dot.querySelector('.api-status-state').getBoundingClientRect();
-        return { top:Math.round(dot.getBoundingClientRect().top), gap:Math.round(stateBox.left - name.right) };
-      });
-      return { scroll:root.scrollHeight - root.clientHeight, dots };
+      // 一个接口一行：名字、状态、最近调用、去设置的链接在同一条线上，四行的状态竖着对齐。
+      const middle = el => { const box = el.getBoundingClientRect(); return Math.round(box.top + box.height / 2); };
+      const rows = [...document.querySelectorAll('#apiStatusStrip .api-status-row')].map(row => ({
+        name:row.querySelector('.api-status-row-name').textContent,
+        middles:[...new Set([row.querySelector('.api-status-row-name'), row.querySelector('.api-status-dot'), row.querySelector('.api-status-link')].map(middle))],
+        stateLeft:Math.round(row.querySelector('.api-status-state').getBoundingClientRect().left)
+      }));
+      return { scroll:root.scrollHeight - root.clientHeight, rows };
     });
     assert.equal(api.scroll, 0, 'a short settings tab does not scroll');
-    assert.equal(new Set(api.dots.map(dot => dot.top)).size, 1, 'the three API checks sit on one row');
-    for (const dot of api.dots) assert.ok(dot.gap >= 0 && dot.gap <= 16, `a status sits right after its name (${dot.gap}px)`);
+    assert.deepEqual(api.rows.map(row => row.name), ['DHL', 'FedEx', 'AI 识别', '飞书通知']);
+    for (const row of api.rows) assert.ok(Math.max(...row.middles) - Math.min(...row.middles) <= 1, `${row.name}: one line (${row.middles})`);
+    assert.equal(new Set(api.rows.map(row => row.stateLeft)).size, 1, 'the states line up');
+    // 每行右边的链接去填密钥的页签。
+    await page.locator('#apiStatusStrip [data-api-row="fedex"] .api-status-link').click();
+    assert.equal(await page.evaluate(() => document.querySelector('[data-settings-panel].active')?.dataset.settingsPanel), 'tracking-api');
+    await tab('api');
+    await page.locator('#apiStatusStrip [data-api-row="ai"] .api-status-link').click();
+    assert.equal(await page.evaluate(() => document.querySelector('[data-settings-panel].active')?.dataset.settingsPanel), 'ai');
     assert.deepEqual(empty.errors, []);
     await empty.context.close();
 

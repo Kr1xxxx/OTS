@@ -326,8 +326,6 @@ button { cursor: pointer; }
   box-shadow: 0 0 0 3px rgba(156,163,175,.14), 0 0 10px rgba(156,163,175,.35);
 }
 .api-status-dot[data-api-check="ai"] { cursor: default; }
-.settings-api-strip { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
-.settings-api-strip .api-status-dot { font-size: 12px; justify-content: flex-start; gap: 10px; }
 html[data-theme] .board-column-head .board-column-title { white-space: nowrap; flex: 1 1 auto; min-width: 0; }
 html[data-theme] .board-column-head .board-column-meta { flex: none; }
 .nav-item { position: relative; }
@@ -351,7 +349,6 @@ html[data-theme] .board-column-head .board-column-meta { flex: none; }
 .api-status-dot.ok::before { box-shadow: 0 0 0 3px rgba(34,197,94,.18), 0 0 10px rgba(34,197,94,.6); }
 .api-status-dot.bad::before { box-shadow: 0 0 0 3px rgba(239,68,68,.18), 0 0 10px rgba(239,68,68,.55); }
 .api-status-dot.checking::before { box-shadow: 0 0 0 3px rgba(245,158,11,.18), 0 0 10px rgba(245,158,11,.6); }
-.api-status-name { color: var(--gray-700); overflow: hidden; text-overflow: ellipsis; }
 .api-status-state { margin-left: auto; }
 .top-actions { margin-left: auto; display: flex; align-items: center; }
 .btn {
@@ -1359,7 +1356,6 @@ html[data-theme="dark"] .binary-option { color: #d7d7d7; }
 .order-notification-option small.is-warning, .detail-switch small.is-warning { color: var(--orange-700, var(--orange-600)); }
 .feishu-status { display: grid; gap: 6px; margin-bottom: 12px; color: var(--gray-700); font-size: 13px; line-height: 1.5; }
 .feishu-status-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.api-feishu-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; color: var(--gray-700); font-size: 13px; }
 .order-notification-detail-error { color: var(--orange-600); font-size: 12px; font-weight: 600; }
 .history { display: flex; flex-direction: column; gap: 10px; }
 .log { display: grid; grid-template-columns: 10px minmax(0, 1fr); gap: 10px; }
@@ -1482,11 +1478,6 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
   border: 0; border-radius: 0; background: transparent; padding: 0; display: grid; gap: 12px; min-width: 0;
 }
 .target-setup .target-form { margin-bottom: 0; }
-.target-metrics {
-  display: grid;
-  border-radius: 18px;
-}
-.target-metric:last-child { border-right: 0; }
 .target-history-list { gap: 8px; }
 .target-history-row {
   display: grid;
@@ -1752,10 +1743,10 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
 .business-month-title { min-width: 116px; text-align: center; color: var(--gray-900); font-size: 17px; font-weight: 600; }
 /* Monetary summaries must show the entire value, never an ellipsis. Adapt to
    each card's available width; exceptionally large values may wrap instead. */
-.report-stat, .target-metric, .customer-summary-item, .customer-metric-card {
+.report-stat, .customer-summary-item, .customer-metric-card {
   min-width: 0; container-type: inline-size;
 }
-#reportUsd, #reportPaid, #reportDue, #reportOverdue, #targetGoal, #targetActual, #targetGap {
+#reportUsd, #reportPaid, #reportDue, #reportOverdue {
   font-size: clamp(13px, 10cqw, 24px); line-height: 1.25;
   white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere;
   font-variant-numeric: tabular-nums;
@@ -2337,8 +2328,6 @@ html[data-theme="dark"] .app-refresh-btn:focus-visible {
     padding: 12px;
     gap: 8px;
   }
-  .target-metric:nth-child(2) { border-right: 0; }
-  .target-metric:nth-child(n+3) { border-top: 1px solid var(--gray-200); }
   .chart-panel {
     border-radius: 22px;
     padding: 14px;
@@ -3399,10 +3388,6 @@ html[data-theme] .nav-glide { position:absolute; left:0; top:0; z-index:-1; bord
   transition:transform var(--motion-spring) var(--ease-spring), height var(--motion-spring) var(--ease-spring), width var(--motion-spring) var(--ease-spring); }
 html[data-theme] .nav-glide.no-t { transition:none; }
 html[data-theme] .api-status-strip { gap:2px; }
-/* 设置里的接口状态：三项各占 180px，状态字被推到格子最右边，紧贴着下一项的圆点。改成一项挨一项。 */
-html[data-theme] .settings-api-strip { display:flex; flex-wrap:wrap; gap:4px 16px; max-width:none; }
-html[data-theme] .settings-api-strip .api-status-dot { flex:none; width:auto; min-height:32px; max-width:none; padding:0 10px; }
-html[data-theme] .settings-api-strip .api-status-state { margin-left:0; }
 /* 备份目录还是默认目录时备份信息那行末尾的提醒句（提醒色，和「目录不可用」那句同一行） */
 html[data-theme] .backup-info .backup-local-hint { color:var(--s-amber); }
 html[data-theme] .api-status-dot { min-height:26px; border:0; border-radius:8px; background:transparent; box-shadow:none; padding:0 4px; gap:8px; font-size:13px; font-weight:400; color:var(--gray-600); }
@@ -3625,7 +3610,7 @@ html[data-theme] .business-product-row { grid-template-columns:minmax(0,1fr) aut
 html[data-theme] .business-product-name { font-size:13px; font-weight:400; color:var(--gray-800); }
 html[data-theme] .business-product-track { grid-column:1 / -1; grid-row:2; height:5px; }
 html[data-theme] .business-product-value { grid-row:1; grid-column:2; font-size:13px; font-weight:500; }
-html[data-theme] .analysis-mix { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; margin-top:16px; }
+html[data-theme] .analysis-mix { display:grid; grid-template-columns:repeat(var(--mix-cols, 3), minmax(0,1fr)); gap:10px; margin-top:16px; }
 html[data-theme] .analysis-mix .analysis-rank { display:flex; flex-direction:column; align-items:flex-start; gap:2px; padding:12px 14px; border:0; border-radius:16px; background:var(--surface-soft); font-size:12px; color:var(--gray-600); }
 html[data-theme] .analysis-mix .analysis-rank > span:first-child { display:none; }
 html[data-theme] .analysis-mix .analysis-rank strong { font-size:14px; color:var(--gray-900); }
@@ -3633,12 +3618,14 @@ html[data-theme] .analysis-mix .section-meta { grid-column:1 / -1; margin:0; }
 html[data-theme] #analysisClients .analysis-rank { grid-template-columns:18px minmax(0,1fr) auto auto; gap:6px 10px; padding:10px 0 12px; border-bottom:0; }
 html[data-theme] #analysisClients .analysis-rank strong { font-weight:500; font-variant-numeric:tabular-nums; }
 html[data-theme] .analysis-rank-bar { grid-column:1 / -1; display:block; height:5px; border-radius:999px; background:var(--surface-soft); overflow:hidden; }
-html[data-theme] .analysis-rank-bar b { display:block; height:100%; border-radius:inherit; background:var(--gray-900); }
+html[data-theme] .analysis-rank-bar b { display:block; height:100%; border-radius:inherit; background:var(--accent); }
 html[data-theme] .analysis-action-group { border-top:0; padding:4px 0; }
 html[data-theme] .analysis-action-group summary { color:var(--gray-600); font-size:12.5px; cursor:pointer; padding:4px 0; }
-html[data-theme] .analysis-action-row { padding:12px 6px; border-bottom:1px solid var(--hairline); border-radius:0; }
+html[data-theme] .analysis-action-row { padding:8px 6px; border-bottom:1px solid var(--hairline); border-radius:0; }
 html[data-theme] .analysis-action-row:hover { background:var(--surface-soft); border-radius:12px; }
-html[data-theme] .analysis-action-row > span:first-child { display:flex; flex-direction:column; gap:2px; font-weight:600; color:var(--gray-900); }
+html[data-theme] .analysis-action-row > span:first-child { display:flex; align-items:baseline; gap:8px; min-width:0; font-weight:600; color:var(--gray-900); }
+html[data-theme] .analysis-action-client { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+html[data-theme] .analysis-action-row > span:first-child small { flex:none; margin-top:0; white-space:nowrap; }
 html[data-theme] .analysis-action-row small { font-weight:400; color:var(--gray-500); font-family:var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size:11.5px; }
 html[data-theme] .analysis-action-row > span:nth-child(2) { color:var(--s-amber); font-size:12.5px; }
 html[data-theme] .analysis-action-row > span:last-child { color:var(--gray-500); font-size:12px; }
@@ -3862,6 +3849,8 @@ html[data-theme="dark"] .subs-chart-key i.plan { background:color-mix(in oklab, 
 /* 续费详情「周期费用」里并起来的未来几期：一行字加「展开」。 */
 html[data-theme] .subs-per.fold { display:flex; align-items:center; gap:10px; min-height:44px; color:var(--a-muted); font-size:12px; font-variant-numeric:tabular-nums; }
 html[data-theme] .subs-per.fold b { color:var(--a-ink-2); font-weight:600; }
+/* 「展开」和同一行的「第 6 到 10 期都是 …」竖直居中对齐（按钮原来贴着行顶，高出 3 像素）。 */
+html[data-theme] .subs-per.fold .subs-pers-more { align-self:center; }
 html[data-theme] .subs-grp-h { grid-column:1 / -1; margin:0 0 -4px; padding-left:2px; color:var(--a-ink); font:600 14px/1.3 var(--a-display); letter-spacing:0; }
 html[data-theme] .subs-grp-h small { margin-left:6px; color:var(--a-muted); font:400 12px var(--a-sans); }
 /* hidden 要真的藏住：基础层的 .subs-field { display:flex } 会盖掉它（编辑已有项时「下次扣费日」曾照样显示） */
@@ -3971,10 +3960,8 @@ html[data-theme] #targetStat.has-goal #statTargetSub { display:none; }
 html[data-theme] #targetStat:not(.has-goal) .kpi-bar { display:none; }
 html[data-theme] #targetStat .kpi-bar { margin-top:8px; }
 /* 其他页面的数字卡（客户、金额统计、业绩目标、分析）跟工作台一样：大数字 28px/600/1.25，卡太窄时按卡宽缩小，不换行 */
-html[data-theme] .content .page :is(.report-stat, .target-metric, .customer-summary-item) :is(#reportUsd, #reportPaid, #reportDue, #reportOverdue, #reportCount, #targetGoal, #targetActual, #targetGap, #targetOrderCount),
+html[data-theme] .content .page :is(.report-stat, .customer-summary-item) :is(#reportUsd, #reportPaid, #reportDue, #reportOverdue, #reportCount),
 html[data-theme] .content .page .customer-summary-item strong, html[data-theme] .content .page .customer-summary-item strong.summary-money { font-size:min(28px, 16cqw); font-weight:600; line-height:1.25; letter-spacing:-.03em; white-space:nowrap; overflow-wrap:normal; }
-html[data-theme] .content .page .target-metric :is(#targetGoal, #targetActual, #targetGap, #targetOrderCount) { font-size:min(28px, 20cqw); }
-html[data-theme] .content .page .target-metric :is(#targetGoal, #targetActual, #targetGap).is-long { font-size:min(28px, 15cqw); }
 /* 本月订单额：像原型一样把标签本身当下拉（标签 + 小箭头），选择器透明盖在标签上 */
 @media (min-width: 821px) {
   html[data-theme] .stats > .amount-stat .stat-head { position:relative; display:inline-flex; min-width:0; align-items:center; gap:2px; align-self:flex-start; max-width:calc(100% - 76px); }
@@ -4772,7 +4759,6 @@ html[data-theme] .order-table-view:hover { color:var(--accent); }
 html[data-theme="dark"] .order-table-paybar { background:var(--gray-200); }
 html[data-theme] .order-table-payline { display:block; }
 /* 没有单号：还没到发货的只放一道淡色「—」，已发货 / 已完成的「待补单号」用提醒色。 */
-html[data-theme] .order-table-logistics.none strong { color:var(--gray-400); font-weight:400; }
 html[data-theme] .order-table-logistics.missing strong { color:var(--s-amber); }
 /* 行距切换在列表右上角（「已删除」后面），和左边的快捷筛选一样大。筛选工具栏在最小窗口下已经排满一行，放不下它。 */
 html[data-theme] .order-list-density.segment-control { display:inline-flex; width:auto; margin:0; flex:none; }
@@ -5006,6 +4992,8 @@ html[data-theme] .customer-detail-order-main:first-child strong { font-family:va
 html[data-theme] .customer-detail-order-main small { color:var(--gray-500); font-size:12px; line-height:17px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 html[data-theme] .customer-detail-order-main small.paid-amount { color:var(--s-green); font-weight:400; }
 html[data-theme] .customer-detail-order-main small.customer-due-amount { color:var(--s-amber); font-weight:500; }
+/* 待收统一琥珀色：订单抽屉「客户」页的历史订单、金额统计「时间金额汇总」的待收格（以前是红的）。 */
+html[data-theme] .order-detail-related-amount small.customer-due-amount, html[data-theme] .report-row.amount-time-row .balance-amount { color:var(--s-amber); font-weight:500; }
 html[data-theme] .customer-detail-order-money { align-items:flex-end; text-align:right; }
 html[data-theme] .customer-detail-order-money strong { font-weight:600; font-variant-numeric:tabular-nums; }
 html[data-theme] .customer-detail-order-row .tag { padding:2px 10px; font-size:12px; white-space:nowrap; }
@@ -5110,11 +5098,6 @@ html[data-theme] .target-history-row[data-target-pick]:hover { background:var(--
 html[data-theme] .target-history-row[data-target-pick]:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
 html[data-theme] .target-history-values .pending { color:var(--gray-500); }
 html[data-theme] .target-form .btn { height:38px; min-height:38px; padding:0 18px; border-radius:999px; }
-html[data-theme] .target-metrics { grid-template-columns:repeat(4, minmax(0,1fr)); gap:12px; border:0; background:transparent; overflow:visible; }
-html[data-theme] .target-metric { container-type:inline-size; min-width:0; min-height:0; padding:16px 18px; border:0; border-radius:20px; background:var(--surface-soft); display:flex; flex-direction:column; gap:6px; }
-html[data-theme] .target-metric .report-label { color:var(--gray-600); font-size:12.5px; font-weight:400; }
-html[data-theme] .target-metric .report-value { margin:0; font-size:clamp(15px, 17cqw, 26px); font-weight:600; letter-spacing:-.03em; line-height:1.15; color:var(--gray-900); white-space:normal; }
-html[data-theme] .target-metric .report-value.over { color:var(--s-green); }
 /* 完成度圆环 */
 html[data-theme] .target-summary { justify-content:flex-start; }
 html[data-theme] .target-ring-wrap { display:flex; align-items:center; gap:24px; flex:1; }
@@ -5126,6 +5109,8 @@ html[data-theme] .target-ring-text { position:absolute; inset:0; display:flex; f
 html[data-theme] .target-ring-text strong { font-size:30px; font-weight:600; letter-spacing:-.03em; color:var(--gray-900); line-height:1; }
 html[data-theme] .target-ring-text span { color:var(--gray-500); font-size:12.5px; }
 html[data-theme] #targetProgressText { font-size:12.5px; color:var(--gray-600); }
+/* 没设目标的月份不出「清除这个月的目标」（.link-btn 的 display 盖过了 hidden，以前一直显示，点了什么也不做）。 */
+html[data-theme] .target-clear-btn[hidden] { display:none; }
 /* 近月记录表 */
 html[data-theme] .target-history-card { margin:0; padding:20px 22px; border:1px solid var(--surface-border); border-radius:var(--radius-panel); display:flex; flex-direction:column; gap:14px; }
 html[data-theme] .target-history-table { border:1px solid var(--surface-border); border-radius:18px; overflow:hidden; }
@@ -5153,12 +5138,10 @@ html[data-theme] .target-history-count { font-size:14px; color:var(--gray-900); 
 @media (max-width: 1100px) { html[data-theme] .target-layout { grid-template-columns:1fr; } }
 @media (max-width: 820px) {
   html[data-theme] .target-form { grid-template-columns:1fr; }
-  html[data-theme] .target-metrics { grid-template-columns:repeat(2, minmax(0,1fr)); }
   html[data-theme] .target-history-table { overflow-x:auto; }
   html[data-theme] .target-history-row { min-width:820px; }
 }
 html[data-theme] .target-history-fill.empty { display:none; }
-html[data-theme] .target-metrics .report-value:is(#targetGoal, #targetActual, #targetGap, #targetOrderCount) { font-size:clamp(15px, 15cqw, 26px); overflow-wrap:normal; }
 html[data-theme] .amount-kpi-board .report-value:is(#reportUsd, #reportPaid, #reportDue, #reportOverdue, #reportCount) { font-size:clamp(15px, 12cqw, 28px); overflow-wrap:normal; }
 html[data-theme] .target-history-rate, html[data-theme] .target-history-rate.empty { border:0; box-shadow:none; }
 /* 质感版：带一点紫的灰底、白卡浮起、顶部淡紫光晕加细颗粒、紫色主按钮和第一张数字卡；深色和配色切换跟着走 */
@@ -5390,12 +5373,18 @@ html[data-theme] .tracking-group-line { color:var(--gray-600); font-size:12px; }
 }
 /* 设置 › 订单设置：改不了的「默认订单类型」只是一行说明，和旁边的输入框一样高。 */
 html[data-theme] .settings-fixed-note { display:flex; align-items:center; min-height:var(--field-h, var(--control-height)); color:var(--gray-600); font-size:13px; }
-/* 设置 › 接口状态：圆点下面 DHL、FedEx 各一行最近调用（从物流页顶部挪来）。 */
-html[data-theme] .api-call-lines { display:grid; gap:4px; margin-top:6px; padding:0 10px; }
-html[data-theme] .api-call-line { display:flex; align-items:baseline; gap:10px; min-width:0; color:var(--gray-600); font-size:12.5px; }
-html[data-theme] .api-call-line b { flex:none; min-width:44px; color:var(--gray-900); font-weight:500; }
-html[data-theme] .api-call-line span { min-width:0; overflow-wrap:anywhere; }
-html[data-theme] .api-call-line.bad span { color:var(--s-red); }
+/* 设置 › 接口状态：一个接口一行（名字 · 状态 · 最近调用 · 去设置的链接）。最近调用从物流页顶部挪来。 */
+html[data-theme] .api-status-list { display:block; padding-top:4px; padding-bottom:4px; }
+html[data-theme] .api-status-row { display:grid; grid-template-columns:96px 110px minmax(0,1fr) auto; gap:12px; align-items:center; min-height:44px; padding:6px 0; border-top:1px solid var(--hairline); }
+html[data-theme] .api-status-row:first-child { border-top:0; }
+html[data-theme] .api-status-row-name { color:var(--gray-900); font-size:13px; font-weight:500; }
+html[data-theme] .api-status-list .api-status-dot { justify-self:start; width:auto; min-height:30px; padding:0 8px; margin-left:-8px; }
+html[data-theme] .api-status-list .api-status-state { margin-left:0; font-size:13px; }
+html[data-theme] .api-status-dot.api-status-static { cursor:default; }
+html[data-theme] .api-status-dot.api-status-static:hover { background:transparent; }
+html[data-theme] .api-status-list .api-status-link { margin-left:0; }
+html[data-theme] .api-call-line { min-width:0; color:var(--gray-600); font-size:12.5px; overflow-wrap:anywhere; }
+html[data-theme] .api-call-line.bad { color:var(--s-red); }
 /* 物流页「查物流」：说明一行，句尾「？识别规则」点开一块小浮层（按标题那一块定位，不会伸出卡片）。 */
 html[data-theme] .logistics-query-heading { position:relative; }
 html[data-theme] .tracking-rules-btn { height:24px; margin-left:6px; padding:0 9px; border:1px solid var(--surface-border-strong); border-radius:999px; background:transparent; color:var(--gray-700); font:inherit; font-size:12px; line-height:1; cursor:pointer; vertical-align:baseline; }
@@ -6107,12 +6096,6 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
               <button class="btn btn-primary" id="saveTargetBtn" type="button">保存目标</button>
             </div>
             <div class="target-input-row"><span class="target-input-hint" id="targetInputHint" aria-live="polite"></span><button class="link-btn target-clear-btn" id="clearTargetBtn" type="button" hidden>清除这个月的目标</button></div>
-            <div class="target-metrics">
-              <div class="target-metric"><div class="report-label">目标金额</div><div class="report-value" id="targetGoal">$0 USD</div></div>
-              <div class="target-metric"><div class="report-label">实际完成</div><div class="report-value" id="targetActual">$0 USD</div></div>
-              <div class="target-metric"><div class="report-label" id="targetGapLabel">差额</div><div class="report-value" id="targetGap">$0 USD</div></div>
-              <div class="target-metric"><div class="report-label">订单数量</div><div class="report-value" id="targetOrderCount">0</div></div>
-            </div>
           </section>
           <section class="panel target-summary">
             <div class="section-title"><span id="targetMonthBadge">本月</span> 完成度</div>
@@ -6453,16 +6436,13 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
             </div>
           </div>
           <div class="settings-panel" data-settings-panel="api">
-            <div class="section-head"><div><div class="section-title">接口状态</div><div class="section-meta">DHL / FedEx / AI 识别的连接检测；有异常时侧栏「设置」上会出现红点</div></div></div>
-            <div class="settings-card">
-              <div><strong>API 检测</strong><div class="muted">点一下重新检测。密钥在「物流追踪」和「AI 识别」里维护。</div></div>
-              <div class="api-status-strip settings-api-strip" id="apiStatusStrip" aria-label="API 连接状态">
-                <button class="api-status-dot" type="button" data-api-check="dhl" title="DHL API：未检测"><span class="api-status-name">DHL</span><span class="api-status-state">未测</span></button>
-                <button class="api-status-dot" type="button" data-api-check="fedex" title="FedEx API：未检测"><span class="api-status-name">FedEx</span><span class="api-status-state">未测</span></button>
-                <button class="api-status-dot" type="button" data-api-check="ai" title="AI API：未检测" onmouseenter="refreshAiUsage()" onfocus="refreshAiUsage()"><span class="api-status-name">AI 识别</span><span class="api-status-state">未测</span></button>
-              </div>
-              <div class="api-call-lines" id="trackingApiCallLines" aria-label="DHL 和 FedEx 最近调用"></div>
-              <div class="api-feishu-line"><span id="apiFeishuLine">飞书通知：读取中…</span><button class="btn btn-small" type="button" data-open-feishu-settings>飞书设置</button></div>
+            <div class="section-head"><div><div class="section-title">接口状态</div><div class="section-meta">点状态重新检测。有异常时侧栏「设置」上会出现红点。</div></div></div>
+            <!-- 一个接口一行：名字 · 状态（点一下重新检测）· 最近调用 · 去填密钥的页签。 -->
+            <div class="settings-card api-status-list" id="apiStatusStrip" aria-label="API 连接状态">
+              <div class="api-status-row" data-api-row="dhl"><span class="api-status-row-name">DHL</span><button class="api-status-dot" type="button" data-api-check="dhl" title="DHL API：未检测"><span class="api-status-state">未测</span></button><span class="api-call-line" data-api-call="dhl"></span><button class="link-btn api-status-link" type="button" data-settings-jump="tracking-api">物流追踪 <span aria-hidden="true">→</span></button></div>
+              <div class="api-status-row" data-api-row="fedex"><span class="api-status-row-name">FedEx</span><button class="api-status-dot" type="button" data-api-check="fedex" title="FedEx API：未检测"><span class="api-status-state">未测</span></button><span class="api-call-line" data-api-call="fedex"></span><button class="link-btn api-status-link" type="button" data-settings-jump="tracking-api">物流追踪 <span aria-hidden="true">→</span></button></div>
+              <div class="api-status-row" data-api-row="ai"><span class="api-status-row-name">AI 识别</span><button class="api-status-dot" type="button" data-api-check="ai" title="AI API：未检测" onmouseenter="refreshAiUsage()" onfocus="refreshAiUsage()"><span class="api-status-state">未测</span></button><span></span><button class="link-btn api-status-link" type="button" data-settings-jump="ai">AI 识别 <span aria-hidden="true">→</span></button></div>
+              <div class="api-status-row" data-api-row="feishu"><span class="api-status-row-name">飞书通知</span><span class="api-status-dot api-status-static" id="apiFeishuState"><span class="api-status-state" id="apiFeishuLine">读取中…</span></span><span></span><button class="link-btn api-status-link" type="button" data-open-feishu-settings>飞书通知 <span aria-hidden="true">→</span></button></div>
             </div>
           </div>
           <div class="settings-panel" data-settings-panel="feishu">
@@ -7888,7 +7868,11 @@ function renderFeishuSettingsStatus() {
     ? `${status.lastSentAt ? `<div>上次成功发送：${escapeAttr(status.lastSentAt)}</div>` : ''}${status.lastError ? `<div class="order-notification-detail-error">最近一次失败：${escapeAttr(status.lastError)}</div>` : ''}`
     : '';
   if (box) box.innerHTML = `<div class="feishu-status-row">${tag}<span>${detail}</span></div>${extra}`;
-  if (apiLine) apiLine.textContent = plain;
+  // 设置 › 接口状态的飞书那一行：名字已经在行首，状态字去掉「飞书通知：」；配置好了圆点是绿的。
+  if (apiLine) {
+    apiLine.textContent = plain.replace(/^飞书通知：/, '');
+    apiLine.closest('.api-status-dot')?.classList.toggle('ok', Boolean(status?.configured));
+  }
   const form = document.getElementById('feishuSettingsForm');
   if (form && status && status.ok !== false) {
     form.elements.profile.placeholder = status.profileSaved ? '已保存（不显示），留空表示不改' : '例如 ots-bot';
@@ -11310,7 +11294,11 @@ function renderAnalysisPage() {
   document.getElementById('analysisClients').innerHTML = (shownClients.map((row,index) => '<button type="button" class="analysis-rank" data-analysis-client="' + escapeAttr(row.name) + '" title="在订单列表里看' + escapeAttr(clientDisplayName(row.name)) + '在' + escapeAttr(monthLabel(activeBusinessMonth)) + '的订单"><span class="muted">' + (index+1) + '</span><span>' + escapeAttr(clientDisplayName(row.name)) + '</span><span class="muted">' + row.count + ' 单</span><strong>' + summaryMoney(row.amount,'USD') + '</strong><i class="analysis-rank-bar"><b style="width:' + Math.max(3, Math.round(row.amount / clientMax * 100)) + '%"></b></i></button>').join('') || '<div class="empty">该月份暂无客户订单。</div>')
     + (data.unnamedOrders ? `<p class="section-meta">另有 ${data.unnamedOrders} 单没填客户，不参与排名</p>` : '');
   const total = data.monthly.length;
-  document.getElementById('analysisCustomerMix').innerHTML = [['新客户订单',data.newOrders],['老客户订单',data.repeatOrders],['客户信息不全',data.unknownOrders]].map(([label,count]) => '<div class="analysis-rank"><span></span><span>' + label + '</span><strong>' + count + ' 单</strong><span>' + (total ? Math.round(count/total*100) : 0) + '%</span></div>').join('') + '<p class="section-meta">按现有订单历史判断，不等于新建客户档案数。</p>';
+  // 「客户信息不全」是 0 时不出，剩两格平分；百分比照旧按这个月全部订单算。
+  const mixCells = [['新客户订单',data.newOrders],['老客户订单',data.repeatOrders],['客户信息不全',data.unknownOrders]].filter(([label, count]) => label !== '客户信息不全' || count > 0);
+  const mixEl = document.getElementById('analysisCustomerMix');
+  mixEl.style.setProperty('--mix-cols', String(mixCells.length));
+  mixEl.innerHTML = mixCells.map(([label,count]) => '<div class="analysis-rank"><span></span><span>' + label + '</span><strong>' + count + ' 单</strong><span>' + (total ? Math.round(count/total*100) : 0) + '%</span></div>').join('') + '<p class="section-meta">按现有订单历史判断，不等于新建客户档案数。</p>';
   // 未收清按待收 USD 从大到小，只列前 8 条（以前全部列出，47 单时 4000 多像素长）；summary 写合计；行里主金额用 USD、原币种放小字。
   const dueUsd = o => Math.max(0, orderAmountUsd(o) - orderPaidUsd(o));
   const groups = [
@@ -11323,7 +11311,9 @@ function renderAnalysisPage() {
       const value = key === 'receivables'
         ? `待收 ${summaryMoney(dueUsd(o), 'USD')}${(o.currency || 'USD') !== 'USD' ? `<small>${escapeAttr(money(orderDueValue(o), o.currency))}</small>` : ''}`
         : `最晚发出 ${escapeAttr(o.latestShipDate)}`;
-      return '<button type="button" class="analysis-action-row" data-analysis-order="' + escapeAttr(o.id) + '"><span>' + escapeAttr(o.client || '未命名客户') + '<small>' + escapeAttr(o.num || '') + '</small></span><span>' + value + '</span><span>查看 →</span></button>';
+      // 一单一行：客户名后面跟订单号；客户名太长截客户名（完整的在悬停提示里），订单号不截。
+      const client = o.client || '未命名客户';
+      return '<button type="button" class="analysis-action-row" data-analysis-order="' + escapeAttr(o.id) + '"><span><span class="analysis-action-client" title="' + escapeAttr(client) + '">' + escapeAttr(client) + '</span><small>' + escapeAttr(o.num || '') + '</small></span><span>' + value + '</span><span>查看 →</span></button>';
     }).join('');
     const more = orders.length > limit
       ? `<button type="button" class="link-btn analysis-attention-more" data-analysis-list="outstanding">还有 ${orders.length - limit} 单 · 查看全部待收订单 <span>→</span></button>` : '';
@@ -19855,6 +19845,7 @@ function renderAmountTimeTable() {
   });
   const rows = [...map.values()].sort((a, b) => b.key.localeCompare(a.key));
   const body = rows.map(row => {
+    // 只有 1 单时客单价就是订单总额，留空。
     const avg = row.count ? row.total / row.count : 0;
     const label = config.mode === 'day' ? dateLabel(row.key, { withYear:config.crossYear }) : monthLabel(row.key);
     // 和卡片、分组一样用整数美元（表头写 USD），不再出现「$647.059 USD」。
@@ -19865,7 +19856,7 @@ function renderAmountTimeTable() {
         <div>${summaryMoney(row.total, 'USD')}</div>
         <div class="paid-amount">${summaryMoney(row.paid, 'USD')}</div>
         <div class="${row.due > 0 ? 'balance-amount' : 'paid-amount'}">${row.due > 0 ? summaryMoney(row.due, 'USD') : '-'}</div>
-        <div>${summaryMoney(avg, 'USD')}</div>
+        <div>${row.count > 1 ? summaryMoney(avg, 'USD') : ''}</div>
       </div>
     `;
   }).join('');
@@ -19992,25 +19983,13 @@ function renderPerformanceTargets() {
   }
   const clearBtn = document.getElementById('clearTargetBtn');
   if (clearBtn) clearBtn.hidden = !goal;
-  // 这个月没设目标：整页只在完成度旁边写一句「11 月还没设目标」，目标、差额、圆环中间这些格子留空，不写「未设置 / 未设 / -」。
-  document.getElementById('targetGoal').textContent = goal ? summaryMoney(goal, 'USD') : '';
-  document.getElementById('targetActual').textContent = summaryMoney(actual, 'USD');
+  // 这个月没设目标：完成度旁边写一句「11 月还没设目标 · 已完成 … · N 单」，圆环中间留空，不写「未设置 / 未设 / -」。
+  // （目标、实际、差额、订单数四个格子去掉了：完成度那句和近月目标记录里都有。）
   document.getElementById('targetRate').textContent = goal ? `${rate}%` : '';
   const ringLabel = document.querySelector('#page-targets .target-ring-text span');
   if (ringLabel) ringLabel.hidden = !goal;
   const over = goal && actual >= goal;
   const exact = over && Math.round(actual) === Math.round(goal);
-  document.getElementById('targetGap').textContent = goal ? summaryMoney(over ? actual - goal : gap, 'USD') : '';
-  document.getElementById('targetGap').classList.toggle('over', Boolean(over));
-  const gapLabel = document.getElementById('targetGapLabel');
-  if (gapLabel) gapLabel.textContent = over ? '超出' : '差额';
-  document.getElementById('targetOrderCount').textContent = orders.length;
-  // 百万级金额（$1,234,568）字数多，卡又窄，单独缩小一档，避免溢出。
-  ['targetGoal', 'targetActual', 'targetGap'].forEach(id => {
-    const el = document.getElementById(id);
-    el.classList.toggle('is-long', el.textContent.length > 8);
-    el.title = el.textContent.length > 12 ? el.textContent : '';
-  });
   document.getElementById('targetMonthBadge').textContent = targetMonthName(month);
   const ring = document.getElementById('targetProgress');
   ring.setAttribute('stroke-dasharray', `${goal ? Math.min(100, rate) : 0} 100`);
@@ -20018,7 +19997,7 @@ function renderPerformanceTargets() {
   const future = month > currentMonth;
   document.getElementById('targetProgressText').textContent = goal
     ? (exact ? '刚好完成目标。' : over ? `已经超出目标 ${summaryMoney(actual - goal, 'USD')}。` : future && !actual ? `${monthLabel(month)}还没开始，目标 ${summaryMoney(goal, 'USD')}。` : `完成 ${summaryMoney(actual, 'USD')}，还差 ${summaryMoney(gap, 'USD')}。`)
-    : `${dashboardMonthName(month)}还没设目标`;
+    : `${dashboardMonthName(month)}还没设目标${orders.length ? ` · 已完成 ${summaryMoney(actual, 'USD')} · ${orders.length} 单` : ''}`;
 
   // 近月目标记录：只列设过目标的月份 + 本月（按时间倒序），行可以点 / 回车，切到那个月。
   const historyMonths = Array.from(new Set([currentMonth, ...Object.keys(state.performanceTargets || {}).filter(m => targetForMonth(m) > 0)])).sort().reverse();
@@ -20219,9 +20198,9 @@ function renderAmountChart() {
       ${data.map((d, i) => {
         const cx = pad.left + slot * i + slot / 2;
         const totalY = y(d.total), paidY = y(d.paid);
+        const tip = `${d.label}：订单总额 ${summaryMoney(d.total, 'USD')} · 已收 ${summaryMoney(d.paid, 'USD')}`;
         return `
-        <g>
-          <title>${escapeAttr(d.label)}：订单总额 ${summaryMoney(d.total, 'USD')} · 已收 ${summaryMoney(d.paid, 'USD')}</title>
+        <g data-chart-tip="${escapeAttr(tip)}" aria-label="${escapeAttr(tip)}">
           <rect class="chart-bar" x="${cx - bar - 1}" y="${totalY}" width="${bar}" height="${pad.top + chartH - totalY}" rx="${Math.min(4, bar / 3)}"></rect>
           <rect class="chart-bar paid" x="${cx + 1}" y="${paidY}" width="${bar}" height="${pad.top + chartH - paidY}" rx="${Math.min(4, bar / 3)}"></rect>
           ${d.total && mode === 'month' ? `<text class="chart-value" x="${cx}" y="${Math.max(12, totalY - 7)}" text-anchor="middle">${k(d.total)}</text>` : ''}
@@ -20457,7 +20436,7 @@ function orderListFiltersFromControls() {
   };
 }
 // 列表「物流」列：状态按全部批次汇总（「异常 1/3 批」「部分签收 1/2」），单号写第一批，多批时后面注明「等 3 批」。
-// 没有单号时：已发货 / 已完成的单写「待补单号」（和物流页一个说法，missing）；还没到发货的单只放一道淡色「—」（none），
+// 没有单号时：已发货 / 已完成的单写「待补单号」（和物流页一个说法，missing）；还没到发货的单这一格留空（none），
 // 不再每行写「未填写运单」；物流状态已经往前走了的（运输中、异常…）照旧写「状态 · 未填运单」。只管显示，筛选不看这里。
 function orderListLogisticsDisplay(order = {}) {
   const summary = orderLogisticsSummary(order);
@@ -20465,7 +20444,7 @@ function orderListLogisticsDisplay(order = {}) {
   const notMoved = !summary.status || summary.status === '未发货';
   const missing = !tracking && (notMoved || summary.status === '已发货') && isSettledStage(normalizeStage(order.stage));
   const none = !tracking && !missing && notMoved;
-  const status = tracking ? summary.label : (missing ? '待补单号' : (none ? '—' : `${summary.status} · 未填运单`));
+  const status = tracking ? summary.label : (missing ? '待补单号' : (none ? '' : `${summary.status} · 未填运单`));
   const first = summary.shipments[0];
   const carrier = tracking ? (first?.carrier && first.carrier !== 'auto' ? first.carrier : (['DHL','FedEx','UPS'].includes(order.carrier) ? order.carrier : detectCarrier(tracking))) : '';
   return { tracking:summary.total > 1 ? `${tracking} 等 ${summary.total} 批` : tracking, status, carrier, exception:summary.status === '异常', missing, none, partial:orderShipmentProgressLabel(order) };
@@ -20635,7 +20614,7 @@ function renderOrderListPage() {
           <td class="col-product"><div class="order-table-product"><strong>${escapeAttr(product.value)}</strong><span> · ${escapeAttr(boardPaymentLabel(payment.value))}</span></div><span class="order-table-sub">${escapeAttr(order.orderType || '')}</span></td>
           <td class="col-stage"><div class="order-table-stage"><span class="tag ${stage.tag}">${escapeAttr(stage.name)}</span>${order.isDraft ? '<span class="order-table-mini-flag">草稿</span>' : ''}${order.urgentOrder ? '<span class="order-table-mini-flag urgent">加急</span>' : ''}${logistics.partial ? `<span class="order-table-mini-flag partial" title="${escapeAttr(logistics.partial)}">${escapeAttr(logistics.partial.startsWith('部分发货') ? '部分发货' : logistics.partial)}</span>` : ''}</div></td>
           <td class="col-money" title="已收 ${escapeAttr(money(paid, order.currency))}${escapeAttr(usdHint)}"><span class="order-table-money order-table-total">${money(order.amount, order.currency)}</span><span class="order-table-payline"><span class="order-table-paybar" aria-hidden="true"><i style="width:${Math.min(100, orderAmountValue(order) ? Math.round(paid / orderAmountValue(order) * 100) : 0)}%"></i></span>${due > 0 ? `<span class="order-table-due-line">待收 ${orderListDueHtml(due, order.currency)}</span>` : ''}</span></td>
-          <td class="col-logistics"><div class="order-table-logistics${logistics.exception ? ' exception' : ''}${logistics.missing ? ' missing' : ''}${logistics.none ? ' none' : ''}"><strong${logistics.none ? ' title="还没到发货阶段"' : ''}>${escapeAttr(logistics.status)}</strong><span class="order-table-sub" title="${escapeAttr([logistics.carrier, logistics.tracking].filter(Boolean).join(' '))}">${escapeAttr(logistics.carrier || '')}${logistics.carrier && logistics.tracking ? '  ' : ''}${escapeAttr(logistics.tracking || '')}</span></div></td>
+          <td class="col-logistics"><div class="order-table-logistics${logistics.exception ? ' exception' : ''}${logistics.missing ? ' missing' : ''}${logistics.none ? ' none' : ''}"><strong>${escapeAttr(logistics.status)}</strong><span class="order-table-sub" title="${escapeAttr([logistics.carrier, logistics.tracking].filter(Boolean).join(' '))}">${escapeAttr(logistics.carrier || '')}${logistics.carrier && logistics.tracking ? '  ' : ''}${escapeAttr(logistics.tracking || '')}</span></div></td>
           <td class="col-date"><span class="order-table-date">${escapeAttr(normalizeDate(order.createdAt || order.updated))}</span></td>
           <td class="col-action">${(() => {
             // 草稿不在列表上收款 / 推进：要先在详情里转为正式订单。
@@ -21002,21 +20981,22 @@ function trackingApiMiniTime(value) {
   const text = String(value || '').trim();
   return text ? text.replace(/^(\d{4})[-/年]?/, '').replace(/^(\d{1,2})月/, '$1月') : '尚未查询';
 }
-// 设置 › 接口状态：DHL、FedEx 各一行「最近调用 时间 · 调用情况」。只有这四个已存的值，没有按天的次数。
+// 设置 › 接口状态：DHL、FedEx 那两行中间一格写「最近调用 时间 · 调用情况」。只有这四个已存的值，没有按天的次数。
 function renderTrackingApiCallLines() {
-  const el = document.getElementById('trackingApiCallLines');
-  if (!el) return;
   const settings = getTrackingApiSettings();
   const rows = [
     { name:'DHL', at:settings.lastDhlCheckedAt, status:settings.lastDhlStatus },
     { name:'FedEx', at:settings.lastFedexCheckedAt, status:settings.lastFedexStatus }
   ];
-  el.innerHTML = rows.map(row => {
+  rows.forEach(row => {
+    const el = document.querySelector(`#apiStatusStrip [data-api-call="${row.name.toLowerCase()}"]`);
+    if (!el) return;
     const queried = Boolean(String(row.at || '').trim() || String(row.status || '').trim());
     const text = queried ? [String(row.at || '').trim() && `最近调用 ${trackingApiMiniTime(row.at)}`, row.status && trackingStatusTextWithEmoji(row.status)].filter(Boolean).join(' · ') : '尚未查询';
-    const cls = queried && row.status ? trackingApiMiniStatusClass(row.status) : '';
-    return `<div class="api-call-line ${cls}" data-api-call="${row.name.toLowerCase()}" title="${escapeAttr(row.name)}：${escapeAttr(text)}"><b>${row.name}</b><span>${escapeAttr(text)}</span></div>`;
-  }).join('');
+    el.className = `api-call-line ${queried && row.status ? trackingApiMiniStatusClass(row.status) : ''}`.trim();
+    el.title = `${row.name}：${text}`;
+    el.textContent = text;
+  });
 }
 // 每个结果都带上按哪家查的（carrier），写回订单时只写承运商一致的批次。
 async function queryTrackingStatus(clean, carrier) {
@@ -30034,6 +30014,11 @@ document.addEventListener('pointerdown', e => {
   if (!e.target.closest('.topbar .search')) closeGlobalSearchPanel();
 });
 document.getElementById('apiStatusStrip').addEventListener('click', e => {
+  const jump = e.target.closest('[data-settings-jump]');
+  if (jump) {
+    document.querySelector(`.settings-menu [data-settings-tab="${jump.dataset.settingsJump}"]`)?.click();
+    return;
+  }
   const btn = e.target.closest('[data-api-check]');
   if (!btn) return;
   checkApiStatus(btn.dataset.apiCheck);
@@ -32234,17 +32219,19 @@ window.addEventListener('hashchange', () => {
   if (document.querySelector('.page.active')?.id !== `page-${page}`) setPage(page);
 });
 
+// 软件自己的悬停提示条：客户等级字母标（data-level-tooltip）和金额统计柱状图的每一组柱子（data-chart-tip）共用，不用系统的提示条。
 const levelTooltip = document.createElement('div');
 levelTooltip.className = 'level-tooltip';
 document.body.appendChild(levelTooltip);
+const hoverTipTarget = node => node?.closest?.('.level-icon[data-level-tooltip], [data-chart-tip]') || null;
 function moveLevelTooltip(e) {
   levelTooltip.style.left = `${e.clientX + 12}px`;
   levelTooltip.style.top = `${e.clientY + 12}px`;
 }
 document.addEventListener('mouseover', e => {
-  const icon = e.target.closest('.level-icon[data-level-tooltip]');
-  if (!icon) return;
-  levelTooltip.textContent = icon.dataset.levelTooltip;
+  const target = hoverTipTarget(e.target);
+  if (!target) return;
+  levelTooltip.textContent = target.dataset.levelTooltip || target.dataset.chartTip || '';
   levelTooltip.classList.add('show');
   moveLevelTooltip(e);
 });
@@ -32252,7 +32239,9 @@ document.addEventListener('mousemove', e => {
   if (levelTooltip.classList.contains('show')) moveLevelTooltip(e);
 });
 document.addEventListener('mouseout', e => {
-  if (e.target.closest('.level-icon[data-level-tooltip]')) levelTooltip.classList.remove('show');
+  const target = hoverTipTarget(e.target);
+  // 在同一组柱子里从一根移到另一根不算离开。
+  if (target && hoverTipTarget(e.relatedTarget) !== target) levelTooltip.classList.remove('show');
 });
 
 // The page only works when served by the Mac app: data, keys and network calls all go through its local server.

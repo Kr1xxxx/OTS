@@ -70,7 +70,6 @@ const groups = page => page.evaluate(() => [...document.querySelectorAll('#custo
   active:btn.classList.contains('active'),
   color:getComputedStyle(btn).color
 })));
-const listedNames = page => page.evaluate(() => [...document.querySelectorAll('#customerList .customer-row:not(.head)')].map(row => row.dataset.customerName || row.querySelector('strong, b')?.textContent || '').filter(Boolean));
 
 (async () => {
   const browser = await launchBrowser();

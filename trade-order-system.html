@@ -11639,6 +11639,9 @@ function applyOrderStageInvariants(order = {}, stage = order.stage) {
       ? { ...item, status:!item.status || item.status === '未发货' ? '已发货' : item.status, shippedAt:item.shippedAt || today }
       : item);
     if (order.shipments.length) order.logisticsStatus = aggregateShipmentStatus(order.shipments);
+    // 订单的发货日跟第一批走，和载入时（normalizeActiveOrder）一样。以前这里只补了批次的发货日，
+    // 直接拖到已完成的单订单上还是空的，重新打开 App 才冒出来（抽屉、列表前后不一样）。
+    order.shippedAt = normalizeOrderShipments(order)[0]?.shippedAt || order.shippedAt || '';
     changed = true;
   }
   if (normalizeStage(stage) === 'shipment') {
@@ -23292,7 +23295,7 @@ function fillCombinedOrderForm(fields = {}, customerFields = {}) {
   delete form.dataset.stageTouched;
   delete form.dataset.depositFromPreset;
   syncCarrierFromTracking(form);
-  setOrderShipmentFields(form, fields);
+  setOrderShipmentFields(form, fields, { opened:false });
   syncStageOptionsForForm(form);
   syncDepositFields(form, 'amount');
   enhanceBinarySelects(form);
@@ -23883,7 +23886,8 @@ function appendShipmentRow(form, shipment = {}) {
   enhanceBinarySelects(row);
   return number;
 }
-function setOrderShipmentFields(form, order = {}) {
+// opened：填进来的是这张单存着的批次（打开订单）。粘贴识别填进来的不是（opened:false），见 markShipmentRowsOpened。
+function setOrderShipmentFields(form, order = {}, { opened = true } = {}) {
   form?.querySelectorAll('[data-shipment-extra-row]').forEach(row => row.remove());
   const shipments = normalizeOrderShipments(order);
   const primary = shipments[0] || {};
@@ -23898,13 +23902,15 @@ function setOrderShipmentFields(form, order = {}) {
   if (form?.elements?.carrier) setShipmentRowCarrier(form.elements.carrier, primary.carrier, primary.trackingNumber || '');
   if (form?.elements?.shipmentStatus) form.elements.shipmentStatus.value = primary.status || '未发货';
   shipments.slice(1).forEach(shipment => appendShipmentRow(form, shipment));
-  markShipmentRowsOpened(form);
+  markShipmentRowsOpened(form, { opened });
 }
 // 每一行记下填进表单时的单号和状态（只在表单里，不存进订单）。保存时这一行单号、状态都没变，就是用户没动过：
 // 状态以内存里这张单现在的为准（弹窗开着时物流更新可能已经查到「已签收」），见 buildOrderFromFormData。
-function markShipmentRowsOpened(form) {
+// 只有打开订单时填进来的（这张单以前存的）才记；粘贴识别填进来的单号（opened:false）一行都不记：它没存过，
+// 不能当成「以前存的单号」放过网址、位数不对这些检查（shipmentRowProblems 的 kept）。
+function markShipmentRowsOpened(form, { opened = true } = {}) {
   form?.querySelectorAll?.('[data-shipment-primary-row], [data-shipment-extra-row]').forEach(row => {
-    const number = cleanTracking(row.querySelector('[data-shipment-number]')?.value || '');
+    const number = opened ? cleanTracking(row.querySelector('[data-shipment-number]')?.value || '') : '';
     if (number) {
       row.dataset.shipmentOpenedNumber = number;
       row.dataset.shipmentOpenedStatus = row.querySelector('[data-shipment-status]')?.value || '';
@@ -26376,11 +26382,22 @@ function subscriptionChargeState(item, date, today = subscriptionLocalDate()) {
 function subscriptionChargePaid(charge, today = subscriptionLocalDate()) {
   return charge.term !== charge.item || subscriptionChargeState(charge.item, charge.date, today) === 'paid';
 }
+// 一段历史设置下的扣费期数：end（不含，默认这段设置的 until）以前的每一期。
+function subscriptionTermCount(term, end = term.until) {
+  return Math.max(0, subscriptionChargeIndex(term, subscriptionDateFromDay(subscriptionDayNumber(end) - 1)) + 1);
+}
+// 一段历史设置的扣费实际算到哪天（不含）：本来到 until；补记的预计停止日（或结束日）更早时，和当前设置一样到那天为止，
+// 之后的不算扣费（保存时的提示就是这么说的）。以前历史设置不看停止日：换过卡的项补记三月停止，四、五月照样算进累计已付。
+// 期号（subscriptionTermOffset）仍按 until 数，停止日之后的期不再列出，号不受影响。
+function subscriptionTermEnd(item, term) {
+  const bound = subscriptionStopBound(item);
+  return bound && bound < term.until ? bound : term.until;
+}
 function subscriptionTermTotals(item, rate) {
   // Charges made under earlier settings: every one before the term's end was paid (see subscriptionChargeState).
   const totals = { charges:0, spentCny:0, byCurrency:{} };
   subscriptionTerms(item).forEach(term => {
-    const count = subscriptionChargeIndex(term, subscriptionDateFromDay(subscriptionDayNumber(term.until) - 1)) + 1;
+    const count = subscriptionTermCount(term, subscriptionTermEnd(item, term));
     if (count <= 0) return;
     const price = subscriptionPricer(term);
     for (let index = 0; index < count; index += 1) {
@@ -26394,7 +26411,7 @@ function subscriptionTermTotals(item, rate) {
 }
 function subscriptionTermOffset(item) {
   // How many charges the earlier settings made in total: the current settings number on from there.
-  return subscriptionTerms(item).reduce((sum, term) => sum + Math.max(0, subscriptionChargeIndex(term, subscriptionDateFromDay(subscriptionDayNumber(term.until) - 1)) + 1), 0);
+  return subscriptionTerms(item).reduce((sum, term) => sum + subscriptionTermCount(term), 0);
 }
 function subscriptionStopBound(item, fallbackEnd = '') {
   // First date that is no longer charged: a cancelled item's end date, or the day after its planned stop.
@@ -26913,8 +26930,8 @@ function subscriptionCharges(item, from, to, rate, { today = subscriptionLocalDa
   };
   let offset = 0;
   subscriptionTerms(item).forEach(term => {
-    segment(term, term.until, offset);
-    offset += Math.max(0, subscriptionChargeIndex(term, subscriptionDateFromDay(subscriptionDayNumber(term.until) - 1)) + 1);
+    segment(term, subscriptionTermEnd(item, term), offset);
+    offset += subscriptionTermCount(term);
   });
   segment(item, subscriptionStopBound(item, item.status === 'cancelled' ? subscriptionChargeDate(item, subscriptionChargeIndex(item, to) + 1) : ''), offset);
   return charges;
@@ -27695,15 +27712,16 @@ function subscriptionPeriods(item, today, schedule) {
   let offset = 0;
   subscriptionTerms(item).forEach(term => {
     const termPrice = subscriptionPricer(term);
+    const termEnd = subscriptionTermEnd(item, term);
     for (let index = 0; ; index += 1) {
       const date = subscriptionChargeDate(term, index);
       // Every period under earlier settings was paid, one renewed early (dated after today) included.
-      if (date >= term.until) break;
+      if (date >= termEnd) break;
       const next = subscriptionChargeDate(term, index + 1);
-      const end = next < term.until ? next : term.until;
+      const end = next < termEnd ? next : termEnd;
       periods.push({ index:offset + index, date, until:subscriptionDateFromDay(subscriptionDayNumber(end) - 1), past:true, current:false, amount:termPrice(date), currency:term.currency, term, old:true, cycleMonths:subscriptionCycle(term).unit === 'month' ? subscriptionCycle(term).count : 0 });
     }
-    offset += Math.max(0, subscriptionChargeIndex(term, subscriptionDateFromDay(subscriptionDayNumber(term.until) - 1)) + 1);
+    offset += subscriptionTermCount(term);
   });
   let future = 0;
   for (let index = 0; future < subscriptionFuturePeriods; index += 1) {

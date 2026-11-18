@@ -161,15 +161,13 @@ function assertMoneyCells(cells, label) {
     await page.evaluate(() => openOrderDetail('o2', { tab:'attachments' }));
     const attachments = page.locator('#orderDetailBody [data-detail-tab="attachments"]');
     await attachments.waitFor({ state:'visible' });
-    assert.match(await attachments.innerText(), /还没有附件，在「完整编辑…」里添加/);
-    await attachments.locator('[data-detail-open-edit]').click();
-    await page.waitForFunction(() => editingId === 'o2' && document.getElementById('orderModal').classList.contains('open') && !document.getElementById('orderDetailDrawer').classList.contains('open'));
-    await page.evaluate(() => closeOrder());
-    await page.waitForTimeout(300);
+    // 没有附件时，能改的订单只出上传区（不再叫人去「完整编辑…」里加），详见 test-detail-drawer-attachments-ui。
+    assert.match(await attachments.innerText(), /把截图粘贴或拖到这里/);
+    assert.doesNotMatch(await attachments.innerText(), /完整编辑|还没有附件/);
     await page.evaluate(() => openOrderDetail('gone', { tab:'attachments' }));
     await attachments.waitFor({ state:'visible' });
     assert.equal((await attachments.innerText()).replace(/\s+/g, ' ').trim(), '附件 / 凭证 没有附件。');
-    assert.equal(await attachments.locator('[data-detail-open-edit]').count(), 0, 'a read-only order has no edit link');
+    assert.equal(await attachments.locator('[data-detail-attach-drop]').count(), 0, 'a read-only order has no upload area');
     await page.evaluate(() => closeOrderDetail());
 
     // ---- 7. order list, compact, 1294 and 1100 ----

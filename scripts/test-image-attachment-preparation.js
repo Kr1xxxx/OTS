@@ -17,8 +17,9 @@ const context = vm.createContext({
   attachmentThumbMaxSide: 720,
   attachmentThumbQuality: .8,
   blobToDataUrl: async blob => `data:${blob.type};base64,${blob.marker}`,
-  orderAttachmentImageName: () => 'SO-TEST-1',
-  orderAttachmentBucket: () => 'SO-TEST',
+  orderAttachmentRefFromForm: () => ({ num: 'SO-TEST', id: 'o-form' }),
+  orderAttachmentImageName: (index, ref) => `${ref.num}-${index}`,
+  orderAttachmentBucket: ref => ref.num,
   uploadAttachmentImage: async body => {
     uploadBody = body;
     return {
@@ -53,5 +54,9 @@ async function main() {
   assert.equal(uploadBody.thumbData, 'data:image/jpeg;base64,compressed-720');
   assert.equal(saved.optimizer, 'TinyPNG');
   assert.equal(saved.compressed, true);
+  // 订单抽屉不借用订单表单：传进来的订单号决定存在哪、叫什么。
+  await vm.runInContext("saveCompressedImageAttachment(testFile, 3, null, { num: 'K-DRAWER', id: 'o-drawer' })", context);
+  assert.equal(uploadBody.orderId, 'K-DRAWER');
+  assert.equal(uploadBody.fileName, 'K-DRAWER-3.jpg');
   console.log('Image attachment preparation test passed: only the compressed image and thumbnail are uploaded.');
 }

@@ -4359,6 +4359,13 @@ html[data-theme] .detail-ship-summary small, html[data-theme] .detail-ship-empty
 html[data-theme] .detail-ship-empty { display:grid; gap:4px; padding:12px 14px; border:1px dashed var(--surface-border); border-radius:var(--radius-panel); }
 html[data-theme] .detail-ship-empty strong { font-size:14px; font-weight:600; color:var(--gray-900); }
 html[data-theme] .detail-ship-list { display:grid; gap:8px; }
+/* 抽屉附件页：上传区（和没发货的物流空白卡同一种虚线框）+ 进度卡 + 附件列表。 */
+html[data-theme] .detail-attach-body { display:grid; gap:10px; }
+html[data-theme] .detail-attachment-list { display:grid; gap:8px; }
+html[data-theme] .detail-attachment > div { flex:1; min-width:0; }
+html[data-theme] .detail-attach-drop { display:grid; justify-items:center; gap:8px; padding:18px 14px; border:1px dashed var(--surface-border-strong); border-radius:var(--radius-panel); color:var(--gray-500); font-size:13px; text-align:center; transition:border-color var(--motion-fast) var(--ease), background var(--motion-fast) var(--ease); }
+html[data-theme] .detail-attach-drop.is-over { border-color:var(--accent); background:var(--accent-tint); color:var(--gray-900); }
+html[data-theme] .detail-attach-drop[aria-disabled="true"] { opacity:.6; }
 html[data-theme] .detail-ship-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:4px 10px; padding:10px 12px; border:1px solid var(--surface-border); border-radius:var(--radius-panel); background:var(--surface-bg); }
 html[data-theme] .detail-ship-main { display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; min-width:0; }
 html[data-theme] .detail-ship-index { font-size:12px; color:var(--gray-500); }
@@ -18019,13 +18026,17 @@ async function compactImageBlob(file, { maxSide = attachmentImageMaxSide, qualit
 function attachmentImageExtension(type = '') {
   return /avif/i.test(type) ? 'avif' : /jpe?g/i.test(type) ? 'jpg' : /webp/i.test(type) ? 'webp' : 'png';
 }
-function orderAttachmentBucket(form = document.getElementById('orderForm')) {
-  return String(form?.elements?.num?.value || form?.elements?.id?.value || `draft-${Date.now()}`)
+// 图片存到哪张单名下：订单号和 id。订单弹窗读表单里的；订单抽屉不借用那张表，直接传当前订单的。
+function orderAttachmentRefFromForm(form = document.getElementById('orderForm')) {
+  return { num: form?.elements?.num?.value || '', id: form?.elements?.id?.value || '' };
+}
+function orderAttachmentBucket(ref = orderAttachmentRefFromForm()) {
+  return String(ref?.num || ref?.id || `draft-${Date.now()}`)
     .replace(/[^A-Za-z0-9_-]+/g, '-')
     .slice(0, 80) || `draft-${Date.now()}`;
 }
-function orderAttachmentImageName(index = 1, form = document.getElementById('orderForm')) {
-  const orderNum = String(form?.elements?.num?.value || '').trim() || orderAttachmentBucket(form);
+function orderAttachmentImageName(index = 1, ref = orderAttachmentRefFromForm()) {
+  const orderNum = String(ref?.num || '').trim() || orderAttachmentBucket(ref);
   const safeBase = orderNum.replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || `draft-${Date.now()}`;
   return `${safeBase}-${Math.max(1, Number(index) || 1)}`;
 }
@@ -18061,9 +18072,10 @@ function clearOrderImageUploads() {
   orderImageUploadPreviews = [];
   document.getElementById('orderImageUploads')?.replaceChildren();
 }
-function createOrderImageUploadCard(file) {
+// list：进度卡放在哪（订单弹窗的 #orderImageUploads，或抽屉附件页的那一格）；previews：预览地址记在哪，清掉时一起释放。
+function createOrderImageUploadCard(file, list = document.getElementById('orderImageUploads'), previews = orderImageUploadPreviews) {
   const url = URL.createObjectURL(file);
-  orderImageUploadPreviews.push(url);
+  previews.push(url);
   const card = document.createElement('div');
   card.className = 'image-upload-card';
   card.setAttribute('role', 'progressbar');
@@ -18084,7 +18096,7 @@ function createOrderImageUploadCard(file) {
   card.querySelector('.image-upload-name').textContent = file.name || '粘贴图片';
   card.title = file.name || '粘贴图片';
   updateOrderImageUploadCard(card, 0, '排队中', 'queued');
-  document.getElementById('orderImageUploads').append(card);
+  list.append(card);
   return card;
 }
 function updateOrderImageUploadCard(card, percent, label, status = 'uploading') {
@@ -18097,10 +18109,10 @@ function updateOrderImageUploadCard(card, percent, label, status = 'uploading') 
   card.querySelector('.image-upload-ring-progress').setAttribute('stroke-dasharray', `${value} 100`);
   card.querySelector('.image-upload-ring-progress').style.opacity = value ? '1' : '0';
 }
-async function saveCompressedImageAttachment(file, imageIndex = 1, onProgress = null) {
+async function saveCompressedImageAttachment(file, imageIndex = 1, onProgress = null, ref = orderAttachmentRefFromForm()) {
   if (!isMacAppMode()) throw new Error('图片附件需要在安装版 App 内保存到本机文件夹。');
-  const attachmentName = orderAttachmentImageName(imageIndex);
-  const bucket = orderAttachmentBucket();
+  const attachmentName = orderAttachmentImageName(imageIndex, ref);
+  const bucket = orderAttachmentBucket(ref);
   onProgress?.(5, '压缩图片');
   // 交给本机服务的只有压缩版：原图只在这一页的内存里，不上传、不落盘。
   const imageBlob = await compactImageBlob(file, { maxSide: attachmentImageMaxSide, quality: attachmentImageQuality });
@@ -18255,7 +18267,7 @@ async function handleOrderImagePaste(e) {
     return;
   }
   clearOrderImageUploads();
-  const cards = batch.map(createOrderImageUploadCard);
+  const cards = batch.map(file => createOrderImageUploadCard(file));
   form.dataset.uploading = 'true';
   let successCount = 0;
   let failureCount = 0;
@@ -18298,15 +18310,24 @@ function detailItem(label, value, wide = false, valueClass = '') {
     </div>
   `;
 }
-// 没有附件：说清楚去哪加，后面的链接等于点抽屉右上角的「完整编辑…」；只读的订单（已删除）只写没有附件。
-function renderDetailAttachments(list = [], editable = false) {
-  if (!list.length) {
-    return editable
-      ? '<div class="muted">还没有附件，在「完整编辑…」里添加 <button class="link-btn" type="button" data-detail-open-edit>打开完整编辑</button></div>'
-      : '<div class="muted">没有附件。</div>';
-  }
+// 能改的订单：上面一块上传区（粘贴、拖进来、选文件），下面是进度卡和已有附件，每个附件能删。
+// 只读的订单（垃圾箱、已删除）没有上传区和「删除」，没有附件时只写没有附件。
+// busy：抽屉里的图片正在上传或删除，上传区和「删除」先不能点。
+function renderDetailAttachments(list = [], editable = false, busy = false) {
+  if (!editable) return list.length ? `<div class="detail-attachment-list">${renderDetailAttachmentRows(list, false, false)}</div>` : '<div class="muted">没有附件。</div>';
+  return `<div class="detail-attach-body">
+    <div class="detail-attach-drop" data-detail-attach-drop${busy ? ' aria-disabled="true"' : ''}>
+      <span>把截图粘贴或拖到这里</span>
+      <button class="btn btn-small" type="button" data-detail-attach-pick${busy ? ' disabled' : ''}>选择文件</button>
+      <input type="file" accept="image/*" multiple hidden data-detail-attach-input>
+    </div>
+    <div class="image-upload-list" data-detail-upload-list aria-label="图片上传进度"></div>
+    ${list.length ? `<div class="detail-attachment-list">${renderDetailAttachmentRows(list, true, busy)}</div>` : ''}
+  </div>`;
+}
+function renderDetailAttachmentRows(list = [], editable = false, busy = false) {
   // 和订单弹窗同一个规则：只有 http(s)、本机附件、图片地址才给「打开」，javascript: 之类、普通备注显示成文字。
-  return list.map(item => {
+  return list.map((item, index) => {
     const href = safeAttachmentHref(item.fileUrl || item.link);
     const open = href
       ? `<a class="btn btn-small" href="${escapeAttr(href)}" target="_blank" rel="noopener">打开</a>`
@@ -18320,6 +18341,7 @@ function renderDetailAttachments(list = [], editable = false) {
       </div>
       ${open}
       ${item.fileUrl ? `<button class="btn btn-small" type="button" data-open-attachment-folder="${escapeAttr(item.fileUrl)}">文件夹</button>` : ''}
+      ${editable ? `<button class="btn btn-small" type="button" data-detail-remove-attachment="${index}"${busy ? ' disabled' : ''}>删除</button>` : ''}
     </div>
   `;
   }).join('');
@@ -18420,6 +18442,198 @@ async function uiDetailAddShipment() {
     const done = stage === 'done';
     toast(`已记录第 ${current.shipments.length} 批 ${shipment.trackingNumber}`, done ? { undo:() => moveOrderToStage(id, 'shipment'), undoText:'移回已发货', desc:'这单已完成，新加的一批不会再跟进签收' } : undefined);
   }
+}
+// 抽屉「附件」页直接加 / 删附件（以前要绕到「完整编辑…」）。图片和订单弹窗走同一条压缩上传（只存压缩版），
+// 一批传完把这张单的附件存一次：只动 attachments、更新时间和一条记录，照常整份保存（/api/save，冲突时合并重试），
+// 不经过抽屉里别的输入框——那些没保存的修改原样留着、仍算没保存。
+// 正在上传或删除时 #orderDetailBody 上记着 data-attachment-busy：上传区、删除、抽屉的保存和离开这张单都先等它做完。
+let detailImageUploads = { id:'', cards:[] };
+let detailImageUploadPreviews = [];
+const detailAttachmentMax = 20;
+const detailImageBatchMax = 5;
+function uiDetailClearUploadCards() {
+  detailImageUploadPreviews.forEach(url => URL.revokeObjectURL(url));
+  detailImageUploadPreviews = [];
+  detailImageUploads.cards.forEach(card => card.remove());
+  detailImageUploads = { id:'', cards:[] };
+}
+// 抽屉重画（同一张单就地刷新）后把进度卡放回新的那一格；换了一张单就清掉。
+function uiDetailKeepUploadCards(id) {
+  if (!detailImageUploads.cards.length) return;
+  if (detailImageUploads.id !== id) {
+    if (!document.getElementById('orderDetailBody')?.dataset.attachmentBusy) uiDetailClearUploadCards();
+    return;
+  }
+  document.querySelector('#orderDetailBody [data-detail-upload-list]')?.append(...detailImageUploads.cards);
+}
+function uiDetailSyncAttachmentBusy() {
+  const body = document.getElementById('orderDetailBody');
+  if (!body) return;
+  const busy = Boolean(body.dataset.attachmentBusy);
+  const drop = body.querySelector('[data-detail-attach-drop]');
+  if (busy) drop?.setAttribute('aria-disabled', 'true');
+  else drop?.removeAttribute('aria-disabled');
+  body.querySelectorAll('[data-detail-attach-pick], [data-detail-remove-attachment]').forEach(btn => { btn.disabled = busy; });
+}
+// 附件在列表里的位置：先认同一个对象，后台补压等把对象换掉了就按内容认。
+function attachmentIndexIn(list = [], item = {}) {
+  const same = list.indexOf(item);
+  if (same >= 0) return same;
+  const text = JSON.stringify(item);
+  return list.findIndex(entry => JSON.stringify(entry) === text);
+}
+// 把这次加的 / 删的写进订单并保存。返回 'saved'（存进数据库）、'pending'（留在内存里，后台重试或等用户决定）、
+// 'full'（上传期间附件已经满了 20 个）、''（订单或要删的附件不在了）。
+// 没存进数据库时和抽屉的「保存」一样记下撤回：关抽屉、换单时选放弃，就去掉这次加的、放回这次删的。
+async function uiDetailCommitAttachments(id, { add = [], remove = null } = {}) {
+  const body = document.getElementById('orderDetailBody');
+  const order = state.orders.find(o => o.id === id);
+  if (!order) return '';
+  const before = Array.isArray(order.attachments) ? order.attachments : [];
+  const removedIndex = remove ? attachmentIndexIn(before, remove) : -1;
+  if (remove && removedIndex < 0) return '';
+  const removed = removedIndex >= 0 ? before[removedIndex] : null;
+  const kept = before.filter((_, index) => index !== removedIndex);
+  // 上传期间另一个窗口也加了附件：超出 20 个的这次不加（文件交给附件清理），已有的一个不丢。
+  const added = finalizedOrderAttachments(add).slice(0, Math.max(0, detailAttachmentMax - kept.length));
+  if (!added.length && !removed) return 'full';
+  const previousUpdated = order.updated;
+  const log = { time:nowText(), text:removed ? `删除附件：${attachmentDisplayName(removed)}` : `添加附件：${added.map(item => attachmentDisplayName(item)).join('、')}` };
+  order.attachments = [...added, ...kept];
+  order.updated = nowText();
+  order.logs = [log, ...(order.logs || [])];
+  const saved = await persistFormState(body);
+  if (saved) failedSaveForget(body);
+  else {
+    const addedUrls = new Set(added.map(item => item.fileUrl).filter(Boolean));
+    failedSaveRemember(body, () => {
+      const current = state.orders.find(o => o.id === id);
+      if (!current) return;
+      const list = (current.attachments || []).filter(item => !(item?.fileUrl && addedUrls.has(item.fileUrl)));
+      if (removed) list.splice(Math.min(removedIndex, list.length), 0, removed);
+      current.attachments = list;
+      current.logs = (current.logs || []).filter(entry => entry !== log);
+      current.updated = previousUpdated;
+    });
+  }
+  render();
+  if (detailOrderId === id && document.getElementById('orderDetailDrawer')?.classList.contains('open')) openOrderDetail(id, { tab:'attachments' });
+  return saved ? 'saved' : 'pending';
+}
+async function uiDetailAddImages(fileList = []) {
+  const id = detailOrderId;
+  const body = document.getElementById('orderDetailBody');
+  const { order, source } = findOrderRecord(id);
+  if (!order || source !== 'active' || !body) return;
+  const files = [...fileList].filter(file => /^image\//i.test(file?.type || ''));
+  if (!files.length) {
+    toast('只能添加图片', { tone:'warn' });
+    return;
+  }
+  if (body.dataset.attachmentBusy || body.dataset.saving) {
+    toast('当前图片正在处理，请完成后再添加');
+    return;
+  }
+  if (!canSubmitStoredData()) return;
+  const existing = Array.isArray(order.attachments) ? order.attachments : [];
+  const batch = files.slice(0, detailImageBatchMax);
+  if (existing.length + batch.length > detailAttachmentMax) {
+    toast(`附件最多保留 ${detailAttachmentMax} 个`);
+    return;
+  }
+  // 抽屉下面开着这张单的订单弹窗：弹窗再保存会用它表单里的旧附件盖掉这次加的，和抽屉的「保存」一样先问、关掉它。
+  if (!await uiDetailGuardOrderModal(id, '添加附件')) return;
+  if (detailOrderId !== id || body.dataset.attachmentBusy || body.dataset.saving) return;
+  body.dataset.attachmentBusy = 'upload';
+  uiDetailSyncAttachmentBusy();
+  uiDetailClearUploadCards();
+  const list = body.querySelector('[data-detail-upload-list]') || document.createElement('div');
+  const cards = batch.map(file => createOrderImageUploadCard(file, list, detailImageUploadPreviews));
+  detailImageUploads = { id, cards };
+  const ref = { num:order.num || '', id };
+  const uploaded = [];
+  let failures = 0;
+  try {
+    const imageCount = existing.filter(item => item?.thumbUrl || item?.fileUrl || item?.type === '图片附件').length;
+    for (const [index, file] of batch.entries()) {
+      const card = cards[index];
+      try {
+        // 文件传到本机算 95%，存进订单才是 100%。
+        const item = await saveCompressedImageAttachment(file, imageCount + index + 1,
+          (percent, label) => updateOrderImageUploadCard(card, Math.min(95, percent), percent >= 100 ? '存进订单' : label), ref);
+        card.dataset.attachmentFileUrl = item.fileUrl;
+        uploaded.push(item);
+      } catch (error) {
+        updateOrderImageUploadCard(card, Number(card.getAttribute('aria-valuenow')), error.message || '图片保存失败', 'error');
+        failures++;
+      }
+    }
+    if (!uploaded.length) {
+      toast(`${failures} 张图片没加上，可以重新添加`, { tone:'error' });
+      return;
+    }
+    const result = await uiDetailCommitAttachments(id, { add:uploaded });
+    // 存进订单的那几张已经在下面的列表里：进度卡只留失败的，让人看得到是哪张、为什么。
+    cards.filter(card => card.dataset.state !== 'error').forEach(card => {
+      card.remove();
+      detailImageUploads.cards = detailImageUploads.cards.filter(item => item !== card);
+    });
+    if (!result || result === 'full') {
+      toast(result ? `附件已经有 ${detailAttachmentMax} 个，图片没存进订单` : '这张订单已经不在了，图片没存进订单', { tone:'error' });
+      return;
+    }
+    if (result !== 'saved') return; // 没存进数据库：persistFormState 已经说了是排队重试、只读还是冲突。
+    toast(failures ? `已添加 ${uploaded.length} 张图片，${failures} 张失败，可以重新添加失败的图片` : `已添加 ${uploaded.length} 张图片`);
+  } finally {
+    delete body.dataset.attachmentBusy;
+    uiDetailSyncAttachmentBusy();
+  }
+}
+async function uiDetailRemoveAttachment(index) {
+  const id = detailOrderId;
+  const body = document.getElementById('orderDetailBody');
+  const order = state.orders.find(o => o.id === id);
+  const item = order?.attachments?.[Number(index)];
+  if (!item || !body) return;
+  if (body.dataset.attachmentBusy || body.dataset.saving) {
+    toast('附件正在处理，请完成后再删除');
+    return;
+  }
+  if (!canSubmitStoredData()) return;
+  body.dataset.attachmentBusy = 'delete';
+  uiDetailSyncAttachmentBusy();
+  try {
+    if (!await confirmAttachmentDelete(item)) return;
+    if (!await uiDetailGuardOrderModal(id, '删除附件')) return;
+    if (detailOrderId !== id) return;
+    const result = await uiDetailCommitAttachments(id, { remove:item });
+    if (!result) {
+      toast('这个附件已经不在这张单里了', { tone:'warn' });
+      return;
+    }
+    // 订单先存好再删文件：没存进数据库时文件留着（订单里还引用它），以后没人引用了由附件清理删掉。
+    if (result !== 'saved') return;
+    await deleteAttachmentFiles(item);
+    toast('附件已删除');
+  } finally {
+    delete body.dataset.attachmentBusy;
+    uiDetailSyncAttachmentBusy();
+  }
+}
+// 抽屉开在「附件」页、焦点不在输入框里、上面没有别的弹窗时，粘贴的图片加进这张单。
+// 抽屉叠在订单弹窗上时抽屉在上面，归抽屉（加之前 uiDetailGuardOrderModal 先问、关掉弹窗）；弹窗已经接了这次粘贴就不再接。
+function handleDetailImagePaste(e) {
+  if (e.defaultPrevented) return;
+  const drawer = document.getElementById('orderDetailDrawer');
+  if (!drawer?.classList.contains('open') || uiDetailTab.current !== 'attachments') return;
+  if (document.querySelector('.modal-backdrop.open:not(#orderDetailDrawer):not(#orderModal)')) return;
+  if (!document.querySelector('#orderDetailBody [data-detail-tab="attachments"]:not([hidden]) [data-detail-attach-drop]')) return;
+  const active = document.activeElement;
+  if (active?.closest?.('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) return;
+  const files = Array.from(e.clipboardData?.files || []).filter(file => /^image\//i.test(file.type));
+  if (!files.length) return;
+  e.preventDefault();
+  uiDetailAddImages(files);
 }
 let attachmentPreviewZoom = 1;
 let attachmentPreviewFolderUrl = '';
@@ -18632,7 +18846,7 @@ function renderOrderDetail(order, source = 'active') {
           ${editField('收款方式', 'paymentChannel', `<select data-dedit="paymentChannel">${editOptions('paymentChannel', payment.value)}</select>`)}
           ${editField('币种', 'currency', `<select data-dedit="currency">${currencyOptions}</select>`)}
         </div>
-        <p class="muted detail-edit-hint">只记一个已付金额，收到尾款时改成总额即可；付款截图在「完整编辑…」的附件里添加。保存后阶段和待收会一起更新。</p>
+        <p class="muted detail-edit-hint">只记一个已付金额，收到尾款时改成总额即可；付款截图可以在「附件」页直接加。保存后阶段和待收会一起更新。</p>
       </section>` : '';
   const depositLine = depositOrder && depositValue > 0
     ? `<div class="order-detail-deposit">定金：${money(depositValue, currencyCode)}${orderAmountValue(order) ? `（${Math.round(depositValue / orderAmountValue(order) * 100)}%）` : ''} · ${paid >= depositValue ? '已收' : (paid > 0 ? `已收 ${money(paid, currencyCode)}，还差 ${money(depositValue - paid, currencyCode)}` : '未收')}</div>`
@@ -18678,7 +18892,7 @@ function renderOrderDetail(order, source = 'active') {
     <div class="order-detail-panel" data-detail-tab="attachments" hidden>
       <section class="detail-section">
         <div class="detail-section-title">附件 / 凭证</div>
-        ${renderDetailAttachments(order.attachments || [], editable)}
+        ${renderDetailAttachments(order.attachments || [], editable, Boolean(document.getElementById('orderDetailBody')?.dataset.attachmentBusy))}
       </section>
     </div>
     <div class="order-detail-panel" data-detail-tab="customer" hidden>
@@ -18757,6 +18971,7 @@ function openOrderDetail(id, { tab = '' } = {}) {
   document.getElementById('detailNum').textContent = order.num || '订单详情';
   document.getElementById('detailTitle').textContent = clientDisplayName(order.client || '未命名客户');
   document.getElementById('orderDetailBody').innerHTML = renderOrderDetail(order, source);
+  uiDetailKeepUploadCards(id);
   renderOrderDetailHeader(order, source);
   if (typeof uiDetailTab === 'function') {
     if (tab) uiDetailTab.current = tab;
@@ -18816,6 +19031,7 @@ function closeOrderDetail() {
   const drawer = document.getElementById('orderDetailDrawer');
   // 关抽屉 = 放弃抽屉里的修改：之前保存失败、留在内存里的改动一起撤回。
   if (typeof failedSaveUndo === 'function') failedSaveUndo(document.getElementById('orderDetailBody'));
+  if (!document.getElementById('orderDetailBody')?.dataset.attachmentBusy) uiDetailClearUploadCards();
   setModalOpenState(drawer, false);
   resetModalScroll(drawer);
 }
@@ -30403,10 +30619,16 @@ document.getElementById('orderDetailDrawer').addEventListener('click', e => {
     retryOrderNotification(retryNotificationBtn.dataset.retryOrderNotification);
     return;
   }
-  if (e.target.closest('[data-detail-open-edit]')) {
+  if (e.target.closest('[data-detail-attach-pick]')) {
+    e.preventDefault();
+    document.querySelector('#orderDetailBody [data-detail-attach-input]')?.click();
+    return;
+  }
+  const removeAttachmentBtn = e.target.closest('[data-detail-remove-attachment]');
+  if (removeAttachmentBtn) {
     e.preventDefault();
     e.stopPropagation();
-    document.getElementById('detailEditBtn').click();
+    uiDetailRemoveAttachment(removeAttachmentBtn.dataset.detailRemoveAttachment);
     return;
   }
   const customerBtn = e.target.closest('[data-order-open-customer]');
@@ -30425,6 +30647,34 @@ document.getElementById('orderDetailDrawer').addEventListener('click', e => {
     return;
   }
   if (e.target.id === 'orderDetailDrawer') uiCloseDetailGuarded();
+});
+// 抽屉「附件」页：选文件、把图片拖到上传区（抽屉每次重画都换新的上传区，所以挂在抽屉上）。
+document.getElementById('orderDetailDrawer').addEventListener('change', e => {
+  const input = e.target.closest?.('[data-detail-attach-input]');
+  if (!input) return;
+  const files = [...(input.files || [])];
+  input.value = '';
+  if (files.length) uiDetailAddImages(files);
+});
+const detailAttachDrop = e => e.target.closest?.('[data-detail-attach-drop]');
+const detailDragHasFiles = e => [...(e.dataTransfer?.types || [])].includes('Files');
+document.getElementById('orderDetailDrawer').addEventListener('dragover', e => {
+  const drop = detailAttachDrop(e);
+  if (!drop || !detailDragHasFiles(e)) return;
+  e.preventDefault();
+  if (e.dataTransfer) e.dataTransfer.dropEffect = drop.getAttribute('aria-disabled') === 'true' ? 'none' : 'copy';
+  drop.classList.add('is-over');
+});
+document.getElementById('orderDetailDrawer').addEventListener('dragleave', e => {
+  const drop = detailAttachDrop(e);
+  if (drop && !drop.contains(e.relatedTarget)) drop.classList.remove('is-over');
+});
+document.getElementById('orderDetailDrawer').addEventListener('drop', e => {
+  const drop = detailAttachDrop(e);
+  if (!drop || !detailDragHasFiles(e)) return;
+  e.preventDefault();
+  drop.classList.remove('is-over');
+  uiDetailAddImages(e.dataTransfer.files || []);
 });
 document.getElementById('trackingDetailCloseBtn')?.addEventListener('click', closeTrackingDetail);
 document.getElementById('trackingDetailDrawer')?.addEventListener('click', e => {
@@ -30661,6 +30911,7 @@ document.getElementById('attachmentList').addEventListener('click', async e => {
   } finally { delete form.dataset.deletingAttachment; }
 });
 document.addEventListener('paste', handleOrderImagePaste);
+document.addEventListener('paste', handleDetailImagePaste);
 document.querySelectorAll('#orderForm, #combinedOrderForm').forEach(form => {
   if (!form?.elements?.amount) return;
   form.elements.amount.addEventListener('input', () => syncDepositFields(form, 'amount'));
@@ -33417,6 +33668,10 @@ async function uiDetailConfirmLeave(sub, message) {
     toast('正在保存，请稍候', { tone:'info' });
     return false;
   }
+  if (body?.dataset.attachmentBusy) {
+    toast('附件正在处理，请完成后再离开这张订单');
+    return false;
+  }
   if (!uiDetailUnsaved()) return true;
   if (!await uiConfirmDiscard(body, sub, message)) return false;
   failedSaveUndo(body);
@@ -34049,6 +34304,11 @@ async function uiDetailSave({ promote = false } = {}) {
   const saveBtn = document.getElementById(promote ? 'detailPromoteBtn' : 'detailSaveBtn');
   if (['detailSaveBtn', 'detailPromoteBtn'].some(btnId => document.getElementById(btnId)?.dataset.morph === 'busy')) return;
   const body = document.getElementById('orderDetailBody');
+  // 附件页正在上传 / 删除：它存完会改这张单的附件，抽屉的保存等它做完（不然两次保存互相盖掉附件）。
+  if (body?.dataset.attachmentBusy) {
+    toast('附件正在处理，请完成后再保存');
+    return;
+  }
   const keepDraft = order.isDraft === true && !promote;
   // 日期框里手打的内容先落定（⌘S 不让输入框失焦，没有 change）：认得出改成 YYYY-MM-DD，认不出就改回原值、不保存。
   const badDate = uiDetailSettleDates(body);

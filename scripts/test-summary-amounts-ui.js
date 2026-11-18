@@ -30,7 +30,7 @@ const { chromium } = require('playwright');
     const surfaces = {
       dashboard:'#statAmount,#statPayment,#statTargetSub,.board-column-meta',
       amount:'#reportUsd,#reportPaid,#reportDue,#reportOverdue,.breakdown-row strong,.side-bar-head strong',
-      targets:'#targetGoal,#targetActual,#targetGap,.target-history-values span',
+      targets:'#targetProgressText,.target-history-values span',
       analysis:'#analysisCompare .report-value,.analysis-rank strong,.analysis-trend-row strong,.business-product-value,.business-payment-item strong',
       customers:'.customer-summary-item strong,.customer-summary-item small'
     };

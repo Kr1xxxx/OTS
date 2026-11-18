@@ -18251,7 +18251,8 @@ async function compressExistingOrderImages() {
     existingImageCompressionRunning = false;
   }
 }
-// 一次粘贴的图片最多传几张：多出来的不加，提示里说清楚是几张（以前只说「已添加 5 张」，第 6 张起悄悄丢了）。
+// 一次粘贴 / 拖进来 / 选的图片最多传几张（订单弹窗和抽屉附件页同一个数）：多出来的不加，提示里说清楚是几张
+// （以前只说「已添加 5 张」，第 6 张起悄悄丢了）。
 const attachmentImageBatchMax = 5;
 function imageBatchSkipNote(total, taken) {
   const skipped = Math.max(0, (Number(total) || 0) - (Number(taken) || 0));
@@ -18469,7 +18470,6 @@ async function uiDetailAddShipment() {
 let detailImageUploads = { id:'', cards:[] };
 let detailImageUploadPreviews = [];
 const detailAttachmentMax = 20;
-const detailImageBatchMax = 5;
 function uiDetailClearUploadCards() {
   detailImageUploadPreviews.forEach(url => URL.revokeObjectURL(url));
   detailImageUploadPreviews = [];
@@ -18555,7 +18555,9 @@ async function uiDetailAddImages(fileList = []) {
   }
   if (!canSubmitStoredData()) return;
   const existing = Array.isArray(order.attachments) ? order.attachments : [];
-  const batch = files.slice(0, detailImageBatchMax);
+  // 一次最多 attachmentImageBatchMax 张（和订单弹窗同一个数），多出来的在提示里说出来。
+  const batch = files.slice(0, attachmentImageBatchMax);
+  const skipNote = imageBatchSkipNote(files.length, batch.length);
   if (existing.length + batch.length > detailAttachmentMax) {
     toast(`附件最多保留 ${detailAttachmentMax} 个`);
     return;
@@ -18588,7 +18590,7 @@ async function uiDetailAddImages(fileList = []) {
       }
     }
     if (!uploaded.length) {
-      toast(`${failures} 张图片没加上，可以重新添加`, { tone:'error' });
+      toast(`${failures} 张图片没加上，可以重新添加`, { tone:'error', ...(skipNote ? { desc:skipNote } : {}) });
       return;
     }
     const result = await uiDetailCommitAttachments(id, { add:uploaded });
@@ -18602,7 +18604,8 @@ async function uiDetailAddImages(fileList = []) {
       return;
     }
     if (result !== 'saved') return; // 没存进数据库：persistFormState 已经说了是排队重试、只读还是冲突。
-    toast(failures ? `已添加 ${uploaded.length} 张图片，${failures} 张失败，可以重新添加失败的图片` : `已添加 ${uploaded.length} 张图片`);
+    toast(failures ? `已添加 ${uploaded.length} 张图片，${failures} 张失败，可以重新添加失败的图片` : `已添加 ${uploaded.length} 张图片`,
+      skipNote ? { tone:'warn', desc:skipNote } : undefined);
   } finally {
     delete body.dataset.attachmentBusy;
     uiDetailSyncAttachmentBusy();

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // 订单弹窗粘贴图片的三条规则：
-// - 一次粘贴超过 5 张：只加前 5 张，提示里说出另外几张没加（以前只说「已添加 5 张」，多的悄悄丢了）。
+// - 一次粘贴超过 5 张：只加前 5 张，提示里说出另外几张没加（以前只说「已添加 5 张」，多的悄悄丢了）；抽屉附件页同样。
 // - 订单详情抽屉盖在订单弹窗上面时粘贴：图不加到下面那张看不见的订单里。
 // - 附件列表里的小图读缩略图，点开预览才读整张图。
 const assert = require('node:assert/strict');
@@ -90,6 +90,17 @@ const order = (id, num) => ({ id, num, client:`Paste Buyer ${id}`, amount:100, p
     assert.equal(uploads, 6);
     assert.equal((await formAttachments()).length, 6);
     assert.doesNotMatch(await page.locator('#toast').innerText(), /另外 0 张/);
+
+    // 抽屉附件页一次加 6 张：同一个上限，提示里同样说出没加的那张。
+    await page.evaluate(() => closeOrder());
+    await page.waitForFunction(() => !document.getElementById('orderModal').classList.contains('open'));
+    await page.evaluate(() => openOrderDetail('paste-b', { tab:'attachments' }));
+    await page.waitForFunction(() => document.querySelector('#orderDetailBody [data-detail-attach-drop]'));
+    await page.evaluate(() => document.activeElement?.blur?.());
+    await paste('body', 6);
+    await page.waitForFunction(() => (state.orders.find(o => o.id === 'paste-b')?.attachments || []).length === 5, null, { timeout:10000 });
+    assert.equal(uploads, 11, '抽屉一次也只传前 5 张');
+    await page.waitForFunction(() => /另外 1 张没加/.test(document.getElementById('toast').innerText), null, { timeout:5000 });
 
     assert.deepEqual(errors, []);
     console.log('Attachment paste rules passed: more than 5 pasted images are reported, a drawer above the order dialog keeps the paste, list thumbnails use the thumbnail file.');

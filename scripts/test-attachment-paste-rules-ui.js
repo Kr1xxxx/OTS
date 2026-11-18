@@ -6,12 +6,17 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const http = require('node:http');
 const { chromium } = require('playwright');
 
 const order = (id, num) => ({ id, num, client:`Paste Buyer ${id}`, amount:100, paidAmount:0, currency:'USD', stage:'quote', orderType:'定金订单', productType:'假发', createdAt:'2026-10-03', orderMonth:'2026-10', updated:'2026-10-03 10:00', logs:[], shipments:[], attachments:[] });
 
 (async () => {
   const browser = await chromium.launch({ headless:true });
+  // 页面的请求都由 page.route 回答；这个本机服务只是给页面一个能打开的地址
+  //（WebKit 不让打开 9 号这类受限端口，连 page.route 也走不到）。
+  const server = http.createServer((req, res) => { res.writeHead(404); res.end(); });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   try {
     const page = await browser.newPage({ viewport:{ width:1280, height:900 } });
     const html = fs.readFileSync(path.join(__dirname, '..', 'trade-order-system.html'), 'utf8');
@@ -31,7 +36,7 @@ const order = (id, num) => ({ id, num, client:`Paste Buyer ${id}`, amount:100, p
       if (pathname.startsWith('/attachments/')) return route.fulfill({ contentType:'image/png', body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j3ioAAAAASUVORK5CYII=', 'base64') });
       return route.fulfill({ json:{ ok:true } });
     });
-    await page.goto('http://127.0.0.1:9/trade-order-system.html?token=ui-test-token');
+    await page.goto(`http://127.0.0.1:${server.address().port}/trade-order-system.html?token=ui-test-token`);
     await page.waitForFunction(() => window.pendingSaveStatus?.().loaded);
     // selector：在哪个元素上发出粘贴（焦点所在的地方）。
     const paste = (selector, count) => page.evaluate(async ({ selector, count }) => {
@@ -90,5 +95,6 @@ const order = (id, num) => ({ id, num, client:`Paste Buyer ${id}`, amount:100, p
     console.log('Attachment paste rules passed: more than 5 pasted images are reported, a drawer above the order dialog keeps the paste, list thumbnails use the thumbnail file.');
   } finally {
     await browser.close();
+    server.close();
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });

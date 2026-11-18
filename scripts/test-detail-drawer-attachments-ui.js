@@ -40,6 +40,9 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
       return route.fulfill({ json:{ ok:true, deleted:1 } });
     });
     await page.route('**/attachments/**', route => route.fulfill({ contentType:'image/png', body:png }));
+    // WebKit under Playwright also routes the page's own blob: addresses (the picked / pasted picture it is about
+    // to compress). openBoard answers everything with JSON, so the picture would fail to load ("图片读取失败").
+    await page.route(url => !/^https?:$/.test(url.protocol), route => route.continue());
 
     // 选文件用的图：页面里 canvas 画的普通 RGBA PNG（和订单弹窗的测试一样），不用手写的 1×1 灰度 PNG。
     const picked = Buffer.from(await page.evaluate(() => {

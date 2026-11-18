@@ -4,7 +4,8 @@
 // 2. 「客户」页签：三个累计数（从「收款」搬来）、客户资料（没填的行不列）、客户备注（有才出）、历史订单（从「记录」搬来）；
 // 3. 「订单信息」只留订单字段；客户设了永久备注时它是第一块，没设就不出；只读订单没写备注时不写「暂无备注」；
 // 4. 「记录」最上面是飞书群通知，下面是订单时间线；
-// 5. 「物流」没有「交期」；只有一批时不写汇总行；发货 / 更新哪个空就不写哪个。
+// 5. 「物流」没有「交期」；只有一批时不写汇总行；发货 / 更新哪个空就不写哪个；
+//    已发货还没填单号时，发货日期写在空白卡的标题里，没发货的不写。
 const assert = require('node:assert/strict');
 const { launchBrowser, openBoard, h, base, day } = require('./helpers/board-page');
 
@@ -17,7 +18,9 @@ const orders = [
       { id:'sh-2', trackingNumber:'9876543210', carrier:'DHL', status:'已签收', shippedAt:day(2), updated:`${day(4)} 09:00` },
       { id:'sh-3', trackingNumber:'5555555555', carrier:'DHL', status:'运输中' }
     ] },
-  { ...base, id:'f2', num:'K8103', client:'Full Buyer', stage:'quote', orderType:'全款订单', amount:500, paidAmount:0, createdAt:day(4), updated:`${day(4)} 10:00` }
+  { ...base, id:'f2', num:'K8103', client:'Full Buyer', stage:'quote', orderType:'全款订单', amount:500, paidAmount:0, createdAt:day(4), updated:`${day(4)} 10:00` },
+  { ...base, id:'n1', num:'K8104', client:'Sparse Buyer', stage:'shipment', orderType:'全款订单', amount:800, paidAmount:800, createdAt:day(6), shippedAt:day(5), updated:`${day(5)} 10:00` },
+  { ...base, id:'n2', num:'K8105', client:'Sparse Buyer', stage:'production', orderType:'全款订单', amount:900, paidAmount:900, createdAt:day(6), updated:`${day(6)} 10:00` }
 ];
 const customers = {
   'Sparse Buyer':{ client:'Sparse Buyer', contact:'Sam Example', country:base.country, currency:'USD' },
@@ -107,6 +110,13 @@ const placeholders = /未填写|未设置|暂无/;
     assert.deepEqual(await panel('logistics').locator('.detail-ship-row').evaluateAll(list => list.map(row => row.querySelector('.detail-ship-meta')?.textContent || '')),
       [`发货 ${day(2)} · 更新 ${day(4)} 09:00`, '']);
 
+    // ---- 5c. 已发货没填单号：发货日期写在空白卡标题里；没发货的不写日期 ----
+    await open('n1', 'logistics');
+    assert.equal(await panel('logistics').locator('.detail-ship-row').count(), 0);
+    assert.equal(await panel('logistics').locator('.detail-ship-empty strong').innerText(), `已发货 ${day(5)} · 还没填物流单号`);
+    await open('n2', 'logistics');
+    assert.equal(await panel('logistics').locator('.detail-ship-empty strong').innerText(), '还没发货');
+
     // ---- 复购待办直达「客户」页签 ----
     assert.equal(await page.evaluate(() => taskDetailTab({ type:'repurchase' })), 'customer');
 
@@ -122,7 +132,7 @@ const placeholders = /未填写|未设置|暂无/;
     assert.deepEqual(errors, []);
     assert.deepEqual(dialogs, []);
     await context.close();
-    console.log('Order detail customer tab tests passed: six tabs, customer tab rows without placeholders, totals moved, permanent note on top, Feishu block in records, logistics without 交期, read-only note.');
+    console.log('Order detail customer tab tests passed: six tabs, customer tab rows without placeholders, totals moved, permanent note on top, Feishu block in records, logistics without 交期, ship date on the empty card, read-only note.');
   } finally {
     await browser.close();
   }

@@ -18328,16 +18328,18 @@ function renderDetailAttachments(list = [], editable = false) {
   }).join('');
 }
 // 抽屉「物流」页：所有批次（单号、承运商、状态、发货日、最近更新、复制 / 官网 / 更新），订单层面的汇总，
-// 补一批运单号的入口和「部分发货」开关；交期一直显示。以前只显示第一批，状态和发货日只有加急单才有，没发货的单整页空白。
+// 补一批运单号的入口和「部分发货」开关。以前只显示第一批，状态和发货日只有加急单才有，没发货的单整页空白。
+// 已发货还没填单号时，发货日期写在空白卡的标题里（交期四格去掉后，这时它只在「记录」里看得到）。
 function renderDetailLogisticsSection(order = {}, editable = false) {
   const summary = orderLogisticsSummary(order);
   const stage = normalizeStage(order.stage);
   const shipped = ['shipment', 'done'].includes(stage);
   const latest = latestShipmentUpdate(summary.shipments) || order.logisticsUpdated || '';
+  const shippedOn = shipped && order.shippedAt ? normalizeDate(order.shippedAt) : '';
   // 只有一批（也没勾「还有批次没发」）时不写汇总行：状态、「1 批」、最近更新下面那一批里都有。
   const head = summary.total > 1 || (summary.total && summary.partialShipment)
     ? `<div class="detail-ship-summary"><span class="ship-pill ${logisticsTone(summary.status)}">${escapeAttr(summary.label)}</span>${summary.partialShipment ? '<span class="oc-pill amber">部分发货 · 还有批次没发</span>' : ''}<small>${summary.total} 批${summary.delivered ? ` · 已签收 ${summary.delivered}` : ''}${latest ? ` · 最近更新 ${escapeAttr(latest)}` : ''}</small></div>`
-    : summary.total ? '' : `<div class="detail-ship-empty"><strong>${shipped ? '已发货 · 还没填物流单号' : '还没发货'}</strong><small>${editable ? '发货后在下面补运单号，承运商会自动识别。' : '没有物流单号。'}</small></div>`;
+    : summary.total ? '' : `<div class="detail-ship-empty"><strong>${shipped ? `已发货${shippedOn ? ` ${escapeAttr(shippedOn)}` : ''} · 还没填物流单号` : '还没发货'}</strong><small>${editable ? '发货后在下面补运单号，承运商会自动识别。' : '没有物流单号。'}</small></div>`;
   const rows = summary.shipments.map((item, index) => {
     const carrier = carrierName(item.carrier);
     const url = trackingUrl(item.trackingNumber, carrier);

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // 设置 → 数据管理 →「占用空间」：真实 mac-app/server.js（临时数据目录，订单和附件文件是编的）。
-// 点「查看…」→ 本地服务量 → 确认框：标题下一句「一共 …」、分项表（0 的行不列，没有 .app 时没有「软件本身」）、
+// 点「查看…」→ 本地服务量 → 确认框：标题下一句「一共 …」、分项表（0 的行不列；服务不是从 .app 里跑的，没有「软件本身」）、
 // 图片和附件清单（在用几个、占得最多的订单在前、不再使用的旧文件）、只有一个「知道了」。
 // 服务端没响应时提示没算出来，不弹框。
 const assert = require('node:assert/strict');
@@ -76,8 +76,9 @@ const root = path.resolve(__dirname, '..');
     assert.equal(head.cancelHidden, true, 'information only: one button');
     assert.match(text, /^图片和附件 · 3\.\d MB$/m, `attachments row, got\n${text}`);
     assert.match(text, /^数据库 · /m, 'database row');
-    assert.doesNotMatch(text, /软件本身/, 'no .app around the server in tests: no app row');
-    assert.doesNotMatch(text, /^缓存 · /m, 'zero rows are left out');
+    // 测试里的服务用的是系统的 node，不在 .app 里（macOS CI 上 mac-app/ 下另有一份本机构建，也不算）。
+    assert.doesNotMatch(text, /软件本身/, 'the server does not run from an .app in tests: no app row');
+    assert.doesNotMatch(text, /^备份 · /m, 'no backup yet: zero rows are left out');
     assert.match(text, /在用 3 个 · 1\.\d MB 占得最多的订单：K26010502 1\.\d MB、K26010501 \d+ KB/, `in use with the largest order first, got\n${text}`);
     assert.match(text, /不再使用的旧文件 1 个 · 2\.0 MB/, 'the file no order uses');
     await page.click('#confirmOkBtn');

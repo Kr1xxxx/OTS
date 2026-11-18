@@ -1276,7 +1276,9 @@ function storageUsage() {
   orderBuckets.forEach(key => { delete rest[key]; });
   owners.push({ label: '', files: collectAttachmentRefs(rest) });
   noteThumbs(rest);
-  const appDir = /\.app\/Contents\/Resources$/.test(resourcesDir) ? path.resolve(resourcesDir, '..', '..') : '';
+  // 只认正在跑的这个软件：运行环境（node-runtime）就在这个 .app 里。开发时 mac-app/ 下另有一份本机构建，那份不算。
+  const bundle = /\.app\/Contents\/Resources$/.test(resourcesDir) ? path.resolve(resourcesDir, '..', '..') : '';
+  const appDir = bundle && process.execPath.startsWith(bundle + path.sep) ? bundle : '';
   const library = path.join(os.homedir(), 'Library');
   return measureStorage({
     appDir, runtimeFile: process.execPath, supportDir, attachmentsDir, databaseFile, backupDir, owners, thumbs, top: 3,

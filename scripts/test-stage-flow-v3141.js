@@ -118,14 +118,14 @@ const { launchBrowser, openBoard, h, base, day } = require('./helpers/board-page
     assert.equal(o.paidAmount, 200);
     assert.equal(o.depositAutoPaid, undefined);
     await h.clearToasts(page);
-    // 全款单直接拖到已发货：差额写「未收的 … 视为已收齐」，不叫「尾款」。
+    // 全款单从报价直接拖到已发货：阶段不动钱（用户 2026-11-18），已收还是 0，不写「视为已收齐」。
     await page.evaluate(() => { moveOrderToStage('q4', 'shipment'); });
     await page.waitForFunction(() => state.orders.find(o => o.id === 'q4').stage === 'shipment');
     o = await h.order(page, 'q4');
-    assert.equal(o.paidAmount, 700);
-    assert.ok(o.logs.some(item => /未收的 \$700 USD 视为已收齐/.test(item.text)), o.logs.map(item => item.text).join(' | '));
-    assert.ok(!o.logs.some(item => /尾款/.test(item.text)));
-    await h.waitToast(page, '未收的 $700 USD 视为已收齐');
+    assert.equal(o.paidAmount, 0);
+    assert.ok(!o.logs.some(item => /视为已收齐/.test(item.text)), o.logs.map(item => item.text).join(' | '));
+    await h.waitToast(page, '已移动到已发货');
+    assert.ok(!(await h.toasts(page)).some(text => /收齐/.test(text)));
     await page.evaluate(() => { document.querySelector('#trackingQuickCard [data-track-skip]')?.click(); });
     await h.clearToasts(page);
 
@@ -166,9 +166,9 @@ const { launchBrowser, openBoard, h, base, day } = require('./helpers/board-page
     assert.deepEqual(await bar('b1'), ['quote', 'production', 'balance', 'shipment', 'done']);
     assert.deepEqual(await bar('p3'), ['quote', 'production', 'shipment', 'done']);
 
-    // 待收款提醒只催货已做好、等尾款的单（待发货），生产中只收了定金的单不催。
+    // 待收款提醒催货已做好、等尾款的单（待发货）和已发货还欠钱的单（q4，2026-11-18 起），生产中只收了定金的单不催。
     const paymentTasks = await page.evaluate(() => buildTaskItems().filter(r => r.type === 'payment').map(r => r.orderId).sort());
-    assert.deepEqual(paymentTasks, ['b1', 'p1']);
+    assert.deepEqual(paymentTasks, ['b1', 'p1', 'q4']);
 
     assert.deepEqual(dialogs, [], 'no native dialogs');
     assert.equal(errors.length, 0, errors.join('\n'));

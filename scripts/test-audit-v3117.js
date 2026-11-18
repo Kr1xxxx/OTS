@@ -146,11 +146,12 @@ async function pageTests() {
     assert.deepEqual(await page.evaluate(() => { const o = state.orders.find(x => x.id === 'o-dep'); return [o.amount, o.paidAmount, o.stage]; }), [1000, 300, 'balance']);
     await page.evaluate(() => closeOrderDetail());
 
-    // Board moves: 全款 has no 尾款 stage; leaving 已发货 gives back the 「尾款视为已收齐」 payment.
+    // Board moves: 全款 has no 尾款 stage; moving into and out of 已发货 leaves the paid amount alone (2026-11-18 rule),
+    // and leaving 已发货 without a tracking number clears the shipping status.
     await page.evaluate(() => moveOrderToStage('o-full', 'balance'));
     assert.equal(await page.evaluate(() => state.orders.find(o => o.id === 'o-full').stage), 'production');
     await page.evaluate(() => moveOrderToStage('o-back', 'shipment'));
-    assert.equal(await page.evaluate(() => state.orders.find(o => o.id === 'o-back').paidAmount), 1000, 'shipping settles the balance');
+    assert.equal(await page.evaluate(() => state.orders.find(o => o.id === 'o-back').paidAmount), 300, 'shipping does not count the balance as received');
     await page.evaluate(() => moveOrderToStage('o-back', 'balance'));
     assert.deepEqual(await page.evaluate(() => { const o = state.orders.find(x => x.id === 'o-back'); return [o.stage, o.paidAmount, o.logisticsStatus, o.shippedAt || '']; }), ['balance', 300, '未发货', '']);
     await page.evaluate(() => document.getElementById('trackingQuickCard')?.remove());

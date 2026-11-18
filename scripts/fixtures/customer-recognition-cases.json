@@ -157,7 +157,7 @@
    ]
   ],
   "country": "United States",
-  "paymentMethod": "信用卡",
+  "paymentMethod": "Stripe",
   "paymentEmail": "payment.nakia@example.com"
  },
  {
@@ -337,7 +337,7 @@
    ]
   ],
   "country": "United States",
-  "paymentMethod": "信用卡"
+  "paymentMethod": "Stripe"
  },
  {
   "id": "2-3",
@@ -698,7 +698,7 @@
    ]
   ],
   "country": "Australia",
-  "paymentMethod": "信用卡"
+  "paymentMethod": "Stripe"
  },
  {
   "id": "3-6",

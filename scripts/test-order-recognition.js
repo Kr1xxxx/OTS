@@ -28,7 +28,8 @@ const context = vm.createContext({
   normalizeStage: value => String(value || '').trim().toLowerCase(),
   depositPercent: (amount, paid) => Number(amount || 0) > 0 ? Math.round((Number(paid || 0) / Number(amount)) * 100) : 0,
   productTypeDefs: [{ value: '假发' }, { value: '睫毛' }],
-  paymentChannelDefs: [{ value: '阿里巴巴' }, { value: 'Paypal' }, { value: '西联' }, { value: 'Zelle' }, { value: '信用卡' }, { value: 'TT' }],
+  paymentChannelDefs: [{ value: '阿里巴巴' }, { value: 'Paypal' }, { value: '西联' }, { value: 'Zelle' }, { value: 'Stripe' }, { value: 'TT' }],
+  renamedPaymentChannels: { '信用卡': 'Stripe' },
   orderTypeDefs: [{ value: '定金订单' }, { value: '全款订单' }],
   countryDefs: [
     '🇺🇸 美国 United States',
@@ -200,6 +201,7 @@ vm.runInContext(html.match(/^const customerPasteFieldOrder = .*;$/m)[0].replace(
   'applyOrderStageInvariants',
   'normalizeOrderPaymentInput',
   'normalizeOrderProductType',
+  'renamedPaymentChannel',
   'normalizeOrderPaymentChannel',
   'normalizeOrderSettings',
   'patchOrdersForCustomerRename',
@@ -316,7 +318,9 @@ assert.equal(evaluateJson(`analyzePasteText(${JSON.stringify('Total USD 500\nRem
   ['Payment: PP', 'Paypal'],
   ['Payment: Western Union', '西联'],
   ['Payment: Zelle', 'Zelle'],
-  ['Payment: credit card', '信用卡'],
+  ['Payment: credit card', 'Stripe'],
+  ['Payment: Stripe', 'Stripe'],
+  ['付款方式：信用卡', 'Stripe'],
   ['Payment: TT', 'TT'],
   ['Payment: T/T', 'TT'],
   ['Payment: wire transfer', 'TT'],
@@ -691,6 +695,8 @@ assert.equal(vm.runInContext(`customerNameCollision(customerRecords, 'Morgan Sam
 assert.equal(vm.runInContext(`normalizeOrderProductType('假发')`, context), '假发');
 assert.equal(vm.runInContext(`normalizeOrderProductType('')`, context), '假发');
 assert.equal(vm.runInContext(`normalizeOrderPaymentChannel('TT')`, context), 'TT');
+assert.equal(vm.runInContext(`normalizeOrderPaymentChannel('信用卡')`, context), 'Stripe', '改名前存的「信用卡」读成 Stripe，不退回默认的 Paypal');
+assert.equal(vm.runInContext(`normalizeOrderSettings({ defaultPaymentChannel:'信用卡' }).defaultPaymentChannel`, context), 'Stripe');
 assert.equal(vm.runInContext(`normalizeOrderPaymentChannel('')`, context), 'Paypal');
 assert.deepEqual(
   evaluateJson(`normalizeOrderSettings({ defaultPaymentChannel:'TT', defaultOrderType:'定金订单' })`),

@@ -7498,9 +7498,12 @@ const paymentChannelDefs = [
   { value:'Paypal', tag:'tag-pay-paypal' },
   { value:'西联', tag:'tag-pay-western' },
   { value:'Zelle', tag:'tag-pay-zelle' },
-  { value:'信用卡', tag:'tag-pay-card' },
+  { value:'Stripe', tag:'tag-pay-card' },
   { value:'TT', tag:'tag-pay-tt' }
 ];
+// 收款方式改过名的旧叫法：「信用卡」2026-11 起叫「Stripe」。旧订单、客户资料、设置里存的旧名读进来就换成新名，下次保存写回去。
+const renamedPaymentChannels = { '信用卡':'Stripe' };
+function renamedPaymentChannel(value) { return renamedPaymentChannels[value] || value; }
 
 
 const orderTypeDefs = [
@@ -7612,7 +7615,7 @@ const carrierDefs = [
   { code:'UPS', name:'UPS', url:number => `https://www.ups.com/track?loc=en_US&tracknum=${encodeURIComponent(number)}` }
 ];
 
-const defaultPaymentMethods = ['T/T 银行转账', 'PayPal', '信用卡', '西联 Western Union', '现金 Cash', '其他 Other'];
+const defaultPaymentMethods = ['T/T 银行转账', 'PayPal', 'Stripe', '西联 Western Union', '现金 Cash', '其他 Other'];
 const defaultCustomerTags = ['老客户', '月结', '高复购', '样品客户', '复购客户'];
 const defaultCustomerLevels = ['A级钻石客户', 'B级翡翠客户', 'C级白金客户', 'D级黄金客户', 'E级白银客户', 'F级青铜客户'];
 const legacyCustomerLevels = ['重点客户', '活跃客户', '普通客户', '观察客户', '未成交客户'];
@@ -7712,13 +7715,13 @@ const demoOrders = [
   { id:'o1', productType:'假发', paymentChannel:'阿里巴巴', orderType:'定金订单', depositAmount:0, depositPercent:0, num:'SO260428001', client:'ABC Trading Co.', country:'🇺🇸 美国 United States', amount:12580, paidAmount:0, currency:'USD', createdAt:'2026-04-28', orderMonth:'2026-04', stage:'quote', next:'确认报价条款', owner:'Kris', note:'客户等待报价细节确认', updated:'2026-04-28 10:30', logs:['Kris 创建订单并进入报价阶段'] },
   { id:'o2', productType:'睫毛', paymentChannel:'Paypal', orderType:'定金订单', depositAmount:2600, depositPercent:29, num:'SO260426014', client:'Global Importers UK', country:'🇬🇧 英国 United Kingdom', amount:8940, paidAmount:2600, currency:'USD', createdAt:'2026-04-26', orderMonth:'2026-04', stage:'sample', next:'确认样品反馈', owner:'Aimee', note:'需要确认收货地址', updated:'2026-04-28 09:15', logs:['Aimee 完成报价确认', 'Aimee 准备样品反馈'] },
   { id:'o3', productType:'假发', paymentChannel:'TT', orderType:'定金订单', depositAmount:4690, depositPercent:30, num:'SO260421008', client:'EuroTech GmbH', country:'🇩🇪 德国 Germany', amount:15630, paidAmount:4690, currency:'USD', createdAt:'2026-04-21', orderMonth:'2026-04', stage:'deposit', next:'跟进定金付款', owner:'Kris', note:'已发送付款信息', updated:'2026-04-27 16:45', logs:['Kris 发送付款信息给客户', 'Kris 将阶段更新为定金'] },
-  { id:'o4', productType:'睫毛', paymentChannel:'信用卡', orderType:'全款订单', depositAmount:22400, depositPercent:100, num:'SO260415019', client:'Nordic Home AS', country:'🇳🇴 挪威 Norway', amount:22400, paidAmount:22400, currency:'USD', createdAt:'2026-04-15', orderMonth:'2026-04', stage:'done', next:'归档订单资料', owner:'Scarlett', note:'客户已确认收货', trackingNumber:'871032796510', carrier:'FedEx', shippedAt:'2026-04-20', logisticsStatus:'已签收', logisticsUpdated:'2026-04-24 11:10', updated:'2026-04-24 11:10', logs:['订单完成', '已收全款'] },
+  { id:'o4', productType:'睫毛', paymentChannel:'Stripe', orderType:'全款订单', depositAmount:22400, depositPercent:100, num:'SO260415019', client:'Nordic Home AS', country:'🇳🇴 挪威 Norway', amount:22400, paidAmount:22400, currency:'USD', createdAt:'2026-04-15', orderMonth:'2026-04', stage:'done', next:'归档订单资料', owner:'Scarlett', note:'客户已确认收货', trackingNumber:'871032796510', carrier:'FedEx', shippedAt:'2026-04-20', logisticsStatus:'已签收', logisticsUpdated:'2026-04-24 11:10', updated:'2026-04-24 11:10', logs:['订单完成', '已收全款'] },
   { id:'o5', productType:'假发', paymentChannel:'西联', orderType:'定金订单', depositAmount:2100, depositPercent:30, num:'SO260330011', client:'Société Française', country:'🇫🇷 法国 France', amount:6890, paidAmount:2100, currency:'USD', createdAt:'2026-03-30', orderMonth:'2026-03', stage:'production', next:'确认生产排期', owner:'Scarlett', note:'客户要求提前交期', updated:'2026-04-27 11:20', logs:['已收定金 30%', 'Scarlett 确认进入生产'] },
   { id:'o6', productType:'睫毛', paymentChannel:'Zelle', orderType:'定金订单', depositAmount:3000, depositPercent:30, num:'SO260318023', client:'Ausmart Pty Ltd', country:'🇦🇺 澳大利亚 Australia', amount:9870, paidAmount:3000, currency:'USD', createdAt:'2026-03-18', orderMonth:'2026-03', stage:'balance', next:'跟进尾款到账', owner:'Kris', note:'尾款未到账，需提醒', updated:'2026-04-27 15:30', logs:['出货前质检完成', 'Kris 将阶段更新为尾款'] },
   { id:'o7', productType:'假发', paymentChannel:'Paypal', orderType:'全款订单', depositAmount:18420, depositPercent:100, num:'SO260305006', client:'Iberia Retail S.L.', country:'🇪🇸 西班牙 Spain', amount:18420, paidAmount:18420, currency:'USD', createdAt:'2026-03-05', orderMonth:'2026-03', stage:'done', next:'更新复购提醒', owner:'Aimee', note:'客户计划 6 月复购', updated:'2026-03-29 14:05', logs:['订单完成', '已收全款'] },
   { id:'o8', productType:'睫毛', paymentChannel:'阿里巴巴', orderType:'全款订单', depositAmount:7540, depositPercent:100, num:'SO260222017', client:'LatAm Supplies S.A.', country:'🇧🇷 巴西 Brazil', amount:7540, paidAmount:7540, currency:'USD', createdAt:'2026-02-22', orderMonth:'2026-02', stage:'shipment', next:'准备出货资料', owner:'Aimee', note:'等待确认装箱单', trackingNumber:'91 8833 5262', carrier:'DHL', shippedAt:'2026-04-27', logisticsStatus:'运输中', logisticsUpdated:'2026-04-27 10:05', updated:'2026-04-27 10:05', logs:['Kris 确认尾款到账', 'Aimee 开始准备出货资料'] },
   { id:'o9', productType:'假发', paymentChannel:'TT', orderType:'定金订单', depositAmount:4160, depositPercent:30, num:'SO260214012', client:'Maple Distribution', country:'🇨🇦 加拿大 Canada', amount:13880, paidAmount:4160, currency:'USD', createdAt:'2026-02-14', orderMonth:'2026-02', stage:'deposit', next:'确认定金水单', owner:'Kris', note:'客户财务已安排付款', updated:'2026-02-18 16:30', logs:['客户确认订单', '等待定金'] },
-  { id:'o10', productType:'睫毛', paymentChannel:'信用卡', orderType:'全款订单', depositAmount:27600, depositPercent:100, num:'SO260129004', client:'Alpine Market AG', country:'🇨🇭 瑞士 Switzerland', amount:27600, paidAmount:27600, currency:'USD', createdAt:'2026-01-29', orderMonth:'2026-01', stage:'done', next:'归档质检报告', owner:'Scarlett', note:'高价值客户，注意售后', updated:'2026-02-20 12:40', logs:['订单完成', '已收全款'] },
+  { id:'o10', productType:'睫毛', paymentChannel:'Stripe', orderType:'全款订单', depositAmount:27600, depositPercent:100, num:'SO260129004', client:'Alpine Market AG', country:'🇨🇭 瑞士 Switzerland', amount:27600, paidAmount:27600, currency:'USD', createdAt:'2026-01-29', orderMonth:'2026-01', stage:'done', next:'归档质检报告', owner:'Scarlett', note:'高价值客户，注意售后', updated:'2026-02-20 12:40', logs:['订单完成', '已收全款'] },
   { id:'o11', productType:'假发', paymentChannel:'西联', orderType:'定金订单', depositAmount:3580, depositPercent:30, num:'SO260118015', client:'Benelux Trade BV', country:'🇳🇱 荷兰 Netherlands', amount:11950, paidAmount:3580, currency:'USD', createdAt:'2026-01-18', orderMonth:'2026-01', stage:'production', next:'同步生产照片', owner:'Aimee', note:'客户需要每周进度', updated:'2026-01-24 09:55', logs:['定金到账', '生产中'] },
   { id:'o12', productType:'睫毛', paymentChannel:'Zelle', orderType:'全款订单', depositAmount:9400, depositPercent:100, num:'SO251220031', client:'Andes Import Group', country:'🇨🇱 智利 Chile', amount:9400, paidAmount:9400, currency:'USD', createdAt:'2025-12-20', orderMonth:'2025-12', stage:'done', next:'复盘物流成本', owner:'Kris', note:'海运费用偏高', updated:'2026-01-08 10:15', logs:['订单完成', '客户确认收货'] },
   { id:'o13', productType:'假发', paymentChannel:'Paypal', orderType:'定金订单', depositAmount:4860, depositPercent:30, num:'SO251128009', client:'Vienna Living GmbH', country:'🇦🇹 奥地利 Austria', amount:16200, paidAmount:4860, currency:'USD', createdAt:'2025-11-28', orderMonth:'2025-11', stage:'balance', next:'发送尾款提醒', owner:'Scarlett', note:'客户等验货照片', updated:'2025-12-12 17:05', logs:['质检完成', '尾款待收'] },
@@ -7730,13 +7733,13 @@ const demoCustomerProfiles = {
   'ABC Trading Co.': { level:'A级钻石客户', tags:['高复购','重点跟进'], paymentMethod:'阿里巴巴', repurchaseCycle:60, note:'示例：高价值长期客户' },
   'Global Importers UK': { level:'B级翡翠客户', tags:['样品客户','复购客户'], paymentMethod:'PayPal', repurchaseCycle:45, note:'示例：英国复购潜力客户' },
   'EuroTech GmbH': { level:'C级白金客户', tags:['月结','生产中'], paymentMethod:'T/T 银行转账', repurchaseCycle:90, note:'示例：德国生产订单客户' },
-  'Nordic Home AS': { level:'A级钻石客户', tags:['高复购','已发货'], paymentMethod:'信用卡', repurchaseCycle:60, note:'示例：北欧高金额客户' },
+  'Nordic Home AS': { level:'A级钻石客户', tags:['高复购','已发货'], paymentMethod:'Stripe', repurchaseCycle:60, note:'示例：北欧高金额客户' },
   'Société Française': { level:'D级黄金客户', tags:['交期敏感'], paymentMethod:'西联 Western Union', repurchaseCycle:75, note:'示例：法国生产排期客户' },
   'Ausmart Pty Ltd': { level:'E级白银客户', tags:['尾款待收'], paymentMethod:'阿里巴巴', repurchaseCycle:90, note:'示例：澳洲尾款跟进客户' },
   'Iberia Retail S.L.': { level:'B级翡翠客户', tags:['复购客户'], paymentMethod:'PayPal', repurchaseCycle:60, note:'示例：西班牙已成交客户' },
   'LatAm Supplies S.A.': { level:'C级白金客户', tags:['已发货','睫毛客户'], paymentMethod:'阿里巴巴', repurchaseCycle:45, note:'示例：拉美物流跟进客户' },
   'Maple Distribution': { level:'F级青铜客户', tags:['定金待确认'], paymentMethod:'T/T 银行转账', repurchaseCycle:120, note:'示例：加拿大新客户' },
-  'Alpine Market AG': { level:'A级钻石客户', tags:['高价值','已成交'], paymentMethod:'信用卡', repurchaseCycle:90, note:'示例：瑞士高金额客户' },
+  'Alpine Market AG': { level:'A级钻石客户', tags:['高价值','已成交'], paymentMethod:'Stripe', repurchaseCycle:90, note:'示例：瑞士高金额客户' },
   'Benelux Trade BV': { level:'B级翡翠客户', tags:['生产中','假发客户'], paymentMethod:'西联 Western Union', repurchaseCycle:75, note:'示例：荷兰生产跟进客户' },
   'Andes Import Group': { level:'D级黄金客户', tags:['复盘物流'], paymentMethod:'阿里巴巴', repurchaseCycle:120, note:'示例：智利已成交客户' },
   'Vienna Living GmbH': { level:'E级白银客户', tags:['尾款待收'], paymentMethod:'PayPal', repurchaseCycle:90, note:'示例：奥地利尾款提醒客户' },
@@ -9712,7 +9715,8 @@ function normalizeOrderProductType(value = '') {
   return productTypeDefs.some(item => item.value === value) ? value : defaultOrderSettings.defaultProductType;
 }
 function normalizeOrderPaymentChannel(value = '') {
-  return paymentChannelDefs.some(item => item.value === value) ? value : defaultOrderSettings.defaultPaymentChannel;
+  const current = renamedPaymentChannel(value);
+  return paymentChannelDefs.some(item => item.value === current) ? current : defaultOrderSettings.defaultPaymentChannel;
 }
 function normalizeOrderSettings(raw = {}) {
   const settings = { ...defaultOrderSettings, ...(raw || {}) };
@@ -9720,6 +9724,7 @@ function normalizeOrderSettings(raw = {}) {
   settings.productDefaultRevision = 1;
   // 设置页只给 2 / 3 / 4 位；导入的旧数据里别的值会让生成器每次给出同一个号。
   settings.serialDigits = [2, 3, 4].includes(Number(settings.serialDigits)) ? Number(settings.serialDigits) : 2;
+  settings.defaultPaymentChannel = renamedPaymentChannel(settings.defaultPaymentChannel);
   settings.defaultPaymentChannel = paymentChannelDefs.some(item => item.value === settings.defaultPaymentChannel)
     ? settings.defaultPaymentChannel
     : defaultOrderSettings.defaultPaymentChannel;
@@ -9927,7 +9932,7 @@ function normalizeState(raw) {
     deletedOrders: (raw.deletedOrders || []).map(o => normalizeArchivedOrder(o, 'deletedAt')),
     performanceTargets: raw.performanceTargets || {},
     customers: normalizeCustomerProfiles({ ...baseCustomerProfiles, ...(raw.customers || {}) }),
-    paymentMethods: Array.from(new Set(raw.paymentMethods ? raw.paymentMethods : defaultPaymentMethods)),
+    paymentMethods: Array.from(new Set((raw.paymentMethods ? raw.paymentMethods : defaultPaymentMethods).map(renamedPaymentChannel))),
     // 和付款方式一样：存下的有就用存下的（删掉的内置标签不再补回来），空了才用默认。
     customerTags: (tags => tags.length ? tags : uniqueList(defaultCustomerTags))(uniqueList((raw.customerTags || []).filter(tag => !legacyCustomerLevels.includes(tag)))),
     customerLevels: normalizeCustomerLevels(raw.customerLevels || defaultCustomerLevels),
@@ -13474,7 +13479,7 @@ function findAmountInText(text) {
     { pattern: new RegExp(`(?:金额)[:：\\t ]*${anyCurrency}?[\\t ]*${num}`, 'ig') },
     ...currencyPatterns.filter(item => item.currency === preferred),
     ...currencyPatterns.filter(item => item.currency !== preferred),
-    { pattern: /(?:阿里(?:巴巴)?|alibaba|paypal|西联|western(?:\s+union)?|zelle|信用卡|credit\s*card|visa|mastercard|t\/t|\btt\b)[\t ]*[:：=]?[\t ]*([0-9][0-9,]*(?:\.\d+)?)(?!\d)/ig }
+    { pattern: /(?:阿里(?:巴巴)?|alibaba|paypal|西联|western(?:\s+union)?|zelle|stripe|信用卡|credit\s*card|visa|mastercard|t\/t|\btt\b)[\t ]*[:：=]?[\t ]*([0-9][0-9,]*(?:\.\d+)?)(?!\d)/ig }
   ];
   for (const { pattern, allowShippingLine = false } of patterns) {
     for (const match of source.matchAll(pattern)) {
@@ -13547,7 +13552,7 @@ function findPaymentChannelInText(text) {
   if (/\bpaypal\b|\bpp\b/.test(lower)) return 'Paypal';
   if (/西联|\bwestern(?:\s+union)?\b/.test(lower)) return '西联';
   if (/\bzelle\b/.test(lower)) return 'Zelle';
-  if (/信用卡|\bcredit\s+card\b|\bvisa\b|\bmastercard\b|\bcard\b/.test(lower)) return '信用卡';
+  if (/\bstripe\b|信用卡|\bcredit\s+card\b|\bvisa\b|\bmastercard\b|\bcard\b/.test(lower)) return 'Stripe';
   if (/(?:^|[^a-z0-9])t\/t(?=$|[^a-z0-9])|\btt\b|\bwire\s+transfer\b|\bbank\s+transfer\b|银行转账|电汇|\bbonifico\b|\bvirement\b|\btransferencia\b|\buberweisung\b/.test(lower)) return 'TT';
   return '';
 }
@@ -14688,7 +14693,7 @@ client, country, createdAt, amount, currency, productType, paymentChannel, order
 - amount 是订单总金额。如果聊天里出现 Total，Total 后面的金额就是订单总金额 amount；有多个金额且没有 Total 时，只有能确定哪个是合计才输出，不要自己相加。
 - currency 只能是 "USD"、"EUR"、"GBP"、"CNY"、"AUD"、"CAD"；只写 $ 且没有其他线索时为 "USD"。
 - productType 只能是 "假发" 或 "睫毛"。wig、lace、frontal、closure、bundle、hair extension 属于假发；lash、eyelash、strip、cluster、volume fan 属于睫毛。
-- paymentChannel 只能是 "阿里巴巴", "Paypal", "西联", "Zelle", "信用卡", "TT"。Western Union 是西联；bank transfer、wire、T/T 是 TT；Alibaba、trade assurance 是阿里巴巴；card、Visa、Mastercard 是信用卡。原文没写付款方式就省略，不要猜。
+- paymentChannel 只能是 "阿里巴巴", "Paypal", "西联", "Zelle", "Stripe", "TT"。Western Union 是西联；bank transfer、wire、T/T 是 TT；Alibaba、trade assurance 是阿里巴巴；Stripe、信用卡、card、Visa、Mastercard 都是 Stripe。原文没写付款方式就省略，不要猜。
 - orderType 只能是 "全款订单" 或 "定金订单"。
 - depositPercent 是定金比例的整数，例如 30。
 - 只有聊天明确表示已经付了钱时才输出 paidAmount，例如“已付、付款了、收到、到账、paid、sent、transferred、bezahlt、überwiesen、pagado、pagato、payé、versé”；未确认付款就省略，不能把定金比例当成已付金额。明确已付全款（已付全款、已经付完、paid in full、付款金额等于总额）时，orderType 为 "全款订单"，fullPaymentStatus 为 "已付"，paidAmount 等于 amount。
@@ -15808,7 +15813,7 @@ function localCustomerPaymentMethod(text = '') {
   const lower = normalizeSearchText(decodePasteEntities(String(text || '')).replace(/[A-Z0-9._%+-]{1,64}@[A-Z0-9.-]{1,253}\.[A-Z]{2,63}/ig, ' '));
   const positions = [
     ['阿里巴巴', /阿里|\balibaba\b/], ['Paypal', /\bpaypal\b/], ['西联', /西联|\bwestern(?:\s+union)?\b/], ['Zelle', /\bzelle\b/],
-    ['信用卡', /信用卡|\bcredit\s+card\b|\bvisa\b|\bmastercard\b|\bcard\b/], ['TT', /\btt\b|\bt\/t\b|\bwire(?:\s+transfer)?\b|\bbank\s+transfer\b|银行转账|电汇|\buberweisung\b|\bbonifico\b|\bvirement\b|\btransferencia\b/]
+    ['Stripe', /\bstripe\b|信用卡|\bcredit\s+card\b|\bvisa\b|\bmastercard\b|\bcard\b/], ['TT', /\btt\b|\bt\/t\b|\bwire(?:\s+transfer)?\b|\bbank\s+transfer\b|银行转账|电汇|\buberweisung\b|\bbonifico\b|\bvirement\b|\btransferencia\b/]
   ].map(([value, re]) => ({ value, index:lower.search(re) })).filter(item => item.index >= 0).sort((a, b) => a.index - b.index);
   return positions[0]?.value || findCustomerPaymentMethodFieldInText(text);
 }
@@ -16443,7 +16448,7 @@ name, country, countrySource, countryEvidence, contacts, phones, emails, address
 - 姓名、区号、地址在同一行时分别提取；英国邮编可包含字母、数字和空格，例如 PR2 2LE。保留原文门牌、公寓号/Suite/Unit/Flat/楼层、邮编、街道、城市、州省和国家信息，不丢失或补造地址细节；国家单独写在其他行时，也接到这条地址末尾；地址不包含开头姓名或电话。纯地址或街道中的专名不是独立客户名称。
 - 邮箱去掉 mailto: 和链接查询参数，只保留邮箱地址。"anna [at] example [dot] de"、"anna at example dot de" 这类防爬写法还原成 anna@example.de；全角「＠」「．」、域名里的「。」、@ 两边或点后面多出来的空格（"anna @ example. de"）也还原成正常写法。
 - 原文前后矛盾时以客户最后的更正为准，例如 “sorry zip is 30318 not 30310” 要把地址里的邮编改成 30318。
-- paymentMethod 只能使用 "阿里巴巴", "Paypal", "西联", "Zelle", "信用卡", "TT"。bank transfer、wire、bonifico、virement、Überweisung、transferencia、银行转账都是 "TT"；Western Union 是 "西联"；card、Visa、Mastercard 是 "信用卡"。提到多种时取客户实际选的那种。只有原文明确时才输出，Other、其他、未知或不确定时省略，不能用表单默认值代替识别结果。
+- paymentMethod 只能使用 "阿里巴巴", "Paypal", "西联", "Zelle", "Stripe", "TT"。bank transfer、wire、bonifico、virement、Überweisung、transferencia、银行转账都是 "TT"；Western Union 是 "西联"；Stripe、信用卡、card、Visa、Mastercard 都是 "Stripe"。提到多种时取客户实际选的那种。只有原文明确时才输出，Other、其他、未知或不确定时省略，不能用表单默认值代替识别结果。
 - paymentEmail 是收款邮箱、付款邮箱或 Paypal 邮箱，不要和普通联系邮箱混淆。
 - level 只能是 "A级钻石客户", "B级翡翠客户", "C级白金客户", "D级黄金客户", "E级白银客户", "F级青铜客户"。
 - repurchaseCycle 只能输出数字字符串，例如 "30", "60", "90", "180"。

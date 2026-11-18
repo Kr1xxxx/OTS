@@ -1482,11 +1482,6 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
   border: 0; border-radius: 0; background: transparent; padding: 0; display: grid; gap: 12px; min-width: 0;
 }
 .target-setup .target-form { margin-bottom: 0; }
-.target-metrics {
-  display: grid;
-  border-radius: 18px;
-}
-.target-metric:last-child { border-right: 0; }
 .target-history-list { gap: 8px; }
 .target-history-row {
   display: grid;
@@ -1752,10 +1747,10 @@ html[data-theme="dark"] .image-upload-card[data-state="error"] { --upload-color:
 .business-month-title { min-width: 116px; text-align: center; color: var(--gray-900); font-size: 17px; font-weight: 600; }
 /* Monetary summaries must show the entire value, never an ellipsis. Adapt to
    each card's available width; exceptionally large values may wrap instead. */
-.report-stat, .target-metric, .customer-summary-item, .customer-metric-card {
+.report-stat, .customer-summary-item, .customer-metric-card {
   min-width: 0; container-type: inline-size;
 }
-#reportUsd, #reportPaid, #reportDue, #reportOverdue, #targetGoal, #targetActual, #targetGap {
+#reportUsd, #reportPaid, #reportDue, #reportOverdue {
   font-size: clamp(13px, 10cqw, 24px); line-height: 1.25;
   white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere;
   font-variant-numeric: tabular-nums;
@@ -2337,8 +2332,6 @@ html[data-theme="dark"] .app-refresh-btn:focus-visible {
     padding: 12px;
     gap: 8px;
   }
-  .target-metric:nth-child(2) { border-right: 0; }
-  .target-metric:nth-child(n+3) { border-top: 1px solid var(--gray-200); }
   .chart-panel {
     border-radius: 22px;
     padding: 14px;
@@ -3625,7 +3618,7 @@ html[data-theme] .business-product-row { grid-template-columns:minmax(0,1fr) aut
 html[data-theme] .business-product-name { font-size:13px; font-weight:400; color:var(--gray-800); }
 html[data-theme] .business-product-track { grid-column:1 / -1; grid-row:2; height:5px; }
 html[data-theme] .business-product-value { grid-row:1; grid-column:2; font-size:13px; font-weight:500; }
-html[data-theme] .analysis-mix { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; margin-top:16px; }
+html[data-theme] .analysis-mix { display:grid; grid-template-columns:repeat(var(--mix-cols, 3), minmax(0,1fr)); gap:10px; margin-top:16px; }
 html[data-theme] .analysis-mix .analysis-rank { display:flex; flex-direction:column; align-items:flex-start; gap:2px; padding:12px 14px; border:0; border-radius:16px; background:var(--surface-soft); font-size:12px; color:var(--gray-600); }
 html[data-theme] .analysis-mix .analysis-rank > span:first-child { display:none; }
 html[data-theme] .analysis-mix .analysis-rank strong { font-size:14px; color:var(--gray-900); }
@@ -3633,12 +3626,14 @@ html[data-theme] .analysis-mix .section-meta { grid-column:1 / -1; margin:0; }
 html[data-theme] #analysisClients .analysis-rank { grid-template-columns:18px minmax(0,1fr) auto auto; gap:6px 10px; padding:10px 0 12px; border-bottom:0; }
 html[data-theme] #analysisClients .analysis-rank strong { font-weight:500; font-variant-numeric:tabular-nums; }
 html[data-theme] .analysis-rank-bar { grid-column:1 / -1; display:block; height:5px; border-radius:999px; background:var(--surface-soft); overflow:hidden; }
-html[data-theme] .analysis-rank-bar b { display:block; height:100%; border-radius:inherit; background:var(--gray-900); }
+html[data-theme] .analysis-rank-bar b { display:block; height:100%; border-radius:inherit; background:var(--accent); }
 html[data-theme] .analysis-action-group { border-top:0; padding:4px 0; }
 html[data-theme] .analysis-action-group summary { color:var(--gray-600); font-size:12.5px; cursor:pointer; padding:4px 0; }
-html[data-theme] .analysis-action-row { padding:12px 6px; border-bottom:1px solid var(--hairline); border-radius:0; }
+html[data-theme] .analysis-action-row { padding:8px 6px; border-bottom:1px solid var(--hairline); border-radius:0; }
 html[data-theme] .analysis-action-row:hover { background:var(--surface-soft); border-radius:12px; }
-html[data-theme] .analysis-action-row > span:first-child { display:flex; flex-direction:column; gap:2px; font-weight:600; color:var(--gray-900); }
+html[data-theme] .analysis-action-row > span:first-child { display:flex; align-items:baseline; gap:8px; min-width:0; font-weight:600; color:var(--gray-900); }
+html[data-theme] .analysis-action-client { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+html[data-theme] .analysis-action-row > span:first-child small { flex:none; margin-top:0; white-space:nowrap; }
 html[data-theme] .analysis-action-row small { font-weight:400; color:var(--gray-500); font-family:var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size:11.5px; }
 html[data-theme] .analysis-action-row > span:nth-child(2) { color:var(--s-amber); font-size:12.5px; }
 html[data-theme] .analysis-action-row > span:last-child { color:var(--gray-500); font-size:12px; }
@@ -3971,10 +3966,8 @@ html[data-theme] #targetStat.has-goal #statTargetSub { display:none; }
 html[data-theme] #targetStat:not(.has-goal) .kpi-bar { display:none; }
 html[data-theme] #targetStat .kpi-bar { margin-top:8px; }
 /* 其他页面的数字卡（客户、金额统计、业绩目标、分析）跟工作台一样：大数字 28px/600/1.25，卡太窄时按卡宽缩小，不换行 */
-html[data-theme] .content .page :is(.report-stat, .target-metric, .customer-summary-item) :is(#reportUsd, #reportPaid, #reportDue, #reportOverdue, #reportCount, #targetGoal, #targetActual, #targetGap, #targetOrderCount),
+html[data-theme] .content .page :is(.report-stat, .customer-summary-item) :is(#reportUsd, #reportPaid, #reportDue, #reportOverdue, #reportCount),
 html[data-theme] .content .page .customer-summary-item strong, html[data-theme] .content .page .customer-summary-item strong.summary-money { font-size:min(28px, 16cqw); font-weight:600; line-height:1.25; letter-spacing:-.03em; white-space:nowrap; overflow-wrap:normal; }
-html[data-theme] .content .page .target-metric :is(#targetGoal, #targetActual, #targetGap, #targetOrderCount) { font-size:min(28px, 20cqw); }
-html[data-theme] .content .page .target-metric :is(#targetGoal, #targetActual, #targetGap).is-long { font-size:min(28px, 15cqw); }
 /* 本月订单额：像原型一样把标签本身当下拉（标签 + 小箭头），选择器透明盖在标签上 */
 @media (min-width: 821px) {
   html[data-theme] .stats > .amount-stat .stat-head { position:relative; display:inline-flex; min-width:0; align-items:center; gap:2px; align-self:flex-start; max-width:calc(100% - 76px); }
@@ -5006,6 +4999,8 @@ html[data-theme] .customer-detail-order-main:first-child strong { font-family:va
 html[data-theme] .customer-detail-order-main small { color:var(--gray-500); font-size:12px; line-height:17px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 html[data-theme] .customer-detail-order-main small.paid-amount { color:var(--s-green); font-weight:400; }
 html[data-theme] .customer-detail-order-main small.customer-due-amount { color:var(--s-amber); font-weight:500; }
+/* 待收统一琥珀色：订单抽屉「客户」页的历史订单、金额统计「时间金额汇总」的待收格（以前是红的）。 */
+html[data-theme] .order-detail-related-amount small.customer-due-amount, html[data-theme] .report-row.amount-time-row .balance-amount { color:var(--s-amber); font-weight:500; }
 html[data-theme] .customer-detail-order-money { align-items:flex-end; text-align:right; }
 html[data-theme] .customer-detail-order-money strong { font-weight:600; font-variant-numeric:tabular-nums; }
 html[data-theme] .customer-detail-order-row .tag { padding:2px 10px; font-size:12px; white-space:nowrap; }
@@ -5110,11 +5105,6 @@ html[data-theme] .target-history-row[data-target-pick]:hover { background:var(--
 html[data-theme] .target-history-row[data-target-pick]:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
 html[data-theme] .target-history-values .pending { color:var(--gray-500); }
 html[data-theme] .target-form .btn { height:38px; min-height:38px; padding:0 18px; border-radius:999px; }
-html[data-theme] .target-metrics { grid-template-columns:repeat(4, minmax(0,1fr)); gap:12px; border:0; background:transparent; overflow:visible; }
-html[data-theme] .target-metric { container-type:inline-size; min-width:0; min-height:0; padding:16px 18px; border:0; border-radius:20px; background:var(--surface-soft); display:flex; flex-direction:column; gap:6px; }
-html[data-theme] .target-metric .report-label { color:var(--gray-600); font-size:12.5px; font-weight:400; }
-html[data-theme] .target-metric .report-value { margin:0; font-size:clamp(15px, 17cqw, 26px); font-weight:600; letter-spacing:-.03em; line-height:1.15; color:var(--gray-900); white-space:normal; }
-html[data-theme] .target-metric .report-value.over { color:var(--s-green); }
 /* 完成度圆环 */
 html[data-theme] .target-summary { justify-content:flex-start; }
 html[data-theme] .target-ring-wrap { display:flex; align-items:center; gap:24px; flex:1; }
@@ -5153,12 +5143,10 @@ html[data-theme] .target-history-count { font-size:14px; color:var(--gray-900); 
 @media (max-width: 1100px) { html[data-theme] .target-layout { grid-template-columns:1fr; } }
 @media (max-width: 820px) {
   html[data-theme] .target-form { grid-template-columns:1fr; }
-  html[data-theme] .target-metrics { grid-template-columns:repeat(2, minmax(0,1fr)); }
   html[data-theme] .target-history-table { overflow-x:auto; }
   html[data-theme] .target-history-row { min-width:820px; }
 }
 html[data-theme] .target-history-fill.empty { display:none; }
-html[data-theme] .target-metrics .report-value:is(#targetGoal, #targetActual, #targetGap, #targetOrderCount) { font-size:clamp(15px, 15cqw, 26px); overflow-wrap:normal; }
 html[data-theme] .amount-kpi-board .report-value:is(#reportUsd, #reportPaid, #reportDue, #reportOverdue, #reportCount) { font-size:clamp(15px, 12cqw, 28px); overflow-wrap:normal; }
 html[data-theme] .target-history-rate, html[data-theme] .target-history-rate.empty { border:0; box-shadow:none; }
 /* 质感版：带一点紫的灰底、白卡浮起、顶部淡紫光晕加细颗粒、紫色主按钮和第一张数字卡；深色和配色切换跟着走 */
@@ -6107,12 +6095,6 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
               <button class="btn btn-primary" id="saveTargetBtn" type="button">保存目标</button>
             </div>
             <div class="target-input-row"><span class="target-input-hint" id="targetInputHint" aria-live="polite"></span><button class="link-btn target-clear-btn" id="clearTargetBtn" type="button" hidden>清除这个月的目标</button></div>
-            <div class="target-metrics">
-              <div class="target-metric"><div class="report-label">目标金额</div><div class="report-value" id="targetGoal">$0 USD</div></div>
-              <div class="target-metric"><div class="report-label">实际完成</div><div class="report-value" id="targetActual">$0 USD</div></div>
-              <div class="target-metric"><div class="report-label" id="targetGapLabel">差额</div><div class="report-value" id="targetGap">$0 USD</div></div>
-              <div class="target-metric"><div class="report-label">订单数量</div><div class="report-value" id="targetOrderCount">0</div></div>
-            </div>
           </section>
           <section class="panel target-summary">
             <div class="section-title"><span id="targetMonthBadge">本月</span> 完成度</div>
@@ -11310,7 +11292,11 @@ function renderAnalysisPage() {
   document.getElementById('analysisClients').innerHTML = (shownClients.map((row,index) => '<button type="button" class="analysis-rank" data-analysis-client="' + escapeAttr(row.name) + '" title="在订单列表里看' + escapeAttr(clientDisplayName(row.name)) + '在' + escapeAttr(monthLabel(activeBusinessMonth)) + '的订单"><span class="muted">' + (index+1) + '</span><span>' + escapeAttr(clientDisplayName(row.name)) + '</span><span class="muted">' + row.count + ' 单</span><strong>' + summaryMoney(row.amount,'USD') + '</strong><i class="analysis-rank-bar"><b style="width:' + Math.max(3, Math.round(row.amount / clientMax * 100)) + '%"></b></i></button>').join('') || '<div class="empty">该月份暂无客户订单。</div>')
     + (data.unnamedOrders ? `<p class="section-meta">另有 ${data.unnamedOrders} 单没填客户，不参与排名</p>` : '');
   const total = data.monthly.length;
-  document.getElementById('analysisCustomerMix').innerHTML = [['新客户订单',data.newOrders],['老客户订单',data.repeatOrders],['客户信息不全',data.unknownOrders]].map(([label,count]) => '<div class="analysis-rank"><span></span><span>' + label + '</span><strong>' + count + ' 单</strong><span>' + (total ? Math.round(count/total*100) : 0) + '%</span></div>').join('') + '<p class="section-meta">按现有订单历史判断，不等于新建客户档案数。</p>';
+  // 「客户信息不全」是 0 时不出，剩两格平分；百分比照旧按这个月全部订单算。
+  const mixCells = [['新客户订单',data.newOrders],['老客户订单',data.repeatOrders],['客户信息不全',data.unknownOrders]].filter(([label, count]) => label !== '客户信息不全' || count > 0);
+  const mixEl = document.getElementById('analysisCustomerMix');
+  mixEl.style.setProperty('--mix-cols', String(mixCells.length));
+  mixEl.innerHTML = mixCells.map(([label,count]) => '<div class="analysis-rank"><span></span><span>' + label + '</span><strong>' + count + ' 单</strong><span>' + (total ? Math.round(count/total*100) : 0) + '%</span></div>').join('') + '<p class="section-meta">按现有订单历史判断，不等于新建客户档案数。</p>';
   // 未收清按待收 USD 从大到小，只列前 8 条（以前全部列出，47 单时 4000 多像素长）；summary 写合计；行里主金额用 USD、原币种放小字。
   const dueUsd = o => Math.max(0, orderAmountUsd(o) - orderPaidUsd(o));
   const groups = [
@@ -11323,7 +11309,9 @@ function renderAnalysisPage() {
       const value = key === 'receivables'
         ? `待收 ${summaryMoney(dueUsd(o), 'USD')}${(o.currency || 'USD') !== 'USD' ? `<small>${escapeAttr(money(orderDueValue(o), o.currency))}</small>` : ''}`
         : `最晚发出 ${escapeAttr(o.latestShipDate)}`;
-      return '<button type="button" class="analysis-action-row" data-analysis-order="' + escapeAttr(o.id) + '"><span>' + escapeAttr(o.client || '未命名客户') + '<small>' + escapeAttr(o.num || '') + '</small></span><span>' + value + '</span><span>查看 →</span></button>';
+      // 一单一行：客户名后面跟订单号；客户名太长截客户名（完整的在悬停提示里），订单号不截。
+      const client = o.client || '未命名客户';
+      return '<button type="button" class="analysis-action-row" data-analysis-order="' + escapeAttr(o.id) + '"><span><span class="analysis-action-client" title="' + escapeAttr(client) + '">' + escapeAttr(client) + '</span><small>' + escapeAttr(o.num || '') + '</small></span><span>' + value + '</span><span>查看 →</span></button>';
     }).join('');
     const more = orders.length > limit
       ? `<button type="button" class="link-btn analysis-attention-more" data-analysis-list="outstanding">还有 ${orders.length - limit} 单 · 查看全部待收订单 <span>→</span></button>` : '';
@@ -19833,6 +19821,7 @@ function renderAmountTimeTable() {
   });
   const rows = [...map.values()].sort((a, b) => b.key.localeCompare(a.key));
   const body = rows.map(row => {
+    // 只有 1 单时客单价就是订单总额，留空。
     const avg = row.count ? row.total / row.count : 0;
     const label = config.mode === 'day' ? dateLabel(row.key, { withYear:config.crossYear }) : monthLabel(row.key);
     // 和卡片、分组一样用整数美元（表头写 USD），不再出现「$647.059 USD」。
@@ -19843,7 +19832,7 @@ function renderAmountTimeTable() {
         <div>${summaryMoney(row.total, 'USD')}</div>
         <div class="paid-amount">${summaryMoney(row.paid, 'USD')}</div>
         <div class="${row.due > 0 ? 'balance-amount' : 'paid-amount'}">${row.due > 0 ? summaryMoney(row.due, 'USD') : '-'}</div>
-        <div>${summaryMoney(avg, 'USD')}</div>
+        <div>${row.count > 1 ? summaryMoney(avg, 'USD') : ''}</div>
       </div>
     `;
   }).join('');
@@ -19970,25 +19959,13 @@ function renderPerformanceTargets() {
   }
   const clearBtn = document.getElementById('clearTargetBtn');
   if (clearBtn) clearBtn.hidden = !goal;
-  // 这个月没设目标：整页只在完成度旁边写一句「11 月还没设目标」，目标、差额、圆环中间这些格子留空，不写「未设置 / 未设 / -」。
-  document.getElementById('targetGoal').textContent = goal ? summaryMoney(goal, 'USD') : '';
-  document.getElementById('targetActual').textContent = summaryMoney(actual, 'USD');
+  // 这个月没设目标：完成度旁边写一句「11 月还没设目标 · 已完成 … · N 单」，圆环中间留空，不写「未设置 / 未设 / -」。
+  // （目标、实际、差额、订单数四个格子去掉了：完成度那句和近月目标记录里都有。）
   document.getElementById('targetRate').textContent = goal ? `${rate}%` : '';
   const ringLabel = document.querySelector('#page-targets .target-ring-text span');
   if (ringLabel) ringLabel.hidden = !goal;
   const over = goal && actual >= goal;
   const exact = over && Math.round(actual) === Math.round(goal);
-  document.getElementById('targetGap').textContent = goal ? summaryMoney(over ? actual - goal : gap, 'USD') : '';
-  document.getElementById('targetGap').classList.toggle('over', Boolean(over));
-  const gapLabel = document.getElementById('targetGapLabel');
-  if (gapLabel) gapLabel.textContent = over ? '超出' : '差额';
-  document.getElementById('targetOrderCount').textContent = orders.length;
-  // 百万级金额（$1,234,568）字数多，卡又窄，单独缩小一档，避免溢出。
-  ['targetGoal', 'targetActual', 'targetGap'].forEach(id => {
-    const el = document.getElementById(id);
-    el.classList.toggle('is-long', el.textContent.length > 8);
-    el.title = el.textContent.length > 12 ? el.textContent : '';
-  });
   document.getElementById('targetMonthBadge').textContent = targetMonthName(month);
   const ring = document.getElementById('targetProgress');
   ring.setAttribute('stroke-dasharray', `${goal ? Math.min(100, rate) : 0} 100`);
@@ -19996,7 +19973,7 @@ function renderPerformanceTargets() {
   const future = month > currentMonth;
   document.getElementById('targetProgressText').textContent = goal
     ? (exact ? '刚好完成目标。' : over ? `已经超出目标 ${summaryMoney(actual - goal, 'USD')}。` : future && !actual ? `${monthLabel(month)}还没开始，目标 ${summaryMoney(goal, 'USD')}。` : `完成 ${summaryMoney(actual, 'USD')}，还差 ${summaryMoney(gap, 'USD')}。`)
-    : `${dashboardMonthName(month)}还没设目标`;
+    : `${dashboardMonthName(month)}还没设目标${orders.length ? ` · 已完成 ${summaryMoney(actual, 'USD')} · ${orders.length} 单` : ''}`;
 
   // 近月目标记录：只列设过目标的月份 + 本月（按时间倒序），行可以点 / 回车，切到那个月。
   const historyMonths = Array.from(new Set([currentMonth, ...Object.keys(state.performanceTargets || {}).filter(m => targetForMonth(m) > 0)])).sort().reverse();
@@ -20197,9 +20174,9 @@ function renderAmountChart() {
       ${data.map((d, i) => {
         const cx = pad.left + slot * i + slot / 2;
         const totalY = y(d.total), paidY = y(d.paid);
+        const tip = `${d.label}：订单总额 ${summaryMoney(d.total, 'USD')} · 已收 ${summaryMoney(d.paid, 'USD')}`;
         return `
-        <g>
-          <title>${escapeAttr(d.label)}：订单总额 ${summaryMoney(d.total, 'USD')} · 已收 ${summaryMoney(d.paid, 'USD')}</title>
+        <g data-chart-tip="${escapeAttr(tip)}" aria-label="${escapeAttr(tip)}">
           <rect class="chart-bar" x="${cx - bar - 1}" y="${totalY}" width="${bar}" height="${pad.top + chartH - totalY}" rx="${Math.min(4, bar / 3)}"></rect>
           <rect class="chart-bar paid" x="${cx + 1}" y="${paidY}" width="${bar}" height="${pad.top + chartH - paidY}" rx="${Math.min(4, bar / 3)}"></rect>
           ${d.total && mode === 'month' ? `<text class="chart-value" x="${cx}" y="${Math.max(12, totalY - 7)}" text-anchor="middle">${k(d.total)}</text>` : ''}
@@ -32212,17 +32189,19 @@ window.addEventListener('hashchange', () => {
   if (document.querySelector('.page.active')?.id !== `page-${page}`) setPage(page);
 });
 
+// 软件自己的悬停提示条：客户等级字母标（data-level-tooltip）和金额统计柱状图的每一组柱子（data-chart-tip）共用，不用系统的提示条。
 const levelTooltip = document.createElement('div');
 levelTooltip.className = 'level-tooltip';
 document.body.appendChild(levelTooltip);
+const hoverTipTarget = node => node?.closest?.('.level-icon[data-level-tooltip], [data-chart-tip]') || null;
 function moveLevelTooltip(e) {
   levelTooltip.style.left = `${e.clientX + 12}px`;
   levelTooltip.style.top = `${e.clientY + 12}px`;
 }
 document.addEventListener('mouseover', e => {
-  const icon = e.target.closest('.level-icon[data-level-tooltip]');
-  if (!icon) return;
-  levelTooltip.textContent = icon.dataset.levelTooltip;
+  const target = hoverTipTarget(e.target);
+  if (!target) return;
+  levelTooltip.textContent = target.dataset.levelTooltip || target.dataset.chartTip || '';
   levelTooltip.classList.add('show');
   moveLevelTooltip(e);
 });
@@ -32230,7 +32209,9 @@ document.addEventListener('mousemove', e => {
   if (levelTooltip.classList.contains('show')) moveLevelTooltip(e);
 });
 document.addEventListener('mouseout', e => {
-  if (e.target.closest('.level-icon[data-level-tooltip]')) levelTooltip.classList.remove('show');
+  const target = hoverTipTarget(e.target);
+  // 在同一组柱子里从一根移到另一根不算离开。
+  if (target && hoverTipTarget(e.relatedTarget) !== target) levelTooltip.classList.remove('show');
 });
 
 // The page only works when served by the Mac app: data, keys and network calls all go through its local server.

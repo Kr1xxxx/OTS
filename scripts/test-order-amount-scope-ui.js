@@ -34,7 +34,9 @@ async function readAll(page) {
     const analysis = { amount:card('total'), count:card('count'), clients:document.querySelectorAll('#analysisClients .analysis-rank').length };
     setPage('targets');
     renderPerformanceTargets();
-    const targets = { actual:text('targetActual'), count:text('targetOrderCount') };
+    // 业绩目标页的四个格子去掉了：实际完成和订单数看近月目标记录里这个月那一行。
+    const row = document.querySelector(`#targetHistoryList [data-target-pick="${m}"]`);
+    const targets = { actual:row.querySelector('.target-history-values span').textContent, count:row.querySelector('.target-history-count').textContent };
     setPage('dashboard');
     return { dashboard, amount, analysis, targets };
   }, month);

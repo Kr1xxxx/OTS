@@ -159,7 +159,7 @@ const freePort = () => new Promise((resolve, reject) => {
     await confirmClosed(page);
     await h.waitToast(page, '2026年11月目标已设为 $50,000');
     assert.equal(await page.evaluate(() => state.performanceTargets['2026-11']), 50000);
-    assert.equal(await text(page, '#targetGoal'), '$50,000');
+    assert.equal(await text(page, '#targetHistoryList [data-target-pick="2026-11"] .target-history-amount'), '$50,000');
 
     // 3c. 「50,000」照样认；99.6% 显示 99%（以前四舍五入成 100%，看着像完成了）。
     await page.locator('#targetAmountInput').fill('3,012.05');

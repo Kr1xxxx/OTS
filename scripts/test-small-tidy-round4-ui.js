@@ -132,8 +132,10 @@ function assertMoneyCells(cells, label) {
     assert.equal(await page.locator('#statTargetRate').innerText(), '设目标');
     await page.evaluate(() => setPage('targets'));
     await page.waitForFunction(() => document.getElementById('page-targets')?.classList.contains('active'));
-    assert.equal(await page.locator('#targetProgressText').innerText(), '11 月还没设目标');
-    for (const id of ['targetGoal', 'targetRate', 'targetGap']) assert.equal(await page.locator(`#${id}`).textContent(), '', `#${id} stays empty`);
+    // 没设目标的月份：四个格子去掉了（页面整理第三轮），实际完成和订单数写进这一句。
+    assert.match(await page.locator('#targetProgressText').innerText(), /^11 月还没设目标 · 已完成 \$[\d,]+ · \d+ 单$/);
+    assert.equal(await page.locator('#targetRate').textContent(), '', '#targetRate stays empty');
+    assert.equal(await page.locator('#page-targets .target-metric').count(), 0, 'no goal / actual / gap / count cells');
     assert.equal(await page.locator('#page-targets .target-ring-text span').isVisible(), false, '「已完成」 is not shown under an empty ring');
     const targetPageText = await page.locator('#page-targets .target-page').innerText();
     assert.doesNotMatch(targetPageText, /未设|暂未|(^|\s)-(\s|$)/, `no placeholders on the target page: ${targetPageText}`);
@@ -141,7 +143,8 @@ function assertMoneyCells(cells, label) {
     await page.evaluate(() => { state.performanceTargets = { ...(state.performanceTargets || {}), '2026-11':300000 }; render(); renderPerformanceTargets(); });
     assert.match(await page.locator('#targetRate').innerText(), /^\d+%$/);
     assert.equal(await page.locator('#page-targets .target-ring-text span').isVisible(), true);
-    assert.equal(await page.locator('#targetGoal').innerText(), '$300,000');
+    assert.match(await page.locator('#targetProgressText').innerText(), /^完成 \$[\d,]+，还差 \$[\d,]+。$/);
+    assert.equal(await page.locator('#targetHistoryList [data-target-pick="2026-11"] .target-history-amount').innerText(), '$300,000');
     await page.evaluate(() => { delete state.performanceTargets['2026-11']; render(); renderPerformanceTargets(); });
 
     // ---- 4. global search ----

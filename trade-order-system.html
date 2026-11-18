@@ -10042,7 +10042,7 @@ function normalizeActiveOrder(o = {}) {
   const wasShippedWithoutStatus = stage === 'shipment' && (!o.logisticsStatus || o.logisticsStatus === '未发货');
   const normalized = {
     ...o,
-    // 不在内置列表里的国家 / 币种保留原文（阿联酋、Nigeria、XYZ），以前加载时改成「其他」/ USD，下次随便保存一下就永久丢了。
+    // 不在内置列表里的国家 / 币种保留原文（列表里没有的写法、XYZ），以前加载时改成「其他」/ USD，下次随便保存一下就永久丢了。
     country: storedCountry(o.country),
     currency: storedCurrency(o.currency),
     // 老数据 / 导入的单没有归属月份时按下单日补（以前取最后修改时间，10-30 下的单改个备注就归到 11 月）。
@@ -10165,7 +10165,7 @@ function normalizeCountry(value) {
   return countryDefs.find(c => c.toLowerCase().includes(plain)) || '🌐 其他 Other';
 }
 // 只认得准的写法：内置列表原文、同一个国旗、或者中文名 / 英文名整个对上（大小写不论）。
-// 不做子串猜测：Oman 不会变成罗马尼亚（Romania 里含 oman），US 不会变成奥地利。
+// 不做子串猜测：Mania 不会变成罗马尼亚（Romania 里含 mania），US 不会变成奥地利。
 function canonicalCountry(value) {
   const text = String(value || '').trim();
   if (!text) return '';
@@ -12249,7 +12249,7 @@ function openAppSelectFromButton(button) {
 // #endregion
 // #region Suggestion fields: country and other in-app suggestion menus
 // 带建议的输入框：普通文本框，下面的建议列表是 App 自己画的菜单（外框、选中色和别的下拉一样），不用系统的 datalist。
-// 菜单只是建议：列表外的写法（Nigeria、阿联酋、新服务商）照样能填、按原文保存。焦点一直留在文本框里，↑ ↓ 走、回车选、Esc 只收菜单。
+// 菜单只是建议：列表外的写法（拼错的国名、新服务商）照样能填、按原文保存。焦点一直留在文本框里，↑ ↓ 走、回车选、Esc 只收菜单。
 // 数据源：「国家 / 地区」栏（data-country-input）用国家列表；别的栏写 data-suggest，列表由打开表单 / 弹窗的代码用 setSuggestItems() 交进来
 // （合并客户时选目标客户、续费项的服务商）。
 const suggestInputSelector = 'input[data-country-input], input[data-suggest]';
@@ -12299,7 +12299,7 @@ function ensureSuggestMenu() {
   return suggestMenu;
 }
 // 输入什么列什么：认得出的那一项排第一（UK 是英国、不是名字里带 uk 的乌克兰），再是中文名或英文词以它开头的，最后是包含它的。
-// 前两种算「对上了」（strong），回车可以直接选；只在词中间出现的（oman 在 R-oman-ia 里）只列出来，不替人选。
+// 前两种算「对上了」（strong），回车可以直接选；只在词中间出现的（mania 在 Ro-mania 里）只列出来，不替人选。
 function countryMenuMatchGroups(text = '') {
   const typed = String(text || '').trim();
   const needle = normalizeSearchText(typed);
@@ -12378,8 +12378,8 @@ function positionSuggestMenu() {
 // typing=false（点输入框、按 ↑ ↓）：框里是空的或者正好是列表里的一项，就列出全部并高亮这一项，换一个不用先清空。
 // 按打的字筛出来的列表高亮第一项，回车选它（打 germ 回车就是德国，不会把半个名字当国家存下）；
 // 只点了一下（框里是列表外的写法，没在打字）不高亮：回车照常，不会把原来填的换成列表里的。
-// 高亮第一项只给国家栏（suggestSource 的 pickFirst），而且第一项要是认得出的或者词首对上的：打 Oman 只在 Romania 中间出现，
-// 菜单照样列出来（↓ 或鼠标能选），回车留下 Oman，不会存成罗马尼亚。
+// 高亮第一项只给国家栏（suggestSource 的 pickFirst），而且第一项要是认得出的或者词首对上的：打 mania 只在 Romania 中间出现，
+// 菜单照样列出来（↓ 或鼠标能选），回车留下 mania，不会存成罗马尼亚。
 // 续费服务商可以填新名字，打 Ali 回车要留下 Ali，不能换成 Alibaba Cloud；
 // 合并目标打 ada okafor 回车直接进下一步（确认框按不分大小写认人），不用先回车选一下再回车。
 function openSuggestMenu(input, { typing = false } = {}) {
@@ -16202,7 +16202,7 @@ function finishCustomerPasteEdit(confirm = false) {
     if (kind === 'phones' && raw && !/^[+()\d\s.-]+$/.test(raw)) error = '电话号码只能包含数字、空格和 + ( ) - .';
     if (['email','emails','paymentEmail'].includes(key) && value && customerOwnEmailSet().has(value.toLowerCase())) error = '这是我方自己的邮箱（设置 → 客户设置 → 我方邮箱），不能填进客户资料';
     // 国家只认内置写法和常用别名：UK 是英国、US 是美国，不再按子串猜成乌克兰、奥地利。
-    // 列表外的国家（Nigeria、Oman…）按原文保留并提示，和客户表单里手填一样，不丢掉。
+    // 列表外的国家（列表里没有的写法）按原文保留并提示，和客户表单里手填一样，不丢掉。
     let countryOutside = false;
     if (key === 'country' && raw) {
       value = customerCountryFromInput(raw);
@@ -16733,7 +16733,7 @@ ${text}`;
 // - fields：预览用的字段；
 // - aiFieldCount：AI 自己给出、校验通过的字段数（不算从原文找回的邮箱）——为 0 就退回本地识别；
 // - extraEmails：AI 给了邮箱时，原文里另外还有、AI 没采用的邮箱（只列出来让用户点一下再加，不自动填）；
-// - countryOutsideList：AI 给的国家不在内置列表（Nigeria、China…），按原文保留。
+// - countryOutsideList：AI 给的国家不在内置列表（拼错、写成城市名…），按原文保留。
 function normalizeAiCustomerResult(raw = {}, sourceText = '') {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { fields:{}, aiFieldCount:0, extraEmails:[], countryOutsideList:false };
   const listKeys = ['tags','contacts','phones','emails','addresses'];
@@ -16758,7 +16758,7 @@ function normalizeAiCustomerResult(raw = {}, sourceText = '') {
   const address = isAiAddress(addressValue) ? addressValue : '';
   const name = isOrderInfoLine(raw.name || raw.client || raw.customer || '') ? '' : (raw.name || raw.client || raw.customer || '');
   const contact = isOrderInfoLine(raw.contact || raw.contactName || '') ? '' : (raw.contact || raw.contactName || '');
-  // 国家：内置写法或常用别名（UK、USA…）；不在列表里的（Nigeria、China…）按原文保留，不再丢掉、让表单默认的「美国」留着。
+  // 国家：内置写法或常用别名（UK、USA…）；不在列表里的写法按原文保留，不再丢掉、让表单默认的「美国」留着。
   const rawCountry = String(raw.country || '').trim();
   const knownCountry = customerCountryFromInput(rawCountry);
   const keepRawCountry = !knownCountry && /^[\p{L}][\p{L} .'()-]{1,59}$/u.test(rawCountry) && !/^(?:other|others|unknown|n\/?a|其他|未知)$/i.test(rawCountry);
@@ -19042,7 +19042,7 @@ function renderOrderDetail(order, source = 'active') {
   const editable = source === 'active';
   const editField = (label, name, control, full = false) => `<div class="field${full ? ' full' : ''}"><label>${label}</label>${control}</div>`;
   const editOptions = (name, current) => [...(document.querySelector(`#orderForm [name="${name}"]`)?.options || [])].map(opt => `<option value="${escapeAttr(opt.value)}"${opt.value === current ? ' selected' : ''}>${escapeAttr(opt.textContent)}</option>`).join('');
-  // 国家 / 币种显示订单里存的原文：不在内置列表里的（阿联酋、Nigeria、AED）不再显示成「其他」/ USD。
+  // 国家 / 币种显示订单里存的原文：不在内置列表里的（列表外的写法、AED）不再显示成「其他」/ USD。
   const countryText = typeof storedCountry === 'function' ? storedCountry(order.country) : normalizeCountry(order.country);
   const currencyCode = typeof storedCurrency === 'function' ? storedCurrency(order.currency) : (order.currency || 'USD');
   const currencyOptions = currencyDefs.map(c => `<option value="${escapeAttr(c.code)}"${c.code === currencyCode ? ' selected' : ''}>${escapeAttr(`${c.code} · ${c.symbol}`)}</option>`).join('')

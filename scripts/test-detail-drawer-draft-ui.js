@@ -2,7 +2,7 @@
 // 订单详情抽屉（V3.121）：
 // - 草稿点「保存草稿」仍是草稿、不发飞书；转正要点「转为正式订单」，飞书开关沿用用户上次的选择；金额 0 显示成 0；
 // - 抽屉叠在没保存的订单弹窗上时，「›」进抽屉、抽屉保存、完整编辑都先用页面内确认框问，不再静默换掉下面那张单；
-// - 不在内置列表里的国家 / 币种（阿联酋、Nigeria、AED）加载和保存都保留原文；
+// - 不在内置列表里的国家 / 币种（Atlantis、AED）加载和保存都保留原文；
 // - 保存提示不盖住抽屉按钮、阶段变化写进提示、已付负数拦下、已发货单已付只读、没改动不保存、
 //   改币种符号跟着变并记进记录、⌘S / Ctrl+S 保存、阶段条按订单类型画、客户档案不分大小写、定金一行。
 const assert = require('node:assert/strict');
@@ -31,7 +31,7 @@ async function launch() {
       { ...base, id:'s1', num:'K5005', client:'Carl', amount:300, paidAmount:300, orderType:'全款订单', stage:'shipment',
         shipments:[{ id:'s1-1', trackingNumber:'1234567890', carrier:'DHL', status:'运输中', shippedAt:`${month}-02` }] },
       { ...base, id:'uae', num:'K5006', client:'Dubai Co', amount:700, paidAmount:0, orderType:'定金订单', stage:'quote', country:'🇦🇪 阿联酋 United Arab Emirates', currency:'AED' },
-      { ...base, id:'ng', num:'K5007', client:'Lagos Co', amount:900, paidAmount:0, orderType:'定金订单', stage:'quote', country:'Nigeria' },
+      { ...base, id:'ng', num:'K5007', client:'Lagos Co', amount:900, paidAmount:0, orderType:'定金订单', stage:'quote', country:'Atlantis' },
       { ...base, id:'ev', num:'K5008', client:'eve stone', amount:400, paidAmount:0, orderType:'定金订单', stage:'quote', currency:'GBP' }
     ];
     const customers = {
@@ -110,7 +110,7 @@ async function launch() {
     // ===== 06 P1-3：不在内置列表里的国家 / 币种保留原文 =====
     assert.equal((await order('uae')).country, '🇦🇪 阿联酋 United Arab Emirates', '加载时不再改成「其他」');
     assert.equal((await order('uae')).currency, 'AED', '加载时不再改成 USD');
-    assert.equal((await order('ng')).country, 'Nigeria');
+    assert.equal((await order('ng')).country, 'Atlantis');
     await openDrawer('uae');
     assert.equal(await dedit('country').inputValue(), '🇦🇪 阿联酋 United Arab Emirates', '抽屉国家框显示原文');
     assert.match(await page.locator('#detailChips').innerText(), /阿联酋/);
@@ -124,14 +124,14 @@ async function launch() {
     await closeDrawer();
     await page.evaluate(() => openOrder('ng'));
     await page.waitForFunction(() => document.getElementById('orderModal').classList.contains('open'));
-    assert.equal(await page.locator('#orderForm [name="country"]').inputValue(), 'Nigeria');
+    assert.equal(await page.locator('#orderForm [name="country"]').inputValue(), 'Atlantis');
     await typeAtEnd(page.locator('#orderForm [name="note"]'), 'ng note');
     await page.getByRole('button', { name:'保存订单' }).click();
     await page.waitForFunction(() => state.orders.find(o => o.id === 'ng').note === 'ng note' && !document.getElementById('orderModal').classList.contains('open'));
     await flush();
     assert.equal(storedOrder('uae').country, '🇦🇪 阿联酋 United Arab Emirates', '保存后国家原文还在');
     assert.equal(storedOrder('uae').currency, 'AED', '保存后币种还是 AED');
-    assert.equal(storedOrder('ng').country, 'Nigeria');
+    assert.equal(storedOrder('ng').country, 'Atlantis');
     assert.equal(storedOrder('ng').currency, 'USD');
 
     // ===== 06 P1-1：草稿在抽屉里保存仍是草稿，转正要明确操作 =====

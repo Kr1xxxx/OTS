@@ -61,7 +61,7 @@ const orders = [
       { name:'付款截图.jpg', type:'付款截图', fileUrl:'/attachments/test/pay.jpg', thumbUrl:'/attachments/test/pay-thumb.jpg', time:`${day(2)} 11:00`, size:12345 },
       { name:'PI 链接', type:'PI', link:'https://example.com/pi/123', time:`${day(2)} 11:05` }
     ] },
-  { ...base, id:'aed', num:'K25030117', client:'Walk In Buyer', country:'阿联酋', currency:'AED', orderType:'定金订单', stage:'production', amount:2000, paidAmount:500, depositAmount:500, depositPercent:25 },
+  { ...base, id:'aed', num:'K25030117', client:'Walk In Buyer', country:'Atlantis', currency:'AED', orderType:'定金订单', stage:'production', amount:2000, paidAmount:500, depositAmount:500, depositPercent:25 },
   { ...base, id:'dep0', num:'K25030118', client:'Alice Wigs', orderType:'定金订单', stage:'production', amount:1000, paidAmount:400, depositAmount:'', depositPercent:'' },
   { ...base, id:'flags', num:'K25030119', client:'Alice Wigs', orderType:'定金订单', stage:'production', amount:1000, paidAmount:300, depositAmount:300, depositPercent:30, depositAutoPaid:true, paidBeforeDeposit:0 },
   { ...base, id:'copy', num:'K25030120', client:'Alice Wigs', orderType:'定金订单', stage:'quote', amount:600, paidAmount:0, depositAmount:0, depositPercent:0,

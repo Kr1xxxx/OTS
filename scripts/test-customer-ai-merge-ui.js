@@ -136,10 +136,10 @@ const fixture = {
     await recognize(mariaText, { name:'Maria Lopez', phones:['+34 612 345 678'], country:'Spain' });
     await editCountry('UK', /英国/);
     await editCountry('US', /美国/);
-    await editCountry('Nigeria', /Nigeria/);
+    await editCountry('Atlantis', /Atlantis/);
     assert.match(await results(), /不在国家列表里/);
-    await recognize('Ade Bello\nLagos, Nigeria\n+234 803 555 0101', { name:'Ade Bello', country:'Nigeria', phones:['+234 803 555 0101'] }, { rerunAfterEdits:true });
-    assert.match(await page.locator('[data-customer-paste-edit="country"]').innerText(), /Nigeria/, 'an AI country outside the list is kept, not dropped');
+    await recognize('Ade Bello\nPoseidonia, Atlantis\n+234 803 555 0101', { name:'Ade Bello', country:'Atlantis', phones:['+234 803 555 0101'] }, { rerunAfterEdits:true });
+    assert.match(await page.locator('[data-customer-paste-edit="country"]').innerText(), /Atlantis/, 'an AI country outside the list is kept, not dropped');
     await page.evaluate(() => closeCustomerModal());
 
     // ---- P1-4：识别出的是老客户（名称只差 LLC）：「补充到档案」打开老档案，只补空字段、电话追加在后面 ----

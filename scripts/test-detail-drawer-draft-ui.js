@@ -283,9 +283,9 @@ async function launch() {
     assert.equal((await order('q1')).stage, 'production');
     await closeDrawer();
 
-    // ===== 06 P2-3 / P2-6：已发货单已付只读；阶段条按订单类型画、当前阶段不能点 =====
+    // ===== 06 P2-3 / P2-6：已发货单的已付照样能改（2026-11-18 起发货不算收齐）；阶段条按订单类型画、当前阶段不能点 =====
     await openDrawer('s1', 'payment');
-    assert.equal(await dedit('paidAmount').evaluate(el => el.readOnly), true, '已发货单的已付只读');
+    assert.equal(await dedit('paidAmount').evaluate(el => el.readOnly), false, '已发货单的已付可以改');
     assert.equal(await page.locator('#detailStageBar [data-detail-stage="balance"]').count(), 0, '全款单没有尾款');
     assert.equal(await page.locator('#detailStageBar [data-detail-stage="shipment"]').isDisabled(), true, '当前阶段不能点');
     await closeDrawer();
@@ -310,7 +310,7 @@ async function launch() {
     await closeDrawer();
 
     assert.deepEqual(errors, []);
-    console.log('Detail drawer tests passed: draft save/promote and Feishu choice, stacked order modal guard, unknown country/currency kept, toast position, initial focus + tab arrows, no-op save, shortcut save, negative paid, currency symbol + log, stage note, deposit line, read-only paid, stage bar flow, case-insensitive customer.');
+    console.log('Detail drawer tests passed: draft save/promote and Feishu choice, stacked order modal guard, unknown country/currency kept, toast position, initial focus + tab arrows, no-op save, shortcut save, negative paid, currency symbol + log, stage note, deposit line, editable paid on shipped orders, stage bar flow, case-insensitive customer.');
   } finally {
     await browser.close();
   }

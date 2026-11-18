@@ -69,7 +69,6 @@ const orders = [
   { ...base, id:'noowner', num:'K25030121', client:'Walk In Buyer', owner:'', orderType:'定金订单', stage:'quote', amount:900, paidAmount:0, depositAmount:0, depositPercent:0 }
 ];
 const byId = Object.fromEntries(orders.map(o => [o.id, o]));
-const settled = o => ['shipment', 'done'].includes(o.stage);
 const paidOf = o => Number(o.paidAmount || 0);
 
 // ---- edits ----
@@ -103,8 +102,7 @@ orders.forEach(o => {
   add(o, 'amount empty', { amount:'' });
   add(o, 'amount negative', { amount:'-5' });
   if (o.id === 'aed') add(o, 'currency to a listed one and back', { currency:'AED', note:'AED 不变' });
-  if (settled(o)) return;
-  // Payment edits: only where the paid field can be typed into (已发货 / 已完成 show it read-only).
+  // Payment edits: every stage. Since 2026-11-18 已发货 / 已完成 keep the real paid amount and the field can be typed into there too.
   const amount = Number(o.amount);
   const paid = paidOf(o);
   add(o, 'amount down', { amount:String(Math.round(amount * 0.6)) });

@@ -197,7 +197,6 @@ vm.runInContext(html.match(/^const customerPasteFieldOrder = .*;$/m)[0].replace(
   'orderAmountValue',
   'orderPaidValue',
   'orderDueValue',
-  'applyStagePaymentInvariant',
   'applyOrderStageInvariants',
   'normalizeOrderPaymentInput',
   'normalizeOrderProductType',
@@ -620,29 +619,30 @@ const vanessaOrders = [
 ];
 context.vanessaOrders = vanessaOrders;
 assert.equal(vm.runInContext('usdTotal(vanessaOrders)', context), 2958);
-assert.equal(vm.runInContext('usdPaidTotal(vanessaOrders)', context), 2447);
-assert.equal(vm.runInContext('usdDueTotal(vanessaOrders)', context), 511);
-assert.equal(vm.runInContext('applyStagePaymentInvariant(vanessaOrders[0], "shipment")', context), true);
-assert.equal(vanessaOrders[0].paidAmount, 1936);
+// 已发货不再算收齐（2026-11-18）：已发货那张单只收了 968，待收照算。
+assert.equal(vm.runInContext('usdPaidTotal(vanessaOrders)', context), 1479);
+assert.equal(vm.runInContext('usdDueTotal(vanessaOrders)', context), 1479);
+assert.equal(vm.runInContext(`applyOrderStageInvariants(vanessaOrders[0], 'shipment')`, context), true);
+assert.equal(vanessaOrders[0].paidAmount, 968);
 assert.equal(vanessaOrders[0].orderType, '定金订单');
 assert.equal(vanessaOrders[0].depositAmount, 968);
 assert.equal(vanessaOrders[0].depositPercent, 50);
 
 assert.deepEqual(
-  evaluateJson(`normalizeOrderPaymentInput({ paidAmount:600, depositAmount:300, depositPercent:30 }, 1000, '定金订单', 'balance')`),
+  evaluateJson(`normalizeOrderPaymentInput({ paidAmount:600, depositAmount:300, depositPercent:30 }, 1000, '定金订单')`),
   { paidAmount: 600, depositAmount: 300, depositPercent: 30 }
 );
 assert.deepEqual(
-  evaluateJson(`normalizeOrderPaymentInput({ depositAmount:300, depositPercent:30 }, 1000, '定金订单', 'quote')`),
+  evaluateJson(`normalizeOrderPaymentInput({ depositAmount:300, depositPercent:30 }, 1000, '定金订单')`),
   { paidAmount: 0, depositAmount: 300, depositPercent: 30 }
 );
 assert.deepEqual(
-  evaluateJson(`normalizeOrderPaymentInput({}, 1000, '全款订单', 'quote')`),
+  evaluateJson(`normalizeOrderPaymentInput({}, 1000, '全款订单')`),
   { paidAmount: 0, depositAmount: 1000, depositPercent: 100 }
 );
 assert.deepEqual(
-  evaluateJson(`normalizeOrderPaymentInput({ paidAmount:300, depositAmount:300, depositPercent:30 }, 1000, '定金订单', 'shipment')`),
-  { paidAmount: 1000, depositAmount: 300, depositPercent: 30 }
+  evaluateJson(`normalizeOrderPaymentInput({ paidAmount:300, depositAmount:300, depositPercent:30 }, 1000, '定金订单')`),
+  { paidAmount: 300, depositAmount: 300, depositPercent: 30 }
 );
 
 const shipmentOrder = {
@@ -659,7 +659,7 @@ const shipmentOrder = {
 };
 context.shipmentOrder = shipmentOrder;
 assert.equal(vm.runInContext(`applyOrderStageInvariants(shipmentOrder, 'shipment')`, context), true);
-assert.equal(shipmentOrder.paidAmount, 1000);
+assert.equal(shipmentOrder.paidAmount, 300, '进已发货不改已收');
 assert.equal(shipmentOrder.depositAmount, 300);
 assert.equal(shipmentOrder.logisticsStatus, '已发货');
 assert.equal(shipmentOrder.shippedAt, '2026-08-11');

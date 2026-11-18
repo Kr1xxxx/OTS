@@ -112,22 +112,22 @@ const setSelect = (page, selector, value) => page.evaluate(([selector, value]) =
       assert.equal(saved.stage, 'done');
       assert.equal(saved.note, 'edited while tracking runs');
     }
-    // 3. 定金单，用户在弹窗里把阶段选回「待发货」：以用户为准，没收的尾款按退回规则恢复。
+    // 3. 还欠尾款的定金单，用户在弹窗里把阶段选回「待发货」：以用户为准；阶段不动钱，已收还是 800。
     {
-      const deposit = shippedOrder({ orderType:'定金订单', amount:2400, paidAmount:2400, depositAmount:800, depositPercent:33, paidBeforeSettle:800 });
+      const deposit = shippedOrder({ orderType:'定金订单', amount:2400, paidAmount:800, depositAmount:800, depositPercent:33 });
       const { saved } = await runScenario(browser, deposit, page => setSelect(page, '#orderForm [name="stage"]', 'balance'));
       assert.equal(saved.stage, 'balance', 'a stage the user picked wins');
-      assert.equal(saved.paidAmount, 800, 'going back to 待发货 restores what was really paid');
+      assert.equal(saved.paidAmount, 800, 'going back to 待发货 keeps what was really paid');
       assert.equal(saved.note, 'edited while tracking runs');
     }
-    // 4. 还有尾款的定金单只改备注：已完成，已收按收齐记，真实已收（paidBeforeSettle）还在。
+    // 4. 还欠尾款的定金单只改备注：签收后自动进已完成，已收还是 800，欠的 1600 照样是待收（2026-11-18 起不再算收齐）。
     {
-      const deposit = shippedOrder({ orderType:'定金订单', amount:2400, paidAmount:2400, depositAmount:800, depositPercent:33, paidBeforeSettle:800 });
+      const deposit = shippedOrder({ orderType:'定金订单', amount:2400, paidAmount:800, depositAmount:800, depositPercent:33 });
       const { saved } = await runScenario(browser, deposit);
       assert.equal(saved.stage, 'done');
       assert.deepEqual(saved.shipments.map(item => item.status), ['已签收']);
-      assert.equal(saved.paidAmount, 2400, 'the balance still counts as received');
-      assert.equal(saved.paidBeforeSettle, 800, 'the real paid amount is kept');
+      assert.equal(saved.paidAmount, 800, 'delivery does not count the balance as received');
+      assert.equal(saved.paidBeforeSettle, undefined);
       assert.equal(saved.note, 'edited while tracking runs');
     }
     console.log('Tracking vs edit dialog passed: an untouched stage and parcel status follow the order, what the user changed wins.');

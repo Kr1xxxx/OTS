@@ -30,6 +30,10 @@ vm.runInContext(extractFunction('normalizeStage'), context);
 vm.runInContext(extractFunction('isRevenueOrder'), context);
 vm.runInContext(extractFunction('ecbUsdRateForOrder'), context);
 vm.runInContext(extractFunction('orderAmountUsd'), context);
+vm.runInContext(extractFunction('orderAmountValue'), context);
+vm.runInContext(extractFunction('orderPaidValue'), context);
+vm.runInContext(extractFunction('orderDueValue'), context);
+vm.runInContext(extractFunction('roundMoneyValue'), context);
 vm.runInContext(extractFunction('orderPaidUsd'), context);
 vm.runInContext(extractFunction('businessAnalysisForMonth'), context);
 const result = vm.runInContext(`businessAnalysisForMonth(${JSON.stringify([
@@ -93,5 +97,10 @@ assert.deepEqual(JSON.parse(JSON.stringify(snapshot.overdue.map(o=>o.id))),['new
 assert.deepEqual([...snapshot.receivables.map(o=>o.id)].sort(),['b-quote','new','q'], '未收清清单不是订单额，报价单照列（不分月份）');
 assert.equal(snapshot.clients[0].name,'A');
 assert.equal(context.analysisDashboardData([], '2026-08','all','2026-09-08',[]).current.total,0);
-assert.equal(context.analysisDashboardData([{id:'shipped',stage:'shipment',amount:100,paidAmount:0,currency:'USD'}], '2026-08','all','2026-09-08',[]).receivables.length,0, '发货视为收清，不能重复催收');
+// 已发货不再算收清（2026-11-18）：已发货还欠钱的单照样列进「未收清」；收齐了的不列。
+assert.deepEqual(context.analysisDashboardData([
+  {id:'shipped',stage:'shipment',amount:100,paidAmount:0,currency:'USD'},
+  {id:'shippedPaid',stage:'shipment',amount:100,paidAmount:100,currency:'USD'},
+  {id:'donePaid',stage:'done',amount:100,paidAmount:100,currency:'USD'}
+], '2026-08','all','2026-09-08',[]).receivables.map(o=>o.id),['shipped'], '已发货还欠钱的单列进未收清');
 console.log('Business analysis tests passed.');

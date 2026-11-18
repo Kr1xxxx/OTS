@@ -14,9 +14,8 @@ const context = vm.createContext({
   carrierHintFromTrackingText() { return ''; },
   detectCarrier(value) { return value ? 'UPS' : 'auto'; },
   normalizeStage(value) { return ['quote', 'production', 'balance', 'shipment', 'done'].includes(value) ? value : 'quote'; },
-  normalizeOrderPaymentInput(data, amount, orderType, stage) {
-    let paidAmount = Math.min(amount, Math.max(0, Number(data.paidAmount || 0)));
-    if (stage === 'shipment' || stage === 'done') paidAmount = amount;
+  normalizeOrderPaymentInput(data, amount) {
+    const paidAmount = Math.min(amount, Math.max(0, Number(data.paidAmount || 0)));
     return {
       paidAmount,
       depositAmount: Math.min(amount, Math.max(0, Number(data.depositAmount || 0))),

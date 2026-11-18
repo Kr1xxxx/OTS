@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // 多批物流 / 部分发货（V3.121）：
-// - UPS 满 5 天自动完成只推一次，用户拖回「已发货」后刷新、重画、重启都不再推回去；
+// - UPS 的单不再按发货天数自动完成（2026-11-18 起手动确认）；手动移到已完成再拖回「已发货」，记住当时的批次（autoDoneHold），重启后还在；
 // - 订单物流状态按全部批次汇总（列表、「物流异常」筛选、看板标签），抽屉「物流」页列出所有批次；
 // - 「还有批次没发」（部分发货）时全部签收也不进已完成，看板 / 列表 / 抽屉写明部分发货，跟进提醒继续；
 // - 承运商原文状态（On FedEx vehicle for delivery、Not delivered…）换成标准状态再存，刷新后不丢；
@@ -30,7 +30,7 @@ async function launch() {
     const html = fs.readFileSync(path.join(__dirname, '..', 'trade-order-system.html'), 'utf8');
     const base = { currency:'USD', logisticsStatus:'未发货', createdAt:`${month}-01`, orderMonth:month, updated:`${daysAgo(9)} 09:00`, logs:[], productType:'假发', paymentChannel:'Paypal', owner:'未分配', country:'🇺🇸 美国 United States' };
     const orders = [
-      // UPS 发货 8 天：启动时按规则自动完成一次。
+      // UPS 发货 8 天：不再自动完成，留在已发货等用户手动确认。
       { ...base, id:'u1', num:'K3001', client:'Ups Bounce', amount:500, paidAmount:500, orderType:'全款订单', stage:'shipment',
         shipments:[{ id:'ups-1', trackingNumber:'1Z999AA10123456784', carrier:'UPS', status:'已发货', shippedAt:daysAgo(8) }] },
       // 三批：签收 / 在途 / 异常。
@@ -116,27 +116,27 @@ async function launch() {
       await page.waitForFunction(() => !document.getElementById('orderDetailDrawer').classList.contains('open'));
     };
 
-    // ===== 07 P1-1：UPS 满 5 天只推一次，拖回已发货后不再被推回去 =====
+    // ===== UPS 发货 8 天不自动完成；手动移到已完成、再拖回已发货：记住拖回时的批次 =====
     let u1 = await order('u1');
-    assert.equal(u1.stage, 'done', 'UPS 发货满 5 天的单启动时自动完成');
-    assert.equal(u1.logs.filter(log => /UPS 发货满 5 天/.test(log.text)).length, 1);
-    assert.ok(await page.evaluate(() => uiNotifEvents().some(item => item.orderId === 'u1' && /UPS 发货满 5 天/.test(item.title))), 'UPS 自动完成时铃铛里有一条通知');
+    assert.equal(u1.stage, 'shipment', 'UPS 发货 8 天的单启动时不再自动完成');
+    assert.equal(u1.logs.filter(log => /UPS/.test(log.text)).length, 0);
+    assert.equal(await page.evaluate(() => uiNotifEvents().some(item => item.orderId === 'u1')), false, '没有 UPS 自动完成的通知');
     await openDrawer('u1', 'info');
+    await page.locator('#detailStageBar [data-detail-stage="done"]').click();
+    await page.waitForFunction(() => state.orders.find(o => o.id === 'u1').stage === 'done');
     await page.locator('#detailStageBar [data-detail-stage="shipment"]').click();
     await page.waitForFunction(() => state.orders.find(o => o.id === 'u1').stage === 'shipment');
-    // 以前每次 render 都跑 UPS 规则，画面一刷新就被推回已完成。
-    await page.evaluate(() => { render(); render(); setPage('order-list'); setPage('dashboard'); checkUpsAutoCompletion(); });
+    await page.evaluate(() => { render(); render(); setPage('order-list'); setPage('dashboard'); });
     await closeDrawer();
-    await page.evaluate(() => checkUpsAutoCompletion());
     u1 = await order('u1');
-    assert.equal(u1.stage, 'shipment', '用户拖回已发货后，重画 / 定时检查都不能再推回已完成');
+    assert.equal(u1.stage, 'shipment', '用户拖回已发货后，重画不会再推回已完成');
     assert.equal(u1.autoDoneHold, '1Z999AA10123456784', '记住用户拖回时的批次');
     await flush();
     assert.equal(storedOrder('u1').autoDoneHold, '1Z999AA10123456784', '拖回的记号存进数据库，重启后还在');
     await load();
     u1 = await order('u1');
-    assert.equal(u1.stage, 'shipment', '重启后启动检查也不再推回已完成');
-    assert.equal(u1.logs.filter(log => /UPS 发货满 5 天/.test(log.text)).length, 1, 'UPS 自动完成只记一次');
+    assert.equal(u1.stage, 'shipment', '重启后还在已发货');
+    assert.equal(u1.logs.filter(log => /UPS/.test(log.text)).length, 0, '重启后也没有 UPS 自动完成的记录');
 
     // ===== 07 P1-3：订单物流状态按全部批次汇总 =====
     const m1Summary = await page.evaluate(() => orderLogisticsSummary(state.orders.find(o => o.id === 'm1')));

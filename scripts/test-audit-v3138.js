@@ -60,7 +60,7 @@ const rates = [{ date:`${month}-01`, rates:{ EUR:1, USD:1.0837, GBP:0.8431, AUD:
 
 async function copyTests(browser) {
   const orders = [
-    // Really received 300; 已完成 counts the rest as collected and remembers the 300.
+    // Old data: 已完成 used to count the rest as collected and remember the real 300 in paidBeforeSettle.
     { ...base, id:'o-src', num:'SRC-1', client:'Copy Source', amount:1000, paidAmount:1000, paidBeforeSettle:300, paidBeforeDeposit:0, depositAutoPaid:300,
       autoDoneHold:true, partialShipment:true, orderType:'定金订单', depositAmount:300, depositPercent:30, stage:'done', updated:`${day(1)} 09:00`,
       shipments:[{ id:'sh1', trackingNumber:'1234567890', carrier:'DHL', status:'已签收', shippedAt:day(1), updated:`${day(1)} 09:00` }] }
@@ -80,17 +80,17 @@ async function copyTests(browser) {
     assert.equal(copy.partialShipment === true, false, 'the copy is not a partial shipment');
     assert.equal(copy.stage, 'quote');
     assert.equal(copy.paidAmount, 0);
-    // Record 600 on the copy, ship it, move it back: the 600 must come back (the source's 300 used to).
+    // Record 600 on the copy, ship it, move it back: the copy keeps its own 600 throughout (the source's 300 used to come back).
     const paidAfterRoundTrip = await page.evaluate(id => {
       const c = state.orders.find(o => o.id === id);
       c.paidAmount = 600;
       c.stage = 'production';
       moveOrderToStage(id, 'shipment');
-      const settled = state.orders.find(o => o.id === id).paidAmount;
+      const shipped = state.orders.find(o => o.id === id).paidAmount;
       moveOrderToStage(id, 'production');
-      return { settled, back:state.orders.find(o => o.id === id).paidAmount };
+      return { shipped, back:state.orders.find(o => o.id === id).paidAmount };
     }, copy.id);
-    assert.deepEqual(paidAfterRoundTrip, { settled:1000, back:600 }, 'moving the copy out of 已发货 restores what was really received on the copy');
+    assert.deepEqual(paidAfterRoundTrip, { shipped:600, back:600 }, 'shipping the copy and moving it back keeps what was really received on the copy');
     // A deposit typed by hand on the copy is not "an automatically recorded deposit" of the source order.
     const paidInQuote = await page.evaluate(id => {
       const c = state.orders.find(o => o.id === id);

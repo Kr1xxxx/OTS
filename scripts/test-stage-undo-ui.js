@@ -3,8 +3,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
 
-// Moving an order to 已发货 / 已完成 also marks the balance paid and the shipment sent.
-// Undo must put those back, not only the stage. Also covers the calendar agenda and
+// Moving an order to 已发货 / 已完成 marks the shipment sent (since 2026-11-18 it no longer marks the balance paid).
+// Undo must put that back, not only the stage. Also covers the calendar agenda and
 // the amount chart axis on an empty month.
 (async () => {
   const browser = await chromium.launch({headless:true});
@@ -45,7 +45,7 @@ const { chromium } = require('playwright');
     await page.locator('#detailStageBar [data-detail-stage="shipment"]').click();
     const moved = await snapshot();
     assert.equal(moved.stage,'shipment');
-    assert.equal(moved.paidAmount,1000,'entering 已发货 should mark the balance as paid');
+    assert.equal(moved.paidAmount,300,'entering 已发货 no longer marks the balance as paid (2026-11-18)');
     assert.equal(moved.logisticsStatus,'已发货');
 
     // A real press lasts about 80 ms. If the toast is still sliding in between press and release, the release lands
@@ -81,6 +81,6 @@ const { chromium } = require('playwright');
     assert.equal(await page.locator('#amountMonth').count(),0,'数字卡 no longer has its own month');
 
     assert.equal(errors.length,0,errors.join('\n'));
-    console.log('Stage undo UI passed: undo restores payment and shipment, keeps later edits, saves; agenda shows every entry; empty chart axis is unique.');
+    console.log('Stage undo UI passed: undo restores stage and shipment, keeps later edits, saves; agenda shows every entry; empty chart axis is unique.');
   } finally { await browser.close(); }
 })().catch(error=>{console.error(error);process.exitCode=1;});

@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const { launchBrowser, openBoard, h, base, day } = require('./helpers/board-page');
 
 // 看板真实鼠标拖拽（mouse.down / move / up）：
-// - 拖错列再拖回：报价 → 尾款自动记的定金，拖回报价时恢复为没收；已发货 → 生产中恢复「尾款视为已收齐」之前的真实已收；
+// - 拖错列再拖回：报价 → 尾款自动记的定金，拖回报价时恢复为没收；进出已发货已收不变（阶段不动钱）；
 // - 放不进去的列（全款 → 尾款、草稿 → 已发货）拖过去时画成禁止样式，松手不移动、说明原因、不播落地动画；
 // - 拖出去带的是给人看的文字，不是内部 id；
 // - 提示写明是哪张单；同一张单只留最新一条撤销，撤销只还原那一次移动、记录只追加；之后又被改过的撤销作废；
@@ -59,21 +59,21 @@ const orders = [
     await h.waitToast(page, 'K104 Real Deposit 已移动到报价');
     assert.match((await h.toasts(page)).join('|'), /已收 \$600 USD 是登记过的收款，没有清零/);
 
-    // ===== 09 P1-1：生产中（实收 300）→ 已发货 → 拖回生产中，恢复 300 =====
+    // ===== 生产中（实收 300）→ 已发货 → 拖回生产中：已收一直是 300（2026-11-18 起进已发货不再算收齐）=====
     await h.drag(page, 'p1', 'shipment');
     await page.waitForFunction(() => state.orders.find(o => o.id === 'p1').stage === 'shipment');
     let p1 = await h.order(page, 'p1');
-    assert.equal(p1.paidAmount, 1000);
-    assert.equal(p1.paidBeforeSettle, 300);
-    await h.waitToast(page, '尾款 $700 USD 视为已收齐');
+    assert.equal(p1.paidAmount, 300);
+    assert.equal(p1.paidBeforeSettle, undefined);
+    await h.waitToast(page, 'K105 Prod Deposit 已移动到已发货');
+    assert.doesNotMatch((await h.toasts(page)).join('|'), /收齐/);
     await page.waitForSelector('#trackingQuickCard');
     await page.locator('#trackingQuickCard [data-track-skip]').click();
     await page.waitForFunction(() => !document.getElementById('trackingQuickCard'));
     await h.drag(page, 'p1', 'production');
     await page.waitForFunction(() => state.orders.find(o => o.id === 'p1').stage === 'production');
     p1 = await h.order(page, 'p1');
-    assert.equal(p1.paidAmount, 300, '退回生产中也恢复真实已收（以前一直是 $1,000）');
-    assert.equal(p1.paidBeforeSettle, undefined);
+    assert.equal(p1.paidAmount, 300, '退回生产中已收不变');
     assert.equal(p1.logisticsStatus, '未发货', '没有单号的单退回后不再标成已发货');
 
     // ===== 08 P2-4 / P2-2：放不进去的列 =====

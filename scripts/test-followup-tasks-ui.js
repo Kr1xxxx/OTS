@@ -317,6 +317,34 @@ const contrast = page => page.evaluate(() => {
     assert.deepEqual(night.errors, [], night.errors.join('\n'));
     await night.context.close();
 
+    // 10. 已发货还欠钱的单也出收款提醒（用户 2026-11-18：进已发货不再算收齐）：「已催款」后 3 天再出，收齐后消失；
+    //     已发货收齐的、已完成还欠钱的都没有收款提醒（已完成的欠款由待收款卡兜着）。
+    const shippedData = { orders:[
+      { ...base, id:'x1', num:'K9101', client:'Shipped Owes', amount:1000, paidAmount:300, stage:'shipment', createdAt:day(-20), updated:`${day(-1)} 09:00`, logisticsStatus:'运输中', shippedAt:day(-2), trackingNumber:'1Z000AA10123456780', carrier:'UPS', shipments:[{ trackingNumber:'1Z000AA10123456780', carrier:'UPS', status:'运输中', shippedAt:day(-2) }] },
+      { ...base, id:'x2', num:'K9102', client:'Shipped Paid', amount:500, paidAmount:500, stage:'shipment', createdAt:day(-20), updated:`${day(-1)} 09:00`, logisticsStatus:'运输中', shippedAt:day(-2), trackingNumber:'1Z999AA10123456784', carrier:'UPS', shipments:[{ trackingNumber:'1Z999AA10123456784', carrier:'UPS', status:'运输中', shippedAt:day(-2) }] },
+      { ...base, id:'x3', num:'K9103', client:'Done Owes', amount:800, paidAmount:200, stage:'done', createdAt:day(-20), updated:`${day(-1)} 09:00`, logisticsStatus:'已签收', shippedAt:day(-5) }
+    ], customers:{} };
+    const shipped = await openApp(browser, { data:shippedData });
+    await shipped.page.evaluate(() => setPage('dashboard'));
+    assert.deepEqual(await shipped.page.evaluate(() => buildTaskItems().filter(t => t.type === 'payment').map(t => `${t.id}|${t.reason}`)), ['payment-x1|待收款 $700 USD']);
+    await shipped.page.waitForSelector('#taskList .task[data-task-id="payment-x1"]');
+    await clickIn(shipped.page, '#taskList .task[data-task-id="payment-x1"] .task-tick');
+    await shipped.page.waitForFunction(() => !document.querySelector('#taskList .task[data-task-id="payment-x1"]'));
+    assert.equal(await shipped.page.evaluate(() => state.doneTasks['payment-x1-300']?.until), day(3));
+    await shipped.page.evaluate(() => flushPendingSave());
+    await shipped.context.close();
+    // 3 天后再打开：又出来了。
+    const later = await openApp(browser, { time:at(day(3)), store:shipped.store });
+    await later.page.evaluate(() => setPage('dashboard'));
+    await later.page.waitForSelector('#taskList .task[data-task-id="payment-x1"]');
+    // 收齐：提醒消失。
+    await later.page.evaluate(() => quickMarkPaidFull('x1'));
+    await later.page.waitForFunction(() => !document.querySelector('#taskList .task[data-task-id="payment-x1"]'));
+    assert.deepEqual(await later.page.evaluate(() => buildTaskItems({ includeDone:true }).filter(t => t.type === 'payment').map(t => t.id)), []);
+    assert.equal(await later.page.evaluate(() => state.orders.find(o => o.id === 'x1').stage), 'shipment', '收齐后留在已发货');
+    assert.deepEqual([...shipped.errors, ...later.errors], []);
+    await later.context.close();
+
     console.log('Follow-up tasks UI passed: one today count across card / subtitle / list, labelled done buttons with 3:1 contrast, 已催款 with undo + order log + 已处理 restore, persisted 稍后 with undo, honest 逾期 wording, 已催款 keeps the 30-day overdue total, 14-row cap with expand, calendar follow tone, customer 待跟进 = repurchase tasks, midnight rollover refresh.');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

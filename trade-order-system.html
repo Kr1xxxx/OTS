@@ -9764,6 +9764,7 @@ function normalizeOrderPaymentInput(data = {}, amountValue = 0, orderTypeValue =
   let paidAmount = hasValue(data.paidAmount) ? clampMoney(data.paidAmount) : null;
   let depositAmount = hasValue(data.depositAmount) ? clampMoney(data.depositAmount) : null;
   let depositPercentValue = hasValue(data.depositPercent) ? Math.min(100, Math.max(0, Number(data.depositPercent))) : null;
+  let depositFromPaid = false;
   if (orderType === '全款订单') {
     depositAmount = amount;
     depositPercentValue = amount > 0 ? 100 : 0;
@@ -9774,9 +9775,17 @@ function normalizeOrderPaymentInput(data = {}, amountValue = 0, orderTypeValue =
     // 定金没填（空或 0、比例也没填）、已收有数：收到的就是定金，按已收记——和粘贴识别、订单表单回显同一个口径。
     // 以前存成 0，再打开表单时定金框回显成已收，随便保存一次就从 0 变成已收，记录里还多一条「定金」改动。
     // 载入时也按这条算，以前存成 0 的单不用等下一次保存。
+    // 这样推出来的定金带上 depositFromPaid：它不是谈好的定金，已收清回 0 时跟着清掉，
+    // 不留到下次拖进生产中被当成约定定金自动记成已收（adjustPaymentForManualMove 也不认它）。
     if (!(depositAmount > 0) && !(depositPercentValue > 0) && paidAmount > 0) {
       depositAmount = paidAmount;
       depositPercentValue = null;
+      depositFromPaid = true;
+    } else if (data.depositFromPaid === true && !(paidAmount > 0)) {
+      depositAmount = 0;
+      depositPercentValue = null;
+    } else {
+      depositFromPaid = data.depositFromPaid === true && depositAmount > 0;
     }
     if (depositAmount === null) depositAmount = 0;
     if (depositPercentValue === null) depositPercentValue = depositPercent(amount, depositAmount);
@@ -9784,7 +9793,8 @@ function normalizeOrderPaymentInput(data = {}, amountValue = 0, orderTypeValue =
   return {
     paidAmount: clampMoney(paidAmount),
     depositAmount: clampMoney(depositAmount),
-    depositPercent: roundMoneyValue(depositPercentValue)
+    depositPercent: roundMoneyValue(depositPercentValue),
+    ...(depositFromPaid ? { depositFromPaid:true } : {})
   };
 }
 function normalizeOrderShipments(order = {}) {
@@ -9897,7 +9907,7 @@ function normalizeActiveOrder(o = {}) {
   const shipments = normalizeOrderShipments({ ...o, stage });
   const primaryShipment = shipments[0];
   const wasShippedWithoutStatus = stage === 'shipment' && (!o.logisticsStatus || o.logisticsStatus === '未发货');
-  return {
+  const normalized = {
     ...o,
     // 不在内置列表里的国家 / 币种保留原文（阿联酋、Nigeria、XYZ），以前加载时改成「其他」/ USD，下次随便保存一下就永久丢了。
     country: storedCountry(o.country),
@@ -9925,6 +9935,8 @@ function normalizeActiveOrder(o = {}) {
     isDraft: o.isDraft === true || o.isDraft === 'true',
     stage
   };
+  if (!payment.depositFromPaid) delete normalized.depositFromPaid;
+  return normalized;
 }
 function normalizeArchivedOrder(o = {}, timeKey = 'trashedAt') {
   const normalized = normalizeActiveOrder(o);
@@ -24535,7 +24547,9 @@ function buildOrderFromFormData(data = {}, { existing = null, isDraft = false, s
   const amount = Math.max(0, roundMoneyValue(data.amount));
   const orderType = data.orderType || '定金订单';
   const selectedStage = normalizeStage(data.stage);
-  const paymentValues = normalizeOrderPaymentInput(data, amount, orderType);
+  // 定金是按已收推出来的、表单里定金没改：标记跟着走（已收清回 0 时定金跟着清）；改过定金就是用户自己填的。
+  const depositStillFromPaid = existing?.depositFromPaid === true && roundMoneyValue(data.depositAmount) === roundMoneyValue(existing.depositAmount);
+  const paymentValues = normalizeOrderPaymentInput({ ...data, depositFromPaid:depositStillFromPaid }, amount, orderType);
   // 草稿转正式单时阶段也按收款推断，和新建一样；编辑已有订单时登记了收款也会推进（见 resolveOrderSaveStage）。
   const stageValue = resolveOrderSaveStage({
     existing,
@@ -24609,6 +24623,7 @@ function buildOrderFromFormData(data = {}, { existing = null, isDraft = false, s
     orderType,
     depositAmount: paymentValues.depositAmount,
     depositPercent: paymentValues.depositPercent,
+    ...(paymentValues.depositFromPaid ? { depositFromPaid:true } : {}),
     stage: stageValue,
     // 「下一步」：订单弹窗和抽屉都能改（表单里有这个字段）；没交这个字段的入口沿用原来的值。
     next: data.next !== undefined ? String(data.next || '').trim() : (existing?.next || ''),
@@ -25150,7 +25165,7 @@ function adjustPaymentForManualMove(order, fromStage, toStage) {
   const to = normalizeStage(toStage);
   const amount = orderAmountValue(order);
   let text = '';
-  if (from === 'quote' && ['production', 'balance'].includes(to) && (order.orderType || '定金订单') === '定金订单' && Number(order.paidAmount || 0) <= 0 && Number(order.depositAmount || 0) > 0) {
+  if (from === 'quote' && ['production', 'balance'].includes(to) && (order.orderType || '定金订单') === '定金订单' && Number(order.paidAmount || 0) <= 0 && Number(order.depositAmount || 0) > 0 && order.depositFromPaid !== true) {
     order.paidBeforeDeposit = Math.max(0, Number(order.paidAmount || 0));
     order.paidAmount = Math.min(amount, Number(order.depositAmount));
     order.depositAutoPaid = order.paidAmount;

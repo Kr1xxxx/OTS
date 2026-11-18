@@ -12,7 +12,7 @@ vm.runInContext(html.match(/const subscriptionFuturePeriods = [^;]+;/)[0].replac
   'subscriptionCycle', 'subscriptionChargeDate', 'subscriptionCycleEvery', 'subscriptionCycleLabel', 'subscriptionChargeIndex', 'subscriptionSchedule', 'subscriptionSummary', 'subscriptionCompare', 'subscriptionWhen', 'subscriptionRemindWindow',
   'subscriptionInitial', 'subscriptionDayAfter', 'subscriptionPriceChanges', 'subscriptionPriceAt', 'subscriptionToCny', 'subscriptionStopBound', 'subscriptionCharges',
   'subscriptionMonthShift', 'subscriptionMonthEnd', 'subscriptionStopPreset', 'subscriptionWithPrice',
-  'subscriptionPricer', 'subscriptionTerms', 'subscriptionFirstStart', 'subscriptionManualTracked', 'subscriptionPaidMark', 'subscriptionChargeState', 'subscriptionTermTotals', 'subscriptionTermOffset',
+  'subscriptionPricer', 'subscriptionTerms', 'subscriptionFirstStart', 'subscriptionManualTracked', 'subscriptionPaidMark', 'subscriptionChargeState', 'subscriptionTermCount', 'subscriptionTermEnd', 'subscriptionTermTotals', 'subscriptionTermOffset',
   'subscriptionDefaultRemindWindow', 'subscriptionWhenDate', 'subscriptionPeriods'
 ].forEach(name => vm.runInContext(extractFunction(name), context));
 const call = (name, ...args) => context[name](...args);
@@ -214,6 +214,16 @@ assert.equal(call('subscriptionFirstStart', switched), '2026-01-05');
 // A term ends at the first charge not paid yet, so every charge in it was paid, whatever today is
 // (a manual renewal renewed early and then changed from the next period has one dated after today).
 assert.deepEqual(JSON.parse(JSON.stringify(call('subscriptionTermTotals', switched, 7))), { charges:3, spentCny:32 * 7, byCurrency:{ USD:32 } }, 'every charge under earlier settings counts');
+// A stop date entered later that falls inside an earlier term ends that term's charges too (the save dialog says so).
+const stoppedEarly = item({
+  startDate:'2026-06-10', amount:10, currency:'CNY', cycleUnit:'month', cycleCount:1, cycleMonths:undefined, stopOn:'2026-03-31',
+  terms:[{ startDate:'2026-01-10', until:'2026-06-10', amount:10, currency:'CNY', cycleUnit:'month', cycleCount:1, priceChanges:[], paymentMethod:'卡 A', category:'软件' }]
+});
+assert.deepEqual(JSON.parse(JSON.stringify(call('subscriptionTermTotals', stoppedEarly, 7))), { charges:3, spentCny:30, byCurrency:{ CNY:30 } }, 'charges after the stop date are not counted');
+assert.deepEqual(Array.from(call('subscriptionCharges', stoppedEarly, '2026-01-01', '2026-11-18', 7, { today:'2026-11-18' }), charge => `${charge.date}#${charge.index}`),
+  ['2026-01-10#0', '2026-02-10#1', '2026-03-10#2']);
+assert.equal(call('subscriptionSchedule', stoppedEarly, '2026-11-18', 7).spent, 30);
+assert.equal(call('subscriptionTermOffset', stoppedEarly), 5, 'numbering still counts the whole term');
 
 // Manual renewals with a confirmed date: a due date that passes without 「已续费」 is overdue, not paid.
 const domain = item({ startDate:'2025-04-10', cycleMonths:12, amount:60, autoRenew:false, renewedThrough:'2025-04-10' });

@@ -18609,12 +18609,13 @@ async function uiDetailRemoveAttachment(index) {
     uiDetailSyncAttachmentBusy();
   }
 }
-// 抽屉开在「附件」页、焦点不在输入框里、上面没有别的弹窗时，粘贴的图片加进这张单（订单弹窗开着时归弹窗）。
+// 抽屉开在「附件」页、焦点不在输入框里、上面没有别的弹窗时，粘贴的图片加进这张单。
+// 抽屉叠在订单弹窗上时抽屉在上面，归抽屉（加之前 uiDetailGuardOrderModal 先问、关掉弹窗）；弹窗已经接了这次粘贴就不再接。
 function handleDetailImagePaste(e) {
-  if (document.getElementById('orderModal')?.classList.contains('open')) return;
+  if (e.defaultPrevented) return;
   const drawer = document.getElementById('orderDetailDrawer');
   if (!drawer?.classList.contains('open') || uiDetailTab.current !== 'attachments') return;
-  if (document.querySelector('.modal-backdrop.open:not(#orderDetailDrawer)')) return;
+  if (document.querySelector('.modal-backdrop.open:not(#orderDetailDrawer):not(#orderModal)')) return;
   if (!document.querySelector('#orderDetailBody [data-detail-tab="attachments"]:not([hidden]) [data-detail-attach-drop]')) return;
   const active = document.activeElement;
   if (active?.closest?.('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) return;

@@ -2,7 +2,7 @@
 // 占用空间（mac-app/storage-usage.js）的口径，在一个临时目录里搭出数据文件夹、备份和 .app：
 // - 软件本身 = .app 整个包，运行环境单独报；没有 .app 时为 null；
 // - 图片和附件：订单在用的按订单汇总（占得最多的在前、只取 top 张），缩略图单独算，没人用的算「不再使用」；
-// - 备份：数据库副本照算；备份附件夹里和原图一样（克隆）或和更早备份同一个文件（硬链接）的只算一次，记进 sharedBytes；
+// - 备份：只认 OTS 起名的备份和它旁边的文件夹、.missing.json（用户选的备份目录里别的东西不算）；数据库副本照算；备份附件夹里和原图一样（克隆）或和更早备份同一个文件（硬链接）的只算一次，记进 sharedBytes；
 //   和原图不一样的（换过的图）照算；
 // - 数据库含 -wal；缓存目录照算；其他 = 数据目录里剩下的；一共 = 各项相加。
 const assert = require('node:assert/strict');
@@ -41,8 +41,8 @@ const sum = files => files.reduce((total, file) => total + bytes(file), 0);
     const unused = write(path.join(attachments, 'K1', 'IMG_old.png'), 700000, old);
 
     // 第一份备份：附件和原图一模一样（在 Mac 上是克隆）；第二份：同一张图是第一份的硬链接，另有一张和原图不一样的。
-    const first = path.join(backups, 'trade-order-data-2026-01-01-000000.sqlite');
-    const second = path.join(backups, 'trade-order-data-2026-01-02-000000.sqlite');
+    const first = path.join(backups, 'trade-order-data-20260101-000000.sqlite');
+    const second = path.join(backups, 'trade-order-data-20260102-000000.sqlite');
     const copies = [write(first, 80000), write(second, 85000)];
     const firstAtt = `${first}.attachments`;
     const secondAtt = `${second}.attachments`;
@@ -51,6 +51,11 @@ const sum = files => files.reduce((total, file) => total + bytes(file), 0);
     fs.mkdirSync(path.join(secondAtt, 'K1'), { recursive:true });
     fs.linkSync(clone, path.join(secondAtt, 'K1', 'IMG_1.webp'));
     const changed = write(path.join(secondAtt, 'K2', 'IMG_3.webp'), 123000, new Date('2025-06-01T00:00:00Z'));
+    const missingNote = write(`${second}.missing.json`, 300);
+    // 备份目录是用户自己选的文件夹（iCloud、网盘）时，里面别的东西不算备份。
+    write(path.join(backups, 'notes.sqlite'), 50000);
+    write(path.join(backups, 'Photos', 'holiday.jpg'), 600000);
+    write(path.join(backups, 'other.attachments', 'x.png'), 40000);
 
     const owners = [
       { label:'K1', files:[a1, a1t, a2] },
@@ -81,7 +86,7 @@ const sum = files => files.reduce((total, file) => total + bytes(file), 0);
 
     const bk = result.backups;
     // 克隆的 IMG_1 和 IMG_old、第二份里 IMG_1 的硬链接都共用；换过的 IMG_3 照算。
-    assert.equal(bk.bytes, sum([...copies, changed]), 'backups: database copies and the changed image only');
+    assert.equal(bk.bytes, sum([...copies, changed, missingNote]), 'backups: database copies, the missing-files note and the changed image only; other files in the folder are not backups');
     assert.equal(bk.sharedBytes, sum([clone, cloneOld, clone]), 'shared copies are reported for the Finder note');
     assert.equal(bk.count, 2, 'two backups');
     assert.equal(bk.insideData, true);
@@ -94,7 +99,7 @@ const sum = files => files.reduce((total, file) => total + bytes(file), 0);
     const later = await measureStorage({ supportDir:support, attachmentsDir:attachments, databaseFile:database, backupDir:backups, owners });
     assert.equal(later.app, null, 'no .app: app is null');
     assert.equal(later.attachments.unusedFiles, 0);
-    assert.equal(later.backups.bytes, sum([...copies, changed, cloneOld]), 'the only copy left of a deleted original belongs to the backups');
+    assert.equal(later.backups.bytes, sum([...copies, changed, missingNote, cloneOld]), 'the only copy left of a deleted original belongs to the backups');
     // 没给 thumbs 时按文件名里的 -thumb 认缩略图。
     assert.equal(later.attachments.thumbBytes, bytes(a1t));
 

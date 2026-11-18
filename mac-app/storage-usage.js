@@ -10,6 +10,7 @@
 const fs = require('fs');
 const path = require('path');
 const { sameAttachment } = require('./backup-attachments');
+const { isOtsBackupFile } = require('./backup-names');
 
 const thumbPattern = /-thumb(?:-\d+)?\.[a-z0-9]+$/i;
 
@@ -121,12 +122,15 @@ async function measureStorage({
   const seenCopies = new Map();
   let entries = [];
   try { entries = await fs.promises.readdir(backupDir, { withFileTypes: true }); } catch (_) {}
+  // 备份目录可以是用户自己选的文件夹（iCloud、网盘），里面可能还有别的东西：只认 OTS 起名的备份、它旁边的 .missing.json 和 .attachments 文件夹。
+  const ownName = name => isOtsBackupFile(name) || isOtsBackupFile(name.replace(/\.(missing\.json|attachments)$/, ''));
   for (const entry of entries) {
+    if (!ownName(entry.name)) continue;
     const full = path.join(backupDir, entry.name);
     if (entry.isFile()) {
       const stat = await lstat(full);
       backups.bytes += diskBytes(stat);
-      if (/\.(sqlite|json)$/.test(entry.name) && !entry.name.endsWith('.missing.json')) backups.count += 1;
+      if (isOtsBackupFile(entry.name)) backups.count += 1;
       continue;
     }
     if (!entry.isDirectory()) continue;

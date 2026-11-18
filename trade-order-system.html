@@ -26426,7 +26426,7 @@ function storageUsageBlocks(usage = {}) {
   const items = [];
   const top = (files.top || []).map(order => `${order.label} ${size(order.bytes)}`).join('、');
   if (bytes(files.files)) items.push({ text:`在用 ${bytes(files.files)} 个 · ${size(bytes(files.bytes) - bytes(files.unusedBytes))}`, detail:top ? `占得最多的订单：${top}` : '' });
-  if (bytes(files.unusedFiles)) items.push({ text:`不再使用的旧文件 ${bytes(files.unusedFiles)} 个 · ${size(files.unusedBytes)}`, detail:'订单已经不用了，留给备份；下次打开软件时，备份也不用的会自动删掉' });
+  if (bytes(files.unusedFiles)) items.push({ text:`不再使用的旧文件 ${bytes(files.unusedFiles)} 个 · ${size(files.unusedBytes)}`, detail:'订单已经不用了，留给备份；备份也不用了以后会自动删掉' });
   if (items.length) blocks.push({ type:'list', label:'图片和附件', items });
   if (bytes(backups.sharedBytes)) blocks.push({ type:'text', fine:true, text:`访达「显示简介」看备份文件夹会多出约 ${size(backups.sharedBytes)}：备份里的图片和原图共用同一份硬盘空间，访达把它们各算了一遍，这里只算一次。` });
   return blocks;

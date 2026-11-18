@@ -68,7 +68,8 @@ console.log('Dashboard month test passed: current-month default and manual selec
     // 报价单（quote-due）不算订单额，待收款照算。
     for(const [month,total] of [['2026-08',700],['2026-07',300],['all',1000]]) {
       await page.locator('#totalRange').selectOption(month,{force:true});
-      assert.equal(await page.locator('#statPayment').innerText(),'$410','historical receivables must remain unchanged when switching amount months');
+      // 已发货还欠 500 的单也算待收（2026-11-18 起进「已发货」不再算收齐）：200 + 150 + 60 + 500。
+      assert.equal(await page.locator('#statPayment').innerText(),'$910','historical receivables must remain unchanged when switching amount months');
       assert.equal(await page.locator('#statAmount').innerText(),`$${total.toLocaleString('en-US')}`,'order total must still follow the selected month');
       assert.match(await page.locator('#statPayment').locator('..').innerText(),/历史累计/);
     }
@@ -102,6 +103,6 @@ console.log('Dashboard month test passed: current-month default and manual selec
     }
     assert.equal(saves,0,'changing a dashboard month must not save business data');
     assert.deepEqual(errors,[]);
-    console.log('Dashboard historical receivables UI passed: month isolation, draft/deleted exclusion and settled-stage invariants.');
+    console.log('Dashboard historical receivables UI passed: month isolation, draft/deleted exclusion and shipped orders with debt still owing.');
   } finally { await browser.close(); }
 })().catch(error=>{console.error(error);process.exitCode=1;});

@@ -73,7 +73,8 @@ const at = (date, time = '10:00') => new Date(`${date}T${time}:00+08:00`).getTim
     assert.deepEqual(Object.keys(migrated).sort(), ['payment-old-100', `ship-late-${day(2)}`], `旧的完成记录迁移不对：${JSON.stringify(migrated)}`);
     assert.equal(migrated['payment-old-100'].until, day(3), '迁移过来的收款记录按「今天已催款」算，3 天后再提醒');
     assert.equal(migrated[`ship-late-${day(2)}`], true);
-    assert.deepEqual(await ids('payment'), ['payment-due', 'payment-stale'], '对不上当前版本的旧记录不再挡住提醒');
+    // 已发货还欠着的单（ship30）也催款（2026-11-18 起进「已发货」不再算收齐）。
+    assert.deepEqual(await ids('payment'), ['payment-due', 'payment-ship30', 'payment-stale'], '对不上当前版本的旧记录不再挡住提醒');
 
     // 1. 跟进：3 / 7 天规则；已发货 / 已完成不提醒。
     assert.deepEqual(await ids('follow'), ['follow-lash7', 'follow-wig3'], 'only orders idle for 3 (假发) / 7 (睫毛) days get a follow-up, never done / shipped ones');

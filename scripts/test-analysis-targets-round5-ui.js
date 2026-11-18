@@ -141,13 +141,15 @@ const varColor = (page, name, prop = 'color') => page.evaluate(([name, prop]) =>
     const tip = await group.getAttribute('data-chart-tip');
     assert.match(tip, /：订单总额 \$[\d,]+ · 已收 \$[\d,]+$/);
     assert.equal(await group.getAttribute('aria-label'), tip);
+    // The bars grow in when the page opens; measure them once they stand still, or the pointer lands beside a moving bar.
+    await page.waitForFunction(() => [...document.querySelectorAll('#amountChart rect.chart-bar')].every(rect => !rect.getAnimations().length));
     let barBox = null;
     for (const rect of await page.locator('#amountChart g[data-chart-tip] rect.chart-bar:not(.paid)').all()) {
       const box = await rect.boundingBox();
       if (box && box.height > 4) { barBox = box; break; }
     }
     assert.ok(barBox, 'a bar with a height to hover');
-    await page.mouse.move(barBox.x + barBox.width / 2, barBox.y + barBox.height - 2);
+    await page.mouse.move(barBox.x + barBox.width / 2, barBox.y + barBox.height / 2);
     await page.waitForFunction(() => document.querySelector('.level-tooltip.show'));
     assert.match(await page.locator('.level-tooltip.show').innerText(), /：订单总额 \$[\d,]+ · 已收 \$[\d,]+$/);
     await page.mouse.move(5, 5);

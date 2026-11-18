@@ -687,7 +687,6 @@ html[data-theme="dark"] .segment-option:hover { color: var(--gray-900); backgrou
 .task-main { display: grid; gap: 5px; min-width: 0; }
 .task-title { color: var(--gray-900); font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .task-sub { color: var(--gray-500); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.task-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .task-actions { display: flex; gap: 6px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
 .task-action-btn {
   min-height: 28px; padding: 0 9px; border-radius: 999px; border: 1px solid var(--gray-200);
@@ -3270,7 +3269,6 @@ html[data-theme] .client-letter-btn.active { background:var(--accent-tint); colo
 html[data-theme] :is(.binary-segment, .side-chart-tabs) { background:var(--gray-100); border:0; box-shadow:none; }
 html[data-theme] :is(.analysis-trend-track span, .business-product-fill, .legend-dot, .tracking-event-dot, .roadmap-event:first-of-type .roadmap-dot) { background:var(--accent); }
 html[data-theme] .contact-method-check input:checked { background:var(--accent); border-color:var(--accent); }
-html[data-theme] .task-action-btn.done { background:var(--s-green); border-color:transparent; color:var(--surface-bg); }
 html[data-theme] :is(.analysis-trend-track span, .business-product-fill, .target-history-fill) { transform-origin:left; animation:uiGrowX var(--motion-slow) var(--ease-out) backwards; }
 @keyframes uiGrowX { from { transform:scaleX(0); } }
 
@@ -3733,17 +3731,20 @@ html[data-theme] .calendar-record-list { display:flex; flex-direction:column; }
 html[data-theme] .calendar-record { display:grid; grid-template-columns:10px minmax(0,1fr) auto; align-items:center; gap:10px; padding:10px 2px; border-bottom:1px solid var(--hairline); }
 html[data-theme] .calendar-record.faded { opacity:.65; }
 html[data-theme] .calendar-record-title { font-size:13px; font-weight:500; color:var(--gray-900); overflow-wrap:anywhere; }
-html[data-theme] .calendar-drawer-tag { display:inline-block; width:auto; cursor:default; padding:2px 8px; border-radius:999px; }
 html[data-theme] .calendar-drawer-foot { display:flex; justify-content:flex-end; margin-top:16px; }
+/* 当天抽屉的待办和工作台同一个样子（规则和 #taskList 共用）；抽屉和订单详情抽屉一样宽，第二行写不下折行、不截。 */
+html[data-theme] #calendarTaskDrawer .drawer { width:min(640px, 100%); }
+html[data-theme] .calendar-task-list { display:flex; flex-direction:column; gap:0; }
+html[data-theme] #calendarTaskDrawer .calendar-task-list .task-sub { white-space:normal; overflow:visible; text-overflow:clip; line-height:1.45; overflow-wrap:anywhere; }
 /* 当月日程 */
 html[data-theme] .calendar-agenda-panel { position:sticky; top:16px; max-height:calc(100vh - 150px); display:flex; flex-direction:column; }
 html[data-theme] .calendar-agenda-heading { display:flex; align-items:baseline; gap:10px; }
 html[data-theme] .calendar-agenda { overflow:auto; margin:0 -4px; padding:0 4px; }
 html[data-theme] .agenda-group { padding:12px 0 8px; border-top:1px solid var(--hairline); }
 html[data-theme] .agenda-date { margin-bottom:6px; color:var(--gray-600); font-size:12px; font-weight:500; }
-html[data-theme] .agenda-row { display:grid; grid-template-columns:8px auto minmax(0,1fr) auto; align-items:center; gap:8px; min-height:30px; padding:0 6px; border:0; border-radius:10px; background:transparent; cursor:pointer; font-size:13px; }
+html[data-theme] .agenda-row { display:grid; grid-template-columns:8px auto minmax(0,1fr); align-items:center; gap:8px; min-height:30px; padding:0 6px; border:0; border-radius:10px; background:transparent; cursor:pointer; font-size:13px; }
 html[data-theme] .agenda-row:hover { background:var(--surface-soft); }
-/* 每行先写事（不截），再写客户（写不下截它），最后订单号。 */
+/* 每行先写事（不截），再写客户（写不下截它）；订单号在悬停提示里。 */
 html[data-theme] .agenda-what { white-space:nowrap; font-weight:500; color:var(--gray-900); }
 html[data-theme] .agenda-what.urgent { color:var(--s-red); }
 html[data-theme="light"] .agenda-what.urgent { color:color-mix(in srgb, var(--s-red) 75%, #000); }
@@ -3758,7 +3759,6 @@ html[data-theme] .agenda-earlier-chevron { transition:transform var(--motion-fas
 html[data-theme] .agenda-earlier-toggle[aria-expanded="true"] .agenda-earlier-chevron { transform:rotate(90deg); }
 html[data-theme] .agenda-earlier { opacity:.72; }
 html[data-theme] .agenda-earlier[hidden] { display:none; }
-html[data-theme] .agenda-num { color:var(--gray-500); font-family:var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size:11.5px; }
 html[data-theme] .agenda-dot { width:7px; height:7px; border-radius:50%; background:var(--s-blue, #2f6fdf); }
 html[data-theme] .agenda-dot.repurchase { background:var(--s-teal, #0f8f81); }
 html[data-theme] .agenda-dot.payment { background:var(--s-amber); }
@@ -4098,9 +4098,9 @@ html[data-theme] .reminder-summary:empty { display:none; }
 html[data-theme] .task-inbox-head { margin-bottom:8px; }
 html[data-theme] .task-filter-bar .segment-option .c { margin-left:4px; color:var(--gray-500); font-variant-numeric:tabular-nums; }
 html[data-theme] #taskList.tasks { display:flex; flex-direction:column; gap:0; }
-html[data-theme] #taskList .task { display:grid; grid-template-columns:36px minmax(0,1fr) auto; gap:12px; align-items:center; padding:12px 4px; margin:0; border:0; border-top:1px solid var(--surface-border); border-radius:0; background:transparent; box-shadow:none; }
-html[data-theme] #taskList .task::before { display:none; }
-html[data-theme] #taskList .task:first-child { border-top:0; }
+html[data-theme] :is(#taskList, .calendar-task-list) .task { display:grid; grid-template-columns:36px minmax(0,1fr) auto; gap:12px; align-items:center; padding:12px 4px; margin:0; border:0; border-top:1px solid var(--surface-border); border-radius:0; background:transparent; box-shadow:none; }
+html[data-theme] :is(#taskList, .calendar-task-list) .task::before { display:none; }
+html[data-theme] :is(#taskList, .calendar-task-list) .task:first-child { border-top:0; }
 html[data-theme] .task-icon { width:36px; height:36px; border-radius:12px; display:grid; place-items:center; transition:transform var(--motion-spring) var(--ease-spring); }
 html[data-theme] .task:hover .task-icon { transform:rotate(-6deg) scale(1.06); }
 html[data-theme] .task-icon .ui-icon { width:18px; height:18px; }
@@ -4109,13 +4109,13 @@ html[data-theme] .task-icon.tone-red { background:color-mix(in srgb, var(--s-red
 html[data-theme] .task-icon.tone-blue { background:color-mix(in srgb, var(--s-blue) 12%, transparent); color:var(--s-blue); }
 html[data-theme] .task-icon.tone-teal { background:color-mix(in srgb, var(--s-teal) 14%, transparent); color:var(--s-teal); }
 html[data-theme] .task-icon.tone-gray { background:var(--surface-soft); color:var(--gray-500); }
-html[data-theme] #taskList .task-main { min-width:0; display:block; }
-html[data-theme] #taskList .task-title { font-size:14px; font-weight:500; color:var(--gray-900); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+html[data-theme] :is(#taskList, .calendar-task-list) .task-main { min-width:0; display:block; }
+html[data-theme] :is(#taskList, .calendar-task-list) .task-title { font-size:14px; font-weight:500; color:var(--gray-900); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 html[data-theme] .task-sub .task-reason { font-weight:500; color:var(--gray-900); }
-html[data-theme] #taskList .task-sub { margin-top:2px; font-size:13px; color:var(--gray-500); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-html[data-theme] #taskList .task-actions { display:flex; gap:6px; align-items:center; }
-html[data-theme] #taskList .task-action-btn { height:30px; padding:0 12px; border-radius:999px; border:1px solid var(--surface-border); background:var(--surface-bg); color:var(--gray-800); font-size:13px; }
-html[data-theme] #taskList .task-action-btn[data-task-action="snooze"] { border-color:transparent; background:transparent; color:var(--gray-600); }
+html[data-theme] :is(#taskList, .calendar-task-list) .task-sub { margin-top:2px; font-size:13px; color:var(--gray-500); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+html[data-theme] :is(#taskList, .calendar-task-list) .task-actions { display:flex; gap:6px; align-items:center; }
+html[data-theme] :is(#taskList, .calendar-task-list) .task-action-btn { height:30px; padding:0 12px; border-radius:999px; border:1px solid var(--surface-border); background:var(--surface-bg); color:var(--gray-800); font-size:13px; }
+html[data-theme] :is(#taskList, .calendar-task-list) .task-action-btn[data-task-action="snooze"] { border-color:transparent; background:transparent; color:var(--gray-600); }
 /* 「完成 / 已催款 / 已跟进」：带文字的按钮，描边和文字用绿色（对白底、深色卡片都超过 3:1），不再是看不清的空心圆。 */
 html[data-theme] .task-tick { height:30px; padding:0 12px 0 9px; border-radius:999px; border:1.5px solid var(--s-green); background:transparent; display:inline-flex; align-items:center; gap:5px; color:var(--s-green); font-size:13px; font-weight:500; white-space:nowrap; cursor:pointer; transition:all var(--motion-spring) var(--ease-spring); }
 html[data-theme] .task-tick:hover { background:color-mix(in srgb, var(--s-green) 12%, transparent); }
@@ -4123,7 +4123,7 @@ html[data-theme] .task-tick:active { background:var(--s-green); color:var(--surf
 html[data-theme] .task-tick:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 html[data-theme] .task-tick .ui-icon { width:14px; height:14px; }
 /* 「完成」两个字、「已跟进」「已催款」三个字：按三个字留宽，每行的「打开订单 / 稍后」才竖着对齐。 */
-html[data-theme] #taskList .task-tick { min-width:82px; justify-content:center; }
+html[data-theme] :is(#taskList, .calendar-task-list) .task-tick { min-width:82px; justify-content:center; }
 html[data-theme] .task-icon.tone-orange { background:color-mix(in srgb, var(--s-orange) 14%, transparent); color:var(--s-orange); }
 html[data-theme] #taskList .task-group-head { padding:14px 4px 6px; border-top:1px solid var(--surface-border); font-size:12px; font-weight:600; color:var(--gray-600); }
 html[data-theme] #taskList .task-group-head + .task { border-top:0; }
@@ -6827,7 +6827,6 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
   <aside class="modal drawer" role="dialog" aria-modal="true" aria-labelledby="calendarTaskTitle">
     <div class="modal-head">
       <div>
-        <div class="order-num" id="calendarTaskDate">日历任务</div>
         <div class="modal-title" id="calendarTaskTitle" tabindex="-1">当天任务</div>
       </div>
       <button class="btn btn-small" id="calendarTaskCloseBtn" type="button">关闭</button>
@@ -10953,19 +10952,19 @@ function calendarChipHtml(event, date) {
   return `<button class="calendar-event ${calendarEventTone(event)}${event.faded ? ' faded' : ''}" type="button" ${calendarEventAttrs(event, date)} title="${escapeAttr(`${event.label} · ${event.sub || ''}`)}">${badge}${text}</button>`;
 }
 // 当月日程：看的是本月时从今天排起（今天那组带「今天」，没有事也画出来），今天之前的收在「本月更早 · N 件」里，点开在原位展开；
-// 别的月份照旧从 1 号排。展开只记在这个月份上，翻到别的月份就复位。每行先写事、再写客户（截的是客户名），最后是订单号。
+// 别的月份照旧从 1 号排。展开只记在这个月份上，翻到别的月份就复位。每行先写事、再写客户（截的是客户名）；订单号不占一列，写在悬停提示里。
 let calendarAgendaEarlierMonth = '';
 function calendarAgendaRowHtml(event, date) {
   const order = event.orderId ? state.orders.find(item => item.id === event.orderId) : null;
   const tone = calendarEventTone(event);
   const what = event.what ?? event.label;
   const who = event.what == null ? '' : event.who;
+  const num = order?.num && !String(event.sub || '').includes(order.num) ? order.num : '';
   return `
-        <div class="agenda-row${event.faded ? ' faded' : ''}" role="button" tabindex="0" ${calendarEventAttrs(event, date)} title="${escapeAttr([event.label, event.sub].filter(Boolean).join(' · '))}">
+        <div class="agenda-row${event.faded ? ' faded' : ''}" role="button" tabindex="0" ${calendarEventAttrs(event, date)} title="${escapeAttr([event.label, event.sub, num].filter(Boolean).join(' · '))}">
           <span class="agenda-dot ${tone}" aria-hidden="true"></span>
           <span class="agenda-what ${tone}">${event.badge ? `<i class="calendar-badge">${escapeAttr(event.badge)}</i>` : ''}${escapeAttr(what)}</span>
           <span class="agenda-who">${escapeAttr(who || '')}</span>
-          <span class="agenda-num">${escapeAttr(order?.num || '')}</span>
         </div>`;
 }
 function calendarAgendaGroupHtml(date, list, { today = false } = {}) {
@@ -21619,26 +21618,17 @@ function renderTasks() {
     el.innerHTML = `<div class="empty">${listMode === 'done' ? '没有已处理的待办。点过「完成」的提醒会在这里留到再提醒那天，可以恢复。' : listMode === 'snoozed' ? '今天没有暂缓的待办。' : '当前筛选下没有待办。'}</div>`;
     return;
   }
-  const doneTitle = item => `${taskDoneLabel(item)}：${taskRemindAgainText(item, '', { beforeDone:true })}`;
   const actions = item => {
     if (listMode === 'done') return `<button class="task-action-btn" type="button" data-task-action="undone" title="放回待办">恢复提醒</button>`;
     const extra = listMode === 'snoozed' ? '<button class="task-action-btn" type="button" data-task-action="unsnooze" title="放回今天的待办">取消稍后</button>' : '';
     return `${taskActionButtons(item, { snooze:listMode !== 'snoozed' })}${extra}
-          <button class="task-tick" type="button" data-task-action="done" title="${escapeAttr(doneTitle(item))}">${uiIcon('check')}<span>${escapeAttr(taskDoneLabel(item))}</span></button>`;
+          ${taskTickHtml(item)}`;
   };
-  const taskHtml = (item, index) => {
-    const [icon, tone] = taskTypeDef(item)?.look || ['info', 'gray'];
-    const sub = listMode === 'done' ? [item.detail, taskDoneNote(item)] : [item.detail, item.value, item.more];
-    return `
-      <div class="task ${item.type}${taskIsRisk(item) ? ' task-risk' : ''}" data-task-id="${escapeAttr(item.id)}" data-order-id="${escapeAttr(item.orderId || '')}" data-task-client="${escapeAttr(item.client || item.title || '')}" style="--i:${index}">
-        <div class="task-icon tone-${tone}">${uiIcon(icon)}</div>
-        ${taskTextHtml(item, sub)}
-        <div class="task-actions">
-          ${actions(item)}
-        </div>
-      </div>
-    `;
-  };
+  const taskHtml = (item, index) => taskRowHtml(item, {
+    sub:listMode === 'done' ? [item.detail, taskDoneNote(item)] : [item.detail, item.value, item.more],
+    actions:actions(item),
+    index
+  });
   const firstLater = shown.findIndex(item => laterPool.includes(item));
   const rows = shown.map((item, index) => (index === firstLater ? `<div class="task-group-head">即将到期 · ${laterPool.length}</div>` : '') + taskHtml(item, index));
   const more = hidden > 0
@@ -21656,23 +21646,36 @@ function taskTextHtml(item, details = [], extra = '') {
           <div class="task-sub"><strong class="task-reason">${escapeAttr(item.reason)}</strong>${rest.map(part => ` · ${escapeAttr(part)}`).join('')}</div>${extra}
         </div>`;
 }
-function renderCalendarTaskRows(tasks, toneOf = {}) {
+// 一条待办：左边类型图标，中间两层字（taskTextHtml），右边按钮。工作台和日历当天抽屉共用，两处长成一个样子。
+function taskRowHtml(item, { sub = [], actions = '', index = 0 } = {}) {
+  const [icon, tone] = taskTypeDef(item)?.look || ['info', 'gray'];
+  return `
+      <div class="task ${item.type}${taskIsRisk(item) ? ' task-risk' : ''}" data-task-id="${escapeAttr(item.id)}" data-order-id="${escapeAttr(item.orderId || '')}" data-task-client="${escapeAttr(item.client || item.title || '')}" style="--i:${index}">
+        <div class="task-icon tone-${tone}">${uiIcon(icon)}</div>
+        ${taskTextHtml(item, sub)}
+        <div class="task-actions">
+          ${actions}
+        </div>
+      </div>
+    `;
+}
+// 「完成 / 已催款 / 已跟进」描边按钮；label、title 不传时按待办类型写。
+function taskTickHtml(item, { label = taskDoneLabel(item), title = `${taskDoneLabel(item)}：${taskRemindAgainText(item, '', { beforeDone:true })}` } = {}) {
+  return `<button class="task-tick" type="button" data-task-action="done" title="${escapeAttr(title)}">${uiIcon('check')}<span>${escapeAttr(label)}</span></button>`;
+}
+// 日历当天抽屉的待办：和工作台同一个样子；第二行写不下时折行（CSS 只在抽屉里放开），不截。
+function renderCalendarTaskRows(tasks) {
   if (!tasks.length) return '';
+  const today = normalizeDate(new Date().toISOString());
+  const tick = item => calendarTaskIsDateBound(item) ? taskTickHtml(item, { label:'不再提醒', title:'只关掉这条提醒，日历上的日期还在' }) : taskTickHtml(item);
   return `
     <div class="calendar-task-list">
-      ${tasks.map(item => `
-        <div class="task ${item.type}${taskIsRisk(item) ? ' task-risk' : ''}" data-task-id="${escapeAttr(item.id)}" data-order-id="${escapeAttr(item.orderId || '')}" data-task-client="${escapeAttr(item.client || item.title || '')}">
-          ${taskTextHtml(item, [item.detail], `
-            <div class="task-meta">
-              <span class="calendar-event calendar-drawer-tag ${toneOf[item.id] || 'repurchase'}">${escapeAttr(taskTypeDef(item)?.label || item.tag)}</span>
-              <span class="muted">${escapeAttr(item.value || '')}</span>
-            </div>`)}
-          <div class="task-actions">
-            ${taskActionButtons(item, { snooze:normalizeDate(item.date || '') <= normalizeDate(new Date().toISOString()), short:true })}
-            <button class="task-action-btn done" type="button" data-task-action="done"${calendarTaskIsDateBound(item) ? ' title="只关掉这条提醒，日历上的日期还在"' : ''}>${escapeAttr(calendarTaskIsDateBound(item) ? '不再提醒' : taskDoneLabel(item))}</button>
-          </div>
-        </div>
-      `).join('')}
+      ${tasks.map((item, index) => taskRowHtml(item, {
+        sub:[item.detail, item.value, item.more],
+        actions:`${taskActionButtons(item, { snooze:normalizeDate(item.date || '') <= today, short:true })}
+          ${tick(item)}`,
+        index
+      })).join('')}
     </div>
   `;
 }
@@ -21685,10 +21688,8 @@ function openCalendarTaskDrawer(date) {
   selectedCalendarDate = normalizeDate(date || new Date().toISOString());
   const dayEvents = calendarEventsInRange(selectedCalendarDate, selectedCalendarDate);
   const taskIds = new Set(dayEvents.map(event => event.taskId).filter(Boolean));
-  const toneOf = Object.fromEntries(dayEvents.filter(event => event.taskId).map(event => [event.taskId, calendarEventTone(event)]));
   const tasks = buildTaskItems().filter(item => taskIds.has(item.id));
   const records = dayEvents.filter(event => !event.taskId || event.type === 'deadline');
-  document.getElementById('calendarTaskDate').textContent = selectedCalendarDate;
   document.getElementById('calendarTaskTitle').textContent = `${calendarDayTitle(selectedCalendarDate)} · ${dayEvents.length} 件`;
   const recordAction = event => event.orderId ? `<button class="task-action-btn" type="button" data-calendar-order-id="${escapeAttr(event.orderId)}">打开订单</button>`
     : event.subId ? `<button class="task-action-btn" type="button" data-calendar-sub="${escapeAttr(event.subId)}">打开续费</button>`
@@ -21700,7 +21701,7 @@ function openCalendarTaskDrawer(date) {
       ${recordAction(event)}
     </div>`).join('');
   const body = [
-    tasks.length ? `<div class="calendar-drawer-section">待处理 · ${tasks.length}</div>${renderCalendarTaskRows(tasks, toneOf)}` : '',
+    tasks.length ? `<div class="calendar-drawer-section">待处理 · ${tasks.length}</div>${renderCalendarTaskRows(tasks)}` : '',
     records.length ? `<div class="calendar-drawer-section">当天记录 · ${records.length}</div><div class="calendar-record-list">${recordRows}</div>` : '',
     !tasks.length && !records.length ? '<div class="empty">这一天没有安排。</div>' : '',
     `<div class="calendar-drawer-foot"><button class="btn btn-small" type="button" data-calendar-new-order>新建订单</button></div>`

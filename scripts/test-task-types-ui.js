@@ -157,15 +157,26 @@ const orders = [
     assert.equal(calendar.some(event => /物流风险/.test(event.label)), false);
     await page.evaluate(() => { setPage('calendar'); openCalendarTaskDrawer('2026-11-07'); });
     await page.waitForSelector('#calendarTaskBody .task[data-task-id="logistics-issue-u1"]');
+    // 抽屉里的待办和工作台同一个样子：图标按表里的 look 上色，没有小标签、没有左边竖条，事由写在第二行开头。
     const drawer = await page.evaluate(() => [...document.querySelectorAll('#calendarTaskBody .task')].map(el => {
       const item = buildTaskItems({ includeSnoozed:true }).find(entry => entry.id === el.dataset.taskId);
-      return { type:item.type, name:taskTypeDefs[item.type].label, tag:el.querySelector('.calendar-drawer-tag').textContent, bar:getComputedStyle(el, '::before').backgroundColor };
+      return {
+        type:item.type,
+        icon:el.querySelector('.task-icon').className,
+        tone:taskTypeDefs[item.type].look[1],
+        reason:el.querySelector('.task-reason').textContent,
+        itemReason:item.reason,
+        tags:el.querySelectorAll('.calendar-drawer-tag, .task-meta').length,
+        bar:getComputedStyle(el, '::before').display
+      };
     }));
-    drawer.forEach(row => assert.equal(row.tag, row.name, `drawer tag for ${row.type}`));
-    const bar = type => drawer.find(row => row.type === type)?.bar;
-    assert.ok(bar('logisticsIssue') && bar('logistics') && bar('urgent'));
-    assert.equal(bar('logisticsIssue'), bar('urgent'), 'a carrier exception has the same bar as the other urgent reminders');
-    assert.equal(bar('logistics'), bar('urgent'));
+    assert.ok(['logisticsIssue', 'logistics', 'urgent'].every(type => drawer.some(row => row.type === type)), JSON.stringify(drawer));
+    drawer.forEach(row => {
+      assert.equal(row.icon, `task-icon tone-${row.tone}`, `drawer icon for ${row.type}`);
+      assert.equal(row.reason, row.itemReason, `drawer reason for ${row.type}`);
+      assert.equal(row.tags, 0, `no third line for ${row.type}`);
+      assert.equal(row.bar, 'none', `no side bar for ${row.type}`);
+    });
     await page.evaluate(() => { closeCalendarTaskDrawer(); setPage('dashboard'); });
 
     // 完成后同一次异常不回来（原样再保存一次也不回来）；撤销「完成」照常回来。

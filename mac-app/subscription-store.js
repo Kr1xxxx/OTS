@@ -184,15 +184,24 @@ function cleanItem(input) {
 function parseJsonList(text) {
   try { const list = JSON.parse(text || '[]'); return Array.isArray(list) ? list : []; } catch (_) { return []; }
 }
+// Rows are checked when saved, but a restored backup brings its own rows (a file from a synced folder or
+// from someone else): dates the page reads as YYYY-MM-DD and the color it puts into a style attribute are
+// checked again here, so such a row cannot carry markup into the page or break its date maths.
+function storedDate(value) { return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : ''; }
+function storedPriceChanges(text) { return parseJsonList(text).filter(entry => entry && storedDate(entry.from)); }
 function fromRow(row) {
   let extra = {};
   try { extra = JSON.parse(row.extra_json); } catch (_) {}
+  const terms = parseJsonList(row.terms_json)
+    .filter(term => term && typeof term === 'object' && storedDate(term.startDate) && storedDate(term.until))
+    .map(term => Array.isArray(term.priceChanges) ? { ...term, priceChanges:term.priceChanges.filter(entry => entry && storedDate(entry.from)) } : term);
   return {
     id:row.id, name:row.name, note:row.note, amount:row.amount, currency:row.currency,
-    cycleUnit:row.cycle_unit, cycleCount:row.cycle_months, paymentMethod:row.payment_method, startDate:row.start_date, category:row.category, color:row.color,
+    cycleUnit:row.cycle_unit, cycleCount:row.cycle_months, paymentMethod:row.payment_method, startDate:storedDate(row.start_date), category:row.category,
+    color:/^#[0-9a-fA-F]{6}$/.test(row.color) ? row.color : '',
     provider:row.provider || '', autoRenew:row.auto_renew !== 0,
-    status:row.status, endsOn:row.ends_on, priceChanges:parseJsonList(row.price_changes_json), stopOn:row.stop_on || '',
-    terms:parseJsonList(row.terms_json), renewedThrough:row.renewed_through || '',
+    status:row.status, endsOn:storedDate(row.ends_on), priceChanges:storedPriceChanges(row.price_changes_json), stopOn:storedDate(row.stop_on),
+    terms, renewedThrough:storedDate(row.renewed_through),
     createdAt:row.created_at, updatedAt:row.updated_at, extra
   };
 }

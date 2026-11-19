@@ -200,6 +200,25 @@ function storeTests() {
   v128.prepare("UPDATE subscriptions SET renewed_through = '2021-03-01' WHERE id = 'manual-0001'").run();
   assert.equal(createSubscriptionStore(v128).list().items.find(entry => entry.id === 'manual-0001').renewedThrough, '2021-03-01');
   v128.close();
+
+  // A restored backup brings its own rows, which never went through save(): dates and the color are checked
+  // again when read, so markup in them cannot reach the page (it runs with the API token) and bad dates read as empty.
+  const fromBackup = new DatabaseSync(':memory:');
+  createSubscriptionStore(fromBackup);
+  const markup = '"><img src=x onerror=alert(1)>';
+  fromBackup.prepare(`INSERT INTO subscriptions(id, name, amount, currency, cycle_months, cycle_unit, start_date, category, color, status, ends_on, stop_on,
+      renewed_through, price_changes_json, terms_json, created_at, updated_at)
+    VALUES('restored-01', 'VPS', 5, 'USD', 1, 'month', '2024-01-10', 'VPS', ?, 'cancelled', ?, 'not-a-date', ?, ?, ?, 'x', 'x')`)
+    .run(`red;background:url(x)${markup}`, markup, markup,
+      JSON.stringify([{ from:markup, amount:1, once:false }, { from:'2024-03-10', amount:6, once:false }]),
+      JSON.stringify([{ startDate:markup, until:'2024-01-10', amount:4, currency:'USD', cycleUnit:'month', cycleCount:1 },
+        { startDate:'2023-01-10', until:'2024-01-10', amount:4, currency:'USD', cycleUnit:'month', cycleCount:1, priceChanges:[{ from:markup, amount:3 }] }]));
+  const cleaned = createSubscriptionStore(fromBackup).list().items[0];
+  assert.deepEqual([cleaned.color, cleaned.endsOn, cleaned.stopOn, cleaned.renewedThrough, cleaned.startDate], ['', '', '', '', '2024-01-10']);
+  assert.deepEqual(cleaned.priceChanges, [{ from:'2024-03-10', amount:6, once:false }]);
+  assert.deepEqual(cleaned.terms.map(term => [term.startDate, term.priceChanges]), [['2023-01-10', []]]);
+  assert.ok(!JSON.stringify(cleaned).includes('<img'), 'no markup survives the read');
+  fromBackup.close();
 }
 
 async function serverTests() {

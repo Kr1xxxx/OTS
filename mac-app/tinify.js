@@ -53,8 +53,13 @@ function createTinify({ keyFile, endpoint }) {
           }
           chunks.push(chunk);
         });
+        res.on('error', reject);
+        // Cut off after the headers: neither 'end' nor an error comes, so settle here (see outbound-http.js).
+        res.on('close', () => { if (!res.complete) reject(new Error('TinyPNG response cut off')); });
         res.on('end', () => resolve({ status: Number(res.statusCode || 0), headers: res.headers, buffer: Buffer.concat(chunks) }));
       });
+      const deadline = setTimeout(() => req.destroy(new Error('TinyPNG request timeout')), 60000);
+      req.on('close', () => clearTimeout(deadline));
       req.on('timeout', () => req.destroy(new Error('TinyPNG request timeout')));
       req.on('error', reject);
       if (options.body) req.write(options.body);

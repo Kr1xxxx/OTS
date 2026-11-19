@@ -143,6 +143,8 @@ const zedChat = 'New buyer: Zed Wigs Ltd, Leeds UK, zed@zedwigs.example\n10 bund
     await page.evaluate(() => closeCombinedCustomerOrderModal());
 
     // A picture pasted into this dialog goes into its own attachments (it used to have none) and opens that section.
+    // The board stub answers every request with { ok:true }; the upload needs a file address back, like the real server gives.
+    await page.route('**/api/attachments', route => route.fulfill({ json:{ ok:true, name:'R6-1', fileUrl:'/attachments/r6/R6-1.jpg', thumbUrl:'/attachments/r6/R6-1-thumb.jpg', size:1200 } }));
     await page.evaluate(() => openCombinedCustomerOrderModal({ customerFields:{ name:'Wren Wigs Ltd' }, orderFields:{ amount:120 } }));
     assert.equal(await page.locator('#combinedAttachmentList').isVisible(), false);
     await page.evaluate(async () => {
@@ -154,8 +156,9 @@ const zedChat = 'New buyer: Zed Wigs Ltd, Leeds UK, zed@zedwigs.example\n10 bund
       data.items.add(new File([blob], 'deposit.png', { type:'image/png' }));
       document.getElementById('combinedOrderForm').dispatchEvent(new ClipboardEvent('paste', { clipboardData:data, bubbles:true, cancelable:true }));
     });
-    await page.waitForFunction(() => document.querySelectorAll('#combinedImageUploads .image-upload-card').length === 1);
-    await page.waitForFunction(() => !document.getElementById('combinedOrderForm').dataset.uploading);
+    // Wait for the outcome, not for the progress card: page.evaluate may return only after the upload has finished.
+    await page.waitForFunction(() => !document.getElementById('combinedOrderForm').dataset.uploading && orderAttachmentsFromForm(document.getElementById('combinedOrderForm')).length === 1);
+    assert.equal(await page.locator('#combinedImageUploads .image-upload-card').count(), 1, 'the finished card stays until the dialog closes');
     assert.equal(await page.locator('#combinedAttachmentList').isVisible(), true);
     assert.equal(await page.evaluate(() => orderAttachmentsFromForm(document.getElementById('combinedOrderForm')).length), 1);
     assert.equal(await page.evaluate(() => orderAttachmentsFromForm(document.getElementById('orderForm')).filter(item => item.type === '图片附件').length), 0, 'nothing went into the hidden new-order form');

@@ -68,9 +68,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     /// Automatic update checks tick this often; AppUpdater itself skips a tick within 6 hours of a good check.
     private static let updateCheckTick: TimeInterval = 30 * 60
 
-    /// 界面缩放（像浏览器 ⌘-/⌘+）：原型是 1440×920 窗口缩到浏览器里看的，所以默认 85% 让软件和原型一样紧凑。
+    /// 界面缩放（像浏览器 ⌘-/⌘+）：原型是 1440×920 窗口缩到浏览器里看的，软件原来默认 85% 和原型一样紧凑；
+    /// 用户嫌字小，默认改成 90%（整体大约 6%，比例不变）。
     private static let uiZoomKey = "uiZoom"
-    private static let uiZoomDefault = 0.85
+    private static let uiZoomDefault = 0.9
+    /// 85% 还是默认的时候，按过 ⌘0 或在设置里点过 85% 的人存的是 0.85；默认改成 90% 后把这个旧默认清掉一次，
+    /// 让他们也用上新默认。之后再自己选 85% 就照存，不会再被改。
+    private static let uiZoomDefaultVersionKey = "uiZoomDefaultVersion"
+    private static func migrateUiZoomDefault() {
+        let defaults = UserDefaults.standard
+        guard defaults.integer(forKey: uiZoomDefaultVersionKey) < 2 else { return }
+        if let stored = defaults.object(forKey: uiZoomKey) as? Double, abs(stored - 0.85) < 0.001 {
+            defaults.removeObject(forKey: uiZoomKey)
+        }
+        defaults.set(2, forKey: uiZoomDefaultVersionKey)
+    }
     private static let uiZoomRange = 0.7...1.2
     private var uiZoom: Double {
         let stored = UserDefaults.standard.object(forKey: Self.uiZoomKey) as? Double ?? Self.uiZoomDefault
@@ -109,6 +121,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        Self.migrateUiZoomDefault()
         // 单实例：已经有一份在运行（比如在 DMG 里又打开了一份），把那一份叫到前面，自己退出。
         // 两份同时开会各起一个服务、写同一个数据库，保存永远冲突，还会轮流改写端口。
         if let identifier = Bundle.main.bundleIdentifier {
@@ -443,7 +456,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         // 隐藏项照样响应快捷键：⌘= 和 ⌘+ 都能放大。
         zoomInPlus.isHidden = true
         let zoomOut = NSMenuItem(title: "缩小", action: #selector(zoomOutFromMenu(_:)), keyEquivalent: "-")
-        let zoomDefault = NSMenuItem(title: "默认大小（85%）", action: #selector(zoomDefaultFromMenu(_:)), keyEquivalent: "0")
+        let zoomDefault = NSMenuItem(title: "默认大小（90%）", action: #selector(zoomDefaultFromMenu(_:)), keyEquivalent: "0")
         let zoomActual = NSMenuItem(title: "实际大小（100%）", action: #selector(zoomActualFromMenu(_:)), keyEquivalent: "")
         for item in [zoomIn, zoomInPlus, zoomOut, zoomDefault, zoomActual] {
             item.target = self

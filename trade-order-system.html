@@ -3890,10 +3890,11 @@ html[data-theme] .customer-table { border:1px solid var(--surface-border); borde
 html[data-theme] .customer-list { min-width:880px; }
 html[data-theme] .customer-row { grid-template-columns:minmax(0,1.85fr) minmax(0,.95fr) minmax(0,1.05fr) minmax(0,1.05fr) minmax(0,.8fr) minmax(0,.8fr); gap:12px; min-height:68px; padding:10px 18px; border-bottom:1px solid var(--hairline); background:transparent; }
 html[data-theme] .customer-row:last-child { border-bottom:0; }
-/* 窗口缩到最小（或界面放大）时，客户表不用再横向滚动：分组栏收窄一点，表格最小宽度跟着降。 */
+/* 窗口缩到最小（或界面放大）时，客户表不用再横向滚动：分组栏收窄一点，表格最小宽度跟着降。
+   720px：默认 90% 缩放下最小窗口（1222px 宽）表格只有约 744px。 */
 @media (max-width:1400px) {
   html[data-theme] .customer-crm { grid-template-columns:184px minmax(0,1fr); gap:12px; }
-  html[data-theme] .customer-list { min-width:800px; }
+  html[data-theme] .customer-list { min-width:720px; }
   html[data-theme] .customer-row { grid-template-columns:minmax(0,1.6fr) minmax(0,.8fr) minmax(0,.95fr) minmax(0,1fr) minmax(0,1fr) minmax(0,.8fr); gap:10px; padding:10px 14px; }
 }
 html[data-theme] .customer-row.head { min-height:38px; padding-block:0; background:var(--surface-bg); color:var(--gray-500); font-size:12px; font-weight:400; border-radius:22px 22px 0 0; }
@@ -4668,8 +4669,9 @@ html[data-theme] .order-list-count { color:var(--gray-500); font-size:13px; }
 html[data-theme] .order-list-deleted-link { margin:0; color:var(--gray-900); font-size:13px; gap:6px; }
 html[data-theme] .order-list-deleted-link .ui-icon { width:16px; height:16px; }
 html[data-theme] .order-list-controls { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:0; border:0; background:transparent; }
-/* min-width:0：输入框默认不比它的 size 宽度更窄，最小窗口下工具栏（多了「导出」）会折成两行；让搜索框先让出位置。 */
-html[data-theme] .order-list-search { flex:1 1 180px; width:auto; min-width:0; height:38px; padding:0 16px; border-radius:999px; border:1px solid var(--surface-border); background:var(--surface-bg); font-size:13px; text-overflow:ellipsis; }
+/* min-width:0：输入框默认不比它的 size 宽度更窄，最小窗口下工具栏（多了「导出」）会折成两行；让搜索框先让出位置。
+   基准 120px：默认 90% 缩放下最小窗口只有 1222px 宽，180px 时「导出」会单独掉到第二行。 */
+html[data-theme] .order-list-search { flex:1 1 120px; width:auto; min-width:0; height:38px; padding:0 16px; border-radius:999px; border:1px solid var(--surface-border); background:var(--surface-bg); font-size:13px; text-overflow:ellipsis; }
 html[data-theme] .order-list-search::placeholder { text-overflow:ellipsis; }
 html[data-theme] .order-list-primary-filters { flex-wrap:nowrap; gap:10px; }
 html[data-theme] .order-list-primary-filters > .inline-select { width:auto; min-width:104px; height:38px; padding:0 34px 0 16px; border-radius:999px; font-size:13px; color:var(--gray-900); text-align:left; }
@@ -6511,7 +6513,7 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
               <div class="modal-style-picker" role="group" aria-label="深浅色"><span>主题</span><div class="modal-style-seg theme-mode-seg"><button type="button" data-theme-mode-choice="system">跟随系统</button><button type="button" data-theme-mode-choice="light">浅色</button><button type="button" data-theme-mode-choice="dark">深色</button></div></div>
             </div>
             <div class="settings-card ui-zoom-card">
-              <div><strong>界面大小</strong><div class="muted">原型是把 1440×920 的窗口缩小放进浏览器看的，所以显得更紧凑；默认 85% 和原型一致。也可以用 ⌘- / ⌘+ 调整（70%–120%），⌘0 回到默认 85%。</div><div class="muted ui-zoom-current" hidden></div></div>
+              <div><strong>界面大小</strong><div class="muted">默认 90%。也可以用 ⌘- / ⌘+ 调整（70%–120%），⌘0 回到默认 90%。</div><div class="muted ui-zoom-current" hidden></div></div>
               <div class="modal-style-picker" role="group" aria-label="界面大小"><span>缩放</span><div class="modal-style-seg ui-zoom-seg"><button type="button" data-ui-zoom-choice="0.75">75%</button><button type="button" data-ui-zoom-choice="0.8">80%</button><button type="button" data-ui-zoom-choice="0.85">85%</button><button type="button" data-ui-zoom-choice="0.9">90%</button><button type="button" data-ui-zoom-choice="1">100%</button></div></div>
             </div>
           </div>
@@ -23106,7 +23108,7 @@ function renderCustomers() {
         </div>
         <div class="customer-cell-stack">${country ? `<strong class="customer-cell-ellipsis" title="${escapeAttr(c.country || '')}">${escapeAttr(country)}</strong>` : ''}${line(c.address || '', c.address || '')}</div>
         <div class="customer-cell-stack"><div class="customer-tag-stack"${otherTags.length ? ` title="${escapeAttr([c.level, ...otherTags].filter(Boolean).join(' · '))}"` : ''}><span class="customer-level-pill" title="${escapeAttr(c.level)}">${escapeAttr(String(c.level || '').slice(0, 2))}</span>${visibleTags.map(tag => `<span class="level-tag">${escapeAttr(tag)}</span>`).join('')}${hiddenTagCount ? `<span class="level-tag">+${hiddenTagCount}</span>` : ''}</div>${line(attrs, attrs)}</div>
-        <div class="customer-cell-stack"><strong>${c.orderCount} 单${c.latestOrder ? ` · ${escapeAttr(c.latestOrder.num || '')}` : ''}</strong>${c.latestOrder ? line(`${stageDef(c.latestOrder.stage).name} · ${c.latestOrderDate}`) : ''}</div>
+        <div class="customer-cell-stack"><strong class="customer-cell-ellipsis">${c.orderCount} 单${c.latestOrder ? ` · ${escapeAttr(c.latestOrder.num || '')}` : ''}</strong>${c.latestOrder ? line(`${stageDef(c.latestOrder.stage).name} · ${c.latestOrderDate}`) : ''}</div>
         <div class="customer-cell-stack customer-cell-money"><strong>${money(c.total, 'USD', 2)}</strong><span class="${c.due > 0 ? 'customer-due-amount' : (c.total > 0 ? 'paid-amount' : 'muted')}">${c.due > 0 ? `待收 ${money(c.due, 'USD', 2)}` : (c.total > 0 ? '已收清' : '暂无成交')}</span></div>
         <div class="customer-cell-stack">${c.repurchaseCycle
           ? `<strong>${escapeAttr(c.repurchaseDate || '发货后计算')}</strong>${line(`每 ${c.repurchaseCycle} 天复购`)}`

@@ -182,8 +182,10 @@ vm.runInContext(html.match(/^const customerPasteFieldOrder = .*;$/m)[0].replace(
   'pasteOrderFieldText',
   'pasteStageHint',
   'hasPaidSignalText',
-  'pasteFieldLabels',
-  'customerPasteFieldLabels',
+  'pasteOrderRows',
+  'pasteFieldRowsHtml',
+  'pasteResultCardHtml',
+  'customerPasteFieldRows',
   'combinedPastePreviewHtml',
   'escapeAttr',
   'isSettledStage',
@@ -465,7 +467,7 @@ assert.deepEqual({
 });
 assert.match(
   vm.runInContext(`combinedPastePreviewHtml(${JSON.stringify(imanPreview)}, 'data-test')`, context),
-  /识别为新客户：Evan Sampleton/
+  /<div class="paste-result-title" title="Evan Sampleton">Evan Sampleton<\/div>\s*<span class="tag tag-green">新客户<\/span>/
 );
 
 context.state.customers = {

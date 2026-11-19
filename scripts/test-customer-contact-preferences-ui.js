@@ -120,6 +120,9 @@ const { chromium } = require('playwright');
     await page.evaluate(() => closeOrder());
 
     await page.evaluate(() => openCombinedCustomerOrderModal({ customerFields:{ name:'New Combined Buyer' }, orderFields:{} }));
+    // 偏好在「更多资料」里，没识别到时收着：点「展开」。
+    assert.equal(await page.locator('#combinedCustomerMore').isVisible(), false);
+    await page.locator('[data-combined-customer-more-toggle]').click();
     const combinedPreferenceLayout = await page.evaluate(() => {
       const tradeItems = [...document.querySelectorAll('#combinedCustomerForm .customer-trade-preference-grid > .field')].map(node => node.getBoundingClientRect());
       const contactItems = [...document.querySelectorAll('#combinedCustomerForm .customer-contact-preference-panel > .field')].map(node => node.getBoundingClientRect());

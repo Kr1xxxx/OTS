@@ -27,6 +27,19 @@ do {
     }
     try verify(LocalServiceIdentity.random(preferredPort: 80).port != 80, "privileged preferred port was used")
 
+    // Same vector as the server's HMAC (request-guard.js healthProof); computed with Node's crypto.
+    let vectorToken = String(repeating: "0123456789abcdef", count: 4)
+    let vectorNonce = String(repeating: "fedcba9876543210", count: 2)
+    let vectorChallenge = "00112233445566778899aabbccddeeff"
+    let vectorProof = "fff23382b697acf9f124080367d94a63638c2dc947d14d03ddc485d0e8d15c67"
+    try verify(HealthProof.expected(apiToken: vectorToken, instanceNonce: vectorNonce, challenge: vectorChallenge) == vectorProof, "health proof does not match the server's HMAC")
+    try verify(HealthProof.matches(vectorProof, apiToken: vectorToken, instanceNonce: vectorNonce, challenge: vectorChallenge), "matching health proof was rejected")
+    try verify(!HealthProof.matches(vectorProof, apiToken: vectorToken, instanceNonce: vectorNonce, challenge: HealthProof.newChallenge()), "proof for another challenge was accepted")
+    try verify(!HealthProof.matches(nil, apiToken: vectorToken, instanceNonce: vectorNonce, challenge: vectorChallenge), "missing proof was accepted")
+    try verify(!HealthProof.matches(String(vectorProof.dropLast()), apiToken: vectorToken, instanceNonce: vectorNonce, challenge: vectorChallenge), "short proof was accepted")
+    let challenge = HealthProof.newChallenge()
+    try verify(challenge.count == 64 && challenge.allSatisfy(\.isHexDigit), "health challenge is not 64 hex characters")
+
     let policy = LocalOriginPolicy(port: 51_234)
     try verify(policy.contains(URL(string: "http://127.0.0.1:51234/trade-order-system.html")!), "exact local origin was rejected")
     try verify(!policy.contains(URL(string: "http://localhost:51234/trade-order-system.html")!), "localhost alias must not be trusted")

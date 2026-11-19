@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -47,7 +48,18 @@ async function main() {
 
   startServer();
   const publicHealth = await waitForHealth({ authenticated: false });
-  assert.equal(publicHealth.instanceNonce, instanceNonce);
+  // The nonce is how the Mac host recognises its own server: anyone who could read it could pose as that server.
+  assert.equal(Object.hasOwn(publicHealth, 'instanceNonce'), false, 'public health must not give out the instance nonce');
+  assert.equal(Object.hasOwn(publicHealth, 'proof'), false, 'no proof without a challenge');
+  // The host probes without the token: it sends a fresh challenge and checks a proof only the token holder can make.
+  const challenge = crypto.randomBytes(16).toString('hex');
+  const challenged = await (await rawRequest(`/api/health?challenge=${challenge}`, { authenticated: false })).json();
+  assert.equal(challenged.proof, crypto.createHmac('sha256', apiToken).update(`ots-health-v1:${instanceNonce}:${challenge}`).digest('hex'));
+  assert.equal(Object.hasOwn(challenged, 'instanceNonce'), false);
+  for (const bad of ['short', 'Z'.repeat(32), `${challenge}&x`, 'a'.repeat(129)]) {
+    const reply = await (await rawRequest(`/api/health?challenge=${encodeURIComponent(bad)}`, { authenticated: false })).json();
+    assert.equal(Object.hasOwn(reply, 'proof'), false, `malformed challenge ${bad} got a proof`);
+  }
   assert.equal(Object.hasOwn(publicHealth, 'dataFile'), false, 'public health leaked local paths');
   const builtHtml = path.join(root, 'mac-app', 'TradeOrderSystem.app', 'Contents', 'Resources', 'trade-order-system.html');
   const resourceHtml = fs.existsSync(builtHtml) ? builtHtml : path.join(root, 'trade-order-system.html');
@@ -56,6 +68,7 @@ async function main() {
 
   const authenticatedHealth = await request('/api/health');
   assert.equal(authenticatedHealth.ok, true);
+  assert.equal(authenticatedHealth.instanceNonce, instanceNonce);
   assert.equal(authenticatedHealth.storageMode, 'sqlite');
   assert.equal(authenticatedHealth.appUpdatedAt, expectedUpdatedAt);
   const seed = JSON.parse(fs.readFileSync(seedFile, 'utf8'));

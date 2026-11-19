@@ -180,11 +180,17 @@ function createRequestGuard({ port, apiToken }) {
     if (!allowed.has(origin.toLowerCase())) throw httpError(403, 'cross-origin request rejected');
   }
 
+  // Mac App 认自己启动的服务时先发一个随机 challenge，只有拿着令牌的服务算得出这个值：
+  // 端口被别的程序占了，它答不出来，App 就换端口重启，令牌也不会先发给它。
+  function healthProof(instanceNonce, challenge) {
+    return crypto.createHmac('sha256', apiToken).update(`ots-health-v1:${instanceNonce}:${challenge}`).digest('hex');
+  }
+
   function sessionCookieHeader() {
     return `${apiSessionCookie}=${encodeURIComponent(pageSessionValue)}; HttpOnly; SameSite=Strict; Path=/`;
   }
 
-  return { tokenMatches, requestIsAuthorized, requestHasPageSession, validateHost, validateOrigin, sessionCookieHeader };
+  return { tokenMatches, requestIsAuthorized, requestHasPageSession, validateHost, validateOrigin, sessionCookieHeader, healthProof };
 }
 
 module.exports = { createRequestGuard, send, readJsonBody, validateFetchSite, requireJsonContentType };

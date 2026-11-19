@@ -58,7 +58,7 @@ const feishuSettingsFile = path.join(supportDir, 'feishu-settings.json');
 function feishuConfig() { return readFeishuSettings(feishuSettingsFile); }
 const apiToken = String(process.env.TRADE_API_TOKEN || crypto.randomBytes(32).toString('base64url'));
 const instanceNonce = String(process.env.TRADE_INSTANCE_NONCE || crypto.randomBytes(24).toString('base64url'));
-const { tokenMatches, requestIsAuthorized, requestHasPageSession, validateHost, validateOrigin, sessionCookieHeader } = createRequestGuard({ port, apiToken });
+const { tokenMatches, requestIsAuthorized, requestHasPageSession, validateHost, validateOrigin, sessionCookieHeader, healthProof } = createRequestGuard({ port, apiToken });
 const { optimizeAttachmentWithTinify } = createTinify({
   keyFile:path.join(secretsDir, 'tinypng-api-key'),
   endpoint:String(process.env.TRADE_TINIFY_ENDPOINT || 'https://api.tinify.com/shrink')
@@ -1619,13 +1619,17 @@ const server = http.createServer(async (req, res) => {
       const authorized = requestIsAuthorized(req);
       const health = {
         ok: integrity.ok,
-        instanceNonce,
         appUpdatedAt,
         storageMode,
         storageRevision: currentStorageRevision()
       };
+      // instanceNonce 只给带令牌的请求：它是 Mac App 认「这是我启动的服务」的依据，公开了别的程序就能冒充。
+      // 不带令牌的 Mac App 体检用 challenge 换 proof（见 request-guard 的 healthProof），令牌不先交出去。
+      const challenge = url.searchParams.get('challenge') || '';
+      if (/^[0-9a-f]{32,128}$/.test(challenge)) health.proof = healthProof(instanceNonce, challenge);
       if (authorized) {
         Object.assign(health, {
+          instanceNonce,
           storageError,
           integrity,
           dataFile: storageMode === 'sqlite' ? databaseFile : dataFile,

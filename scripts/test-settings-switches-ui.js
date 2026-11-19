@@ -215,7 +215,8 @@ const root = path.resolve(__dirname, '..');
     await page.evaluate(() => uiSettingsTab('order'));
     assert.equal(await page.locator(`${O} select[name="defaultUrgentOrder"]`).count(), 0, 'no 否 / 是 select left');
     assert.equal(await page.locator(`${O} .fixed-setting-pill`).count(), 0);
-    assert.equal(await page.locator(`${O} .settings-fixed-note`).innerText(), '固定为全款订单，这里不能改');
+    // 「默认订单类型」改不了，不再占一格；值仍随表单提交。
+    assert.equal(await page.locator(`${O} .settings-fixed-note`).count(), 0);
     assert.equal(await page.locator(`${O} input[name="defaultOrderType"]`).inputValue(), '全款订单');
     assert.equal(await checked(sw(O, 'defaultUrgentOrder')), false, 'off by default');
     assert.deepEqual(await desc(O, 'defaultUrgentOrder'), { text:'已关闭：新建订单时「加急」默认不勾', warning:false });

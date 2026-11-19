@@ -60,7 +60,7 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
 
     // ---- 收款页那句提示改了；附件页有上传区，不再叫人去完整编辑 ----
     await page.evaluate(() => openOrderDetail('a1', { tab:'payment' }));
-    assert.match(await page.locator('#orderDetailBody [data-detail-tab="payment"] .detail-edit-hint').innerText(), /付款截图可以在「附件」页直接加/);
+    assert.match(await page.locator('#orderDetailBody [data-detail-tab="payment"] .detail-edit-hint').innerText(), /付款截图在「附件」页加/);
     await h.click(page, '[data-detail-tab-btn="attachments"]');
     await panel.waitFor({ state:'visible' });
     assert.doesNotMatch(await panel.innerText(), /完整编辑/);

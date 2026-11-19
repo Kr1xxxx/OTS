@@ -15,7 +15,7 @@ const markupIds = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(match => mat
 const elements = {};
 const formFields = [
   'id', 'num', 'client', 'country', 'createdAt', 'amount', 'paidAmount', 'currency', 'orderMonth',
-  'productType', 'paymentChannel', 'orderType', 'depositAmount', 'depositPercent', 'stage', 'next',
+  'productType', 'paymentChannel', 'orderType', 'depositAmount', 'depositPercent', 'stage',
   'owner', 'trackingNumber', 'carrier', 'urgentOrder', 'customerRequiredDate', 'latestShipDate', 'note',
   'sendFeishuNotification'
 ].reduce((fields, name) => ({ ...fields, [name]:{ value:'', checked:false } }), {});

@@ -21,7 +21,7 @@ const orders = [
   order('o5', { stage:'production', paidAmount:300, logisticsStatus:'运输中' }),
   order('o6', { stage:'shipment', paidAmount:1000, trackingNumber:'1234567890', carrier:'DHL', logisticsStatus:'运输中', shippedAt:base.createdAt,
     shipments:[{ id:'s6', trackingNumber:'1234567890', carrier:'DHL', status:'运输中', shippedAt:base.createdAt }] }),
-  ...Array.from({ length:8 }, (_, i) => order(`o${7 + i}`, { country:'🇬🇧 英国 United Kingdom', next:i % 2 ? '周五前催尾款' : '' }))
+  ...Array.from({ length:8 }, (_, i) => order(`o${7 + i}`, { country:'🇬🇧 英国 United Kingdom', note:i % 2 ? '周五前催尾款' : '', next:'旧数据里的下一步' }))
 ];
 
 // 重载前等保存落地：WebKit 里重载打断还在路上的 /api/save，会报一条页面错误「Fetch API cannot load … due to access control checks」。
@@ -83,8 +83,8 @@ async function quickPaid(page, id, expectedPaid) {
     const sub = rowOf(page, 'o1').locator('.col-customer .order-table-sub');
     assert.equal(await sub.innerText(), '🇿🇦 南非 · 等客户确认颜色');
     assert.equal(await sub.getAttribute('title'), '🇿🇦 南非 South Africa · 等客户确认颜色', 'the full country name is in the title');
-    assert.equal(await rowOf(page, 'o8').locator('.col-customer .order-table-sub').innerText(), '🇬🇧 英国 · 周五前催尾款', 'the next step counts as the remark');
-    assert.equal(await rowOf(page, 'o7').locator('.col-customer .order-table-sub').innerText(), '🇬🇧 英国');
+    assert.equal(await rowOf(page, 'o8').locator('.col-customer .order-table-sub').innerText(), '🇬🇧 英国 · 周五前催尾款', 'the note is the remark');
+    assert.equal(await rowOf(page, 'o7').locator('.col-customer .order-table-sub').innerText(), '🇬🇧 英国', 'the removed next step (still in old data) is not shown');
     assert.equal(await rowOf(page, 'o2').locator('.col-customer .order-table-sub').innerText(), '🌐 其他 Other', 'an empty country is read as 其他 (shown as before), never 未填写');
     const logistics = async id => (await rowOf(page, id).locator('.order-table-logistics strong').innerText()).trim();
     assert.equal(await logistics('o2'), '', 'a quote has no shipping yet: the cell stays empty');

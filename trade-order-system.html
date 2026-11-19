@@ -567,16 +567,6 @@ html[data-theme="dark"] .segment-option:hover { color: var(--gray-900); backgrou
 .tag-cyan { background: var(--cyan-50); color: var(--cyan-600); }
 .tag-green { background: var(--green-50); color: var(--green-600); }
 .tag-gray { background: var(--gray-100); color: var(--gray-600); }
-.next {
-  flex: 0 1 clamp(420px, 74%, 1120px);
-  min-width: 280px;
-  max-width: calc(100% - 220px);
-  padding: 7px 10px;
-  background: var(--gray-50);
-  border: 1px solid var(--gray-100);
-  border-radius: var(--radius);
-  color: var(--gray-700);
-}
 .muted { color: var(--gray-500); }
 .order-list-page-head {
   display: flex; align-items: center; justify-content: space-between;
@@ -2293,10 +2283,6 @@ html[data-theme="dark"] .app-refresh-btn:focus-visible {
   .segment-control {
     max-width: 100%;
     overflow: hidden;
-  }
-  .next {
-    min-width: 0;
-    width: 100%;
   }
   .reminder-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .task { grid-template-columns: 5px 1fr; align-items: start; }
@@ -4065,9 +4051,6 @@ html[data-theme] .oc-r3 .board-card-amount { margin:0; font-size:13px; font-weig
   html[data-theme] .board-columns:has(> .trash-column) .oc-r3 .oc-meta:not(:empty) { flex-shrink:100; min-width:3em; }
   html[data-theme] .board-columns:has(> .trash-column) .oc-r3 .board-card-amount { flex-shrink:1; min-width:0; overflow:hidden; text-overflow:ellipsis; }
 }
-html[data-theme] .oc-next { display:flex; align-items:center; gap:6px; padding-top:4px; border-top:1px solid var(--hairline, var(--surface-border)); font-size:11.5px; color:var(--gray-600); min-width:0; }
-html[data-theme] .oc-next .ui-icon { width:14px; height:14px; flex:none; color:var(--gray-400); }
-html[data-theme] .oc-next span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
 /* 待办与最近订单 */
 html[data-theme] #page-dashboard > .grid { grid-template-columns:minmax(0,3fr) minmax(0,2fr); gap:16px; }
@@ -5221,8 +5204,6 @@ html[data-theme] .board-column-head > .board-column-top { display:flex; align-it
 html[data-theme] .board-column-top .board-column-title { flex:0 1 auto; min-width:0; }
 html[data-theme] .board-column-top .board-column-meta { flex:none; margin-left:auto; white-space:nowrap; text-align:right; }
 html[data-theme] .board-column-head > .board-column-sub { display:block; padding-left:15px; font-size:11px; line-height:16px; height:16px; color:var(--gray-500); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-/* 没写下一步的那一行叫 .is-empty：叫 .empty 会被全局空状态样式套成虚线大框，卡片比写了下一步的高 29px。 */
-html[data-theme] .oc-next.is-empty { color:var(--gray-400); }
 html[data-theme] .oc-r3 .board-card-amount.due { color:var(--s-amber); }
 /* 选项弹窗（导出、导入预览、卡片设置）：头部标题下一行写范围；主体放选项卡片、勾选块、开关；底部左边一句事实，右边取消 + 执行。
    内容多时只有主体滚动，头部和底部固定。 */
@@ -6718,7 +6699,6 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
                 <div class="order-section-sub">记录客户要求、付款状态、交期变更等</div>
               </div>
             </div>
-            <div class="field span-2"><label>下一步</label><input name="next" autocomplete="off" placeholder="例如 发送 PI 和付款链接"></div>
             <div class="field span-2"><label>备注</label><textarea name="note" placeholder="记录客户要求、付款状态、交期变更等"></textarea></div>
           </section>
 
@@ -7858,20 +7838,20 @@ function normalizeCustomerLevelRules(raw) {
 }
 
 const demoOrders = [
-  { id:'o1', productType:'假发', paymentChannel:'阿里巴巴', orderType:'定金订单', depositAmount:0, depositPercent:0, num:'SO260428001', client:'ABC Trading Co.', country:'🇺🇸 美国 United States', amount:12580, paidAmount:0, currency:'USD', createdAt:'2026-04-28', orderMonth:'2026-04', stage:'quote', next:'确认报价条款', owner:'Kris', note:'客户等待报价细节确认', updated:'2026-04-28 10:30', logs:['Kris 创建订单并进入报价阶段'] },
-  { id:'o2', productType:'睫毛', paymentChannel:'Paypal', orderType:'定金订单', depositAmount:2600, depositPercent:29, num:'SO260426014', client:'Global Importers UK', country:'🇬🇧 英国 United Kingdom', amount:8940, paidAmount:2600, currency:'USD', createdAt:'2026-04-26', orderMonth:'2026-04', stage:'sample', next:'确认样品反馈', owner:'Aimee', note:'需要确认收货地址', updated:'2026-04-28 09:15', logs:['Aimee 完成报价确认', 'Aimee 准备样品反馈'] },
-  { id:'o3', productType:'假发', paymentChannel:'TT', orderType:'定金订单', depositAmount:4690, depositPercent:30, num:'SO260421008', client:'EuroTech GmbH', country:'🇩🇪 德国 Germany', amount:15630, paidAmount:4690, currency:'USD', createdAt:'2026-04-21', orderMonth:'2026-04', stage:'deposit', next:'跟进定金付款', owner:'Kris', note:'已发送付款信息', updated:'2026-04-27 16:45', logs:['Kris 发送付款信息给客户', 'Kris 将阶段更新为定金'] },
-  { id:'o4', productType:'睫毛', paymentChannel:'Stripe', orderType:'全款订单', depositAmount:22400, depositPercent:100, num:'SO260415019', client:'Nordic Home AS', country:'🇳🇴 挪威 Norway', amount:22400, paidAmount:22400, currency:'USD', createdAt:'2026-04-15', orderMonth:'2026-04', stage:'done', next:'归档订单资料', owner:'Scarlett', note:'客户已确认收货', trackingNumber:'871032796510', carrier:'FedEx', shippedAt:'2026-04-20', logisticsStatus:'已签收', logisticsUpdated:'2026-04-24 11:10', updated:'2026-04-24 11:10', logs:['订单完成', '已收全款'] },
-  { id:'o5', productType:'假发', paymentChannel:'西联', orderType:'定金订单', depositAmount:2100, depositPercent:30, num:'SO260330011', client:'Société Française', country:'🇫🇷 法国 France', amount:6890, paidAmount:2100, currency:'USD', createdAt:'2026-03-30', orderMonth:'2026-03', stage:'production', next:'确认生产排期', owner:'Scarlett', note:'客户要求提前交期', updated:'2026-04-27 11:20', logs:['已收定金 30%', 'Scarlett 确认进入生产'] },
-  { id:'o6', productType:'睫毛', paymentChannel:'Zelle', orderType:'定金订单', depositAmount:3000, depositPercent:30, num:'SO260318023', client:'Ausmart Pty Ltd', country:'🇦🇺 澳大利亚 Australia', amount:9870, paidAmount:3000, currency:'USD', createdAt:'2026-03-18', orderMonth:'2026-03', stage:'balance', next:'跟进尾款到账', owner:'Kris', note:'尾款未到账，需提醒', updated:'2026-04-27 15:30', logs:['出货前质检完成', 'Kris 将阶段更新为尾款'] },
-  { id:'o7', productType:'假发', paymentChannel:'Paypal', orderType:'全款订单', depositAmount:18420, depositPercent:100, num:'SO260305006', client:'Iberia Retail S.L.', country:'🇪🇸 西班牙 Spain', amount:18420, paidAmount:18420, currency:'USD', createdAt:'2026-03-05', orderMonth:'2026-03', stage:'done', next:'更新复购提醒', owner:'Aimee', note:'客户计划 6 月复购', updated:'2026-03-29 14:05', logs:['订单完成', '已收全款'] },
-  { id:'o8', productType:'睫毛', paymentChannel:'阿里巴巴', orderType:'全款订单', depositAmount:7540, depositPercent:100, num:'SO260222017', client:'LatAm Supplies S.A.', country:'🇧🇷 巴西 Brazil', amount:7540, paidAmount:7540, currency:'USD', createdAt:'2026-02-22', orderMonth:'2026-02', stage:'shipment', next:'准备出货资料', owner:'Aimee', note:'等待确认装箱单', trackingNumber:'91 8833 5262', carrier:'DHL', shippedAt:'2026-04-27', logisticsStatus:'运输中', logisticsUpdated:'2026-04-27 10:05', updated:'2026-04-27 10:05', logs:['Kris 确认尾款到账', 'Aimee 开始准备出货资料'] },
-  { id:'o9', productType:'假发', paymentChannel:'TT', orderType:'定金订单', depositAmount:4160, depositPercent:30, num:'SO260214012', client:'Maple Distribution', country:'🇨🇦 加拿大 Canada', amount:13880, paidAmount:4160, currency:'USD', createdAt:'2026-02-14', orderMonth:'2026-02', stage:'deposit', next:'确认定金水单', owner:'Kris', note:'客户财务已安排付款', updated:'2026-02-18 16:30', logs:['客户确认订单', '等待定金'] },
-  { id:'o10', productType:'睫毛', paymentChannel:'Stripe', orderType:'全款订单', depositAmount:27600, depositPercent:100, num:'SO260129004', client:'Alpine Market AG', country:'🇨🇭 瑞士 Switzerland', amount:27600, paidAmount:27600, currency:'USD', createdAt:'2026-01-29', orderMonth:'2026-01', stage:'done', next:'归档质检报告', owner:'Scarlett', note:'高价值客户，注意售后', updated:'2026-02-20 12:40', logs:['订单完成', '已收全款'] },
-  { id:'o11', productType:'假发', paymentChannel:'西联', orderType:'定金订单', depositAmount:3580, depositPercent:30, num:'SO260118015', client:'Benelux Trade BV', country:'🇳🇱 荷兰 Netherlands', amount:11950, paidAmount:3580, currency:'USD', createdAt:'2026-01-18', orderMonth:'2026-01', stage:'production', next:'同步生产照片', owner:'Aimee', note:'客户需要每周进度', updated:'2026-01-24 09:55', logs:['定金到账', '生产中'] },
-  { id:'o12', productType:'睫毛', paymentChannel:'Zelle', orderType:'全款订单', depositAmount:9400, depositPercent:100, num:'SO251220031', client:'Andes Import Group', country:'🇨🇱 智利 Chile', amount:9400, paidAmount:9400, currency:'USD', createdAt:'2025-12-20', orderMonth:'2025-12', stage:'done', next:'复盘物流成本', owner:'Kris', note:'海运费用偏高', updated:'2026-01-08 10:15', logs:['订单完成', '客户确认收货'] },
-  { id:'o13', productType:'假发', paymentChannel:'Paypal', orderType:'定金订单', depositAmount:4860, depositPercent:30, num:'SO251128009', client:'Vienna Living GmbH', country:'🇦🇹 奥地利 Austria', amount:16200, paidAmount:4860, currency:'USD', createdAt:'2025-11-28', orderMonth:'2025-11', stage:'balance', next:'发送尾款提醒', owner:'Scarlett', note:'客户等验货照片', updated:'2025-12-12 17:05', logs:['质检完成', '尾款待收'] },
-  { id:'o14', productType:'睫毛', paymentChannel:'TT', orderType:'全款订单', depositAmount:20500, depositPercent:100, num:'SO251018022', client:'Pacific North LLC', country:'🇺🇸 美国 United States', amount:20500, paidAmount:20500, currency:'USD', createdAt:'2025-10-18', orderMonth:'2025-10', stage:'done', next:'维护客户复购', owner:'Kris', note:'稳定客户', updated:'2025-11-02 09:20', logs:['订单完成', '已收全款'] }
+  { id:'o1', productType:'假发', paymentChannel:'阿里巴巴', orderType:'定金订单', depositAmount:0, depositPercent:0, num:'SO260428001', client:'ABC Trading Co.', country:'🇺🇸 美国 United States', amount:12580, paidAmount:0, currency:'USD', createdAt:'2026-04-28', orderMonth:'2026-04', stage:'quote', owner:'Kris', note:'客户等待报价细节确认', updated:'2026-04-28 10:30', logs:['Kris 创建订单并进入报价阶段'] },
+  { id:'o2', productType:'睫毛', paymentChannel:'Paypal', orderType:'定金订单', depositAmount:2600, depositPercent:29, num:'SO260426014', client:'Global Importers UK', country:'🇬🇧 英国 United Kingdom', amount:8940, paidAmount:2600, currency:'USD', createdAt:'2026-04-26', orderMonth:'2026-04', stage:'sample', owner:'Aimee', note:'需要确认收货地址', updated:'2026-04-28 09:15', logs:['Aimee 完成报价确认', 'Aimee 准备样品反馈'] },
+  { id:'o3', productType:'假发', paymentChannel:'TT', orderType:'定金订单', depositAmount:4690, depositPercent:30, num:'SO260421008', client:'EuroTech GmbH', country:'🇩🇪 德国 Germany', amount:15630, paidAmount:4690, currency:'USD', createdAt:'2026-04-21', orderMonth:'2026-04', stage:'deposit', owner:'Kris', note:'已发送付款信息', updated:'2026-04-27 16:45', logs:['Kris 发送付款信息给客户', 'Kris 将阶段更新为定金'] },
+  { id:'o4', productType:'睫毛', paymentChannel:'Stripe', orderType:'全款订单', depositAmount:22400, depositPercent:100, num:'SO260415019', client:'Nordic Home AS', country:'🇳🇴 挪威 Norway', amount:22400, paidAmount:22400, currency:'USD', createdAt:'2026-04-15', orderMonth:'2026-04', stage:'done', owner:'Scarlett', note:'客户已确认收货', trackingNumber:'871032796510', carrier:'FedEx', shippedAt:'2026-04-20', logisticsStatus:'已签收', logisticsUpdated:'2026-04-24 11:10', updated:'2026-04-24 11:10', logs:['订单完成', '已收全款'] },
+  { id:'o5', productType:'假发', paymentChannel:'西联', orderType:'定金订单', depositAmount:2100, depositPercent:30, num:'SO260330011', client:'Société Française', country:'🇫🇷 法国 France', amount:6890, paidAmount:2100, currency:'USD', createdAt:'2026-03-30', orderMonth:'2026-03', stage:'production', owner:'Scarlett', note:'客户要求提前交期', updated:'2026-04-27 11:20', logs:['已收定金 30%', 'Scarlett 确认进入生产'] },
+  { id:'o6', productType:'睫毛', paymentChannel:'Zelle', orderType:'定金订单', depositAmount:3000, depositPercent:30, num:'SO260318023', client:'Ausmart Pty Ltd', country:'🇦🇺 澳大利亚 Australia', amount:9870, paidAmount:3000, currency:'USD', createdAt:'2026-03-18', orderMonth:'2026-03', stage:'balance', owner:'Kris', note:'尾款未到账，需提醒', updated:'2026-04-27 15:30', logs:['出货前质检完成', 'Kris 将阶段更新为尾款'] },
+  { id:'o7', productType:'假发', paymentChannel:'Paypal', orderType:'全款订单', depositAmount:18420, depositPercent:100, num:'SO260305006', client:'Iberia Retail S.L.', country:'🇪🇸 西班牙 Spain', amount:18420, paidAmount:18420, currency:'USD', createdAt:'2026-03-05', orderMonth:'2026-03', stage:'done', owner:'Aimee', note:'客户计划 6 月复购', updated:'2026-03-29 14:05', logs:['订单完成', '已收全款'] },
+  { id:'o8', productType:'睫毛', paymentChannel:'阿里巴巴', orderType:'全款订单', depositAmount:7540, depositPercent:100, num:'SO260222017', client:'LatAm Supplies S.A.', country:'🇧🇷 巴西 Brazil', amount:7540, paidAmount:7540, currency:'USD', createdAt:'2026-02-22', orderMonth:'2026-02', stage:'shipment', owner:'Aimee', note:'等待确认装箱单', trackingNumber:'91 8833 5262', carrier:'DHL', shippedAt:'2026-04-27', logisticsStatus:'运输中', logisticsUpdated:'2026-04-27 10:05', updated:'2026-04-27 10:05', logs:['Kris 确认尾款到账', 'Aimee 开始准备出货资料'] },
+  { id:'o9', productType:'假发', paymentChannel:'TT', orderType:'定金订单', depositAmount:4160, depositPercent:30, num:'SO260214012', client:'Maple Distribution', country:'🇨🇦 加拿大 Canada', amount:13880, paidAmount:4160, currency:'USD', createdAt:'2026-02-14', orderMonth:'2026-02', stage:'deposit', owner:'Kris', note:'客户财务已安排付款', updated:'2026-02-18 16:30', logs:['客户确认订单', '等待定金'] },
+  { id:'o10', productType:'睫毛', paymentChannel:'Stripe', orderType:'全款订单', depositAmount:27600, depositPercent:100, num:'SO260129004', client:'Alpine Market AG', country:'🇨🇭 瑞士 Switzerland', amount:27600, paidAmount:27600, currency:'USD', createdAt:'2026-01-29', orderMonth:'2026-01', stage:'done', owner:'Scarlett', note:'高价值客户，注意售后', updated:'2026-02-20 12:40', logs:['订单完成', '已收全款'] },
+  { id:'o11', productType:'假发', paymentChannel:'西联', orderType:'定金订单', depositAmount:3580, depositPercent:30, num:'SO260118015', client:'Benelux Trade BV', country:'🇳🇱 荷兰 Netherlands', amount:11950, paidAmount:3580, currency:'USD', createdAt:'2026-01-18', orderMonth:'2026-01', stage:'production', owner:'Aimee', note:'客户需要每周进度', updated:'2026-01-24 09:55', logs:['定金到账', '生产中'] },
+  { id:'o12', productType:'睫毛', paymentChannel:'Zelle', orderType:'全款订单', depositAmount:9400, depositPercent:100, num:'SO251220031', client:'Andes Import Group', country:'🇨🇱 智利 Chile', amount:9400, paidAmount:9400, currency:'USD', createdAt:'2025-12-20', orderMonth:'2025-12', stage:'done', owner:'Kris', note:'海运费用偏高', updated:'2026-01-08 10:15', logs:['订单完成', '客户确认收货'] },
+  { id:'o13', productType:'假发', paymentChannel:'Paypal', orderType:'定金订单', depositAmount:4860, depositPercent:30, num:'SO251128009', client:'Vienna Living GmbH', country:'🇦🇹 奥地利 Austria', amount:16200, paidAmount:4860, currency:'USD', createdAt:'2025-11-28', orderMonth:'2025-11', stage:'balance', owner:'Scarlett', note:'客户等验货照片', updated:'2025-12-12 17:05', logs:['质检完成', '尾款待收'] },
+  { id:'o14', productType:'睫毛', paymentChannel:'TT', orderType:'全款订单', depositAmount:20500, depositPercent:100, num:'SO251018022', client:'Pacific North LLC', country:'🇺🇸 美国 United States', amount:20500, paidAmount:20500, currency:'USD', createdAt:'2025-10-18', orderMonth:'2025-10', stage:'done', owner:'Kris', note:'稳定客户', updated:'2025-11-02 09:20', logs:['订单完成', '已收全款'] }
 ];
 
 
@@ -17290,7 +17270,7 @@ function orderSearchText(order = {}, profile = {}) {
     order.country, order.currency, order.amount, order.paidAmount, typeof orderDueValue === 'function' ? orderDueValue(order) : '',
     order.productType, order.paymentChannel, order.orderType, stageName, order.isDraft ? '草稿' : '', order.urgentOrder ? '加急' : '',
     order.trackingNumber, order.carrier, order.logisticsStatus, shipments.join(' '),
-    order.orderDetail, order.note, order.next, order.customerRequiredDate, order.latestShipDate, order.owner, contact
+    order.orderDetail, order.note, order.customerRequiredDate, order.latestShipDate, order.owner, contact
   ].map(value => value === null || value === undefined ? '' : String(value)).filter(Boolean).join(' ');
 }
 function orderListSearchHaystack(order = {}, customers = {}) {
@@ -18086,7 +18066,6 @@ function orderChangeSummary(before, after) {
     ['urgentOrder', '加急订单', v => v ? '是' : '否'],
     ['customerRequiredDate', '客户要求收到日期'],
     ['latestShipDate', '最晚发出日期'],
-    ['next', '下一步'],
     ['partialShipment', '部分发货', v => v ? '还有批次没发' : '已全部发出'],
     ['attachments', '附件数量', v => Array.isArray(v) ? `${v.length} 个` : '0 个'],
     ['isDraft', '草稿状态', v => v ? '草稿' : '正式订单'],
@@ -19103,7 +19082,6 @@ function renderOrderDetail(order, source = 'active') {
           ${editField('客户要求到货', 'customerRequiredDate', `<input type="text" data-date-input autocomplete="off" spellcheck="false" placeholder="选择日期" data-dedit="customerRequiredDate" value="${escapeAttr(order.customerRequiredDate || '')}">`)}
           ${editField('最晚发货', 'latestShipDate', `<input type="text" data-date-input autocomplete="off" spellcheck="false" placeholder="选择日期" data-dedit="latestShipDate" value="${escapeAttr(order.latestShipDate || '')}">`)}
           ${editField('订单详情', 'orderDetail', `<textarea data-dedit="orderDetail" placeholder="款式、规格、数量，一行一项">${escapeAttr(order.orderDetail || '')}</textarea>`, true)}
-          ${editField('下一步', 'next', `<input data-dedit="next" value="${escapeAttr(order.next || '')}" placeholder="例如 发送 PI 和付款链接">`, true)}
           ${editField('本单备注', 'note', `<textarea data-dedit="note" placeholder="记录客户要求、付款状态、交期变更等">${escapeAttr(order.note || '')}</textarea>`, true)}
         </div>
         <label class="detail-switch"><input type="checkbox" data-dedit="urgentOrder"${order.urgentOrder ? ' checked' : ''}><i aria-hidden="true"></i><span>加急订单</span></label>
@@ -20570,9 +20548,7 @@ function renderPipeline() {
   document.querySelectorAll('#boardProductFilter .segment-option').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.boardProduct === boardProductFilter);
   });
-  // 卡片统一高度：有一张卡写了下一步，所有卡都留这一行；待收并进金额行，不再多出一行。
-  const boardHasNext = state.orders.some(o => o.stage !== 'done' && String(o.next || '').trim()
-    && (boardProductFilter === 'all' || o.productType === boardProductFilter));
+  // 卡片统一高度：待收并进金额行，不再多出一行。
   const columns = stageDefs.filter(s => s.key !== 'done').map(s => {
     const orders = state.orders
       .filter(o => o.stage === s.key)
@@ -20621,7 +20597,6 @@ function renderPipeline() {
             <div class="oc-r1">${flag ? `<span class="oc-flag">${flag}</span>` : ''}${cardSettings.showLevelIcon ? renderLevelIcon(level) : ''}${cardSettings.showOrderNumber ? `<span class="oc-num">${escapeAttr(o.num)}</span>${cleanTracking(o.trackingNumber) ? '<span class="tracking-submitted-check" title="已提交运单" aria-label="已提交运单">✓</span>' : ''}` : ''}${status}${date}</div>
             <div class="board-card-title oc-client" title="${escapeAttr(clientDisplayName(o.client))}">${escapeAttr(clientDisplayName(o.client))}</div>
             ${meta || cardSettings.showAmount ? `<div class="oc-r3"><span class="oc-meta">${meta}</span>${cardSettings.showAmount ? boardCardAmountHtml(o, balanceDue, cardSettings) : ''}</div>` : ''}
-            ${boardHasNext ? `<div class="oc-next${o.next ? '' : ' is-empty'}">${uiIcon('arrow')}<span>${o.next ? escapeAttr(o.next) : '未设下一步'}</span></div>` : ''}
           </article>
         `;
       }).join('') || '<div class="board-empty">暂无订单</div>'}
@@ -20890,7 +20865,7 @@ function renderOrderListPage() {
       const usdRate = ecbUsdRateForOrder(order);
       const usdHint = String(order.currency || 'USD').toUpperCase() === 'USD' ? '' : (usdRate ? ` · ≈ ${summaryMoney(orderAmountUsd(order), 'USD')}` : ' · 缺汇率，未换算成美元');
       // 客户格第二行：国旗 + 国家短名 · 备注，哪边空就只写另一边，都空就不写这一行（国家不再单独占一列）。
-      const remark = order.next || order.note || '';
+      const remark = order.note || '';
       const customerSub = [orderListCountryShort(order.country).trim(), remark].filter(Boolean).join(' · ');
       const customerSubTitle = [String(order.country || '').trim(), remark].filter(Boolean).join(' · ');
       return `
@@ -20950,7 +20925,7 @@ function renderRecentOrders() {
       <button class="feed-item" type="button" data-id="${escapeAttr(o.id)}" style="--i:${list.indexOf(o)}">
         <b>${escapeAttr(clientDisplayName(o.client))}</b>
         <span class="feed-when" title="${escapeAttr(o.updated || '')}">${escapeAttr(orderListWhen(o.updated))}</span>
-        <span class="feed-desc"><span class="mono">${escapeAttr(o.num)}</span> · ${o.isDraft ? '草稿' : s.name} · ${escapeAttr(o.next || money(o.amount, o.currency))}</span>
+        <span class="feed-desc"><span class="mono">${escapeAttr(o.num)}</span> · ${o.isDraft ? '草稿' : s.name} · ${escapeAttr(money(o.amount, o.currency))}</span>
       </button>
     `;
   }).join('');
@@ -24643,7 +24618,6 @@ function orderFormDataFromOrder(order = {}) {
     trackingNumber:formInputText(primary.trackingNumber || ''),
     carrier:['DHL', 'FedEx', 'UPS'].includes(primary.carrier) ? primary.carrier : 'auto',
     shipmentStatus:formSelectText(primary.status || '未发货', orderFormSelectOptions('shipmentStatus')),
-    next:formInputText(order.next || ''),
     note:formTextareaText(order.note || '')
   };
   if (notificationEligible && (typeof feishuDefaultChecked !== 'function' || feishuDefaultChecked())) data.sendFeishuNotification = 'on';
@@ -24699,7 +24673,7 @@ function openOrder(id) {
   fillStageSelects();
   const settings = { ...defaultOrderSettings, ...(state.orderSettings || {}) };
   const order = id ? state.orders.find(o => o.id === id) : {
-    id:'', num: nextOrderNum(), client:'', country:settings.defaultCountry, amount:'', paidAmount:'', currency:settings.defaultCurrency, createdAt:normalizeDate(new Date().toISOString()), orderMonth:normalizeMonth(new Date().toISOString()), productType:settings.defaultProductType, paymentChannel:settings.defaultPaymentChannel, orderType:settings.defaultOrderType, depositAmount:'', depositPercent:settings.defaultDepositPercent ?? '', stage:normalizeStage(settings.defaultStage), next:'', owner:settings.defaultOwner, trackingNumber:'', carrier:'auto', urgentOrder:settings.defaultUrgentOrder === '是', customerRequiredDate:'', latestShipDate:'', shippedAt:'', logisticsStatus:'未发货', note:'', logs:[]
+    id:'', num: nextOrderNum(), client:'', country:settings.defaultCountry, amount:'', paidAmount:'', currency:settings.defaultCurrency, createdAt:normalizeDate(new Date().toISOString()), orderMonth:normalizeMonth(new Date().toISOString()), productType:settings.defaultProductType, paymentChannel:settings.defaultPaymentChannel, orderType:settings.defaultOrderType, depositAmount:'', depositPercent:settings.defaultDepositPercent ?? '', stage:normalizeStage(settings.defaultStage), owner:settings.defaultOwner, trackingNumber:'', carrier:'auto', urgentOrder:settings.defaultUrgentOrder === '是', customerRequiredDate:'', latestShipDate:'', shippedAt:'', logisticsStatus:'未发货', note:'', logs:[]
   };
   fields.id.value = order.id;
   fields.num.value = order.num;
@@ -24727,7 +24701,6 @@ function openOrder(id) {
   // 阶段下拉的选项跟着订单类型走（全款订单没有「待发货」）。上一个打开的订单类型不同时，
   // 旧选项里可能没有这个阶段，先按当前订单类型重建选项再选中，否则待发货单会被显示成报价并在保存时退回。
   renderStageSelect(fields.stage, normalizeStage(order.stage), fields.orderType.value);
-  if (fields.next) fields.next.value = order.next || '';
   if (fields.owner) fields.owner.value = order.owner;
   setOrderShipmentFields(form, order);
   if (fields.partialShipment) fields.partialShipment.checked = order.partialShipment === true;
@@ -25133,8 +25106,8 @@ function buildOrderFromFormData(data = {}, { existing = null, isDraft = false, s
     depositPercent: paymentValues.depositPercent,
     ...(paymentValues.depositFromPaid ? { depositFromPaid:true } : {}),
     stage: stageValue,
-    // 「下一步」：订单弹窗和抽屉都能改（表单里有这个字段）；没交这个字段的入口沿用原来的值。
-    next: data.next !== undefined ? String(data.next || '').trim() : (existing?.next || ''),
+    // 「下一步」这个功能已去掉：旧单里写过的内容不显示、不能改，原样留在存档里，不随保存丢掉。
+    ...(existing?.next ? { next: existing.next } : {}),
     owner: (data.owner || state.orderSettings?.defaultOwner || defaultOrderSettings.defaultOwner || '未分配').trim() || '未分配',
     shipments,
     trackingNumber: cleanNumber,
@@ -25435,14 +25408,14 @@ function duplicateOrder() {
     urgentOrder: false,
     customerRequiredDate: '',
     latestShipDate: '',
-    next: '',
     updated: nowText(),
     feishuNotification: normalizeFeishuNotification({ requested:false, status:'skipped' }),
     logs:[{ time:nowText(), text:`由订单 ${src.num || ''} 复制生成` }]
   };
   // 源单结算 / 自动记定金时留下的标记不属于新单：以前一起带过来，副本以后从「已发货」退回时，
   // 已收金额会被「还原」成源单当年的数字，保存提示也会凭空写「还没收的按已收齐记」。
-  ['paidBeforeSettle', 'paidBeforeDeposit', 'depositAutoPaid', 'autoDoneHold', 'partialShipment', 'trashedAt', 'deletedAt', 'deletedDoneTasks']
+  // 已去掉的「下一步」（next）只留在源单的存档里，不带到新单上。
+  ['paidBeforeSettle', 'paidBeforeDeposit', 'depositAutoPaid', 'autoDoneHold', 'partialShipment', 'trashedAt', 'deletedAt', 'deletedDoneTasks', 'next']
     .forEach(key => { delete copy[key]; });
   state.orders.unshift(copy);
   if (typeof feishuPendingCopies !== 'undefined') feishuPendingCopies.add(copy.id);
@@ -34571,7 +34544,7 @@ function orderDataWithDrawerValues(base, values = {}, { order = {}, saved = null
     if (data[name] === undefined) delete data[name];
     return true;
   };
-  ['client', 'country', 'productType', 'orderType', 'customerRequiredDate', 'latestShipDate', 'orderDetail', 'note', 'next', 'urgentOrder', 'partialShipment', 'currency', 'paymentChannel', 'amount'].forEach(name => {
+  ['client', 'country', 'productType', 'orderType', 'customerRequiredDate', 'latestShipDate', 'orderDetail', 'note', 'urgentOrder', 'partialShipment', 'currency', 'paymentChannel', 'amount'].forEach(name => {
     if (!set(name, values[name])) return;
     if (name === 'amount') sync('amount');
     if (name !== 'orderType') return;

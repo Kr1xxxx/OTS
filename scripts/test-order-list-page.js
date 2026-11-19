@@ -119,7 +119,7 @@ const chinese = [
 assert.deepEqual(ids({ query:'张三' }, chinese), ['c1'], 'two Chinese characters');
 assert.deepEqual(ids({ query:'美发' }, chinese), ['c1'], 'Chinese substring in the middle');
 assert.deepEqual(ids({ query:'定金' }, chinese), ['c1', 'c2'], 'order type substring');
-assert.deepEqual(ids({ query:'交期' }, chinese), ['c2'], 'next-step substring');
+assert.deepEqual(ids({ query:'交期' }, chinese), [], 'the removed next step (still in old data) is not searched');
 assert.deepEqual(ids({ query:'K26' }, chinese), ['c1', 'c2'], 'order number prefix K26');
 
 // 近似名只在没有精确结果时才出现。

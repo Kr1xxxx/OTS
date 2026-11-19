@@ -17801,7 +17801,10 @@ function normalizeCustomerProfiles(customers = {}) {
     const paymentMethod = normalizePaymentChannelValue(profile?.paymentMethod || profile?.paymentChannel || '') || '阿里巴巴';
     const productType = productTypeDefs.some(item => item.value === profile?.productType) ? profile.productType : findProductTypeInText(tags.join(' '));
     const contactPreferences = normalizeCustomerContactPreferences(profile?.primaryContactMethod, profile?.alternativeContactMethods);
-    return [name, normalizeCustomerContactFields({ ...profile, ...contactPreferences, permanentNote:String(profile?.permanentNote || '').trim(), level, tags, paymentMethod, ...(productType ? { productType } : {}) })];
+    // 国家和订单读进来时一个口径（storedCountry）：以前列表里没有、只能手填的「津巴布韦」「UAE」，列表补上以后读进来就归到列表写法、带国旗，
+    // 下次保存随整份数据写回；列表里仍然没有的照原文留着，没填的还是空的（不写成「其他」）。
+    const country = String(profile?.country || '').trim() ? { country:storedCountry(profile.country) } : {};
+    return [name, normalizeCustomerContactFields({ ...profile, ...contactPreferences, permanentNote:String(profile?.permanentNote || '').trim(), level, tags, paymentMethod, ...(productType ? { productType } : {}), ...country })];
   }));
 }
 function levelIconDef(level = '') {
@@ -25116,7 +25119,8 @@ function buildOrderFromFormData(data = {}, { existing = null, isDraft = false, s
     id: existing ? existing.id : 'o' + Date.now(),
     num: existing?.num && typedNum && normalizeOrderNum(existing.num) === typedNum ? existing.num : (typedNum || nextOrderNum()),
     client: clientName,
-    country: data.country || '',
+    // 订单框没有离开时整理国家那一步：手打的 zimbabwe / UAE 存成列表写法，和读进来的旧单一样，按国家筛选、统计不分成两项。
+    country: String(data.country || '').trim() ? storedCountry(data.country) : '',
     createdAt: data.createdAt || normalizeDate(nowText()),
     amount,
     paidAmount: paymentValues.paidAmount,

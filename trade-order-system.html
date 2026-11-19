@@ -3702,6 +3702,9 @@ html[data-theme] .calendar-record-list { display:flex; flex-direction:column; }
 html[data-theme] .calendar-record { display:grid; grid-template-columns:10px minmax(0,1fr) auto; align-items:center; gap:10px; padding:10px 2px; border-bottom:1px solid var(--hairline); }
 html[data-theme] .calendar-record.faded { opacity:.65; }
 html[data-theme] .calendar-record-title { font-size:13px; font-weight:500; color:var(--gray-900); overflow-wrap:anywhere; }
+/* 当天记录和当月日程一样先写事再写客户：事加粗，客户名常规。 */
+html[data-theme] .calendar-record-title:has(> b) { font-weight:400; color:var(--gray-700); }
+html[data-theme] .calendar-record-title > b { font-weight:500; color:var(--gray-900); }
 html[data-theme] .calendar-drawer-foot { display:flex; justify-content:flex-end; margin-top:16px; }
 /* 当天抽屉的待办和工作台同一个样子（规则和 #taskList 共用）；抽屉和订单详情抽屉一样宽，第二行写不下折行、不截。 */
 html[data-theme] #calendarTaskDrawer .drawer { width:min(640px, 100%); }
@@ -5384,7 +5387,6 @@ html[data-theme] .tracking-group-line { color:var(--gray-600); font-size:12px; }
   html[data-theme] .tracking-group-fields { grid-template-columns:minmax(0, 1fr); }
 }
 /* 设置 › 订单设置：改不了的「默认订单类型」只是一行说明，和旁边的输入框一样高。 */
-html[data-theme] .settings-fixed-note { display:flex; align-items:center; min-height:var(--field-h, var(--control-height)); color:var(--gray-600); font-size:13px; }
 /* 设置 › 接口状态：一个接口一行（名字 · 状态 · 最近调用 · 去设置的链接）。最近调用从物流页顶部挪来。 */
 html[data-theme] .api-status-list { display:block; padding-top:4px; padding-bottom:4px; }
 html[data-theme] .api-status-row { display:grid; grid-template-columns:96px 110px minmax(0,1fr) auto; gap:12px; align-items:center; min-height:44px; padding:6px 0; border-top:1px solid var(--hairline); }
@@ -5411,6 +5413,7 @@ html[data-theme] .tracking-rules-pop[hidden] { display:none; }
   html[data-theme] .pick-options { grid-template-columns:minmax(0, 1fr); }
   html[data-theme] .pick-well { grid-template-columns:repeat(2, minmax(0, 1fr)); }
 }
+html[data-theme] .ai-usage-pagination[hidden] { display:none; }
 </style>
 <style id="ots-form-v3">
 /* 表单字段统一（V3.109）：标签 12px/600、标签到控件 6px、控件高 40px、列距 12px、行距 14px。
@@ -6368,7 +6371,7 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
                 <div class="field"><label>默认订单阶段</label><select name="defaultStage"></select></div>
                 <div class="field"><label>默认产品类型</label><select name="defaultProductType"></select></div>
                 <div class="field"><label>默认收款方式</label><select name="defaultPaymentChannel"></select></div>
-                <div class="field"><label>默认订单类型</label><input type="hidden" name="defaultOrderType" value="全款订单"><div class="settings-fixed-note">固定为全款订单，这里不能改</div></div>
+                <input type="hidden" name="defaultOrderType" value="全款订单">
                 <div class="field"><label>默认定金比例 %</label><input name="defaultDepositPercent" type="number" min="0" max="100" step="1" placeholder="30"></div>
                 <div class="field"><label>默认承运商</label><select name="defaultCarrier"><option value="auto">默认自动</option><option value="DHL">DHL</option><option value="FedEx">FedEx</option><option value="UPS">UPS</option></select></div>
                 <label class="pick-switch settings-switch"><input type="checkbox" role="switch" name="defaultUrgentOrder" value="是"><span><b>新订单默认加急</b><small data-switch-desc="defaultUrgentOrder"></small></span></label>
@@ -10458,6 +10461,8 @@ function renderAiUsage() {
   document.getElementById('aiUsagePage').textContent = `${available ? data.page : 1} / ${available ? data.pages : 1}`;
   document.getElementById('aiUsagePrev').disabled = !available || data.page <= 1;
   document.getElementById('aiUsageNext').disabled = !available || data.page >= data.pages;
+  // 只有一页时不出「上一页 1 / 1 下一页」。
+  document.querySelector('.ai-usage-pagination').hidden = !available || !(data.pages > 1);
 }
 async function refreshAiUsage(page = aiUsagePage) {
   const requestId = ++aiUsageRequestId;
@@ -10978,14 +10983,14 @@ function calendarEventsInRange(from, to) {
       add(order.latestShipDate, 'ship', {
         tone: order.urgentOrder || late ? 'urgent' : 'repurchase',
         ...named(name, `${order.urgentOrder ? '加急 · ' : ''}最晚发出`),
-        sub: `${late ? '已过最晚发出日期、还没发货 · ' : ''}最晚发出日期 ${order.latestShipDate} · ${order.num}${order.customerRequiredDate ? ` · 客户要求到货 ${order.customerRequiredDate}` : ''}`
+        sub: `${late ? '过了这天还没发货 · ' : ''}${order.num}${order.customerRequiredDate ? ` · 客户要求到货 ${order.customerRequiredDate}` : ''}`
       });
     }
     if (order.customerRequiredDate && order.customerRequiredDate !== order.latestShipDate) {
       add(order.customerRequiredDate, 'arrive', {
         tone: 'repurchase',
         ...named(name, `${order.urgentOrder ? '加急 · ' : ''}要求到货`),
-        sub: `客户要求到货 ${order.customerRequiredDate} · ${order.num}${order.latestShipDate ? ` · 最晚发出 ${order.latestShipDate}` : ''}`
+        sub: `${order.num}${order.latestShipDate ? ` · 最晚发出 ${order.latestShipDate}` : ''}`
       });
     }
   });
@@ -11060,7 +11065,7 @@ function calendarEventsInRange(from, to) {
       const carrier = carrierName(shipment.carrier === 'auto' ? detectCarrier(shipment.trackingNumber) : shipment.carrier) || '物流';
       const shipped = normalizeDate(shipment.shippedAt || '');
       const updated = normalizeDate(shipment.updated || '');
-      const sub = `${order.client || ''} · ${carrier} ${shipment.trackingNumber} · ${order.num}`;
+      const sub = `${carrier} ${shipment.trackingNumber} · ${order.num}`;
       if (inRange(shipped) && !(updated === shipped && ['已发货', '未发货'].includes(shipment.status))) {
         events.push({ date:shipped, type:'logistics', tone:'logistics', ...named(name, `${carrier} 发货`), sub, orderId:order.id });
       }
@@ -19233,11 +19238,11 @@ function renderOrderDetail(order, source = 'active') {
       <section class="detail-section detail-edit-section">
         <div class="detail-edit-grid">
           ${editField('订单金额', 'amount', `<div class="detail-cur-in"><span data-detail-cur-symbol>${escapeAttr(currencySymbol)}</span><input type="number" min="0" step="0.01" inputmode="decimal" data-dedit="amount" value="${escapeAttr(String(order.amount ?? ''))}"></div>`)}
-          ${editField('已付金额', 'paidAmount', `<div class="detail-cur-in with-btn"><span data-detail-cur-symbol>${escapeAttr(currencySymbol)}</span><input type="number" min="0" step="0.01" inputmode="decimal" data-dedit="paidAmount" value="${escapeAttr(paid ? String(paid) : '')}"${depositPlaceholder ? ` placeholder="${escapeAttr(depositPlaceholder)}"` : ''}><button class="btn btn-small" type="button" data-detail-paid-full>收齐</button></div>`)}
+          ${editField('已收', 'paidAmount', `<div class="detail-cur-in with-btn"><span data-detail-cur-symbol>${escapeAttr(currencySymbol)}</span><input type="number" min="0" step="0.01" inputmode="decimal" data-dedit="paidAmount" value="${escapeAttr(paid ? String(paid) : '')}"${depositPlaceholder ? ` placeholder="${escapeAttr(depositPlaceholder)}"` : ''}><button class="btn btn-small" type="button" data-detail-paid-full>收齐</button></div>`)}
           ${editField('收款方式', 'paymentChannel', `<select data-dedit="paymentChannel">${editOptions('paymentChannel', payment.value)}</select>`)}
           ${editField('币种', 'currency', `<select data-dedit="currency">${currencyOptions}</select>`)}
         </div>
-        <p class="muted detail-edit-hint">只记一个已付金额，收到尾款时改成总额即可；付款截图可以在「附件」页直接加。保存后阶段和待收会一起更新。</p>
+        <p class="muted detail-edit-hint">收到钱就把「已收」改成累计收到的总数，付款截图在「附件」页加。</p>
       </section>` : '';
   const depositLine = depositOrder && depositValue > 0
     ? `<div class="order-detail-deposit">定金：${money(depositValue, currencyCode)}${orderAmountValue(order) ? `（${Math.round(depositValue / orderAmountValue(order) * 100)}%）` : ''} · ${paid >= depositValue ? '已收' : (paid > 0 ? `已收 ${money(paid, currencyCode)}，还差 ${money(depositValue - paid, currencyCode)}` : '未收')}</div>`
@@ -19273,7 +19278,6 @@ function renderOrderDetail(order, source = 'active') {
       <section class="detail-section order-detail-payment">
         <div class="order-detail-payment-head"><div><span>订单金额</span><strong>${money(order.amount, currencyCode)}</strong></div><div><span>已收</span><strong class="value-paid">${money(paid, currencyCode)}</strong></div><div><span>待收</span><strong class="${balance > 0 ? 'value-balance' : 'value-paid'}">${balance > 0 ? money(balance, currencyCode) : '已收全款'}</strong></div></div>
         <div class="order-detail-paybar" aria-label="已收 ${paidRate}%"><i style="width:${paidRate}%"></i></div>
-        <div class="muted" data-detail-pay-meta>已收 ${paidRate}% · 收款方式 ${escapeAttr(payment.value)} · ${escapeAttr(order.orderType || '定金订单')}</div>
         ${depositLine}
       </section>${paymentEdit}
     </div>
@@ -19362,6 +19366,10 @@ function openOrderDetail(id, { tab = '' } = {}) {
   document.getElementById('detailNum').textContent = order.num || '订单详情';
   document.getElementById('detailTitle').textContent = clientDisplayName(order.client || '未命名客户');
   document.getElementById('orderDetailBody').innerHTML = renderOrderDetail(order, source);
+  // 「订单信息」页的产品类型、订单类型只有两个选项：照新建订单、完整编辑换成一点就选的分段。
+  // 「收款」页的收款方式和币种留下拉（半栏宽放不下一排小按钮）。
+  const detailInfo = document.querySelector('#orderDetailBody [data-detail-tab="info"]');
+  if (detailInfo) enhanceBinarySelects(detailInfo);
   uiDetailKeepUploadCards(id);
   renderOrderDetailHeader(order, source);
   if (typeof uiDetailTab === 'function') {
@@ -22302,7 +22310,7 @@ function openCalendarTaskDrawer(date) {
   const recordRows = records.map(event => `
     <div class="calendar-record${event.faded ? ' faded' : ''}">
       <span class="agenda-dot ${calendarEventTone(event)}" aria-hidden="true"></span>
-      <div class="calendar-record-main"><div class="calendar-record-title">${event.badge ? `<i class="calendar-badge">${escapeAttr(event.badge)}</i>` : ''}${escapeAttr(event.label)}</div><div class="task-sub">${escapeAttr(event.sub || '')}</div></div>
+      <div class="calendar-record-main"><div class="calendar-record-title">${event.badge ? `<i class="calendar-badge">${escapeAttr(event.badge)}</i>` : ''}${event.what == null ? escapeAttr(event.label) : `<b>${escapeAttr(event.what)}</b> ${escapeAttr(event.who || '')}`}</div><div class="task-sub">${escapeAttr(event.sub || '')}</div></div>
       ${recordAction(event)}
     </div>`).join('');
   const body = [
@@ -34123,6 +34131,8 @@ function uiDetailRestoreValues(values = {}) {
     if (!el) return;
     if (el.type === 'checkbox') el.checked = !!value;
     else el.value = value;
+    // 分段按钮（订单信息页的产品类型、订单类型）跟着放回去的值走。
+    if (el.tagName === 'SELECT' && typeof syncSelectControl === 'function') syncSelectControl(el);
     el.dispatchEvent(new Event('input', { bubbles:true }));
   });
 }
@@ -34884,7 +34894,7 @@ async function uiDetailSave({ promote = false } = {}) {
   }
   // 已付金额同样不能是负数：以前 -50 照样保存，已付变成 0，阶段从尾款退回报价。
   if (values.paidAmount !== undefined && String(values.paidAmount).trim() !== '' && (!Number.isFinite(Number(values.paidAmount)) || Number(values.paidAmount) < 0)) {
-    uiDetailFieldError('paidAmount', '已付金额要填 0 或以上的数字');
+    uiDetailFieldError('paidAmount', '已收要填 0 或以上的数字');
     return;
   }
   // 抽屉下面还开着订单弹窗：照旧先问弹窗里的改动、再关掉它（以前保存要借用订单表单；现在不借了，但这一步用户看得到，先不动）。
@@ -35025,7 +35035,7 @@ document.getElementById('orderDetailBody')?.addEventListener('click', e => {
   if (e.target.closest('[data-detail-paid-full]')) uiDetailPaidFull();
 });
 // 抽屉里改金额时，顶部的已收 / 待收摘要跟着动，不用等保存。
-// 改币种时金额框前的符号、摘要也跟着换；待收为 0 时写「已收全款」并变绿；「已收 N% · 收款方式」一行同步。
+// 改币种时金额框前的符号、摘要也跟着换；待收为 0 时写「已收全款」并变绿。
 function uiDetailLiveSummary(body) {
   const amount = Number(body.querySelector('[data-dedit="amount"]')?.value || 0);
   const paid = Number(body.querySelector('[data-dedit="paidAmount"]')?.value || 0);
@@ -35046,17 +35056,13 @@ function uiDetailLiveSummary(body) {
   }
   const bar = body.querySelector('.order-detail-paybar i');
   if (bar) bar.style.width = `${rate}%`;
-  const meta = body.querySelector('[data-detail-pay-meta]');
-  const channel = body.querySelector('[data-dedit="paymentChannel"]')?.value;
-  const type = body.querySelector('[data-dedit="orderType"]')?.value;
-  if (meta) meta.textContent = `已收 ${rate}% · 收款方式 ${channel || '-'} · ${type || '定金订单'}`;
 }
 document.getElementById('orderDetailBody')?.addEventListener('input', e => {
-  if (!e.target.matches('[data-dedit="amount"], [data-dedit="paidAmount"], [data-dedit="currency"], [data-dedit="paymentChannel"], [data-dedit="orderType"]')) return;
+  if (!e.target.matches('[data-dedit="amount"], [data-dedit="paidAmount"], [data-dedit="currency"]')) return;
   uiDetailLiveSummary(e.currentTarget);
 });
 document.getElementById('orderDetailBody')?.addEventListener('change', e => {
-  if (!e.target.matches('[data-dedit="currency"], [data-dedit="paymentChannel"], [data-dedit="orderType"]')) return;
+  if (!e.target.matches('[data-dedit="currency"]')) return;
   uiDetailLiveSummary(e.currentTarget);
 });
 // 新版 UI：原型里的其余动效（列表依次进场、完成彩纸、AI 读取、填入闪烁、校验抖动、铃铛提醒）。

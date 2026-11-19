@@ -252,7 +252,7 @@ async function launch() {
     await page.locator('[data-detail-tab-btn="payment"]').click();
     await replaceText(dedit('paidAmount'), '-50');
     await page.locator('#detailSaveBtn').click();
-    await waitToast('已付金额要填 0 或以上的数字');
+    await waitToast('已收要填 0 或以上的数字');
     assert.equal((await order('b1')).paidAmount, 200, '负数已付没有保存');
     assert.equal((await order('b1')).stage, 'balance');
     await replaceText(dedit('paidAmount'), '200');

@@ -99,7 +99,8 @@ const order = attachments => ({ id:'c1', num:'K26110101', client:'Cleanup Buyer'
     // 页面补压：同名同时间的附件换成压缩版；用户同时删掉了第二张。
     ['compact.webp', 'compact-thumb.webp'].forEach(name => fs.writeFileSync(file(name), name));
     await save([order([{ ...original, fileUrl:'/attachments/K26110101/compact.webp', thumbUrl:'/attachments/K26110101/compact-thumb.webp', compressed:true, optimizer:'本机压缩' }])]);
-    await waitFor(() => !fs.existsSync(file('orig.png')), 'replaced original removed from the attachments folder');
+    // 服务器在另一个进程里一个个删：等这一轮删完（原图、缩略图、备份里的两份）再查，不然会在两次删除之间看见缩略图还在。
+    await waitFor(() => [file('orig.png'), file('orig-thumb.webp'), path.join(backupFolder, 'orig.png'), path.join(backupFolder, 'orig-thumb.webp')].every(name => !fs.existsSync(name)), 'replaced original and its thumbnail removed, here and in the backup');
     assert.equal(fs.existsSync(file('orig-thumb.webp')), false, '旧原图的缩略图一起删');
     assert.equal(fs.existsSync(path.join(backupFolder, 'orig.png')), false, '备份里的旧原图也删');
     assert.equal(fs.existsSync(path.join(backupFolder, 'orig-thumb.webp')), false, '备份里的旧缩略图也删');

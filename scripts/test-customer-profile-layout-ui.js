@@ -59,7 +59,7 @@ const openProfile = async (page, name) => {
     assert.ok(addressBox.width >= 240, `地址宽度太窄：${addressBox.width}`);
     assert.equal(await page.locator('.customer-rail-address').innerText(), address);
     assert.equal(await page.locator('#customerDetailInfoGrid [data-copy-customer-address]').count(), 1);
-    assert.match(await page.locator('#customerDetailInfoGrid').innerText(), /还没填：联系人、联系方式、阿里 ID/);
+    assert.match(await page.locator('#customerDetailInfoGrid').innerText(), /还没填：联系人、主要联系方式、阿里 ID/);
     assert.match(await page.locator('#customerDetailInfoGrid').innerText(), /主要/);
     assert.match(await page.locator('#customerDetailPermanentNote').innerText(), /只用无品牌包装/);
     assert.match(await page.locator('#customerDetailNote').innerText(), /普通备注/);
@@ -102,7 +102,7 @@ const openProfile = async (page, name) => {
     await page.evaluate(() => closeCustomerModal());
     await openProfile(page, 'Empty Co');
     assert.deepEqual(await shown(), ['orders']);
-    assert.match(await page.locator('#customerDetailInfoGrid').innerText(), /还没填：联系人、电话、邮箱、联系方式、阿里 ID/);
+    assert.match(await page.locator('#customerDetailInfoGrid').innerText(), /还没填：联系人、电话、邮箱、主要联系方式、阿里 ID/);
     assert.equal(await page.locator('#customerDetailPermanentNote').isHidden(), true);
 
     // 进入编辑再取消：头部说明恢复，不残留只读标签。

@@ -5023,6 +5023,26 @@ html[data-theme] .combined-modal { display:flex; flex-direction:column; }
 html[data-theme] .combined-modal > .modal-head { flex:none; }
 html[data-theme] .combined-modal > .combined-modal-body { flex:1 1 auto; min-height:0; max-height:none; }
 html[data-theme] .combined-modal > .combined-modal-foot { flex:none; }
+/* 「一起确认客户和订单」（页面整理第四轮）：左边照「新建客户」的基本资料 6 格，其余收进「更多资料」一行；
+   右边照「新建订单」：订单号、创建日期在栏标题旁边，附件、交期、物流、备注收在「更多」里。 */
+html[data-theme] .combined-column-head { align-items:center; }
+html[data-theme] #combinedOrderForm > .combined-column-head { flex-wrap:wrap; row-gap:8px; }
+html[data-theme] #combinedOrderForm .order-head-fields { margin-top:0; gap:10px; }
+html[data-theme] #combinedOrderForm .order-head-field { position:relative; }
+html[data-theme] #combinedOrderForm .order-head-field .customer-field-hint { position:absolute; top:calc(100% + 4px); right:0; margin:0; white-space:nowrap; }
+html[data-theme] .combined-customer-more[hidden] { display:none; }
+html[data-theme] #combinedCustomerForm [data-customer-multi-kind="emails"] { grid-column:1 / -1; }
+html[data-theme] .combined-more-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 10px 8px 12px; border:1px dashed var(--surface-border-strong, var(--surface-border)); border-radius:12px; color:var(--gray-600); font-size:12px; line-height:18px; }
+html[data-theme] .combined-more-row > span { min-width:0; }
+html[data-theme] .combined-more-row .btn { flex:none; }
+html[data-theme] .combined-form .order-more-toggle { display:none; align-items:center; gap:8px; flex-wrap:wrap; }
+html[data-theme] .combined-form.order-compact .order-more-toggle { display:flex; }
+html[data-theme] .combined-more-section { display:grid; gap:10px; }
+html[data-theme] .combined-more-section.is-folded { display:none; }
+html[data-theme] .combined-more-title { color:var(--gray-900); font-size:13px; font-weight:600; }
+html[data-theme] .combined-form .attachment-form { grid-template-columns:minmax(0, 1fr) 150px auto; }
+html[data-theme] .combined-form .attachment-form > .field:nth-child(2) { grid-column:2 / -1; }
+html[data-theme] .combined-form .attachment-form > .field:nth-child(3) { grid-column:1 / 3; }
 html[data-theme] .order-paste-section .paste-assist.ai-reading::after { border-radius:14px; }
 html[data-theme] .order-paste-section .paste-results:empty { display:none; }
 html[data-theme] .order-paste-section:has(.paste-assist.ai-reading) .order-section-title { background:linear-gradient(90deg, var(--gray-500) 30%, var(--gray-900) 50%, var(--gray-500) 70%); background-size:200% 100%; -webkit-background-clip:text; background-clip:text; color:transparent; animation:uiSweep 1.8s linear infinite; }
@@ -5041,6 +5061,17 @@ html[data-theme] .track-card.leaving { opacity:0; transform:translateY(12px) sca
 html[data-theme] body:has(#toast.above-foot) .track-card { bottom:164px; }
 @media (max-width: 820px) { html[data-theme] .track-card { right:12px; left:12px; width:auto; bottom:calc(150px + env(safe-area-inset-bottom)); } html[data-theme] body:has(#toast.above-foot) .track-card { bottom:calc(170px + env(safe-area-inset-bottom)); } }
 html[data-theme] .paste-result-empty .paste-result-top > .tag { flex:none; white-space:nowrap; }
+/* 粘贴识别的结果卡（新客户 / 已有客户 / 可填字段）：卡头一行（名字太长就截），说明下面紧跟主按钮，字段列成两列清单。 */
+html[data-theme] .paste-result-card.is-kv { grid-template-columns:minmax(0, 1fr); min-width:0; }
+html[data-theme] .paste-result-card.is-kv .paste-result-top { align-items:center; }
+html[data-theme] .paste-result-card.is-kv .paste-result-title { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+html[data-theme] .paste-result-card.is-kv .paste-result-top > .tag { flex:none; white-space:nowrap; }
+html[data-theme] .paste-result-actions.is-lead { justify-content:flex-start; }
+html[data-theme] .paste-field-kv { display:grid; grid-template-columns:auto minmax(0, 1fr); gap:3px 12px; margin:0; font-size:12.5px; line-height:1.5; }
+html[data-theme] .paste-field-kv dt { color:var(--gray-500); white-space:nowrap; }
+html[data-theme] .paste-field-kv dd { margin:0; min-width:0; color:var(--gray-900); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+html[data-theme] .paste-result-card.paste-result-line { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12.5px; color:var(--gray-600); }
+html[data-theme] .paste-result-card.paste-result-line .btn { flex:none; }
 
 html[data-theme] .modal-foot { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:14px 22px 14px 24px; border:0; border-top:1px solid var(--surface-border); border-radius:0; background:var(--surface-bg); box-shadow:none; }
 html[data-theme] .modal-foot .df-sum { display:flex; align-items:baseline; gap:10px; min-width:0; margin-right:auto; font-size:13px; color:var(--gray-500); }
@@ -5549,15 +5580,15 @@ html[data-theme] .order-preview-actions > #draftOrderBtn { height:36px; min-heig
 html[data-theme] .order-preview-manage { display:flex; gap:8px; padding-top:10px; border-top:1px solid var(--hairline); }
 html[data-theme] .order-preview-manage:not(:has(> .btn:not([style*="display: none"]):not([style*="display:none"]))) { display:none; }
 html[data-theme] .order-preview-manage .btn { flex:1 1 0; min-width:0; height:32px; min-height:32px; padding:0 8px; font-size:12px; justify-content:center; }
-/* 飞书开关：画成开关（还是原来那个 checkbox）。 */
-html[data-theme] .order-preview .order-notification-option { display:flex; align-items:center; gap:10px; margin:0; padding:0; border:0; background:transparent; cursor:pointer; }
-html[data-theme] :is(.order-preview .order-notification-option, .order-notification-option.shipment-partial-field) input { appearance:none; -webkit-appearance:none; position:relative; flex:none; width:34px; height:20px; margin:0; border:0; border-radius:999px; background:var(--gray-300); cursor:pointer; transition:background var(--motion-fast) var(--ease); }
-html[data-theme] :is(.order-preview .order-notification-option, .order-notification-option.shipment-partial-field) input::after { content:''; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:#fff; box-shadow:0 1px 2px oklch(0% 0 0 / .25); transition:transform var(--motion-spring) var(--ease-spring); }
-html[data-theme] :is(.order-preview .order-notification-option, .order-notification-option.shipment-partial-field) input:checked { background:var(--accent); }
-html[data-theme] :is(.order-preview .order-notification-option, .order-notification-option.shipment-partial-field) input:checked::after { transform:translateX(14px); }
-html[data-theme] :is(.order-preview .order-notification-option, .order-notification-option.shipment-partial-field) input:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-html[data-theme] .order-preview .order-notification-option span { display:flex; flex-direction:column; gap:0; color:var(--gray-800, var(--gray-900)); font-size:13px; font-weight:600; line-height:19px; }
-html[data-theme] .order-preview .order-notification-option small { color:var(--gray-500); font-size:11px; font-weight:400; line-height:15px; }
+/* 飞书开关：画成开关（还是原来那个 checkbox）；「一起确认客户和订单」里的那个同样。 */
+html[data-theme] :is(.order-preview .order-notification-option, .combined-feishu-option) { display:flex; align-items:center; gap:10px; margin:0; padding:0; border:0; background:transparent; cursor:pointer; }
+html[data-theme] :is(.order-preview .order-notification-option, .order-notification-option.shipment-partial-field, .combined-feishu-option) input { appearance:none; -webkit-appearance:none; position:relative; flex:none; width:34px; height:20px; margin:0; border:0; border-radius:999px; background:var(--gray-300); cursor:pointer; transition:background var(--motion-fast) var(--ease); }
+html[data-theme] :is(.order-preview .order-notification-option, .order-notification-option.shipment-partial-field, .combined-feishu-option) input::after { content:''; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:#fff; box-shadow:0 1px 2px oklch(0% 0 0 / .25); transition:transform var(--motion-spring) var(--ease-spring); }
+html[data-theme] :is(.order-preview .order-notification-option, .order-notification-option.shipment-partial-field, .combined-feishu-option) input:checked { background:var(--accent); }
+html[data-theme] :is(.order-preview .order-notification-option, .order-notification-option.shipment-partial-field, .combined-feishu-option) input:checked::after { transform:translateX(14px); }
+html[data-theme] :is(.order-preview .order-notification-option, .order-notification-option.shipment-partial-field, .combined-feishu-option) input:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+html[data-theme] :is(.order-preview .order-notification-option, .combined-feishu-option) span { display:flex; flex-direction:column; gap:0; color:var(--gray-800, var(--gray-900)); font-size:13px; font-weight:600; line-height:19px; }
+html[data-theme] :is(.order-preview .order-notification-option, .combined-feishu-option) small { color:var(--gray-500); font-size:11px; font-weight:400; line-height:15px; }
 /* 物流信息里的「还有批次没发（部分发货）」：和抽屉、和「保存后发送到飞书群」一样是开关（上面几条），框和说明文字照旧。 */
 html[data-theme] .order-notification-option.shipment-partial-field { align-items:center; gap:10px; }
 
@@ -6648,10 +6679,10 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
             <div class="attachment-box">
               <input type="hidden" name="attachmentsJson">
               <div class="attachment-form">
-                <div class="field"><label>文件名称</label><input id="attachmentName" data-dirty-track placeholder="例如 定金付款截图"></div>
-                <div class="field"><label>类型</label><select id="attachmentType"><option>付款截图</option><option>物流面单</option><option>报价单</option><option>PI</option><option>聊天截图</option><option>其他</option></select></div>
-                <div class="field"><label>链接 / 备注</label><input id="attachmentLink" data-dirty-track placeholder="粘贴链接或填写文件名"></div>
-                <button class="btn" type="button" id="addAttachmentBtn">添加</button>
+                <div class="field"><label>文件名称</label><input id="attachmentName" data-attachment-field="name" data-dirty-track placeholder="例如 定金付款截图"></div>
+                <div class="field"><label>类型</label><select id="attachmentType" data-attachment-field="type"><option>付款截图</option><option>物流面单</option><option>报价单</option><option>PI</option><option>聊天截图</option><option>其他</option></select></div>
+                <div class="field"><label>链接 / 备注</label><input id="attachmentLink" data-attachment-field="link" data-dirty-track placeholder="粘贴链接或填写文件名"></div>
+                <button class="btn" type="button" id="addAttachmentBtn" data-attachment-add>添加</button>
               </div>
               <div class="attachment-paste-hint">在订单弹窗内直接粘贴图片，会先在本机压缩（最长边 2560 像素）再保存为附件，原图不保留；配置了 TinyPNG 时再压一遍，取更小的那份。图片不写入订单主数据。</div>
               <div class="image-upload-list" id="orderImageUploads" aria-label="图片上传进度"></div>
@@ -6687,7 +6718,7 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
             </div>
             <label class="order-notification-option shipment-partial-field">
               <input type="checkbox" name="partialShipment" role="switch">
-              <span>还有批次没发（部分发货）<small>勾上后，已发的批次全部签收也不会自动进「已完成」，跟进提醒继续</small></span>
+              <span>还有批次没发（部分发货）<small>打开后，已发的批次全部签收也不会自动进「已完成」，跟进提醒继续</small></span>
             </label>
             </div>
           </section>
@@ -7037,14 +7068,12 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
     <div class="modal-body combined-modal-body">
       <section class="combined-column customer">
         <div class="combined-column-head">
-          <div>
-            <div class="combined-column-title">客户资料</div>
-            <div class="combined-column-sub">保存或更新客户档案</div>
-          </div>
+          <div class="combined-column-title">客户资料</div>
           <span class="tag tag-green" id="combinedCustomerModeTag">新客户</span>
         </div>
         <form class="combined-form" id="combinedCustomerForm" novalidate>
           <input type="hidden" name="originalName">
+          <!-- 和「新建客户」第一组「基本资料」同样 6 格；其余收进「更多资料」，识别到其中某项时自动展开。收起的格子照样会存。 -->
           <div class="form-grid">
             <div class="field"><label>客户名称</label><input name="name" required></div>
             <div class="field"><label>国家 / 地区</label><input name="country" data-country-input autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" placeholder="输入国家 / 地区筛选"></div>
@@ -7052,6 +7081,12 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
             <div class="field customer-multi-field" data-customer-multi-kind="phones"><div class="customer-multi-field-head"><label>联系电话</label><button class="customer-multi-add" type="button" data-add-customer-value="phones">＋电话</button></div><div class="customer-multi-list"><div class="customer-multi-row" data-customer-primary-row><input name="phone" data-customer-multi-input type="tel" placeholder="例如 +44 7700 900127"></div></div></div>
             <div class="field customer-multi-field" data-customer-multi-kind="emails"><div class="customer-multi-field-head"><label>邮箱</label><button class="customer-multi-add" type="button" data-add-customer-value="emails">＋邮箱</button></div><div class="customer-multi-list"><div class="customer-multi-row" data-customer-primary-row><input name="email" data-customer-multi-input type="email" placeholder="name@example.com"></div></div></div>
             <div class="field span-2 customer-multi-field" data-customer-multi-kind="addresses"><div class="customer-multi-field-head"><label>客户地址</label><button class="customer-multi-add" type="button" data-add-customer-value="addresses">＋地址</button></div><div class="customer-multi-list"><div class="customer-multi-row" data-customer-primary-row><textarea name="address" data-customer-multi-input rows="3" maxlength="1000" placeholder="客户收货地址 / 公司地址"></textarea></div></div></div>
+          </div>
+          <div class="combined-more-row">
+            <span>更多资料：币种、等级、付款方式、产品类型、付款邮箱、阿里 ID、联系方式、复购、标签、备注</span>
+            <button class="btn btn-small" type="button" data-combined-customer-more-toggle aria-expanded="false" aria-controls="combinedCustomerMore">展开</button>
+          </div>
+          <div class="form-grid combined-customer-more" id="combinedCustomerMore" data-combined-customer-more hidden>
             <div class="customer-preference-block">
               <div class="customer-trade-preference-grid">
                 <div class="field"><label>默认币种</label><select name="currency"></select></div>
@@ -7074,17 +7109,16 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
         </form>
       </section>
       <section class="combined-column order">
-        <div class="combined-column-head">
-          <div>
-            <div class="combined-column-title">订单资料</div>
-            <div class="combined-column-sub">创建一笔关联订单</div>
-          </div>
-          <span class="tag tag-blue">新订单</span>
-        </div>
+        <!-- 照「新建订单」：订单号、创建日期在标题旁边；附件、交期（含加急）、物流、备注收在「更多」里；飞书是开关。 -->
         <form class="combined-form" id="combinedOrderForm" novalidate>
+          <div class="combined-column-head">
+            <div class="combined-column-title">订单资料</div>
+            <div class="order-head-fields">
+              <div class="field order-head-field"><label for="combinedOrderNumInput">订单号</label><input name="num" id="combinedOrderNumInput" required></div>
+              <div class="field order-head-field"><label for="combinedOrderCreatedAtInput">创建日期</label><input name="createdAt" id="combinedOrderCreatedAtInput" type="text" data-date-input autocomplete="off" spellcheck="false" placeholder="选择日期" required></div>
+            </div>
+          </div>
           <div class="form-grid">
-            <div class="field"><label>订单号</label><input name="num" required></div>
-            <div class="field"><label>创建日期</label><input name="createdAt" type="text" data-date-input autocomplete="off" spellcheck="false" placeholder="选择日期" required></div>
             <div class="field">
               <label>订单金额</label>
               <div class="amount-combo">
@@ -7092,11 +7126,11 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
                 <select name="currency"></select>
               </div>
             </div>
-            <div class="field"><label>收款方式</label><select name="paymentChannel"></select></div>
             <div class="field"><label>订单类型</label><select name="orderType"></select></div>
+            <div class="field"><label>收款方式</label><select name="paymentChannel"></select></div>
             <div class="field"><label>产品类型</label><select name="productType"></select></div>
-            <div class="field deposit-payment-amount-field"><label>已付款金额</label><input name="paidAmount" type="number" min="0" step="0.01" placeholder="0" autocomplete="off" inputmode="decimal"></div>
             <div class="field full-payment-status-field"><label>付款状态</label><select name="fullPaymentStatus"><option value="已付">已付</option><option value="部分">部分已付</option><option value="未付">未付</option></select></div>
+            <div class="field deposit-payment-amount-field"><label>已付款金额</label><input name="paidAmount" type="number" min="0" step="0.01" placeholder="0" autocomplete="off" inputmode="decimal"></div>
             <div class="field deposit-only-field">
               <label>定金</label>
               <div class="deposit-combo">
@@ -7106,18 +7140,49 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
                 <input name="depositPercent" type="hidden">
               </div>
             </div>
-            <div class="field"><label>当前阶段</label><select name="stage"></select><div class="field-hint" data-stage-hint hidden></div></div>
-            <div class="field"><label>加急订单</label><select name="urgentOrder"><option value="否">否</option><option value="是">是</option></select></div>
-            <div class="field"><label>客户要求收到日期</label><input name="customerRequiredDate" type="text" data-date-input autocomplete="off" spellcheck="false" placeholder="选择日期"></div>
-            <div class="field"><label>最晚发出日期</label><input name="latestShipDate" type="text" data-date-input autocomplete="off" spellcheck="false" placeholder="选择日期"></div>
-            <div class="shipment-editor" data-shipment-editor><div class="shipment-editor-head"><div class="shipment-editor-heading"><div class="shipment-editor-title">物流记录</div><div class="shipment-editor-sub">每个物流单号可独立设置承运商和状态</div></div><button class="customer-multi-add" type="button" data-add-shipment>＋物流单号</button></div><div class="shipment-row" data-shipment-primary-row><label class="shipment-field"><span>物流单号</span><input name="trackingNumber" data-shipment-number placeholder="例如 91 8833 5262"></label><label class="shipment-field"><span>承运商</span><select name="carrier" data-shipment-carrier><option value="auto">自动识别</option><option value="DHL">DHL</option><option value="FedEx">FedEx</option><option value="UPS">UPS</option></select></label><label class="shipment-field"><span>物流状态</span><select name="shipmentStatus" data-shipment-status><option>未发货</option><option>已发货</option><option>运输中</option><option>派送中</option><option>已签收</option><option>异常</option></select></label><button class="customer-multi-remove" type="button" data-remove-shipment aria-label="删除这一批物流单号">×</button></div></div>
+            <div class="field span-2"><label>当前阶段</label><select name="stage"></select><div class="field-hint" data-stage-hint hidden></div></div>
             <div class="field span-2"><label>订单详情</label><textarea name="orderDetail" placeholder="例如 0.07 C 卷 混合长度 8–14mm × 120 盒"></textarea></div>
-            <div class="field span-2"><label>订单备注</label><textarea name="note" placeholder="记录客户要求、付款状态、交期变更等"></textarea></div>
-            <label class="order-notification-option span-2">
-              <input type="checkbox" name="sendFeishuNotification" checked>
-              <span>保存后发送到飞书群<small>客户与订单保存成功后发送一条群通知</small></span>
-            </label>
           </div>
+          <div class="order-more-toggle" role="group" aria-label="更多">
+            <span class="order-more-label">更多</span>
+            <button class="order-more-chip" type="button" data-order-more="attachments"><svg class="ui-icon" aria-hidden="true"><use href="#i-plus"/></svg>附件 / 凭证</button>
+            <button class="order-more-chip" type="button" data-order-more="deadline"><svg class="ui-icon" aria-hidden="true"><use href="#i-plus"/></svg>交期要求（含加急）</button>
+            <button class="order-more-chip" type="button" data-order-more="shipment"><svg class="ui-icon" aria-hidden="true"><use href="#i-plus"/></svg>物流信息</button>
+            <button class="order-more-chip" type="button" data-order-more="note"><svg class="ui-icon" aria-hidden="true"><use href="#i-plus"/></svg>备注</button>
+          </div>
+          <section class="combined-more-section" data-more="attachments">
+            <div class="combined-more-title">附件 / 凭证</div>
+            <div class="attachment-box">
+              <input type="hidden" name="attachmentsJson">
+              <div class="attachment-form">
+                <div class="field"><label>文件名称</label><input data-attachment-field="name" data-dirty-track placeholder="例如 定金付款截图"></div>
+                <div class="field"><label>类型</label><select data-attachment-field="type"><option>付款截图</option><option>物流面单</option><option>报价单</option><option>PI</option><option>聊天截图</option><option>其他</option></select></div>
+                <div class="field"><label>链接 / 备注</label><input data-attachment-field="link" data-dirty-track placeholder="粘贴链接或填写文件名"></div>
+                <button class="btn" type="button" data-attachment-add>添加</button>
+              </div>
+              <div class="attachment-paste-hint">在这个弹窗里直接粘贴图片，会先在本机压缩再存为附件，原图不保留。</div>
+              <div class="image-upload-list" id="combinedImageUploads" aria-label="图片上传进度"></div>
+              <div class="attachment-list" id="combinedAttachmentList"></div>
+            </div>
+          </section>
+          <section class="combined-more-section" data-more="deadline">
+            <div class="combined-more-title">交期要求</div>
+            <div class="deadline-grid">
+              <div class="field"><label>加急订单</label><select name="urgentOrder"><option value="否">否</option><option value="是">是</option></select></div>
+              <div class="field"><label>客户要求收到日期</label><input name="customerRequiredDate" type="text" data-date-input autocomplete="off" spellcheck="false" placeholder="选择日期"></div>
+              <div class="field"><label>最晚发出日期</label><input name="latestShipDate" type="text" data-date-input autocomplete="off" spellcheck="false" placeholder="选择日期"></div>
+            </div>
+          </section>
+          <section class="combined-more-section" data-more="shipment">
+            <div class="shipment-editor" data-shipment-editor><div class="shipment-editor-head"><div class="shipment-editor-heading"><div class="shipment-editor-title">物流记录</div><div class="shipment-editor-sub">每个物流单号可独立设置承运商和状态</div></div><button class="customer-multi-add" type="button" data-add-shipment>＋物流单号</button></div><div class="shipment-row" data-shipment-primary-row><label class="shipment-field"><span>物流单号</span><input name="trackingNumber" data-shipment-number placeholder="例如 91 8833 5262"></label><label class="shipment-field"><span>承运商</span><select name="carrier" data-shipment-carrier><option value="auto">自动识别</option><option value="DHL">DHL</option><option value="FedEx">FedEx</option><option value="UPS">UPS</option></select></label><label class="shipment-field"><span>物流状态</span><select name="shipmentStatus" data-shipment-status><option>未发货</option><option>已发货</option><option>运输中</option><option>派送中</option><option>已签收</option><option>异常</option></select></label><button class="customer-multi-remove" type="button" data-remove-shipment aria-label="删除这一批物流单号">×</button></div></div>
+          </section>
+          <section class="combined-more-section" data-more="note">
+            <div class="field"><label>订单备注</label><textarea name="note" placeholder="记录客户要求、付款状态、交期变更等"></textarea></div>
+          </section>
+          <label class="order-notification-option combined-feishu-option">
+            <input type="checkbox" name="sendFeishuNotification" role="switch" checked>
+            <span>保存后发送到飞书群<small>客户与订单保存成功后发送一条群通知</small></span>
+          </label>
         </form>
       </section>
     </div>
@@ -14188,11 +14253,46 @@ function pasteStageHint(fields = {}, fallbackType = '') {
   const basis = paidKnown || fields.fullPaymentStatus || fullPaid ? '按收款' : fields.paymentMentioned ? '聊天没写付了多少' : '聊天没提付款';
   return `${stageDef(stage).name}（${basis}）`;
 }
-function pasteFieldLabels(fields = {}) {
-  return Object.entries(fields)
-    .filter(([key, value]) => key !== 'note' && value && pasteOrderFieldLabel(key))
-    .map(([key, value]) => `<span class="paste-field-pill">${pasteOrderFieldLabel(key)}：${escapeAttr(key === 'stageHint' ? value : pasteOrderFieldText(key, value))}</span>`)
-    .join('');
+// 识别结果卡上的订单字段，一行一项 [字名, 值]：币种并进金额，付款状态、定金比例并进订单类型，备注不列；阶段预告排最后。
+function pasteOrderRows(fields = {}) {
+  const has = key => Boolean(fields[key]);
+  const merged = new Set(['note', 'stage', 'stageHint']);
+  if (has('amount')) merged.add('currency');
+  if (has('orderType')) { merged.add('fullPaymentStatus'); merged.add('depositPercent'); }
+  const rows = Object.entries(fields)
+    .filter(([key, value]) => value && !merged.has(key) && pasteOrderFieldLabel(key))
+    .map(([key, value]) => {
+      let text = pasteOrderFieldText(key, value);
+      if (key === 'amount' && has('currency')) text = `${text} ${fields.currency}`;
+      if (key === 'orderType') {
+        const extra = value === '全款订单' && has('fullPaymentStatus') ? pasteOrderFieldText('fullPaymentStatus', fields.fullPaymentStatus)
+          : value === '定金订单' && has('depositPercent') ? `定金 ${pasteOrderFieldText('depositPercent', fields.depositPercent)}` : '';
+        if (extra) text = `${text} · ${extra}`;
+      }
+      return [pasteOrderFieldLabel(key), text];
+    });
+  const stage = fields.stageHint || (fields.stage ? pasteOrderFieldText('stage', fields.stage) : '');
+  if (stage) rows.push(['阶段', stage]);
+  return rows;
+}
+// 字段两列清单：左边字名、右边值，值太长就截，完整的在悬停提示里。
+function pasteFieldRowsHtml(rows = []) {
+  if (!rows.length) return '';
+  return `<dl class="paste-field-kv">${rows.map(([label, value]) => `<dt>${escapeAttr(label)}</dt><dd title="${escapeAttr(value)}">${escapeAttr(value)}</dd>`).join('')}</dl>`;
+}
+// 识别结果卡的头：标题（客户名，太长就截）和右边的小标签、一行说明、主按钮紧跟在下面（左栏窄，按钮要在第一屏看得到），再往下是字段清单。
+function pasteResultCardHtml({ title = '', tag = '', tagClass = 'tag-gray', meta = '', metaTitle = '', actions = '', rows = [], extra = '' } = {}) {
+  return `
+    <div class="paste-result-card is-kv">
+      <div class="paste-result-top">
+        <div class="paste-result-title" title="${escapeAttr(title)}">${escapeAttr(title)}</div>
+        ${tag ? `<span class="tag ${tagClass}">${escapeAttr(tag)}</span>` : ''}
+      </div>
+      ${meta ? `<div class="paste-result-meta"${metaTitle ? ` title="${escapeAttr(metaTitle)}"` : ''}>${meta}</div>` : ''}
+      ${actions ? `<div class="paste-result-actions is-lead">${actions}</div>` : ''}
+      ${pasteFieldRowsHtml(rows)}${extra}
+    </div>
+  `;
 }
 /* 粘贴识别：只负责准备可编辑草稿，不直接落库创建客户或订单。 */
 // recognized：订单粘贴识别的结果（AI 识别过就是 AI 的字段）；不传时按原文跑一遍本地识别。
@@ -14265,41 +14365,42 @@ function combinedPastePreviewHtml(preview, buttonAttr) {
   if (!preview?.canCreate || preview.customerStatus === 'existing') return '';
   const order = preview.orderFields;
   const customer = preview.customerFields;
-  // 客户名、币种、产品、付款方式上面客户资料里已经有了，订单这一行不再重复显示（和客户资料不一样时才显示）。
-  // 客户的「付款」和订单的「收款方式」是同一件事：一样就只留客户那一条。
-  const samePayment = Boolean(order.paymentChannel) && normalizePaymentChannelValue(order.paymentChannel) === normalizePaymentChannelValue(customer.paymentMethod || '');
+  // 客户名在标题里；客户的币种、产品、付款方式和订单一样时只列订单那一项（订单的这几项本来就是从客户资料带过来的）。
+  const samePayment = !customer.paymentMethod || normalizePaymentChannelValue(order.paymentChannel || '') === normalizePaymentChannelValue(customer.paymentMethod);
+  const customerOnly = {
+    ...customer,
+    name: '',
+    note: '',
+    currency: customer.currency && customer.currency !== order.currency ? customer.currency : '',
+    productType: customer.productType && customer.productType !== order.productType ? customer.productType : '',
+    paymentMethod: samePayment ? '' : customer.paymentMethod
+  };
   const orderSummary = {
     createdAt: order.createdAt,
     amount: order.amount,
-    currency: order.currency !== customer.currency ? order.currency : '',
-    productType: order.productType !== customer.productType ? order.productType : '',
-    paymentChannel: samePayment ? '' : order.paymentChannel,
+    currency: order.currency,
+    productType: order.productType,
+    paymentChannel: order.paymentChannel,
     orderType: order.orderType,
     depositPercent: order.orderType === '定金订单' ? order.depositPercent : '',
     paidAmount: order.paidAmount,
     fullPaymentStatus: order.orderType === '全款订单' ? order.fullPaymentStatus : '',
+    trackingNumber: order.trackingNumber,
     stageHint: pasteStageHint(order)
   };
   const duplicate = preview.possibleDuplicate;
   const meta = duplicate
     ? `可能和已有客户 ${escapeAttr(clientDisplayName(duplicate.name))} 是同一人（${escapeAttr(duplicate.reason || '姓名相似')}），确认不是再新建`
-    : '未匹配到已有客户档案，确认资料后可同时新建订单';
-  return `
-    <div class="paste-result-card">
-      <div class="paste-result-top">
-        <div>
-          <div class="paste-result-title">识别为新客户：${escapeAttr(preview.customerFields.name)}</div>
-          <div class="paste-result-meta">${meta}</div>
-        </div>
-        <span class="tag tag-green">新客户</span>
-      </div>
-      <div class="paste-field-list">${customerPasteFieldLabels(preview.customerFields)}${pasteFieldLabels(orderSummary)}</div>
-      <div class="paste-result-actions">
-        <button class="btn ${duplicate ? '' : 'btn-primary '}btn-small" type="button" ${buttonAttr}>确认客户和订单</button>
-      </div>
-    </div>
-	  `;
-	}
+    : '没找到这个客户，保存时一起建档';
+  return pasteResultCardHtml({
+    title: customer.name,
+    tag: '新客户',
+    tagClass: 'tag-green',
+    meta,
+    actions: `<button class="btn ${duplicate ? '' : 'btn-primary '}btn-small" type="button" ${buttonAttr}>确认客户和订单</button>`,
+    rows: [...customerPasteFieldRows(customerOnly), ...pasteOrderRows(orderSummary)]
+  });
+}
 function existingCustomerOrderFields(client = {}, extracted = {}) {
   const clientFields = clientFieldsForPaste(client.client);
   const settings = { ...defaultOrderSettings, ...(state.orderSettings || {}) };
@@ -14324,9 +14425,8 @@ function existingCustomerOrderCardHtml(match, analysis) {
   const client = match?.client;
   if (!client?.client) return '';
   const fields = existingCustomerOrderFields(client, analysis.extracted || {});
+  // 客户名、国家在卡头里，清单只列这张单的。
   const summary = {
-    client: fields.client,
-    country: fields.country,
     amount: fields.amount,
     currency: fields.currency,
     productType: fields.productType,
@@ -14338,26 +14438,21 @@ function existingCustomerOrderCardHtml(match, analysis) {
     trackingNumber: fields.trackingNumber,
     stageHint: pasteStageHint(fields)
   };
-  const contactBits = [
-    client.address ? `地址：${client.address}` : '',
-    client.contact ? `联系人：${client.contact}` : '',
-    client.email ? `邮箱：${client.email}` : ''
-  ].filter(Boolean).slice(0, 2).join(' · ');
-  return `
-    <div class="paste-result-card">
-      <div class="paste-result-top">
-        <div>
-          <div class="paste-result-title">给 ${escapeAttr(clientDisplayName(client.client))} 新建订单</div>
-          <div class="paste-result-meta">${escapeAttr(normalizeCountry(client.country) || '国家未设')} · 匹配依据：${escapeAttr(match.reason || '资料一致')} · 可信度 ${match.score}%${contactBits ? ` · ${escapeAttr(contactBits)}` : ''}</div>
-        </div>
-        <span class="tag tag-blue">已有客户</span>
-      </div>
-      <div class="paste-field-list">${pasteFieldLabels(summary)}</div>
-      <div class="paste-result-actions">
-        <button class="btn btn-primary btn-small" type="button" data-paste-use-existing-customer-order="${escapeAttr(client.client)}">给这个客户新建订单</button>
-      </div>
-    </div>
-  `;
+  // 说明只留「按什么认出」和国家；匹配依据原文、可信度、地址、联系人放在悬停提示里。
+  const country = client.country ? orderListCountryShort(normalizeCountry(client.country)) : '国家未设';
+  const metaTitle = [
+    `匹配依据：${match.reason || '资料一致'}`, `可信度 ${match.score}%`,
+    client.address ? `地址：${client.address}` : '', client.contact ? `联系人：${client.contact}` : '', client.email ? `邮箱：${client.email}` : ''
+  ].filter(Boolean).join(' · ');
+  return pasteResultCardHtml({
+    title: clientDisplayName(client.client),
+    tag: '已有客户',
+    tagClass: 'tag-blue',
+    meta: `${/电话号码一致/.test(match.reason || '') ? '按电话认出' : /邮箱一致/.test(match.reason || '') ? '按邮箱认出' : /姓名|名称/.test(match.reason || '') ? '按名字认出' : '按资料认出'} · ${escapeAttr(country)}`,
+    metaTitle,
+    actions: `<button class="btn btn-primary btn-small" type="button" data-paste-use-existing-customer-order="${escapeAttr(client.client)}">给这个客户新建订单</button>`,
+    rows: pasteOrderRows(summary)
+  });
 }
 // 结果区最上面一行：这是 AI 的结果还是本地规则的结果（以前只能靠 toast 分辨）。
 function pasteSourceNoticeHtml(analysis) {
@@ -14429,23 +14524,25 @@ function renderPasteAssistResults(analysis) {
   if (Object.keys(analysis.extracted).length) {
     const formType = document.getElementById('orderForm')?.elements.orderType?.value || '';
     const shown = { ...analysis.extracted, ...(editingId ? {} : { stageHint: pasteStageHint(analysis.extracted, formType) }) };
-    cards.push(`
-      <div class="paste-result-card">
-        <div class="paste-result-top">
-          <div>
-            <div class="paste-result-title">识别到可填字段</div>
-            <div class="paste-result-meta">${editingId
-              ? '这张单已有的内容不会被直接改掉：和识别结果不一样的，填入前会列出来让你确认'
-              : '空着的和默认值会直接填上；已经填了、和识别结果不一样的会先问你'}</div>
-          </div>
-          <span class="tag tag-cyan">字段</span>
-        </div>
-        <div class="paste-field-list">${pasteFieldLabels(shown) || '<span class="muted">只识别到备注内容</span>'}</div>
-        <div class="paste-result-actions">
-          <button class="btn btn-primary btn-small" type="button" data-paste-fill-extracted>填入识别内容</button>
-        </div>
+    const fillHint = editingId
+      ? '这张单已有的内容不会被直接改掉：和识别结果不一样的，填入前会列出来让你确认'
+      : '空着的和默认值会直接填上；已经填了、和识别结果不一样的会先问你';
+    // 上面已经有新客户那张卡（同样的字段列过一遍）：这张收成一行，只留「只填订单、不建客户」这个入口。
+    if (combinedCard) cards.push(`
+      <div class="paste-result-card paste-result-line" title="${escapeAttr(`不建客户档案，只把识别到的字段填进右边的订单。${fillHint}`)}">
+        <span>只把这几项填进右边</span>
+        <button class="btn btn-small" type="button" data-paste-fill-extracted>填入 →</button>
       </div>
     `);
+    else cards.push(pasteResultCardHtml({
+      title: '识别到可填字段',
+      tag: '字段',
+      tagClass: 'tag-cyan',
+      meta: fillHint,
+      actions: '<button class="btn btn-primary btn-small" type="button" data-paste-fill-extracted>填入识别内容</button>',
+      rows: pasteOrderRows(shown),
+      extra: pasteOrderRows(shown).length ? '' : '<span class="muted">只识别到备注内容</span>'
+    }));
   }
   const triedAi = analysis.source === 'AI' || analysis.aiEmpty;
   el.innerHTML = notice + (cards.join('') || `
@@ -14595,7 +14692,8 @@ async function handleOrderPasteResultClick(e) {
   }
   if (createComboBtn && pasteAssistAnalysis) {
     // 粘贴的内容会带到新弹窗里；手填的其它内容会随订单弹窗关掉，改过就先问。
-    if (!await uiConfirmLeaveOrder('新建客户 + 订单', pasteAssistAnalysis.text)) return;
+    // 新建订单里加的附件会带过去，只加了附件不用问（编辑已有订单时不带，照旧问）。
+    if (!await uiConfirmLeaveOrder('新建客户 + 订单', pasteAssistAnalysis.text, { keep:editingId ? [] : ['attachmentsJson'] })) return;
     const recognized = pasteAssistAnalysis.source === 'AI' ? pasteAssistAnalysis.extracted : null;
     startCombinedCustomerOrderReview(pasteAssistAnalysis.text, null, recognized, pasteAssistAnalysis.clientMatches);
     return;
@@ -16133,6 +16231,15 @@ function customerPasteEditableFields(fields = {}) {
   });
   return result;
 }
+// 识别结果卡（只读）上的客户字段，一行一项 [字名, 值]，顺序和客户资料一样；空的、备注不列。
+function customerPasteFieldRows(fields = {}) {
+  const mirrors = {contact:'contacts',phone:'phones',email:'emails',address:'addresses'};
+  const rank = key => { const index = customerPasteFieldOrder.indexOf(key); return index < 0 ? customerPasteFieldOrder.length : index; };
+  return Object.entries(fields)
+    .filter(([key, value]) => key !== 'note' && customerPasteLabels[key] && (Array.isArray(value) ? value.length : value) && !(mirrors[key] && fields[mirrors[key]]?.length))
+    .sort((a, b) => rank(a[0]) - rank(b[0]))
+    .map(([key, value]) => [key === 'paymentMethod' ? '客户付款方式' : customerPasteLabels[key], Array.isArray(value) ? value.join('；') : key === 'repurchaseCycle' ? `${value}天` : key === 'country' ? normalizeCountry(value) : String(value)]);
+}
 function customerPasteFieldLabels(fields = {}, editable = false) {
   const mirrors = {contact:'contacts',phone:'phones',email:'emails',address:'addresses'};
   const rank = key => { const index = customerPasteFieldOrder.indexOf(key); return index < 0 ? customerPasteFieldOrder.length : index; };
@@ -16482,7 +16589,7 @@ async function handleCustomerPasteResultClick(e) {
   }
   if (createComboBtn && customerPasteAnalysis) {
     // 识别结果会带到新弹窗里；档案里手改的其它内容、下面开着的订单会关掉，改过就先问。
-    if (!await uiConfirmLeaveCustomerEdit('新建客户 + 订单', customerPasteAnalysis.text) || !await uiConfirmLeaveOrder('新建客户 + 订单')) return;
+    if (!await uiConfirmLeaveCustomerEdit('新建客户 + 订单', customerPasteAnalysis.text) || !await uiConfirmLeaveOrder('新建客户 + 订单', null, { keep:editingId ? [] : ['attachmentsJson'] })) return;
     startCombinedCustomerOrderReview(customerPasteAnalysis.text, customerPasteAnalysis.extracted);
     return;
   }
@@ -17040,7 +17147,15 @@ function globalSearchOrderDetail(order = {}, profile = {}, query = '') {
   if (contact) return String(contact);
   return order.trackingNumber || shipments[0]?.trackingNumber || order.note || '';
 }
-function buildGlobalSearchResults(query = '') {
+// 搜索结果里订单的下单日期：今年的写「11-10」，别的年份带年份；没记日期的不写。
+function globalSearchOrderDate(order = {}) {
+  const date = normalizeDate(order.createdAt || '');
+  if (!date || date === '1970-01-01') return '';
+  return date.slice(0, 4) === String(new Date().getFullYear()) ? date.slice(5) : date;
+}
+// allTracking：物流记录按关联的客户名、订单号也算命中（「查看全部搜索结果」的「物流」页签）。
+// 不传时，物流记录只在查询命中它自己的运单号、承运商或物流状态时才列：搜订单号、客户名时同一批单不在「订单」「物流」两组各出一次。
+function buildGlobalSearchResults(query = '', { allTracking = false } = {}) {
   const cleanQuery = String(query || '').trim();
   const tokens = globalSearchTokens(cleanQuery);
   const hasQuery = Boolean(tokens.length || cleanQuery);
@@ -17067,8 +17182,11 @@ function buildGlobalSearchResults(query = '') {
     const haystack = `${name} ${title} ${globalSearchText(customerFields)} ${globalSearchText(profileFields)}`;
     const score = globalSearchScore(title, haystack, cleanQuery);
     if (score < 0) return;
-    const details = [profile.email || customer.email, profile.contact || customer.contact, profile.phone || customer.phone, profile.address || customer.address, normalizeCountry(profile.country || customer.country)].filter(Boolean);
-    results.push({ type:'customer', group:'客户', kind:'客户', icon:'◇', id:name, title, subtitle:details.join(' · ') || '查看客户基础信息', score:score + 30 });
+    // 第二行按国家、邮箱、电话排，放不下截后面的；联系人、地址在悬停提示里。
+    const countryText = profile.country || customer.country ? orderListCountryShort(normalizeCountry(profile.country || customer.country)) : '';
+    const details = [countryText, profile.email || customer.email, profile.phone || customer.phone].filter(Boolean);
+    const tooltip = [...details, profile.contact || customer.contact, profile.address || customer.address].filter(Boolean).join(' · ');
+    results.push({ type:'customer', group:'客户', kind:'客户', icon:'◇', id:name, title, subtitle:details.join(' · ') || '查看客户基础信息', tooltip, score:score + 30 });
   });
   const exactKey = cleanTracking(cleanQuery);
   globalSearchOrderRecords().forEach(({ order, source }) => {
@@ -17082,7 +17200,8 @@ function buildGlobalSearchResults(query = '') {
     const trackingHit = exactKey.length >= 4 && normalizeOrderShipments(order).some(item => item.trackingNumber === exactKey);
     if (trackingHit || (exactKey.length >= 4 && cleanTracking(order.num) === exactKey)) score = 300;
     const sourceText = source === 'deleted' ? '已删除' : source === 'trash' ? '垃圾箱' : stageDef(order.stage).name;
-    results.push({ type:'order', group:'订单', kind:sourceText, icon:'≡', id:order.id, source, tab:trackingHit ? 'logistics' : '', title, subtitle:[storedCountry(order.country), money(order.amount, order.currency), globalSearchOrderDetail(order, profile, cleanQuery)].filter(Boolean).join(' · '), score:score + 20 });
+    // 第二行不写国家（国家是客户的），写金额、下单日期和命中的那一项。
+    results.push({ type:'order', group:'订单', kind:sourceText, icon:'≡', id:order.id, source, tab:trackingHit ? 'logistics' : '', title, subtitle:[money(order.amount, order.currency), globalSearchOrderDate(order), globalSearchOrderDetail(order, profile, cleanQuery)].filter(Boolean).join(' · '), score:score + 20 });
   });
   (state.trackingLookups || []).forEach(item => {
     const title = item.trackingNumber || '未填写物流单号';
@@ -17092,6 +17211,7 @@ function buildGlobalSearchResults(query = '') {
     const haystack = `${title} ${item.carrier || ''} ${item.client || ''} ${item.displayClient || ''} ${item.orderNum || ''} ${linkedText} ${item.status || ''} ${item.queryMessage || ''} ${globalSearchText(item.events || [])}`;
     const score = globalSearchScore(title, haystack, cleanQuery);
     if (score < 0) return;
+    if (!allTracking && !searchTextMatchDetail(`${title} ${item.carrier || ''} ${carrierName(item.carrier)} ${item.status || ''} ${item.queryMessage || ''} ${globalSearchText(item.events || [])}`, cleanQuery).matched) return;
     const who = linkedOrders.length ? `${clientDisplayName(linkedOrders[0].client)}${linkedOrders.length > 1 ? ` 等 ${linkedOrders.length} 单` : ''}` : (item.displayClient || item.client || '未关联客户');
     results.push({ type:'tracking', group:'物流', kind:'物流', icon:'⇢', id:item.id, orderId:item.orderId || '', title, subtitle:`${who} · ${carrierName(item.carrier)} · ${item.status || '待查询'}`, score:score + 25 });
   });
@@ -17122,7 +17242,7 @@ function renderGlobalSearchPanel({ forceOpen = false } = {}) {
     <section class="global-search-group">
       <div class="global-search-group-title">${escapeAttr(group)} · ${items.length}${resultCounts[group] > items.length ? ` / ${resultCounts[group]}` : ''}</div>
       ${items.map(({ item, index }) => `
-        <button class="global-search-result" id="global-search-result-${index}" type="button" role="option" data-global-search-index="${index}">
+        <button class="global-search-result" id="global-search-result-${index}" type="button" role="option" data-global-search-index="${index}"${item.tooltip ? ` title="${escapeAttr(item.tooltip)}"` : ''}>
           <span class="global-search-icon">${escapeAttr(item.icon || '⌕')}</span>
           <span class="global-search-copy"><span class="global-search-title">${escapeAttr(item.title)}</span><span class="global-search-sub">${escapeAttr(item.subtitle || '')}</span></span>
           <span class="global-search-kind">${escapeAttr(item.kind || item.group)}</span>
@@ -17224,7 +17344,7 @@ function renderFullSearchResults() {
   if (!input || !resultArea || !countEl) return;
   const query = input.value.trim();
   fullSearchQuery = query;
-  const allResults = query ? buildGlobalSearchResults(query) : [];
+  const allResults = query ? buildGlobalSearchResults(query, { allTracking:fullSearchType === 'tracking' }) : [];
   const key = `${query}\n${fullSearchType}`;
   if (key !== fullSearchLastKey) fullSearchPage = 1;
   fullSearchLastKey = key;
@@ -17250,7 +17370,7 @@ function renderFullSearchResults() {
       <div class="full-search-group-head"><strong>${escapeAttr(group)}</strong><span>${items.length} 条</span></div>
       <div class="full-search-result-list">
         ${items.map(({ item, index }) => `
-          <button class="full-search-result" type="button" data-full-search-index="${index}">
+          <button class="full-search-result" type="button" data-full-search-index="${index}"${item.tooltip ? ` title="${escapeAttr(item.tooltip)}"` : ''}>
             <span class="global-search-icon">${escapeAttr(item.icon || '⌕')}</span>
             <span class="global-search-copy"><span class="global-search-title">${escapeAttr(item.title)}</span><span class="global-search-sub">${escapeAttr(item.subtitle || '')}</span></span>
             <span class="global-search-kind">${escapeAttr(item.kind || item.group)}</span>
@@ -17825,6 +17945,7 @@ function enhanceBinarySelects(root = document) {
       || (select.closest('#customerForm, #combinedCustomerForm') && options.length > 2)
       || nativeNames.has(select.name)
       || nativeIds.has(select.id)
+      || select.dataset.attachmentField === 'type'
       || select.closest('.amount-combo')
       || select.closest('.deposit-combo')
       || select.closest('.shipment-editor')
@@ -18157,17 +18278,17 @@ function looksLikeUnsafeAttachmentLink(value = '') {
   if (!text || safeAttachmentHref(text)) return false;
   return /^[a-z][a-z0-9+.-]*:\/\//i.test(text) || /^\s*(?:javascript|vbscript|data|file)\s*:/i.test(text);
 }
-function renderOrderAttachments(list = []) {
-  const form = document.getElementById('orderForm');
+// form：订单弹窗（默认）或「一起确认客户和订单」的订单那一栏，两边是同一套附件格子。
+function renderOrderAttachments(list = [], form = document.getElementById('orderForm')) {
   if (form?.elements.attachmentsJson) form.elements.attachmentsJson.value = JSON.stringify(list);
-  document.querySelectorAll('#orderImageUploads [data-attachment-file-url]').forEach(card => {
+  form?.querySelectorAll('.image-upload-list [data-attachment-file-url]').forEach(card => {
     if (list.some(item => item.fileUrl === card.dataset.attachmentFileUrl)) return;
     const previewUrl = card.querySelector('img')?.src;
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     orderImageUploadPreviews = orderImageUploadPreviews.filter(url => url !== previewUrl);
     card.remove();
   });
-  const el = document.getElementById('attachmentList');
+  const el = form?.querySelector('.attachment-list');
   if (!el) return;
   el.innerHTML = list.length ? list.map((item, index) => `
     <div class="attachment-item ${item.thumbUrl ? 'has-thumb' : ''}">
@@ -18319,7 +18440,7 @@ let orderImageUploadPreviews = [];
 function clearOrderImageUploads() {
   orderImageUploadPreviews.forEach(url => URL.revokeObjectURL(url));
   orderImageUploadPreviews = [];
-  document.getElementById('orderImageUploads')?.replaceChildren();
+  document.querySelectorAll('#orderImageUploads, #combinedImageUploads').forEach(list => list.replaceChildren());
 }
 // list：进度卡放在哪（订单弹窗的 #orderImageUploads，或抽屉附件页的那一格）；previews：预览地址记在哪，清掉时一起释放。
 function createOrderImageUploadCard(file, list = document.getElementById('orderImageUploads'), previews = orderImageUploadPreviews) {
@@ -18506,19 +18627,21 @@ function imageBatchSkipNote(total, taken) {
 }
 // 这次粘贴是不是给订单弹窗的：焦点在弹窗里，或者焦点不在任何地方、也没有别的弹窗 / 抽屉开着。
 // 订单详情抽屉、客户档案、确认框盖在订单弹窗上面时，粘进来的图以前会加到下面那张看不见的单里。
-function orderModalTakesPaste(e) {
-  const modal = document.getElementById('orderModal');
+// 「一起确认客户和订单」弹窗也收图片：规则一样，图加到它订单那一栏的附件里。
+function orderModalTakesPaste(e, modalId = 'orderModal') {
+  const modal = document.getElementById(modalId);
   if (!modal?.classList.contains('open')) return false;
   const target = e?.target instanceof Element ? e.target : null;
   if (target && target !== document.body && target !== document.documentElement) return modal.contains(target);
   return ![...document.querySelectorAll('.modal-backdrop.open')].some(el => el !== modal);
 }
 async function handleOrderImagePaste(e) {
-  if (!orderModalTakesPaste(e)) return;
+  const form = orderModalTakesPaste(e) ? document.getElementById('orderForm')
+    : orderModalTakesPaste(e, 'combinedCustomerOrderModal') ? document.getElementById('combinedOrderForm') : null;
+  if (!form) return;
   const files = Array.from(e.clipboardData?.files || []).filter(file => /^image\//i.test(file.type));
   if (!files.length) return;
   e.preventDefault();
-  const form = document.getElementById('orderForm');
   if (form.dataset.uploading || form.dataset.saving || form.dataset.deletingAttachment) {
     toast('当前图片正在处理，请完成后再粘贴');
     return;
@@ -18531,7 +18654,8 @@ async function handleOrderImagePaste(e) {
     return;
   }
   clearOrderImageUploads();
-  const cards = batch.map(file => createOrderImageUploadCard(file));
+  uiOrderMoreOpen(form, 'attachments');
+  const cards = batch.map(file => createOrderImageUploadCard(file, form.querySelector('.image-upload-list')));
   form.dataset.uploading = 'true';
   let successCount = 0;
   let failureCount = 0;
@@ -18540,9 +18664,9 @@ async function handleOrderImagePaste(e) {
     for (const [index, file] of batch.entries()) {
       try {
         const item = await saveCompressedImageAttachment(file, existingImageCount + index + 1,
-          (percent, label) => updateOrderImageUploadCard(cards[index], percent, label));
+          (percent, label) => updateOrderImageUploadCard(cards[index], percent, label), orderAttachmentRefFromForm(form));
         cards[index].dataset.attachmentFileUrl = item.fileUrl;
-        renderOrderAttachments([item, ...orderAttachmentsFromForm(form)]);
+        renderOrderAttachments([item, ...orderAttachmentsFromForm(form)], form);
         updateOrderImageUploadCard(cards[index], 100, '已添加 · 待保存订单', 'complete');
         successCount++;
       } catch (error) {
@@ -18640,7 +18764,7 @@ function renderDetailLogisticsSection(order = {}, editable = false) {
   }).join('');
   const add = editable ? `
       <div class="detail-ship-add"><input data-detail-ship-input autocomplete="off" placeholder="补一批运单号，例如 91 8833 5262" aria-label="补一批运单号"><button class="btn btn-small" type="button" data-detail-ship-add>补运单号</button></div>
-      <label class="detail-switch"><input type="checkbox" data-dedit="partialShipment"${order.partialShipment ? ' checked' : ''}><i aria-hidden="true"></i><span>还有批次没发（部分发货） <small>勾上后已发的批次全部签收也不会自动进「已完成」</small></span></label>` : '';
+      <label class="detail-switch"><input type="checkbox" data-dedit="partialShipment"${order.partialShipment ? ' checked' : ''}><i aria-hidden="true"></i><span>还有批次没发（部分发货） <small>打开后已发的批次全部签收也不会自动进「已完成」</small></span></label>` : '';
   return `
     <section class="detail-section">
       <div class="detail-section-title">物流${summary.total ? ` · ${summary.total} 批` : ''}</div>
@@ -19822,8 +19946,14 @@ function boardCardAmountHtml(o, balanceDue, cardSettings) {
 }
 // 数字卡的小字：每一项连同它前面的「 · 」是一个不换行的小段，换行只发生在两项之间，
 // 分隔点不会落在行尾，「物流异常 1」这样的一项也不会被拆成两行。parts 是纯文字，空的跳过。
+// 分隔的「·」跟着前一段走：折行时留在上一行行尾，第二行不以点开头；放不下时截掉的是后面的段。
 function statSubHtml(parts = []) {
-  return parts.filter(Boolean).map((part, index) => `<span class="stat-sub-part">${index ? '· ' : ''}${escapeAttr(part)}</span>`).join(' ');
+  const list = parts.filter(Boolean);
+  return list.map((part, index) => `<span class="stat-sub-part">${escapeAttr(part)}${index < list.length - 1 ? ' ·' : ''}</span>`).join(' ');
+}
+// 小字最多两行，截掉的部分在悬停提示里看全。
+function statSubTitle(el) {
+  return el ? el.textContent.replace(/\s+/g, ' ').trim() : '';
 }
 // 工作台卡片上的月份名：今年的写「10 月」，别的年份带上年份「2025 年 12 月」，回看去年同月时不会和今年混。
 function dashboardMonthName(month = '') {
@@ -20948,7 +21078,7 @@ function renderDeletedOrders() {
         <span class="deleted-num">${escapeAttr(o.num)}</span>
         <span class="deleted-client"><strong>${escapeAttr(clientDisplayName(o.client))}</strong><small>${escapeAttr(product.value)} · ${escapeAttr(payment.value)} · ${escapeAttr(orderListCountryShort(o.country) || '未填写国家')}</small></span>
         <span><span class="tag ${s.tag}">${s.name}</span></span>
-        <span class="deleted-amount">${money(o.amount, o.currency)}<small>已付 ${money(orderPaidValue(o), o.currency)}</small></span>
+        <span class="deleted-amount">${money(o.amount, o.currency)}${orderPaidValue(o) > 0 ? `<small>已付 ${money(orderPaidValue(o), o.currency)}</small>` : ''}</span>
         <span class="deleted-time" title="${escapeAttr(o.deletedAt || '')}">${escapeAttr(orderListWhen(o.deletedAt) || '-')}</span>
         <span class="deleted-actions">
           <button class="btn btn-small" type="button" data-restore-order="${escapeAttr(o.id)}">恢复</button>
@@ -23080,7 +23210,7 @@ function renderCustomerDetailView(name = '', data = {}) {
   // 「客户等级」没设是「自动判断」、「负责人」没设是「未分配」，这两个是状态，照旧写出来。「下次跟进」是按复购周期算出来的，不算没填。
   const missing = [
     [contacts.length, '联系人'], [record.phones?.length, '电话'], [record.emails?.length, '邮箱'],
-    [contactMethods !== '未设置', '联系方式'], [record.alibabaId, '阿里 ID'],
+    [contactMethods !== '未设置', '主要联系方式'], [record.alibabaId, '阿里 ID'],
     [record.country, '国家'], [record.addresses?.length, '详细地址'],
     [record.paymentMethod, '收款方式'], [record.productType, '产品类型'], [record.paymentEmail, '付款邮箱'],
     [record.repurchaseCycle, '复购周期'], [record.permanentNote, '永久备注'], [record.note, '客户备注']
@@ -23749,7 +23879,7 @@ function fillCombinedCustomerForm(fields = {}, existingKey = '') {
   }
   enhanceBinarySelects(form);
 }
-function fillCombinedOrderForm(fields = {}, customerFields = {}) {
+function fillCombinedOrderForm(fields = {}, customerFields = {}, attachments = []) {
   const form = document.getElementById('combinedOrderForm');
   if (!form) return;
   const settings = { ...defaultOrderSettings, ...(state.orderSettings || {}) };
@@ -23793,7 +23923,38 @@ function fillCombinedOrderForm(fields = {}, customerFields = {}) {
   setOrderShipmentFields(form, fields, { opened:false });
   syncStageOptionsForForm(form);
   syncDepositFields(form, 'amount');
+  renderOrderAttachments(attachments, form);
+  // 和新建订单一样先收起附件、交期、物流、备注；识别到了（或从订单弹窗带过来了）的那几项直接展开。
+  uiOrderCompact(form, true);
+  if (attachments.length) uiOrderMoreOpen(form, 'attachments');
+  if (defaults.urgentOrder === '是' || fields.customerRequiredDate || fields.latestShipDate) uiOrderMoreOpen(form, 'deadline');
+  if (fields.trackingNumber || (Array.isArray(fields.shipments) && fields.shipments.some(item => item?.trackingNumber))) uiOrderMoreOpen(form, 'shipment');
+  if (defaults.note) uiOrderMoreOpen(form, 'note');
   enhanceBinarySelects(form);
+}
+// 左边客户的「更多资料」：展开 / 收起。收起的格子照样会存。
+function setCombinedCustomerMore(open) {
+  const box = document.getElementById('combinedCustomerMore');
+  const button = document.querySelector('[data-combined-customer-more-toggle]');
+  if (!box) return;
+  box.hidden = !open;
+  if (button) {
+    button.textContent = open ? '收起' : '展开';
+    button.setAttribute('aria-expanded', String(open));
+  }
+}
+document.querySelector('[data-combined-customer-more-toggle]')?.addEventListener('click', () => {
+  const open = document.getElementById('combinedCustomerMore')?.hidden;
+  setCombinedCustomerMore(open);
+  if (open) document.getElementById('combinedCustomerMore').querySelector('select:not(.binary-native):not(.app-select-native), input, .app-select-button')?.focus({ preventScroll:true });
+});
+// 「更多资料」里的哪一项是这次识别出来的（不算客户档案里本来就有的）：有就展开，免得识别到了却看不到。
+// 币种和订单一样时不算（订单那一栏已经写了）。
+function combinedCustomerMoreRecognized(customerFields = {}, orderFields = {}) {
+  const has = value => Array.isArray(value) ? value.length > 0 : value !== undefined && value !== null && String(value).trim() !== '';
+  if (has(customerFields.currency) && customerFields.currency !== (orderFields.currency || customerFields.currency)) return true;
+  return ['level', 'paymentMethod', 'paymentEmail', 'alibabaId', 'primaryContactMethod', 'alternativeContactMethods', 'repurchaseCycle', 'tags', 'note', 'permanentNote']
+    .some(key => has(customerFields[key]));
 }
 function openCombinedCustomerOrderModal(preview = {}) {
   const modal = document.getElementById('combinedCustomerOrderModal');
@@ -23804,14 +23965,22 @@ function openCombinedCustomerOrderModal(preview = {}) {
   const existingKey = existingCustomerKey(preview.customerFields?.name || '');
   const customerFields = combinedCustomerValues(preview.customerFields || {}, existingKey);
   fillCombinedCustomerForm(customerFields, existingKey);
-  fillCombinedOrderForm(preview.orderFields || {}, customerFields);
+  fillCombinedOrderForm(preview.orderFields || {}, customerFields, preview.attachments || []);
+  setCombinedCustomerMore(combinedCustomerMoreRecognized(preview.customerFields || {}, preview.orderFields || {}));
   syncCombinedCustomerPayment();
   const notificationCheckbox = document.getElementById('combinedOrderForm')?.elements?.sendFeishuNotification;
   if (notificationCheckbox) notificationCheckbox.checked = typeof feishuDefaultChecked !== 'function' || feishuDefaultChecked();
   setModalOpenState(modal, true);
   resetModalScroll(modal);
   uiFormMarkClean(document.getElementById('combinedCustomerForm'));
-  uiFormMarkClean(document.getElementById('combinedOrderForm'));
+  // 从新建订单带过来的附件不算「原样」：只带了附件、什么都没改就按 × / Esc，也先问，不直接把粘贴的截图删掉。
+  const orderForm = document.getElementById('combinedOrderForm');
+  const carried = preview.attachments || [];
+  if (orderForm && carried.length) {
+    orderForm.elements.attachmentsJson.value = '[]';
+    uiFormMarkClean(orderForm);
+    orderForm.elements.attachmentsJson.value = JSON.stringify(carried);
+  } else uiFormMarkClean(orderForm);
 }
 // 新客户和第一张单一起存：客户的付款方式没识别到、也没手动改过时，跟着右边订单的收款方式走。
 // 以前左边停在默认的阿里巴巴，存下去客户档案和第一张单不一样，下一张单又按阿里巴巴预填。
@@ -23832,11 +24001,20 @@ async function uiCloseCombinedGuarded() {
   if (dirty && !await uiConfirmDiscard(modal, '关闭客户和订单')) return;
   closeCombinedCustomerOrderModal();
 }
-function closeCombinedCustomerOrderModal() {
-  if (document.getElementById('combinedOrderForm')?.dataset.saving) return;
+// cleanupTemp：放弃时删掉这次粘贴进来、还没存进订单的图片文件；保存成功后关不删。
+function closeCombinedCustomerOrderModal({ cleanupTemp = true } = {}) {
+  const form = document.getElementById('combinedOrderForm');
+  if (form?.dataset.saving) return;
+  if (form?.dataset.uploading || form?.dataset.deletingAttachment) {
+    toast('附件正在处理，请完成后再关闭');
+    return;
+  }
   const modal = document.getElementById('combinedCustomerOrderModal');
   if (!modal) return;
   failedSaveUndo(modal);
+  clearOrderImageUploads();
+  if (cleanupTemp) cleanupTemporaryOrderAttachments(form);
+  renderOrderAttachments([], form);
   setModalOpenState(modal, false);
   resetModalScroll(modal);
 }
@@ -23852,9 +24030,19 @@ function startCombinedCustomerOrderReview(text = '', correctedCustomerFields = n
     return;
   }
   setPendingCombinedOrderFields(null);
-  closeOrder();
+  // 在新建订单里已经加的附件（粘贴的截图、链接）带进来，不在关订单弹窗时删掉。
+  const orderForm = document.getElementById('orderForm');
+  const fromOrderModal = document.getElementById('orderModal')?.classList.contains('open') && !editingId;
+  if (fromOrderModal && (orderForm?.dataset.uploading || orderForm?.dataset.deletingAttachment)) {
+    toast('附件正在处理，请完成后再确认客户和订单');
+    return;
+  }
+  const attachments = fromOrderModal ? orderAttachmentsFromForm(orderForm) : [];
+  closeOrder({ cleanupTemp:!attachments.length });
+  // 带走了就从订单弹窗里拿掉：以后再清理订单弹窗的临时附件时，不会删到已经交给这边的图片。
+  if (attachments.length) renderOrderAttachments([], orderForm);
   closeCustomerModal(false);
-  openCombinedCustomerOrderModal(preview);
+  openCombinedCustomerOrderModal({ ...preview, attachments });
 }
 // #endregion
 // #region Order form: stage and payment fields, shipments, order number, saving an order
@@ -25205,11 +25393,21 @@ async function saveCombinedCustomerOrder() {
   const customerForm = document.getElementById('combinedCustomerForm');
   const orderForm = document.getElementById('combinedOrderForm');
   if (!customerForm || !orderForm) return;
+  if (orderForm.dataset.uploading || orderForm.dataset.deletingAttachment) {
+    toast('附件正在处理，请完成后再保存订单');
+    return;
+  }
   if (orderForm.dataset.saving || !canSubmitStoredData()) return;
   orderForm.dataset.saving = 'true';
   try {
   // 客户这一栏和客户弹窗同一套检查：邮箱、电话格式不对给红字，不再静默丢掉。
-  if (!validateCustomerForm(customerForm) || !validateOrderRequiredFields(orderForm)) return;
+  if (!validateCustomerForm(customerForm)) {
+    // 标红的格子在收起的「更多资料」里（付款邮箱写错了……）：展开，让人看得到。
+    const bad = customerForm.querySelector('[aria-invalid="true"]');
+    if (bad?.closest('[data-combined-customer-more]')) { setCombinedCustomerMore(true); bad.focus(); }
+    return;
+  }
+  if (!validateOrderRequiredFields(orderForm)) return;
   if (rejectBadShipmentRows(orderForm)) return;
   const customerData = { ...Object.fromEntries(new FormData(customerForm).entries()), ...customerMultiFieldData(customerForm), ...customerContactPreferenceData(customerForm) };
   const orderData = { ...Object.fromEntries(new FormData(orderForm).entries()), shipments:orderShipmentsFromForm(orderForm) };
@@ -25240,7 +25438,7 @@ async function saveCombinedCustomerOrder() {
     currency: orderData.currency || finalCustomer.currency || 'USD',
     paymentChannel: orderData.paymentChannel || finalCustomer.paymentMethod || 'Paypal',
     productType: orderData.productType || finalCustomer.productType || '假发',
-    attachments: []
+    attachments: orderAttachmentsFromForm(orderForm)
   };
   const pendingOrder = state.orders.find(o => o.id === orderForm.dataset.pendingOrderId);
   const order = buildOrderFromFormData(finalOrderData, { existing: pendingOrder || null, isDraft: false, stageTouched: orderForm.dataset.stageTouched === 'true' });
@@ -25262,7 +25460,7 @@ async function saveCombinedCustomerOrder() {
   }
   failedSaveForget(modal);
   delete orderForm.dataset.saving;
-  closeCombinedCustomerOrderModal();
+  closeCombinedCustomerOrderModal({ cleanupTemp:false });
   render();
   const combinedText = `客户和订单已保存${orderStageSaveNote(order, orderData.stage, pendingOrder || null)}`;
   if (!notificationRequested) toast(combinedText);
@@ -31168,58 +31366,59 @@ document.addEventListener('click', e => {
   wrap.querySelectorAll('.binary-option').forEach(item => { item.classList.toggle('active', item === btn); item.setAttribute('aria-pressed', String(item === btn)); });
   select.dispatchEvent(new Event('change', { bubbles: true }));
 });
-document.getElementById('addAttachmentBtn').addEventListener('click', () => {
-  const form = document.getElementById('orderForm');
-  if (form.dataset.uploading || form.dataset.deletingAttachment) {
-    toast('附件正在处理，完成后再添加附件');
-    return;
-  }
-  const nameInput = document.getElementById('attachmentName');
-  const typeInput = document.getElementById('attachmentType');
-  const linkInput = document.getElementById('attachmentLink');
-  const name = nameInput.value.trim();
-  const link = linkInput.value.trim();
-  if (!name && !link) {
-    toast('请填写文件名称或链接');
-    return;
-  }
-  // 看着像链接（带「协议:」）却不是 http(s) 的，不收：javascript: 之类点开会在软件里执行。普通备注照存。
-  if (looksLikeUnsafeAttachmentLink(link)) {
-    toast('链接要以 https:// 开头', { tone:'warn' });
-    linkInput.focus();
-    return;
-  }
-  const list = orderAttachmentsFromForm(form);
-  if (list.length >= 20) {
-    toast('附件最多保留 20 个');
-    return;
-  }
-  list.unshift({ name: name || link, type: typeInput.value || '其他', link, time: nowText() });
-  renderOrderAttachments(list);
-  nameInput.value = '';
-  linkInput.value = '';
-});
-document.getElementById('attachmentList').addEventListener('click', async e => {
-  const btn = e.target.closest('[data-remove-attachment]');
-  if (!btn) return;
-  e.preventDefault();
-  e.stopPropagation();
-  const form = document.getElementById('orderForm');
-  if (form.dataset.uploading || form.dataset.deletingAttachment) {
-    toast('附件正在处理，请完成后再删除');
-    return;
-  }
-  const list = orderAttachmentsFromForm(form);
-  const item = list[Number(btn.dataset.removeAttachment)];
-  if (!item) return;
-  form.dataset.deletingAttachment = 'true';
-  try {
-    if (!await confirmAttachmentDelete(item)) return;
-    await deleteAttachmentFiles(item);
-    list.splice(Number(btn.dataset.removeAttachment), 1);
-    renderOrderAttachments(list);
-    toast('附件已删除，保存订单后生效');
-  } finally { delete form.dataset.deletingAttachment; }
+// 附件格子（订单弹窗和「一起确认客户和订单」各一份）：加一条链接 / 文件名，删一条。
+document.querySelectorAll('#orderForm, #combinedOrderForm').forEach(form => {
+  form.querySelector('[data-attachment-add]')?.addEventListener('click', () => {
+    if (form.dataset.uploading || form.dataset.deletingAttachment) {
+      toast('附件正在处理，完成后再添加附件');
+      return;
+    }
+    const nameInput = form.querySelector('[data-attachment-field="name"]');
+    const typeInput = form.querySelector('[data-attachment-field="type"]');
+    const linkInput = form.querySelector('[data-attachment-field="link"]');
+    const name = nameInput.value.trim();
+    const link = linkInput.value.trim();
+    if (!name && !link) {
+      toast('请填写文件名称或链接');
+      return;
+    }
+    // 看着像链接（带「协议:」）却不是 http(s) 的，不收：javascript: 之类点开会在软件里执行。普通备注照存。
+    if (looksLikeUnsafeAttachmentLink(link)) {
+      toast('链接要以 https:// 开头', { tone:'warn' });
+      linkInput.focus();
+      return;
+    }
+    const list = orderAttachmentsFromForm(form);
+    if (list.length >= 20) {
+      toast('附件最多保留 20 个');
+      return;
+    }
+    list.unshift({ name: name || link, type: typeInput.value || '其他', link, time: nowText() });
+    renderOrderAttachments(list, form);
+    nameInput.value = '';
+    linkInput.value = '';
+  });
+  form.querySelector('.attachment-list')?.addEventListener('click', async e => {
+    const btn = e.target.closest('[data-remove-attachment]');
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (form.dataset.uploading || form.dataset.deletingAttachment) {
+      toast('附件正在处理，请完成后再删除');
+      return;
+    }
+    const list = orderAttachmentsFromForm(form);
+    const item = list[Number(btn.dataset.removeAttachment)];
+    if (!item) return;
+    form.dataset.deletingAttachment = 'true';
+    try {
+      if (!await confirmAttachmentDelete(item)) return;
+      await deleteAttachmentFiles(item);
+      list.splice(Number(btn.dataset.removeAttachment), 1);
+      renderOrderAttachments(list, form);
+      toast('附件已删除，保存订单后生效');
+    } finally { delete form.dataset.deletingAttachment; }
+  });
 });
 document.addEventListener('paste', handleOrderImagePaste);
 document.addEventListener('paste', handleDetailImagePaste);
@@ -32963,7 +33162,8 @@ function uiOpenBoardMenu(card, { x = 0, y = 0 } = {}) {
   if (!order) return null;
   const due = orderDueValue(order);
   const next = nextStageFor(order);
-  const title = `${clientDisplayName(order.client)} · ${order.num}`;
+  // 订单号在前：标题放不下时截的是客户名后半，不是订单号。
+  const title = `${order.num} · ${clientDisplayName(order.client)}`;
   const menu = document.createElement('div');
   menu.className = 'board-menu';
   menu.setAttribute('role', 'menu');
@@ -33862,11 +34062,13 @@ document.getElementById('customerFooterCancelBtn')?.addEventListener('click', ()
 // #endregion
 // #region Close guards for unsaved forms
 // ===== 关闭保护：订单 / 客户弹窗和详情抽屉里有没保存的改动时，关闭、点遮罩、Esc 都先确认；没改动直接关。=====
+// 算不算改动看的那些格子。带 data-dirty-track 的输入框没有 name（附件的名称 / 链接）：填了还没点「添加」也算改动。
+function uiFingerprintFields(form) {
+  return [...form.elements].filter(el => (el.name || el.hasAttribute('data-dirty-track')) && !['button', 'submit', 'reset', 'file'].includes(el.type));
+}
 function uiFormFingerprint(form) {
   if (!form) return '';
-  const values = [...form.elements]
-    // 带 data-dirty-track 的输入框没有 name（附件的名称 / 链接）：填了还没点「添加」也算改动。
-    .filter(el => (el.name || el.hasAttribute('data-dirty-track')) && !['button', 'submit', 'reset', 'file'].includes(el.type))
+  const values = uiFingerprintFields(form)
     .map(el => (el.type === 'checkbox' || el.type === 'radio') ? (el.checked ? 1 : 0) : el.value);
   // 动态加出来的行没有 name：第 2 条起的物流单号，客户的第 2 个起的电话 / 邮箱 / 联系人 / 地址。
   // 按保存时读取的口径另算一份；以前这些改了不算改动，Esc / × 直接关掉就丢了。
@@ -33961,12 +34163,30 @@ async function uiConfirmLeaveCustomerEdit(sub, pasteText = null) {
   return !uiFormUnsaved(form) || uiConfirmDiscard(form, sub);
 }
 // 订单弹窗开着、改了没保存时，要换到别处（粘贴识别里的「打开订单」「新建客户 + 订单」）先问一句。
-async function uiConfirmLeaveOrder(sub, pasteText = null) {
+// keep：离开时会被带走、不会丢的格子（「新建客户 + 订单」把附件带过去），只改了这些不用问。
+async function uiConfirmLeaveOrder(sub, pasteText = null, { keep = [] } = {}) {
   const form = document.getElementById('orderForm');
   if (!document.getElementById('orderModal')?.classList.contains('open')) return true;
   if (uiFormBusy(form)) return false;
-  if (pasteText !== null && uiPasteFillOnly(form, pasteText)) return true;
-  return !uiFormUnsaved(form) || uiConfirmDiscard(form, sub);
+  if (pasteText !== null && uiPasteFillOnly(form, pasteText, keep)) return true;
+  return !(keep.length ? uiFormUnsavedExcept(form, keep) : uiFormUnsaved(form)) || uiConfirmDiscard(form, sub);
+}
+// 两份快照比较时不看 names 这几格（按格子在表单里的位置对齐；格子数变了就当改过）。
+function uiFingerprintSame(form, a, b, names = []) {
+  if (a === b) return true;
+  if (!names.length || a === undefined || b === undefined) return false;
+  try {
+    const left = JSON.parse(a);
+    const right = JSON.parse(b);
+    if (left.length !== right.length) return false;
+    uiFingerprintFields(form).forEach((el, index) => { if (names.includes(el.name)) { left[index] = null; right[index] = null; } });
+    return JSON.stringify(left) === JSON.stringify(right);
+  } catch (_) { return false; }
+}
+function uiFormUnsavedExcept(form, names = []) {
+  if (!form) return false;
+  if (form._failedSave) return true;
+  return form._cleanFingerprint !== undefined && !uiFingerprintSame(form, uiFormFingerprint(form), form._cleanFingerprint, names);
 }
 // 粘贴识别「填入」前表单没改过（或只有同一段识别填入的内容）：填完记下表单的样子和那段文字。
 function uiPasteFillBegin(form, text) {
@@ -33977,9 +34197,9 @@ function uiPasteFillEnd(form, text, onlyPaste) {
   if (form) form._pasteFill = onlyPaste ? { text, print:uiFormFingerprint(form) } : null;
 }
 // 填入后再没手改过：表单和填完那一刻一样，识别的还是同一段文字。
-function uiPasteFillOnly(form, text) {
+function uiPasteFillOnly(form, text, keep = []) {
   const fill = form?._pasteFill;
-  return !!fill && fill.text === text && !form._failedSave && fill.print === uiFormFingerprint(form);
+  return !!fill && fill.text === text && !form._failedSave && uiFingerprintSame(form, fill.print, uiFormFingerprint(form), keep);
 }
 // 详情抽屉里改了没保存时，离开这张单或重画它（关闭、编辑订单、客户档案、复制、关联订单、切换阶段）先问。
 // 选了放弃：留在内存里的失败保存撤回，抽屉算干净，接下来的重画不再把输入带回来。
@@ -34025,26 +34245,34 @@ async function uiDetailGuardOrderModal(id, sub) {
 // #endregion
 // #region Compact new-order form, quick actions, tracking quick card
 // ===== 新建订单：附件、交期、物流、备注先收起，「更多」里点哪一项就展开哪一项；编辑已有订单全部展开。=====
+// 「一起确认客户和订单」的订单那一栏用同一套（form 是 #combinedOrderForm，分区是 .combined-more-section）。
 function uiOrderCompact(form, compact) {
   if (!form) return;
-  form.querySelectorAll('.order-section[data-more]').forEach(section => section.classList.toggle('is-folded', !!compact));
+  form.querySelectorAll('section[data-more]').forEach(section => section.classList.toggle('is-folded', !!compact));
+  uiOrderMoreSync(form);
+}
+// 展开「更多」里的一项（识别到了交期、物流，粘贴了图片……）。
+function uiOrderMoreOpen(form, key) {
+  const section = form?.querySelector(`section[data-more="${key}"]`);
+  if (!section?.classList.contains('is-folded')) return;
+  section.classList.remove('is-folded');
   uiOrderMoreSync(form);
 }
 // 「更多」那一排只列还收着的分区；都展开了整排不显示。
 function uiOrderMoreSync(form) {
   let folded = 0;
   form.querySelectorAll('[data-order-more]').forEach(chip => {
-    const section = form.querySelector(`.order-section[data-more="${chip.dataset.orderMore}"]`);
+    const section = form.querySelector(`section[data-more="${chip.dataset.orderMore}"]`);
     chip.hidden = !section?.classList.contains('is-folded');
     if (!chip.hidden) folded += 1;
   });
   form.classList.toggle('order-compact', folded > 0);
 }
-document.getElementById('orderForm')?.addEventListener('click', e => {
+document.querySelectorAll('#orderForm, #combinedOrderForm').forEach(el => el.addEventListener('click', e => {
   const chip = e.target.closest('[data-order-more]');
   if (!chip) return;
   const form = e.currentTarget;
-  const section = form.querySelector(`.order-section[data-more="${chip.dataset.orderMore}"]`);
+  const section = form.querySelector(`section[data-more="${chip.dataset.orderMore}"]`);
   if (!section) return;
   section.classList.remove('is-folded');
   uiOrderMoreSync(form);
@@ -34052,7 +34280,7 @@ document.getElementById('orderForm')?.addEventListener('click', e => {
     section.scrollIntoView?.({ block:'nearest', behavior:'smooth' });
     section.querySelector('input:not([type="hidden"]), select:not(.binary-native):not(.app-select-native), textarea, .binary-option')?.focus({ preventScroll:true });
   });
-});
+}));
 // ===== 快捷动作：收齐尾款 / 推进到下一阶段（卡片悬停、右键菜单、订单列表），进入已发货时弹运单号小卡。=====
 // 和看板列同一个顺序：报价 → 生产中（收到定金）→ 待发货（货做好了，等尾款）→ 已发货 → 已完成。
 // 全款单没有待发货；定金单已经收齐、没有尾款要等，也从生产中直接进已发货。
@@ -34311,18 +34539,18 @@ function uiDashboardKpis() {
     const now = monthTotal(month);
     if (before > 0) {
       const pct = Math.round((now - before) / before * 100);
-      // 环比是第一段：原来的第一段补上它前面的「 · 」（小字的分段见 statSubHtml）。
-      amountSub.querySelector('.stat-sub-part')?.prepend('· ');
-      amountSub.insertAdjacentHTML('afterbegin', `<span class="stat-sub-part"><span class="${pct >= 0 ? 'up' : 'down'}" title="${isCurrent ? `本月 1–${todayDay} 日对比上月 1–${todayDay} 日` : '整月对比上月整月'}">比 ${escapeAttr(dashboardMonthName(prev))}${isCurrent ? '同期' : ''} ${pct >= 0 ? '+' : ''}${pct}%</span></span> `);
+      // 环比是第一段：它自己带上后面的「 ·」（小字的分段见 statSubHtml）。
+      amountSub.insertAdjacentHTML('afterbegin', `<span class="stat-sub-part"><span class="${pct >= 0 ? 'up' : 'down'}" title="${isCurrent ? `本月 1–${todayDay} 日对比上月 1–${todayDay} 日` : '整月对比上月整月'}">比 ${escapeAttr(dashboardMonthName(prev))}${isCurrent ? '同期' : ''} ${pct >= 0 ? '+' : ''}${pct}%</span> ·</span> `);
     }
   }
+  if (amountSub) amountSub.title = statSubTitle(amountSub);
   const dueOrders = state.orders.filter(o => !o.isDraft && orderDueValue(o) > 0);
   const paymentSub = document.getElementById('statPaymentSub');
   if (paymentSub) {
     // 订单上没有尾款到期日，不说「逾期」：只数已确认订单里「下单超过 30 天还有欠款」的（不含报价单，不看最后修改时间）。
     const aged = dueOrders.filter(o => orderDueAged(o)).length;
     paymentSub.innerHTML = statSubHtml(dueOrders.length ? ['历史累计', `待收 ${dueOrders.length} 笔`, aged ? `下单超 ${dueAgeAlertDays} 天未收清 ${aged}` : ''] : ['历史累计', '没有待收款']);
-    paymentSub.title = aged ? `已确认的订单（生产中 / 待发货 / 已发货 / 已完成）里，下单已超过 ${dueAgeAlertDays} 天、还有欠款的有 ${aged} 笔。订单上没有尾款到期日，这不是付款逾期。` : '';
+    paymentSub.title = aged ? `已确认的订单（生产中 / 待发货 / 已发货 / 已完成）里，下单已超过 ${dueAgeAlertDays} 天、还有欠款的有 ${aged} 笔。订单上没有尾款到期日，这不是付款逾期。` : statSubTitle(paymentSub);
   }
   const tasksSub = document.getElementById('statTasksSub');
   if (tasksSub && typeof buildTaskItems === 'function') {
@@ -34332,6 +34560,7 @@ function uiDashboardKpis() {
     const later = items.length - todayItems.length;
     const parts = [...taskTypeBreakdown(todayItems), later ? `另有 ${later} 件即将到期` : ''];
     tasksSub.innerHTML = statSubHtml(parts.some(Boolean) ? parts : ['今天没有待办']);
+    tasksSub.title = statSubTitle(tasksSub);
   }
   const goal = targetForMonth(month);
   const label = document.getElementById('statTargetLabel');

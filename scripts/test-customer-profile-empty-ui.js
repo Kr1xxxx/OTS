@@ -50,7 +50,7 @@ const visibleText = page => page.locator('#customerDetailView').innerText();
     // The last line of the rail lists what is empty, top to bottom.
     const last = page.locator('#customerDetailInfoGrid > :last-child');
     assert.equal(await last.evaluate(el => el.classList.contains('customer-rail-missing')), true);
-    assert.equal(await last.innerText(), '还没填：联系人、邮箱、联系方式、阿里 ID、国家、详细地址、产品类型、付款邮箱、复购周期、永久备注、客户备注去填写 →');
+    assert.equal(await last.innerText(), '还没填：联系人、邮箱、主要联系方式、阿里 ID、国家、详细地址、产品类型、付款邮箱、复购周期、永久备注、客户备注去填写 →');
     // Right side: no amber banner, no note card, five number cards with 最近订单 two columns wide.
     assert.equal(await page.locator('#customerDetailPermanentNote').isHidden(), true);
     assert.equal(await page.locator('#customerDetailNote').isHidden(), true);

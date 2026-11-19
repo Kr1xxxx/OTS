@@ -157,6 +157,8 @@ async function launch() {
     await page.locator('#combinedCustomerForm [data-add-customer-value="emails"]').click();
     await type(page.locator('#combinedCustomerForm [data-customer-multi-kind="emails"] [data-customer-extra-row] input').last(), 'two@combo.test');
     assert.equal(await page.evaluate(() => uiFormDirty(document.getElementById('combinedCustomerForm'))), true);
+    // 物流在「更多」里收着（照新建订单），先点开。
+    await page.locator('#combinedOrderForm [data-order-more="shipment"]').click();
     await page.locator('#combinedOrderForm [data-add-shipment]').click();
     await type(page.locator('#combinedOrderForm [data-shipment-extra-row] [data-shipment-number]').last(), '9183352621');
     await page.keyboard.press('Escape');

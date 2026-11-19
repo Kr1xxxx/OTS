@@ -135,12 +135,12 @@ const waitIdle = page => page.evaluate(() => new Promise(resolve => {
       await page.waitForFunction(() => document.getElementById('orderModal').classList.contains('open'));
       await page.locator('#pasteAssistInput').fill('Hi, this is Emma from Aurora Beauty Ltd, UK. We want 200 boxes C curl 0.07 lashes, total 1,850 USD, pay by PayPal emma@aurora-beauty.example. Please ship by DHL. Phone +44 7700 900123');
       await h.click(page, '#pasteAssistAnalyzeBtn', 'analyze');
-      await page.waitForSelector('#pasteAssistResults .paste-field-pill');
+      await page.waitForSelector('#pasteAssistResults .paste-field-kv dt');
       const pills = await page.evaluate(() => [...document.querySelectorAll('#pasteAssistResults .paste-result-card')]
-        .map(card => [...card.querySelectorAll('.paste-field-pill')].map(pill => pill.textContent.replace(/\s+/g, ''))));
+        .map(card => [...card.querySelectorAll('.paste-field-kv dt')].map(dt => `${dt.textContent}：${dt.nextElementSibling.textContent}`.replace(/\s+/g, ''))));
       pills.forEach(list => {
         assert.deepEqual(list, [...new Set(list)], `no pill twice in one card (${list.join(' / ')})`);
-        const payments = list.filter(text => /^(付款|收款方式)：/.test(text)).map(text => text.split('：')[1]);
+        const payments = list.filter(text => /^(客户付款方式|收款方式)：/.test(text)).map(text => text.split('：')[1]);
         assert.deepEqual(payments, [...new Set(payments)], `付款 and 收款方式 are not both shown with the same value (${list.join(' / ')})`);
       });
       assert.ok(pills.flat().some(text => text.startsWith('产品：')), 'the product is still listed once');

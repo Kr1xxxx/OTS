@@ -91,7 +91,19 @@ async function launch() {
     const field = name => page.locator(`#orderForm [name="${name}"]`);
     const value = name => field(name).inputValue();
     const results = page.locator('#pasteAssistResults');
-    const resultsText = () => results.innerText();
+    // 结果卡的字段是两列清单（dt 字名 / dd 值）：读成「字名：值」一行一项，方便按字段比对。
+    const resultsText = () => results.evaluate(el => {
+      const clone = el.cloneNode(true);
+      clone.querySelectorAll('dl.paste-field-kv').forEach(list => {
+        const lines = [...list.querySelectorAll('dt')].map(dt => `${dt.textContent}：${dt.nextElementSibling?.textContent || ''}`);
+        list.replaceWith(...lines.map(line => Object.assign(document.createElement('div'), { textContent:line })));
+      });
+      clone.style.cssText = 'position:absolute;left:-10000px;top:0;width:320px';
+      document.body.append(clone);
+      const text = clone.innerText;
+      clone.remove();
+      return text;
+    });
     const aiBtn = page.locator('#pasteAssistAiBtn');
     const confirmOpen = () => page.evaluate(() => document.getElementById('confirmModal').classList.contains('open'));
     const savedOrder = idOrNum => page.evaluate(key => {
@@ -200,7 +212,7 @@ async function launch() {
     assert.match(editCard, /AI 识别结果 · 耗时 \d+\.\d 秒/);
     assert.match(editCard, /AI 没确定金额、币种，请自己填/);
     assert.match(editCard, /这张单已有的内容不会被直接改掉/);
-    assert.doesNotMatch(editCard, /stage|production|阶段：|给 .* 新建订单/i, 'the AI stage is neither shown nor applied');
+    assert.doesNotMatch(editCard, /stage|production|阶段：|给这个客户新建订单/i, 'the AI stage is neither shown nor applied');
     let step = await clickFill('[data-paste-fill-extracted]', 'blank');
     assert.equal(step.filled, true);
     assert.match(step.message, /订单类型：定金订单 → 全款订单/);
@@ -279,8 +291,8 @@ async function launch() {
     await openNew();
     await runLocal('Maria here, my number +34 612 345 678, total 640');
     const existingCard = await resultsText();
-    assert.match(existingCard, /给 Maria Lopez 新建订单/);
-    assert.match(existingCard, /币种：EUR/);
+    assert.match(existingCard, /Maria Lopez\s*已有客户\s*按电话认出 · 🇪🇸 西班牙\s*给这个客户新建订单/);
+    assert.match(existingCard, /金额：640 EUR/);
     assert.match(existingCard, /阶段：报价（聊天没提付款）/);
     assert.equal((await clickFill('[data-paste-use-existing-customer-order]')).filled, true);
     assert.equal(await value('client'), 'Maria Lopez');
@@ -296,8 +308,11 @@ async function launch() {
     await openNew();
     await runAi(newCustomerText, aiNew);
     const newCard = await resultsText();
-    assert.match(newCard, /识别为新客户：Ana Torres/);
-    for (const pill of ['订单类型：定金订单', '定金比例：30%', '已付款：204', '阶段：生产中（按收款）']) assert.ok(newCard.includes(pill), `new customer card misses ${pill}:\n${newCard}`);
+    assert.match(newCard, /Ana Torres\s*新客户\s*没找到这个客户，保存时一起建档\s*确认客户和订单/);
+    for (const pill of ['订单类型：定金订单 · 定金 30%', '已付款：204', '阶段：生产中（按收款）']) assert.ok(newCard.includes(pill), `new customer card misses ${pill}:\n${newCard}`);
+    // 有新客户这张卡时，「识别到可填字段」收成一行。
+    assert.match(newCard, /只把这几项填进右边\s*填入 →/);
+    assert.doesNotMatch(newCard, /识别到可填字段/);
     assert.doesNotMatch(newCard, /已发货|stage/i);
     await results.locator('[data-paste-create-customer-order]').click();
     await page.waitForFunction(() => document.getElementById('combinedCustomerOrderModal').classList.contains('open'));
@@ -327,7 +342,7 @@ async function launch() {
     const detailText = 'Hi dear, I want 3 pcs 13x4 body wave 22inch 180% density, total $540, I will pay 30% deposit by PayPal today\nName: Lena Hart\nEmail: lena.hart@example.test';
     await openNew();
     await runAi(detailText, { client:'Lena Hart', country:'United States', amount:540, currency:'USD', orderType:'定金订单', depositPercent:30, paymentChannel:'Paypal', productType:'假发', orderDetail:['13x4 body wave 22inch 180% density × 3', 'closure 4x4 × 1'] });
-    assert.match(await resultsText(), /识别为新客户：Lena Hart/);
+    assert.match(await resultsText(), /Lena Hart\s*新客户/);
     await results.locator('[data-paste-create-customer-order]').click();
     await page.waitForFunction(() => document.getElementById('combinedCustomerOrderModal').classList.contains('open'));
     const detailField = page.locator('#combinedOrderForm [name="orderDetail"]');
@@ -355,12 +370,11 @@ async function launch() {
     await openNew();
     await runLocal(german);
     const germanLocal = await resultsText();
-    assert.match(germanLocal, /金额：1280\.5/);
-    assert.match(germanLocal, /币种：EUR/);
+    assert.match(germanLocal, /金额：1280\.5 EUR/);
     assert.doesNotMatch(germanLocal, /Zwischensumme|Peru|秘鲁|1\.15\b/);
     await runAi(german, { client:'Anna Schmidt', country:'Germany', amount:'1.280,50', currency:'EUR', orderType:'定金订单', depositPercent:30, paidAmount:'384,15', paymentChannel:'TT', productType:'假发' });
     const germanAi = await resultsText();
-    assert.match(germanAi, /识别为新客户：Anna Schmidt/);
+    assert.match(germanAi, /Anna Schmidt\s*新客户/);
     assert.match(germanAi, /已付款：384\.15/);
     assert.match(germanAi, /阶段：生产中（按收款）/);
     assert.doesNotMatch(germanAi, /Zwischensumme/);
@@ -369,7 +383,7 @@ async function launch() {
     // 7. AI 认出档案里的老客户：带入档案的国家、币种、收款方式；名字倒过来的只提示「可能是同一人」，用了也带入档案。
     await openNew();
     await runAi('Bonjour, c\'est Sophie. 3 perruques, total 900 €', { client:'Sophie Martin', amount:900, currency:'EUR', productType:'假发' });
-    assert.match(await resultsText(), /给 Sophie Martin 新建订单/);
+    assert.match(await resultsText(), /Sophie Martin\s*已有客户[\s\S]*给这个客户新建订单/);
     await clickFill('[data-paste-use-existing-customer-order]');
     assert.equal(await value('client'), 'Sophie Martin');
     assert.equal(await value('country'), france);

@@ -77,7 +77,7 @@ const settledMenuBox = async page => {
     assert(keyMenu.left >= cardBox.x && keyMenu.left <= cardBox.x + cardBox.width, `键盘打开的菜单应该贴着卡片：${JSON.stringify(keyMenu)} / ${JSON.stringify(cardBox)}`);
     assert(Math.abs(keyMenu.top - cardBox.y) < 80, '菜单不能出现在屏幕左上角');
     assert.equal((await active(page)).menu, 'open', '焦点进了菜单第一项');
-    assert.equal(await page.locator('.board-menu').getAttribute('aria-label'), 'Key Balance · K301 的操作');
+    assert.equal(await page.locator('.board-menu').getAttribute('aria-label'), 'K301 · Key Balance 的操作');
     const labels = await page.locator('.board-menu [role="menuitem"]').allTextContents();
     assert(labels.some(text => /^收齐尾款 \$700/.test(text.trim())), `尾款单写「收齐尾款」：${labels}`);
     await page.keyboard.press('ArrowDown');

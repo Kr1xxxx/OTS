@@ -49,6 +49,7 @@ const fakeSelect = {
   name:'depositPreset',
   id:'',
   value:'',
+  dataset:{},
   options:[30, 50, 70, 100].map(percent => ({ value:String(percent), textContent:`${percent}%` })),
   classList:{
     contains() { return false; },

@@ -337,7 +337,7 @@ function shellInit({ zoom }) {
   window.webkit = { messageHandlers:{ appUpdate:post('appUpdate'), uiZoom:post('uiZoom'), appTheme:post('appTheme'), windowDragRegions:post('windowDragRegions') } };
 }
 
-async function openShell(browser, server, { width = 1440, height = 920, zoom = 0.85, colorScheme = 'light', theme = 'light' } = {}) {
+async function openShell(browser, server, { width = 1440, height = 920, zoom = 0.9, colorScheme = 'light', theme = 'light' } = {}) {
   const context = await browser.newContext({ viewport:{ width:Math.round(width / zoom), height:Math.round(height / zoom) }, deviceScaleFactor:zoom, colorScheme, locale:'zh-CN' });
   await context.addInitScript(shellInit, { zoom });
   await context.addInitScript(value => {
@@ -357,7 +357,7 @@ async function openShell(browser, server, { width = 1440, height = 920, zoom = 0
 }
 
 async function checkSidebarAtZoom(browser, server) {
-  for (const [width, height, zoom] of [[1100, 720, 1.05], [1100, 720, 1.2], [1280, 800, 1.2], [1100, 720, 0.85], [1440, 920, 1.2]]) {
+  for (const [width, height, zoom] of [[1100, 720, 1.05], [1100, 720, 1.2], [1280, 800, 1.2], [1100, 720, 0.85], [1100, 720, 0.9], [1440, 920, 1.2]]) {
     const { context, page, errors } = await openShell(browser, server, { width, height, zoom });
     const label = `${width}×${height} @${Math.round(zoom * 100)}%`;
     const layout = await page.evaluate(() => {
@@ -486,7 +486,7 @@ async function checkZoomAndTitlebar(browser, server) {
   assert.deepEqual([current.hidden, current.pressed], [false, 0]);
   assert.match(current.text, /当前 110%/);
   assert.equal(await toasts('界面大小：110%'), 1, 'shortcut zoom is announced');
-  assert.match(await page.locator('.ui-zoom-card').textContent(), /⌘0 回到默认 85%/);
+  assert.match(await page.locator('.ui-zoom-card').textContent(), /⌘0 回到默认 90%/);
   // A settings click: one toast, even though the app calls back with the same zoom.
   await h.click(page, '[data-ui-zoom-choice="0.9"]', '90%');
   // The app answers a zoom change by calling otsUiZoomChanged with it (the fake host above does so 30 ms later).

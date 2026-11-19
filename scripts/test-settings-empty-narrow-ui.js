@@ -94,8 +94,8 @@ const orders = [];
     assert.deepEqual(empty.errors, []);
     await empty.context.close();
 
-    // ---- 最小窗口（1100×720 的窗口在 85% 缩放下是 1294×847）----
-    const narrow = await openBoard(browser, { orders, customers }, { port:47963, width:1294, height:847 });
+    // ---- 最小窗口（1100×720 的窗口在默认 90% 缩放下是 1222×800，85% 时 1294×847）----
+    const narrow = await openBoard(browser, { orders, customers }, { port:47963, width:1222, height:800 });
     page = narrow.page;
     const oneRow = selector => page.evaluate(selector => [...new Set([...document.querySelectorAll(selector)].filter(el => el.getClientRects().length).map(el => { const box = el.getBoundingClientRect(); return Math.round(box.top + box.height / 2); }))], selector);
     await page.evaluate(() => setPage('order-list'));

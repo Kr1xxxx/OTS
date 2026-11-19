@@ -4,7 +4,8 @@
 // 2. 按名字找国家：整个对上优先（Niger 不变成 Nigeria），整段文字里被更长的国名盖住的不算（印度尼西亚不算印度），
 //    产品名里的产地（越南发）、人名（Jordan）、我们自己这边的 China 不当成客户的国家；
 // 3. 下拉一打开只列常用的（订单里用得多的在前，不够的用默认国家和主要市场补），底下一行灰字说其余的打字查；
-// 4. 框里是选好的国家时它是一个整体：点进去整段选中，打字、删除、输入法都是换一个，不会把字插进国家名中间。
+// 4. 框里是选好的国家时它是一个整体：点进去整段选中，打字、删除、输入法都是换一个，不会把字插进国家名中间；
+// 5. 客户档案里以前手填的国家（津巴布韦、UAE）读进来也归到列表写法、带国旗，订单弹窗里手打的英文名保存时也一样。
 const assert = require('node:assert/strict');
 const { launchBrowser, openBoard, base, day } = require('./helpers/board-page');
 const { freePortSync } = require('./helpers/free-port');
@@ -154,7 +155,39 @@ const orders = [
 
     assert.deepEqual(errors, []);
     assert.deepEqual(dialogs, []);
-    console.log('Country list passed: full list, old entries mapped, names matched as a whole, common countries first, a chosen country edits as one piece.');
+
+    // ---- 5. 客户档案里手填的旧国家也归到列表写法 ----
+    // 以前列表里没有津巴布韦、阿联酋，客户档案只能手填；订单读进来会归到列表写法，档案以前不会，客户列表里就没有国旗。
+    const legacy = await openBoard(browser, {
+      orders:[order('h1', 'Harare Beauty', '津巴布韦')],
+      customers:{
+        'Harare Beauty':{ client:'Harare Beauty', country:'津巴布韦' },
+        'Dubai Lashes':{ client:'Dubai Lashes', country:' UAE ' },
+        'Atlantis Wigs':{ client:'Atlantis Wigs', country:'Atlantis' },
+        'Blank Co':{ client:'Blank Co', country:'' }
+      }
+    }, { port:freePortSync() });
+    const profiles = await legacy.page.evaluate(() => Object.fromEntries(Object.entries(state.customers).map(([name, profile]) => [name, profile.country])));
+    assert.deepEqual(profiles, {
+      'Harare Beauty':ZW, 'Dubai Lashes':'🇦🇪 阿联酋 United Arab Emirates', 'Atlantis Wigs':'Atlantis', 'Blank Co':''
+    }, 'a hand-typed country in a customer profile is read as the list entry; one outside the list stays as written, a blank one stays blank');
+    await legacy.page.evaluate(() => setPage('customers'));
+    const row = legacy.page.locator('.customer-row[data-view-customer="Harare Beauty"] .customer-cell-stack').first();
+    assert.equal((await row.locator('strong').innerText()).trim(), '🇿🇼 津巴布韦', 'the customer list shows the flag');
+
+    // 订单弹窗里手打的英文名（没有离开框的整理）保存时也存成列表写法；随这次保存，档案也按列表写法写回数据库。
+    await legacy.page.evaluate(() => openOrder('h1'));
+    await legacy.page.waitForSelector('#orderModal.open');
+    await legacy.page.evaluate(() => { document.querySelector('#orderForm [name="country"]').value = 'zimbabwe'; document.getElementById('orderForm').requestSubmit(); });
+    await legacy.page.waitForFunction(() => !document.getElementById('orderModal').classList.contains('open'));
+    await legacy.page.evaluate(() => flushPendingSave());
+    const saved = legacy.store.current.data || legacy.store.current;
+    assert.equal(saved.orders.find(o => o.id === 'h1').country, ZW, 'a typed English name is saved as the list entry');
+    assert.equal(saved.customers['Harare Beauty'].country, ZW, 'the profile is written back in the list spelling');
+    assert.equal(saved.customers['Atlantis Wigs'].country, 'Atlantis', 'a country outside the list is kept as written');
+    assert.deepEqual(legacy.errors, []);
+    assert.deepEqual(legacy.dialogs, []);
+    console.log('Country list passed: full list, old entries mapped, names matched as a whole, common countries first, a chosen country edits as one piece, hand-typed countries in profiles join the list.');
   } finally {
     await browser.close();
   }

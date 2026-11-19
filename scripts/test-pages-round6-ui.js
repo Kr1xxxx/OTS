@@ -97,10 +97,15 @@ const zedChat = 'New buyer: Zed Wigs Ltd, Leeds UK, zed@zedwigs.example\n10 bund
     await page.fill('#attachmentLink', 'https://example.test/pi-draft');
     await page.click('#addAttachmentBtn');
     await page.locator('#pasteAssistResults [data-paste-create-customer-order]').click();
-    // The new-order form was changed (the attachment): it asks first, as before.
-    await page.waitForFunction(() => document.getElementById('confirmModal').classList.contains('open'));
-    await page.click('#confirmOkBtn');
+    // Only the attachment changed and it comes along: no 「放弃未保存的修改？」 on the way.
     await page.waitForFunction(() => document.getElementById('combinedCustomerOrderModal').classList.contains('open'));
+    assert.equal(await page.evaluate(() => document.getElementById('confirmModal').classList.contains('open')), false, 'nothing is discarded, so nothing to confirm');
+    // The carried attachment is not "as opened": × asks before it is thrown away; 继续编辑 keeps it.
+    await page.click('#combinedCloseBtn');
+    await page.waitForFunction(() => document.getElementById('confirmModal').classList.contains('open'));
+    await page.click('#confirmCancelBtn');
+    await page.waitForFunction(() => !document.getElementById('confirmModal').classList.contains('open'));
+    assert.equal(await page.evaluate(() => document.getElementById('combinedCustomerOrderModal').classList.contains('open')), true);
     assert.equal(await visible('#combinedCustomerMore'), false, '更多资料 starts folded when none of it was recognised');
     assert.equal(await page.locator('[data-combined-customer-more-toggle]').getAttribute('aria-expanded'), 'false');
     for (const name of ['name', 'country', 'contact', 'phone', 'email', 'address']) assert.equal(await page.locator(`#combinedCustomerForm [name="${name}"]`).isVisible(), true, `${name} is one of the six`);

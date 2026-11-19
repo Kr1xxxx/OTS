@@ -14692,7 +14692,8 @@ async function handleOrderPasteResultClick(e) {
   }
   if (createComboBtn && pasteAssistAnalysis) {
     // 粘贴的内容会带到新弹窗里；手填的其它内容会随订单弹窗关掉，改过就先问。
-    if (!await uiConfirmLeaveOrder('新建客户 + 订单', pasteAssistAnalysis.text)) return;
+    // 新建订单里加的附件会带过去，只加了附件不用问（编辑已有订单时不带，照旧问）。
+    if (!await uiConfirmLeaveOrder('新建客户 + 订单', pasteAssistAnalysis.text, { keep:editingId ? [] : ['attachmentsJson'] })) return;
     const recognized = pasteAssistAnalysis.source === 'AI' ? pasteAssistAnalysis.extracted : null;
     startCombinedCustomerOrderReview(pasteAssistAnalysis.text, null, recognized, pasteAssistAnalysis.clientMatches);
     return;
@@ -16588,7 +16589,7 @@ async function handleCustomerPasteResultClick(e) {
   }
   if (createComboBtn && customerPasteAnalysis) {
     // 识别结果会带到新弹窗里；档案里手改的其它内容、下面开着的订单会关掉，改过就先问。
-    if (!await uiConfirmLeaveCustomerEdit('新建客户 + 订单', customerPasteAnalysis.text) || !await uiConfirmLeaveOrder('新建客户 + 订单')) return;
+    if (!await uiConfirmLeaveCustomerEdit('新建客户 + 订单', customerPasteAnalysis.text) || !await uiConfirmLeaveOrder('新建客户 + 订单', null, { keep:editingId ? [] : ['attachmentsJson'] })) return;
     startCombinedCustomerOrderReview(customerPasteAnalysis.text, customerPasteAnalysis.extracted);
     return;
   }
@@ -23972,7 +23973,14 @@ function openCombinedCustomerOrderModal(preview = {}) {
   setModalOpenState(modal, true);
   resetModalScroll(modal);
   uiFormMarkClean(document.getElementById('combinedCustomerForm'));
-  uiFormMarkClean(document.getElementById('combinedOrderForm'));
+  // 从新建订单带过来的附件不算「原样」：只带了附件、什么都没改就按 × / Esc，也先问，不直接把粘贴的截图删掉。
+  const orderForm = document.getElementById('combinedOrderForm');
+  const carried = preview.attachments || [];
+  if (orderForm && carried.length) {
+    orderForm.elements.attachmentsJson.value = '[]';
+    uiFormMarkClean(orderForm);
+    orderForm.elements.attachmentsJson.value = JSON.stringify(carried);
+  } else uiFormMarkClean(orderForm);
 }
 // 新客户和第一张单一起存：客户的付款方式没识别到、也没手动改过时，跟着右边订单的收款方式走。
 // 以前左边停在默认的阿里巴巴，存下去客户档案和第一张单不一样，下一张单又按阿里巴巴预填。
@@ -34054,11 +34062,13 @@ document.getElementById('customerFooterCancelBtn')?.addEventListener('click', ()
 // #endregion
 // #region Close guards for unsaved forms
 // ===== 关闭保护：订单 / 客户弹窗和详情抽屉里有没保存的改动时，关闭、点遮罩、Esc 都先确认；没改动直接关。=====
+// 算不算改动看的那些格子。带 data-dirty-track 的输入框没有 name（附件的名称 / 链接）：填了还没点「添加」也算改动。
+function uiFingerprintFields(form) {
+  return [...form.elements].filter(el => (el.name || el.hasAttribute('data-dirty-track')) && !['button', 'submit', 'reset', 'file'].includes(el.type));
+}
 function uiFormFingerprint(form) {
   if (!form) return '';
-  const values = [...form.elements]
-    // 带 data-dirty-track 的输入框没有 name（附件的名称 / 链接）：填了还没点「添加」也算改动。
-    .filter(el => (el.name || el.hasAttribute('data-dirty-track')) && !['button', 'submit', 'reset', 'file'].includes(el.type))
+  const values = uiFingerprintFields(form)
     .map(el => (el.type === 'checkbox' || el.type === 'radio') ? (el.checked ? 1 : 0) : el.value);
   // 动态加出来的行没有 name：第 2 条起的物流单号，客户的第 2 个起的电话 / 邮箱 / 联系人 / 地址。
   // 按保存时读取的口径另算一份；以前这些改了不算改动，Esc / × 直接关掉就丢了。
@@ -34153,12 +34163,30 @@ async function uiConfirmLeaveCustomerEdit(sub, pasteText = null) {
   return !uiFormUnsaved(form) || uiConfirmDiscard(form, sub);
 }
 // 订单弹窗开着、改了没保存时，要换到别处（粘贴识别里的「打开订单」「新建客户 + 订单」）先问一句。
-async function uiConfirmLeaveOrder(sub, pasteText = null) {
+// keep：离开时会被带走、不会丢的格子（「新建客户 + 订单」把附件带过去），只改了这些不用问。
+async function uiConfirmLeaveOrder(sub, pasteText = null, { keep = [] } = {}) {
   const form = document.getElementById('orderForm');
   if (!document.getElementById('orderModal')?.classList.contains('open')) return true;
   if (uiFormBusy(form)) return false;
-  if (pasteText !== null && uiPasteFillOnly(form, pasteText)) return true;
-  return !uiFormUnsaved(form) || uiConfirmDiscard(form, sub);
+  if (pasteText !== null && uiPasteFillOnly(form, pasteText, keep)) return true;
+  return !(keep.length ? uiFormUnsavedExcept(form, keep) : uiFormUnsaved(form)) || uiConfirmDiscard(form, sub);
+}
+// 两份快照比较时不看 names 这几格（按格子在表单里的位置对齐；格子数变了就当改过）。
+function uiFingerprintSame(form, a, b, names = []) {
+  if (a === b) return true;
+  if (!names.length || a === undefined || b === undefined) return false;
+  try {
+    const left = JSON.parse(a);
+    const right = JSON.parse(b);
+    if (left.length !== right.length) return false;
+    uiFingerprintFields(form).forEach((el, index) => { if (names.includes(el.name)) { left[index] = null; right[index] = null; } });
+    return JSON.stringify(left) === JSON.stringify(right);
+  } catch (_) { return false; }
+}
+function uiFormUnsavedExcept(form, names = []) {
+  if (!form) return false;
+  if (form._failedSave) return true;
+  return form._cleanFingerprint !== undefined && !uiFingerprintSame(form, uiFormFingerprint(form), form._cleanFingerprint, names);
 }
 // 粘贴识别「填入」前表单没改过（或只有同一段识别填入的内容）：填完记下表单的样子和那段文字。
 function uiPasteFillBegin(form, text) {
@@ -34169,9 +34197,9 @@ function uiPasteFillEnd(form, text, onlyPaste) {
   if (form) form._pasteFill = onlyPaste ? { text, print:uiFormFingerprint(form) } : null;
 }
 // 填入后再没手改过：表单和填完那一刻一样，识别的还是同一段文字。
-function uiPasteFillOnly(form, text) {
+function uiPasteFillOnly(form, text, keep = []) {
   const fill = form?._pasteFill;
-  return !!fill && fill.text === text && !form._failedSave && fill.print === uiFormFingerprint(form);
+  return !!fill && fill.text === text && !form._failedSave && uiFingerprintSame(form, fill.print, uiFormFingerprint(form), keep);
 }
 // 详情抽屉里改了没保存时，离开这张单或重画它（关闭、编辑订单、客户档案、复制、关联订单、切换阶段）先问。
 // 选了放弃：留在内存里的失败保存撤回，抽屉算干净，接下来的重画不再把输入带回来。

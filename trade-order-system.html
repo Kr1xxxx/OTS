@@ -15475,8 +15475,16 @@ function isUkPostcodeText(value = '') {
   if (!text) return false;
   return /\b(?:GIR\s*0AA|[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})\b/i.test(text);
 }
+// 数量开头的商品行（「10 bundles body wave, 18 inch」「20 boxes 0.07 C curl」「5 wigs please」）不是地址：
+// 数字后面两个词以内出现件数或商品词，整行又没有一个完整的街道词（「10 Downing Street」照样是地址）。
+function isProductQuantityLine(line = '') {
+  const text = String(line || '').trim();
+  if (!/^\d{1,5}\s*(?:x\s*)?(?:[\p{L}-]+\s+){0,2}(?:pcs?|pieces?|bundles?|box(?:es)?|trays?|packs?|sets?|bottles?|pairs?|cartons?|rolls?|wigs?|lace|closures?|frontals?|lash(?:es)?|eyelash(?:es)?|strips?|extensions?|hair|glue|tapes?)\b/iu.test(text)) return false;
+  return !/\b(?:street|st|road|rd|avenue|ave|lane|ln|drive|dr|court|ct|circle|cir|boulevard|blvd|way|place|pl|terrace|ter|parkway|pkwy|highway|hwy|suite|unit|apt|floor)\b\.?/i.test(text);
+}
 function isStreetAddressLine(line = '') {
   const text = String(line || '').trim();
+  if (isProductQuantityLine(text)) return false;
   return /^\d{1,6}\s+[\w\s.'#-]+(?:street|st\.?|road|rd\.?|avenue|ave\.?|lane|ln\.?|drive|dr\.?|court|ct\.?|circle|cir\.?|boulevard|blvd\.?|way|place|pl\.?|terrace|ter\.?|turnpike|tpke\.?|tpk\.?)\b/i.test(text) || /^(?:avenida|avda\.?|calle|c\/|plaza|paseo|carretera|camino|travesia|urbanizacion)\b.{2,100}\b\d{1,6}\b/i.test(normalizeSearchText(text));
 }
 function isAddressUnitLine(line = '') {
@@ -15493,7 +15501,7 @@ function isCityStateOnlyLine(line = '') {
 }
 function isLooseStreetAddressLine(line = '') {
   const text = String(line || '').trim();
-  if (!text || isOrderInfoLine(text) || isCustomerPhoneLine(text) || isCityStateZipLine(text)) return false;
+  if (!text || isProductQuantityLine(text) || isOrderInfoLine(text) || isCustomerPhoneLine(text) || isCityStateZipLine(text)) return false;
   return /^\d{1,6}\s+(?=.*[A-Za-z])[\w\s.'#-]{3,90}$/.test(text);
 }
 function isAddressContinuationLine(line = '') {
@@ -15705,7 +15713,7 @@ function findCustomerAddressInText(text) {
 }
 function looksLikeAddressText(value = '') {
   const text = String(value || '').trim();
-  if (!text) return false;
+  if (!text || isProductQuantityLine(text)) return false;
   // English keywords need word boundaries, otherwise names like Jordan (rd) or Dave (ave) read as addresses
   return /(?:客户地址|收货地址|地址|门牌|楼|室|省|市|区|县|路|街|巷|号)|\b(?:address|ship\s*to|street|road|rd\.?|avenue|ave\.?|avenida|avda\.?|calle|plaza|paseo|carretera|camino|traves[ií]a|urbanizaci[oó]n|lane|floor|room|suite|unit|building|city|state|province|zip|postal|postcode)(?![A-Za-z])/i.test(text)
     || /\d{3,}.*(?:[A-Za-z]{2,}|\p{Script=Han})/u.test(text)
@@ -15927,6 +15935,7 @@ function isLocalAddressLine(line = '') {
   if (!text || findEmailsInText(text).length || isCustomerPhoneLine(text)) return false;
   // 客户更正说明（"sorry zip is 30318 not 30310"）不是地址
   if (/\b(?:sorry|not|wrong)\b|不是|写错/i.test(text)) return false;
+  if (isProductQuantityLine(text)) return false;
   if (isLocalStreetLine(text) || isLocalTailAddressLine(text)) return true;
   return !isOrderInfoLine(text) && isLooseStreetAddressLine(text);
 }
@@ -23752,6 +23761,9 @@ function fillCombinedCustomerForm(fields = {}, existingKey = '') {
   setCombinedField(form, 'currency', fields.currency || 'USD', { overwrite: false });
   setCombinedField(form, 'level', fields.level || '自动判断', { overwrite: false });
   setCombinedField(form, 'paymentMethod', normalizePaymentChannelValue(fields.paymentMethod || '') || '阿里巴巴', { overwrite: true });
+  // 新客户没识别到付款方式：先跟右边订单的收款方式走（syncCombinedCustomerPayment），手动改过就不再跟。
+  if (!existingKey && !normalizePaymentChannelValue(fields.paymentMethod || '')) form.dataset.paymentFollowsOrder = '1';
+  else delete form.dataset.paymentFollowsOrder;
   const modeTag = document.getElementById('combinedCustomerModeTag');
   if (modeTag) {
     modeTag.textContent = existingKey ? '更新客户' : '新客户';
@@ -23815,6 +23827,7 @@ function openCombinedCustomerOrderModal(preview = {}) {
   const customerFields = combinedCustomerValues(preview.customerFields || {}, existingKey);
   fillCombinedCustomerForm(customerFields, existingKey);
   fillCombinedOrderForm(preview.orderFields || {}, customerFields);
+  syncCombinedCustomerPayment();
   const notificationCheckbox = document.getElementById('combinedOrderForm')?.elements?.sendFeishuNotification;
   if (notificationCheckbox) notificationCheckbox.checked = typeof feishuDefaultChecked !== 'function' || feishuDefaultChecked();
   setModalOpenState(modal, true);
@@ -23822,6 +23835,18 @@ function openCombinedCustomerOrderModal(preview = {}) {
   uiFormMarkClean(document.getElementById('combinedCustomerForm'));
   uiFormMarkClean(document.getElementById('combinedOrderForm'));
 }
+// 新客户和第一张单一起存：客户的付款方式没识别到、也没手动改过时，跟着右边订单的收款方式走。
+// 以前左边停在默认的阿里巴巴，存下去客户档案和第一张单不一样，下一张单又按阿里巴巴预填。
+function syncCombinedCustomerPayment() {
+  const customer = document.getElementById('combinedCustomerForm');
+  const order = document.getElementById('combinedOrderForm');
+  if (customer?.dataset.paymentFollowsOrder !== '1' || !order) return;
+  const select = customer.elements.paymentMethod;
+  const value = normalizePaymentChannelValue(order.elements.paymentChannel?.value || '');
+  if (select && value && Array.from(select.options).some(option => option.value === value)) select.value = value;
+}
+document.getElementById('combinedOrderForm')?.addEventListener('change', e => { if (e.target?.name === 'paymentChannel') syncCombinedCustomerPayment(); });
+document.getElementById('combinedCustomerForm')?.addEventListener('change', e => { if (e.target?.name === 'paymentMethod') delete e.currentTarget.dataset.paymentFollowsOrder; });
 async function uiCloseCombinedGuarded() {
   const modal = document.getElementById('combinedCustomerOrderModal');
   if (uiFormBusy(document.getElementById('combinedOrderForm'))) return;

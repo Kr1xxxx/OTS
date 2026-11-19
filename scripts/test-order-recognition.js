@@ -128,6 +128,7 @@ vm.runInContext(html.match(/^const customerPasteFieldOrder = .*;$/m)[0].replace(
   'isUsCityStateZipText',
   'isCanadaProvincePostalText',
   'isUkPostcodeText',
+  'isProductQuantityLine',
   'isStreetAddressLine',
   'isAddressUnitLine',
   'isUsZipOnlyLine',

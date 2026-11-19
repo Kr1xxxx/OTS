@@ -223,7 +223,8 @@ const freePort = () => new Promise((resolve, reject) => {
     const shipChip = await page.locator('#calendarGrid .calendar-day[data-calendar-date="2026-11-20"] .calendar-event', { hasText:'Beta Wigs' }).first().evaluate(el => ({ what:el.querySelector('b')?.textContent, weight:getComputedStyle(el.querySelector('b')).fontWeight, title:el.title }));
     assert.match(shipChip.what, /最晚发出$/);
     assert.ok(Number(shipChip.weight) > 500, `事由要粗一点：${shipChip.weight}`);
-    assert.match(shipChip.title, /^Beta Wigs (加急 · )?最晚发出 · 最晚发出日期 2026-11-20 · /);
+    // 悬停提示不再把那天的日期和「最晚发出」再写一遍，直接接订单号。
+    assert.match(shipChip.title, /^Beta Wigs (加急 · )?最晚发出 · K\S+/);
     assert.ok((await chips('2026-11-06')).some(label => label.includes('New Lead')), `只有档案的新客户上日历：${await chips('2026-11-06')}`);
     assert.equal((await chips('2026-11-08')).filter(label => label.includes('Shipped Late')).length, 0, '已发货的单没有发货期限');
 

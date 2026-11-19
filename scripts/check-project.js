@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -112,6 +113,17 @@ for (const file of secretScanFiles()) {
     if (pattern.test(text)) throw new Error(`Possible real secret found in ${file}`);
   }
 }
+
+// The WhatsApp extension runs this third-party bundle inside the owner's logged-in WhatsApp tab, and a
+// 500 KB minified file cannot be reviewed in a diff: it must stay the exact file SOURCE.json names.
+const waVendor = 'chrome-extension/whatsapp-sync/vendor';
+const waSource = JSON.parse(fs.readFileSync(path.join(root, waVendor, 'SOURCE.json'), 'utf8'));
+assert.equal(crypto.createHash('sha256').update(fs.readFileSync(path.join(root, waVendor, 'wppconnect-wa.js'))).digest('hex'), waSource.javascriptSha256,
+  `${waVendor}/wppconnect-wa.js differs from the build SOURCE.json names`);
+// WA-JS reads window.WPPConfig once at load; the script that turns its telemetry off must come first.
+const waManifest = JSON.parse(fs.readFileSync(path.join(root, 'chrome-extension/whatsapp-sync/manifest.json'), 'utf8'));
+const waMainScripts = waManifest.content_scripts.find(entry => entry.world === 'MAIN').js;
+assert.ok(waMainScripts.indexOf('wa-config.js') === 0 && waMainScripts.includes('vendor/wppconnect-wa.js'), 'wa-config.js must load before WA-JS');
 
 // Notes waiting for the next release must be short enough for the update dialog; a bad one would
 // otherwise only fail on main, in the release workflow.

@@ -867,40 +867,50 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     }
 
     nonisolated private func healthProbe(identity: LocalServiceIdentity) -> (healthy: Bool, message: String) {
-        guard let url = URL(string: "http://127.0.0.1:\(identity.port)/api/health") else {
-            return (false, "健康检查 URL 无效")
+        // 先不带令牌问：端口上要是别的程序（服务刚退出、端口被抢），令牌不能先交给它。
+        // 只有拿着令牌的服务算得出这次随机 challenge 的 proof（服务端见 request-guard.js healthProof）。
+        let challenge = HealthProof.newChallenge()
+        let first = fetchHealth(port: identity.port, query: "challenge=\(challenge)", bearer: nil)
+        guard let body = first.body else { return (false, first.message) }
+        guard HealthProof.matches(body["proof"] as? String, apiToken: identity.apiToken,
+                                  instanceNonce: identity.instanceNonce, challenge: challenge) else {
+            return (false, "端口响应者身份不匹配")
+        }
+        if body["ok"] as? Bool == true { return (true, "") }
+        // 数据库出错时服务端回 500：身份已经确认，再带令牌取一次，让用户看到真正的原因（storageError）。
+        let detail = fetchHealth(port: identity.port, query: nil, bearer: identity.apiToken).body
+        let message = detail?["storageError"] as? String
+            ?? (detail?["integrity"] as? [String: Any])?["message"] as? String
+            ?? "数据库健康检查失败"
+        return (false, message)
+    }
+
+    nonisolated private func fetchHealth(port: Int, query: String?, bearer: String?) -> (body: [String: Any]?, message: String) {
+        guard let url = URL(string: "http://127.0.0.1:\(port)/api/health" + (query.map { "?\($0)" } ?? "")) else {
+            return (nil, "健康检查 URL 无效")
         }
         var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 0.75)
-        request.setValue("Bearer \(identity.apiToken)", forHTTPHeaderField: "Authorization")
+        if let bearer {
+            request.setValue("Bearer \(bearer)", forHTTPHeaderField: "Authorization")
+        }
 
         let semaphore = DispatchSemaphore(value: 0)
-        let result = HealthProbeBox()
+        let result = HealthResponseBox()
         let config = URLSessionConfiguration.ephemeral
         config.timeoutIntervalForRequest = 0.75
         config.timeoutIntervalForResource = 1
         let session = URLSession(configuration: config)
         session.dataTask(with: request) { data, response, error in
             defer { semaphore.signal() }
-            // 数据库出错时服务端回 500，但正文里带着 storageError：照样读出来，让用户看到真正的原因。
+            // 数据库出错时服务端回 500，但正文照样是 JSON：读出来交给调用方。
             guard error == nil,
                   response is HTTPURLResponse,
                   let data,
                   let body = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                result.set(healthy: false, message: error?.localizedDescription ?? "健康检查未返回有效 JSON")
+                result.set(body: nil, message: error?.localizedDescription ?? "健康检查未返回有效 JSON")
                 return
             }
-            guard body["instanceNonce"] as? String == identity.instanceNonce else {
-                result.set(healthy: false, message: "端口响应者身份不匹配")
-                return
-            }
-            guard body["ok"] as? Bool == true else {
-                let message = body["storageError"] as? String
-                    ?? (body["integrity"] as? [String: Any])?["message"] as? String
-                    ?? "数据库健康检查失败"
-                result.set(healthy: false, message: message)
-                return
-            }
-            result.set(healthy: true, message: "")
+            result.set(body: body, message: "")
         }.resume()
         _ = semaphore.wait(timeout: .now() + 1.1)
         session.invalidateAndCancel()
@@ -1135,20 +1145,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     }
 }
 
-private final class HealthProbeBox: @unchecked Sendable {
+private final class HealthResponseBox: @unchecked Sendable {
     private let lock = NSLock()
-    private var result: (healthy: Bool, message: String) = (false, "健康检查超时")
+    private var body: [String: Any]?
+    private var message = "健康检查超时"
 
-    func set(healthy: Bool, message: String) {
+    func set(body: [String: Any]?, message: String) {
         lock.lock()
-        result = (healthy, message)
+        self.body = body
+        self.message = message
         lock.unlock()
     }
 
-    func value() -> (healthy: Bool, message: String) {
+    func value() -> (body: [String: Any]?, message: String) {
         lock.lock()
         defer { lock.unlock() }
-        return result
+        return (body, message)
     }
 }
 

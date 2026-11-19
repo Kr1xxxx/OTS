@@ -27544,7 +27544,7 @@ function subscriptionRowHtml({ item, schedule }, enterIndex) {
     <b class="subs-name">${escapeAttr(item.name)}</b>
     <span class="subs-meta">${subscriptionTypeHtml(item.category)}${subscriptionMetaText(item, schedule)}</span>
     <span class="subs-amt"><b>${subscriptionMoney(schedule.cycleAmount, item.currency)}</b><small><span class="subs-amt-cyc">${subscriptionCycleLabel(item)}</span>${converted}</small></span>
-    <span class="subs-pill ${when.cls}" title="${schedule.nextCharge || schedule.paidThrough}">${date ? `<span class="subs-pill-d">${date}</span> ` : ''}${when.text}</span>
+    <span class="subs-pill ${when.cls}" title="${escapeAttr(schedule.nextCharge || schedule.paidThrough)}">${date ? `<span class="subs-pill-d">${escapeAttr(date)}</span> ` : ''}${escapeAttr(when.text)}</span>
     <button class="subs-btn icon ghost subs-row-edit" type="button" data-sub-edit="${escapeAttr(item.id)}" aria-label="编辑 ${escapeAttr(item.name)}" title="编辑">${subscriptionIcon('edit')}</button>
   </div>`;
 }
@@ -28641,7 +28641,7 @@ function renderSubscriptionDetail({ entering = false } = {}) {
     </header>
     <div class="subs-db${entering ? ' subs-stagger' : ''}" id="subscriptionDrawerBody">
       <div class="subs-cards">
-        <div class="subs-card${active && when.cls !== 'line' ? ` is-${when.cls.split(' ')[0]}` : ''}"><span>${first[0]}</span><b>${first[1]}</b><small>${first[2]}</small></div>
+        <div class="subs-card${active && when.cls !== 'line' ? ` is-${when.cls.split(' ')[0]}` : ''}"><span>${first[0]}</span><b>${escapeAttr(first[1])}</b><small>${escapeAttr(first[2])}</small></div>
         <div class="subs-card"><span>月均花费</span><b>${subscriptionMoney(schedule.monthlyCny)}</b><small>年度约 ${subscriptionMoney(schedule.yearlyCny)}</small></div>
         <div class="subs-card wide"><span>累计已花费</span><b>${spentText}</b><small>已扣费 ${schedule.charges} 次，每期按当期价格计${item.currency === 'USD' && !schedule.mixedCurrency ? `，约 ${subscriptionMoney(schedule.spentCny)}` : ''}</small></div>
       </div>
@@ -29390,7 +29390,7 @@ function renderSubscriptionPreview() {
     const pill = subscriptionWhen(schedule, preview);
     const date = subscriptionWhenDate(schedule);
     when.className = `subs-pill ${pill.cls}`;
-    when.innerHTML = `${date ? `<span class="subs-pill-d">${date}</span> ` : ''}${escapeAttr(pill.text)}`;
+    when.innerHTML = `${date ? `<span class="subs-pill-d">${escapeAttr(date)}</span> ` : ''}${escapeAttr(pill.text)}`;
   } else {
     when.className = 'subs-pill line';
     when.textContent = '选择开始日期';

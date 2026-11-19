@@ -21,9 +21,14 @@ let context;
     };
   });
   await context.route('**/*', route => route.fulfill({ contentType:'text/html', body:'<!doctype html><html><body style="font:16px sans-serif;background:#e9efeb;padding:40px"><main id="main">Isolated WhatsApp API fixture — no real account</main></body></html>' }));
+  const analyticsRequests = [];
+  context.on('request', request => { if (/google-analytics|analytics\.google|googletagmanager/.test(request.url())) analyticsRequests.push(request.url()); });
   const page = await context.newPage();
   await page.goto('https://web.whatsapp.com/');
   await page.waitForFunction(() => window.WPP?.version === '4.5.0');
+  // WA-JS 自带 Google Analytics，默认开着：wa-config.js 必须在它之前把统计上报关掉。
+  // WA-JS 读完后把合并好的配置写回 window.WPPConfig：这里看到 true 说明它读到了 wa-config.js。
+  assert.deepEqual(await page.evaluate(() => [window.WPPConfig?.disableGoogleAnalytics, window.WPPConfig?.linkPreviewApiServers]), [true, []], 'WA-JS telemetry is switched off before it loads');
   assert.equal(await page.evaluate(() => typeof window.WPP.chat.getActiveChat), 'function', 'official packaged library actually starts in MAIN world');
   await page.waitForSelector('#trade-whatsapp-assistant', { state:'attached' });
   await page.evaluate(() => { window.fixtureSnapshots=[]; window.addEventListener('message', e => { if(e.data?.type==='snapshot-result') fixtureSnapshots.push(e.data.result); }); });
@@ -48,6 +53,7 @@ let context;
   const calls=await worker.evaluate(()=>fixtureNativeCalls);
   assert.ok(calls.some(call=>call.action==='search'));
   assert.ok(calls.every(call=>call.action==='search'), 'page bridge cannot trigger native writes');
+  assert.deepEqual(analyticsRequests, [], 'no statistics requests leave WhatsApp Web');
   if(process.env.WA_SCREENSHOT) await page.screenshot({ path:`${process.env.WA_SCREENSHOT}.real-extension.png` });
   console.log('Actual isolated Chrome extension passed: manifest ID, official WA-JS MAIN load, isolated bridge, auto-account sidebar and native command isolation.');
 })().catch(error=>{console.error(error);process.exitCode=1;}).finally(async()=>{

@@ -93,6 +93,9 @@ const zedChat = 'New buyer: Zed Wigs Ltd, Leeds UK, zed@zedwigs.example\n10 bund
     await paste(zedChat);
     // A link attachment added in the new-order dialog comes along.
     await page.click('#orderForm [data-order-more="attachments"]');
+    // The chip moves focus to the section's first field one frame later; fill only after that, or the link typed
+    // into 链接 can land in 文件名称 when the focus arrives in between (seen on CI).
+    await page.waitForFunction(() => document.activeElement?.id === 'attachmentName');
     await page.fill('#attachmentName', 'PI 草稿');
     await page.fill('#attachmentLink', 'https://example.test/pi-draft');
     await page.click('#addAttachmentBtn');

@@ -1,15 +1,14 @@
 const assert = require('node:assert/strict');
 const { launchBrowser, openBoard, base, day } = require('./helpers/board-page');
 
-// 看板布局用真实的 renderPipeline 卡片测：4 列表头结构和高度一致；所有卡片同高（有 / 没有「下一步」、加急、草稿、
-// 超长客户名、有 / 没有待收、带运单号、部分发货、没有国旗），多种宽度、浅色 / 深色都一样。
-// 以前这里拼的是旧卡片结构，「没写下一步」那一行被全局 .empty 样式套成虚线大框、卡片高 29px 也测不出来。
+// 看板布局用真实的 renderPipeline 卡片测：4 列表头结构和高度一致；所有卡片同高（加急、草稿、超长客户名、
+// 有 / 没有待收、带运单号、部分发货、没有国旗、旧数据里还留着已去掉的「下一步」），多种宽度、浅色 / 深色都一样。
 const orders = [
   { ...base, id:'q1', num:'K1', client:'Quote Deposit', amount:1000, paidAmount:0, depositAmount:300, orderType:'定金订单', stage:'quote', updated:`${day(1)} 09:01` },
   { ...base, id:'q2', num:'K2', client:'A Very Long Customer Name International Trading Company Limited', country:'', amount:1500, paidAmount:0, orderType:'全款订单', stage:'quote', updated:`${day(1)} 09:02` },
   { ...base, id:'d1', num:'K3', client:'Draft Buyer', amount:900, paidAmount:0, orderType:'定金订单', stage:'quote', isDraft:true, updated:`${day(1)} 09:03` },
   { ...base, id:'p1', num:'K4', client:'Prod Full', amount:1000, paidAmount:1000, orderType:'全款订单', stage:'production', updated:`${day(1)} 09:04` },
-  { ...base, id:'p2', num:'K5', client:'Prod Urgent', amount:700, paidAmount:300, orderType:'定金订单', stage:'production', urgentOrder:true, next:'Call supplier about the very long next step text that should be truncated in one line', updated:`${day(1)} 09:05` },
+  { ...base, id:'p2', num:'K5', client:'Prod Urgent', amount:700, paidAmount:300, orderType:'定金订单', stage:'production', urgentOrder:true, next:'Old next step left in the data', updated:`${day(1)} 09:05` },
   { ...base, id:'b1', num:'K6', client:'Balance Co', amount:2000, paidAmount:600, depositAmount:600, orderType:'定金订单', stage:'balance', next:'Send PI', updated:`${day(1)} 09:06` },
   { ...base, id:'s1', num:'K7', client:'Ship Tracked', amount:1200, paidAmount:1200, orderType:'全款订单', stage:'shipment', logisticsStatus:'运输中', shippedAt:day(2), trackingNumber:'1234567890', carrier:'DHL', shipments:[{ id:'x1', trackingNumber:'1234567890', carrier:'DHL', status:'运输中', shippedAt:day(2) }], updated:`${day(1)} 09:07` },
   { ...base, id:'s2', num:'K8', client:'Ship Partial', amount:900, paidAmount:900, orderType:'全款订单', stage:'shipment', partialShipment:true, logisticsStatus:'已发货', shippedAt:day(2), trackingNumber:'1Z999AA10123456784', carrier:'UPS', shipments:[{ id:'x2', trackingNumber:'1Z999AA10123456784', carrier:'UPS', status:'已发货', shippedAt:day(2) }], updated:`${day(1)} 09:08` },
@@ -25,8 +24,6 @@ const doneTasks = { 'tracking-s3':{ at:`${day(1)} 09:10`, until:'' } };
 const measure = page => page.evaluate(() => {
   const columns = [...document.querySelectorAll('#pipeline .board-column[data-stage]')];
   const cards = [...document.querySelectorAll('#pipeline .board-card[data-id]')];
-  const emptyNext = document.querySelector('#pipeline .oc-next.is-empty');
-  const emptyStyle = emptyNext ? getComputedStyle(emptyNext) : null;
   return {
     stages:columns.map(col => col.dataset.stage),
     titles:columns.map(col => col.querySelector('.board-column-title')?.textContent.trim() || ''),
@@ -35,9 +32,7 @@ const measure = page => page.evaluate(() => {
       return { h:Math.round(head.getBoundingClientRect().height * 10) / 10, parts:[...head.querySelectorAll('.board-column-title, .board-column-meta, .board-column-sub')].length };
     }),
     columnHeights:columns.map(col => Math.round(col.getBoundingClientRect().height)),
-    cards:cards.map(card => ({ id:card.dataset.id, h:Math.round(card.getBoundingClientRect().height * 10) / 10, next:card.querySelector('.oc-next')?.className || '' })),
-    oldEmptyClass:document.querySelectorAll('#pipeline .oc-next.empty').length,
-    emptyStyle:emptyStyle && { borderStyle:emptyStyle.borderBottomStyle, paddingLeft:emptyStyle.paddingLeft, height:emptyNext.getBoundingClientRect().height, setHeight:document.querySelector('#pipeline .oc-next:not(.is-empty)')?.getBoundingClientRect().height }
+    cards:cards.map(card => ({ id:card.dataset.id, h:Math.round(card.getBoundingClientRect().height * 10) / 10, text:card.textContent }))
   };
 });
 
@@ -59,10 +54,8 @@ const measure = page => page.evaluate(() => {
         assert.equal(new Set(result.columnHeights).size, 1, `${label}: 4 列高度不一致 ${result.columnHeights}`);
         const heights = result.cards.map(card => card.h);
         assert(Math.max(...heights) - Math.min(...heights) < 0.6, `${label}: 卡片不同高 ${JSON.stringify(result.cards.filter(card => Math.abs(card.h - heights[0]) >= 0.6))} vs ${heights[0]}`);
-        assert(result.cards.every(card => card.next), `${label}: 有一张写了下一步，所有卡片都留「下一步」这一行`);
-        assert.equal(result.oldEmptyClass, 0, '没写下一步的那一行不能再叫 .empty（会撞上全局空状态样式）');
-        assert.notEqual(result.emptyStyle.borderStyle, 'dashed', `${label}: 「未设下一步」被画成了虚线框`);
-        assert(Math.abs(result.emptyStyle.height - result.emptyStyle.setHeight) < 0.6, `${label}: 「未设下一步」行 ${result.emptyStyle.height}px，写了下一步的行 ${result.emptyStyle.setHeight}px`);
+        // 「下一步」已去掉：旧单里留着的内容不上卡片，也没有「未设下一步」。
+        assert(result.cards.every(card => !/Old next step|Send PI|下一步/.test(card.text)), `${label}: 卡片上还有「下一步」`);
         // 一列 30 张：能滚动，最后一张能滚到。
         const scroll = await page.evaluate(() => {
           const list = document.querySelector('#pipeline .board-column[data-stage="quote"] .board-card-list');
@@ -111,18 +104,10 @@ const measure = page => page.evaluate(() => {
       assert(bigWindow.every(v => Math.abs(v - 920) <= 1), `${theme}/2259×1271: 大窗口四列都封顶 920 ${bigWindow}`);
       assert((await columnHeights(2560, 2000)).every(v => Math.abs(v - 920) <= 1), `${theme}/2560×2000: 列高封顶 920`);
       assert((await columnHeights(1440, 760)).every(v => Math.abs(v - 560) <= 1), `${theme}/1440×760: 矮窗口不低于 560`);
-      await page.setViewportSize({ width:1440, height:900 });
-      await page.waitForFunction(() => window.innerWidth === 1440 && window.innerHeight === 900);
-
-      // 一张都没写下一步：不留这一行，照样同高。
-      await page.evaluate(() => { state.orders.forEach(o => { o.next = ''; }); renderPipeline(); });
-      const plain = await measure(page);
-      assert(plain.cards.every(card => !card.next), '没人写下一步时卡片不留这一行');
-      assert.equal(new Set(plain.cards.map(card => card.h)).size, 1, `都没写下一步时卡片也要同高 ${[...new Set(plain.cards.map(card => card.h))]}`);
       assert.deepEqual(errors, []);
       assert.deepEqual(dialogs, [], '看板不能弹原生对话框');
       await context.close();
     }
-    console.log('Board layout passed: real cards (next / no next, urgent, draft, long name, due, tracking, partial) are the same height and the 4 column heads match at 1440/1294/1100/820/390, light and dark; long lists scroll; columns fill the first screen (746 in the default window, 560 to 920); a board that does not fit fades on the side with more columns.');
+    console.log('Board layout passed: real cards (urgent, draft, long name, due, tracking, partial) are the same height and the 4 column heads match at 1440/1294/1100/820/390, light and dark; long lists scroll; columns fill the first screen (746 in the default window, 560 to 920); a board that does not fit fades on the side with more columns.');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

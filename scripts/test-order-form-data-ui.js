@@ -13,7 +13,7 @@ const odd = [
   { ...base, id:'odd-select', num:'K25039901', productType:'帽子', paymentChannel:'支付宝', orderType:'全款订单', stage:'balance', amount:'12.50', paidAmount:'abc' },
   { ...base, id:'odd-type', num:'K25039902', orderType:'', stage:'', amount:0, paidAmount:0, depositAmount:'', depositPercent:'' },
   // More than 20 attachments (the form keeps the first 20), CRLF in the note, a line break in a one-line field.
-  { ...base, id:'odd-text', num:'K25039903', note:'第一行\r\n第二行\r第三行', next:'换行\n下一步', orderDetail:'A\r\nB',
+  { ...base, id:'odd-text', num:'K25039903', note:'第一行\r\n第二行\r第三行', country:'🇺🇸 美国\nUnited States', orderDetail:'A\r\nB',
     attachments:Array.from({ length:23 }, (_, i) => ({ name:`a${i}.jpg`, type:'图片', link:`https://example.com/${i}`, time:'2025-03-01 09:00', temporary:i === 0 })) },
   // A shipment status the form does not list, an unknown carrier, the same number twice, an old single tracking number.
   { ...base, id:'odd-ship', num:'K25039904', stage:'shipment', shipments:[

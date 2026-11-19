@@ -24,7 +24,7 @@ const base = {
   currency:'USD', productType:'假发', paymentChannel:'Paypal', owner:'未分配', country:'🇺🇸 美国 United States',
   createdAt:day(1), orderMonth:'2025-03', updated:`${day(1)} 09:00`, logs:[{ time:`${day(1)} 09:00`, text:'新建订单' }],
   shipments:[], attachments:[], trackingNumber:'', carrier:'auto', logisticsStatus:'未发货', logisticsUpdated:'', shippedAt:'',
-  urgentOrder:false, customerRequiredDate:'', latestShipDate:'', next:'', note:'', orderDetail:'', isDraft:false,
+  urgentOrder:false, customerRequiredDate:'', latestShipDate:'', note:'', orderDetail:'', isDraft:false,
   feishuNotification:{ requested:false, status:'skipped' }
 };
 const customers = {
@@ -37,7 +37,9 @@ const orders = [
   { ...base, id:'dq', num:'K25030101', client:'Alice Wigs', orderType:'定金订单', stage:'quote', amount:1000, paidAmount:0, depositAmount:0, depositPercent:0 },
   { ...base, id:'dqp', num:'K25030102', client:'Alice Wigs', orderType:'定金订单', stage:'quote', amount:1000, paidAmount:0, depositAmount:300, depositPercent:30 },
   { ...base, id:'dp', num:'K25030103', client:'Alice Wigs', orderType:'定金订单', stage:'production', amount:1000, paidAmount:300, depositAmount:300, depositPercent:30,
-    urgentOrder:true, customerRequiredDate:'2025-04-10', latestShipDate:'2025-04-01', orderDetail:'BW-20 x 10\nHD lace x 2', next:'催尾款', note:'old note' },
+    urgentOrder:true, customerRequiredDate:'2025-04-10', latestShipDate:'2025-04-01', orderDetail:'BW-20 x 10\nHD lace x 2', note:'old note',
+    // 已去掉的「下一步」：旧数据里还有，抽屉保存后原样留着。
+    next:'催尾款' },
   { ...base, id:'dbd', num:'K25030104', client:'Bob Hair', country:'🇩🇪 德国 Germany', currency:'EUR', paymentChannel:'阿里巴巴', productType:'睫毛', orderType:'定金订单', stage:'balance', amount:1000, paidAmount:300, depositAmount:300, depositPercent:30 },
   { ...base, id:'dbf', num:'K25030105', client:'Alice Wigs', orderType:'定金订单', stage:'balance', amount:1000, paidAmount:1000, depositAmount:300, depositPercent:30 },
   { ...base, id:'ds', num:'K25030106', client:'Alice Wigs', orderType:'定金订单', stage:'shipment', amount:1000, paidAmount:1000, depositAmount:300, depositPercent:30, paidBeforeSettle:300,
@@ -91,14 +93,12 @@ orders.forEach(o => {
   add(o, 'customerRequiredDate', { customerRequiredDate:'2025-05-20' });
   add(o, 'latestShipDate', { latestShipDate:'2025-05-10' });
   add(o, 'orderDetail', { orderDetail:'  A款 x 3 \n\n B款 x 1 ' });
-  add(o, 'next', { next:'发 PI' });
   add(o, 'note only', { note:'只改备注' });
   add(o, 'urgentOrder', { urgentOrder:!o.urgentOrder });
   add(o, 'partialShipment', { partialShipment:!o.partialShipment });
   add(o, 'amount up', { amount:String(Number(o.amount) + 500) });
   add(o, 'paymentChannel', { paymentChannel:o.paymentChannel === 'TT' ? 'Zelle' : 'TT' });
   add(o, 'currency', { currency:o.currency === 'EUR' ? 'USD' : 'EUR' });
-  add(o, 'note and next', { note:'备注 2', next:'下一步 2' });
   add(o, 'amount empty', { amount:'' });
   add(o, 'amount negative', { amount:'-5' });
   if (o.id === 'aed') add(o, 'currency to a listed one and back', { currency:'AED', note:'AED 不变' });

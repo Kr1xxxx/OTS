@@ -152,11 +152,11 @@ async function launch() {
     assert.equal(dr.feishuNotification?.requested, false);
     assert.equal(notificationCalls.length, 0, '草稿保存不发飞书');
     // 转正：飞书开关只跟着这个按钮。
-    await typeAtEnd(dedit('next'), '发 PI');
+    await typeAtEnd(dedit('note'), ' 发 PI');
     await saveDrawer('#detailPromoteBtn');
     await page.waitForFunction(() => state.orders.find(o => o.id === 'dr').isDraft === false);
     dr = await order('dr');
-    assert.equal(dr.next, '发 PI');
+    assert.equal(dr.note, 'draft note only 发 PI');
     assert.equal(dr.feishuNotification?.requested, false, '开关没勾就不发');
     assert.equal(notificationCalls.length, 0);
     assert.equal(await page.locator('#detailPromoteBtn').isVisible(), false, '转正后不再显示「转为正式订单」');

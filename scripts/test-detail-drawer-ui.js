@@ -20,7 +20,7 @@ const { h } = require('./helpers/board-page');
       {...base,id:'o-quote',num:'K1',client:'Alice',country:'🇺🇸 美国 United States',amount:1000,paidAmount:0,orderType:'定金订单',stage:'quote'},
       {...base,id:'o-balance',num:'K2',client:'Bob',country:'🇩🇪 德国 Germany',amount:500,paidAmount:200,orderType:'定金订单',stage:'balance'},
       {...base,id:'o-full',num:'K3',client:'Carl',country:'',amount:800,paidAmount:0,orderType:'全款订单',stage:'quote'},
-      {...base,id:'o-manual',num:'K4',client:'Dan',country:'',amount:300,paidAmount:0,orderType:'定金订单',stage:'balance'}
+      {...base,id:'o-manual',num:'K4',client:'Dan',country:'',amount:300,paidAmount:0,orderType:'定金订单',stage:'balance',next:'旧的下一步'}
     ];
     let stored = {app:'trade-order-system',data:{orders,customers:{},demoCleared:true,demoCustomersCleared:true},revision:0};
     const errors = [];
@@ -86,11 +86,12 @@ const { h } = require('./helpers/board-page');
     // Editing only the note keeps a manually chosen stage.
     await open('o-manual','info');
     await page.locator('#orderDetailBody [data-dedit="note"]').fill('只改备注');
-    await page.locator('#orderDetailBody [data-dedit="next"]').fill('等客户确认');
     await save();
     saved = await snapshot('o-manual');
     assert.equal(saved.note,'只改备注');
-    assert.equal(saved.next,'等客户确认');
+    // 「下一步」已去掉：抽屉里没有这一栏，旧单里写过的内容保存后原样留着。
+    assert.equal(await page.locator('#orderDetailBody [data-dedit="next"]').count(),0);
+    assert.equal(saved.next,'旧的下一步');
     assert.equal(saved.stage,'balance','a note edit must not move the stage');
 
     // An empty customer is refused, like the order form's required field.

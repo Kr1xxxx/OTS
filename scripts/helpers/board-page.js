@@ -32,6 +32,9 @@ async function openBoard(browser, data, { width = 1440, height = 920, theme = 'l
   // 页面内的弹窗一律用 appConfirm：出现原生 alert / confirm 就记下来，测试最后断言为空。
   page.on('dialog', dialog => { dialogs.push(dialog.message()); dialog.dismiss().catch(() => {}); });
   await page.route('**/*', async route => {
+    // WebKit routes blob: / data: requests too (the page reads a pasted image through a blob: address to compress it):
+    // answering those with JSON broke every image paste there. Only the page's own http requests are stubbed.
+    if (!/^https?:/.test(route.request().url())) return route.continue();
     const pathname = new URL(route.request().url()).pathname;
     if (pathname === '/trade-order-system.html') return route.fulfill({ contentType:'text/html', body:html });
     let response = { ok:true };

@@ -37,6 +37,8 @@ page.renderWorldClocks();
 assert.equal(strip.builds, 1);
 
 // 绿点的样式在上层（html[data-theme]），用的是现有的绿色令牌。
-assert.match(html, /html\[data-theme\] \.world-clock\.is-awake::before \{[^}]*background:var\(--s-green\)[^}]*animation:uiAwake /);
-assert.match(html, /@keyframes uiAwake \{/);
+// 呼吸圈是 ::after，只动 transform / opacity（scripts/test-scroll-smooth-ui.js 守着）。
+assert.match(html, /html\[data-theme\] \.world-clock\.is-awake::before \{[^}]*background:var\(--s-green\)/);
+assert.match(html, /html\[data-theme\] \.world-clock\.is-awake::after \{[^}]*animation:uiRing /);
+assert.match(html, /@keyframes uiRing \{/);
 console.log('world clock awake: ok');

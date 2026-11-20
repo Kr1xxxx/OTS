@@ -549,18 +549,21 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision, sav
     const storedProfiles = {};
     existingCustomers.forEach((json, name) => { Object.defineProperty(storedProfiles, name, { value:JSON.parse(json), enumerable:true }); });
     // A merge or its undo names its own move, down to the single chats: that one is not read a second time here.
-    const namedMoves = new Set((Array.isArray(explicitMoves) ? explicitMoves : []).map(move => String(move?.from || '')));
+    const requestedMoves = Array.isArray(explicitMoves) ? explicitMoves : [];
+    const namedMoves = new Set(requestedMoves.map(move => String(move?.from || '')));
     const renamesById = customerRenamesById(storedProfiles, data.customers).filter(rename => !namedMoves.has(rename.from));
     const renamedFrom = new Set(renamesById.map(rename => rename.from));
     const renamedTo = new Set(renamesById.map(rename => rename.to));
     // What follows reads renames and merges out of the data for profiles without an id (saved by a version
     // from before ids): "old profile removed + its orders moved to a new name".
     const customerMoves = new Map();
+    const orderClients = new Set();
     if (customerInference !== false) desiredOrders.forEach(({ order, id }) => {
       const from = existingOrders.get(id)?.client || '';
       const to = String(order.client || '');
-      if (renamedFrom.has(from) || renamedTo.has(to)) return;
-      if (!from || from === to || desiredCustomerNames.has(from) || !existingCustomers.has(from) || !desiredCustomerNames.has(to)) return;
+      orderClients.add(to);
+      if (!from || from === to || renamedFrom.has(from) || desiredCustomerNames.has(from) || !existingCustomers.has(from)) return;
+      // Count every destination first, even if it has no profile: a split is never a single rename.
       if (!customerMoves.has(from)) customerMoves.set(from, new Set());
       customerMoves.get(from).add(to);
     });
@@ -570,13 +573,14 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision, sav
     // re-attaches them) and are never guessed into a rename of a customer added in the same save.
     const deletedNames = new Set((Array.isArray(customerDeletes) ? customerDeletes : []).map(name => String(name || '')));
     const removedNames = [...existingCustomers.keys()].filter(name => !desiredCustomerNames.has(name) && !customerMoves.has(name) && !deletedNames.has(name) && !renamedFrom.has(name));
-    const addedNames = [...desiredCustomerNames].filter(name => !existingCustomers.has(name) && !renamedTo.has(name));
-    // With an id on both sides there is nothing to guess: the ids differ (the same id would be a rename above),
-    // so one customer was deleted and another one added.
-    const idsSayTwoCustomers = removedNames.length === 1 && addedNames.length === 1
-      && validCustomerId(storedProfiles[removedNames[0]]?.id) && validCustomerId(data.customers[addedNames[0]]?.id);
-    if (customerInference !== false && removedNames.length === 1 && addedNames.length === 1 && !idsSayTwoCustomers
-      && !desiredOrders.some(({ order }) => String(order.client || '') === removedNames[0])) {
+    // Pair only names left unexplained on both sides. A target already used by an order move or an explicit
+    // merge cannot also identify an unrelated profile that disappeared without moving any orders.
+    const claimedTargets = new Set([...renamedTo, ...requestedMoves.map(move => move?.to)]);
+    for (const targets of customerMoves.values()) {
+      for (const to of targets) claimedTargets.add(to);
+    }
+    const addedNames = [...desiredCustomerNames].filter(name => !existingCustomers.has(name) && !claimedTargets.has(name));
+    if (customerInference !== false && removedNames.length === 1 && addedNames.length === 1) {
       customerMoves.set(removedNames[0], new Set([addedNames[0]]));
     }
     // Merges and their undo arrive as explicit moves: a merged customer without orders leaves no order
@@ -584,7 +588,7 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision, sav
     // exact chats the merge moved, so chats that were the target's own stay where they are.
     renameWhatsAppCustomers(database, renamesById);
     const movedChats = [];
-    (Array.isArray(explicitMoves) ? explicitMoves : []).forEach(move => {
+    requestedMoves.forEach(move => {
       const from = String(move?.from || '');
       const to = String(move?.to || '');
       if (!from || !to || from === to || !desiredCustomerNames.has(to)) return;
@@ -593,7 +597,13 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision, sav
       movedChats.push({ id:String(move.id || ''), from, to, chats:moveWhatsAppChats(database, from, to, chats) });
     });
     customerMoves.forEach((targets, from) => {
-      if (targets.size === 1) renameWhatsAppCustomer(database, from, [...targets][0]);
+      if (targets.size !== 1 || deletedNames.has(from) || orderClients.has(from)) return;
+      const [to] = targets;
+      if (!desiredCustomerNames.has(to) || renamedTo.has(to)) return;
+      // A move inferred from orders has the same limits as one inferred from profile names.
+      // Stable ids have already been matched above; an order moving between two ids is not a rename.
+      if (validCustomerId(storedProfiles[from]?.id) && validCustomerId(data.customers[to]?.id)) return;
+      renameWhatsAppCustomer(database, from, to);
     });
 
     const existingLookups = new Map(database.prepare('SELECT id, position, data_json FROM tracking_lookups').all().map(row => [row.id, row]));

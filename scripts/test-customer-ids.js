@@ -228,6 +228,7 @@ async function checkServer() {
     const oldRevision = turnIntoOldDatabase(dir);
     bindChat(dir, 'Birch Beauty', '15551230001@c.us');
     bindChat(dir, 'Cedar Wigs', '15551230002@c.us');
+    bindChat(dir, 'Dune Supply', '15551230003@c.us');
     await app.start();
     const migrated = await app.request('/api/data');
     assertFilled(migrated.data, 'old database');
@@ -286,6 +287,38 @@ async function checkServer() {
     rename(state, 'Cedar Hair', 'Birch Beauty');
     state = await save(state, { customerInference:false });
     assert.deepEqual(await chats('Birch Beauty'), ['hello from Birch Beauty']);
+    // Reassigning an order and deleting its old profile in the same save does not merge the two customers.
+    const beforeReassignment = clone(state);
+    const movedOrder = state.data.orders.find(item => item.client === 'Birch Beauty');
+    movedOrder.client = 'Elm Trading';
+    movedOrder.customerId = state.data.customers['Elm Trading'].id;
+    delete state.data.customers['Birch Beauty'];
+    state = await save(state);
+    assert.deepEqual(await chats('Elm Trading'), [], 'a reassigned order must not move the chat between distinct customer ids');
+    assert.deepEqual(await chats('Birch Beauty'), ['hello from Birch Beauty']);
+    state = await save({ ...clone(beforeReassignment), revision:state.revision }, { customerInference:false });
+
+    // Old saves can remove the profile while orders still use its name. Moving just one of two orders
+    // is insufficient evidence of a rename, even if the other customer's profile has no id.
+    state.data.trashOrders.push(order('partial', 'Birch Beauty'));
+    state = await save(state);
+    rename(state, 'Birch Beauty', 'Legacy Buyer');
+    delete state.data.customers['Legacy Buyer'].id;
+    state.data.trashOrders.find(item => item.id === 'partial').client = 'Birch Beauty';
+    state = await save(state);
+    assert.deepEqual(await chats('Legacy Buyer'), [], 'one reassigned order cannot transfer chats while another order keeps the old name');
+    state = await save({ ...clone(beforeReassignment), revision:state.revision }, { customerInference:false });
+
+    // Even when the destination has no id yet, the explicit deletion settles what happened to the old name.
+    const beforeDelete = clone(state);
+    rename(state, 'Birch Beauty', 'Legacy Buyer');
+    delete state.data.customers['Legacy Buyer'].id;
+    delete state.data.orders.find(item => item.client === 'Legacy Buyer').customerId;
+    state = await save(state, { customerDeletes:['Birch Beauty'] });
+    assert.deepEqual(await chats('Legacy Buyer'), [], 'an explicitly deleted customer keeps its chats');
+    assert.deepEqual(await chats('Birch Beauty'), ['hello from Birch Beauty']);
+    state = await save({ ...beforeDelete, revision:state.revision }, { customerInference:false });
+
     // A deleted customer and a new one in the same save are two people: the chat stays on the deleted name.
     state = clone(state);
     delete state.data.customers['Birch Beauty'];
@@ -307,6 +340,15 @@ async function checkServer() {
     state = await save(undone, { customerMoves:[{ id:'merge-1-undo', from:'Walk-in Buyer', to:'Birch Beauty Inc', chats:moved }] });
     assert.deepEqual(await chats('Birch Beauty Inc'), ['hello from Cedar Wigs'], 'the undo gives back the chat the merge moved');
     assert.deepEqual(await chats('Walk-in Buyer'), []);
+
+    // An old client saves a rename (its moved order identifies the destination) and removes a second profile.
+    // The same new name must not also become the destination for that second profile's chats.
+    rename(state, 'Birch Beauty Inc', 'Cedar Studio');
+    delete state.data.customers['Cedar Studio'].id;
+    delete state.data.customers['Dune Supply'];
+    state = await save(state);
+    assert.deepEqual(await chats('Dune Supply'), ['hello from Dune Supply'], 'a new name already explained by moved orders must not absorb another chat');
+    assert.deepEqual(await chats('Cedar Studio'), ['hello from Cedar Wigs'], 'legacy rename inferred from its order still works');
     await app.stop();
 
     // --- an old backup restored into the migrated app ---

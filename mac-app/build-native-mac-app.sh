@@ -111,6 +111,8 @@ cat > "$CONTENTS/Info.plist" <<PLIST
   <string>13.5</string>
   <key>NSHighResolutionCapable</key>
   <true/>
+  <key>NSDownloadsFolderUsageDescription</key>
+  <string>把「下载」里旧版本的安装包挪进废纸篓，只留最新 3 个版本。</string>
 </dict>
 </plist>
 PLIST

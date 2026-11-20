@@ -110,6 +110,26 @@ do {
     try verify(UpdatePolicy.notificationConfigBlocker(localConfigurationExists: true, incomingConfigurationVersion: 1) == nil, "compatible update must retain normal installation")
     try verify(UpdatePolicy.notificationConfigBlocker(localConfigurationExists: false, incomingConfigurationVersion: 0) == nil, "unconfigured installation must not gain a notification update restriction")
 
+    try verify(InstallerCleanup.version(ofInstaller: "TradeOrderSystem-3.204-mac-arm64.dmg").map { "\($0)" } == "3.204", "dmg name was not read")
+    try verify(InstallerCleanup.version(ofInstaller: "TradeOrderSystem-3.99-mac-arm64-lite.zip.sha256") != nil, "lite checksum name was not read")
+    try verify(InstallerCleanup.version(ofInstaller: "TradeOrderSystem-3.98-mac-arm64 (1).dmg") != nil, "browser duplicate name was not read")
+    for other in ["TradeOrderSystem.app", "TradeOrderSystem-3.98-mac-arm64.dmg.download", "MyTradeOrderSystem-3.98-mac-arm64.dmg", "TradeOrderSystem-notes.zip", "trade-order-data-20261120-101010.sqlite", "trade-order-data-20261120-101010-before-update.sqlite", "TradeOrderSystem-3.98-mac-arm64.zip.part", "TradeOrderSystem-3.98-mac-arm64", "TradeOrderSystem-3.98-mac-arm64.dmg.zip", "OTS-backup-3.98.zip", "TradeOrderSystem-3.98-win-x64.zip", "attachments"] {
+        try verify(InstallerCleanup.version(ofInstaller: other) == nil, "\(other) was taken for an installer")
+    }
+    let downloads = [
+        "TradeOrderSystem-3.89-mac-arm64.dmg", "TradeOrderSystem-3.100-mac-arm64.dmg",
+        "TradeOrderSystem-3.150-mac-arm64.zip", "TradeOrderSystem-3.150-mac-arm64.zip.sha256",
+        "TradeOrderSystem-3.201-mac-arm64.dmg", "TradeOrderSystem-3.203-mac-arm64.dmg",
+        "TradeOrderSystem-3.204-mac-arm64.dmg", "TradeOrderSystem-3.204-mac-arm64 (1).dmg",
+        "invoice.pdf"
+    ]
+    try verify(InstallerCleanup.namesToRemove(downloads, running: AppVersion("3.204")) == [
+        "TradeOrderSystem-3.100-mac-arm64.dmg", "TradeOrderSystem-3.150-mac-arm64.zip",
+        "TradeOrderSystem-3.150-mac-arm64.zip.sha256", "TradeOrderSystem-3.89-mac-arm64.dmg"
+    ], "installers outside the newest 3 versions were not picked (3.100 must sort above 3.89)")
+    try verify(InstallerCleanup.namesToRemove(downloads, running: AppVersion("3.150")).contains("TradeOrderSystem-3.150-mac-arm64.zip") == false, "the running version's installer was picked")
+    try verify(InstallerCleanup.namesToRemove(Array(downloads.suffix(4)), running: nil).isEmpty, "three versions or fewer must all stay")
+
     print("Native runtime policy tests passed.")
 } catch {
     FileHandle.standardError.write(Data("Native runtime policy test failed: \(error)\n".utf8))

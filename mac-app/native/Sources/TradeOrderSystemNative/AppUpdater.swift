@@ -119,9 +119,43 @@ final class AppUpdater {
         let support = Self.supportDirectory
         let manager = FileManager.default
         let pending = support.appendingPathComponent("update-pending-\(current)")
-        guard manager.fileExists(atPath: pending.path) else { return }
+        let installedByUpdater = manager.fileExists(atPath: pending.path)
+        trashOldInstallersAfterManualInstall(running: current, installedByUpdater: installedByUpdater)
+        guard installedByUpdater else { return }
         try? Data().write(to: support.appendingPathComponent("update-ok-\(current)"))
         try? manager.removeItem(at: pending)
+    }
+
+    private static let installerCleanupDefaultsKey = "InstallerCleanupCheckedVersion"
+
+    /// Moves old OTS installers in Downloads to the Trash, keeping the newest three versions and
+    /// the running one (InstallerCleanup has the rules). Downloads is a protected folder and this
+    /// app is ad-hoc signed, so macOS may ask again after every update: the folder is read only when
+    /// a new installer can be there, i.e. the first time and after a version installed by hand
+    /// (from a downloaded dmg or zip), never after an in-app update. Off the main thread; any
+    /// error leaves the files where they are.
+    private func trashOldInstallersAfterManualInstall(running: AppVersion, installedByUpdater: Bool) {
+        let defaults = UserDefaults.standard
+        let checked = defaults.string(forKey: Self.installerCleanupDefaultsKey)
+        guard checked != running.description else { return }
+        defaults.set(running.description, forKey: Self.installerCleanupDefaultsKey)
+        guard checked == nil || !installedByUpdater else { return }
+        Task.detached(priority: .background) {
+            let manager = FileManager.default
+            guard let downloads = manager.urls(for: .downloadsDirectory, in: .userDomainMask).first,
+                  let names = try? manager.contentsOfDirectory(atPath: downloads.path) else { return }
+            for name in InstallerCleanup.namesToRemove(names, running: running) {
+                let file = downloads.appendingPathComponent(name)
+                // Only plain files: never a folder, an app bundle or a link that happens to match.
+                guard (try? file.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true else { continue }
+                do {
+                    try manager.trashItem(at: file, resultingItemURL: nil)
+                    NSLog("OTS: moved old installer %@ to the Trash", name)
+                } catch {
+                    NSLog("OTS: could not move %@ to the Trash (%@)", name, error.localizedDescription)
+                }
+            }
+        }
     }
 
     /// Called after every page load:

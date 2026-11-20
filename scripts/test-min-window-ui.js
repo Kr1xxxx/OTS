@@ -18,11 +18,13 @@ const height = Math.floor(minHeight / zoom);
 assert.ok(width >= 1299, `the smallest window at the default zoom is ${width} px wide in the page; the layout is tuned for 1299 px and up`);
 
 const clients = ['Narrow Lane Hair Co', 'Minimum Window Wigs Ltd', 'Small Frame Lashes', 'Tight Fit Beauty Supply'];
+// 地区用名字最长的几个（四个字），属性里一个三个字的标签：最窄时这两栏也要放得下。
+const countries = ['🇳🇬 尼日利亚 Nigeria', '🇦🇺 澳大利亚 Australia', '🇿🇼 津巴布韦 Zimbabwe', '🇬🇧 英国 United Kingdom'];
 const stages = ['done', 'shipment', 'production', 'quote'];
 const customers = {};
 const orders = [];
 clients.forEach((client, i) => {
-  customers[client] = { client, country:'🇬🇧 英国 United Kingdom', currency:'USD', contact:`Buyer ${i + 1}`, email:`buyer${i + 1}@example.com`, tags:['复购客户'] };
+  customers[client] = { client, country:countries[i], currency:'USD', contact:`Buyer ${i + 1}`, email:`buyer${i + 1}@example.com`, tags:['回头客'] };
   for (let k = 0; k < 3; k++) {
     const n = i * 3 + k;
     const stage = stages[(i + k) % stages.length];
@@ -41,13 +43,19 @@ async function checkCustomerList(page, label) {
     const rows = [...document.querySelectorAll('.customer-row:not(.head)')];
     // 文字的自然宽度（不取整）至少比格子窄 1 px。不同机器上「单」字的字体不同：本机 121.1 px，Linux CI 123.7 px（以前的比例在 1300 px 页面里格子只有 121 px）。
     const natural = el => { const copy = el.cloneNode(true); copy.style.cssText = 'position:absolute;width:max-content;max-width:none'; el.parentNode.appendChild(copy); const w = copy.getBoundingClientRect().width; copy.remove(); return w; };
-    const cut = rows.flatMap(row => [...row.children[3].querySelectorAll('*')].filter(el => natural(el) + 1 > el.getBoundingClientRect().width).map(el => `${el.textContent.trim()} (${natural(el).toFixed(1)} / ${el.getBoundingClientRect().width.toFixed(1)} px)`));
+    const cutIn = (row, i, keep = () => true) => [...row.children[i].querySelectorAll('*')].filter(el => keep(el) && natural(el) + 1 > el.getBoundingClientRect().width).map(el => `${el.textContent.trim()} (${natural(el).toFixed(1)} / ${el.getBoundingClientRect().width.toFixed(1)} px)`);
+    // 地区一栏的国家名（第一行，地址那行本来就会省略），属性一栏的等级和第一个标签（标签放不下时折到看不见的第二行）。
+    const country = rows.flatMap(row => cutIn(row, 1, el => !/\d/.test(el.textContent)));
+    const tagHidden = rows.filter(row => { const stack = row.children[2].querySelector('.customer-tag-stack'); const tag = stack?.querySelector('.level-tag'); return !tag || tag.getBoundingClientRect().bottom > stack.getBoundingClientRect().bottom + 0.5; }).map(row => row.children[0].textContent.trim().slice(0, 30));
+    const cut = rows.flatMap(row => cutIn(row, 3));
     const scroll = document.querySelector('.customer-table');
     const fonts = [...document.fonts].map(font => `${font.family} ${font.status}`).join(', ');
-    return { rows:rows.length, cut, scrollX:scroll.scrollWidth - scroll.clientWidth, fonts, columns:getComputedStyle(rows[0]).gridTemplateColumns, inner:innerWidth };
+    return { rows:rows.length, cut, country, tagHidden, scrollX:scroll.scrollWidth - scroll.clientWidth, fonts, columns:getComputedStyle(rows[0]).gridTemplateColumns, inner:innerWidth };
   });
   assert.equal(table.rows, clients.length);
   assert.deepEqual(table.cut, [], `${label}: order numbers and dates in the customer list are not cut (columns ${table.columns}, window ${table.inner}, fonts: ${table.fonts})`);
+  assert.deepEqual(table.country, [], `${label}: country names in the customer list are not cut (columns ${table.columns})`);
+  assert.deepEqual(table.tagHidden, [], `${label}: the first tag next to the level is not pushed out (columns ${table.columns})`);
   assert.ok(table.scrollX <= 1, `${label}: the customer list does not scroll sideways (${table.scrollX})`);
 }
 

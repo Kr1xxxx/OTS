@@ -3899,6 +3899,12 @@ html[data-theme] .customer-row:last-child { border-bottom:0; }
      从客户名、地区、属性三栏各让一点出来，单号和日期不被省略号截掉（scripts/test-min-window-ui.js）。 */
   html[data-theme] .customer-row { grid-template-columns:minmax(0,1.4fr) minmax(0,.72fr) minmax(0,.88fr) minmax(0,1.25fr) minmax(0,1fr) minmax(0,.8fr); gap:10px; padding:10px 14px; }
 }
+/* 再窄（界面大小 100%、最小窗口，页面 1200 px）：上面的比例让地区只剩 77 px、属性 94 px，「尼日利亚」被截成「尼日利…」、
+   「回头客」被挤掉。客户名让 6 px、成交与收款让 5 px（金额本来就折行），订单动态留 127 px（单号最宽约 125 px），
+   地区补到 85 px、属性补到 104 px（四个字的国名、等级加一个三个字的标签要约 78 / 100 px，留点余量给别的机器上宽一点的字体）。 */
+@media (max-width:1250px) {
+  html[data-theme] .customer-row { grid-template-columns:minmax(0,1.34fr) minmax(0,.8fr) minmax(0,.98fr) minmax(0,1.2fr) minmax(0,.95fr) minmax(0,.8fr); }
+}
 html[data-theme] .customer-row.head { min-height:38px; padding-block:0; background:var(--surface-bg); color:var(--gray-500); font-size:12px; font-weight:400; border-radius:22px 22px 0 0; }
 html[data-theme] .customer-row.head > :nth-child(5) { text-align:right; }
 html[data-theme] .customer-row:not(.head):hover { background:var(--surface-soft); box-shadow:none; }

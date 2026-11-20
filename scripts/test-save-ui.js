@@ -10,6 +10,7 @@ const { chromium } = require('playwright');
     const html = fs.readFileSync(path.join(__dirname,'..','trade-order-system.html'),'utf8');
     let stored = {app:'trade-order-system',data:{orders:[],customers:{},demoCleared:true,demoCustomersCleared:true},revision:0};
     let failSave = false;
+    let receiptFailure = '';
     let writes = 0;
     const errors = [];
     page.on('pageerror',error=>errors.push(error.message));
@@ -21,10 +22,13 @@ const { chromium } = require('playwright');
       if (pathname === '/api/health') response = {ok:true,storageMode:'sqlite',counts:{orders:0},backups:{sqliteCount:0}};
       if (pathname === '/api/save') {
         writes++;
+        if (receiptFailure === 'truncated') {
+          return route.fulfill({contentType:'application/json',body:'{"ok":'});
+        }
         if (failSave) return route.fulfill({status:500,json:{ok:false,message:'TEST disk unavailable'}});
         const body = route.request().postDataJSON();
         stored = {...body.state,revision:stored.revision+1};
-        response = {ok:true,revision:stored.revision,backup:{ok:true,skipped:true}};
+        response = receiptFailure === 'missing-revision' ? {ok:true} : {ok:true,revision:stored.revision,backup:{ok:true,skipped:true}};
       }
       return route.fulfill({json:response});
     });
@@ -47,11 +51,12 @@ const { chromium } = require('playwright');
     await page.locator('#orderForm [name="client"]').fill('Save Test Buyer');
     await page.locator('#orderForm [name="amount"]').fill('100');
     await page.locator('#orderModal [name="sendFeishuNotification"]').uncheck();
-    failSave = true;
+    receiptFailure = 'truncated';
     await page.evaluate(()=>document.getElementById('orderForm').requestSubmit());
     await page.waitForFunction(()=>window.pendingSaveStatus().error);
     assert(await page.locator('#orderModal').evaluate(el=>el.classList.contains('open')));
-    failSave = false;
+    assert.equal(await page.evaluate(()=>window.pendingSaveStatus().revision),stored.revision,'a truncated receipt must not advance the revision');
+    receiptFailure = '';
     await page.evaluate(()=>document.getElementById('orderForm').requestSubmit());
     await page.waitForFunction(()=>!document.getElementById('orderModal').classList.contains('open'));
     assert.equal(stored.data.orders.length,1,'Retry duplicated order');
@@ -67,12 +72,30 @@ const { chromium } = require('playwright');
     await page.waitForFunction(()=>!document.getElementById('combinedCustomerOrderModal').classList.contains('open'));
     assert.equal(stored.data.orders.length,2,'Combined retry duplicated order');
     assert(stored.data.customers['Combined Test Buyer']);
-    await page.evaluate(()=>{macSetStorageMode('load-failed');openCustomerModal();});
+    // A direct replacement may have reached SQLite even though its revision was lost in transit.
+    receiptFailure = 'missing-revision';
+    const beforeReplacement = stored.revision;
+    const outcome = await page.evaluate(async () => {
+      const next = structuredClone(state);
+      next.customers['Imported Buyer'] = {client:'Imported Buyer'};
+      try { await macReplaceState(next); return 'accepted'; }
+      catch (error) { return error.kind; }
+    });
+    assert.equal(outcome,'unconfirmed');
+    const uncertain = await page.evaluate(()=>window.pendingSaveStatus());
+    assert.equal(uncertain.readOnly,true);
+    assert.equal(uncertain.revision,beforeReplacement);
+    assert.ok(stored.data.customers['Imported Buyer'],'the mock server committed the replacement');
+    await page.evaluate(()=>openCustomerModal());
     await page.locator('#customerForm [name="name"]').fill('Must Not Save');
     const before = writes;
     await page.locator('#customerFooterSaveBtn').click();
     assert(await page.locator('#customerModal').evaluate(el=>el.classList.contains('open')));
     assert.equal(writes,before,'Read-only submission issued a write');
+    receiptFailure = '';
+    await page.evaluate(()=>document.getElementById('macStorageReloadBtn').click());
+    await page.waitForFunction(()=>!pendingSaveStatus().readOnly && !!state.customers['Imported Buyer']);
+    assert.equal(await page.evaluate(()=>pendingSaveStatus().revision),stored.revision,'reload uses the actual committed revision');
     assert.equal(errors.length,0,errors.join('\n'));
     if (process.env.UI_SCREENSHOT) await page.screenshot({path:process.env.UI_SCREENSHOT});
     console.log('Save UI passed: customer/order/combined forms, failure keeps input, successful retry, read-only prevents submission.');

@@ -448,9 +448,12 @@ function writeStateToDatabase(rawPayload, { migration = false, baseRevision, sav
     if (!migration && requestSaveId && metadataValue('last_save_id', '') === requestSaveId) {
       let previous = {};
       try { previous = JSON.parse(metadataValue('last_save_result', '{}')) || {}; } catch (_) { previous = {}; }
-      database.exec('COMMIT');
-      storageRevision = currentRevision;
-      return { ...previous, revision: Number(previous.revision) || currentRevision, duplicate: true };
+      // 恢复备份或迁移可能保留旧保存回执；只有回执仍对应当前版本才能确认重试成功。
+      if (previous.revision === currentRevision) {
+        database.exec('COMMIT');
+        storageRevision = currentRevision;
+        return { ...previous, duplicate: true };
+      }
     }
     if (!migration) {
       const requestedRevision = Number(baseRevision);
@@ -1470,7 +1473,13 @@ function restoreFromBackup(name) {
   const staging = path.join(supportDir, `.restore-${process.pid}-${crypto.randomBytes(4).toString('hex')}.sqlite`);
   let displaced = '';
   try {
-    fs.copyFileSync(source, staging);
+    if (fs.existsSync(source + '-wal')) {
+      // 只读保护下留的原始快照分成主文件和 WAL。让 SQLite 把已提交的两部分一起写进待恢复文件。
+      const backup = openBackupReadOnly(source);
+      try { backup.prepare('VACUUM INTO ?').run(staging); } finally { backup.close(); }
+    } else {
+      fs.copyFileSync(source, staging);
+    }
     openBackupReadOnly(staging).close();
     // 1. 当前数据先备份一份「恢复前」快照；生成不了就不恢复。
     let safety = null;

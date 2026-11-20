@@ -9035,6 +9035,15 @@ function macNewSaveId() {
   try { if (crypto?.randomUUID) return crypto.randomUUID().replace(/-/g, ''); } catch (_) {}
   return `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
 }
+// 请求可能已写库，但回包在途中断掉；没有有效回执就不能把本地版本向前推。
+async function macReadSaveResult(res) {
+  const result = res ? (await res.json().catch(() => null)) : null;
+  if (res && (!res.ok || result?.ok === false)) return result || {};
+  if (result?.ok === true && Number.isSafeInteger(result.revision) && result.revision > 0) return result;
+  const error = new Error('没有收到有效的数据库保存回执');
+  error.kind = 'unconfirmed';
+  throw error;
+}
 // ---- 冲突后的三方合并 ----
 // 基准 = 本窗口上次存进数据库的那份（macPersistedStateJson），我的 = 本窗口现在的数据，那边的 = 数据库里最新的。
 // 只有一边改了的地方取改了的那边；两边改成一样的不算冲突；两边改成不一样的才是冲突（同一张单的同一个字段）。
@@ -9325,7 +9334,7 @@ async function runMacSaveQueue() {
           error.kind = networkError?.timeout ? 'timeout' : 'server-down';
           throw error;
         }
-        const result = await res.json().catch(() => ({}));
+        const result = await macReadSaveResult(res);
         if (res.status === 409) {
           const latestRevision = Number(result.revision ?? result.currentRevision);
           if (Number.isFinite(latestRevision)) macStorageRevision = latestRevision;
@@ -9344,13 +9353,12 @@ async function runMacSaveQueue() {
           error.kind = error.rejected ? 'rejected' : 'storage';
           throw error;
         }
-        const savedRevision = Number(result.revision);
         macSaveCompletedVersion = targetVersion;
         customerOps.forEach(op => {
           op.state = 'done';
           op.chats = (result.movedChats || []).find(item => item.id === op.id)?.chats || [];
         });
-        macSaveSettled({ json:snapshotJson, revision:Number.isFinite(savedRevision) ? savedRevision : macStorageRevision + 1 });
+        macSaveSettled({ json:snapshotJson, revision:result.revision });
         applyMacSaveBackupResult(result);
         // 失败后自动重试成功：表单里留着的失败记录清掉；没有表单在等时也说一句「已恢复」。
         if (!failedSaveSettleAfterSave() && hadError) toast('数据库已恢复保存，刚才的修改都存进去了');
@@ -9409,16 +9417,15 @@ async function macReplaceState(nextState) {
         method:'POST',
         headers:{ 'Content-Type':'application/json' },
         body:JSON.stringify({ state:dataFilePayload(JSON.parse(snapshotJson)), baseRevision:macStorageRevision, customerInference:false })
-      });
-      const result = await res.json().catch(() => ({}));
+      }).catch(() => null);
+      const result = await macReadSaveResult(res);
       if (res.status === 409) {
         const latestRevision = Number(result.revision ?? result.currentRevision);
         if (Number.isFinite(latestRevision)) macStorageRevision = latestRevision;
         throw macEnterConflict();
       }
       if (!res.ok || result.ok === false) throw new Error(result.message || `保存失败 HTTP ${res.status}`);
-      const savedRevision = Number(result.revision);
-      macSaveSettled({ json:snapshotJson, revision:Number.isFinite(savedRevision) ? savedRevision : macStorageRevision + 1 });
+      macSaveSettled({ json:snapshotJson, revision:result.revision });
       // 保存途中又改了别的：那些改动在 nextState 之上，留给保存队列接着存。
       if (JSON.stringify(state) === snapshotJson) {
         macQueuedStateJson = snapshotJson;
@@ -9433,8 +9440,12 @@ async function macReplaceState(nextState) {
       state = previous;
       macQueuedStateJson = macPersistedStateJson;
       macSaveCompletedVersion = macSaveRequestedVersion;
+      if (error.kind === 'unconfirmed') {
+        macSaveLastError = `${error.message}，请在设置里重新读取数据库以确认结果。`;
+        macSetStorageMode('load-failed');
+      }
       render();
-      setMacStorageStatus('sqlite', error.conflict ? 'error' : 'saved', error.conflict ? macConflictReadOnlyText : '');
+      setMacStorageStatus('sqlite', macIsReadOnly() ? 'error' : 'saved', error.conflict ? macConflictReadOnlyText : macSaveLastError);
       if (error.conflict && !promptMacStorageConflict()) toast(macConflictReadOnlyText, { tone:'error', desc:'可在设置里导出这次的修改，再重新加载最新数据' });
       throw error;
     }
@@ -9697,10 +9708,12 @@ async function macCheckRemoteRevision({ force = false } = {}) {
     const revision = Number((await res.json().catch(() => ({}))).revision);
     if (!Number.isFinite(revision) || revision === macStorageRevision) return false;
     if (!macSaveIdle() || otsUnsavedForms().length || JSON.stringify(state) !== macPersistedStateJson) return false;
+    const revisionBeforeRead = macStorageRevision;
     const dataRes = await apiFetch('/api/data', { cache:'no-store', timeoutMs:20000 });
     if (!dataRes.ok) return false;
     const loaded = macStateEnvelope(await dataRes.json());
-    // 读的这一会儿本窗口又改了：不覆盖，交给保存时合并。
+    // 等待读库时，本窗口可能已经完成一次保存，又回到空闲。旧响应不能替换新版本。
+    if (macStorageRevision !== revisionBeforeRead) return false;
     if (!macSaveIdle() || otsUnsavedForms().length || JSON.stringify(state) !== macPersistedStateJson) return false;
     state = loaded.state;
     macStorageRevision = loaded.revision;
@@ -26606,7 +26619,8 @@ async function applyDataReplacement(nextState, { reason = 'change', label = '操
     try {
       await macReplaceState(nextState);
     } catch (error) {
-      if (!error.conflict) toast(`${label}没有完成，数据保持${label}前的样子：${error.message || '数据库没有响应'}`, { tone:'error' });
+      if (error.kind === 'unconfirmed') toast(macSaveLastError, { tone:'error' });
+      else if (!error.conflict) toast(`${label}没有完成，数据保持${label}前的样子：${error.message || '数据库没有响应'}`, { tone:'error' });
       return false;
     }
   } else {
@@ -26629,7 +26643,8 @@ async function undoDataReplacement(previous, appliedJson, label) {
   if (!canSubmitStoredData()) return;
   if (isMacAppMode()) {
     try { await macReplaceState(previous); } catch (error) {
-      if (!error.conflict) toast(`撤销没有完成：${error.message || '数据库没有响应'}`, { tone:'error' });
+      if (error.kind === 'unconfirmed') toast(macSaveLastError, { tone:'error' });
+      else if (!error.conflict) toast(`撤销没有完成：${error.message || '数据库没有响应'}`, { tone:'error' });
       return;
     }
   } else {

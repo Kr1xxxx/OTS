@@ -37,7 +37,7 @@ clients.forEach((client, i) => {
   const browser = await launchBrowser();
   try {
     const { page, errors } = await openBoard(browser, { orders, customers }, { port:47964, width, height });
-    // 页面内嵌的 Inter 是 font-display:swap：Linux CI 上量得太早会量到更宽的后备字体（DejaVu，宽约 8%），先等字体加载完。
+    // 页面内嵌的 Inter 是 font-display:swap：先等字体加载完再量，免得量到后备字体。
     await page.evaluate(() => document.fonts.ready);
 
     // 工作台卡片：每张卡（也包括带「加急」的）右上角都看得到下单日期，金额不带省略号。

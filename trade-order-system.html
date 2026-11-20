@@ -5087,6 +5087,7 @@ html[data-theme] .track-card small { display:block; margin-top:2px; font-size:12
 html[data-theme] .track-card input { width:100%; height:36px; padding:0 12px; border:1px solid var(--surface-border-strong, var(--surface-border)); border-radius:12px; background:var(--surface-soft); font:inherit; font-size:14px; color:inherit; }
 html[data-theme] .track-card input:focus { outline:2px solid var(--accent); outline-offset:1px; }
 html[data-theme] .track-card-actions { display:flex; justify-content:flex-end; gap:8px; }
+html[data-theme] .track-card:not(.leaving) { transition:bottom var(--motion-med) var(--ease); }
 html[data-theme] .track-card.leaving { opacity:0; transform:translateY(12px) scale(.96); transition:transform .18s var(--ease-exit), opacity .18s var(--ease-exit); pointer-events:none; }
 /* 抽屉开着时 toast 抬到底部按钮上方（above-foot），运单号小卡跟着再往上，不盖住 toast 的「撤销」。 */
 html[data-theme] body:has(#toast.above-foot) .track-card { bottom:164px; }
@@ -33259,6 +33260,7 @@ function uiLayoutToasts() {
     const sameColumn = footRect.width > 0 && footRect.right > stackRect.left && footRect.left < stackRect.right;
     if (sameColumn && needed > cssBottom && footRect.top > 160) stack.style.bottom = `${Math.round(needed)}px`;
   }
+  uiPlaceTrackCard();
 }
 // 状态变形按钮：转圈 + 进行中 → 对勾 / 叉 + 结果；宽度跟着文字弹簧变化。
 // 保存中的按钮：显示「保存中…」、aria-busy、禁用（和订单弹窗、抽屉的保存按钮一样），结束后恢复原样和焦点。
@@ -34633,6 +34635,21 @@ function uiTrackingQuickCardClose(id, { silent = false } = {}) {
     if (order && order.stage === 'shipment' && !cleanTracking(order.trackingNumber)) { uiTrackingQuickCard(next); break; }
   }
 }
+// 小卡在 CSS 里固定离底 92px，只够让开一条一行的提示。提示有两三行（带说明、带「撤销」）或叠了几条时，按提示收起时实际占到的
+// 最高处把小卡往上顶 12px，两者不再重叠；提示走了小卡回到原位。提示条换位置（uiLayoutToasts）、小卡出现、窗口变大小时重算。
+function uiPlaceTrackCard() {
+  const card = document.querySelector('.track-card:not(.leaving)');
+  if (!card) return;
+  card.style.bottom = '';
+  const stack = document.getElementById('toast');
+  const items = stack ? [...stack.querySelectorAll('.toast-item:not(.leaving):not(.is-hidden)')].reverse() : [];
+  if (!items.length) return;
+  // 收起时第 i 条（0 是最新、在最前）往上挪 10px·i、按底边缩小 5%·i；offsetHeight 不受 transform 影响。
+  const extent = Math.max(...items.map((el, i) => i * 10 + el.offsetHeight * (1 - i * 0.05)));
+  const needed = Math.ceil(window.innerHeight - stack.getBoundingClientRect().bottom + extent + 12);
+  if (needed > (parseFloat(getComputedStyle(card).bottom) || 0)) card.style.bottom = `${needed}px`;
+}
+window.addEventListener('resize', uiPlaceTrackCard);
 function uiTrackingQuickCard(id) {
   const order = state.orders.find(o => o.id === id);
   if (!order || cleanTracking(order.trackingNumber)) return;
@@ -34654,6 +34671,7 @@ function uiTrackingQuickCard(id) {
     <input type="text" autocomplete="off" placeholder="运单号，例如 91 8833 5262" aria-label="运单号">
     <div class="track-card-actions"><button class="btn btn-small" type="button" data-track-skip>先跳过</button><button class="btn btn-primary btn-small" type="button" data-track-save>保存运单号</button></div>`;
   document.body.appendChild(card);
+  uiPlaceTrackCard();
   const input = card.querySelector('input');
   const save = () => {
     const value = input.value.trim();

@@ -54,6 +54,10 @@ final class AppUpdater {
     private let policy = UpdatePolicy(owner: "Kr1xxxx", repository: "OTS")
     private let prepareToQuit: @MainActor (@escaping @MainActor (String?) -> Void) -> Void
     private let quit: @MainActor () -> Void
+    private let quitAbandoned: @MainActor () -> Void
+    /// The installer script of the install in progress. It only exits while this app still runs when
+    /// the app did not quit in time and it gave up; then the app has to become usable again.
+    private var installer: Process?
     private let report: @MainActor (UpdateStatus) -> Void
     private let confirmInstall: @MainActor (String, String) async -> Bool
     private let unsavedFormsBlocker: @MainActor () async -> String?
@@ -75,11 +79,13 @@ final class AppUpdater {
     /// it is safe to quit, otherwise the reason the update has to stop.
     init(prepareToQuit: @escaping @MainActor (@escaping @MainActor (String?) -> Void) -> Void,
          quit: @escaping @MainActor () -> Void,
+         quitAbandoned: @escaping @MainActor () -> Void,
          report: @escaping @MainActor (UpdateStatus) -> Void,
          confirmInstall: @escaping @MainActor (String, String) async -> Bool,
          unsavedFormsBlocker: @escaping @MainActor () async -> String?) {
         self.prepareToQuit = prepareToQuit
         self.quit = quit
+        self.quitAbandoned = quitAbandoned
         self.report = report
         self.confirmInstall = confirmInstall
         self.unsavedFormsBlocker = unsavedFormsBlocker
@@ -350,8 +356,12 @@ final class AppUpdater {
                 do {
                     // The script keeps the old app until the new one reports a loaded page, then
                     // deletes workDir; otherwise it puts the old app back and reopens it.
-                    try AppUpdater.launchInstaller(newApp: newApp, target: bundle, staging: workDir,
-                                                   newVersion: label, previousVersion: previous)
+                    let installer = try AppUpdater.launchInstaller(newApp: newApp, target: bundle, staging: workDir,
+                                                                   newVersion: label, previousVersion: previous)
+                    self.installer = installer
+                    installer.terminationHandler = { [weak self] _ in
+                        Task { @MainActor [weak self] in self?.installerGaveUp(version: label) }
+                    }
                     UserDefaults.standard.removeObject(forKey: Self.stagingDefaultsKey)
                     self.report(.restarting)
                     self.quit()
@@ -362,6 +372,15 @@ final class AppUpdater {
         } catch {
             fail(error.localizedDescription, cleaning: staging)
         }
+    }
+
+    /// The installer exited while this app is still running: it waited for the app to quit, gave up and
+    /// removed the download (scripts/test-mac-app-v3136.js, "app did not quit"). Without this the button
+    /// stayed on 重启中 and the window under a sheet nobody could close.
+    private func installerGaveUp(version: String) {
+        installer = nil
+        quitAbandoned()
+        fail("旧版本没能按时退出，V\(version) 这次没有装上。数据都已保存，可以继续使用；请 ⌘Q 退出软件、重新打开后再点「更新」。详细记录在 ~/Library/Logs/TradeOrderSystem-update.log。", cleaning: nil)
     }
 
     private func download(_ asset: UpdateAsset, to archive: URL, label: String) async throws {
@@ -492,7 +511,7 @@ final class AppUpdater {
 
     /// Paths reach the script as arguments, never interpolated into its text.
     private static func launchInstaller(newApp: URL, target: URL, staging: URL,
-                                        newVersion: String, previousVersion: String) throws {
+                                        newVersion: String, previousVersion: String) throws -> Process {
         let script = staging.appendingPathComponent("install-update.sh")
         try installerScript.write(to: script, atomically: true, encoding: .utf8)
         let support = supportDirectory
@@ -508,6 +527,7 @@ final class AppUpdater {
         process.standardOutput = output
         process.standardError = output
         try process.run()
+        return process
     }
 
     /// Swap, relaunch, then wait for the new version's page to report that it booted (pageDidBoot

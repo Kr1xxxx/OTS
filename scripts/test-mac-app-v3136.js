@@ -127,7 +127,10 @@ function checkNativeSources() {
     'startup error offers retry': /addButton\(withTitle: "重试"\)/,
     'backup before update': /otsBackupBeforeUpdate/,
     'editing is blocked before the last flush': /window\.beginSheet\(panel\)[\s\S]{0,150}flushPendingSave/,
-    'editing is released only if the handoff did not quit': /completion\(blocker\)[\s\S]{0,350}if !allowTermination, let sheet = updatePreparationSheet[\s\S]{0,100}endSheet\(sheet\)/,
+    'editing is released only if the handoff did not quit': /completion\(blocker\)[\s\S]{0,350}if !allowTermination \{ endUpdatePreparationSheet\(\) \}/,
+    // V3.203/V3.204: terminate with the 准备更新 sheet still attached did not quit, and the installer gave up.
+    'the sheet comes off before the app quits for the update': /quit: \{ \[unowned self\] in\s*\n\s*self\.allowTermination = true[\s\S]{0,400}self\.endUpdatePreparationSheet\(\)[\s\S]{0,600}NSApp\.terminate\(nil\)/,
+    'an abandoned handoff makes the app usable again': /quitAbandoned: \{ \[unowned self\] in[\s\S]{0,200}self\.allowTermination = false\s*\n\s*self\.endUpdatePreparationSheet\(\)/,
     'install is confirmed first': /confirmText: "现在安装并重启"/,
     'periodic update checks': /scheduleAutomaticUpdateCheck\(\)/,
     'page boot message is listened for': /userContentController\.add\(self, name: "appBooted"\)/,
@@ -147,7 +150,10 @@ function checkNativeSources() {
     'small update package first': /if let lite \{ assembled = await prepareFromLite/,
     'runtime digest checked before copying': /sha256\(of: nodeRuntime\) == wanted/,
     'stalled download resumes': /NSURLSessionDownloadTaskResumeData/,
-    'download speed reported': /payload\["speed"\]/
+    'download speed reported': /payload\["speed"\]/,
+    // The installer only exits while this app runs when it gave up waiting for it: say so, 更新 again.
+    'installer that gives up is noticed': /installer\.terminationHandler = \{[\s\S]{0,150}installerGaveUp\(version: label\)/,
+    'giving up resets the button': /private func installerGaveUp\(version: String\) \{[\s\S]{0,120}quitAbandoned\(\)\s*\n\s*fail\("旧版本没能按时退出/
   };
   for (const [label, pattern] of Object.entries(expectUpdater)) assert.match(updater, pattern, `AppUpdater.swift: ${label}`);
   // The update is confirmed by the page's boot report, never by a page that merely finished loading

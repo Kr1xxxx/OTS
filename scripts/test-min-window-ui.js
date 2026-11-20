@@ -33,10 +33,28 @@ clients.forEach((client, i) => {
   }
 });
 
+// 客户列表：「订单动态」一栏（几单 · 最近单号 / 阶段 · 日期）完整显示，表格不用横向滚动。
+async function checkCustomerList(page, label) {
+  await page.evaluate(() => setPage('customers'));
+  await page.waitForSelector('.customer-row:not(.head)');
+  const table = await page.evaluate(() => {
+    const rows = [...document.querySelectorAll('.customer-row:not(.head)')];
+    // 文字的自然宽度（不取整）至少比格子窄 1 px。不同机器上「单」字的字体不同：本机 121.1 px，Linux CI 123.7 px（以前的比例在 1300 px 页面里格子只有 121 px）。
+    const natural = el => { const copy = el.cloneNode(true); copy.style.cssText = 'position:absolute;width:max-content;max-width:none'; el.parentNode.appendChild(copy); const w = copy.getBoundingClientRect().width; copy.remove(); return w; };
+    const cut = rows.flatMap(row => [...row.children[3].querySelectorAll('*')].filter(el => natural(el) + 1 > el.getBoundingClientRect().width).map(el => `${el.textContent.trim()} (${natural(el).toFixed(1)} / ${el.getBoundingClientRect().width.toFixed(1)} px)`));
+    const scroll = document.querySelector('.customer-table');
+    const fonts = [...document.fonts].map(font => `${font.family} ${font.status}`).join(', ');
+    return { rows:rows.length, cut, scrollX:scroll.scrollWidth - scroll.clientWidth, fonts, columns:getComputedStyle(rows[0]).gridTemplateColumns, inner:innerWidth };
+  });
+  assert.equal(table.rows, clients.length);
+  assert.deepEqual(table.cut, [], `${label}: order numbers and dates in the customer list are not cut (columns ${table.columns}, window ${table.inner}, fonts: ${table.fonts})`);
+  assert.ok(table.scrollX <= 1, `${label}: the customer list does not scroll sideways (${table.scrollX})`);
+}
+
 (async () => {
   const browser = await launchBrowser();
   try {
-    const { page, errors } = await openBoard(browser, { orders, customers }, { port:47964, width, height });
+    const { page, context, errors } = await openBoard(browser, { orders, customers }, { port:47964, width, height });
     // 页面内嵌的 Inter 是 font-display:swap：先等字体加载完再量，免得量到后备字体。
     await page.evaluate(() => document.fonts.ready);
 
@@ -52,24 +70,19 @@ clients.forEach((client, i) => {
     assert.deepEqual(cards.filter(card => !card.date).map(card => card.id), [], `${width}×${height}: every board card shows its order date`);
     assert.deepEqual(cards.filter(card => card.amountCut).map(card => card.id), [], `${width}×${height}: no board card amount is cut`);
 
-    // 客户列表：「订单动态」一栏（几单 · 最近单号 / 阶段 · 日期）完整显示，表格不用横向滚动。
-    await page.evaluate(() => setPage('customers'));
-    await page.waitForSelector('.customer-row:not(.head)');
-    const table = await page.evaluate(() => {
-      const rows = [...document.querySelectorAll('.customer-row:not(.head)')];
-      // 文字的自然宽度（不取整）至少比格子窄 1 px。不同机器上「单」字的字体不同：本机 121.1 px，Linux CI 123.7 px，格子在 1300 px 页面里只有 121 px。
-      const natural = el => { const copy = el.cloneNode(true); copy.style.cssText = 'position:absolute;width:max-content;max-width:none'; el.parentNode.appendChild(copy); const w = copy.getBoundingClientRect().width; copy.remove(); return w; };
-      const cut = rows.flatMap(row => [...row.children[3].querySelectorAll('*')].filter(el => natural(el) + 1 > el.getBoundingClientRect().width).map(el => `${el.textContent.trim()} (${natural(el).toFixed(1)} / ${el.getBoundingClientRect().width.toFixed(1)} px)`));
-      const scroll = document.querySelector('.customer-table');
-      const fonts = [...document.fonts].map(font => `${font.family} ${font.status}`).join(', ');
-      return { rows:rows.length, cut, scrollX:scroll.scrollWidth - scroll.clientWidth, fonts, columns:getComputedStyle(rows[0]).gridTemplateColumns, inner:innerWidth };
-    });
-    assert.equal(table.rows, clients.length);
-    assert.deepEqual(table.cut, [], `${width}×${height}: order numbers and dates in the customer list are not cut (columns ${table.columns}, window ${table.inner}, fonts: ${table.fonts})`);
-    assert.ok(table.scrollX <= 1, `${width}×${height}: the customer list does not scroll sideways (${table.scrollX})`);
+    await checkCustomerList(page, `${width}×${height}`);
 
     assert.deepEqual(errors, []);
-    console.log(`Min window UI passed: at ${minWidth}×${minHeight} and ${Math.round(zoom * 100)}% (${width}×${height} in the page) board dates and amounts and the customer list's order numbers and dates are whole.`);
+    await context.close();
+
+    // 界面大小选 100% 时页面和窗口一样宽（最小窗口的宽度）：客户列表的单号和日期也不被截。
+    // 工作台卡片这时放不下「加急」和日期两样，日期让位（.oc-r1 折行藏起），不在这里核对。
+    const full = await openBoard(browser, { orders, customers }, { port:47965, width:minWidth, height:minHeight });
+    await full.page.evaluate(() => document.fonts.ready);
+    await checkCustomerList(full.page, `${minWidth}×${minHeight} at 100%`);
+    assert.deepEqual(full.errors, []);
+    await full.context.close();
+    console.log(`Min window UI passed: at ${minWidth}×${minHeight} and ${Math.round(zoom * 100)}% (${width}×${height} in the page) board dates and amounts and the customer list's order numbers and dates are whole; at 100% the customer list too.`);
   } finally {
     await browser.close();
   }

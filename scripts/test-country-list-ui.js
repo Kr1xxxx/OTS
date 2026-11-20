@@ -5,7 +5,8 @@
 //    产品名里的产地（越南发）、人名（Jordan）、我们自己这边的 China 不当成客户的国家；
 // 3. 下拉一打开只列常用的（订单里用得多的在前，不够的用默认国家和主要市场补），底下一行灰字说其余的打字查；
 // 4. 框里是选好的国家时它是一个整体：点进去整段选中，打字、删除、输入法都是换一个，不会把字插进国家名中间；
-// 5. 客户档案里以前手填的国家（津巴布韦、UAE）读进来也归到列表写法、带国旗，订单弹窗里手打的英文名保存时也一样。
+// 5. 客户档案里以前手填的国家（津巴布韦、UAE）读进来也归到列表写法、带国旗，订单弹窗里手打的英文名保存时也一样；
+//    CA、GA 这类和美国州 / 加拿大省缩写撞车的国家代码、Georgia（州还是格鲁吉亚）猜不准，照原文留着。
 const assert = require('node:assert/strict');
 const { launchBrowser, openBoard, base, day } = require('./helpers/board-page');
 const { freePortSync } = require('./helpers/free-port');
@@ -164,16 +165,32 @@ const orders = [
         'Harare Beauty':{ client:'Harare Beauty', country:'津巴布韦' },
         'Dubai Lashes':{ client:'Dubai Lashes', country:' UAE ' },
         'Atlantis Wigs':{ client:'Atlantis Wigs', country:'Atlantis' },
+        'Golden State Hair':{ client:'Golden State Hair', country:'CA' },
+        'Peach Lashes':{ client:'Peach Lashes', country:'Georgia' },
+        'Keystone Wigs':{ client:'Keystone Wigs', country:'p.a.' },
         'Blank Co':{ client:'Blank Co', country:'' }
       }
     }, { port:freePortSync() });
     const profiles = await legacy.page.evaluate(() => Object.fromEntries(Object.entries(state.customers).map(([name, profile]) => [name, profile.country])));
     assert.deepEqual(profiles, {
-      'Harare Beauty':ZW, 'Dubai Lashes':'🇦🇪 阿联酋 United Arab Emirates', 'Atlantis Wigs':'Atlantis', 'Blank Co':''
-    }, 'a hand-typed country in a customer profile is read as the list entry; one outside the list stays as written, a blank one stays blank');
+      'Harare Beauty':ZW, 'Dubai Lashes':'🇦🇪 阿联酋 United Arab Emirates', 'Atlantis Wigs':'Atlantis', 'Blank Co':'',
+      'Golden State Hair':'CA', 'Peach Lashes':'Georgia', 'Keystone Wigs':'p.a.'
+    }, 'a hand-typed country in a customer profile is read as the list entry; one outside the list stays as written, a blank one stays blank; CA / Georgia (a US state or a country) stay as written');
     await legacy.page.evaluate(() => setPage('customers'));
     const row = legacy.page.locator('.customer-row[data-view-customer="Harare Beauty"] .customer-cell-stack').first();
     assert.equal((await row.locator('strong').innerText()).trim(), '🇿🇼 津巴布韦', 'the customer list shows the flag');
+
+    // 客户表单里手打 CA、离开国家框：不替人换成加拿大，提示可能是州；打 Canada 照旧换成列表写法。
+    const typed = await legacy.page.evaluate(() => {
+      const input = document.querySelector('#customerForm [name="country"]');
+      const check = text => { input.value = text; checkCustomerCountryInput(input); return [input.value, input.closest('.field')?.querySelector('.customer-field-hint')?.textContent || '']; };
+      return { ca:check('CA'), georgia:check('georgia'), canada:check('Canada'), list:storedCountry('🇬🇪 格鲁吉亚 Georgia') };
+    });
+    assert.equal(typed.ca[0], 'CA', 'typed CA is not turned into Canada');
+    assert.match(typed.ca[1], /州|省/, 'the hint says CA may be a state or province');
+    assert.equal(typed.georgia[0], 'georgia', 'typed Georgia is not turned into the country Georgia');
+    assert.equal(typed.canada[0], '🇨🇦 加拿大 Canada', 'typed Canada still becomes the list entry');
+    assert.equal(typed.list, '🇬🇪 格鲁吉亚 Georgia', 'Georgia picked from the list stays the country');
 
     // 订单弹窗里手打的英文名（没有离开框的整理）保存时也存成列表写法；随这次保存，档案也按列表写法写回数据库。
     await legacy.page.evaluate(() => openOrder('h1'));
@@ -187,7 +204,7 @@ const orders = [
     assert.equal(saved.customers['Atlantis Wigs'].country, 'Atlantis', 'a country outside the list is kept as written');
     assert.deepEqual(legacy.errors, []);
     assert.deepEqual(legacy.dialogs, []);
-    console.log('Country list passed: full list, old entries mapped, names matched as a whole, common countries first, a chosen country edits as one piece, hand-typed countries in profiles join the list.');
+    console.log('Country list passed: full list, old entries mapped, names matched as a whole, common countries first, a chosen country edits as one piece, hand-typed countries in profiles join the list, CA / Georgia stay as typed.');
   } finally {
     await browser.close();
   }

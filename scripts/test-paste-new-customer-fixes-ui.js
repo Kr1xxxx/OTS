@@ -33,6 +33,8 @@ const { chromium } = require('playwright');
     assert.match(await address(head + '1200 Example Ave, Austin, TX 78701'), /^1200 Example Ave/, 'a street line is still an address');
     assert.match(await address(head + '10 Downing Street, London SW1A 2AA'), /^10 Downing Street/, 'a street named after a number stays an address');
     assert.match(await address(head + '12 Lace Road, Leeds LS1 4AP'), /^12 Lace Road/, 'a product word inside a real street name stays an address');
+    assert.match(await address(head + '12 Hair Gardens, Leeds LS1 4AP'), /^12 Hair Gardens/, 'a product word in a street with a UK street type (Gardens) and a postcode stays an address');
+    assert.match(await address(head + '20 Hair Lane Houston, TX 77002'), /^20 Hair Lane/, 'a product word in a street with a US city, state and ZIP stays an address');
 
     // 2. Payment method of the new profile follows the order.
     const openCombined = async text => {

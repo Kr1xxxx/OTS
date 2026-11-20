@@ -138,7 +138,7 @@ async function pageTests() {
 
     // Dashboard label counts every order in the total, drafts stay out of the revenue target.
     await page.evaluate(() => { setPage('dashboard'); render(); });
-    assert.match(await page.locator('#statAmountSub').textContent(), /\d+ 单 · 草稿和报价不计/);
+    assert.match(await page.locator('#statAmountSub').getAttribute('title'), /\d+ 单 · 草稿和报价不计/);
 
     // UI shell: toast undo fires once even on a double-click.
     await page.evaluate(() => { window.__undoCount = 0; uiToast('测试', { undo: () => { window.__undoCount += 1; } }); });

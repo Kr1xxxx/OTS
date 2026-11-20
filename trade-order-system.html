@@ -3937,7 +3937,7 @@ html[data-theme] .customer-row .paid-amount { color:var(--s-green); font-size:12
 }
 html[data-theme] :is(.customer-summary-item strong, .customer-summary-item small) { overflow:visible; text-overflow:clip; white-space:normal; }
 /* 工作台：按原型重排的数字卡、看板卡片、列头、待办与最近订单 */
-html[data-theme] .stats > .stat { position:relative; overflow:hidden; display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start; min-height:0; text-align:left; gap:4px; padding:18px 20px; }
+html[data-theme] .stats > .stat { position:relative; overflow:hidden; display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start; min-height:0; text-align:left; gap:4px; padding:14px clamp(20px, 13%, 32px); }
 html[data-theme] .stats > .stat > * { text-align:left; justify-self:start; align-self:stretch; margin-left:0; }
 html[data-theme] .stats > .stat > .stat-value { align-self:flex-start; }
 html[data-theme] .stat .stat-head { display:block; }
@@ -4005,10 +4005,10 @@ html[data-theme] .board-settings-btn .ui-icon { width:16px; height:16px; }
 
 /* 列 */
 html[data-theme] .board-column { border-radius:22px; padding:10px; gap:8px; }
-/* 看板撑满第一屏：列顶离视口顶 291，加面板下边 25、离窗口底边 20，共 336。默认窗口（视口高 1082）列高 746，
-   最小窗口（视口高 996）660，不低于 560、封顶 920。820 px 以下有自己的高度，不管。 */
+/* 看板撑满第一屏：列顶离视口顶 283，加面板下边 25、离窗口底边 20，共 328。默认窗口（视口高 1082）列高 754，
+   最小窗口（视口高 996）668，不低于 560、封顶 920。820 px 以下有自己的高度，不管。 */
 @media (min-width: 821px) {
-  html[data-theme] :is(.board-column, .trash-column) { height:clamp(560px, calc(100vh - 336px), 920px); }
+  html[data-theme] :is(.board-column, .trash-column) { height:clamp(560px, calc(100vh - 328px), 920px); }
 }
 html[data-theme] .board-column-head { flex-wrap:wrap; align-items:center; }
 html[data-theme] .board-column-title { font-size:13px; }
@@ -20117,7 +20117,8 @@ function renderStats() {
     amountValue.textContent = summaryMoney(usdTotal(revenueOrders), 'USD');
     // 汇率还没取到（或取不到）时，非美元订单折不成美元：写明有几单没算进去，别让人以为订单额就这么多。
     const unconverted = revenueOrders.filter(o => !ecbUsdRateForOrder(o)).length;
-    amountSub.innerHTML = statSubHtml([`${revenueOrders.length} 单`, '草稿和报价不计', unconverted ? `${unconverted} 单缺汇率未计入` : '']);
+    // 「草稿和报价不计」只放在悬停提示里（uiDashboardKpis 写 title）：小字一行放得下，整排卡片不被它撑成两行高。
+    amountSub.innerHTML = statSubHtml([`${revenueOrders.length} 单`, unconverted ? `${unconverted} 单缺汇率未计入` : '']);
   }
   amountValue.classList.toggle('is-paid-mode', paidMode);
   amountValue.setAttribute('aria-pressed', paidMode ? 'true' : 'false');
@@ -34782,7 +34783,7 @@ function uiDashboardKpis() {
       amountSub.insertAdjacentHTML('afterbegin', `<span class="stat-sub-part"><span class="${pct >= 0 ? 'up' : 'down'}" title="${isCurrent ? `本月 1–${todayDay} 日对比上月 1–${todayDay} 日` : '整月对比上月整月'}">比 ${escapeAttr(dashboardMonthName(prev))}${isCurrent ? '同期' : ''} ${pct >= 0 ? '+' : ''}${pct}%</span> ·</span> `);
     }
   }
-  if (amountSub) amountSub.title = statSubTitle(amountSub);
+  if (amountSub) amountSub.title = [statSubTitle(amountSub), amountStatMode !== 'paidRmb' ? '草稿和报价不计' : ''].filter(Boolean).join(' · ');
   const dueOrders = state.orders.filter(o => !o.isDraft && orderDueValue(o) > 0);
   const paymentSub = document.getElementById('statPaymentSub');
   if (paymentSub) {

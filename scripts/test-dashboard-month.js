@@ -82,7 +82,8 @@ console.log('Dashboard month test passed: current-month default and manual selec
     });
     assert.equal(await page.locator('#statAmount').innerText(),'$12,346','Homepage USD total uses the prototype whole-dollar format');
     assert.equal(await page.locator('#statPayment').innerText(),'$12,246','Homepage historical receivables must use the same display precision');
-    assert.equal(await page.locator('#statAmountSub').innerText(),'13 单 · 草稿和报价不计','The homepage caption: count + 草稿和报价不计 (the month is in the label)');
+    assert.equal(await page.locator('#statAmountSub').innerText(),'13 单','The homepage caption: the count (the month is in the label)');
+    assert.equal(await page.locator('#statAmountSub').getAttribute('title'),'13 单 · 草稿和报价不计','草稿和报价不计 is in the tooltip, so the caption stays one line');
     assert.equal(rawAmounts.before,rawAmounts.after,'Display rounding must not modify underlying order amounts');
     assert.equal(rawAmounts.ordinaryMoney,'$123.456 USD','Amounts outside the homepage retain their existing display precision');
     await page.evaluate(()=>{amountStatMode='paidRmb';renderStats();});

@@ -99,6 +99,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         prepareToQuit: { [unowned self] completion in self.prepareForUpdateRelaunch(completion) },
         quit: { [unowned self] in
             self.allowTermination = true
+            // The 准备更新 sheet comes off first: with it still attached, terminate did not quit the app
+            // (V3.203 and V3.204), and the installer gave up after waiting 60 s for this process to exit.
+            // Data is saved and backed up by now, and nothing else runs on the main thread before exit.
+            self.endUpdatePreparationSheet()
             // ⌘Q pressed while the update was saving: answer that request instead of starting another.
             if self.terminationReplyPending {
                 self.terminationReplyPending = false
@@ -106,6 +110,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             } else {
                 NSApp.terminate(nil)
             }
+        },
+        quitAbandoned: { [unowned self] in
+            // The installer stopped waiting while this process still runs: it is an ordinary running app again.
+            self.allowTermination = false
+            self.endUpdatePreparationSheet()
+            self.window?.makeKeyAndOrderFront(nil)
         },
         report: { [unowned self] status in self.showUpdateStatus(status) },
         confirmInstall: { [unowned self] version, notes in await self.confirmUpdate(version: version, notes: notes) },
@@ -652,12 +662,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
 
     private func finishUpdatePreparation(blocker: String?, completion: @escaping @MainActor (String?) -> Void) {
         completion(blocker)
-        // A successful handoff quits with the sheet still attached. On cancellation or installer failure
-        // the completion returns without allowing termination, so restore access to the page.
-        if !allowTermination, let sheet = updatePreparationSheet {
-            window?.endSheet(sheet)
-        }
-        updatePreparationSheet = nil
+        // A successful handoff has already taken the sheet off (see `quit`). On cancellation or installer
+        // failure the completion returns without allowing termination, so restore access to the page.
+        if !allowTermination { endUpdatePreparationSheet() }
         terminationInProgress = false
         updatePreparing = false
         // The update did not quit the app (cancelled, or the installer failed to start): a ⌘Q pressed
@@ -666,6 +673,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             terminationReplyPending = false
             NSApp.reply(toApplicationShouldTerminate: false)
         }
+    }
+
+    private func endUpdatePreparationSheet() {
+        if let sheet = updatePreparationSheet { window?.endSheet(sheet) }
+        updatePreparationSheet = nil
     }
 
     @MainActor

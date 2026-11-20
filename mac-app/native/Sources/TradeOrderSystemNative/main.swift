@@ -242,7 +242,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         window.backgroundColor = .clear
         window.isMovableByWindowBackground = true
         // 最窄 1200：默认 90% 缩放下页面至少 1333 px 宽。1300 px 时客户列表「3 单 · 单号」那一栏正好卡在边上，
-        // 字体稍宽一点（Linux CI）就被截，所以再留出约 5 px；
+        // 字体稍宽一点（Linux CI 上这串字 123.7 px）就被截，1333 px 时这格 126 px；
         // 工作台卡片的日期、客户列表的单号和日期不会被截掉（scripts/test-min-window-ui.js 按这里的数核对）。
         // 至少要大于 1100：页面里工作台网格、「布局」按钮等的分界是 min-width:1101px，界面大小 100% 时窗口
         // 正好 1100 px 宽，存好的布局就不生效、「布局」按钮也没了。

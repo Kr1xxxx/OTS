@@ -22,6 +22,7 @@ const order = (id, num) => ({ id, num, client:`Paste Buyer ${id}`, amount:100, p
     const html = fs.readFileSync(path.join(__dirname, '..', 'trade-order-system.html'), 'utf8');
     const errors = [];
     let uploads = 0;
+    let revision = 0;
     page.on('pageerror', error => errors.push(error.message));
     await page.route('**/*', async route => {
       if (!/^https?:/.test(route.request().url())) return route.continue();
@@ -33,6 +34,8 @@ const order = (id, num) => ({ id, num, client:`Paste Buyer ${id}`, amount:100, p
         uploads += 1;
         return route.fulfill({ json:{ ok:true, name:`PASTE-A-${uploads}`, fileUrl:`/attachments/PASTE-A/PASTE-A-${uploads}.webp`, thumbUrl:`/attachments/PASTE-A/PASTE-A-${uploads}-thumb.webp`, size:2048, optimized:false, optimizer:'本机压缩', compressed:true } });
       }
+      // 抽屉附件页加图直接保存：回执要带新的版本号，像真的服务端那样（没有版本号的回执页面不认）。
+      if (pathname === '/api/save') return route.fulfill({ json:{ ok:true, revision:++revision, backup:{ ok:true, skipped:true } } });
       if (pathname.startsWith('/attachments/')) return route.fulfill({ contentType:'image/png', body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j3ioAAAAASUVORK5CYII=', 'base64') });
       return route.fulfill({ json:{ ok:true } });
     });

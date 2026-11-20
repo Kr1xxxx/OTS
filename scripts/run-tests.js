@@ -86,14 +86,14 @@ function run(test) {
     let output = '';
     child.stdout.on('data', chunk => { output += chunk; });
     child.stderr.on('data', chunk => { output += chunk; });
-    const finish = (code, error) => {
-      const result = { test, status: code === 0 ? 'pass' : 'fail', ms: Date.now() - started, output: error ? String(error.message) : output };
+    let spawnError;
+    child.once('error', error => { spawnError = error; });
+    child.once('close', code => {
+      const result = { test, status: !spawnError && code === 0 ? 'pass' : 'fail', ms: Date.now() - started, output: spawnError ? spawnError.message : output };
       results.push(result);
       console.log(`${result.status === 'pass' ? 'PASS' : 'FAIL'}  ${test.name}  (${(result.ms / 1000).toFixed(1)}s)`);
       resolve();
-    };
-    child.once('error', error => finish(1, error));
-    child.once('close', code => finish(code));
+    });
   });
 }
 

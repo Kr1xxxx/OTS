@@ -53,6 +53,13 @@ const { chromium } = require('playwright');
     assert.doesNotMatch(upsMessage,/自动完成|5 天/,`UPS 查询说明不再提自动完成：${upsMessage}`);
     assert.match(upsMessage,/手动/);
 
+    const forecast = 'Shipment is scheduled to be delivered tomorrow';
+    const forecasts = await page.evaluate(status => ['9876543210','1234567890'].map(number =>
+      applyTrackingResultToOrder(number,{ok:true,status},'DHL').completed.length
+    ),forecast);
+    assert.deepEqual(forecasts,[0,0],'预计送达不能完成单批或多批订单');
+    assert.deepEqual(await stages(), allShipped);
+
     // DHL 查到已签收：只有 DHL 批次的单照旧自动完成；混合单那批 UPS 没人确认，不自动完成。
     const outcome = await page.evaluate(()=>{
       const dhl = applyTrackingResultToOrder('9876543210',{ok:true,status:'已签收',updatedAt:'2026-09-20 10:00'},'DHL');

@@ -232,6 +232,8 @@ const addMonths = (text, months) => {
     await page.keyboard.type('这边写的备注');
     const fresh = await record('Linode');
     await api('/api/subscriptions/save', { item:{ ...fresh, note:'另一个窗口的备注' } });
+    await page.evaluate(() => reloadSubscriptionsQuietly({ force:true }));
+    assert.match(await row('Linode').locator('.subs-meta').innerText(), /另一个窗口的备注/);
     await click('#subscriptionSaveBtn');
     const conflict = await confirmOpen();
     assert.equal(conflict.title, '这一项在别处改过');
@@ -247,6 +249,25 @@ const addMonths = (text, months) => {
     await h.waitToast(page, '已换成另一个窗口保存的版本');
     assert.equal((await record('Linode')).note, '另一个窗口的备注', 'the other window’s save is not overwritten');
     assert.match(await row('Linode').locator('.subs-meta').innerText(), /另一个窗口的备注/);
+
+    // A free recurring price and a different one-off price both survive a payment-method change.
+    await api('/api/subscriptions/save', { item:{ ...fresh, id:'', name:'免费期间', amount:10, startDate:start, priceChanges:[
+      { from:start, amount:0, once:false }, { from:nextCharge, amount:4, once:true }
+    ] } });
+    await page.evaluate(() => reloadSubscriptionsQuietly({ force:true }));
+    await click('', { locator:row('免费期间').locator('[data-sub-edit]') });
+    assert.equal(await page.locator('#subscriptionAmount').inputValue(), '0');
+    await click('#subscriptionEditForm [data-sub-opts="payment"] [data-opt-value="PayPal"]');
+    await click('#subscriptionSaveBtn');
+    assert.equal((await confirmOpen()).title, '这次修改从哪一期起生效？');
+    await click('#confirmOkBtn');
+    await confirmClosed();
+    await editorClosed();
+    const free = await record('免费期间');
+    assert.equal(free.paymentMethod, 'PayPal');
+    assert.deepEqual(free.priceChanges, [
+      { from:nextCharge, amount:0, once:false }, { from:nextCharge, amount:4, once:true }
+    ]);
 
     assert.deepEqual(dialogs, [], 'no native alert / confirm / prompt');
     assert.deepEqual(errors, []);

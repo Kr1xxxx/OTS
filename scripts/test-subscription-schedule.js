@@ -29,6 +29,34 @@ assert.equal(call('subscriptionAddMonths', '2024-02-29', 12), '2025-02-28');
 assert.equal(call('subscriptionAddMonths', '2024-02-29', 48), '2028-02-29');
 assert.equal(call('subscriptionAddMonths', '2026-11-30', 3), '2027-02-28');
 
+vm.runInContext(html.match(/const subscriptionTermFields = [^;]+;/)[0], context);
+for (const name of ['subscriptionCycleKey', 'subscriptionChangedTermFields', 'subscriptionFromNext']) {
+  vm.runInContext(extractFunction(name), context);
+}
+const original = item({ paymentMethod:'卡 A', priceChanges:[
+  { from:'2026-02-28', amount:4, once:true }, { from:'2026-03-31', amount:7, once:true }
+] });
+const split = call('subscriptionFromNext', original, { ...original, paymentMethod:'卡 B' }, false, '2026-02-28');
+assert.equal(call('subscriptionPriceAt', split, '2026-02-28'), 4);
+assert.equal(call('subscriptionChargeDate', split, 1), '2026-03-31');
+assert.equal(call('subscriptionPriceAt', split, '2026-03-31'), 7);
+assert.equal(call('subscriptionChargeIndex', split, '2026-03-30'), 0);
+const splitAgain = call('subscriptionFromNext', split, { ...split, category:'软件' }, false, '2026-04-30');
+assert.equal(call('subscriptionChargeDate', splitAgain.terms[1], 1), '2026-03-31');
+assert.equal(call('subscriptionChargeDate', splitAgain, 1), '2026-05-31');
+
+const free = item({ paymentMethod:'卡 A', priceChanges:[
+  { from:'2026-01-31', amount:0, once:false }, { from:'2026-02-28', amount:4, once:true }
+] });
+const freeSplit = call('subscriptionFromNext', free, { ...free, paymentMethod:'卡 B' }, false, '2026-02-28');
+const { DatabaseSync } = require('node:sqlite');
+const { createSubscriptionStore } = require('../mac-app/subscription-store');
+const db = new DatabaseSync(':memory:');
+const storedSplit = createSubscriptionStore(db).save(freeSplit).item;
+assert.equal(call('subscriptionPriceAt', storedSplit, '2026-02-28'), 4);
+assert.equal(call('subscriptionPriceAt', storedSplit, '2026-03-31'), 0);
+db.close();
+
 const monthEnd = call('subscriptionSchedule', item({}), '2026-03-01', 7.1);
 assert.equal(monthEnd.nextCharge, '2026-03-31', 'Jan 31 monthly must not jump to Mar 3');
 assert.equal(monthEnd.charges, 2, 'Jan 31 and Feb 28 were charged');

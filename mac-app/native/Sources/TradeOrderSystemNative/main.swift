@@ -376,8 +376,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             return
         }
         if message.name == "appBooted" {
-            // 页面主脚本跑完并且读库后画出了界面：更新后的第一次，据此告诉安装脚本「新版本能用」。
-            guard let url = webView?.url, originPolicy?.contains(url) == true else { return }
+            guard let body = message.body as? [String: Any], body["booted"] as? Bool == true else { return }
+            guard body["databaseReady"] as? Bool == true else {
+                FileHandle.standardError.write(Data("OTS: read-only recovery page is ready\n".utf8))
+                return
+            }
             updater.pageDidBoot()
             return
         }
@@ -487,6 +490,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     }
 
     @objc private func openSettingsFromMenu(_ sender: Any?) {
+        guard !updatePreparing else { return }
         window?.makeKeyAndOrderFront(nil)
         guard appHasLoaded else { return }
         webView?.evaluateJavaScript("window.setPage && window.setPage('settings')", completionHandler: nil)
@@ -606,6 +610,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     }
 
     private var updatePreparing = false
+    private var updatePreparationSheet: NSPanel?
 
     /// Same save flush as quitting, but a failed save cancels the update instead of asking.
     /// After the save, the database is backed up ("安装更新前"), so a new version that damages
@@ -615,6 +620,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             completion("正在退出软件，已取消本次更新。")
             return
         }
+        guard let window, window.attachedSheet == nil else {
+            completion("请先关闭当前对话框，再安装更新。")
+            return
+        }
+        // Keep keyboard, mouse and edit-menu actions out of the page from the last flush through quit.
+        let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 340, height: 62),
+                            styleMask: [.titled], backing: .buffered, defer: false)
+        panel.title = "准备更新"
+        let label = NSTextField(labelWithString: "正在保存并备份数据，请稍候…")
+        label.sizeToFit()
+        label.setFrameOrigin(NSPoint(x: 20, y: 22))
+        panel.contentView?.addSubview(label)
+        updatePreparationSheet = panel
+        window.beginSheet(panel)
         terminationInProgress = true
         updatePreparing = true
         flushPendingSave { [weak self] result in
@@ -632,9 +651,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     }
 
     private func finishUpdatePreparation(blocker: String?, completion: @escaping @MainActor (String?) -> Void) {
+        completion(blocker)
+        // A successful handoff quits with the sheet still attached. On cancellation or installer failure
+        // the completion returns without allowing termination, so restore access to the page.
+        if !allowTermination, let sheet = updatePreparationSheet {
+            window?.endSheet(sheet)
+        }
+        updatePreparationSheet = nil
         terminationInProgress = false
         updatePreparing = false
-        completion(blocker)
         // The update did not quit the app (cancelled, or the installer failed to start): a ⌘Q pressed
         // meanwhile is answered "no" so AppKit is not left waiting.
         if !allowTermination && terminationReplyPending {
@@ -892,7 +917,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
                                   instanceNonce: identity.instanceNonce, challenge: challenge) else {
             return (false, "端口响应者身份不匹配")
         }
-        if body["ok"] as? Bool == true { return (true, "") }
+        // An authenticated service with an unavailable database can serve the read-only recovery UI.
+        if body["ok"] as? Bool == true || (body["ok"] as? Bool == false && body["storageMode"] as? String == "error") {
+            return (true, "")
+        }
         // 数据库出错时服务端回 500：身份已经确认，再带令牌取一次，让用户看到真正的原因（storageError）。
         let detail = fetchHealth(port: identity.port, query: nil, bearer: identity.apiToken).body
         let message = detail?["storageError"] as? String

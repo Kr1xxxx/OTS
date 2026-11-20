@@ -20,6 +20,7 @@ function argument(name) {
   const index = process.argv.indexOf(name);
   return index >= 0 ? process.argv[index + 1] : '';
 }
+const running = child => child.exitCode === null && child.signalCode === null;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const alive = pid => { try { process.kill(pid, 0); return true; } catch (error) { return error.code === 'EPERM'; } };
 
@@ -34,8 +35,9 @@ async function waitFor(check, timeoutMs, stepMs = 250) {
 
 // Starts the app's own executable (so the environment reaches it) on an empty data folder that
 // claims an update to this version is waiting to be confirmed.
-function launch(app, version, label) {
+function launch(app, version, label, setup = () => {}) {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), `ots-real-${label}-`));
+  setup(dataDir);
   fs.writeFileSync(path.join(dataDir, `update-pending-${version}`), 'previous\n');
   let output = '';
   const child = spawn(path.join(app, 'Contents', 'MacOS', 'TradeOrderSystem'), [], {
@@ -57,7 +59,7 @@ function launch(app, version, label) {
 async function stop(run) {
   let serverPid = 0;
   try { serverPid = Number(JSON.parse(fs.readFileSync(run.lock, 'utf8')).pid) || 0; } catch (_) {}
-  if (run.child.exitCode === null && run.child.signalCode === null) {
+  if (running(run.child)) {
     run.child.kill('SIGKILL');
     await new Promise(resolve => run.child.once('exit', resolve));
   }
@@ -87,13 +89,26 @@ async function main() {
   // 1. The app as built.
   const good = launch(app, version, 'good');
   try {
-    const confirmed = await waitFor(() => fs.existsSync(good.ok) || good.child.exitCode !== null, 90000);
+    const confirmed = await waitFor(() => fs.existsSync(good.ok) || !running(good.child), 90000);
     assert.ok(confirmed && fs.existsSync(good.ok), `the built app did not report a working page within 90 s\n${describe(good)}`);
     assert.ok(await waitFor(() => !fs.existsSync(good.pending), 5000), 'update-pending is cleared once the page reported in');
-    assert.equal(good.child.exitCode, null, `the app is still running after its page booted\n${describe(good)}`);
+    assert.ok(running(good.child), `the app is still running after its page booted\n${describe(good)}`);
   } finally { await stop(good); }
 
-  // 2. The same app with a page whose script throws while starting.
+  // A previously initialized but now missing database must reach the read-only page, not keep
+  // restarting its service or create an empty database. The page reports in after rendering that state.
+  const recovery = launch(app, version, 'recovery', dir => {
+    fs.writeFileSync(path.join(dir, 'sqlite-storage.json'), JSON.stringify({ databaseId:'missing-fixture' }));
+  });
+  try {
+    const drawn = 'OTS: read-only recovery page is ready';
+    await waitFor(() => recovery.output().includes(drawn) || !running(recovery.child), 90000);
+    assert.ok(recovery.output().includes(drawn) && running(recovery.child), `read-only recovery page did not start\n${describe(recovery)}`);
+    assert.ok(fs.existsSync(recovery.pending) && !fs.existsSync(recovery.ok), 'a read-only page preserves rollback to the previous version');
+    assert.ok(!fs.existsSync(path.join(recovery.dataDir, 'trade-order-system.sqlite')), 'no fresh database replaces the missing one');
+  } finally { await stop(recovery); }
+
+  // The same app with a page whose script throws while starting.
   const brokenRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ots-real-broken-app-'));
   const brokenApp = path.join(brokenRoot, 'TradeOrderSystem.app');
   execFileSync('/usr/bin/ditto', [app, brokenApp]);
@@ -105,12 +120,12 @@ async function main() {
   const bad = launch(brokenApp, version, 'bad');
   try {
     // Its server came up (so the window is loading the page), then give the page as long as the good one needed, and more.
-    assert.ok(await waitFor(() => fs.existsSync(bad.lock) || bad.child.exitCode !== null, 60000) && fs.existsSync(bad.lock),
+    assert.ok(await waitFor(() => fs.existsSync(bad.lock) || !running(bad.child), 60000) && fs.existsSync(bad.lock),
       `the broken copy did not start its server, so this check proves nothing\n${describe(bad)}`);
-    await waitFor(() => fs.existsSync(bad.ok), 25000);
+    await waitFor(() => fs.existsSync(bad.ok) || !running(bad.child), 25000);
     assert.equal(fs.existsSync(bad.ok), false, 'a page whose script throws on start must not confirm the update');
     assert.ok(fs.existsSync(bad.pending), 'update-pending stays, so the installer rolls back');
-    assert.equal(bad.child.exitCode, null, `the broken copy was running the whole time\n${describe(bad)}`);
+    assert.ok(running(bad.child), `the broken copy was running the whole time\n${describe(bad)}`);
   } finally {
     await stop(bad);
     fs.rmSync(brokenRoot, { recursive: true, force: true });
@@ -118,7 +133,10 @@ async function main() {
   console.log(`Real app boot check passed: V${version} in its own window (WKWebView) confirmed a working page; a copy whose script throws on start did not.`);
 }
 
-main().catch(error => {
-  console.error(error);
-  process.exitCode = 1;
-});
+module.exports = { running };
+if (require.main === module) {
+  main().catch(error => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

@@ -51,13 +51,13 @@ async function routeApp(page, store, counters) {
       try {
         const body = request.postData() ? JSON.parse(request.postData()) : {};
         const result = pathname === '/api/subscriptions' ? store.list()
-          : pathname === '/api/subscriptions/save' ? store.save(body.item)
+          : pathname === '/api/subscriptions/save' ? store.save({ ...body.item, baseUpdatedAt:body.baseUpdatedAt, restore:body.restore })
           : pathname === '/api/subscriptions/delete' ? store.remove(body)
           : pathname === '/api/subscriptions/options' ? store.setOptions(body)
           : store.setRate(body);
         return route.fulfill({ json:result });
       } catch (error) {
-        return route.fulfill({ status:error.status || 500, json:{ ok:false, message:error.message } });
+        return route.fulfill({ status:error.status || 500, json:{ ok:false, message:error.message, ...error.publicDetails } });
       }
     }
     return route.fulfill({ json:{ ok:true } });
@@ -98,6 +98,39 @@ async function openApp(browser, store, counters, { viewport = { width:1360, heig
     assert.equal(await page.locator('#subsHeroYear').innerText(), '一年约 ¥2,028 · 美元按 7.1 折算');
     assert.match(await page.locator('#subsHeroSide').innerText(), /^3 项续费中\s+未来 30 天要付 ¥211\.00 · 2 笔\s+2 项快到续费日$/);
     assert.doesNotMatch(await page.locator('#subsHeroSide').innerText(), /0 项|不再续费/, 'nothing cancelled: no 「0 项不再续费」 line');
+
+    // A list read already in flight cannot undo a subsequent write.
+    let releaseRead;
+    let readStarted;
+    const started = new Promise(resolve => { readStarted = resolve; });
+    const pending = new Promise(resolve => { releaseRead = resolve; });
+    const snapshot = store.list();
+    const listUrl = '**/api/subscriptions';
+    await page.route(listUrl, async route => {
+      readStarted();
+      await pending;
+      await route.fulfill({ json:snapshot });
+    });
+    const refresh = page.evaluate(() => reloadSubscriptionsQuietly({ force:true }));
+    await started;
+    await page.evaluate(() => saveSubscriptionOptions({ customCategories:['短期测试'] }));
+    releaseRead();
+    await refresh;
+    assert.deepEqual(await page.evaluate(() => subscriptionState.customCategories), ['短期测试']);
+    await page.unroute(listUrl);
+    await page.evaluate(() => saveSubscriptionOptions({ customCategories:[] }));
+
+    // A malformed HTTP 200 leaves the current list and rate visible, with a working retry.
+    for (const body of ['{"ok":', '{"ok":true,"items":[]}']) {
+      await page.route(listUrl, route => route.fulfill({ contentType:'application/json', body }));
+      await page.evaluate(() => reloadSubscriptionsQuietly({ force:true }));
+      assert.equal(await rows.count(), 3);
+      assert.equal(await page.evaluate(() => subscriptionState.usdCnyRate), 7.1);
+      assert.equal(await page.locator('#page-subscriptions [data-sub-refresh-error]').isVisible(), true);
+      await page.unroute(listUrl);
+    }
+    await page.locator('#page-subscriptions [data-sub-refresh-error] button').click();
+    await page.locator('#page-subscriptions [data-sub-refresh-error]').waitFor({ state:'hidden' });
 
     // Category filter with a sliding highlight, and in-page search.
     await page.locator('[data-sub-filter="AI"]').click();

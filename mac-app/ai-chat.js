@@ -60,12 +60,18 @@ function createAiChat({ readAiSettings, readAiApiKey, aiUsageStore, requestJsonR
     } catch (error) {
       requestError = error;
     }
+    const data = response?.data;
+    const choice = data?.choices?.[0];
+    const hasReply = [choice?.message?.content, choice?.text].some(text => typeof text === 'string' && text.trim());
+    const httpOk = response?.status >= 200 && response.status < 300;
+    const providerError = data?.error || data?.errors?.[0];
+    const success = httpOk && !providerError && hasReply;
     let accountingWarning = '';
     try {
       aiUsageStore.record({
         baseUrl:settings.baseUrl, model:settings.model, purpose:body.purpose, testOnly:body.testOnly,
         durationMs:Date.now() - startedAt,
-        status:!requestError && response.status >= 200 && response.status < 300 && !response.data?.error ? 'success' : 'failed',
+        status:success ? 'success' : 'failed',
         data:response?.data
       });
     } catch (_) {
@@ -77,13 +83,12 @@ function createAiChat({ readAiSettings, readAiApiKey, aiUsageStore, requestJsonR
         : `AI 请求失败：${requestError?.message || '未知错误'}`;
       return { ok: false, message, ...(accountingWarning ? { accountingWarning } : {}) };
     }
-    // 有的中转接口出错也回 200，只在正文里放 error：同样当失败处理（费用记录那边已经这么算）。
-    if (response.status < 200 || response.status >= 300 || response.data?.error) {
-      const error = (typeof response.data.error === 'object' && response.data.error) || response.data.errors?.[0] || {};
-      if (typeof response.data.error === 'string') error.message = response.data.error;
-      return { ok: false, status: response.status, message: error.message || response.data.message || `AI 接口 HTTP ${response.status}`, ...(accountingWarning ? { accountingWarning } : {}) };
+    if (!success) {
+      const detail = typeof providerError === 'string' ? providerError : providerError?.message;
+      const fallback = httpOk ? 'AI 接口没有返回有效的聊天内容，请检查 Base URL 和模型。' : `AI 接口 HTTP ${response?.status}`;
+      return { ok: false, status: httpOk ? 502 : response?.status, message: detail || data?.message || fallback, ...(accountingWarning ? { accountingWarning } : {}) };
     }
-    return { ok: true, ...response.data, ...(accountingWarning ? { accountingWarning } : {}) };
+    return { ...data, ok: true, ...(accountingWarning ? { accountingWarning } : {}) };
   }
 
   async function checkAiApiStatus() {

@@ -87,11 +87,6 @@ jobs:
             echo "publish=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          if [ "$(node -p 'JSON.parse(process.argv[1]).changed' "$PLAN")" != "true" ]; then
-            echo "sha=$SHA" >> "$GITHUB_OUTPUT"
-            echo "publish=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
           # The version commit goes on top of the commit CI tested, and only while that is still
           # the tip of main. If main has moved on, the CI run of the newer commit releases instead
           # (the notes are still waiting there).
@@ -99,6 +94,11 @@ jobs:
           if [ "$(tip)" != "$SHA" ]; then
             echo "main has moved on from $SHA; the CI run of the newer commit will release."
             echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$(node -p 'JSON.parse(process.argv[1]).changed' "$PLAN")" != "true" ]; then
+            echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+            echo "publish=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           node scripts/check-project.js

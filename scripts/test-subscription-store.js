@@ -28,6 +28,10 @@ function expectInvalid(fn, message) {
 function storeTests() {
   const db = new DatabaseSync(':memory:');
   const store = createSubscriptionStore(db);
+  const removeCurrent = id => {
+    const item = store.list().items.find(entry => entry.id === id);
+    return store.remove({ id, baseUpdatedAt:item.updatedAt });
+  };
   assert.deepEqual(store.list().items, [], 'a new database starts without subscriptions');
   assert.equal(store.list().usdCnyRate, defaultUsdCnyRate, 'the page rate defaults to 7.1');
 
@@ -41,7 +45,7 @@ function storeTests() {
   const fortnightly = store.save({ ...sample, cycleUnit:'day', cycleCount:14, paymentMethod:' 招行信用卡 ' }).item;
   assert.deepEqual([fortnightly.cycleUnit, fortnightly.cycleCount, fortnightly.paymentMethod], ['day', 14, '招行信用卡']);
   assert.equal(store.save({ ...fortnightly, cycleUnit:'month', cycleCount:3 }).item.cycleCount, 3, 'any month count is allowed');
-  store.remove({ id:fortnightly.id });
+  removeCurrent(fortnightly.id);
 
   const renamed = store.save({ ...item, name:'ChatGPT Team', endsOn:'2026-01-01' }).item;
   assert.equal(renamed.createdAt, item.createdAt, 'editing keeps the creation time');
@@ -86,10 +90,40 @@ function storeTests() {
     error => error.status === 409 && error.publicDetails.current.note === 'A', 'stale edits get 409 with the current record');
   assert.equal(store.save({ ...fresh, note:'B', baseUpdatedAt:fresh.updatedAt }).item.note, 'B', 'an edit from the latest copy saves');
   const gone = store.save({ ...sample, name:'gone' }).item;
-  store.remove({ id:gone.id });
+  removeCurrent(gone.id);
   assert.throws(() => store.save({ ...gone, baseUpdatedAt:gone.updatedAt }), error => error.status === 404, 'editing a deleted record says so');
   assert.equal(store.save({ ...gone, baseUpdatedAt:gone.updatedAt, restore:true }).item.id, gone.id, 'undo of a delete may write it back');
-  store.remove({ id:gone.id });
+  removeCurrent(gone.id);
+
+  // Force several writes to share a clock tick. Stale saves/deletes and undo over a reused id must all conflict.
+  const realNow = Date.now;
+  Date.now = () => 1760000000000;
+  try {
+    const original = store.save({ ...sample, amount:12 }).item;
+    const updated = store.save({ ...original, amount:34, baseUpdatedAt:original.updatedAt }).item;
+    assert.ok(updated.updatedAt > original.updatedAt);
+    const conflict = error => error.status === 409 && error.publicDetails.current.amount === 34;
+    assert.throws(() => store.save({ ...original, note:'old', baseUpdatedAt:original.updatedAt }), conflict);
+    assert.throws(() => store.remove({ id:original.id, baseUpdatedAt:original.updatedAt }), conflict);
+    const deleted = store.remove({ id:updated.id, baseUpdatedAt:updated.updatedAt }).item;
+    assert.deepEqual(deleted, updated);
+    const replacement = store.save({ ...original, amount:34 }).item;
+    assert.ok(replacement.updatedAt > updated.updatedAt);
+    assert.throws(() => store.save({ ...deleted, restore:true }), conflict);
+    removeCurrent(replacement.id);
+    assert.throws(() => store.save({ ...deleted, restore:true }), error => error.status === 409);
+    assert.equal(store.save({ ...replacement, restore:true }).item.amount, 34);
+    removeCurrent(replacement.id);
+  } finally { Date.now = realNow; }
+
+  const changes = [{ from:'2026-02-28', amount:4, once:true }, { from:'2026-03-31', amount:7, once:true }];
+  const anchored = store.save({ ...sample, startDate:'2026-02-28', cycleAnchorDay:31, priceChanges:changes }).item;
+  assert.equal(anchored.cycleAnchorDay, 31);
+  assert.deepEqual(anchored.priceChanges, changes);
+  const anchoredTerm = { ...term, cycleCount:1, startDate:anchored.startDate, until:'2026-04-30', cycleAnchorDay:31, priceChanges:changes };
+  const later = store.save({ ...anchored, startDate:'2026-04-30', priceChanges:[], terms:[anchoredTerm] }).item;
+  assert.deepEqual(later.terms[0], anchoredTerm);
+  removeCurrent(later.id);
 
   // Manual renewals record what the user has renewed: new ones start at today, edits keep it, '' means unknown.
   const manualNew = store.save({ ...sample, name:'example.org', autoRenew:false }).item;
@@ -98,8 +132,8 @@ function storeTests() {
   assert.equal(store.save({ ...manualNew, renewedThrough:'2027-01-01' }).item.renewedThrough, '2027-01-01');
   expectInvalid(() => store.save({ ...manualNew, renewedThrough:'2027-02-30' }), '已续费日期无效');
   assert.equal(store.save({ ...sample, name:'auto' }).item.renewedThrough, '', 'auto-renewals do not track it');
-  store.remove({ id:manualNew.id });
-  store.remove({ id:store.list().items.find(entry => entry.name === 'auto').id });
+  removeCurrent(manualNew.id);
+  removeCurrent(store.list().items.find(entry => entry.name === 'auto').id);
 
   // Typing slips: odd years, end dates before the start, text instead of true/false, hex or exponent amounts.
   expectInvalid(() => store.save({ ...sample, startDate:'0202-01-01' }), '开始日期无效');
@@ -110,7 +144,7 @@ function storeTests() {
   expectInvalid(() => store.save({ ...sample, amount:'0x10' }), '金额无效');
   expectInvalid(() => store.save({ ...sample, amount:'1e3' }), '金额无效');
   assert.equal(store.save({ ...sample, name:'Bell\u0007 name\nline' }).item.name, 'Bell  name line', 'control characters become spaces');
-  store.remove({ id:store.list().items.find(entry => entry.name.startsWith('Bell')).id });
+  removeCurrent(store.list().items.find(entry => entry.name.startsWith('Bell')).id);
 
   expectInvalid(() => store.save({ ...sample, name:'  ' }), '名称无效');
   expectInvalid(() => store.save({ ...sample, name:'x'.repeat(81) }), '名称无效');
@@ -132,14 +166,15 @@ function storeTests() {
   assert.equal(store.save({ ...domain, category:'工具效率', autoRenew:undefined }).item.category, '软件');
   assert.equal(store.list().items.find(item => item.id === domain.id).autoRenew, true, 'auto-renew defaults to on');
   assert.equal(store.save({ ...domain, category:'邮箱' }).item.category, '邮箱');
-  store.remove({ id:domain.id });
+  removeCurrent(domain.id);
   expectInvalid(() => store.save({ ...sample, color:'red' }), '颜色无效');
   expectInvalid(() => store.save({ ...sample, status:'paused' }), '状态无效');
   expectInvalid(() => store.save({ ...sample, id:'../x' }), '续费项标识无效');
   expectInvalid(() => store.save(null), '续费内容无效');
 
   const removedCopy = store.list().items[0];
-  assert.equal(store.remove({ id:removedCopy.id }).deleted, 1);
+  assert.throws(() => store.remove({ id:removedCopy.id }), error => error.status === 428);
+  assert.equal(store.remove({ id:removedCopy.id, baseUpdatedAt:removedCopy.updatedAt }).deleted, 1);
   assert.throws(() => store.remove({ id:removedCopy.id }), error => error.status === 404, 'deleting twice reports not found');
   const restored = store.save(removedCopy).item;
   assert.equal(restored.id, removedCopy.id, 'undo writes the same record back');
@@ -147,12 +182,15 @@ function storeTests() {
 
   assert.equal(store.setRate({ usdCnyRate:'6.8966' }).usdCnyRate, 6.8966);
   assert.equal(store.list().usdCnyRate, 6.8966);
+  expectInvalid(() => store.setRate({ usdCnyRate:0.00001 }), '汇率无效');
+  assert.equal(store.list().usdCnyRate, 6.8966);
   expectInvalid(() => store.setRate({ usdCnyRate:0 }), '汇率无效');
   expectInvalid(() => store.setRate({ usdCnyRate:101 }), '汇率无效');
 
   assert.deepEqual([store.list().customCycles, store.list().customPaymentMethods], [[], []]);
   assert.ok(store.list().defaultPaymentMethods.includes('支付宝'));
   const options = store.setOptions({
+    baseOptions:{ customCycles:[], customPaymentMethods:[] },
     customCycles:[{ unit:'day', count:14 }, { unit:'day', count:14 }, { unit:'month', count:2 }],
     customPaymentMethods:['招行信用卡', '招行信用卡', '支付宝', ' Wise ']
   });
@@ -162,11 +200,19 @@ function storeTests() {
   expectInvalid(() => store.setOptions({ customCycles:[{ unit:'hour', count:1 }] }), '扣费周期无效');
   expectInvalid(() => store.setOptions({ customPaymentMethods:['  '] }), '付款方式无效');
   expectInvalid(() => store.setOptions({ customPaymentMethods:Array.from({ length:31 }, (_, i) => `卡${i}`) }), '自定义付款方式最多 30 个，请先删掉不用的');
-  const typed = store.setOptions({ customCategories:['邮箱', '邮箱', 'VPS', ' 证书 '] });
+  const typed = store.setOptions({ customCategories:['邮箱', '邮箱', 'VPS', ' 证书 '], baseOptions:{ customCategories:[] } });
   assert.deepEqual(typed.customCategories, ['邮箱', '证书'], 'duplicates and built-in types are dropped');
   assert.deepEqual(typed.customPaymentMethods, ['招行信用卡', 'Wise'], 'a call without a list keeps the saved one');
   assert.deepEqual(store.list().customCategories, ['邮箱', '证书']);
   expectInvalid(() => store.setOptions({ customCategories:['x'.repeat(21)] }), '类型无效');
+  store.setOptions({ customCategories:['独立分类'], baseOptions:{ customCategories:typed.customCategories } });
+  store.setOptions({ customPaymentMethods:['新卡'], baseOptions:{ customPaymentMethods:typed.customPaymentMethods } });
+  assert.deepEqual(store.list().customCategories, ['独立分类']);
+  assert.throws(() => store.setOptions({ customPaymentMethods:['旧窗口的卡'], baseOptions:{ customPaymentMethods:typed.customPaymentMethods } }),
+    error => error.status === 409 && error.publicDetails.currentOptions.customPaymentMethods[0] === '新卡');
+  assert.deepEqual(store.list().customPaymentMethods, ['新卡']);
+  assert.throws(() => store.setOptions({ customCategories:[], customPaymentMethods:['旧窗口的卡'] }), error => error.status === 428);
+  assert.deepEqual(store.list().customCategories, ['独立分类']);
   db.close();
 
   // A database created before custom cycles gets the new columns, and old rows stay monthly or yearly.
@@ -250,7 +296,7 @@ async function serverTests() {
   const latest = await request('/api/subscriptions/save', { method:'POST', body:{ item:{ ...saved.item, note:'latest' }, baseUpdatedAt:saved.item.updatedAt } });
   assert.equal(latest.item.note, 'latest');
   assert.equal((await request('/api/subscriptions/rate', { method:'POST', body:{ usdCnyRate:6.9 } })).usdCnyRate, 6.9);
-  const options = await request('/api/subscriptions/options', { method:'POST', body:{ customCycles:[{ unit:'day', count:14 }], customPaymentMethods:['Wise'] } });
+  const options = await request('/api/subscriptions/options', { method:'POST', body:{ customCycles:[{ unit:'day', count:14 }], customPaymentMethods:['Wise'], baseOptions:{ customCycles:[], customPaymentMethods:[] } } });
   assert.deepEqual([options.customCycles, options.customPaymentMethods, options.backup.ok], [[{ unit:'day', count:14 }], ['Wise'], true]);
 
   const business = JSON.stringify(await request('/api/data'));
@@ -269,7 +315,15 @@ async function serverTests() {
   assert.equal(reloaded.items.length, 1, 'subscriptions survive a restart');
   assert.equal(reloaded.usdCnyRate, 6.9);
   assert.deepEqual(reloaded.customPaymentMethods, ['Wise'], 'custom options survive a restart');
-  assert.equal((await request('/api/subscriptions/delete', { method:'POST', body:{ id:saved.item.id } })).deleted, 1);
+  const noVersion = await request('/api/subscriptions/delete', { method:'POST', body:{ id:saved.item.id }, allowError:true });
+  assert.equal(noVersion.status, 428);
+  const staleDelete = await request('/api/subscriptions/delete', { method:'POST', body:{ id:saved.item.id, baseUpdatedAt:saved.item.updatedAt }, allowError:true });
+  assert.equal(staleDelete.status, 409);
+  const deleted = await request('/api/subscriptions/delete', { method:'POST', body:{ id:saved.item.id, baseUpdatedAt:latest.item.updatedAt } });
+  assert.deepEqual(deleted.item, latest.item);
+  assert.equal(deleted.deleted, 1);
+  const oldUndo = await request('/api/subscriptions/save', { method:'POST', body:{ item:saved.item }, allowError:true });
+  assert.equal(oldUndo.status, 404, 'an old page cannot silently restore with an unconditional save');
   const missing = await request('/api/subscriptions/delete', { method:'POST', body:{ id:saved.item.id }, allowError:true });
   assert.equal(missing.status, 404);
 }

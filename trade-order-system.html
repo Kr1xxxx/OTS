@@ -5650,7 +5650,6 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
 <symbol id="i-repeat" viewBox="0 0 24 24"><path d="M17 2l3 3-3 3M4 11V9a4 4 0 0 1 4-4h12M7 22l-3-3 3-3M20 13v2a4 4 0 0 1-4 4H4"/></symbol>
 <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 20h20zM12 10v4M12 17h.01"/></symbol>
 <symbol id="i-grip" viewBox="0 0 24 24"><path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01" stroke-width="3"/></symbol>
-<symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
 <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
 <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="18.5" cy="12" r="1.6" fill="currentColor" stroke="none"/></symbol>
 <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
@@ -5658,7 +5657,6 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
 <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></symbol>
 <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
 <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
-<symbol id="i-grip" viewBox="0 0 24 24"><path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01"/></symbol>
 <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
 <symbol id="i-layout" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="10" height="6" rx="2"/><rect x="17" y="14" width="4" height="6" rx="1.5"/></symbol>
 <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 6.2A9.6 9.6 0 0 1 12 6c5 0 8.5 4.2 9.5 6-.4.8-1.3 2-2.6 3.2M6.3 7.8C4.3 9.1 3 10.9 2.5 12c1 1.8 4.5 6 9.5 6 1.4 0 2.7-.3 3.8-.8"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
@@ -6214,6 +6212,7 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
 
     <section class="page subs-scope" id="page-subscriptions">
       <nav class="subs-subnav" aria-label="续费子页"><button type="button" data-page="subscriptions" aria-current="page">列表</button><button type="button" data-page="subs-analysis">分析</button><button type="button" data-page="subs-history">历史</button></nav>
+      <div data-sub-refresh-error role="status" hidden><span></span> <button class="subs-btn sm" type="button">重试</button></div>
       <section class="subs-hero" id="subsHero"></section>
       <div class="subs-toolbar">
         <div class="subs-seg" id="subsFilter" role="group" aria-label="按分类筛选"><span class="subs-glide" aria-hidden="true"></span></div>
@@ -6228,11 +6227,13 @@ html[data-theme] .order-notification-option.shipment-partial-field { align-items
 
     <section class="page subs-scope" id="page-subs-analysis">
       <nav class="subs-subnav" aria-label="续费子页"><button type="button" data-page="subscriptions">列表</button><button type="button" data-page="subs-analysis" aria-current="page">分析</button><button type="button" data-page="subs-history">历史</button></nav>
+      <div data-sub-refresh-error role="status" hidden><span></span> <button class="subs-btn sm" type="button">重试</button></div>
       <div class="subs-an" id="subsAnalysis"></div>
     </section>
 
     <section class="page subs-scope" id="page-subs-history">
       <nav class="subs-subnav" aria-label="续费子页"><button type="button" data-page="subscriptions">列表</button><button type="button" data-page="subs-analysis">分析</button><button type="button" data-page="subs-history" aria-current="page">历史</button></nav>
+      <div data-sub-refresh-error role="status" hidden><span></span> <button class="subs-btn sm" type="button">重试</button></div>
       <div class="subs-toolbar">
         <div class="subs-seg" id="subsHistoryFilter" role="group" aria-label="按分类筛选扣费记录"><span class="subs-glide" aria-hidden="true"></span></div>
         <span class="subs-meta" id="subsHistoryMeta" aria-live="polite"></span>
@@ -8741,16 +8742,15 @@ function setMacStorageStatus(mode = 'sqlite', stateText = 'saved', detail = '') 
         : `数据库已连接 · ${new Date().toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}`);
   }
 }
-// 本窗口相对「上次存进数据库的那份」改了哪些：改过的订单（含移进垃圾箱、已删除的）、改过或新加的客户、新的物流查询记录。
-// 冲突时只导出这些，文件标 scope:'unsaved-conflict'；导入时只按记录合并，不再整库覆盖（以前导出整份旧数据，
-// 拿去导入会把另一个窗口刚存的修改全改回去）。
+// 冲突文件保留改过的订单、客户及删除记录。设置带上改前和改后的值，导入时可保留其它窗口改过的字段。
 function macUnsavedChanges(current = state) {
   let base = {};
   try { base = JSON.parse(macPersistedStateJson || '{}') || {}; } catch (_) { base = {}; }
   const before = stateOrderIndex(base);
   const out = { orders:[], trashOrders:[], deletedOrders:[], customers:{}, trackingLookups:[] };
   const nums = [];
-  stateOrderIndex(current).forEach((item, id) => {
+  const after = stateOrderIndex(current);
+  after.forEach((item, id) => {
     const prev = before.get(id);
     if (prev && prev.bucket === item.bucket && macStableJson(prev.order) === macStableJson(item.order)) return;
     out[item.bucket].push(item.order);
@@ -8762,18 +8762,43 @@ function macUnsavedChanges(current = state) {
     out.customers[name] = profile;
     names.push(name);
   });
-  const lookupIds = new Set((base.trackingLookups || []).map(item => item?.id));
-  out.trackingLookups = (current.trackingLookups || []).filter(item => item?.id && !lookupIds.has(item.id));
-  return { data:out, nums, names, count:nums.length + names.length + out.trackingLookups.length };
+  const recovery = {
+    removedOrders:[...before.keys()].filter(id => !after.has(id)),
+    removedCustomers:Object.keys(base.customers || {}).filter(name => !Object.hasOwn(current.customers || {}, name)),
+    settings:[], sequence:{}
+  };
+  const entityKeys = new Set([...macOrderBuckets, 'customers']);
+  for (const key of Object.keys(current)) {
+    if (!entityKeys.has(key) && macStableJson(base[key]) !== macStableJson(current[key])) {
+      recovery.settings.push({ key, before:base[key], after:current[key] });
+    }
+  }
+  for (const bucket of macOrderBuckets) {
+    const oldIds = (base[bucket] || []).map(order => order.id);
+    const newIds = (current[bucket] || []).map(order => order.id);
+    if (macStableJson(oldIds) !== macStableJson(newIds)) recovery.sequence[bucket] = newIds;
+  }
+  const count = nums.length + names.length + recovery.removedOrders.length + recovery.removedCustomers.length
+    + recovery.settings.length + Object.keys(recovery.sequence).length;
+  return { data:out, recovery, nums, names, count };
 }
 async function exportUnsavedMacState() {
   const changes = macUnsavedChanges();
-  if (!changes.count) {
-    toast('本窗口没有没存进数据库的订单或客户修改，不用导出', { tone:'info' });
-    return true;
+  if (otsUnsavedForms().length || macPendingCustomerOps.length) {
+    toast('表单或客户聊天迁移还有未完成的修改，数据文件无法完整记录。请先处理这些修改。', { tone:'warn' });
+    return false;
   }
-  const payload = { ...dataFilePayload({ ...changes.data, demoCleared:true, demoCustomersCleared:true }, { scope:'unsaved-conflict' }), baseRevision:macStorageRevision };
-  return download(`trade-order-unsaved-${Date.now()}.json`, JSON.stringify(payload, null, 2));
+  if (!changes.count) {
+    toast('没有可导出的未保存修改', { tone:'info' });
+    return false;
+  }
+  const payload = { ...dataFilePayload({ ...changes.data, demoCleared:true, demoCustomersCleared:true }, { scope:'unsaved-conflict' }), recovery:changes.recovery, baseRevision:macStorageRevision };
+  const text = JSON.stringify(payload, null, 2);
+  if (new Blob([text]).size > importFileMaxBytes) {
+    toast('修改文件超过导入上限（15 MB），请保留此窗口并先处理保存问题。', { tone:'warn' });
+    return false;
+  }
+  return download(`trade-order-unsaved-${Date.now()}.json`, text);
 }
 document.getElementById('macConflictExportBtn')?.addEventListener('click', () => exportUnsavedMacState());
 document.getElementById('macConflictReloadBtn')?.addEventListener('click', () => guardedPageReload());
@@ -8808,13 +8833,19 @@ async function guardedPageReload({ scrollTop = false } = {}) {
     sub:'刷新页面',
     message:`${lines.join('\n')}\n\n刷新后这些修改会丢失。`,
     confirmText:'仍然刷新',
-    altText:localLost ? '导出后刷新' : '',
+    altText:localLost && !unsaved.length ? '导出后刷新' : '',
     cancelText:'取消',
     danger:true,
     defaultFocus:'cancel'
   });
   if (choice.alt) {
-    if (await exportUnsavedMacState()) go();
+    const exporting = JSON.stringify(state);
+    if (!await exportUnsavedMacState()) return;
+    if (JSON.stringify(state) !== exporting || otsUnsavedForms().length || macPendingCustomerOps.length) {
+      toast('导出期间又有修改，请确认后再刷新。', { tone:'warn' });
+      return;
+    }
+    go();
     return;
   }
   if (choice.confirmed) go();
@@ -9403,8 +9434,14 @@ async function runMacSaveQueue() {
 // 失败时（任何状态码）页面回到换之前的样子，不进每 3 秒重试的保存队列——以前导入「1,200」这种金额后保存永远失败，
 // 界面却一直停在导入的数据上，之后的修改也都存不进去。customerInference:false：不按「删 1 加 1」猜客户改名，
 // WhatsApp 聊天不会挂到另一位客户名下。
-async function macReplaceState(nextState) {
+function checkReplacementPreview(previewBase) {
+  if (previewBase && (previewBase.revision !== macStorageRevision || previewBase.json !== JSON.stringify(state))) {
+    throw Object.assign(new Error('数据已经更新，请核对新的导入预览。'), { kind:'stale-preview' });
+  }
+}
+async function macReplaceState(nextState, previewBase) {
   if (!await flushPendingSave()) throw new Error(macSaveLastError || '还有修改没存进数据库');
+  checkReplacementPreview(previewBase);
   const previous = state;
   ensureCustomerIds(nextState);
   const snapshotJson = JSON.stringify(nextState);
@@ -9416,10 +9453,11 @@ async function macReplaceState(nextState) {
       const res = await apiFetch('/api/save', {
         method:'POST',
         headers:{ 'Content-Type':'application/json' },
-        body:JSON.stringify({ state:dataFilePayload(JSON.parse(snapshotJson)), baseRevision:macStorageRevision, customerInference:false })
+        body:JSON.stringify({ state:dataFilePayload(JSON.parse(snapshotJson)), baseRevision:previewBase?.revision ?? macStorageRevision, customerInference:false })
       }).catch(() => null);
       const result = await macReadSaveResult(res);
       if (res.status === 409) {
+        if (previewBase) throw Object.assign(new Error('数据库在导入期间已更新，请核对新的预览。'), { kind:'stale-preview', remote:true });
         const latestRevision = Number(result.revision ?? result.currentRevision);
         if (Number.isFinite(latestRevision)) macStorageRevision = latestRevision;
         throw macEnterConflict();
@@ -9608,14 +9646,16 @@ function setAppVersionUpdatedAt(value) {
 // 告诉 Mac 壳「这一版真的跑起来了」：主脚本从头执行到尾没有抛错，并且读完数据库后画出了界面。
 // 更新器装完新版本后等的就是这一句，120 秒内等不到就退回旧版本（以前页面一加载完就算成功，
 // 主脚本一启动就报错、窗口一片空白的版本也会被当成更新成功）。
-// 读库失败但页面自己进了只读保护也算跑起来了：那是数据的问题，退回旧版本解决不了，反而装不上能修它的新版本。
+// 只读恢复页也通知壳，但只有实际读库成功才确认更新，避免新版本读不了旧库时误删上一版。
 let appScriptCompleted = false;
 let appFirstLoadDrawn = false;
-let appBootReported = false;
+let appBootReportMode = '';
 function reportAppBooted() {
-  if (appBootReported || !appScriptCompleted || !appFirstLoadDrawn) return;
-  appBootReported = true;
-  try { window.webkit?.messageHandlers?.appBooted?.postMessage({ booted:true }); } catch (_) {}
+  if (!appScriptCompleted || !appFirstLoadDrawn || appBootReportMode === 'ready') return;
+  const mode = macStorageMode;
+  if ((mode !== 'ready' && mode !== 'load-failed') || appBootReportMode === mode) return;
+  appBootReportMode = mode;
+  try { window.webkit?.messageHandlers?.appBooted?.postMessage({ booted:true, databaseReady:mode === 'ready' }); } catch (_) {}
 }
 async function loadMacAppState() {
   if (!isMacAppMode()) {
@@ -10384,13 +10424,13 @@ function normalizeTrackingStatus(value = '') {
   const text = String(value || '').toLowerCase();
   if (!text) return '';
   if (/未发货|not shipped/.test(text)) return '未发货';
-  if (/not\s+delivered|undeliver|delivery\s+(?:attempt|failed|exception)|attempted\s+delivery|未签收|派送失败/.test(text)) return '异常';
-  if (/已签收|签收成功|delivered/.test(text)) return '已签收';
+  if (/not\s+(?:yet\s+|been\s+)?delivered|undeliver|delivery\s+(?:attempt|failed|exception)|attempted\s+delivery|未签收|派送失败/.test(text)) return '异常';
   if (/派送中|正在派送|out for delivery|outfordelivery|out_for_delivery|vehicle for delivery|with delivery courier|ready for pickup|available for pickup|hold(?:ing)? at (?:fedex )?location|held at (?:fedex )?location/.test(text)) return '派送中';
   if (/异常|失败|退回|滞留|扣件|exception|failed|expired|returned|on hold|held|clearance delay|customs delay|cancel/.test(text)) return '异常';
+  // Only a final carrier event can complete an order. Forecasts also contain “delivered”.
+  if (/^(?:(?:包裹|快件|邮件|收件人|客户)\s*)?(?:已签收|签收成功)|^(?:(?:the |your )?(?:shipment|package|parcel|item) (?:has been |was |is )?)?(?:successfully )?delivered\b/.test(text.trim())) return '已签收';
   if (/运输中|转运中|在途中|in transit|transit|arrived|departed|processed|at local|at destination|attempt|available/.test(text)) return '运输中';
   if (/已发货|已揽收|待揽收|信息已收到|shipment information received|info received|label created|picked up|pending/.test(text)) return '已发货';
-  if (text.includes('delivered')) return '已签收';
   if (text.includes('outfordelivery') || text.includes('out_for_delivery')) return '派送中';
   if (text.includes('exception') || text.includes('failed') || text.includes('expired')) return '异常';
   if (text.includes('transit') || text.includes('attempt') || text.includes('available')) return '运输中';
@@ -17465,7 +17505,7 @@ function orderListDetailMatch(order = {}, filters = {}) {
   // 按全部批次的汇总判断：任一批异常算「物流异常」，全部签收才算「已签收」。
   const summaryStatus = typeof orderLogisticsSummary === 'function' ? orderLogisticsSummary(order).status : '';
   const logisticsStatus = normalizeSearchText(summaryStatus || order.logisticsStatus || '');
-  const isDelivered = /已签收|签收|delivered/.test(logisticsStatus) && !/部分|未签收|not delivered/.test(logisticsStatus);
+  const isDelivered = normalizeTrackingStatus(logisticsStatus) === '已签收';
   const isException = /异常|失败|退回|延误|exception|failed|returned|delay/.test(logisticsStatus);
   if (stage !== 'all' && normalizeStage(order.stage) !== stage) return false;
   if (product !== 'all' && String(order.productType || '') !== product) return false;
@@ -18164,7 +18204,7 @@ function orderRoadmapEvents(order = {}) {
     const fresh = trackingFreshness(lookup);
     events.push({ type: fresh.risk ? 'risk' : 'logistics', time: lookup.checkedAt || lookup.statusUpdatedAt || order.logisticsUpdated || created, title: fresh.risk ? '物流异常' : '物流查询', meta: `${lookup.carrier || ''} ${lookup.status || '待 API 查询'} · ${fresh.daysText}` });
   }
-  if (/签收|delivered/i.test(String(order.logisticsStatus || lookup?.status || ''))) {
+  if (normalizeTrackingStatus(order.logisticsStatus || lookup?.status) === '已签收') {
     events.push({ type:'logistics', time: order.logisticsUpdated || lookup?.statusUpdatedAt || order.updated || created, title:'签收', meta:`${order.client || '客户'} 已签收` });
   }
   if (currentStage === 'shipment' && /签收|完成|归档|确认收货/i.test(`${order.logisticsStatus || ''} ${order.note || ''} ${logs.map(log => log.text).join(' ')}`)) {
@@ -21923,7 +21963,7 @@ function trackingFreshness(item = {}) {
   const event = latestTrackingEvent(item);
   const fallback = item.statusUpdatedAt || item.checkedAt || item.updated || item.updatedAt;
   const ms = event?._time || trackingTimeMs(fallback);
-  const delivered = /签收|delivered/i.test(String(item.status || ''));
+  const delivered = normalizeTrackingStatus(item.status) === '已签收';
   const days = ms ? Math.max(0, Math.floor((Date.now() - ms) / 86400000)) : null;
   return {
     event,
@@ -21939,7 +21979,7 @@ function trackingEventText(event = {}) {
 function deliveryEventForItem(item = {}) {
   return normalizeTrackingEvents(item.events || [])
     .map(event => ({ ...event, _time: trackingTimeMs(event.time || event.date || event.datetime) }))
-    .filter(event => event._time && /签收|delivered|actual delivery/i.test(trackingEventText(event)))
+    .filter(event => event._time && (normalizeTrackingStatus(trackingEventText(event)) === '已签收' || /^(?:实际签收时间|actual delivery\b)/i.test(event.title || '')))
     .sort((a, b) => b._time - a._time)[0] || null;
 }
 function pickupEventForItem(item = {}) {
@@ -21960,7 +22000,7 @@ function deliveryTimingClass(days) {
 function deliveryTimingInfo(source = {}, { shippedAt = '', status = '', deliveredAt = '' } = {}) {
   const item = source || {};
   const current = String(status || item.status || '');
-  const delivered = /签收|delivered/i.test(current);
+  const delivered = normalizeTrackingStatus(current) === '已签收';
   const startValue = shippedAt || item.shippedAt || pickupEventForItem(item)?.time || '';
   const endValue = delivered
     ? (deliveryEventForItem(item)?.time || deliveredAt || item.statusUpdatedAt || item.checkedAt || '')
@@ -26356,6 +26396,7 @@ function prepareImportedData(raw) {
   return {
     data, conversions, droppedLookups,
     scope: wrapped && ['month', 'unsaved-conflict'].includes(raw.scope) ? raw.scope : 'all',
+    recovery:wrapped && raw.scope === 'unsaved-conflict' ? raw.recovery : undefined,
     month: wrapped ? String(raw.month || '') : '',
     exportedAt: wrapped ? String(raw.exportedAt || '') : '',
     version: wrapped ? String(raw.version || '') : ''
@@ -26400,26 +26441,45 @@ function stateDiff(current = {}, next = {}) {
 // 合并导入：文件里的订单按 id 新增或更新（放进文件里的那一栏），文件里没有的订单一张不删；
 // 只加现在没有的客户档案和目标，已有的档案、设置都不动（单月文件里的档案可能比现在的旧）。
 // 订单号已被现有的另一张单占用时跳过这张，预览里说出来。
-function mergeImportedState(current, incoming, { updateCustomers = false } = {}) {
+function mergeImportedState(current, incoming, { updateCustomers = false, recovery } = {}) {
   const next = JSON.parse(JSON.stringify(current));
   const buckets = ['orders', 'trashOrders', 'deletedOrders'];
   buckets.forEach(bucket => { if (!Array.isArray(next[bucket])) next[bucket] = []; });
+  if (recovery) {
+    if (!Array.isArray(recovery.removedOrders) || !Array.isArray(recovery.removedCustomers) || !Array.isArray(recovery.settings) || !macIsPlainObject(recovery.sequence)) throw new Error('冲突恢复文件格式有误');
+    const removed = new Set(recovery.removedOrders);
+    for (const bucket of buckets) next[bucket] = next[bucket].filter(order => !removed.has(String(order.id)));
+    for (const name of recovery.removedCustomers) delete next.customers[name];
+  }
   const where = new Map();
   const numOwner = new Map();
   buckets.forEach(bucket => next[bucket].forEach(order => {
     where.set(order.id, bucket);
     if (order.num) numOwner.set(String(order.num), order.id);
   }));
+  // 文件本身的订单号已校验唯一。只有编号被文件外的订单占用，或被另一张已跳过的单占用，才不能更新。
+  const imported = buckets.flatMap(bucket => incoming[bucket] || []);
+  const incomingIds = new Set(imported.map(order => order.id));
+  const blocked = new Set();
+  const needsOldNumber = new Map();
+  for (const order of imported) {
+    const owner = order.num && numOwner.get(String(order.num));
+    if (!owner || owner === order.id) continue;
+    if (!incomingIds.has(owner)) blocked.add(order.id);
+    else needsOldNumber.set(owner, order.id);
+  }
+  for (const id of blocked) {
+    if (needsOldNumber.has(id)) blocked.add(needsOldNumber.get(id));
+  }
   const skipped = [];
   // 文件是改名之前导出的：订单带的编号现在属于另一个名字的档案，就跟着现在的名字走（不搬回旧名字）。
   const nameById = customerNamesById(next.customers);
   const renamedAway = new Map();
   buckets.forEach(bucket => (incoming[bucket] || []).forEach(original => {
+    if (blocked.has(original.id)) { skipped.push(original.num); return; }
     const currentName = original?.customerId ? nameById.get(original.customerId) : '';
     const order = currentName && currentName !== original.client ? { ...original, client:currentName } : original;
     if (order !== original) renamedAway.set(original.client, original.customerId);
-    const owner = order.num ? numOwner.get(String(order.num)) : '';
-    if (owner && owner !== order.id) { skipped.push(order.num); return; }
     const from = where.get(order.id);
     if (from === bucket) {
       next[bucket][next[bucket].findIndex(item => item.id === order.id)] = order;
@@ -26428,7 +26488,6 @@ function mergeImportedState(current, incoming, { updateCustomers = false } = {})
       next[bucket].push(order);
       where.set(order.id, bucket);
     }
-    if (order.num) numOwner.set(String(order.num), order.id);
   }));
   next.customers = next.customers || {};
   // 冲突时导出的「没存进去的修改」：文件里的客户就是当时改过的，按文件更新；其它文件只加新客户。
@@ -26454,6 +26513,29 @@ function mergeImportedState(current, incoming, { updateCustomers = false } = {})
     if (item?.id && !lookupIds.has(item.id)) { next.trackingLookups.push(item); lookupIds.add(item.id); }
   });
   next.performanceTargets = { ...(incoming.performanceTargets || {}), ...(next.performanceTargets || {}) };
+  if (recovery) {
+    for (const { key, before, after } of recovery.settings) {
+      if (!Object.hasOwn(current, key) || buckets.includes(key) || key === 'customers' || after === undefined) throw new Error('冲突恢复文件里有无法识别的设置');
+      if (typeof after !== typeof current[key] || Array.isArray(after) !== Array.isArray(current[key]) || after === null) throw new Error('冲突恢复文件里的设置类型有误');
+      const ctx = { conflicts:[], prefer:'mine' };
+      if (key === 'trackingLookups' && macStableJson(before) !== macStableJson(current[key])) {
+        if (![before, after, current[key]].every(list => Array.isArray(list) && list.every(item => item?.id))) throw new Error('物流记录在两个窗口改过且缺少编号，无法完整合并');
+        next[key] = macMergeIdList(before, after, current[key], [key], ctx);
+      } else {
+        next[key] = macMergeValue(before, after, current[key], [key], ctx);
+      }
+    }
+    for (const bucket of buckets) {
+      const ids = recovery.sequence[bucket];
+      if (!ids) continue;
+      const byId = new Map(next[bucket].map(order => [order.id, order]));
+      if (!Array.isArray(ids) || new Set(ids).size !== ids.length) throw new Error('冲突恢复文件里的订单顺序无效');
+      const wanted = new Set(ids);
+      const ordered = ids.filter(id => byId.has(id)).map(id => byId.get(id));
+      let index = 0;
+      next[bucket] = next[bucket].map(order => wanted.has(order.id) ? ordered[index++] : order);
+    }
+  }
   return { state:next, skipped };
 }
 // 文件里的附件本机有没有（换电脑后导入「数据文件」常常没有）。查不了（浏览器预览、服务没响应）返回 null，预览里不提。
@@ -26506,7 +26588,7 @@ function importPreviewChoose(preview) {
   document.getElementById('importModeOptions').classList.toggle('single', mergeOnly);
   const onlyNote = document.getElementById('importMergeOnlyNote');
   onlyNote.hidden = !mergeOnly;
-  onlyNote.textContent = conflictFile ? '这是保存冲突时导出的「没存进去的修改」，只合并文件里的这些记录，不删除、不改动其它数据；文件里这些订单 / 客户会整条换成导出时本窗口的内容。'
+  onlyNote.textContent = conflictFile ? '这是保存冲突时导出的「没存进去的修改」。合并会应用文件记录的订单、客户和设置更改。'
     : plan.scope === 'month' ? `这是 ${plan.month || '单月'} 单月订单文件，只能合并，不删除任何现有数据。` : '';
   // 冲突文件：列出文件里的订单号（前 8 个）和客户名（前 5 个）。
   const records = conflictFile ? [
@@ -26565,10 +26647,13 @@ async function previewImportDataFile(file) {
   try {
     if (Number(file.size || 0) > importFileMaxBytes) throw new Error(`文件太大（${(file.size / 1048576).toFixed(1)} MB），最多 15 MB`);
     const plan = prepareImportedData(await readJsonFile(file));
+    // 先确认本窗口刚排队的编辑，预览中的数据和版本号必须属于同一次保存。
+    if (isMacAppMode() && !await flushPendingSave()) throw new Error(macSaveLastError || '还有修改没存进数据库');
     const data = plan.data;
     const conflictFile = plan.scope === 'unsaved-conflict';
     const mergeOnly = plan.scope === 'month' || conflictFile;
-    const merged = mergeImportedState(state, data, { updateCustomers:conflictFile });
+    const previewBase = { revision:macStorageRevision, json:JSON.stringify(state) };
+    const merged = mergeImportedState(state, data, { updateCustomers:conflictFile, recovery:plan.recovery });
     const mergeDiff = stateDiff(state, merged.state);
     const replaceDiff = stateDiff(state, data);
     const removedTotal = replaceDiff.orders.removed + replaceDiff.customers.removed;
@@ -26577,6 +26662,8 @@ async function previewImportDataFile(file) {
     const similar = similarOrderNumGroups([...data.orders, ...data.trashOrders, ...data.deletedOrders]);
     // 卡片下面的提示：每条照以前预览里的原话。
     const notes = [];
+    if (plan.recovery?.settings.length) notes.push('将恢复修改过的设置或物流记录：' + plan.recovery.settings.map(change => macMergeSettingLabels[change.key] || change.key).join('、'));
+    if (mergeDiff.orders.removed || mergeDiff.customers.removed) notes.push(`将按冲突文件的记录删除 ${mergeDiff.orders.removed} 张订单、${mergeDiff.customers.removed} 位客户。`);
     if (merged.skipped.length) notes.push(`合并时跳过 ${merged.skipped.length} 张：订单号已被现有的另一张订单占用（${merged.skipped.slice(0, 5).join('、')}${merged.skipped.length > 5 ? ' 等' : ''}）。`);
     if (plan.conversions.length) notes.push(`${plan.conversions.length} 个金额从文字转成了数字：${plan.conversions.slice(0, 5).join('；')}${plan.conversions.length > 5 ? ' 等' : ''}。`);
     if (plan.droppedLookups) notes.push(`物流查询记录里有 ${plan.droppedLookups} 条 ID 重复，只保留第一条。`);
@@ -26604,21 +26691,32 @@ async function previewImportDataFile(file) {
     await applyDataReplacement(mode === 'merge' ? merged.state : data, {
       reason:'import',
       label:'导入',
-      successText:mode === 'merge' ? `已合并导入：新增 ${added} 张、更新 ${changed} 张，没有删除数据` : '数据文件已导入'
+      previewBase,
+      successText:mode === 'merge' ? `已合并导入：新增 ${added} 张、更新 ${changed} 张${mergeDiff.orders.removed || mergeDiff.customers.removed ? '' : '，没有删除数据'}` : '数据文件已导入'
     });
   } catch (e) {
+    if (e.kind === 'stale-preview') {
+      if (e.remote && !await macCheckRemoteRevision({ force:true })) {
+        toast('数据库版本已变，这次没有导入。请刷新后重新选择文件。', { tone:'warn' });
+        return;
+      }
+      toast(e.message, { tone:'info' });
+      return previewImportDataFile(file);
+    }
     toast(e instanceof SyntaxError || e.message === 'missing orders' ? '导入失败，请选择正确的 JSON 数据文件' : `导入失败：${e.message}`, { tone:'error' });
   }
 }
 // 导入、恢复示例：先把手上的修改存完、强制备份一份「操作前」，再整份写进数据库；写成功了才算数（失败就留在操作前的样子），
 // 提示里带 6 秒撤销。撤销只在之后没再改过数据时可用，否则请用「从备份恢复…」。
-async function applyDataReplacement(nextState, { reason = 'change', label = '操作', successText = '' } = {}) {
+async function applyDataReplacement(nextState, { reason = 'change', label = '操作', successText = '', previewBase } = {}) {
+  checkReplacementPreview(previewBase);
   const previous = state;
   if (isMacAppMode()) {
     if (!await backupBeforeCustomerChange(label, reason)) return false;
     try {
-      await macReplaceState(nextState);
+      await macReplaceState(nextState, previewBase);
     } catch (error) {
+      if (error.kind === 'stale-preview') throw error;
       if (error.kind === 'unconfirmed') toast(macSaveLastError, { tone:'error' });
       else if (!error.conflict) toast(`${label}没有完成，数据保持${label}前的样子：${error.message || '数据库没有响应'}`, { tone:'error' });
       return false;
@@ -26772,11 +26870,19 @@ async function macRestoreBackup(name) {
     const res = await apiFetch('/api/restore-backup', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ name }) });
     const result = await res.json().catch(() => ({}));
     if (!res.ok || !result.ok) throw new Error(result.message || `HTTP ${res.status}`);
-    try { sessionStorage.setItem(restoredNoticeKey, JSON.stringify({ at:preview.at, safety:result.safetyBackup || '' })); } catch (_) {}
-    toast('已从备份恢复，正在重新加载…');
+    const failures = result.attachmentFailures || [];
+    try { sessionStorage.setItem(restoredNoticeKey, JSON.stringify({ at:preview.at, safety:result.safetyBackup || '', failed:failures.length })); } catch (_) {}
+    if (failures.length) {
+      const report = await appConfirm({
+        title:`数据库已恢复，${failures.length} 个附件未恢复`,
+        message:'可以导出清单，查看未恢复的文件名和原因。',
+        confirmText:'导出清单', cancelText:'重新加载'
+      });
+      if (report.confirmed) await download(`restore-attachments-${Date.now()}.json`, JSON.stringify({ backup:name, failures }, null, 2));
+    } else toast('已从备份恢复，正在重新加载…');
     window.location.reload();
   } catch (error) {
-    toast(`恢复没有完成，数据保持原样：${error.message || '本地服务没有响应'}`, { tone:'error' });
+    toast(`恢复操作未确认完成：${error.message || '本地服务没有响应'}`, { tone:'error' });
   }
 }
 // 恢复后重新加载完成：说一声恢复的是哪一份，并给「撤销恢复」（= 恢复那份「恢复前」备份，同样先预览）。
@@ -26787,11 +26893,14 @@ function showRestoredBackupNotice() {
     sessionStorage.removeItem(restoredNoticeKey);
   } catch (_) {}
   if (!notice) return;
-  toast(`已从 ${backupTimeText(notice.at)} 的备份恢复`, notice.safety ? {
-    desc:'恢复前的数据已另存为一份「恢复前」备份',
-    undo:() => macRestoreBackup(notice.safety),
-    undoText:'撤销恢复'
-  } : undefined);
+  toast(notice.failed ? `数据库已恢复，${notice.failed} 个附件未恢复` : `已从 ${backupTimeText(notice.at)} 的备份恢复`, {
+    tone:notice.failed ? 'warn' : 'success',
+    ...(notice.safety ? {
+      desc:'恢复前的数据已另存为一份「恢复前」备份',
+      undo:() => macRestoreBackup(notice.safety),
+      undoText:'撤销恢复'
+    } : {})
+  });
 }
 // 备份目录可选（比如 iCloud Drive）+ 上次备份时间；信息来自 /api/health 和 /api/backup-settings。
 let macBackupSummary = null;
@@ -27046,6 +27155,7 @@ let subscriptionRateEditing = false;
 let subscriptionHeroValue = 0;
 let subscriptionHold = null;
 let subscriptionBusy = false;
+let subscriptionReadGeneration = 0;
 function subscriptionTypes(items = subscriptionState.items) {
   // Built-in types, then custom ones, then any type still used by a record after its custom entry was deleted.
   const list = [...subscriptionCategories, ...subscriptionState.customCategories.filter(type => !subscriptionCategories.includes(type))];
@@ -27093,14 +27203,14 @@ function subscriptionDayNumber(dateText) {
 function subscriptionDateFromDay(dayNumber) {
   return new Date(dayNumber * 86400000).toISOString().slice(0, 10);
 }
-function subscriptionAddMonths(dateText, months) {
+function subscriptionAddMonths(dateText, months, anchorDay) {
   // A charge that starts on the 31st falls on the last day of shorter months, never in the next month.
   const [year, month, day] = String(dateText).split('-').map(Number);
   const index = month - 1 + months;
   const targetYear = year + Math.floor(index / 12);
   const targetMonth = index - Math.floor(index / 12) * 12;
   const lastDay = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
-  return `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(Math.min(day, lastDay)).padStart(2, '0')}`;
+  return `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(Math.min(anchorDay || day, lastDay)).padStart(2, '0')}`;
 }
 function subscriptionCycle(item) {
   // Records saved before custom cycles only carry cycleMonths (1 or 12).
@@ -27112,7 +27222,7 @@ function subscriptionChargeDate(item, index) {
   const { unit, count } = subscriptionCycle(item);
   return unit === 'day'
     ? subscriptionDateFromDay(subscriptionDayNumber(item.startDate) + index * count)
-    : subscriptionAddMonths(item.startDate, index * count);
+    : subscriptionAddMonths(item.startDate, index * count, item.cycleAnchorDay);
 }
 function subscriptionChargeIndex(item, dateText) {
   // Index of the last charge on or before dateText; -1 before the first charge.
@@ -27122,7 +27232,7 @@ function subscriptionChargeIndex(item, dateText) {
   const [startYear, startMonth] = item.startDate.split('-').map(Number);
   const [year, month] = dateText.split('-').map(Number);
   let index = Math.floor(((year - startYear) * 12 + month - startMonth) / count);
-  while (index > 0 && subscriptionAddMonths(item.startDate, index * count) > dateText) index -= 1;
+  while (index > 0 && subscriptionChargeDate(item, index) > dateText) index -= 1;
   return index;
 }
 function subscriptionDayAfter(dateText) {
@@ -27377,23 +27487,51 @@ async function subscriptionRequest(resource, body) {
   const response = await apiFetch(resource, body === undefined ? {} : {
     method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify(body)
   });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok || data.ok === false) {
+  const data = await response.json().catch(() => null);
+  if (!response.ok || data?.ok !== true) {
     // 409 = changed in another window since it was opened, 404 = deleted there; callers decide what to do.
-    const error = new Error(data.message || `续费服务暂时不可用（${response.status}）`);
+    const error = new Error(data?.message || (response.ok ? '续费数据格式异常，请重试' : `续费服务暂时不可用（${response.status}）`));
     error.status = response.status;
     error.data = data;
+    if (body !== undefined && (response.status === 404 || response.status === 409)) subscriptionReadGeneration++;
     throw error;
   }
+  const date = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
+    && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
+  const validCycle = (unit, count) => Number.isInteger(count) && count >= 1
+    && (unit === 'day' ? count <= 3650 : unit === 'month' && count <= 120);
+  const segment = item => item && date(item.startDate) && ['CNY', 'USD'].includes(item.currency)
+    && Number.isFinite(item.amount) && item.amount > 0 && typeof item.category === 'string'
+    && validCycle(item.cycleUnit ?? 'month', item.cycleCount ?? item.cycleMonths)
+    && (item.cycleAnchorDay == null || (Number.isInteger(item.cycleAnchorDay) && item.cycleAnchorDay >= 0 && item.cycleAnchorDay <= 31))
+    && (item.priceChanges == null || (Array.isArray(item.priceChanges) && item.priceChanges.every(change =>
+      date(change?.from) && Number.isFinite(change.amount) && change.amount >= 0)));
+  const validItem = item => segment(item) && typeof item.id === 'string' && typeof item.name === 'string'
+    && typeof item.updatedAt === 'string' && ['active', 'cancelled'].includes(item.status)
+    && (item.terms == null || (Array.isArray(item.terms) && item.terms.every(term => segment(term) && date(term.until))));
+  const validOptions = () => Array.isArray(data.customCategories) && data.customCategories.every(value => typeof value === 'string')
+    && Array.isArray(data.customPaymentMethods) && data.customPaymentMethods.every(value => typeof value === 'string')
+    && Array.isArray(data.customCycles) && data.customCycles.every(cycle => validCycle(cycle?.unit, cycle?.count));
+  const validRate = Number.isFinite(data.usdCnyRate) && data.usdCnyRate > 0;
+  const valid = resource === '/api/subscriptions' ? Array.isArray(data.items) && data.items.every(validItem) && validRate && validOptions()
+    : resource.endsWith('/options') ? validOptions() : resource.endsWith('/rate') ? validRate : validItem(data.item);
+  if (!valid) throw new Error('续费数据格式异常，请重试');
+  if (body !== undefined) subscriptionReadGeneration++;
   return data;
+}
+function setSubscriptionReadError(message) {
+  subscriptionState.error = message;
+  document.querySelectorAll('[data-sub-refresh-error]').forEach(box => {
+    box.hidden = !message || !subscriptionState.loaded;
+    box.querySelector('span').textContent = message ? `刷新失败，当前显示上次读取的数据。${message}` : '';
+  });
 }
 function applySubscriptionData(data) {
   Object.assign(subscriptionState, {
-    loaded:true, loadedAt:Date.now(), items:Array.isArray(data.items) ? data.items : [], usdCnyRate:Number(data.usdCnyRate) || 7.1,
-    customCycles:Array.isArray(data.customCycles) ? data.customCycles : [],
-    customPaymentMethods:Array.isArray(data.customPaymentMethods) ? data.customPaymentMethods : [],
-    customCategories:Array.isArray(data.customCategories) ? data.customCategories : []
+    loaded:true, loadedAt:Date.now(), items:data.items, usdCnyRate:data.usdCnyRate,
+    customCycles:data.customCycles, customPaymentMethods:data.customPaymentMethods, customCategories:data.customCategories
   });
+  setSubscriptionReadError('');
   if (Array.isArray(data.defaultPaymentMethods)) subscriptionState.defaultPaymentMethods = data.defaultPaymentMethods;
 }
 let subscriptionReminderRetry = { timer:0, tries:0 };
@@ -27401,12 +27539,15 @@ async function refreshSubscriptionReminders() {
   // The bell needs the renewals even before the page is opened. A failed read is retried after 1, 5, then
   // every 15 minutes (and on every hourly / midnight / focus refresh), and said once a day in the bell.
   if (!subscriptionState.loaded && !subscriptionState.loading) {
+    const generation = ++subscriptionReadGeneration;
     try {
       const data = await subscriptionRequest('/api/subscriptions');
-      if (!subscriptionState.loaded) applySubscriptionData(data);
+      if (generation !== subscriptionReadGeneration) return;
+      applySubscriptionData(data);
       clearTimeout(subscriptionReminderRetry.timer);
       subscriptionReminderRetry = { timer:0, tries:0 };
     } catch (error) {
+      if (generation !== subscriptionReadGeneration) return;
       clearTimeout(subscriptionReminderRetry.timer);
       const tries = subscriptionReminderRetry.tries + 1;
       subscriptionReminderRetry = { tries, timer:setTimeout(refreshSubscriptionReminders, [1, 5][tries - 1] * 60000 || 15 * 60000) };
@@ -27424,9 +27565,16 @@ async function reloadSubscriptionsQuietly({ force = false } = {}) {
   if (!subscriptionState.loaded || subscriptionState.loading || subscriptionBusy) return;
   if (!force && Date.now() - (subscriptionState.loadedAt || 0) < 30000) return;
   subscriptionState.loadedAt = Date.now();
+  const generation = ++subscriptionReadGeneration;
   let data;
-  try { data = await subscriptionRequest('/api/subscriptions'); } catch (_) { return; }
-  if (subscriptionBusy) return;
+  try {
+    data = await subscriptionRequest('/api/subscriptions');
+  } catch (error) {
+    if (generation === subscriptionReadGeneration) setSubscriptionReadError(error.message || '读取续费数据失败');
+    return;
+  }
+  if (generation !== subscriptionReadGeneration || subscriptionBusy) return;
+  setSubscriptionReadError('');
   const pick = source => JSON.stringify([source.items, source.usdCnyRate, source.customCycles, source.customPaymentMethods, source.customCategories]);
   if (pick(data) === pick(subscriptionState)) return;
   applySubscriptionData(data);
@@ -27490,12 +27638,16 @@ function subscriptionReminders(today = subscriptionLocalDate()) {
   });
 }
 async function loadSubscriptions() {
-  Object.assign(subscriptionState, { loading:true, error:'' });
+  if (subscriptionState.loading) return;
+  const generation = ++subscriptionReadGeneration;
+  subscriptionState.loading = true;
+  setSubscriptionReadError('');
   renderSubscriptionsPage();
   try {
-    applySubscriptionData(await subscriptionRequest('/api/subscriptions'));
+    const data = await subscriptionRequest('/api/subscriptions');
+    if (generation === subscriptionReadGeneration) applySubscriptionData(data);
   } catch (error) {
-    subscriptionState.error = error.message || '读取续费数据失败';
+    if (generation === subscriptionReadGeneration) setSubscriptionReadError(error.message || '读取续费数据失败');
   } finally {
     subscriptionState.loading = false;
   }
@@ -28474,12 +28626,12 @@ async function commitSubscriptionRate({ cancel = false, fromBlur = false } = {})
   if (!subscriptionRateEditing || !input) return;
   const value = input.value.trim();
   const rate = Number(value);
-  const valid = value !== '' && Number.isFinite(rate) && rate > 0 && rate <= 100;
+  const valid = value !== '' && Number.isFinite(rate) && Math.round(rate * 10000) > 0 && rate <= 100;
   if (!cancel && !valid && !fromBlur) {
     input.classList.remove('err');
     void input.offsetWidth;
     input.classList.add('err');
-    subscriptionToast('汇率要在 0 到 100 之间，例如 7.1');
+    subscriptionToast('汇率要在 0 到 100 之间，四舍五入到四位小数后须大于 0，例如 7.1');
     return;
   }
   subscriptionRateEditing = false;
@@ -28748,23 +28900,16 @@ async function deleteSubscription(id) {
   if (!item || subscriptionBusy) return;
   const charges = subscriptionSchedule(item, subscriptionLocalDate(), subscriptionState.usdCnyRate).charges;
   subscriptionBusy = true;
+  let deleted;
   try {
-    await subscriptionRequest('/api/subscriptions/delete', { id });
+    ({ item:deleted } = await subscriptionRequest('/api/subscriptions/delete', { id, baseUpdatedAt:item.updatedAt }));
   } catch (error) {
     subscriptionBusy = false;
-    if (error.status === 404) {
-      // Already deleted in another window: just drop it here too.
-      subscriptionState.items = subscriptionState.items.filter(other => other.id !== id);
-      closeSubscriptionDetail({ restoreFocus:false });
-      renderSubscriptionArea();
-      subscriptionToast(`${item.name} 已在别处删除`);
-      return;
-    }
+    if (subscriptionConflictRecovered(error, id)) return;
     subscriptionToast(`删除失败：${error.message}`);
     if (subscriptionDetailId === id) renderSubscriptionDetail();
     return;
   }
-  subscriptionBusy = false;
   const row = document.querySelector(`#subsList [data-sub-id="${CSS.escape(id)}"]`);
   const next = row && (row.nextElementSibling || row.previousElementSibling);
   closeSubscriptionDetail({ restoreFocus:false });
@@ -28775,21 +28920,23 @@ async function deleteSubscription(id) {
     ], { duration:220, easing:'cubic-bezier(.7,0,.84,0)', fill:'forwards' }).finished.catch(() => {});
   }
   subscriptionState.items = subscriptionState.items.filter(other => other.id !== id);
+  subscriptionBusy = false;
   renderSubscriptionArea();
   const focusId = next?.dataset.subId;
   (focusId && document.querySelector(`#subsList [data-sub-id="${CSS.escape(focusId)}"]`) || (document.getElementById('subsAddBtn')?.offsetParent ? document.getElementById('subsAddBtn') : null))?.focus({ preventScroll:true });
-  subscriptionToast(charges ? `已删除 ${item.name} 和 ${charges} 笔扣费记录` : `已删除 ${item.name}`, () => restoreSubscription(item, `已恢复 ${item.name}`));
+  subscriptionToast(charges ? `已删除 ${item.name} 和 ${charges} 笔扣费记录` : `已删除 ${item.name}`, () => restoreSubscription(deleted, `已恢复 ${deleted.name}`));
 }
 async function restoreSubscription(item, message) {
   // Undo after delete writes the previous record back with the same id and creation time.
   try {
-    const { item:saved } = await subscriptionRequest('/api/subscriptions/save', { item });
+    const { item:saved } = await subscriptionRequest('/api/subscriptions/save', { item, restore:true });
     upsertSubscription(saved);
     renderSubscriptionArea();
     flashSubscriptionRow(saved.id);
     if (subscriptionDetailId === saved.id) renderSubscriptionDetail();
     subscriptionToast(message);
   } catch (error) {
+    if (subscriptionConflictRecovered(error, item.id)) return;
     subscriptionToast(`撤销失败：${error.message}`);
   }
 }
@@ -29067,7 +29214,13 @@ function subscriptionParseAmount(text, { allowZero = false } = {}) {
   if (allowZero ? value < 0 : value < 0.01) return { value, error:allowZero ? '请填写 0 或以上的金额' : '金额要大于 0' };
   return { value, error:'' };
 }
+function subscriptionDraftAmount(draft) {
+  // The drawer can set the recurring price to zero. Its existing value remains valid when editing the card or other details.
+  const allowZero = Boolean(draft.id && subscriptionDraftClean && Number(JSON.parse(subscriptionDraftClean).amount) === 0);
+  return subscriptionParseAmount(draft.amount, { allowZero });
+}
 let subscriptionEditorOrigin = '';
+let subscriptionEditorBase = null;
 function openSubscriptionEditor(id = '', { resubscribe = false, origin = '' } = {}) {
   const existing = findSubscription(id);
   const today = subscriptionLocalDate();
@@ -29089,11 +29242,12 @@ function openSubscriptionEditor(id = '', { resubscribe = false, origin = '' } = 
     const lastCharge = subscriptionChargeDate(existing, Math.max(0, paid - 1));
     const recurring = subscriptionPriceChanges(existing).filter(change => !change.once);
     Object.assign(subscriptionDraft, {
-      id:'', createdAt:undefined, updatedAt:undefined, status:'active', endsOn:'', stopOn:'', startDate:today, priceChanges:[], terms:[], renewedThrough:undefined, nextDate:'',
+      id:'', createdAt:undefined, updatedAt:undefined, status:'active', endsOn:'', stopOn:'', startDate:today, cycleAnchorDay:0, priceChanges:[], terms:[], renewedThrough:undefined, nextDate:'',
       amount:String(subscriptionPriceAt({ ...existing, priceChanges:recurring }, lastCharge)), resubscribeOf:existing.id,
       extra:(({ providerCancelledOn, ...rest }) => rest)(existing.extra || {})
     });
   }
+  subscriptionEditorBase = resubscribe ? null : existing;
   subscriptionEditorOrigin = existing && !resubscribe ? origin : '';
   subscriptionDraftClean = JSON.stringify(subscriptionDraft);
   if (!document.getElementById('subscriptionDrawer').classList.contains('open')) subscriptionReturnFocus = uiOpenedFrom();
@@ -29138,8 +29292,9 @@ function openSubscriptionEditor(id = '', { resubscribe = false, origin = '' } = 
   }, 60);
 }
 // 保存失败时弹窗已经不在：按原来的入口重新打开，再换回用户填的草稿（仍算没保存），并把失败原因写在弹窗里。
-function reopenSubscriptionEditorWithDraft(draft, message = '') {
+function reopenSubscriptionEditorWithDraft(draft, message = '', base = null) {
   openSubscriptionEditor(draft.id && findSubscription(draft.id) ? draft.id : '');
+  subscriptionEditorBase = base;
   subscriptionDraft = { ...draft };
   const form = document.getElementById('subscriptionEditForm');
   form.elements.subName.value = draft.name || '';
@@ -29174,6 +29329,7 @@ function closeSubscriptionEditor({ restoreFocus = true } = {}) {
   setModalOpenState('subscriptionEditModal', false);
   subscriptionDraft = null;
   subscriptionDraftClean = '';
+  subscriptionEditorBase = null;
   if (!restoreFocus) return;
   const drawerButton = document.querySelector('#subscriptionDrawer.open [data-sub-action="edit"]');
   (drawerButton || (subscriptionReturnFocus?.isConnected ? subscriptionReturnFocus : null))?.focus({ preventScroll:true });
@@ -29263,7 +29419,7 @@ function subscriptionStopHint(draft) {
   if (/^\d{4}-\d{2}-\d{2}$/.test(draft.startDate || '') && draft.stopOn >= draft.startDate) {
     const index = subscriptionChargeIndex(draft, draft.stopOn);
     if (index >= 0 && subscriptionChargeDate(draft, index) === draft.stopOn) {
-      const parsed = subscriptionParseAmount(draft.amount);
+      const parsed = subscriptionDraftAmount(draft);
       const priceText = parsed.error ? '' : ` ${subscriptionMoney(parsed.value, draft.currency)}`;
       const covered = subscriptionDateFromDay(subscriptionDayNumber(subscriptionChargeDate(draft, index + 1)) - 1);
       parts[0] = `${draft.stopOn} 当天还会扣一次${priceText}（覆盖到 ${covered}）。不想再付就选 ${subscriptionDateFromDay(subscriptionDayNumber(draft.stopOn) - 1)}`;
@@ -29300,14 +29456,18 @@ function closeSubscriptionOptionAdd(kind, { focus = false } = {}) {
   if (hadFocus) document.querySelector(`#subscriptionEditForm [data-opt-add="${kind}"]`)?.focus({ preventScroll:true });
 }
 async function saveSubscriptionOptions(next) {
-  const data = await subscriptionRequest('/api/subscriptions/options', {
-    customCycles:next.customCycles ?? subscriptionState.customCycles,
-    customPaymentMethods:next.customPaymentMethods ?? subscriptionState.customPaymentMethods,
-    customCategories:next.customCategories ?? subscriptionState.customCategories
-  });
-  subscriptionState.customCycles = data.customCycles;
-  subscriptionState.customPaymentMethods = data.customPaymentMethods;
-  subscriptionState.customCategories = data.customCategories || [];
+  const keys = Object.keys(next);
+  const baseOptions = Object.fromEntries(keys.map(key => [key, subscriptionState[key]]));
+  try {
+    const data = await subscriptionRequest('/api/subscriptions/options', { ...next, baseOptions });
+    keys.forEach(key => { subscriptionState[key] = data[key]; });
+  } catch (error) {
+    if (error.status === 409 && error.data?.currentOptions) {
+      keys.forEach(key => { subscriptionState[key] = error.data.currentOptions[key]; });
+      if (subscriptionDraft) renderSubscriptionOptions();
+    }
+    throw error;
+  }
 }
 const subscriptionOptionNames = { cycle:'扣费周期', category:'类型', payment:'付款方式' };
 async function addSubscriptionOption(kind) {
@@ -29408,7 +29568,7 @@ function renderSubscriptionPreview() {
   const draft = subscriptionDraft;
   if (!draft) return;
   const rate = subscriptionState.usdCnyRate;
-  const parsed = subscriptionParseAmount(draft.amount);
+  const parsed = subscriptionDraftAmount(draft);
   const amount = parsed.value;
   const hasAmount = !parsed.error;
   const cny = draft.currency === 'USD' ? amount * rate : amount;
@@ -29428,7 +29588,9 @@ function renderSubscriptionPreview() {
   document.getElementById('subscriptionPreviewCycle').textContent = subscriptionCycleLabel(draft) + (hasAmount && draft.currency === 'USD' ? ` · ≈${subscriptionMoney(cny)}` : '');
   const when = document.getElementById('subscriptionPreviewWhen');
   const validStart = /^\d{4}-\d{2}-\d{2}$/.test(draft.startDate || '');
-  const preview = validStart && { ...draft, amount:hasAmount ? amount : 0, renewedThrough:draft.id ? draft.renewedThrough : (draft.autoRenew ? '' : today), extra:{ ...(draft.extra || {}), remindDays:draft.remindDays === '' ? undefined : Number(draft.remindDays) } };
+  const original = subscriptionEditorBase;
+  const keepAnchor = original && original.startDate === draft.startDate && !subscriptionChangedTermFields(original, draft).includes('cycle');
+  const preview = validStart && { ...draft, cycleAnchorDay:keepAnchor ? draft.cycleAnchorDay : 0, amount:hasAmount ? amount : 0, renewedThrough:draft.id ? draft.renewedThrough : (draft.autoRenew ? '' : today), extra:{ ...(draft.extra || {}), remindDays:draft.remindDays === '' ? undefined : Number(draft.remindDays) } };
   const schedule = validStart && subscriptionSchedule(preview, today, rate);
   // The date the countdown points at sits next to it (1 月 31 日开始的月付：02-28 扣费).
   if (validStart) {
@@ -29442,7 +29604,6 @@ function renderSubscriptionPreview() {
   }
   const monthly = validStart && hasAmount ? schedule.monthlyCny : cny;
   const isMonthly = subscriptionCycleKey(subscriptionCycle(draft)) === 'month:1';
-  const original = draft.id ? findSubscription(draft.id) : null;
   let effect = '';
   if (original && hasAmount && validStart) {
     const before = subscriptionSchedule(original, today, rate);
@@ -29461,7 +29622,7 @@ function renderSubscriptionPreview() {
 }
 function subscriptionDraftError(draft) {
   if (!String(draft.name || '').trim()) return { field:'subName', message:'请填写名称' };
-  const amount = subscriptionParseAmount(draft.amount);
+  const amount = subscriptionDraftAmount(draft);
   if (amount.error) return { field:'subAmount', message:amount.error };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(draft.startDate || '')) return { field:'subStart', message:'请选择开始日期' };
   // A year typed as 0202 would bill 21,889 times; ten years ahead is a slip too.
@@ -29550,15 +29711,19 @@ function subscriptionFromNext(old, payload, amountChanged, effective) {
   const oldCycle = subscriptionCycle(old);
   const term = {
     startDate:old.startDate, until:effective, amount:old.amount, currency:old.currency, cycleUnit:oldCycle.unit, cycleCount:oldCycle.count,
+    ...(old.cycleAnchorDay ? { cycleAnchorDay:old.cycleAnchorDay } : {}),
     priceChanges:subscriptionPriceChanges(old).filter(change => change.from < effective), paymentMethod:old.paymentMethod || '', category:old.category
   };
   const sameGrid = !fields.includes('cycle') && !fields.includes('currency');
+  const anchorDay = !fields.includes('cycle') && oldCycle.unit === 'month' ? old.cycleAnchorDay || Number(old.startDate.slice(-2)) : 0;
   const recurring = subscriptionPriceAt({ ...old, priceChanges:subscriptionPriceChanges(old).filter(change => !change.once) }, effective);
+  const nextAmount = amountChanged || !sameGrid ? payload.amount : recurring;
+  const priceChanges = sameGrid ? subscriptionPriceChanges(old).filter(change => change.from > effective || (change.from === effective && change.once)) : [];
+  // The original base stays positive. A free recurring period is represented by a price change, as in the drawer.
+  if (nextAmount === 0) priceChanges.unshift({ from:effective, amount:0, once:false });
   return {
-    ...payload, startDate:effective, terms:[...subscriptionTerms(old), term],
-    amount:amountChanged || !sameGrid ? payload.amount : recurring,
-    // Price changes already planned after that date carry over when the billing days stay the same.
-    priceChanges:sameGrid ? subscriptionPriceChanges(old).filter(change => change.from > effective) : []
+    ...payload, startDate:effective, cycleAnchorDay:anchorDay, terms:[...subscriptionTerms(old), term],
+    amount:nextAmount || old.amount, priceChanges
   };
 }
 function subscriptionDraftPayload(draft) {
@@ -29574,6 +29739,7 @@ async function subscriptionPlanEdit(old, payload, today) {
   // Decides what an edit of an existing record saves. Returns the item, { resubscribe:true }, or null (keep editing).
   const draftClean = JSON.parse(subscriptionDraftClean || '{}');
   const amountChanged = Math.abs(payload.amount - subscriptionParseAmount(draftClean.amount).value) > .001;
+  if (payload.startDate !== old.startDate || subscriptionChangedTermFields(old, payload).includes('cycle')) payload.cycleAnchorDay = 0;
   const remapped = subscriptionRemapPriceChanges(old, payload);
   // 更正全部历史: the settings apply to every period; a new 金额 becomes the price throughout (one-off prices stay).
   const corrected = {
@@ -29648,7 +29814,7 @@ async function saveSubscriptionDraft(event) {
     return;
   }
   const today = subscriptionLocalDate();
-  const old = draft.id ? findSubscription(draft.id) : null;
+  const old = subscriptionEditorBase;
   let payload = subscriptionDraftPayload(draft);
   if (!old) {
     // Adding the same thing twice doubles 每月 and 一年约: ask (names compared without case and spaces).
@@ -29694,7 +29860,7 @@ async function saveSubscriptionDraft(event) {
       // 万一弹窗已经不在了（例如被别的入口关掉），错误要说出来，并带着这份草稿重新打开，输入不丢。
       if (!document.getElementById('subscriptionEditModal').classList.contains('open')) {
         toast(`续费没有保存：${error.message || '保存失败，请重试'}`, { tone:'error' });
-        reopenSubscriptionEditorWithDraft(draft, error.message || '保存失败，请重试');
+        reopenSubscriptionEditorWithDraft(draft, error.message || '保存失败，请重试', old);
       }
       return;
     }
@@ -29795,6 +29961,7 @@ document.getElementById('subsHero').addEventListener('keydown', event => {
 document.getElementById('subsHero').addEventListener('focusout', event => {
   if (event.target.id === 'subsRateInput') commitSubscriptionRate({ fromBlur:true });
 });
+document.querySelectorAll('[data-sub-refresh-error] button').forEach(button => button.addEventListener('click', loadSubscriptions));
 document.getElementById('subsList').addEventListener('click', event => {
   const edit = event.target.closest('[data-sub-edit]');
   if (edit) {
@@ -33632,10 +33799,12 @@ function uiRenderNotifs() {
   };
   // 今天 / 昨天 / 更早 分组：续费提醒算今天（它们排在今天那段里）。只有一组时不加小标题。
   const todayStart = parseDate(normalizeDate(new Date().toISOString())).getTime() || 0;
+  const yesterdayStart = new Date(todayStart);
+  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
   const groupOf = item => {
     if (item.subId) return 'today';
     const at = parseDate(item.time).getTime() || 0;
-    return at >= todayStart ? 'today' : at >= todayStart - 86400000 ? 'yesterday' : 'earlier';
+    return at >= todayStart ? 'today' : at >= yesterdayStart.getTime() ? 'yesterday' : 'earlier';
   };
   const groupNames = { today:'今天', yesterday:'昨天', earlier:'更早' };
   const shown = list.slice(0, uiNotifLimit());

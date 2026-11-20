@@ -37,7 +37,7 @@
   document.documentElement.append(host);
   const $ = id => shadow.getElementById(id);
   const panel = shadow.querySelector('.panel');
-  let account = '', enabled = {}, current = null, binding = null, busy = false, scanBusy = false, candidatesKey = '', selectionKey = '';
+  let account = '', autoEnabled = false, current = null, binding = null, busy = false, scanBusy = false, candidatesKey = '', selectionKey = '';
   const acknowledged = new Map();
   const signature = message => JSON.stringify([message.text, message.kind, message.timestamp]);
   const rpc = (action, payload = {}) => new Promise(resolve => {
@@ -50,6 +50,13 @@
   const status = (message, error = false) => { $('status').textContent = message; $('status').classList.toggle('error', error); };
   const key = () => account && current?.ok ? JSON.stringify([account, current.chatId]) : '';
   const snapshotKey = snapshot => snapshot?.ok ? JSON.stringify([snapshot.accountId, snapshot.chatId]) : '';
+  const settingKey = chat => `tradeWhatsAppAuto:${chat}`;
+  async function readAuto(chat) {
+    const name = settingKey(chat);
+    const saved = await chrome.storage.local.get([name, 'tradeWhatsAppEnabled']);
+    // Earlier versions kept all switches in one object. New per-chat keys override those saved preferences.
+    return (saved[name] ?? saved.tradeWhatsAppEnabled?.[chat]) === true;
+  }
   function updateButtons() {
     $('linkControls').hidden = Boolean(binding);
     $('accountSummary').textContent = account ? `WA-JS 已连接 · ${account.split('@')[0]}` : 'WA-JS 尚未连接';
@@ -58,7 +65,7 @@
     $('sync').disabled = !current?.ok || !account || !binding || busy || scanBusy;
     $('search').disabled = !current?.ok || busy || scanBusy;
     $('auto').disabled = !binding || !account || !current?.ok || scanBusy;
-    $('auto').checked = !!enabled[key()];
+    $('auto').checked = autoEnabled;
   }
   function showCandidates(result) {
     selectionKey = key();
@@ -75,25 +82,27 @@
     $('title').textContent = snapshot.ok ? snapshot.title : snapshot.message;
     $('phone').textContent = snapshot.phone || (snapshot.ok ? '网页未公开电话号码，可手动关联客户' : '');
     $('count').textContent = snapshot.messages?.length || 0;
-    if (previous !== key()) { binding = null; candidatesKey = ''; selectionKey = ''; $('binding').textContent = '尚未关联客户'; acknowledged.clear(); showCandidates({ customers:[] }); status(snapshot.ok ? '账号已自动识别，请确认当前聊天关联的客户。' : snapshot.message, !snapshot.ok); }
+    if (previous !== key()) { autoEnabled = false; binding = null; candidatesKey = ''; selectionKey = ''; $('binding').textContent = '尚未关联客户'; acknowledged.clear(); showCandidates({ customers:[] }); status(snapshot.ok ? '账号已自动识别，请确认当前聊天关联的客户。' : snapshot.message, !snapshot.ok); }
     updateButtons();
   }
-  async function identify() {
+  async function identify(refreshBinding = false) {
     if (scanBusy || busy) return;
     scanBusy = true; updateButtons();
     try {
       const snapshot = await TradeWhatsAppCollector.snapshot(); adopt(snapshot);
       if (!snapshot.ok) { status(snapshot.message, true); return; }
       const capturedKey = key();
-      if (candidatesKey !== capturedKey) {
+      autoEnabled = await readAuto(capturedKey);
+      if (refreshBinding || candidatesKey !== capturedKey) {
         const result = await rpc('search', { account, chatId:snapshot.chatId, phone:snapshot.phone });
         adopt(await TradeWhatsAppCollector.snapshot());
         if (capturedKey !== key()) return;
-        if (result.ok) { candidatesKey = capturedKey; binding = result.binding; $('binding').textContent = binding ? `已关联 · ${binding.customer}` : '尚未关联客户'; showCandidates(result); }
+        if (result.ok) { candidatesKey = capturedKey; binding = result.binding; $('binding').textContent = binding ? `已关联 · ${binding.customer}` : result.staleCustomer ? `原客户 ${result.staleCustomer} 已删除，请选择新客户，确认后已有聊天记录也会归到该客户。` : '尚未关联客户'; showCandidates(result); }
         else status(result.message, true);
       }
-    } finally { scanBusy = false; updateButtons(); }
-    if (enabled[key()] && binding && !busy) await sync(false);
+    } catch { autoEnabled = false; status('无法读取自动同步设置，请重试。', true); }
+    finally { scanBusy = false; updateButtons(); }
+    if (autoEnabled && binding && !busy) await sync(false);
   }
   async function sync(manual = true) {
     if (busy || scanBusy || !binding || !account) return;
@@ -103,7 +112,7 @@
     try {
       const snapshot = await TradeWhatsAppCollector.snapshot();
       if (snapshotKey(snapshot) !== capturedKey) { adopt(snapshot); return; }
-      const pending = snapshot.messages.filter(message => acknowledged.get(message.id) !== signature(message));
+      const pending = manual ? snapshot.messages : snapshot.messages.filter(message => acknowledged.get(message.id) !== signature(message));
       if (!pending.length) { status('当前已加载消息均已同步。'); return; }
       // Native requests are limited to 4 MiB. Count encoded JSON bytes, not characters.
       const encoder = new TextEncoder();
@@ -111,7 +120,7 @@
       for (let start = 0; start < pending.length;) {
         const visible = await TradeWhatsAppCollector.snapshot();
         if (snapshotKey(visible) !== capturedKey) { adopt(visible); break; }
-        if (capturedKey !== key() || (!manual && !enabled[capturedKey])) break;
+        if (capturedKey !== key()) break;
         const batch = [];
         let bytes = envelopeBytes;
         while (start < pending.length && batch.length < 100) {
@@ -123,8 +132,18 @@
           }
           batch.push(message); bytes += extra; start++;
         }
+        if (!manual) {
+          const allowed = await readAuto(capturedKey);
+          if (!allowed || !autoEnabled) { autoEnabled = false; status('已暂停自动同步。'); return; }
+        }
         const result = await rpc('sync', { account:capturedAccount, chatId:snapshot.chatId, messages:batch });
-        if (!result.ok) throw new Error(result.message);
+        if (!result.ok) {
+          if (result.code === 'STALE_BINDING') {
+            binding = null; candidatesKey = ''; acknowledged.clear();
+            $('binding').textContent = '原关联已失效，请重新确认客户。';
+          }
+          throw new Error(result.message);
+        }
         if (capturedKey !== key()) break;
         batch.forEach(message => acknowledged.set(message.id, signature(message))); total += result.inserted; updated += result.updated || 0;
       }
@@ -132,9 +151,9 @@
     } catch (error) { status(`${error.message}。保留在网页中的消息可重试。`, true); }
     finally { busy = false; updateButtons(); }
   }
-  shadow.querySelector('.launcher').onclick = () => { panel.hidden = !panel.hidden; identify(); };
+  shadow.querySelector('.launcher').onclick = () => { panel.hidden = !panel.hidden; identify(true); };
   shadow.querySelector('.close').onclick = () => { panel.hidden = true; };
-  chrome.runtime.onMessage.addListener(message => { if (message.action === 'toggle-panel') { panel.hidden = !panel.hidden; identify(); } });
+  chrome.runtime.onMessage.addListener(message => { if (message.action === 'toggle-panel') { panel.hidden = !panel.hidden; identify(true); } });
   $('connection').onclick = async () => { const result = await rpc('status'); status(result.ok ? `本机连接正常，已保存 ${result.messages} 条消息。` : result.message, !result.ok); };
   $('search').onclick = async () => {
     if (!current?.ok || !account || busy || scanBusy) return;
@@ -164,16 +183,27 @@
     } finally { busy = false; updateButtons(); }
   };
   $('auto').onchange = async () => {
-    if (!key()) return;
-    enabled[key()] = $('auto').checked;
-    await chrome.storage.local.set({ tradeWhatsAppEnabled:enabled });
-    status($('auto').checked ? '自动同步已开启，仅针对当前关联聊天。' : '已暂停自动同步。');
-    if ($('auto').checked) await sync(false);
+    const chat = key();
+    if (!chat) return;
+    const checked = $('auto').checked;
+    autoEnabled = checked;
+    try {
+      await chrome.storage.local.set({ [settingKey(chat)]:checked });
+      if (key() !== chat) return;
+      status(checked ? '自动同步已开启，仅针对当前关联聊天。' : '已暂停自动同步。');
+      if (checked) await sync(false);
+    } catch {
+      if (key() === chat) { autoEnabled = false; updateButtons(); status('自动同步设置未能保存，请重试。', true); }
+    }
   };
   $('sync').onclick = () => sync(true);
-  chrome.storage.local.get(['tradeWhatsAppEnabled']).then(saved => {
-    enabled = saved.tradeWhatsAppEnabled || {}; identify();
+  chrome.storage.onChanged.addListener((changes, area) => {
+    const chat = key();
+    if (area !== 'local' || !chat) return;
+    const change = changes[settingKey(chat)];
+    if (change) { autoEnabled = change.newValue === true; updateButtons(); }
   });
+  identify();
   // Polling reads only the active chat; it does not open other chats or load history.
   setInterval(identify, 4000);
 })();

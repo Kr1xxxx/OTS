@@ -48,9 +48,45 @@ assert.equal(store.messages({ customer:'Robert' }).total, 56, 'renamed customer 
 assert.equal(store.sync({ ...conversation, messages:[{ ...message, id:'after-rename' }] }).customer, 'Robert');
 db.prepare('UPDATE whatsapp_conversations SET customer = ? WHERE customer = ?').run('Gone', 'Robert');
 assert.throws(() => store.sync({ ...conversation, messages:[message] }), /关联/, 'stale binding cannot sync');
+const stale = store.search(conversation);
+assert.equal(stale.binding, null, 'user must be able to select a replacement');
+assert.equal(stale.staleCustomer, 'Gone');
 assert.equal(store.bind({ ...conversation, customer:'Robert' }).customer, 'Robert', 'stale binding to a missing customer can be re-pointed');
 assert.equal(store.messages({ customer:'Robert' }).total, 57, 're-pointed binding brings its history');
 assert.throws(() => store.bind({ ...conversation, customer:'Alice' }), /关联/, 'live binding still cannot be overwritten');
+// Two native host processes can see the same conversation at once. Interleave their bind requests at
+// the first connection's lookup; the second connection cannot acquire the write lock or overwrite it on retry.
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ots-bind-race-'));
+const file = path.join(dir, 'fixture.sqlite');
+const firstDb = new DatabaseSync(file);
+const otherDb = new DatabaseSync(file);
+try {
+  firstDb.exec("CREATE TABLE customers(name TEXT PRIMARY KEY, data_json TEXT); INSERT INTO customers VALUES('Alice','{}'),('Bob','{}')");
+  const other = createWhatsAppStore(otherDb);
+  let attempted = false;
+  const interleaved = createWhatsAppStore({
+    exec:sql => firstDb.exec(sql),
+    prepare(sql) {
+      const stmt = firstDb.prepare(sql);
+      if (!sql.startsWith('SELECT customer, title,')) return stmt;
+      return { get(...args) {
+        const result = stmt.get(...args);
+        attempted = true;
+        assert.throws(() => other.bind({ ...conversation, customer:'Bob' }), /locked/);
+        return result;
+      } };
+    }
+  });
+  assert.equal(interleaved.bind({ ...conversation, customer:'Alice' }).customer, 'Alice');
+  assert.ok(attempted);
+  assert.throws(() => other.bind({ ...conversation, customer:'Bob' }), /关联/);
+  assert.equal(other.search(conversation).binding.customer, 'Alice');
+} finally {
+  otherDb.close(); firstDb.close(); fs.rmSync(dir, { recursive:true, force:true });
+}
 const fresh = new DatabaseSync(':memory:');
 assert.equal(renameWhatsAppCustomer(fresh, 'A', 'B'), 0, 'rename is a no-op before WhatsApp tables exist');
 fresh.close();

@@ -24,6 +24,7 @@ vm.runInContext(extractConst('stageDefs'), context);
 [
   'globalSearchText',
   'normalizeSearchText',
+  'normalizeTrackingStatus',
   'searchCountryAliasGroups',
   'searchCountryAliasTable',
   'searchTextDocument',

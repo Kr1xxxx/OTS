@@ -64,11 +64,19 @@ const booted = page => page.evaluate(() => window.__booted.length);
       await context.close();
     }
 
-    // 3. The database cannot be read: the page protects itself (read-only) and is still a working app.
+    // 3. Recovery remains usable without confirming an update. A later successful read can confirm it once.
     {
-      const { context, page } = await open(browser, { data: route => route.fulfill({ status:500, json:{ ok:false, message:'database is missing' } }) });
+      let restored = false;
+      const { context, page } = await open(browser, { data: route => route.fulfill(restored
+        ? { json:emptyData } : { status:500, json:{ ok:false, message:'database is missing' } }) });
       await page.waitForFunction(() => window.__booted.length === 1);
       assert.equal(await page.evaluate(() => macStorageMode), 'load-failed');
+      await page.evaluate(() => loadMacAppState());
+      assert.deepEqual(await page.evaluate(() => window.__booted.map(report => report.databaseReady)), [false]);
+      restored = true;
+      await page.evaluate(() => loadMacAppState());
+      await page.evaluate(() => loadMacAppState());
+      assert.deepEqual(await page.evaluate(() => window.__booted.map(report => report.databaseReady)), [false, true]);
       await context.close();
     }
 

@@ -40,6 +40,7 @@ async function openBoard(browser, data, { width = 1440, height = 920, theme = 'l
     let response = { ok:true };
     if (pathname === '/api/data') response = store.current;
     if (pathname === '/api/health') response = { ok:true, storageMode:'sqlite', counts:{ orders:(data.orders || []).length }, backups:{ sqliteCount:0 } };
+    if (pathname === '/api/subscriptions') response = { ok:true, items:[], usdCnyRate:7.1, customCategories:[], customCycles:[], customPaymentMethods:[] };
     if (pathname === '/api/ecb-rates') response = { ok:true, rates:ecbRates };
     if (pathname === '/api/track') response = { ok:false, status:'待 API 查询', message:'offline' };
     if (pathname === '/api/save') {

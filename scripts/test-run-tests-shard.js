@@ -50,4 +50,16 @@ for (const bad of ['0/2', '3/2', '2', '1/0', 'a/b', '1/2/3', '-1/2']) {
   assert.equal(result.names.length, 0);
 }
 
+// A spawn failure emits both 'error' and 'close'. The summary must count it exactly once.
+const missingCommand = spawnSync(process.execPath, ['-e', `
+  const runner = process.argv[1];
+  process.execPath = runner + '.missing';
+  process.argv = [process.execPath, runner, 'test-backup-names'];
+  require(runner);
+`, runner], { env: { ...process.env, OTS_TEST_BROWSER: '', OTS_TEST_SHARD: '' }, encoding: 'utf8' });
+assert.equal(missingCommand.status, 1);
+assert.equal(missingCommand.stdout.match(/^FAIL {2}test-backup-names /gm)?.length, 1, missingCommand.stdout);
+assert.match(missingCommand.stdout, /ENOENT/);
+assert.match(missingCommand.stdout.trim(), /0 passed, 1 failed, 0 skipped in [\d.]+s$/);
+
 console.log('Test shards passed: the parts add up to the whole list in Chromium and WebKit, and a wrong value stops the run.');

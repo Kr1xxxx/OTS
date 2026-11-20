@@ -353,6 +353,15 @@ async function runMatrix({ part, launchBrowser, openBoard, port }) {
   const fixturePath = path.join(__dirname, '..', 'fixtures', `detail-drawer-save-matrix-${part}.json`);
   const update = process.argv.includes('--update');
   const filter = process.argv.slice(2).find(arg => !arg.startsWith('--')) || '';
+  const caseName = kase => `${kase.order} / ${kase.name}`;
+  const available = cases.filter(kase => parts[part].includes(kase.order));
+  const selected = available.filter(kase => caseName(kase).includes(filter));
+  if (!selected.length) throw new Error(`No drawer cases match ${JSON.stringify(filter)}. Available cases:\n${available.map(caseName).join('\n')}`);
+  if (process.argv.includes('--list')) {
+    selected.forEach(kase => console.log(caseName(kase)));
+    return;
+  }
+  if (update && filter) throw new Error('--update writes the whole baseline; run it without a filter');
   const withFailures = part === 2 && !filter;
   const browser = await launchBrowser();
   try {
@@ -379,12 +388,11 @@ async function runMatrix({ part, launchBrowser, openBoard, port }) {
     const tomorrow = new Date(now.getTime() + 86400000);
     const scrub = scrubber([today, `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}`]);
 
-    const selected = cases.filter(kase => parts[part].includes(kase.order) && (!filter || `${kase.order} / ${kase.name}`.includes(filter)));
     const names = new Set();
     const results = {};
     const started = Date.now();
     for (const kase of selected) {
-      const key = `${kase.order} / ${kase.name}`;
+      const key = caseName(kase);
       assert.ok(!names.has(key), `duplicate case ${key}`);
       names.add(key);
       const result = await runCase(page, store, kase);
@@ -401,7 +409,6 @@ async function runMatrix({ part, launchBrowser, openBoard, port }) {
     assert.equal(dialogs.length, 0, `native dialogs: ${dialogs.join(' | ')}`);
 
     if (update) {
-      if (filter) throw new Error('--update writes the whole baseline; run it without a filter');
       fs.mkdirSync(path.dirname(fixturePath), { recursive:true });
       // One line per case: a change shows up in a diff as the cases it touched.
       const lines = Object.entries(results).map(([key, value]) => `  ${JSON.stringify(key)}:${JSON.stringify(value)}`);

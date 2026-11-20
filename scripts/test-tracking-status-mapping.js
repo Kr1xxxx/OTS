@@ -37,6 +37,12 @@ const frontStatus = text => vm.runInContext(`normalizeTrackingStatus(${JSON.stri
 const cases = [
   ['Delivered', '已签收'],
   ['Delivered - Signed for by: J.SMITH', '已签收'],
+  ['包裹已签收', '已签收'],
+  ['预计明日签收', ''],
+  ['Your shipment has been delivered', '已签收'],
+  ['Shipment is scheduled to be delivered tomorrow', ''],
+  ['Shipment will be delivered on Monday', ''],
+  ['Package has not been delivered', '异常'],
   ['Not delivered', '异常'],
   ['Not delivered - recipient not available', '异常'],
   ['Delivery attempted', '异常'],
@@ -76,6 +82,9 @@ const dhl = shipment => carriers.logisticsStatusFromDhl(shipment);
 assert.equal(dhl({ status:{ statusCode:'transit', description:'Shipment on hold' } }), '异常');
 assert.equal(dhl({ status:{ statusCode:'delivered', description:'Delivered' } }), '已签收');
 assert.equal(dhl({ status:{ statusCode:'transit', description:'Not delivered' } }), '异常');
+assert.equal(dhl({ status:{ statusCode:'transit', description:'Shipment is scheduled to be delivered tomorrow' } }), '运输中');
+assert.equal(dhl({ status:{ statusCode:'pre-transit', description:'Delivered' } }), '已发货');
+assert.equal(dhl({ status:{ statusCode:'transit', description:'Out for delivery' } }), '派送中');
 assert.equal(dhl({ status:{ statusCode:'failure', description:'' } }), '异常');
 assert.equal(dhl({ status:{ statusCode:'transit', description:'Processed at LEIPZIG' } }), '运输中');
 assert.equal(dhl({ status:{ statusCode:'pre-transit', description:'' } }), '已发货');

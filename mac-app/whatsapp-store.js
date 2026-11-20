@@ -18,7 +18,7 @@ function conversationKey(input) {
   if (!/^[\w.+:-]+@(c\.us|s\.whatsapp\.net|lid)$/.test(chatId)) fail('无法确认单人聊天标识');
   return { account, chatId };
 }
-function createWhatsAppStore(db) {
+function createWhatsAppStore(db, { inWriteTransaction = false } = {}) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS whatsapp_conversations (
       account TEXT NOT NULL, chat_id TEXT NOT NULL, customer TEXT NOT NULL,
@@ -34,6 +34,15 @@ function createWhatsAppStore(db) {
     );
     CREATE INDEX IF NOT EXISTS whatsapp_messages_chat ON whatsapp_messages(account, chat_id, seq);
   `);
+  function write(action) {
+    if (inWriteTransaction) return action();
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      const result = action();
+      db.exec('COMMIT');
+      return result;
+    } catch (error) { db.exec('ROLLBACK'); throw error; }
+  }
   const exists = name => db.prepare('SELECT name FROM customers WHERE name = ?').get(name);
   const findConversation = input => {
     const key = conversationKey(input);
@@ -58,24 +67,24 @@ function createWhatsAppStore(db) {
         }
       }
       const binding = input.account && input.chatId ? findConversation(input) : null;
-      return { ok:true, customers:matched, binding };
+      const stale = binding && !exists(binding.customer);
+      return { ok:true, customers:matched, binding:stale ? null : binding, ...(stale ? { staleCustomer:binding.customer } : {}) };
     },
     bind(input) {
       const { account, chatId } = conversationKey(input);
       const customer = bounded(input.customer, '客户', 300);
-      if (!exists(customer)) fail('客户不存在，请先在订单系统建档');
-      const previous = findConversation(input);
-      // A binding to a customer that no longer exists is stale and may be re-pointed.
-      if (previous && previous.customer !== customer && exists(previous.customer)) fail(`此聊天已关联 ${previous.customer}，不能覆盖已有聊天归属`);
       const title = bounded(input.title || '', '聊天标题', 300, false);
-      db.prepare(`INSERT INTO whatsapp_conversations VALUES(?, ?, ?, ?, ?)
-        ON CONFLICT(account, chat_id) DO UPDATE SET title = excluded.title, customer = excluded.customer`).run(account, chatId, customer, title, new Date().toISOString());
-      return { ok:true, customer };
+      return write(() => {
+        if (!exists(customer)) fail('客户不存在，请先在订单系统建档');
+        const previous = findConversation(input);
+        if (previous && previous.customer !== customer && exists(previous.customer)) fail(`此聊天已关联 ${previous.customer}，不能覆盖已有聊天归属`);
+        db.prepare(`INSERT INTO whatsapp_conversations VALUES(?, ?, ?, ?, ?)
+          ON CONFLICT(account, chat_id) DO UPDATE SET title = excluded.title, customer = excluded.customer`).run(account, chatId, customer, title, new Date().toISOString());
+        return { ok:true, customer };
+      });
     },
     sync(input) {
       const { account, chatId } = conversationKey(input);
-      const binding = findConversation(input);
-      if (!binding || !exists(binding.customer)) fail('请先关联有效客户再同步');
       if (!Array.isArray(input.messages) || input.messages.length > 100) fail('每批最多同步 100 条消息');
       const messages = input.messages.map(message => {
         if (!message || !['in', 'out'].includes(message.direction)) fail('消息方向无效');
@@ -91,19 +100,23 @@ function createWhatsAppStore(db) {
         kind = CASE WHEN kind = 'other' THEN ? ELSE kind END
         WHERE account = ? AND chat_id = ? AND message_id = ?
         AND ((text = '' AND ? <> '') OR (timestamp = '' AND ? <> '') OR (kind = 'other' AND ? <> 'other'))`);
-      let inserted = 0, updated = 0;
       const now = new Date().toISOString();
-      db.exec('BEGIN IMMEDIATE');
-      try {
+      return write(() => {
+        let inserted = 0, updated = 0;
+        const binding = findConversation(input);
+        if (!binding || !exists(binding.customer)) {
+          const error = new Error('请先关联有效客户再同步');
+          error.code = 'STALE_BINDING';
+          throw error;
+        }
         for (const m of messages) {
           const added = Number(insert.run(account, chatId, m.id, m.direction, m.timestamp, m.text, m.kind, now).changes);
           inserted += added;
           if (!added) updated += Number(fill.run(m.text, m.timestamp, m.kind, account, chatId, m.id, m.text, m.timestamp, m.kind).changes);
         }
         db.prepare('UPDATE whatsapp_conversations SET updated_at = ? WHERE account = ? AND chat_id = ?').run(now, account, chatId);
-        db.exec('COMMIT');
-      } catch (error) { db.exec('ROLLBACK'); throw error; }
-      return { ok:true, inserted, updated, duplicate:messages.length - inserted - updated, customer:binding.customer, syncedAt:now };
+        return { ok:true, inserted, updated, duplicate:messages.length - inserted - updated, customer:binding.customer, syncedAt:now };
+      });
     },
     messages(input = {}) {
       const customer = bounded(input.customer, '客户', 300);

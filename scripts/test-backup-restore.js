@@ -175,6 +175,17 @@ async function restoreTests(dataDir, request) {
   assert.equal(preview.diff.customers.added, 1);
   assert.equal((await request('/api/backup-preview', { method:'POST', body:{ name:'../trade-order-system.sqlite' } })).status, 400, 'only backup files in the backup folder');
   assert.equal((await request('/api/restore-backup', { method:'POST', body:{ name:'trade-order-data-20200101-000000.sqlite' } })).status, 404);
+  // An existing native writer must finish before its connection's database can be replaced.
+  const writer = new DatabaseSync(path.join(dataDir, 'trade-order-system.sqlite'));
+  try {
+    writer.exec('BEGIN IMMEDIATE');
+    writer.prepare("UPDATE metadata SET value=? WHERE key='app'").run('trade-order-system');
+    const busy = await request('/api/restore-backup', { method:'POST', body:{ name:good.data.name } });
+    assert.equal(busy.status, 409, JSON.stringify(busy.data));
+    writer.exec('COMMIT');
+    assert.equal((await request('/api/data')).data.revision, saved.data.revision);
+    assert.equal(fs.existsSync(path.join(dataDir, 'restore-pending.json')), false);
+  } finally { writer.close(); }
   const staleRevision = saved.data.revision;
   const restored = await request('/api/restore-backup', { method:'POST', body:{ name:good.data.name } });
   assert.equal(restored.status, 200, JSON.stringify(restored.data));
@@ -284,6 +295,103 @@ async function newMacTests(sourceDir, backupName) {
   }
 }
 
+async function interruptedRestore(sourceDir, backupName, point) {
+  const dir = seedDir('ots-restore-crash-');
+  const port = freePortSync();
+  const request = client(port);
+  const fault = path.join(dir, 'interrupt-restore.cjs');
+  fs.writeFileSync(fault, `
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const rename = fs.renameSync;
+    fs.renameSync = (from, to) => {
+      const result = rename(from, to);
+      const displaced = path.basename(from) === 'trade-order-system.sqlite' && to.includes('.replaced-');
+      const installed = path.basename(from).startsWith('.restore-') && path.basename(to) === 'trade-order-system.sqlite';
+      const committed = path.basename(to) === 'restore-committed.json';
+      if ({ displaced, installed, committed }[${JSON.stringify(point)}]) process.kill(process.pid, 'SIGKILL');
+      return result;
+    };
+  `);
+  let child = startServer(dir, port, ['--require', fault]);
+  try {
+    await waitForHealth(request);
+    const current = (await request('/api/data')).data;
+    current.data.orders = [];
+    const saved = await request('/api/save', { method:'POST', body:{ state:current, baseRevision:current.revision } });
+    assert.equal(saved.status, 200);
+    const marker = path.join(dir, 'sqlite-storage.json');
+    const originalId = JSON.parse(fs.readFileSync(marker)).databaseId;
+    const source = path.join(sourceDir, 'backups', backupName);
+    fs.copyFileSync(source, path.join(dir, 'backups', backupName));
+    const exit = new Promise(resolve => child.once('exit', (code, signal) => resolve({code, signal})));
+    await assert.rejects(fetch(`http://127.0.0.1:${port}/api/restore-backup`, {
+      method:'POST', headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' }, body:JSON.stringify({ name:backupName })
+    }));
+    assert.equal((await exit).signal, 'SIGKILL');
+    child = startServer(dir, port);
+    assert.equal((await waitForHealth(request)).data.storageMode, 'sqlite', point);
+    const loaded = (await request('/api/data')).data;
+    if (point === 'committed') {
+      assert.equal(loaded.data.orders.length, 3);
+      assert.ok(loaded.revision > saved.data.revision);
+      assert.notEqual(JSON.parse(fs.readFileSync(marker)).databaseId, originalId);
+    } else {
+      assert.deepEqual(loaded.data, current.data, point);
+      assert.equal(loaded.revision, saved.data.revision, point);
+      assert.equal(JSON.parse(fs.readFileSync(marker)).databaseId, originalId, point);
+    }
+    assert.ok(!fs.readdirSync(dir).some(file => /^(?:restore-(pending|committed)\.json|\.restore-)|\.replaced-/.test(file)));
+  } finally {
+    if (child.signalCode === null) await stopServer(child);
+    fs.rmSync(dir, { recursive:true, force:true });
+  }
+}
+
+async function partialAttachmentRestore() {
+  const dir = seedDir('ots-restore-attachments-');
+  const src = path.join(dir, 'trade-order-data.json');
+  const seed = JSON.parse(fs.readFileSync(src));
+  const folder = path.join(dir, 'attachments', 'o1');
+  for (const name of ['missing.png', 'other.png', 'same-size.png', 'linked/inside.png', 'linked/absent.png']) seed.data.orders[0].attachments.push({ name, fileUrl:`/attachments/o1/${name}` });
+  fs.writeFileSync(src, JSON.stringify(seed));
+  fs.writeFileSync(path.join(folder, 'other.png'), 'another image');
+  fs.writeFileSync(path.join(folder, 'same-size.png'), 'abcd');
+  fs.mkdirSync(path.join(folder, 'linked'));
+  for (const name of ['inside.png', 'absent.png']) fs.writeFileSync(path.join(folder, 'linked', name), 'image');
+  const port = freePortSync();
+  const request = client(port);
+  const child = startServer(dir, port);
+  try {
+    await waitForHealth(request);
+    const backup = (await request('/api/backup-before-change', { method:'POST', body:{ reason:'import' } })).data;
+    assert.equal(backup.ok, true);
+    const current = (await request('/api/data')).data;
+    current.data.orders = [];
+    assert.equal((await request('/api/save', { method:'POST', body:{ state:current, baseRevision:current.revision } })).status, 200);
+    fs.unlinkSync(path.join(folder, 'pay.png'));
+    fs.unlinkSync(path.join(folder, 'other.png'));
+    // A conflicting local path must not stop the remaining attachments from being copied.
+    fs.mkdirSync(path.join(folder, 'pay.png'));
+    fs.writeFileSync(path.join(folder, 'same-size.png'), 'wxyz');
+    fs.renameSync(path.join(folder, 'linked'), path.join(folder, 'neighbor'));
+    fs.unlinkSync(path.join(folder, 'neighbor', 'absent.png'));
+    fs.symlinkSync('neighbor', path.join(folder, 'linked'), 'dir');
+    const result = await request('/api/restore-backup', { method:'POST', body:{ name:backup.name } });
+    assert.equal(result.status, 200, JSON.stringify(result.data));
+    assert.equal(result.data.databaseRestored, true);
+    assert.equal((await request('/api/data')).data.data.orders.length, 3);
+    assert.deepEqual(result.data.attachmentFailures.map(item => item.file).sort(), ['o1/linked/absent.png', 'o1/linked/inside.png', 'o1/missing.png', 'o1/pay.png', 'o1/same-size.png']);
+    assert.equal(fs.existsSync(path.join(folder, 'neighbor', 'absent.png')), false);
+    assert.equal(fs.readFileSync(path.join(folder, 'same-size.png'), 'utf8'), 'wxyz');
+    assert.equal(result.data.restoredAttachments, 1);
+    assert.equal(fs.readFileSync(path.join(folder, 'other.png'), 'utf8'), 'another image');
+  } finally {
+    await stopServer(child);
+    fs.rmSync(dir, { recursive:true, force:true });
+  }
+}
+
 async function restoreWalBackup(dataDir, request, backupName) {
   const mainFile = path.join(dataDir, 'wal-fixture.sqlite');
   const rawName = 'trade-order-data-20260101-121212-before-restore.sqlite';
@@ -316,6 +424,8 @@ async function restoreWalBackup(dataDir, request, backupName) {
     await validationTests(request);
     await rotationTests(dataDir, request);
     const backupName = await restoreTests(dataDir, request);
+    for (const point of ['displaced', 'installed', 'committed']) await interruptedRestore(dataDir, backupName, point);
+    await partialAttachmentRestore();
     await restoreWalBackup(dataDir, request, backupName);
     await newMacTests(dataDir, backupName);
     console.log('Backup and restore tests passed: 4xx validation, tiered retention, restore with a safety snapshot and attachments, restore after an identity mismatch.');

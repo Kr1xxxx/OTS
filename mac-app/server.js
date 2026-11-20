@@ -16,7 +16,7 @@ const { createCarrierTracking, cleanTracking, detectCarrier } = require('./carri
 const { httpError } = require('./http-error');
 const { createFeishuNotifier, deliveryPublicFields, larkFailureText } = require('./feishu-notify');
 const { createAiChat } = require('./ai-chat');
-const { atomicWrite, readJson } = require('./file-store');
+const { atomicWrite, readJson, verifyStorageMarker } = require('./file-store');
 const { createRequestGuard, send, readJsonBody, validateFetchSite, requireJsonContentType } = require('./request-guard');
 const { createAppSettings, aiSettingLimits, trackingSettingLimits, assertSettingFields, assertAutoRunTimes, maskSecret } = require('./app-settings');
 const { createEcbRates } = require('./ecb-rates');
@@ -777,18 +777,18 @@ function writeStorageMarker() {
   }, null, 2));
 }
 
-function verifyStorageMarker() {
-  if (!fs.existsSync(storageMarkerFile)) return;
-  const marker = readJson(storageMarkerFile);
-  const expected = String(marker.databaseId || '');
-  const actual = metadataValue('database_id', '');
-  if (expected && actual && expected !== actual) {
-    throw new Error('SQLite database identity does not match the storage marker');
-  }
-}
-
 function initializeStorage() {
   ensureStorage();
+  try {
+    finishRestoreJournal(pendingRestoreFile, false);
+  } catch (error) {
+    storageMode = 'error';
+    storageError = `无法完成上次备份恢复：${error.message}`;
+    return;
+  }
+  // A cleanup failure can leave old files beside an already committed, usable database.
+  try { finishRestoreJournal(committedRestoreFile, true); }
+  catch (error) { console.warn(`Restore cleanup will be retried: ${error.message}`); }
   const existed = fs.existsSync(databaseFile);
   if (!existed && hasPriorSqliteEvidence()) {
     storageMode = 'error';
@@ -821,7 +821,7 @@ function initializeStorage() {
     }
     const integrity = databaseIntegrity();
     if (!integrity.ok) throw new Error(`SQLite integrity check failed: ${integrity.message}`);
-    verifyStorageMarker();
+    verifyStorageMarker(storageMarkerFile, metadataValue('database_id'));
     writeStorageMarker();
     storageRevision = Number(metadataValue('revision', '0'));
     storageMode = 'sqlite';
@@ -1452,30 +1452,95 @@ function backupPreview(name) {
     };
   } finally { db.close(); }
 }
-function mergeBackupAttachments(sourceDir) {
-  if (!fs.existsSync(sourceDir)) return 0;
+// Check every component before reading, copying or accepting an existing file as restored.
+function restoreAttachmentStat(root, relative) {
+  let file = root;
+  const parts = relative.split(path.sep);
+  for (let i = 0; i <= parts.length; i++) {
+    const stat = fs.lstatSync(file, { throwIfNoEntry:false });
+    if (!stat) return null;
+    if (i === parts.length && stat.isFile()) return stat;
+    if (i === parts.length || !stat.isDirectory()) throw new Error('路径含有链接或文件类型不符');
+    file = path.join(file, parts[i]);
+  }
+}
+function attachmentDigest(file) {
+  const fd = fs.openSync(file, 'r');
+  try {
+    const hash = crypto.createHash('sha256');
+    const chunk = Buffer.allocUnsafe(65536);
+    let length;
+    while ((length = fs.readSync(fd, chunk)) > 0) hash.update(chunk.subarray(0, length));
+    return hash.digest('hex');
+  } finally { fs.closeSync(fd); }
+}
+function mergeBackupAttachments(sourceDir, refs) {
   let copied = 0;
-  const root = path.resolve(attachmentsDir);
-  const walk = dir => {
-    fs.readdirSync(dir, { withFileTypes:true }).forEach(entry => {
-      const from = path.join(dir, entry.name);
-      if (entry.isDirectory()) return walk(from);
-      if (!entry.isFile()) return;
-      const target = path.resolve(attachmentsDir, path.relative(sourceDir, from));
-      if (!target.startsWith(root + path.sep) || fs.existsSync(target)) return;
+  const failures = [];
+  for (const target of refs) {
+    const relative = path.relative(attachmentsDir, target);
+    try {
+      const existing = restoreAttachmentStat(attachmentsDir, relative);
+      const sourceStat = restoreAttachmentStat(sourceDir, relative);
+      const source = path.join(sourceDir, relative);
+      if (existing) {
+        if (sourceStat && (existing.size !== sourceStat.size || attachmentDigest(target) !== attachmentDigest(source))) {
+          throw new Error('本机同名附件内容不同，已保留原文件');
+        }
+        continue;
+      }
+      if (!sourceStat) throw new Error('备份和本机均缺少此附件');
       fs.mkdirSync(path.dirname(target), { recursive:true, mode:0o700 });
-      fs.copyFileSync(from, target);
-      try { fs.chmodSync(target, 0o600); } catch (_) {}
+      // Publish only a complete copy, so a crash cannot leave a partial file under the attachment's name.
+      const temp = path.join(path.dirname(target), `.restore-${crypto.randomUUID()}.tmp`);
+      try {
+        fs.copyFileSync(source, temp, fs.constants.COPYFILE_EXCL);
+        fs.chmodSync(temp, 0o600);
+        fs.renameSync(temp, target);
+      } finally { fs.rmSync(temp, { force:true }); }
       copied += 1;
-    });
-  };
-  walk(sourceDir);
-  return copied;
+    } catch (error) {
+      failures.push({ file:relative, reason:error.code || error.message });
+    }
+  }
+  return { restoredAttachments:copied, attachmentFailures:failures };
+}
+const restoreFiles = [databaseFile, databaseFile + '-wal', databaseFile + '-shm', storageMarkerFile];
+const pendingRestoreFile = path.join(supportDir, 'restore-pending.json');
+const committedRestoreFile = path.join(supportDir, 'restore-committed.json');
+
+// Before commit, restore every original. After commit, only discard the parked originals.
+// Running this a second time is safe even if the first recovery stopped between file operations.
+function finishRestoreJournal(file, committed) {
+  if (!fs.existsSync(file)) return;
+  const { id, originals, phase } = readJson(file);
+  const draining = !committed && phase === 'draining';
+  const validOriginals = Array.isArray(originals) && originals.length === restoreFiles.length
+    && originals.every(value => typeof value === 'boolean');
+  if (!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(id) || (!draining && !validOriginals)) {
+    throw new Error('备份恢复记录损坏');
+  }
+  if (!draining) {
+    for (const [index, live] of restoreFiles.entries()) {
+      const parked = live + '.replaced-' + id;
+      if (committed) fs.rmSync(parked, { force:true });
+      else if (originals[index]) {
+        if (fs.existsSync(parked)) fs.renameSync(parked, live);
+        else if (!fs.existsSync(live)) throw new Error(`恢复时找不到原文件 ${path.basename(live)}`);
+      } else fs.rmSync(live, { force:true });
+    }
+  }
+  fs.rmSync(path.join(supportDir, `.restore-${id}.sqlite`), { force:true });
+  fs.unlinkSync(file);
 }
 function restoreFromBackup(name) {
   ensureStorage();
   const source = resolveBackupFile(name);
-  const staging = path.join(supportDir, `.restore-${process.pid}-${crypto.randomBytes(4).toString('hex')}.sqlite`);
+  if (fs.existsSync(pendingRestoreFile)) throw httpError(503, '上次恢复尚未结束，请重新启动服务以接回原库');
+  finishRestoreJournal(committedRestoreFile, true);
+  const id = crypto.randomUUID();
+  const staging = path.join(supportDir, `.restore-${id}.sqlite`);
+  let draining = false;
   try {
     if (fs.existsSync(source + '-wal')) {
       // 只读保护下留的原始快照分成主文件和 WAL。让 SQLite 把已提交的两部分一起写进待恢复文件。
@@ -1485,6 +1550,13 @@ function restoreFromBackup(name) {
       fs.copyFileSync(source, staging);
     }
     openBackupReadOnly(staging).close();
+    const attachmentRefs = backupAttachmentRefs(staging);
+    // Stop new native-host writes before waiting for existing ones and taking the safety snapshot.
+    draining = true;
+    atomicWrite(pendingRestoreFile, JSON.stringify({ id, phase:'draining' }));
+    if (database && database.prepare('PRAGMA wal_checkpoint(TRUNCATE)').get().busy) {
+      throw httpError(409, '数据库正被其他操作使用，请稍后再恢复');
+    }
     // 1. 当前数据先备份一份「恢复前」快照；生成不了就不恢复。
     let safety = null;
     if (storageMode === 'sqlite' && database) {
@@ -1506,27 +1578,22 @@ function restoreFromBackup(name) {
     // 2. 关库、原子替换。原来的文件先挪开，新库打不开就放回去。
     const previousRevision = database ? Math.max(storageRevision, Number(metadataValue('revision', '0'))) : storageRevision;
     if (database) {
-      try { database.exec('PRAGMA wal_checkpoint(TRUNCATE)'); } catch (_) {}
       database.close();
       database = null;
     }
     subscriptionStoreCache = null;
     integrityCache = null;
     storageMode = 'restoring';
-    const liveFiles = [databaseFile, databaseFile + '-wal', databaseFile + '-shm', storageMarkerFile];
-    const rollbackSuffix = `.replaced-${crypto.randomUUID()}`;
-    const movedFiles = [];
-    let replacementInstalled = false;
     let revision = 0;
+    let attachments;
     try {
-      // 主文件、日志和身份标记一起回滚。只记录已经成功移走的文件。
-      for (const file of liveFiles) {
-        if (!fs.existsSync(file)) continue;
-        fs.renameSync(file, file + rollbackSuffix);
-        movedFiles.push(file);
+      const originals = restoreFiles.map(file => fs.existsSync(file));
+      atomicWrite(pendingRestoreFile, JSON.stringify({ id, originals }));
+      draining = false;
+      for (const [index, file] of restoreFiles.entries()) {
+        if (originals[index]) fs.renameSync(file, file + '.replaced-' + id);
       }
       fs.renameSync(staging, databaseFile);
-      replacementInstalled = true;
       database = new DatabaseSync(databaseFile);
       createDatabaseSchema();
       const integrity = databaseIntegrity();
@@ -1547,18 +1614,14 @@ function restoreFromBackup(name) {
       // A backup from before customers had ids: the restored data gets them now.
       giveCustomersIds({ backup:false });
       revision = storageRevision;
+      attachments = mergeBackupAttachments(source + '.attachments', attachmentRefs);
+      fs.renameSync(pendingRestoreFile, committedRestoreFile);
     } catch (error) {
       try { database?.close(); } catch (_) {}
       database = null;
       storageMode = 'error';
       try {
-        if (replacementInstalled) {
-          // 没移走的文件若此时存在，就是新库创建的。原有文件由 rename 原子覆盖回来。
-          for (const file of liveFiles) {
-            if (!movedFiles.includes(file)) fs.rmSync(file, { force:true });
-          }
-        }
-        for (const file of movedFiles) fs.renameSync(file + rollbackSuffix, file);
+        finishRestoreJournal(pendingRestoreFile, false);
         initializeStorage();
       } catch (rollbackError) {
         storageError = `恢复失败，原数据库回滚未完成：${rollbackError.message || rollbackError}`;
@@ -1566,15 +1629,11 @@ function restoreFromBackup(name) {
       }
       throw httpError(500, `恢复没有完成，数据保持原样：${error.message || error}`);
     }
-    for (const file of movedFiles) {
-      try { fs.rmSync(file + rollbackSuffix, { force:true }); }
-      catch (error) { console.warn(`Restore completed; could not remove ${file + rollbackSuffix}: ${error.message}`); }
-    }
-    // 5. 附件并回来，已有的同名文件不覆盖。
-    let restoredAttachments = 0;
-    try { restoredAttachments = mergeBackupAttachments(source + '.attachments'); } catch (_) {}
-    return { ok:true, restored:name, revision, safetyBackup:safety?.name || '', restoredAttachments, counts:databaseCounts(), backups:backupSummary() };
+    try { finishRestoreJournal(committedRestoreFile, true); }
+    catch (error) { console.warn(`Restore cleanup will be retried: ${error.message}`); }
+    return { ok:true, databaseRestored:true, restored:name, revision, safetyBackup:safety?.name || '', ...attachments, counts:databaseCounts(), backups:backupSummary() };
   } finally {
+    if (draining) fs.rmSync(pendingRestoreFile, { force:true });
     fs.rmSync(staging, { force:true });
   }
 }
@@ -1745,6 +1804,7 @@ const server = http.createServer(async (req, res) => {
         delete item.baseUpdatedAt;
         delete item.restore;
         if (typeof body.baseUpdatedAt === 'string') item.baseUpdatedAt = body.baseUpdatedAt;
+        else if (item.id && typeof item.updatedAt === 'string') item.baseUpdatedAt = item.updatedAt;
         if (body.restore === true) item.restore = true;
       }
       const result = subscriptionStore().save(item);

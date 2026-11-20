@@ -32,4 +32,12 @@ function atomicWrite(file, text) {
   }
 }
 
-module.exports = { readJson, atomicWrite };
+// Only the app can initialize a marker on first open. Other database clients require an existing match.
+function verifyStorageMarker(file, databaseId, { requireMatch = false } = {}) {
+  if (!requireMatch && !fs.existsSync(file)) return;
+  const expected = String(readJson(file).databaseId || '');
+  if (expected && expected === databaseId) return;
+  if (requireMatch || (expected && databaseId)) throw new Error('SQLite database identity does not match the storage marker');
+}
+
+module.exports = { readJson, atomicWrite, verifyStorageMarker };

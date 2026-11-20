@@ -155,11 +155,48 @@ const fixture = {
     assert.match(preview.message, /不删除任何现有数据/);
     assert.equal(preview.go, '合并导入');
     await mergeFocused();
+    const elsewhere = await api('/api/data');
+    elsewhere.data.orders.find(item => item.id === 'u1').note = '另一窗口已保存的备注';
+    assert.ok((await api('/api/save', { state:elsewhere, baseRevision:elsewhere.revision })).ok);
+    await page.evaluate(() => macCheckRemoteRevision({ force:true }));
+    await page.waitForFunction(() => state.orders.find(item => item.id === 'u1')?.note === '另一窗口已保存的备注');
+    await h.click(page, '#importPreviewGoBtn');
+    await h.waitToast(page, '数据已经更新');
+    await previewOpen();
     await h.click(page, '#importPreviewGoBtn');
     await previewClosed();
+    assert.equal((await db()).orders.find(item => item.id === 'u1').note, '另一窗口已保存的备注');
     await h.waitToast(page, '已合并导入');
     assert.deepEqual((await db()).orders.map(o => o.num).sort(), ['K26080101', 'K26090101', 'K26100101', 'K26110101'], 'importing a one-month file keeps every other month');
     assert.equal(backups('import').length, 1, 'a forced before-import backup is taken even within the hourly window');
+
+    const mergedNumbers = await page.evaluate(() => {
+      const merge = (existing, imported) => mergeImportedState({ orders:existing, customers:{} }, { orders:imported }).state.orders.map(o => [o.id, o.num]);
+      const a = { id:'a', num:'K1' }, b = { id:'b', num:'K2' }, c = { id:'c', num:'K3' };
+      return [
+        merge([a], [{ ...b, num:'K1' }, { ...a, num:'K2' }]),
+        merge([a, b], [{ ...a, num:'K2' }, { ...b, num:'K1' }]),
+        merge([a, b, c], [{ ...a, num:'K2' }, { ...b, num:'K3' }])
+      ];
+    });
+    assert.deepEqual(mergedNumbers, [
+      [['a','K2'], ['b','K1']], [['a','K2'], ['b','K1']], [['a','K1'], ['b','K2'], ['c','K3']]
+    ], 'vacated numbers, swaps, and cascades ending at an occupied number');
+
+    const recovered = await page.evaluate(() => {
+      const delta = structuredClone(state);
+      delta.paymentMethods.push('恢复付款方式');
+      delta.orders = delta.orders.filter(order => order.id !== 'u4');
+      delete delta.customers['Zero Lead'];
+      const changes = macUnsavedChanges(delta);
+      const file = prepareImportedData({ ...dataFilePayload(changes.data, {scope:'unsaved-conflict'}), recovery:changes.recovery });
+      const elsewhere = structuredClone(state);
+      elsewhere.orders.find(order => order.id === 'u1').note = '导出后写入';
+      const result = mergeImportedState(elsewhere, file.data, {updateCustomers:true, recovery:file.recovery}).state;
+      return [result.paymentMethods.includes('恢复付款方式'), result.orders.some(order => order.id === 'u4'),
+        Object.hasOwn(result.customers, 'Zero Lead'), result.orders.find(order => order.id === 'u1').note];
+    });
+    assert.deepEqual(recovered, [true, false, false, '导出后写入'], 'conflict export round-trips setting and deletions without replacing another order');
 
     // ---- 2. 整份文件：预览对比、默认合并、替换要输入确认；金额文字转成数字；聊天不搬家；撤销 ----
     const current = (await db());
@@ -343,7 +380,18 @@ const fixture = {
     assert.match(readOnlyText, /^订单 · \d+$/m);
     assert.match(readOnlyText, /^垃圾箱 · 0$/m);
     assert.doesNotMatch(readOnlyText, /恢复后会变的/);
-    await Promise.all([page.waitForNavigation(), h.click(page, '#confirmOkBtn')]);
+    // The server regression exercises a failed attachment copy; check the warning, exported list and reload.
+    const missingFile = { file:'order/demo.png', reason:'ENOENT' };
+    await page.route('**/api/restore-backup', async route => {
+      const response = await route.fetch();
+      await route.fulfill({ response, json:{ ...await response.json(), attachmentFailures:[missingFile] } });
+    });
+    await h.click(page, '#confirmOkBtn');
+    await page.waitForFunction(() => document.getElementById('confirmTitle').textContent.includes('1 个附件未恢复'));
+    await Promise.all([page.waitForNavigation(), h.click(page, '#confirmOkBtn', '导出清单')]);
+    await h.waitToast(page, '数据库已恢复，1 个附件未恢复');
+    const reportName = fs.readdirSync(exportDir).find(name => name.startsWith('restore-attachments-'));
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(exportDir, reportName))).failures, [missingFile]);
     await page.waitForFunction(() => window.pendingSaveStatus?.().loaded);
     assert.equal((await (await fetch(`${url}/api/health`)).json()).storageMode, 'sqlite');
 

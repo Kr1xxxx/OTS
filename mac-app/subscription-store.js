@@ -1,7 +1,7 @@
 'use strict';
 const crypto = require('node:crypto');
 
-// Personal subscriptions live only in these two tables. Orders, reports, search and the JSON
+// Personal subscriptions live only in the subscription tables. Orders, reports, search and the JSON
 // data file never read them; the hourly SQLite backup copies them with the rest of the database.
 // Built-in types, each with its own icon and color on the page; the user can add their own.
 const categories = ['软件', 'AI', 'VPS', '域名', '云服务', '其他'];
@@ -58,25 +58,30 @@ function dayNumber(text) {
   const [year, month, day] = text.split('-').map(Number);
   return Math.round(Date.UTC(year, month - 1, day) / 86400000);
 }
-function addMonths(text, months) {
+function addMonths(text, months, anchorDay) {
   const [year, month, day] = text.split('-').map(Number);
   const index = month - 1 + months;
   const targetYear = year + Math.floor(index / 12);
   const targetMonth = index - Math.floor(index / 12) * 12;
   const lastDay = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
-  return `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(Math.min(day, lastDay)).padStart(2, '0')}`;
+  return `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(Math.min(anchorDay || day, lastDay)).padStart(2, '0')}`;
 }
 // Same schedule as the page: every charge is counted from the start date, so month ends do not drift.
-function isChargeDate(startDate, cycle, date) {
+function cleanAnchorDay(value, startDate, cycle) {
+  if (value == null || value === 0) return 0;
+  if (cycle.unit !== 'month' || !Number.isInteger(value) || value < 1 || value > 31 || addMonths(startDate, 0, value) !== startDate) fail('扣费日无效');
+  return value;
+}
+function isChargeDate(startDate, cycle, date, anchorDay) {
   if (date < startDate) return false;
   if (cycle.unit === 'day') return (dayNumber(date) - dayNumber(startDate)) % cycle.count === 0;
   const [startYear, startMonth] = startDate.split('-').map(Number);
   const [year, month] = date.split('-').map(Number);
   const months = (year - startYear) * 12 + month - startMonth;
-  return months % cycle.count === 0 && addMonths(startDate, months) === date;
+  return months % cycle.count === 0 && addMonths(startDate, months, anchorDay) === date;
 }
 const maxPriceChanges = 240;
-function cleanPriceChanges(value, startDate, cycle) {
+function cleanPriceChanges(value, startDate, cycle, anchorDay) {
   // Price changes per billing period: `once` overrides one charge (a period already paid at a
   // different price), otherwise the price holds from that charge date on until the next change.
   if (value === undefined || value === null) return [];
@@ -92,7 +97,7 @@ function cleanPriceChanges(value, startDate, cycle) {
     // A one-off price that is not on a charge date never applies; an onward one dated before the
     // start applies from the first charge, so it is stored there. Same effect, no dead entries,
     // and records saved before this check still save.
-    if (once && !isChargeDate(startDate, cycle, from)) return;
+    if (once && !isChargeDate(startDate, cycle, from, anchorDay)) return;
     if (!once && from < startDate) from = startDate;
     byKey.set(`${from}:${once}`, { from, amount:Math.round(amount * 100) / 100, once });
   });
@@ -114,11 +119,13 @@ function cleanTerms(value, startDate) {
     const cycle = cleanCycle(entry.cycleUnit, entry.cycleCount);
     const termStart = isoDate(entry.startDate, '历史设置日期');
     const until = isoDate(entry.until, '历史设置日期');
+    const anchorDay = cleanAnchorDay(entry.cycleAnchorDay, termStart, cycle);
     if (until <= termStart || (previousUntil && termStart < previousUntil) || until > startDate) fail('历史设置无效');
     previousUntil = until;
     return {
       startDate:termStart, until, amount, currency:oneOf(entry.currency, currencies, '币种'), cycleUnit:cycle.unit, cycleCount:cycle.count,
-      priceChanges:cleanPriceChanges(entry.priceChanges, termStart, cycle),
+      ...(anchorDay ? { cycleAnchorDay:anchorDay } : {}),
+      priceChanges:cleanPriceChanges(entry.priceChanges, termStart, cycle, anchorDay),
       paymentMethod:bounded(entry.paymentMethod, '付款方式', 40, false),
       category:Object.hasOwn(legacyCategories, entry.category) ? legacyCategories[entry.category] : bounded(entry.category, '类型', 20)
     };
@@ -145,6 +152,7 @@ function cleanItem(input) {
   // A start date more than ten years ahead is a typing slip too.
   const startDate = isoDate(input.startDate, '开始日期', { max:addMonths(localDate(), 120) });
   const terms = cleanTerms(input.terms, startDate);
+  const anchorDay = cleanAnchorDay(input.cycleAnchorDay, startDate, cycle);
   // The first day the item was used, before any earlier settings.
   const firstStart = terms[0]?.startDate || startDate;
   const endsOn = status === 'cancelled' ? isoDate(input.endsOn, '到期日') : '';
@@ -171,7 +179,8 @@ function cleanItem(input) {
     status,
     // A cancelled subscription keeps running until the charge date it would have renewed on.
     endsOn,
-    priceChanges:cleanPriceChanges(input.priceChanges, startDate, cycle),
+    cycleAnchorDay:anchorDay,
+    priceChanges:cleanPriceChanges(input.priceChanges, startDate, cycle, anchorDay),
     // Planned last day: charges dated after it are not counted.
     stopOn,
     terms,
@@ -202,6 +211,7 @@ function fromRow(row) {
     provider:row.provider || '', autoRenew:row.auto_renew !== 0,
     status:row.status, endsOn:storedDate(row.ends_on), priceChanges:storedPriceChanges(row.price_changes_json), stopOn:storedDate(row.stop_on),
     terms, renewedThrough:storedDate(row.renewed_through),
+    ...(row.cycle_anchor_day >= 1 && row.cycle_anchor_day <= 31 ? { cycleAnchorDay:row.cycle_anchor_day } : {}),
     createdAt:row.created_at, updatedAt:row.updated_at, extra
   };
 }
@@ -224,6 +234,11 @@ function createSubscriptionStore(db) {
       updated_at TEXT NOT NULL,
       extra_json TEXT NOT NULL DEFAULT '{}'
     );
+    CREATE TABLE IF NOT EXISTS subscription_deletions (
+      id TEXT PRIMARY KEY,
+      deleted_version TEXT NOT NULL,
+      deleted_at INTEGER NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS subscription_settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
@@ -232,6 +247,7 @@ function createSubscriptionStore(db) {
   // cycle_months holds the cycle count; cycle_unit says whether it counts days or months.
   const columns = db.prepare('PRAGMA table_info(subscriptions)').all().map(column => column.name);
   if (!columns.includes('cycle_unit')) db.exec("ALTER TABLE subscriptions ADD COLUMN cycle_unit TEXT NOT NULL DEFAULT 'month'");
+  if (!columns.includes('cycle_anchor_day')) db.exec('ALTER TABLE subscriptions ADD COLUMN cycle_anchor_day INTEGER NOT NULL DEFAULT 0');
   if (!columns.includes('payment_method')) db.exec("ALTER TABLE subscriptions ADD COLUMN payment_method TEXT NOT NULL DEFAULT ''");
   if (!columns.includes('provider')) db.exec("ALTER TABLE subscriptions ADD COLUMN provider TEXT NOT NULL DEFAULT ''");
   if (!columns.includes('auto_renew')) db.exec('ALTER TABLE subscriptions ADD COLUMN auto_renew INTEGER NOT NULL DEFAULT 1');
@@ -262,60 +278,83 @@ function createSubscriptionStore(db) {
     const rate = Number(setting('usd_cny_rate'));
     return Number.isFinite(rate) && rate > 0 ? rate : defaultUsdCnyRate;
   };
+  const write = operation => input => {
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      const result = operation(input);
+      db.exec('COMMIT');
+      return result;
+    } catch (error) {
+      db.exec('ROLLBACK');
+      throw error;
+    }
+  };
+  const conflict = row => {
+    const error = new Error('这一项在别处改过');
+    error.status = 409;
+    error.publicDetails = { current:fromRow(row) };
+    throw error;
+  };
   return {
     list() {
       const items = db.prepare('SELECT * FROM subscriptions ORDER BY created_at, id').all().map(fromRow);
       return { ok:true, items, usdCnyRate:usdCnyRate(), categories, defaultPaymentMethods, ...options() };
     },
-    save(input) {
+    save:write(input => {
       const item = cleanItem(input);
-      const now = new Date().toISOString();
-      const previous = db.prepare('SELECT created_at, updated_at, renewed_through FROM subscriptions WHERE id = ?').get(item.id);
-      // Edits carry the updatedAt they started from. Another window that saved or deleted the record
-      // in between gets a conflict instead of having its change silently overwritten or undone.
-      // Undo after a delete says so with restore:true. Callers without baseUpdatedAt keep the old upsert.
-      if (input.baseUpdatedAt !== undefined) {
-        if (!previous && input.restore !== true) fail('这一项已在别处删除', 404);
-        if (previous && previous.updated_at !== input.baseUpdatedAt) {
-          const error = new Error('这一项在别处改过');
-          error.status = 409;
-          error.publicDetails = { current:fromRow(db.prepare('SELECT * FROM subscriptions WHERE id = ?').get(item.id)) };
-          throw error;
-        }
+      const previous = db.prepare('SELECT * FROM subscriptions WHERE id = ?').get(item.id);
+      if (previous && (input.restore === true || (input.baseUpdatedAt !== undefined && previous.updated_at !== input.baseUpdatedAt))) conflict(previous);
+      if (!previous && input.baseUpdatedAt !== undefined && input.restore !== true) fail('这一项已在别处删除', 404);
+      if (input.restore === true) {
+        const deletion = db.prepare('SELECT deleted_version FROM subscription_deletions WHERE id = ?').get(item.id);
+        if (!deletion || deletion.deleted_version !== input.updatedAt) fail('这次删除已失效，不能撤销', 409);
       }
+      // The clock survives deletes and id reuse. Existing rows may predate this setting.
+      const lastVersion = Math.max(Date.parse(setting('last_write_at')) || 0, Date.parse(previous?.updated_at) || 0);
+      const now = new Date(Math.max(Date.now(), lastVersion + 1)).toISOString();
+      writeSetting('last_write_at', now);
+      db.prepare('DELETE FROM subscription_deletions WHERE id = ?').run(item.id);
       // Undo after delete writes the same record back, so a valid original creation time is kept.
       const restoredAt = typeof input.createdAt === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(input.createdAt) && !Number.isNaN(Date.parse(input.createdAt)) ? input.createdAt : '';
       const createdAt = previous?.created_at || restoredAt || now;
       // A new manual renewal counts what is already due as paid (the user is recording what they have).
       const renewedThrough = item.renewedThrough ?? (previous ? previous.renewed_through : (item.autoRenew ? '' : localDate()));
       db.prepare(`
-        INSERT INTO subscriptions(id, name, note, amount, currency, cycle_months, cycle_unit, payment_method, start_date, category, provider, auto_renew, color, status, ends_on, price_changes_json, stop_on, terms_json, renewed_through, created_at, updated_at, extra_json)
-        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO subscriptions(id, name, note, amount, currency, cycle_months, cycle_unit, payment_method, start_date, category, provider, auto_renew, color, status, ends_on, price_changes_json, stop_on, terms_json, renewed_through, created_at, updated_at, extra_json, cycle_anchor_day)
+        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           name = excluded.name, note = excluded.note, amount = excluded.amount, currency = excluded.currency,
           cycle_months = excluded.cycle_months, cycle_unit = excluded.cycle_unit, payment_method = excluded.payment_method, start_date = excluded.start_date, category = excluded.category,
           provider = excluded.provider, auto_renew = excluded.auto_renew, color = excluded.color, status = excluded.status, ends_on = excluded.ends_on,
           price_changes_json = excluded.price_changes_json, stop_on = excluded.stop_on, terms_json = excluded.terms_json, renewed_through = excluded.renewed_through,
-          updated_at = excluded.updated_at, extra_json = excluded.extra_json
+          updated_at = excluded.updated_at, extra_json = excluded.extra_json, cycle_anchor_day = excluded.cycle_anchor_day
       `).run(item.id, item.name, item.note, item.amount, item.currency, item.cycleCount, item.cycleUnit, item.paymentMethod, item.startDate,
         item.category, item.provider, item.autoRenew ? 1 : 0, item.color, item.status, item.endsOn, JSON.stringify(item.priceChanges), item.stopOn,
-        JSON.stringify(item.terms), renewedThrough, createdAt, now, JSON.stringify(item.extra));
+        JSON.stringify(item.terms), renewedThrough, createdAt, now, JSON.stringify(item.extra), item.cycleAnchorDay);
       return { ok:true, item:fromRow(db.prepare('SELECT * FROM subscriptions WHERE id = ?').get(item.id)) };
-    },
-    remove(input = {}) {
+    }),
+    remove:write((input = {}) => {
       const id = bounded(input.id, '续费项标识', 64);
-      const deleted = Number(db.prepare('DELETE FROM subscriptions WHERE id = ?').run(id).changes);
-      if (!deleted) { const error = new Error('续费项不存在'); error.status = 404; throw error; }
-      return { ok:true, deleted };
-    },
+      const row = db.prepare('SELECT * FROM subscriptions WHERE id = ?').get(id);
+      if (!row) fail('续费项不存在', 404);
+      if (typeof input.baseUpdatedAt !== 'string') fail('请刷新后再删除续费项', 428);
+      if (row.updated_at !== input.baseUpdatedAt) conflict(row);
+      db.prepare('DELETE FROM subscriptions WHERE id = ?').run(id);
+      // Undo targets this deletion. If the same id is recreated and deleted again, its earlier snapshot stays invalid.
+      const deletedAt = Date.now();
+      db.prepare('DELETE FROM subscription_deletions WHERE deleted_at < ?').run(deletedAt - 86400000);
+      db.prepare('INSERT OR REPLACE INTO subscription_deletions(id, deleted_version, deleted_at) VALUES(?, ?, ?)').run(id, row.updated_at, deletedAt);
+      return { ok:true, deleted:1, item:fromRow(row) };
+    }),
     setRate(input = {}) {
       const rate = Number(input.usdCnyRate);
       if (!Number.isFinite(rate) || rate <= 0 || rate > 100) fail('汇率无效');
       const value = Math.round(rate * 10000) / 10000;
+      if (value <= 0) fail('汇率无效');
       writeSetting('usd_cny_rate', String(value));
       return { ok:true, usdCnyRate:value };
     },
-    setOptions(input = {}) {
+    setOptions:write((input = {}) => {
       // The user's own billing cycles, payment methods and types, offered next to the built-in ones.
       // A call that leaves a list out keeps what was saved for it.
       const saved = options();
@@ -342,9 +381,19 @@ function createSubscriptionStore(db) {
         if (Object.hasOwn(legacyCategories, category)) return;
         if (!customCategories.includes(category) && !categories.includes(category)) customCategories.push(category);
       });
+      for (const key of Object.keys(saved)) {
+        if (!Object.hasOwn(input, key)) continue;
+        if (!Array.isArray(input.baseOptions?.[key])) fail('请刷新后再更改自定义选项', 428);
+        if (JSON.stringify(input.baseOptions?.[key]) !== JSON.stringify(saved[key])) {
+          const error = new Error('自定义选项已在别处更改，请根据最新列表重试');
+          error.status = 409;
+          error.publicDetails = { currentOptions:saved };
+          throw error;
+        }
+      }
       writeSetting('options', JSON.stringify({ customCycles, customPaymentMethods, customCategories }));
       return { ok:true, customCycles, customPaymentMethods, customCategories };
-    }
+    })
   };
 }
 module.exports = { createSubscriptionStore, defaultUsdCnyRate, defaultPaymentMethods };

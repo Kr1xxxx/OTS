@@ -5,7 +5,7 @@ Local macOS trade-order and customer management, SQLite storage, logistics/AI he
 ## Requirements
 
 - macOS 13.5 or later; Xcode command-line tools with Swift 6.0 or later.
-- Node.js 22.5 or later with node:sqlite; npm.
+- Node.js 22.13 or later in the 22.x series, or Node.js 24 or later, with npm. CI uses the version in `.node-version`.
 - Python 3 with Pillow for the icon regression test.
 - Chromium via Playwright for isolated UI tests.
 
@@ -54,7 +54,7 @@ Configure AI/logistics settings and keys through Settings. Keys remain outside s
 
 Feishu notifications read the existing CLI profile name, group display label and target group ID from the independent local `feishu-settings.json` file in Application Support. Credentials remain in the CLI profile. See [local configuration](docs/feishu-local-configuration.md). The file is never bundled or published; compatible updates retain it, and the updater blocks incompatible packages when it exists. Every CLI operation retains `--as bot` and an explicit `--profile`. Tests do not send real group messages.
 
-Tests use stubs or isolated data directories. npm run test:api is an **opt-in live logistics request** and is not part of npm test. The paid live AI benchmark probe and its results are excluded. WhatsApp real-account compatibility is not established by the synthetic tests; see chrome-extension/whatsapp-sync/README.md.
+Tests use stubs or isolated data directories. npm run test:api is an **opt-in live logistics request** outside the default suite. It exits with 0 when the configured carriers pass, 1 if a request fails, or 2 when every selected carrier lacks credentials. The paid live AI benchmark probe and its results are excluded. WhatsApp real-account compatibility is not established by the synthetic tests; see chrome-extension/whatsapp-sync/README.md.
 
 ## Project map
 

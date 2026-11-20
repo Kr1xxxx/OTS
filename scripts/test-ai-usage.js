@@ -70,6 +70,14 @@ async function serverTest() {
     const summary=context.aiUsageStore.read();
     assert.equal(summary.totalCalls,2); assert.equal(summary.unknownCostCalls,1);
     assert.equal(summary.records[0].purpose,'test'); assert.equal(summary.records[0].status,'failed');
+    for (const data of [{raw:'<html>maintenance</html>'}, {choices:[]}, {choices:[{message:{content:'  '}}]}, null]) {
+      response={status:200,data};
+      const malformed=await context.checkAiApiStatus();
+      assert.equal(malformed.ok,false);
+      assert.equal(context.aiUsageStore.read().records[0].status,'failed');
+    }
+    response={status:200,data:{choices:[{text:'legacy reply'}]}};
+    assert.equal((await context.queryAiChat({messages:[]})).ok,true);
     context.aiUsageStore={record(){throw new Error('disk failed');}};
     response={status:200,data:{choices:[{message:{content:'{}'}}],usage:{cost:0.01}}};
     const result=await context.queryAiChat({messages:[]});

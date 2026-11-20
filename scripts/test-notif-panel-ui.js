@@ -286,6 +286,30 @@ const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return 
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => !document.getElementById('orderDetailDrawer').classList.contains('open'));
 
+    const eastern = await browser.newContext({ timezoneId:'America/New_York' });
+    const dst = await eastern.newPage();
+    await dst.goto(`${url}/trade-order-system.html?token=${token}`);
+    await dst.waitForFunction(() => window.pendingSaveStatus?.().loaded);
+    for (const [today, event, expected] of [
+      ['2026-03-09T12:00:00-04:00', '2026-03-07 23:30', '更早'],
+      ['2026-11-02T12:00:00-05:00', '2026-11-01 00:30', '昨天']
+    ]) {
+      await dst.clock.setFixedTime(new Date(today));
+      const groups = await dst.evaluate(([today, event]) => {
+        safeStorage.setItem('ots-notif-events-v1', JSON.stringify([
+          { id:'dst-now', kind:'info', title:'now', time:today },
+          { id:'dst-edge', kind:'info', title:'edge', time:event }
+        ]));
+        uiToggleNotifs(true);
+        uiRenderNotifs();
+        const card = document.querySelector('[data-notif-id="dst-edge"]');
+        let header = card?.previousElementSibling;
+        while (header && !header.matches('.notif-group')) header = header.previousElementSibling;
+        return header?.textContent;
+      }, [today, event]);
+      assert.equal(groups, expected, 'notification headings use local calendar days across daylight-saving transitions');
+    }
+    await eastern.close();
     assert.deepEqual(errors, []);
     assert.deepEqual(dialogs, [], 'no native dialogs');
     console.log('Notification panel UI test passed: own actions quiet, one card per event, discovery time, API / save dedupe and recovery, card targets (API, Feishu 重新发送, update), 40+ with 显示更多 and year labels, read-set pruning, empty filter fallback, keyboard trap and arrows, toast beside the panel, cross-window sync, search closes, real server.');

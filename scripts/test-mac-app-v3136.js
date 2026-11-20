@@ -126,11 +126,13 @@ function checkNativeSources() {
     'native appearance follows the page': /NSApp\.appearance = NSAppearance\(named: \.darkAqua\)/,
     'startup error offers retry': /addButton\(withTitle: "重试"\)/,
     'backup before update': /otsBackupBeforeUpdate/,
+    'editing is blocked before the last flush': /window\.beginSheet\(panel\)[\s\S]{0,150}flushPendingSave/,
+    'editing is released only if the handoff did not quit': /completion\(blocker\)[\s\S]{0,350}if !allowTermination, let sheet = updatePreparationSheet[\s\S]{0,100}endSheet\(sheet\)/,
     'install is confirmed first': /confirmText: "现在安装并重启"/,
     'periodic update checks': /scheduleAutomaticUpdateCheck\(\)/,
     'page boot message is listened for': /userContentController\.add\(self, name: "appBooted"\)/,
     'Tab reaches buttons and links': /config\.preferences\.tabFocusesLinks = true/,
-    'page boot confirms the update': /message\.name == "appBooted" \{[\s\S]{0,300}updater\.pageDidBoot\(\)/
+    'only a boot with a readable database confirms the update': /message\.name == "appBooted" \{[\s\S]*?guard body\["databaseReady"\] as\? Bool == true else \{[^}]*return\s*\}\s*updater\.pageDidBoot\(\)/
   };
   for (const [label, pattern] of Object.entries(expectMain)) assert.match(main, pattern, `main.swift: ${label}`);
   const expectUpdater = {
@@ -580,6 +582,15 @@ async function checkThemeFollowsSystem(browser, server) {
 }
 
 (async () => {
+  // A signal-terminated process keeps exitCode null. The release smoke check must catch it on both paths.
+  const { running } = require('./smoke-test-real-app');
+  const signaled = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)']);
+  const exited = new Promise(resolve => signaled.once('exit', resolve));
+  assert.ok(running(signaled));
+  signaled.kill('SIGTERM');
+  await exited;
+  assert.equal(signaled.exitCode, null);
+  assert.ok(!running(signaled));
   checkReleaseWorkflow();
   checkNativeSources();
   checkInstaller();

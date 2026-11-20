@@ -1,6 +1,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
+const { DatabaseSync } = require('node:sqlite');
 const path = require('node:path');
 const { spawn, spawnSync } = require('node:child_process');
 const { chromium } = require('playwright');
@@ -28,12 +29,27 @@ async function request(route, body) {
 (async () => {
   child = spawn(process.execPath, [path.join(root, 'mac-app/server.js')], { env, stdio:'ignore' });
   let ready = false;
-  for (let i = 0; i < 80; i++) { try { const r = await fetch(base + '/api/health'); if (r.ok) { ready = true; break; } } catch {} await new Promise(r => setTimeout(r, 50)); }
+  for (let i = 0; i < 80; i++) { try { const r = await fetch(base + '/api/health', { headers:{ Connection:'close' } }); if (r.ok) { ready = true; break; } } catch {} await new Promise(r => setTimeout(r, 50)); }
   assert.ok(ready, 'isolated server starts');
   const state = await request('/api/data');
   state.data.customers = { Alice:{ phone:'+15551234567' }, Bob:{ phone:'+22222222222' } };
   state.data.orders = []; state.data.trashOrders = []; state.data.deletedOrders = [];
   await request('/api/save', { state, baseRevision:state.revision });
+  const marker = path.join(directory, 'sqlite-storage.json');
+  const existingMarker = fs.readFileSync(marker);
+  fs.writeFileSync(marker, JSON.stringify({ databaseId:'a-different-database' }));
+  for (const action of ['status','search','bind','sync']) {
+    assert.match(native(action).message, /identity does not match/, `an unrecognized database rejects ${action}`);
+  }
+  const foreign = new DatabaseSync(path.join(directory, 'trade-order-system.sqlite'), { readOnly:true });
+  assert.equal(foreign.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE name LIKE 'whatsapp_%'").get().n, 0);
+  foreign.close();
+  fs.writeFileSync(marker, existingMarker);
+  // An installed candidate can already have a matching marker, but recovery may still roll it back.
+  const restoring = path.join(directory, 'restore-pending.json');
+  fs.writeFileSync(restoring, JSON.stringify({ id:'active-restore' }));
+  assert.match(native('bind', { account:'15550001111@c.us', chatId:'15551234567@c.us', customer:'Alice' }).message, /正在恢复备份/);
+  fs.unlinkSync(restoring);
   assert.equal(native('status').ok, true);
   assert.equal(native('delete').ok, false);
   assert.equal(native('search', { phone:'+1 5551234567' }).customers[0].name, 'Alice');
@@ -84,7 +100,17 @@ async function request(route, body) {
     const attach = Element.prototype.attachShadow;
     Element.prototype.attachShadow = function(init) { const shadow = attach.call(this, init); window.fixtureShadow = shadow; return shadow; };
     const settings = {};
-    window.chrome = { runtime:{ lastError:null, onMessage:{ addListener() {} }, sendMessage(message, callback) { window.nativeFixture(message).then(callback); } }, storage:{ local:{ async get() { return settings; }, async set(next) { Object.assign(settings, next); } } } };
+    const listeners = [];
+    window.settingsFixture = { settings, revokeDuringRead:false, notify(changes) { listeners.forEach(fn => fn(changes, 'local')); } };
+    window.chrome = { runtime:{ lastError:null, onMessage:{ addListener() {} }, sendMessage(message, callback) { window.nativeFixture(message).then(callback); } }, storage:{ onChanged:{ addListener(fn) { listeners.push(fn); } }, local:{ async get() {
+      // Let a peer tab revoke auto-sync after polling read the old value but before a batch is submitted.
+      const values = { ...settings };
+      if (settingsFixture.revokeDuringRead) {
+        settings[settingsFixture.revokeDuringRead] = false;
+        settingsFixture.revokeDuringRead = false;
+      }
+      return values;
+    }, async set(next) { Object.assign(settings, next); } } } };
   });
   await fixture.addScriptTag({ path:path.join(root, 'chrome-extension/whatsapp-sync/wa-page.js') });
   await fixture.addScriptTag({ path:path.join(root, 'chrome-extension/whatsapp-sync/collector.js') });
@@ -94,9 +120,41 @@ async function request(route, body) {
   assert.equal(await fixture.evaluate(() => fixtureShadow.getElementById('account').value), '15550001111@c.us');
   assert.equal(await fixture.evaluate(() => fixtureShadow.getElementById('account').readOnly), true);
   assert.equal(native('status').messages, 1, 'opening/associating a chat must not sync until asked');
+  const beforeSync = await request('/api/backup-before-change', { reason:'import' });
   await fixture.evaluate(() => fixtureShadow.getElementById('sync').click());
   await fixture.waitForFunction(() => fixtureShadow.getElementById('status').textContent.startsWith('已同步'));
   assert.equal(native('status').messages, 2);
+  await request('/api/restore-backup', { name:beforeSync.name });
+  assert.equal(native('status').messages, 1);
+  await fixture.evaluate(async () => { await fixtureShadow.getElementById('sync').onclick(); });
+  assert.equal(native('status').messages, 2, 'manual sync restores messages that only the tab remembers');
+
+  // A second tab writing this chat's switch changes the active tab and is checked again before a batch.
+  const keepOther = 'tradeWhatsAppAuto:["other-account","other-chat"]';
+  const preference = await fixture.evaluate(async other => {
+    const {settings, notify} = settingsFixture;
+    settings[other] = true;
+    const auto = fixtureShadow.getElementById('auto');
+    auto.checked = true;
+    await auto.onchange();
+    const name = 'tradeWhatsAppAuto:' + JSON.stringify([fixtureWA.account, fixtureWA.peer]);
+    const ownSetting = settings[name];
+    settings[name] = false;
+    notify({[name]:{oldValue:true,newValue:false}});
+    return [ownSetting, auto.checked, settings[other]];
+  }, keepOther);
+  assert.deepEqual(preference, [true,false,true], 'tabs observe revocation and leave unrelated settings intact');
+  const callsBeforeRevoke = syncBytes.length;
+  await fixture.evaluate(() => {
+    fixtureWA.messages.push({ ...fixtureWA.messages[0], id:{ ...fixtureWA.messages[0].id, _serialized:'false_15551234567@c.us_IGNORED' } });
+    const name = 'tradeWhatsAppAuto:' + JSON.stringify([fixtureWA.account, fixtureWA.peer]);
+    settingsFixture.settings[name] = true;
+    settingsFixture.revokeDuringRead = name;
+    fixtureShadow.querySelector('.launcher').click();
+  });
+  await fixture.waitForFunction(() => !settingsFixture.revokeDuringRead && !fixtureShadow.getElementById('auto').checked && !fixtureShadow.getElementById('sync').disabled);
+  assert.equal(syncBytes.length, callsBeforeRevoke, 'revoking permission between polling and submission prevents the native write');
+  await fixture.evaluate(() => fixtureWA.messages.pop());
   if (process.env.WA_SCREENSHOT) await fixture.screenshot({ path:`${process.env.WA_SCREENSHOT}.extension.png`, animations:'disabled' });
   // A message shell may hydrate after its stable ID has already been acknowledged.
   await fixture.evaluate(() => { fixtureWA.messages.push({ id:{ _serialized:'false_15551234567@c.us_LATE', remote:{ _serialized:'15551234567@c.us' }, fromMe:false }, type:'unknown', t:1700000001 }); fixtureShadow.getElementById('sync').click(); });
@@ -128,6 +186,25 @@ async function request(route, body) {
   assert.equal(native('search', { account:'15550002222@c.us', chatId:'22222222222@c.us' }).binding, null);
   delaySearch = false; releaseSearch();
   await fixture.waitForFunction(() => fixtureShadow.getElementById('customers').value === 'Bob' && !fixtureShadow.getElementById('bind').disabled);
+  // The customer disappeared in OTS. Reopening the original chat must expose the rebind controls.
+  const withoutAlice = await request('/api/data');
+  delete withoutAlice.data.customers.Alice;
+  await request('/api/save', { state:withoutAlice, baseRevision:withoutAlice.revision, customerDeletes:['Alice'] });
+  await fixture.evaluate(() => {
+    fixtureWA.account='15550001111@c.us'; fixtureWA.peer='15551234567@c.us';
+    fixtureShadow.querySelector('.launcher').click();
+  });
+  await fixture.waitForFunction(() => fixtureShadow.getElementById('binding').textContent.includes('已删除'));
+  assert.equal(await fixture.evaluate(() => fixtureShadow.getElementById('linkControls').hidden), false);
+  await fixture.evaluate(async () => {
+    fixtureShadow.getElementById('query').value = 'Bob';
+    await fixtureShadow.getElementById('search').onclick();
+    fixtureShadow.getElementById('customers').value = 'Bob';
+    fixtureShadow.getElementById('customers').onchange();
+    await fixtureShadow.getElementById('bind').onclick();
+  });
+  assert.equal(native('search', chat).binding.customer, 'Bob');
+  assert.equal(native('status').messages, 103, 'explicit rebind retains the message history');
   await fixture.emulateMedia({ colorScheme:'dark' });
   await fixture.setViewportSize({ width:390, height:844 });
   await fixture.evaluate(() => { fixtureShadow.querySelector('.panel').hidden = false; });

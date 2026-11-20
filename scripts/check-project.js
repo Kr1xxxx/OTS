@@ -87,6 +87,8 @@ const expectedVersion = fs.readFileSync(path.join(root, 'VERSION'), 'utf8').trim
 assert.match(expectedVersion, /^\d+\.\d+$/, 'VERSION must use major.minor format');
 assert.equal(require(path.join(root, 'package.json')).version, `${expectedVersion}.0`, 'package.json version differs from VERSION');
 const html = fs.readFileSync(path.join(root, 'trade-order-system.html'), 'utf8');
+const symbolIds = [...html.matchAll(/<symbol\s+id="([^"]+)"/g)].map(match => match[1]);
+assert.equal(symbolIds.length, new Set(symbolIds).size, 'SVG symbol ids must be unique');
 assert.match(html, new RegExp(`class="app-version"[^>]*>V${escapeRegExp(expectedVersion)}<`), 'visible HTML version differs from VERSION');
 
 // 每个没有兜底值的 var(--x) 都要有定义：用了未定义的变量，整条样式规则失效（全局搜索的选中高亮就这样丢过）。

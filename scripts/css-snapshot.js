@@ -280,10 +280,13 @@ function jobsFor(configs, only) {
     const states = config.states === 'all' ? STATES : config.states === 'pages' ? PAGES : STATES.filter(s => config.states.includes(s.name));
     for (const s of states) {
       const name = `${config.name} ${s.name}`;
-      if (!only || only.test(name)) jobs.push({ name, config, state:s });
+      jobs.push({ name, config, state:s });
     }
   }
-  return jobs;
+  if (!only) return jobs;
+  const selected = jobs.filter(job => only.test(job.name));
+  if (!selected.length) throw new Error(`No states match ${only}. Available states:\n${jobs.map(job => job.name).join('\n')}`);
+  return selected;
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -658,9 +661,7 @@ async function prepass(browser, html) {
   }
 }
 
-async function snapshotAll(browser, versions, args) {
-  const configs = configurations(args.quick);
-  const jobs = jobsFor(configs, args.only);
+async function snapshotAll(browser, versions, args, jobs) {
   const pre = [];
   for (const v of versions) pre.push(await prepass(browser, v.html));
   const data = enrichData(pre[0].demo);
@@ -814,8 +815,9 @@ function usage() {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) return usage();
+  const jobs = jobsFor(configurations(args.quick), args.only);
   if (args.list) {
-    jobsFor(configurations(args.quick), args.only).forEach(job => console.log(job.name));
+    jobs.forEach(job => console.log(job.name));
     return;
   }
   if (args.compare) {
@@ -834,7 +836,7 @@ async function main() {
   const browser = await launch();
   try {
     const versions = baseVersion ? [baseVersion, current] : [current];
-    const snapshots = await snapshotAll(browser, versions, args);
+    const snapshots = await snapshotAll(browser, versions, args, jobs);
     if (args.out) fs.writeFileSync(args.out, JSON.stringify(snapshots.at(-1)));
     if (baseVersion) {
       const { total, report } = compareSnapshots(snapshots[0], snapshots[1], args.limit);

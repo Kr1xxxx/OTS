@@ -249,6 +249,17 @@ async function main() {
     await confirmClosed(B);
     assert.equal((await status(B)).readOnly, true, '取消 keeps the page');
 
+    // Changes made after the export snapshot are still local when the file write finishes.
+    await B.route('**/api/export-file', async route => {
+      await B.evaluate(() => state.paymentMethods.push('导出期间新增'));
+      await route.continue();
+    }, { times:1 });
+    await h.click(B, '#appRefreshBtn', '刷新');
+    await confirmOpen(B);
+    await h.click(B, '#confirmAltBtn', '导出后刷新');
+    await h.waitToast(B, '导出期间又有修改');
+    assert.ok(await B.evaluate(() => state.paymentMethods.includes('导出期间新增')));
+
     // Importing the conflict export into A merges o1 only: A's other saved changes are not reverted.
     await A.evaluate(text => {
       window.__importSettled = null;

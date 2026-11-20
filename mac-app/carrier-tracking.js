@@ -36,10 +36,11 @@ function standardLogisticsStatus(value = '') {
   const text = String(value || '').toLowerCase();
   if (!text) return '';
   // 「not delivered / undeliverable / delivery attempted」也含 delivered / delivery，要先判成异常。
-  if (/not\s+delivered|undeliver|delivery\s+(?:attempt|failed|exception)|attempted\s+delivery|未签收|派送失败/.test(text)) return '异常';
-  if (/已签收|签收成功|delivered/.test(text)) return '已签收';
+  if (/not\s+(?:yet\s+|been\s+)?delivered|undeliver|delivery\s+(?:attempt|failed|exception)|attempted\s+delivery|未签收|派送失败/.test(text)) return '异常';
   if (/派送中|正在派送|out for delivery|vehicle for delivery|with delivery courier|ready for pickup|available for pickup|hold(?:ing)? at (?:fedex )?location|held at (?:fedex )?location/.test(text)) return '派送中';
   if (/异常|失败|退回|滞留|扣件|exception|failed|expired|returned|on hold|held|clearance delay|customs delay|cancel/.test(text)) return '异常';
+  // Only a final carrier event can complete an order. Forecasts also contain “delivered”.
+  if (/^(?:(?:包裹|快件|邮件|收件人|客户)\s*)?(?:已签收|签收成功)|^(?:(?:the |your )?(?:shipment|package|parcel|item) (?:has been |was |is )?)?(?:successfully )?delivered\b/.test(text.trim())) return '已签收';
   if (/运输中|转运中|在途中|in transit|transit|arrived|departed|processed|at local|at destination/.test(text)) return '运输中';
   if (/已发货|已揽收|信息已收到|shipment information received|info received|label created|picked up|pre-transit/.test(text)) return '已发货';
   return '';
@@ -53,10 +54,9 @@ function logisticsStatusFromDhl(shipment) {
   if (fromText === '异常') return '异常';
   if (code === 'failure') return '异常';
   if (code === 'delivered') return '已签收';
-  if (fromText) return fromText;
-  if (code === 'transit') return '运输中';
+  if (code === 'transit') return fromText === '派送中' ? fromText : '运输中';
   if (code === 'pre-transit') return '已发货';
-  return '';
+  return fromText;
 }
 
 function formatApiTime(value) {
@@ -196,6 +196,17 @@ function trackingCarrierStatusPatch(carrier, message, checkedAt = new Date().toI
     : { lastDhlCheckedAt: checkedAt, lastDhlStatus: message };
 }
 
+function fedexApiHost(settings) {
+  return fedexApiHostOverride || (settings.fedexEnv === 'prod' ? 'https://apis.fedex.com' : 'https://apis-sandbox.fedex.com');
+}
+
+function fedexCredentials(settings = {}) {
+  return {
+    clientId: String(process.env.FEDEX_CLIENT_ID || settings.fedexApiKey || '').trim(),
+    clientSecret: String(process.env.FEDEX_CLIENT_SECRET || settings.fedexApiSecret || '').trim()
+  };
+}
+
 function createCarrierTracking({ readTrackingSettings, writeTrackingSettings }) {
   async function checkDhlApiStatus() {
     const settings = readTrackingSettings();
@@ -226,10 +237,11 @@ function createCarrierTracking({ readTrackingSettings, writeTrackingSettings }) 
   async function checkFedExApiStatus() {
     const settings = readTrackingSettings();
     if (settings.fedexApiEnabled !== '是') return { ok: false, disabled: true, label: 'FedEx', message: 'FedEx API 未开启' };
-    if (!settings.fedexApiKey || !settings.fedexApiSecret) return { ok: false, disabled: true, label: 'FedEx', message: 'FedEx API Key 或 Secret 未保存' };
+    const credentials = fedexCredentials(settings);
+    if (!credentials.clientId || !credentials.clientSecret) return { ok: false, disabled: true, label: 'FedEx', message: 'FedEx API Key 或 Secret 未保存' };
     const checkedAt = new Date().toISOString();
     try {
-      const token = await fedexToken(settings);
+      const token = await fedexToken(settings, credentials);
       return token
         ? { ok: true, label: 'FedEx', checkedAt, message: 'FedEx API 可连接' }
         : { ok: false, label: 'FedEx', checkedAt, message: 'FedEx 未返回授权 Token' };
@@ -273,20 +285,10 @@ function createCarrierTracking({ readTrackingSettings, writeTrackingSettings }) 
     };
   }
 
-  function fedexApiHost(settings) {
-    if (fedexApiHostOverride) return fedexApiHostOverride;
-    return settings.fedexEnv === 'prod' ? 'https://apis.fedex.com' : 'https://apis-sandbox.fedex.com';
-  }
   // FedEx 的 OAuth token 按 expires_in 缓存（提前 60 秒过期）：以前每查一个单号都重新拿一次，请求量翻倍，更容易被限流。
   const fedexTokenCache = new Map();
 
-  async function fedexToken(settings = readTrackingSettings()) {
-    return fedexTokenWithCredentials(settings, process.env.FEDEX_CLIENT_ID || settings.fedexApiKey || '', process.env.FEDEX_CLIENT_SECRET || settings.fedexApiSecret || '');
-  }
-
-  async function fedexTokenWithCredentials(settings = readTrackingSettings(), apiKey = '', apiSecret = '') {
-    const clientId = String(apiKey || '').trim();
-    const clientSecret = String(apiSecret || '').trim();
+  async function fedexToken(settings, { clientId, clientSecret } = fedexCredentials(settings)) {
     if (!clientId || !clientSecret) return '';
     const cacheKey = crypto.createHash('sha256').update(`${fedexApiHost(settings)}\n${clientId}\n${clientSecret}`).digest('hex');
     const cached = fedexTokenCache.get(cacheKey);
@@ -374,6 +376,6 @@ function createCarrierTracking({ readTrackingSettings, writeTrackingSettings }) 
 }
 
 module.exports = {
-  createCarrierTracking, cleanTracking, detectCarrier,
+  createCarrierTracking, fedexCredentials, fedexApiHost, cleanTracking, detectCarrier,
   standardLogisticsStatus, logisticsStatusFromDhl, logisticsStatusFromFedEx, trackingFailure
 };

@@ -181,8 +181,8 @@ try {
     assert.equal(result.tip, box.sha);
   }
   // main moved on after the tested commit: left to the CI run of the newer commit.
-  {
-    const box = sandbox({ note: '一条改动\n' });
+  for (const options of [{note:'一条改动\n'}, {released:false}]) {
+    const box = sandbox(options);
     const other = path.join(box.dir, 'other');
     git(box.dir, 'clone', '-q', box.origin, other);
     fs.writeFileSync(path.join(other, 'later.txt'), 'later\n');
@@ -194,7 +194,7 @@ try {
     assert.equal(result.status, 0, result.log);
     assert.equal(result.output.publish, 'false');
     assert.equal(result.tip, later, 'main is untouched');
-    assert.equal(git(box.origin, 'show', `${later}:release-notes/next/change.md`), '一条改动', 'the note is still waiting');
+    if (options.note) assert.equal(git(box.origin, 'show', `${later}:release-notes/next/change.md`), '一条改动', 'the note is still waiting');
   }
   // GitHub did not answer whether the version is released: stop, rather than guess "not released".
   {

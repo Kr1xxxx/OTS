@@ -119,9 +119,10 @@ function assertMoneyCells(cells, label) {
         else assert.doesNotMatch(part.text, /·\s*$/, `${id}: the last item has no dot`);
       });
       const { title, text } = await page.evaluate(id => { const el = document.getElementById(id); return { title:el.title, text:el.textContent.replace(/\s+/g, ' ').trim() }; }, id);
-      if (!/下单已超过/.test(title)) assert.equal(title, text, `${id}: the whole caption is in the tooltip`);
+      // 订单额的「草稿和报价不计」只在悬停提示里，小字一行放得下。
+      if (!/下单已超过/.test(title)) assert.equal(title, id === 'statAmountSub' ? `${text} · 草稿和报价不计` : text, `${id}: the whole caption is in the tooltip`);
     }
-    assert.match(await page.locator('#statAmountSub').textContent(), /^比 10 月同期 [+-]\d+% · \d+ 单 · 草稿和报价不计$/);
+    assert.match(await page.locator('#statAmountSub').textContent(), /^比 10 月同期 [+-]\d+% · \d+ 单$/);
     assert.match(await page.locator('#statTasksSub').textContent(), /物流异常 1/);
     const issuePart = (await captionParts(page, 'statTasksSub')).find(part => /物流异常 1/.test(part.text));
     assert.equal(issuePart.lines, 1, '「物流异常 1」 is not split');

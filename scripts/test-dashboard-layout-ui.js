@@ -67,9 +67,9 @@ const enter = async page => {
     const { page, context, errors, dialogs } = await openBoard(browser, { orders }, { width:1694, height:1082 });
     await page.evaluate(() => window.scrollTo(0, 0));
 
-    // 2. 默认：看板撑满第一屏（列高 746），待办 7 格、最近订单 5 格在同一行。
+    // 2. 默认：看板撑满第一屏（列高 754），待办 7 格、最近订单 5 格在同一行。
     let r = await rects(page);
-    near(await boardColumnHeight(page), 746, 2, '默认看板列高');
+    near(await boardColumnHeight(page), 754, 2, '默认看板列高');
     near(r.tasks.top, r.recent.top, 0.5, '待办和最近订单同一行');
     near(r.tasks.width, 818, 2, '待办 7 格宽');
     near(r.recent.width, 580, 2, '最近订单 5 格宽');
@@ -247,7 +247,7 @@ const enter = async page => {
     await page.click('[data-dash-action="done"]');
     await page.evaluate(() => window.scrollTo(0, 0));
     r = await rects(page);
-    near(await boardColumnHeight(page), 746, 2, '恢复默认后看板列高');
+    near(await boardColumnHeight(page), 754, 2, '恢复默认后看板列高');
     near(r.tasks.width, 818, 2, '恢复默认后待办 7 格');
     near(r.tasks.top, r.recent.top, 0.5, '恢复默认后待办和最近订单同一行');
 

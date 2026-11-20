@@ -22,7 +22,7 @@ async function readAll(page) {
     document.getElementById('totalRange').value = m;
     setPage('dashboard');
     render();
-    const dashboard = { amount:text('statAmount'), sub:text('statAmountSub'), target:text('statTargetSub') };
+    const dashboard = { amount:text('statAmount'), sub:document.getElementById('statAmountSub').title, target:text('statTargetSub') };
     setPage('amount');
     renderAmountReport();
     const amount = { amount:text('reportUsd'), count:text('reportCount'), sub:text('reportUsd').length && document.querySelector('#reportUsd + .report-sub').textContent };

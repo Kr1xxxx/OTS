@@ -59,12 +59,13 @@ clients.forEach((client, i) => {
       const rows = [...document.querySelectorAll('.customer-row:not(.head)')];
       // 留 3 px 余量：字体（Mac 的苹方、CI 的 Linux 字体）稍有出入时，正好卡边的文字就会被截。
       const natural = el => { const copy = el.cloneNode(true); copy.style.cssText = 'position:absolute;width:max-content;max-width:none'; el.parentNode.appendChild(copy); const w = copy.getBoundingClientRect().width; copy.remove(); return w; };
-      const cut = rows.flatMap(row => [...row.children[3].querySelectorAll('*')].filter(el => natural(el) + 3 > el.getBoundingClientRect().width).map(el => el.textContent.trim()));
+      const cut = rows.flatMap(row => [...row.children[3].querySelectorAll('*')].filter(el => natural(el) + 3 > el.getBoundingClientRect().width).map(el => `${el.textContent.trim()} (${natural(el).toFixed(1)} / ${el.getBoundingClientRect().width.toFixed(1)} px)`));
       const scroll = document.querySelector('.customer-table');
-      return { rows:rows.length, cut, scrollX:scroll.scrollWidth - scroll.clientWidth };
+      const fonts = [...document.fonts].map(font => `${font.family} ${font.status}`).join(', ');
+      return { rows:rows.length, cut, scrollX:scroll.scrollWidth - scroll.clientWidth, fonts, columns:getComputedStyle(rows[0]).gridTemplateColumns, inner:innerWidth };
     });
     assert.equal(table.rows, clients.length);
-    assert.deepEqual(table.cut, [], `${width}×${height}: order numbers and dates in the customer list are not cut`);
+    assert.deepEqual(table.cut, [], `${width}×${height}: order numbers and dates in the customer list are not cut (columns ${table.columns}, window ${table.inner}, fonts: ${table.fonts})`);
     assert.ok(table.scrollX <= 1, `${width}×${height}: the customer list does not scroll sideways (${table.scrollX})`);
 
     assert.deepEqual(errors, []);

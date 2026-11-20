@@ -3353,6 +3353,7 @@ html[data-theme] :is(.stat-value, .board-card-amount, .board-column-meta, .nav-c
 @keyframes uiPop { from { opacity:0; transform:scale(.96); } }
 @keyframes uiTitleIn { from { opacity:0; transform:translateY(8px); filter:blur(3px); } }
 @keyframes uiPing { 0% { box-shadow:0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); } 100% { box-shadow:0 0 0 8px transparent; } }
+@keyframes uiAwake { 0% { box-shadow:0 0 6px color-mix(in oklab, var(--s-green) 70%, transparent), 0 0 0 0 color-mix(in oklab, var(--s-green) 55%, transparent); } 100% { box-shadow:0 0 6px color-mix(in oklab, var(--s-green) 70%, transparent), 0 0 0 7px transparent; } }
 @keyframes uiPulse { 0% { box-shadow:0 0 0 0 color-mix(in srgb, var(--s-amber) 55%, transparent); } 100% { box-shadow:0 0 0 8px transparent; } }
 
 /* 侧栏 */
@@ -3415,6 +3416,7 @@ html[data-theme] .search-action .ui-icon { width:14px; height:14px; }
 html[data-theme] .world-clock-strip { gap:14px; margin-left:auto; }
 html[data-theme] .world-clock { min-width:0; height:auto; padding:0; border:0; background:none; box-shadow:none; gap:5px; font-size:12px; font-weight:400; color:var(--gray-500); }
 html[data-theme] .world-clock strong { color:var(--gray-600); font-weight:500; }
+html[data-theme] .world-clock.is-awake::before { content:""; width:6px; height:6px; border-radius:50%; flex:none; background:var(--s-green); box-shadow:0 0 6px color-mix(in oklab, var(--s-green) 70%, transparent); animation:uiAwake 2.4s var(--ease) infinite; }
 html[data-theme] .top-actions { gap:8px; }
 
 /* 按钮：主 / 次 / 幽灵，全部胶囊形；快按弹松 */
@@ -3497,7 +3499,9 @@ html[data-theme] .page.active.page-enter > *:nth-child(2) { animation-delay:.05s
 html[data-theme] .page.active.page-enter > *:nth-child(3) { animation-delay:.1s; }
 html[data-theme] .page.active.page-enter > *:nth-child(n+4) { animation-delay:.15s; }
 
-html[data-theme] .world-clock-strip { flex:0 1 auto; min-width:0; overflow:hidden; }
+/* 时钟不跟搜索框一起挤（挤了会截掉最后一个时间、绿点会贴上前一个时间），窄了让搜索框让位，1320 以下整排收起。
+   醒着的时钟前面的绿点向外扩 7px 光圈：留 8px 内边距不让 overflow 切掉，上下和右边用负外边距抵消。 */
+html[data-theme] .world-clock-strip { flex:0 0 auto; min-width:0; overflow:hidden; padding:8px; margin-block:-8px; margin-right:-8px; }
 html[data-theme] .top-actions { flex:0 0 auto; }
 @media (max-width: 1320px) { html[data-theme] .world-clock-strip { display:none; } }
 
@@ -10482,12 +10486,24 @@ function zoneTime(zone) {
 }
 // #endregion
 // #region Sidebar widgets: world clocks, AI usage, API status lights, busy buttons
+// 当地 1:00–7:59 客户多半在睡觉，时钟照旧；其他时间亮一个会呼吸的绿点，表示客户醒着。
+function worldClockAwake(time) {
+  const hour = Number(String(time).slice(0, 2)) % 24;
+  return !(hour >= 1 && hour < 8);
+}
 function renderWorldClocks() {
   const el = document.getElementById('worldClockStrip');
   if (!el) return;
-  el.innerHTML = worldClockDefs.map(item => `
-    <span class="world-clock"><span>${item.label}</span><strong>${zoneTime(item.zone)}</strong></span>
-  `).join('');
+  const times = worldClockDefs.map(item => zoneTime(item.zone));
+  // 每分钟只改字和状态，不重建元素：重建会让绿点的呼吸动画每分钟从头跳一下。
+  const clocks = el.querySelectorAll('.world-clock');
+  if (clocks.length !== worldClockDefs.length) {
+    el.innerHTML = worldClockDefs.map(item => `<span class="world-clock"><span>${item.label}</span><strong></strong></span>`).join('');
+  }
+  el.querySelectorAll('.world-clock').forEach((clock, index) => {
+    clock.querySelector('strong').textContent = times[index];
+    clock.classList.toggle('is-awake', worldClockAwake(times[index]));
+  });
 }
 const apiStatusKey = 'trade-order-system-api-status-v1';
 const apiStatusNames = { dhl: 'DHL', fedex: 'FedEx', ai: 'AI' };

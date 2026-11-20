@@ -3352,9 +3352,13 @@ html[data-theme] :is(.stat-value, .board-card-amount, .board-column-meta, .nav-c
 @keyframes uiRise { from { opacity:0; transform:translateY(10px); } }
 @keyframes uiPop { from { opacity:0; transform:scale(.96); } }
 @keyframes uiTitleIn { from { opacity:0; transform:translateY(8px); filter:blur(3px); } }
-@keyframes uiPing { 0% { box-shadow:0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); } 100% { box-shadow:0 0 0 8px transparent; } }
-@keyframes uiAwake { 0% { box-shadow:0 0 6px color-mix(in oklab, var(--s-green) 70%, transparent), 0 0 0 0 color-mix(in oklab, var(--s-green) 55%, transparent); } 100% { box-shadow:0 0 6px color-mix(in oklab, var(--s-green) 70%, transparent), 0 0 0 7px transparent; } }
-@keyframes uiPulse { 0% { box-shadow:0 0 0 0 color-mix(in srgb, var(--s-amber) 55%, transparent); } 100% { box-shadow:0 0 0 8px transparent; } }
+/* 一直在跑的扩散圈（醒着的时钟、保存中、检测中、日历今天、时间线第一条）：圈是点下面的一个伪元素，只动 transform 和 opacity，
+   WebKit 交给合成层去画。以前是逐帧改 box-shadow，主线程每秒重画六十次，滚轮要排在它后面，页面上下滚就一顿一顿的。
+   圈和点一样大、颜色带透明，从 scale(1) 放大到「点 + 两边各 7–8px」并淡出，和原来 0 → 8px 的 box-shadow 扩散一个样子。
+   放圈的那层要 isolation:isolate，圈的 z-index:-1 才落在那层背景之上、点和字之下。 */
+@keyframes uiRing { from { transform:scale(1); opacity:1; } to { transform:scale(3.4); opacity:0; } }
+@keyframes uiRingMd { from { transform:scale(1); opacity:1; } to { transform:scale(2.6); opacity:0; } }
+@keyframes uiRingLg { from { transform:scale(1); opacity:1; } to { transform:scale(1.75); opacity:0; } }
 
 /* 侧栏 */
 html[data-theme] .brand-mini { gap:10px; }
@@ -3377,12 +3381,14 @@ html[data-theme] .nav-glide.no-t { transition:none; }
 html[data-theme] .api-status-strip { gap:2px; }
 /* 备份目录还是默认目录时备份信息那行末尾的提醒句（提醒色，和「目录不可用」那句同一行） */
 html[data-theme] .backup-info .backup-local-hint { color:var(--s-amber); }
-html[data-theme] .api-status-dot { min-height:26px; border:0; border-radius:8px; background:transparent; box-shadow:none; padding:0 4px; gap:8px; font-size:13px; font-weight:400; color:var(--gray-600); }
+html[data-theme] .api-status-dot { position:relative; isolation:isolate; min-height:26px; border:0; border-radius:8px; background:transparent; box-shadow:none; padding:0 4px; gap:8px; font-size:13px; font-weight:400; color:var(--gray-600); }
 html[data-theme] .api-status-dot:hover { background:var(--surface-soft); }
 html[data-theme] .api-status-dot::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--gray-400); flex:none; }
 html[data-theme] .api-status-dot.ok::before { background:var(--s-green); }
 html[data-theme] .api-status-dot.bad::before { background:var(--s-red); }
-html[data-theme] .api-status-dot.checking::before { background:var(--s-amber); animation:uiPulse 1.6s var(--ease) infinite; }
+html[data-theme] .api-status-dot.checking::before { background:var(--s-amber); box-shadow:none; }
+/* 不写 left / top：绝对定位的弹性子项落在「只有它一个时」的位置，也就是 ::before 那个点所在处（侧栏和设置页左内边距不同也对得上）。 */
+html[data-theme] .api-status-dot.checking::after { content:""; position:absolute; width:7px; height:7px; border-radius:50%; background:color-mix(in srgb, var(--s-amber) 55%, transparent); z-index:-1; pointer-events:none; animation:uiRing 1.6s var(--ease) infinite; }
 html[data-theme] .api-status-state { font-size:12px; font-weight:400; color:var(--gray-500); }
 html[data-theme] .api-status-dot.ok .api-status-state { color:var(--gray-500); }
 html[data-theme] .api-status-dot.bad .api-status-state { color:var(--s-red); }
@@ -3390,10 +3396,11 @@ html[data-theme] .api-status-dot.checking .api-status-state { color:var(--s-ambe
 html[data-theme] .sidebar-foot { padding:0; border:0; }
 html[data-theme] .team { min-height:0; padding:0 4px 0 8px; border:0; background:transparent; font-size:12px; color:var(--gray-500); gap:8px; justify-content:flex-start; }
 html[data-theme] .team .app-version { min-width:0; height:auto; padding:0; border:0; background:none; font-size:12px; font-weight:400; color:var(--gray-500); }
-html[data-theme] .save-pulse { margin-left:auto; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; color:var(--gray-600); }
+html[data-theme] .save-pulse { isolation:isolate; margin-left:auto; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; color:var(--gray-600); }
 /* 确认框副标题（例如冲突框的「本窗口已切换为只读」）：以前用 order-num 的浅灰，浅色 2.68:1、深色 3.55:1。 */
-html[data-theme] .save-pulse i { width:6px; height:6px; border-radius:50%; background:var(--s-green); }
-html[data-theme] .save-pulse.is-busy i { background:var(--accent); animation:uiPing 1s var(--ease) infinite; }
+html[data-theme] .save-pulse i { position:relative; width:6px; height:6px; border-radius:50%; background:var(--s-green); }
+html[data-theme] .save-pulse.is-busy i { background:var(--accent); }
+html[data-theme] .save-pulse.is-busy i::after { content:""; position:absolute; inset:0; border-radius:50%; background:color-mix(in srgb, var(--accent) 45%, transparent); z-index:-1; pointer-events:none; animation:uiRing 1s var(--ease) infinite; }
 html[data-theme] .save-pulse.is-error { color:var(--s-red); }
 html[data-theme] .save-pulse.is-error i { background:var(--s-red); }
 html[data-theme] .app-refresh-btn { width:28px; height:28px; min-height:0; border:0; border-radius:999px; background:transparent; color:var(--gray-500); display:grid; place-items:center; box-shadow:none; }
@@ -3414,9 +3421,10 @@ html[data-theme] .search-action { width:26px; height:26px; min-height:0; border:
 html[data-theme] .search:focus-within .search-action { display:grid; }
 html[data-theme] .search-action .ui-icon { width:14px; height:14px; }
 html[data-theme] .world-clock-strip { gap:14px; margin-left:auto; }
-html[data-theme] .world-clock { min-width:0; height:auto; padding:0; border:0; background:none; box-shadow:none; gap:5px; font-size:12px; font-weight:400; color:var(--gray-500); }
+html[data-theme] .world-clock { position:relative; isolation:isolate; min-width:0; height:auto; padding:0; border:0; background:none; box-shadow:none; gap:5px; font-size:12px; font-weight:400; color:var(--gray-500); }
 html[data-theme] .world-clock strong { color:var(--gray-600); font-weight:500; }
-html[data-theme] .world-clock.is-awake::before { content:""; width:6px; height:6px; border-radius:50%; flex:none; background:var(--s-green); box-shadow:0 0 6px color-mix(in oklab, var(--s-green) 70%, transparent); animation:uiAwake 2.4s var(--ease) infinite; }
+html[data-theme] .world-clock.is-awake::before { content:""; width:6px; height:6px; border-radius:50%; flex:none; background:var(--s-green); box-shadow:0 0 6px color-mix(in oklab, var(--s-green) 70%, transparent); }
+html[data-theme] .world-clock.is-awake::after { content:""; position:absolute; left:0; top:50%; width:6px; height:6px; margin-top:-3px; border-radius:50%; background:color-mix(in oklab, var(--s-green) 55%, transparent); z-index:-1; pointer-events:none; animation:uiRing 2.4s var(--ease) infinite; }
 html[data-theme] .top-actions { gap:8px; }
 
 /* 按钮：主 / 次 / 幽灵，全部胶囊形；快按弹松 */
@@ -3662,7 +3670,9 @@ html[data-theme] .calendar-day.muted { opacity:1; background:transparent; }
 html[data-theme] .calendar-day.muted .calendar-day-num { color:var(--gray-400); }
 html[data-theme] .calendar-day.today { border-color:var(--hairline); box-shadow:none; }
 html[data-theme] .calendar-day-num { padding:0 4px; font-size:12.5px; font-weight:400; color:var(--gray-600); }
-html[data-theme] .calendar-day.today .calendar-day-num > span:first-child { min-width:22px; height:22px; margin-left:-4px; display:inline-grid; place-items:center; border-radius:50%; background:var(--accent); font-weight:600; color:var(--on-accent, #fff); animation:uiPing 2s var(--ease) infinite; }
+html[data-theme] .calendar-day.today .calendar-day-num { isolation:isolate; }
+html[data-theme] .calendar-day.today .calendar-day-num > span:first-child { position:relative; min-width:22px; height:22px; margin-left:-4px; display:inline-grid; place-items:center; border-radius:50%; background:var(--accent); font-weight:600; color:var(--on-accent, #fff); }
+html[data-theme] .calendar-day.today .calendar-day-num > span:first-child::after { content:""; position:absolute; inset:0; border-radius:50%; background:color-mix(in srgb, var(--accent) 45%, transparent); z-index:-1; pointer-events:none; animation:uiRingLg 2s var(--ease) infinite; }
 html[data-theme] .calendar-count { display:none; }
 html[data-theme] .calendar-events { display:flex; flex-direction:column; gap:4px; min-width:0; }
 html[data-theme] .calendar-event { display:block; width:100%; padding:3px 7px; border:0; border-radius:6px; font-size:11.5px; font-weight:500; text-align:left; background:color-mix(in srgb, var(--s-blue, #2f6fdf) 12%, transparent); color:var(--s-blue, #2f6fdf); overflow:hidden; white-space:nowrap; text-overflow:ellipsis; cursor:pointer; }
@@ -4592,8 +4602,12 @@ html[data-theme] :is(.detail-log, .tracking-event):nth-child(6), html[data-theme
 html[data-theme] :is(.detail-log, .tracking-event):nth-child(7), html[data-theme] .detail-log:nth-child(7)::before { animation-delay:360ms; }
 html[data-theme] :is(.detail-log, .tracking-event):nth-child(8), html[data-theme] .detail-log:nth-child(8)::before { animation-delay:420ms; }
 html[data-theme] .detail-log:not(:last-child)::before { content:''; position:absolute; left:3px; top:18px; bottom:-10px; width:1px; background:var(--surface-border); transform-origin:top; animation:uiGrowY .5s var(--ease-out) backwards; }
-html[data-theme] .detail-log:first-child .detail-log-dot,
-html[data-theme] .tracking-event:first-child .tracking-event-dot { animation:uiPing 1.6s var(--ease) infinite; }
+html[data-theme] :is(.detail-log, .tracking-event):first-child { isolation:isolate; }
+html[data-theme] .detail-log:first-child .detail-log-dot { position:relative; }
+html[data-theme] .tracking-event:first-child .tracking-event-dot { position:relative; box-shadow:none; }
+html[data-theme] .detail-log:first-child .detail-log-dot::after,
+html[data-theme] .tracking-event:first-child .tracking-event-dot::after { content:""; position:absolute; inset:0; border-radius:50%; background:color-mix(in srgb, var(--accent) 45%, transparent); z-index:-1; pointer-events:none; animation:uiRing 1.6s var(--ease) infinite; }
+html[data-theme] .tracking-event:first-child .tracking-event-dot::after { animation-name:uiRingMd; }
 /* AI 识别中：输入框描边变成主色，上面扫过一道光，标题文字流光 */
 html[data-theme] .paste-assist.ai-reading { position:relative; overflow:hidden; }
 html[data-theme] .paste-assist.ai-reading textarea { border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); }
@@ -12107,6 +12121,7 @@ function ensureAppSelectPopover() {
   appSelectPopover.className = 'app-select-popover';
   appSelectPopover.setAttribute('role', 'listbox');
   appSelectPopover.hidden = true;
+  appSelectPopover.addEventListener('wheel', stopMenuWheelAtEdge, { passive:false });
   document.body.append(appSelectPopover);
   return appSelectPopover;
 }
@@ -12432,6 +12447,7 @@ function ensureSuggestMenu() {
   suggestMenu.id = 'suggestMenu';
   suggestMenu.setAttribute('role', 'listbox');
   suggestMenu.hidden = true;
+  suggestMenu.addEventListener('wheel', stopMenuWheelAtEdge, { passive:false });
   // 点菜单（含滚动条）不让文本框失焦。
   suggestMenu.addEventListener('mousedown', e => e.preventDefault());
   suggestMenu.addEventListener('click', e => {
@@ -17654,10 +17670,13 @@ function preventModalScrollChaining(event) {
   event.preventDefault();
 }
 const modalScrollLockObserver = new MutationObserver(syncModalScrollLock);
+// 能拦滚轮（passive:false）的监听只挂在弹窗层自己身上，不挂 document / window：WebKit 只要页面级有一个能拦的滚轮监听，
+// 页面上每一下滚轮都得先等主线程跑完这些监听才开始滚，主线程一忙就一顿一顿的。挂在元素上只管那块地方，
+// 弹窗关着（display:none）时这块地方不存在，页面滚动完全不经过主线程。scripts/test-scroll-smooth-ui.js 守着这条。
 document.querySelectorAll('.modal-backdrop').forEach(modal => {
   modalScrollLockObserver.observe(modal, { attributes:true, attributeFilter:['class'] });
+  modal.addEventListener('wheel', preventModalScrollChaining, { capture:true, passive:false });
 });
-document.addEventListener('wheel', preventModalScrollChaining, { capture:true, passive:false });
 syncModalScrollLock();
 // 点弹窗/抽屉外面的灰色背景才关闭：按下和松开都要落在背景本身。在输入框里拖选文字、松手时滑到了背景上，
 // 浏览器会把 click 派给两者的共同父层（也就是背景），以前会直接关掉弹窗，没保存的内容就丢了。
@@ -31556,12 +31575,13 @@ function menuAnchorsInside(target) {
   if (activeClientPicker) activeClientPicker._clientMenuAnchor = activeClientPicker.querySelector('input[name="client"]')?.getBoundingClientRect() || activeClientPicker._clientMenuAnchor;
   repositionOpenMenus();
 }));
-document.addEventListener('wheel', e => {
+// 菜单滚到头不把滚轮传给底下的页面。挂在每个菜单自己身上（ensureAppSelectPopover、ensureSuggestMenu、客户菜单），不挂 document：见 preventModalScrollChaining 上面的说明。
+function stopMenuWheelAtEdge(e) {
   const menu = e.target.closest?.('.app-select-popover, .suggest-menu, .client-menu.open');
   if (!menu || !e.deltaY) return;
   const atEdge = e.deltaY < 0 ? menu.scrollTop <= 0 : menu.scrollTop + menu.clientHeight >= menu.scrollHeight - 1;
   if (atEdge) e.preventDefault();
-}, { capture:true, passive:false });
+}
 window.addEventListener('scroll', e => {
   if (activeClientPicker) {
     const menu = activeClientPicker.querySelector('.client-menu');
@@ -32419,13 +32439,17 @@ document.addEventListener('mousedown', e => {
   if (e.target.closest?.('.client-menu, .client-trigger')) e.preventDefault();
 }, true);
 // 字母栏横向放不下：鼠标竖向滚轮在字母栏上改成横着滚，滚动时更新两侧的渐隐提示。
-document.addEventListener('wheel', e => {
-  const bar = e.target.closest?.('.client-letter-filter');
-  if (!bar || bar.scrollWidth <= bar.clientWidth || Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
-  e.preventDefault();
-  bar.scrollLeft += e.deltaY;
-  syncClientLetterBar(bar.closest('.client-menu'));
-}, { passive:false });
+// 和菜单到头的拦截一起挂在每个客户菜单自己身上，不挂 document（见 preventModalScrollChaining 上面的说明）。
+document.querySelectorAll('.client-picker .client-menu').forEach(menu => {
+  menu.addEventListener('wheel', stopMenuWheelAtEdge, { passive:false });
+  menu.addEventListener('wheel', e => {
+    const bar = e.target.closest?.('.client-letter-filter');
+    if (!bar || bar.scrollWidth <= bar.clientWidth || Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+    e.preventDefault();
+    bar.scrollLeft += e.deltaY;
+    syncClientLetterBar(bar.closest('.client-menu'));
+  }, { passive:false });
+});
 document.addEventListener('scroll', e => {
   if (e.target?.classList?.contains('client-letter-filter')) syncClientLetterBar(e.target.closest('.client-menu'));
 }, true);

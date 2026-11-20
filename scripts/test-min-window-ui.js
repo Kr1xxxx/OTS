@@ -55,7 +55,9 @@ clients.forEach((client, i) => {
     await page.waitForSelector('.customer-row:not(.head)');
     const table = await page.evaluate(() => {
       const rows = [...document.querySelectorAll('.customer-row:not(.head)')];
-      const cut = rows.flatMap(row => [...row.children[3].querySelectorAll('*')].filter(el => el.scrollWidth > el.clientWidth + 1).map(el => el.textContent.trim()));
+      // 留 3 px 余量：字体（Mac 的苹方、CI 的 Linux 字体）稍有出入时，正好卡边的文字就会被截。
+      const natural = el => { const copy = el.cloneNode(true); copy.style.cssText = 'position:absolute;width:max-content;max-width:none'; el.parentNode.appendChild(copy); const w = copy.getBoundingClientRect().width; copy.remove(); return w; };
+      const cut = rows.flatMap(row => [...row.children[3].querySelectorAll('*')].filter(el => natural(el) + 3 > el.getBoundingClientRect().width).map(el => el.textContent.trim()));
       const scroll = document.querySelector('.customer-table');
       return { rows:rows.length, cut, scrollX:scroll.scrollWidth - scroll.clientWidth };
     });

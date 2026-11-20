@@ -147,7 +147,24 @@ async function main() {
 
     // P1-1 / P1-2: A and B change different orders. B merges A's change and saves; nothing goes read-only.
     assert.equal(await setNote(A, 'o1', 'A 改的 o1'), true);
+    // Hold B's background read of A's save until B has merged and committed its own edit.
+    let delayedRead;
+    await B.route('**/api/data', async route => {
+      if (delayedRead) return route.continue();
+      const response = await route.fetch();
+      delayedRead = () => route.fulfill({ response });
+      await B.evaluate(() => { window.__refreshSnapshotReady = true; });
+    });
+    await B.evaluate(() => {
+      window.macCheckRemoteRevision({ force:true }).then(applied => { window.__refreshApplied = applied; });
+    });
+    await B.waitForFunction(() => window.__refreshSnapshotReady);
     assert.equal(await setNote(B, 'o2', 'B 改的 o2'), true, 'different orders must merge, not conflict');
+    await delayedRead();
+    await B.waitForFunction(() => typeof window.__refreshApplied === 'boolean');
+    await B.unroute('**/api/data');
+    assert.equal(await B.evaluate(() => state.orders.find(o => o.id === 'o2').note), 'B 改的 o2', 'a delayed refresh must preserve the newer committed edit');
+    assert.equal((await status(B)).revision, (await request('/api/revision')).data.revision);
     assert.equal((await status(B)).readOnly, false);
     await h.waitToast(B, '已合并另一个窗口的修改');
     assert.equal((await dbOrder('o1')).note, 'A 改的 o1');

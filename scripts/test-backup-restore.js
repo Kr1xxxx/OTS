@@ -161,7 +161,8 @@ async function restoreTests(dataDir, request) {
   const damaged = JSON.parse(JSON.stringify(current.data));
   damaged.orders = damaged.orders.filter(order => order.id === 'o2');
   delete damaged.customers['Zero Lead'];
-  const saved = await request('/api/save', { method:'POST', body:{ state:{ data:damaged }, baseRevision:current.revision, customerInference:false } });
+  const damageSave = { state:{ data:damaged }, baseRevision:current.revision, customerInference:false, saveId:'restore-retry-001' };
+  const saved = await request('/api/save', { method:'POST', body:damageSave });
   assert.equal(saved.status, 200, JSON.stringify(saved.data));
   fs.rmSync(attachment);
   const list = (await request('/api/backups')).data;
@@ -190,6 +191,10 @@ async function restoreTests(dataDir, request) {
   const undo = await request('/api/restore-backup', { method:'POST', body:{ name:restored.data.safetyBackup } });
   assert.equal(undo.status, 200, JSON.stringify(undo.data));
   assert.equal((await request('/api/data')).data.data.orders.length, 1);
+  // The safety backup includes damageSave's receipt, but restoring it starts a new revision.
+  const retry = await request('/api/save', { method:'POST', body:damageSave });
+  assert.equal(retry.status, 409, 'a receipt from a restored snapshot cannot confirm a save at the new revision');
+  assert.equal((await request('/api/revision')).data.revision, undo.data.revision);
   return good.data.name;
 }
 
@@ -237,6 +242,27 @@ async function newMacTests(sourceDir, backupName) {
   }
 }
 
+async function restoreWalBackup(dataDir, request, backupName) {
+  const mainFile = path.join(dataDir, 'wal-fixture.sqlite');
+  const rawName = 'trade-order-data-20260101-121212-before-restore.sqlite';
+  const rawFile = path.join(dataDir, 'backups', rawName);
+  fs.copyFileSync(path.join(dataDir, 'backups', backupName), mainFile);
+  const db = new DatabaseSync(mainFile);
+  try {
+    db.exec('PRAGMA journal_mode=WAL; PRAGMA wal_autocheckpoint=0');
+    db.prepare('DELETE FROM orders WHERE id = ?').run('o3');
+    // As in the recovery path for a database that could not open, retain the main file and WAL together.
+    fs.copyFileSync(mainFile, rawFile);
+    fs.copyFileSync(mainFile + '-wal', rawFile + '-wal');
+  } finally { db.close(); }
+  const preview = await request('/api/backup-preview', { method:'POST', body:{ name:rawName } });
+  assert.equal(preview.data.counts.orders, 2);
+  const restored = await request('/api/restore-backup', { method:'POST', body:{ name:rawName } });
+  assert.equal(restored.status, 200, JSON.stringify(restored.data));
+  const after = (await request('/api/data')).data;
+  assert.deepEqual(after.data.orders.map(order => order.id).sort(), ['o1', 'o2'], 'restore must include the committed WAL changes shown in the preview');
+}
+
 (async () => {
   const dataDir = seedDir('ots-backup-restore-');
   const port = freePortSync();
@@ -248,6 +274,7 @@ async function newMacTests(sourceDir, backupName) {
     await validationTests(request);
     await rotationTests(dataDir, request);
     const backupName = await restoreTests(dataDir, request);
+    await restoreWalBackup(dataDir, request, backupName);
     await newMacTests(dataDir, backupName);
     console.log('Backup and restore tests passed: 4xx validation, tiered retention, restore with a safety snapshot and attachments, restore after an identity mismatch.');
   } finally {

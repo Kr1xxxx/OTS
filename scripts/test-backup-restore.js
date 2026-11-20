@@ -28,8 +28,8 @@ const fixture = () => ({
   doneTasks:{}, demoCleared:true, demoCustomersCleared:true, paymentMethods:['自定义收款A']
 });
 
-function startServer(dataDir, port) {
-  return spawn(process.execPath, [path.join(root, 'mac-app', 'server.js')], {
+function startServer(dataDir, port, nodeArgs = []) {
+  return spawn(process.execPath, [...nodeArgs, path.join(root, 'mac-app', 'server.js')], {
     env:{ ...process.env, TRADE_APP_PORT:String(port), TRADE_APP_DATA_DIR:dataDir, TRADE_API_TOKEN:token, TRADE_APP_NO_OPEN:'1', TRADE_EXPORT_DIR:path.join(dataDir, '__downloads'), TRADE_EXPORT_NO_REVEAL:'1' },
     stdio:'ignore'
   });
@@ -202,10 +202,52 @@ async function newMacTests(sourceDir, backupName) {
   // 「新 Mac」：全新数据目录，App 第一次打开生成自己的数据库和身份标记。
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ots-restore-newmac-'));
   const port = freePortSync();
-  let child = startServer(dir, port);
+  // Fail the first staging-file rename after the old database has already been closed and moved.
+  const fault = path.join(dir, 'fail-restore-rename.cjs');
+  fs.writeFileSync(fault, `
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const rename = fs.renameSync;
+    fs.renameSync = function (from, to) {
+      if (path.basename(from).startsWith('.restore-') && path.basename(to) === 'trade-order-system.sqlite') {
+        fs.renameSync = rename;
+        throw new Error('simulated staging rename failure');
+      }
+      return rename(from, to);
+    };
+  `);
+  let child = startServer(dir, port, ['--require', fault]);
   const request = client(port);
   try {
     await waitForHealth(request);
+    const backupPath = path.join(dir, 'backups', backupName);
+    fs.copyFileSync(path.join(sourceDir, 'backups', backupName), backupPath);
+    const restore = () => request('/api/restore-backup', { method:'POST', body:{ name:backupName } });
+    const original = (await request('/api/data')).data;
+    const markerPath = path.join(dir, 'sqlite-storage.json');
+    const originalId = JSON.parse(fs.readFileSync(markerPath)).databaseId;
+    async function assertOriginal() {
+      assert.equal((await request('/api/health')).data.storageMode, 'sqlite', 'original database must reopen after a failed restore');
+      assert.deepEqual((await request('/api/data')).data.data, original.data);
+      assert.equal((await request('/api/revision')).data.revision, original.revision);
+      assert.equal(JSON.parse(fs.readFileSync(markerPath)).databaseId, originalId);
+    }
+    const failedInstall = await restore();
+    assert.equal(failedInstall.status, 500);
+    assert.match(failedInstall.data.message, /simulated staging rename failure/);
+    await assertOriginal();
+
+    // A stale diagnostic path that cannot be removed makes restoration fail after switching database ids.
+    const diagnosticPath = path.join(dir, 'migration-error.json');
+    fs.mkdirSync(diagnosticPath);
+    const failedFinalize = await restore();
+    assert.equal(failedFinalize.status, 500);
+    await assertOriginal();
+    fs.rmdirSync(diagnosticPath);
+    await stopServer(child);
+    child = startServer(dir, port);
+    await waitForHealth(request);
+    await assertOriginal();
     await stopServer(child);
     // 手动把备份放回去（报告 P1-6 (b)）：身份标记对不上，只读保护。
     fs.copyFileSync(path.join(sourceDir, 'backups', backupName), path.join(dir, 'trade-order-system.sqlite'));

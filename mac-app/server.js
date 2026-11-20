@@ -1462,16 +1462,10 @@ function mergeBackupAttachments(sourceDir) {
   walk(sourceDir);
   return copied;
 }
-function moveDatabaseFiles(from, to) {
-  ['', '-wal', '-shm'].forEach(suffix => {
-    if (fs.existsSync(from + suffix)) fs.renameSync(from + suffix, to + suffix);
-  });
-}
 function restoreFromBackup(name) {
   ensureStorage();
   const source = resolveBackupFile(name);
   const staging = path.join(supportDir, `.restore-${process.pid}-${crypto.randomBytes(4).toString('hex')}.sqlite`);
-  let displaced = '';
   try {
     if (fs.existsSync(source + '-wal')) {
       // 只读保护下留的原始快照分成主文件和 WAL。让 SQLite 把已提交的两部分一起写进待恢复文件。
@@ -1509,11 +1503,20 @@ function restoreFromBackup(name) {
     subscriptionStoreCache = null;
     integrityCache = null;
     storageMode = 'restoring';
-    displaced = `${databaseFile}.replaced-${process.pid}-${Date.now()}`;
-    moveDatabaseFiles(databaseFile, displaced);
-    fs.renameSync(staging, databaseFile);
+    const liveFiles = [databaseFile, databaseFile + '-wal', databaseFile + '-shm', storageMarkerFile];
+    const rollbackSuffix = `.replaced-${crypto.randomUUID()}`;
+    const movedFiles = [];
+    let replacementInstalled = false;
     let revision = 0;
     try {
+      // 主文件、日志和身份标记一起回滚。只记录已经成功移走的文件。
+      for (const file of liveFiles) {
+        if (!fs.existsSync(file)) continue;
+        fs.renameSync(file, file + rollbackSuffix);
+        movedFiles.push(file);
+      }
+      fs.renameSync(staging, databaseFile);
+      replacementInstalled = true;
       database = new DatabaseSync(databaseFile);
       createDatabaseSchema();
       const integrity = databaseIntegrity();
@@ -1525,7 +1528,6 @@ function restoreFromBackup(name) {
       setMetadata('restored_from', name);
       setMetadata('restored_at', new Date().toISOString());
       // 4. 用户明确选了这份备份：身份标记换成它的数据库 id，不再被「identity does not match」拦下。
-      fs.rmSync(storageMarkerFile, { force:true });
       writeStorageMarker();
       storageRevision = revision;
       storageMode = 'sqlite';
@@ -1538,14 +1540,26 @@ function restoreFromBackup(name) {
     } catch (error) {
       try { database?.close(); } catch (_) {}
       database = null;
-      ['', '-wal', '-shm'].forEach(suffix => fs.rmSync(databaseFile + suffix, { force:true }));
-      moveDatabaseFiles(displaced, databaseFile);
-      displaced = '';
-      initializeStorage();
+      storageMode = 'error';
+      try {
+        if (replacementInstalled) {
+          // 没移走的文件若此时存在，就是新库创建的。原有文件由 rename 原子覆盖回来。
+          for (const file of liveFiles) {
+            if (!movedFiles.includes(file)) fs.rmSync(file, { force:true });
+          }
+        }
+        for (const file of movedFiles) fs.renameSync(file + rollbackSuffix, file);
+        initializeStorage();
+      } catch (rollbackError) {
+        storageError = `恢复失败，原数据库回滚未完成：${rollbackError.message || rollbackError}`;
+        throw httpError(500, storageError);
+      }
       throw httpError(500, `恢复没有完成，数据保持原样：${error.message || error}`);
     }
-    ['', '-wal', '-shm'].forEach(suffix => fs.rmSync(displaced + suffix, { force:true }));
-    displaced = '';
+    for (const file of movedFiles) {
+      try { fs.rmSync(file + rollbackSuffix, { force:true }); }
+      catch (error) { console.warn(`Restore completed; could not remove ${file + rollbackSuffix}: ${error.message}`); }
+    }
     // 5. 附件并回来，已有的同名文件不覆盖。
     let restoredAttachments = 0;
     try { restoredAttachments = mergeBackupAttachments(source + '.attachments'); } catch (_) {}

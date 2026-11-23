@@ -32,8 +32,20 @@ const passesDone = page => page.waitForFunction(() => pendingScrollResets.size =
     await page.mouse.move(700, 400);
     await page.evaluate(() => setPage('dashboard'));
     await passesDone(page);
-    await page.evaluate(() => setPage('customers'));
+    // page.mouse.wheel resolves before the page has handled the event: on a busy machine the wheel arrived
+    // after the 80 ms pass had already put the page back from 300 to 0, and the test failed on its own timing
+    // (CI 2026-11-20 and 2026-11-23). So wait until the page has seen the wheel, then scroll. The listener is
+    // added after the page's own, so it runs once the passes are cancelled; it notes when the wheel came, and
+    // the wheel has to come while the 240 ms pass is still pending, or this step would prove nothing.
+    await page.evaluate(() => {
+      let start = 0;
+      window.testWheelSeen = new Promise(resolve => window.addEventListener('wheel', () => resolve(performance.now() - start), { capture:true, once:true, passive:true }));
+      setPage('customers');
+      start = performance.now();
+    });
     await page.mouse.wheel(0, 40);
+    const wheelAfter = await page.evaluate(() => window.testWheelSeen);
+    assert.ok(wheelAfter < 240, `the wheel reached the page while the late passes were pending (${Math.round(wheelAfter)} ms)`);
     await page.evaluate(() => { document.scrollingElement.scrollTop = 300; });
     // Proving the page is not put back: the late passes would come 80 and 240 ms after the page change.
     // (Waiting for pendingScrollResets to empty would not show it: the user's input empties it at once.)
